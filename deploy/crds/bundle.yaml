@@ -2314,7 +2314,7 @@ spec:
                                   type: object
                                 accessType:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -2342,7 +2342,7 @@ spec:
                                   type: object
                                 accessTypeParam:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -2522,7 +2522,7 @@ spec:
                               description: AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -3851,7 +3851,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -4014,7 +4014,7 @@ spec:
                           properties:
                             privateKey:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -4237,7 +4237,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4271,7 +4271,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4299,7 +4299,7 @@ spec:
                                   type: object
                                 resource:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4333,7 +4333,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4361,7 +4361,7 @@ spec:
                                   type: object
                                 serviceAccountKeyFilePath:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4396,7 +4396,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4430,7 +4430,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4458,7 +4458,7 @@ spec:
                                   type: object
                                 jwt:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4493,7 +4493,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4521,7 +4521,7 @@ spec:
                                   type: object
                                 serviceAccountTokenPath:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4555,7 +4555,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4583,7 +4583,7 @@ spec:
                                   type: object
                                 ldapPassword:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4611,7 +4611,7 @@ spec:
                                   type: object
                                 ldapUsername:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4647,7 +4647,7 @@ spec:
                               properties:
                                 fingerprint:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4675,7 +4675,7 @@ spec:
                                   type: object
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4703,7 +4703,7 @@ spec:
                                   type: object
                                 privateKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4731,7 +4731,7 @@ spec:
                                   type: object
                                 privateKeyPassphrase:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4759,7 +4759,7 @@ spec:
                                   type: object
                                 region:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4787,7 +4787,7 @@ spec:
                                   type: object
                                 tenancyId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4815,7 +4815,7 @@ spec:
                                   type: object
                                 userId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4854,7 +4854,7 @@ spec:
                               properties:
                                 accessToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4888,7 +4888,7 @@ spec:
                               properties:
                                 clientId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4916,7 +4916,7 @@ spec:
                                   type: object
                                 clientSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4985,7 +4985,7 @@ spec:
                       properties:
                         authRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -5030,7 +5030,7 @@ spec:
                               properties:
                                 clientCert:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -5058,7 +5058,7 @@ spec:
                                   type: object
                                 clientKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -5118,7 +5118,7 @@ spec:
                               properties:
                                 bearerToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -5566,7 +5566,7 @@ spec:
                           properties:
                             passwordSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -5594,7 +5594,7 @@ spec:
                               type: object
                             privateKeySecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -5961,7 +5961,7 @@ spec:
                               type: string
                             clientSecretSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -6166,7 +6166,7 @@ spec:
                                   description: Specify a service account with IRSA enabled
                                   properties:
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -6791,7 +6791,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -6819,7 +6819,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -6999,7 +6999,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -7088,7 +7088,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -7419,7 +7419,7 @@ spec:
                                   type: object
                                 accessType:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -7447,7 +7447,7 @@ spec:
                                   type: object
                                 accessTypeParam:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -7627,7 +7627,7 @@ spec:
                               description: AWSJWTAuth authenticates against AWS using service account tokens from the Kubernetes cluster.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -8919,7 +8919,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -8969,7 +8969,7 @@ spec:
                           properties:
                             privateKey:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -9192,7 +9192,7 @@ spec:
                               properties:
                                 clientId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9220,7 +9220,7 @@ spec:
                                   type: object
                                 clientSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9289,7 +9289,7 @@ spec:
                       properties:
                         authRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -9334,7 +9334,7 @@ spec:
                               properties:
                                 clientCert:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9362,7 +9362,7 @@ spec:
                                   type: object
                                 clientKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9422,7 +9422,7 @@ spec:
                               properties:
                                 bearerToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -10200,7 +10200,7 @@ spec:
                               type: string
                             clientSecretSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -10405,7 +10405,7 @@ spec:
                                   description: Specify a service account with IRSA enabled
                                   properties:
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -11018,7 +11018,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -11046,7 +11046,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -11226,7 +11226,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -11297,7 +11297,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -13415,7 +13415,7 @@ spec:
                                   type: object
                                 accessType:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -13443,7 +13443,7 @@ spec:
                                   type: object
                                 accessTypeParam:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -13623,7 +13623,7 @@ spec:
                               description: AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -14952,7 +14952,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -15115,7 +15115,7 @@ spec:
                           properties:
                             privateKey:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -15338,7 +15338,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15372,7 +15372,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15400,7 +15400,7 @@ spec:
                                   type: object
                                 resource:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15434,7 +15434,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15462,7 +15462,7 @@ spec:
                                   type: object
                                 serviceAccountKeyFilePath:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15497,7 +15497,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15531,7 +15531,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15559,7 +15559,7 @@ spec:
                                   type: object
                                 jwt:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15594,7 +15594,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15622,7 +15622,7 @@ spec:
                                   type: object
                                 serviceAccountTokenPath:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15656,7 +15656,7 @@ spec:
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15684,7 +15684,7 @@ spec:
                                   type: object
                                 ldapPassword:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15712,7 +15712,7 @@ spec:
                                   type: object
                                 ldapUsername:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15748,7 +15748,7 @@ spec:
                               properties:
                                 fingerprint:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15776,7 +15776,7 @@ spec:
                                   type: object
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15804,7 +15804,7 @@ spec:
                                   type: object
                                 privateKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15832,7 +15832,7 @@ spec:
                                   type: object
                                 privateKeyPassphrase:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15860,7 +15860,7 @@ spec:
                                   type: object
                                 region:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15888,7 +15888,7 @@ spec:
                                   type: object
                                 tenancyId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15916,7 +15916,7 @@ spec:
                                   type: object
                                 userId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15955,7 +15955,7 @@ spec:
                               properties:
                                 accessToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15989,7 +15989,7 @@ spec:
                               properties:
                                 clientId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16017,7 +16017,7 @@ spec:
                                   type: object
                                 clientSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16086,7 +16086,7 @@ spec:
                       properties:
                         authRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -16131,7 +16131,7 @@ spec:
                               properties:
                                 clientCert:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16159,7 +16159,7 @@ spec:
                                   type: object
                                 clientKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16219,7 +16219,7 @@ spec:
                               properties:
                                 bearerToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16667,7 +16667,7 @@ spec:
                           properties:
                             passwordSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -16695,7 +16695,7 @@ spec:
                               type: object
                             privateKeySecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -17062,7 +17062,7 @@ spec:
                               type: string
                             clientSecretSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -17267,7 +17267,7 @@ spec:
                                   description: Specify a service account with IRSA enabled
                                   properties:
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -17892,7 +17892,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -17920,7 +17920,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -18100,7 +18100,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -18189,7 +18189,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -18520,7 +18520,7 @@ spec:
                                   type: object
                                 accessType:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -18548,7 +18548,7 @@ spec:
                                   type: object
                                 accessTypeParam:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -18728,7 +18728,7 @@ spec:
                               description: AWSJWTAuth authenticates against AWS using service account tokens from the Kubernetes cluster.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -20020,7 +20020,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -20070,7 +20070,7 @@ spec:
                           properties:
                             privateKey:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -20293,7 +20293,7 @@ spec:
                               properties:
                                 clientId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -20321,7 +20321,7 @@ spec:
                                   type: object
                                 clientSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -20390,7 +20390,7 @@ spec:
                       properties:
                         authRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -20435,7 +20435,7 @@ spec:
                               properties:
                                 clientCert:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -20463,7 +20463,7 @@ spec:
                                   type: object
                                 clientKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -20523,7 +20523,7 @@ spec:
                               properties:
                                 bearerToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -21301,7 +21301,7 @@ spec:
                               type: string
                             clientSecretSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -21506,7 +21506,7 @@ spec:
                                   description: Specify a service account with IRSA enabled
                                   properties:
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -22119,7 +22119,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -22147,7 +22147,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -22327,7 +22327,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -22398,7 +22398,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -22902,7 +22902,7 @@ spec:
                               description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -23096,7 +23096,7 @@ spec:
                                 clusterProjectID:
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -23262,7 +23262,7 @@ spec:
                               properties:
                                 secretRef:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -23556,7 +23556,7 @@ spec:
                               description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -23884,7 +23884,7 @@ spec:
                                       description: Specify a service account with IRSA enabled
                                       properties:
                                         serviceAccountRef:
-                                          description: A reference to a ServiceAccount resource.
+                                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                           properties:
                                             audiences:
                                               description: |-
@@ -24536,7 +24536,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -24564,7 +24564,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -24778,7 +24778,7 @@ spec:
                       description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                       properties:
                         serviceAccountRef:
-                          description: A reference to a ServiceAccount resource.
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                           properties:
                             audiences:
                               description: |-
@@ -25072,7 +25072,7 @@ spec:
                         clusterProjectID:
                           type: string
                         serviceAccountRef:
-                          description: A reference to a ServiceAccount resource.
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                           properties:
                             audiences:
                               description: |-
@@ -25394,7 +25394,7 @@ spec:
                       properties:
                         secretRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -25983,7 +25983,7 @@ spec:
                       description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                       properties:
                         serviceAccountRef:
-                          description: A reference to a ServiceAccount resource.
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                           properties:
                             audiences:
                               description: |-
@@ -26407,7 +26407,7 @@ spec:
                               description: Specify a service account with IRSA enabled
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -27111,7 +27111,7 @@ spec:
                       properties:
                         passwordSecret:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -27139,7 +27139,7 @@ spec:
                           type: object
                         usernameSecret:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:

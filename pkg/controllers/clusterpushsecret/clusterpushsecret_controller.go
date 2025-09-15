@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package clusterpushsecret implements a controller for managing ClusterPushSecret resources,
+// which allow pushing secrets to external systems across multiple namespaces.
 package clusterpushsecret
 
 import (
@@ -62,6 +64,9 @@ const (
 	errNamespacesFailed     = "one or more namespaces failed"
 )
 
+// Reconcile handles the reconciliation loop for ClusterPushSecret resources.
+// It ensures that PushSecrets are created in selected namespaces according to the
+// ClusterPushSecret specification and maintains their status.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterPushSecret", req.NamespacedName)
 
