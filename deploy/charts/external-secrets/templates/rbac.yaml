@@ -99,6 +99,8 @@ rules:
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
+    - "dexusernamepasswords"
+    - "dextokenexchanges"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
@@ -232,6 +234,8 @@ rules:
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
+    - "dexusernamepasswords"
+    - "dextokenexchanges"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
@@ -295,6 +299,8 @@ rules:
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
+    - "dexusernamepasswords"
+    - "dextokenexchanges"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"

@@ -50,6 +50,8 @@ var (
 	VaultDynamicSecretKind    = reflect.TypeOf(VaultDynamicSecret{}).Name()
 	GithubAccessTokenKind     = reflect.TypeOf(GithubAccessToken{}).Name()
 	QuayAccessTokenKind       = reflect.TypeOf(QuayAccessToken{}).Name()
+	DexUsernamePasswordKind   = reflect.TypeOf(DexUsernamePassword{}).Name()
+	DexTokenExchangeKind      = reflect.TypeOf(DexTokenExchange{}).Name()
 	UUIDKind                  = reflect.TypeOf(UUID{}).Name()
 	GrafanaKind               = reflect.TypeOf(Grafana{}).Name()
 	MFAKind                   = reflect.TypeOf(MFA{}).Name()
@@ -76,6 +78,8 @@ func init() {
 
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
 	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
+	SchemeBuilder.Register(&DexUsernamePassword{}, &DexUsernamePasswordList{})
+	SchemeBuilder.Register(&DexTokenExchange{}, &DexTokenExchangeList{})
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
