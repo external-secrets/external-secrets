@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	previderclient "github.com/previder/vault-cli/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,6 +36,7 @@ var _ esv1.Provider = &SecretManager{}
 
 type SecretManager struct {
 	VaultClient previderclient.PreviderVaultClient
+	TokenType   string
 }
 
 func init() {
@@ -111,11 +111,11 @@ func (s *SecretManager) SecretExists(ctx context.Context, remoteRef esv1.PushSec
 }
 
 func (s *SecretManager) Validate() (esv1.ValidationResult, error) {
-	_, err := s.VaultClient.GetSecrets()
+	tokenInfo, err := s.VaultClient.GetTokenInfo()
 	if err != nil {
 		return esv1.ValidationResultError, err
 	}
-
+	s.TokenType = tokenInfo.TokenType
 	return esv1.ValidationResultReady, nil
 }
 

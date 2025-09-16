@@ -109,7 +109,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.3
 	github.com/passbolt/go-passbolt v0.7.2
-	github.com/previder/vault-cli v0.1.2
+	github.com/previder/vault-cli v0.1.3
 	github.com/pulumi/esc-sdk/sdk v0.12.1
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.34
 	github.com/sethvargo/go-password v0.3.1
