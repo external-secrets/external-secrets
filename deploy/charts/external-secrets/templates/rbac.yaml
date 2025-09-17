@@ -96,6 +96,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
@@ -229,6 +230,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
@@ -292,6 +294,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
