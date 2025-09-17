@@ -62,6 +62,13 @@ func (s *SecretManager) NewClient(ctx context.Context, store esv1.GenericStore, 
 	if err != nil {
 		return nil, err
 	}
+
+	tokenInfo, err := s.VaultClient.GetTokenInfo()
+	if err != nil {
+		return nil, err
+	}
+	s.TokenType = tokenInfo.TokenType
+
 	return s, nil
 }
 
@@ -111,11 +118,10 @@ func (s *SecretManager) SecretExists(ctx context.Context, remoteRef esv1.PushSec
 }
 
 func (s *SecretManager) Validate() (esv1.ValidationResult, error) {
-	tokenInfo, err := s.VaultClient.GetTokenInfo()
+	_, err := s.VaultClient.GetTokenInfo()
 	if err != nil {
 		return esv1.ValidationResultError, err
 	}
-	s.TokenType = tokenInfo.TokenType
 	return esv1.ValidationResultReady, nil
 }
 
