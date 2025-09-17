@@ -40,11 +40,7 @@ jobs:
         reaction-token: ${{ secrets.GITHUB_TOKEN }}
         issue-type: pull-request
         commands: lgtm
-        # QUESTION FOR REVIEWER: If I've understood correctly, we're limitted by the following 6 repo permission levels
-        # none, read, triage, write, maintain and admin.
-        # potentially you'll want to give 'triage' to the reviewers and that further hardens this workflow.
-        # Obviously we still have permission checks in the workflow itself, but would be nice to have this extra level of security.
-        permission: none
+        permission: none # anyone can use the command, but permissions are checked in the workflow itself.
 
     - name: Process LGTM Command
       if: ${{ github.event.comment.body == '/lgtm' }}
