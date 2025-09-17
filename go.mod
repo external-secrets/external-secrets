@@ -114,6 +114,7 @@ require (
 	github.com/sethvargo/go-password v0.3.1
 	github.com/spf13/pflag v1.0.10
 	github.com/tidwall/sjson v1.2.5
+	github.com/volcengine/volcengine-go-sdk v1.1.33
 	gitlab.com/gitlab-org/api/client-go v0.144.1
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 	sigs.k8s.io/yaml v1.6.0
@@ -243,6 +244,7 @@ require (
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/texttheater/golang-levenshtein v1.0.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
+	github.com/volcengine/volc-sdk-golang v1.0.23 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect

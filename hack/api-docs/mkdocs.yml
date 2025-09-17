@@ -152,6 +152,7 @@ nav:
       - Infisical: provider/infisical.md
       - Previder: provider/previder.md
       - OpenBao: provider/openbao.md
+      - Volcengine: provider/volcengine.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
