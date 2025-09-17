@@ -20,13 +20,14 @@ jobs:
           const prNumber = context.payload.pull_request.number;
           const owner = context.repo.owner;
           const repo = context.repo.repo;
+          const labelName = 'lgtm';
           
           // Check if LGTM label exists
           const labels = await github.rest.issues.listLabelsOnIssue({
             owner, repo, issue_number: prNumber
           });
           
-          const hasLGTM = labels.data.some(l => l.name === 'lgtm');
+          const hasLGTM = labels.data.some(l => l.name === labelName);
           if (!hasLGTM) {
             console.log('No LGTM label found, nothing to remove');
             return;
@@ -35,19 +36,10 @@ jobs:
           // Remove LGTM label
           try {
             await github.rest.issues.removeLabel({
-              owner, repo, issue_number: prNumber, name: 'lgtm'
+              owner, repo, issue_number: prNumber, name: labelName
             });
             console.log('LGTM label removed');
           } catch (error) {
             console.log('Failed to remove LGTM label:', error.message);
             return;
           }
-          
-          // Add comment to notify about removal
-          await github.rest.issues.createComment({
-            owner, repo, issue_number: prNumber,
-            body: '🔄 LGTM label removed due to PR update. Re-approval required.'
-          });
-        # QUESTION FOR REVIEWER: Adding this comment might be overkill because 
-        # you already seen the label having been removed in the timeline, let 
-        # me know if you think it should be removed. 
