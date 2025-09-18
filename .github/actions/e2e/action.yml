@@ -24,18 +24,12 @@ runs:
         echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v3
+      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
       with:
-        path: ${{ steps.go.outputs.build-cache }}
-        key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
-
-    - name: Cache Go Dependencies
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go.outputs.mod-cache }}
-        key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+        path: |
+          ${{ steps.go.outputs.build-cache }}
+          ${{ steps.go.outputs.mod-cache }}
+        key: "${{ runner.os }}-go-${{ hashFiles('go.mod') }}-${{ env.GO_CACHE_DATE }}"
 
     - name: Setup kind
       uses: engineerd/setup-kind@v0.5.0
@@ -51,18 +45,8 @@ runs:
         version: ${{ env.DOCKER_BUILDX_VERSION }}
         install: true
 
-    - name: run go mod tidy
-      shell: bash
-      run: |
-        go install github.com/onsi/ginkgo/v2/ginkgo@${{ env.GINKGO_VERSION }}
-        go version
-        ginkgo version
-        cd e2e && go mod tidy && git status && git diff
     - name: Run e2e Tests
       shell: bash
       env:
         DOCKER_BUILD_ARGS: --load
-      run: |
-        export PATH=$PATH:$(go env GOPATH)/bin
-        go install github.com/onsi/ginkgo/v2/ginkgo@${{ env.GINKGO_VERSION }}
-        make test.e2e
+      run: make test.e2e

@@ -25,8 +25,8 @@ import (
 	"path/filepath"
 	"time"
 
-	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta1"
-	fluxsrc "github.com/fluxcd/source-controller/api/v1beta2"
+	fluxhelm "github.com/fluxcd/helm-controller/api/v2"
+	fluxsrc "github.com/fluxcd/source-controller/api/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

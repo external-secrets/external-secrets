@@ -8,8 +8,8 @@ on:
 
 env:
   # Common versions
-  GOLANGCI_VERSION: 'v2.1.6'
-  KUBERNETES_VERSION: '1.31.x'
+  GOLANGCI_VERSION: 'v2.4.0'
+  KUBERNETES_VERSION: '1.33.x'
 
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -138,16 +138,19 @@ jobs:
         id: setup-go
         with:
           go-version-file: "go.mod"
+      
+      - name: Cache the Go Build Cache
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ${{ steps.go.outputs.build-cache }}
+            ${{ steps.go.outputs.mod-cache }}
+            bin/k8s
+          key: "${{ runner.os }}-go-${{ hashFiles('go.mod') }}-${{ env.GO_CACHE_DATE }}"
 
       - name: Download Go modules
         if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
-
-      - name: Cache envtest binaries
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        with:
-          path: bin/k8s
-          key: ${{ runner.os }}-envtest-${{env.KUBERNETES_VERSION}}
 
       - name: Run Unit Tests
         run: |

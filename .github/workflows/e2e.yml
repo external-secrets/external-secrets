@@ -10,8 +10,7 @@ name: e2e tests
 
 env:
   # Common versions
-  GO_VERSION: '1.24'
-  GINKGO_VERSION: 'v2.8.0'
+  GO_VERSION: '1.25'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.30.0'
   KIND_IMAGE: 'kindest/node:v1.33.4'

@@ -33,7 +33,7 @@ import (
 
 const (
 	helmChartRevision = "0.0.0-e2e"
-	fluxManifests     = "https://github.com/fluxcd/flux2/releases/download/v0.29.3/install.yaml"
+	fluxManifests     = "https://github.com/fluxcd/flux2/releases/download/v2.6.4/install.yaml"
 )
 
 func installFlux() {
