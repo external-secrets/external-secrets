@@ -340,6 +340,11 @@ type ExternalSecretRewriteMerge struct {
 	// +optional
 	Priority []string `json:"priority,omitempty"`
 
+	// Used to define the policy when a key in the priority list does not exist in the input.
+	// +optional
+	// +kubebuilder:default="Strict"
+	PriorityPolicy ExternalSecretRewriteMergePriorityPolicy `json:"priorityPolicy,omitempty"`
+
 	// Used to define the policy to use in conflict resolution.
 	// +optional
 	// +kubebuilder:default="Error"
@@ -356,6 +361,13 @@ type ExternalSecretRewriteMergeConflictPolicy string
 const (
 	ExternalSecretRewriteMergeConflictPolicyIgnore ExternalSecretRewriteMergeConflictPolicy = "Ignore"
 	ExternalSecretRewriteMergeConflictPolicyError  ExternalSecretRewriteMergeConflictPolicy = "Error"
+)
+
+type ExternalSecretRewriteMergePriorityPolicy string
+
+const (
+	ExternalSecretRewriteMergePriorityPolicyIgnoreNotFound ExternalSecretRewriteMergePriorityPolicy = "IgnoreNotFound"
+	ExternalSecretRewriteMergePriorityPolicyStrict         ExternalSecretRewriteMergePriorityPolicy = "Strict"
 )
 
 type ExternalSecretRewriteMergeStrategy string

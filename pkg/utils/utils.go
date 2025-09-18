@@ -164,6 +164,9 @@ func merge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map
 	for _, key := range keys {
 		value, exists := in[key]
 		if !exists {
+			if operation.PriorityPolicy == esv1.ExternalSecretRewriteMergePriorityPolicyIgnoreNotFound {
+				continue
+			}
 			return nil, nil, fmt.Errorf("merge failed with key %q not found in input map", key)
 		}
 		var jsonMap map[string]any
