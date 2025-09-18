@@ -367,13 +367,8 @@ webhook:
     # -- The flavour of tag you want to use
     flavour: ""
   imagePullSecrets: []
-  nameOverride: ""
-  fullnameOverride: ""
   # -- The port the webhook will listen to
   port: 10250
-  rbac:
-  # -- Specifies whether role and rolebinding resources should be created.
-    create: true
   serviceAccount:
     # -- Specifies whether a service account should be created.
     create: true
@@ -548,8 +543,6 @@ certController:
     tag: ""
     flavour: ""
   imagePullSecrets: []
-  nameOverride: ""
-  fullnameOverride: ""
   rbac:
   # -- Specifies whether role and rolebinding resources should be created.
     create: true
