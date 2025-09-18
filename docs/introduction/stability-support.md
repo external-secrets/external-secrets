@@ -36,6 +36,24 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 | 0.4.x       | 1.16 → 1.24        | Feb 2, 2022    | Oct 9, 2022     |
 | 0.3.x       | 1.16 → 1.24        | Jul 25, 2021   | Apr 6, 2022     |
 
+## Upgrading
+
+External Secrets Operator has not reached stable 1.0 yet. This means that **we treat each minor version bump as a potentially breaking change**. Breaking changes may include:
+
+- API schema changes
+- Default behavior modifications
+- Deprecated feature removals
+- Provider authentication changes
+- Configuration format updates
+
+**Important upgrade recommendations:**
+
+1. **Plan your upgrades carefully** - Always review release notes before upgrading, it could contain breaking changes information
+2. **Upgrade version by version** - We strongly recommend upgrading one minor version at a time (e.g., 0.18.x → 0.19.x → 0.20.x) rather than skipping versions
+3. **Test in non-production first** - Always validate upgrades in development/staging environments
+
+Until we reach v1.0, please treat minor version upgrades with the same caution you would give to major version upgrades in other projects.
+
 ## Provider Stability and Support Level
 
 The following table describes the stability level of each provider and who's responsible.
@@ -72,6 +90,7 @@ The following table describes the stability level of each provider and who's res
 | [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         | alpha     | [@skarlso](https://github.com/Skarlso)                                                              |
 | [Previder](https://external-secrets.io/latest/provider/previder)                                           | stable    | [@previder](https://github.com/previder)                                                            |
 | [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            | alpha     | [@default23](https://github.com/default23)                                                          |
+| [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       | alpha     | [@kevinyancn](https://github.com/kevinyancn)                                                        |
 
 
 ## Provider Feature Support
@@ -110,6 +129,7 @@ The following table show the support for features across different providers.
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
+| Volcengine                |              |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 
