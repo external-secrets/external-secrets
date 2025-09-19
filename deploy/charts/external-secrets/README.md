@@ -45,7 +45,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.extraInitContainers | list | `[]` |  |
 | certController.extraVolumeMounts | list | `[]` |  |
 | certController.extraVolumes | list | `[]` |  |
-| certController.fullnameOverride | string | `""` |  |
 | certController.hostNetwork | bool | `false` | Run the certController on the host network |
 | certController.image.flavour | string | `""` |  |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
@@ -57,7 +56,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | certController.metrics.service.port | int | `8080` | Metrics service port to scrape |
-| certController.nameOverride | string | `""` |  |
 | certController.nodeSelector | object | `{}` |  |
 | certController.podAnnotations | object | `{}` | Annotations to add to Pod |
 | certController.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
@@ -217,7 +215,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.extraVolumeMounts | list | `[]` |  |
 | webhook.extraVolumes | list | `[]` |  |
 | webhook.failurePolicy | string | `"Fail"` | Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore |
-| webhook.fullnameOverride | string | `""` |  |
 | webhook.hostNetwork | bool | `false` | Specifies if webhook pod should use hostNetwork or not. |
 | webhook.image.flavour | string | `""` | The flavour of tag you want to use |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
@@ -230,7 +227,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | webhook.metrics.service.port | int | `8080` | Metrics service port to scrape |
-| webhook.nameOverride | string | `""` |  |
 | webhook.nodeSelector | object | `{}` |  |
 | webhook.podAnnotations | object | `{}` | Annotations to add to Pod |
 | webhook.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
@@ -238,7 +234,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podSecurityContext.enabled | bool | `true` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
-| webhook.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | webhook.readinessProbe.address | string | `""` | Address for readiness probe |
 | webhook.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
 | webhook.replicaCount | int | `1` |  |
