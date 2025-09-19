@@ -379,3 +379,35 @@ spec:
       projectID: my-project
       location: us-east1 # uses regional secrets on us-east1
 ```
+
+## Secret Version Management
+
+### Secret Version Selection Policy
+
+The Google Secret Manager provider includes a `secretVersionSelectionPolicy` field that controls how the provider handles secret version selection when the default "latest" version is unavailable.
+
+By default, when you request a secret without specifying a version, the provider attempts to fetch the "latest" version. The `secretVersionSelectionPolicy` determines what happens if that version is in a DESTROYED or DISABLED state.
+
+#### Available Policies
+
+- **`LatestOrFail`** (default): The provider always uses "latest", or fails if that version is disabled/destroyed.
+- **`LatestOrFetch`**: The provider falls back to fetching the latest enabled version if the "latest" version is DESTROYED or DISABLED.
+
+#### Configuration Example
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: gcp-secret-store
+spec:
+  provider:
+    gcpsm:
+      projectID: my-project
+      location: us-east1
+      secretVersionSelectionPolicy: LatestOrFetch  # or LatestOrFail (default)
+```
+
+**Note**: When using `secretVersionSelectionPolicy: LatestOrFetch`, the service account requires additional permissions to list secret versions. You'll need to grant the `roles/secretmanager.viewer` role (which includes `secretmanager.versions.list`) or the specific `secretmanager.versions.list` permission in addition to the standard `secretmanager.secretAccessor` role.
+
+```
