@@ -146,7 +146,7 @@ func (b *propertyPSBuilder) needUpdate(original []byte) bool {
 		return true
 	}
 
-	val := getDataByProperty(original, b.pushSecretData.GetProperty())
+	val, _ := getDataByProperty(original, b.pushSecretData.GetProperty())
 	return !val.Exists() || val.String() != string(b.payload)
 }
 
