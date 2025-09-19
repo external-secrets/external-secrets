@@ -512,7 +512,10 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
-	val := getDataByProperty(result.Payload.Data, ref.Property)
+	val, err := getDataByProperty(result.Payload.Data, ref.Property)
+	if err != nil {
+		return nil, err
+	}
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
@@ -647,7 +650,10 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-func getDataByProperty(data []byte, property string) gjson.Result {
+func getDataByProperty(data []byte, property string) (gjson.Result, error) {
+	if !json.Valid(data) {
+		return gjson.Result{}, errors.New(errJSONSecretUnmarshal)
+	}
 	var payload string
 	if data != nil {
 		payload = string(data)
@@ -658,10 +664,10 @@ func getDataByProperty(data []byte, property string) gjson.Result {
 		refProperty = strings.ReplaceAll(refProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if val.Exists() {
-			return val
+			return val, nil
 		}
 	}
-	return gjson.Get(payload, property)
+	return gjson.Get(payload, property), nil
 }
 
 func getName(projectID, location, key string) string {
