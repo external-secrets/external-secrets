@@ -151,7 +151,8 @@ func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	err := c.verifyVaultNameStillMatchesID(ctx)
 	if errors.Is(err, errVaultDoesNotExist) {
 		return false, nil
-	} else if err != nil {
+	}
+	if err != nil {
 		return false, err
 	}
 
@@ -232,11 +233,12 @@ func (c *client) Close(_ context.Context) error {
 }
 
 func (c *client) verifyVaultNameStillMatchesID(ctx context.Context) error {
-	if c.getVaultID() == "" {
+	vaultID := c.getVaultID()
+	if vaultID == "" {
 		return c.refreshVaultID(ctx)
 	}
 
-	vault, err := c.vaultClient.Get(ctx, c.getVaultID())
+	vault, err := c.vaultClient.Get(ctx, vaultID)
 	if err != nil || vault == nil || vault.Name != c.vaultName {
 		return c.refreshVaultID(ctx)
 	}
