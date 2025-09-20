@@ -951,10 +951,10 @@ func newLockboxProvider(clock clock.Clock, fakeLockboxServer *client.FakeLockbox
 		ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox"),
 		clock,
 		adaptInput,
-		func(_ context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (common.SecretGetter, error) {
+		func(context.Context, string, *iamkey.Key, []byte) (common.SecretGetter, error) {
 			return newLockboxSecretGetter(client.NewFakeLockboxClient(fakeLockboxServer))
 		},
-		func(_ context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (*common.IamToken, error) {
+		func(_ context.Context, _ string, authorizedKey *iamkey.Key, _ []byte) (*common.IamToken, error) {
 			return fakeLockboxServer.NewIamToken(authorizedKey), nil
 		},
 		0,

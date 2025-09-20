@@ -31,6 +31,7 @@ type grpcLockboxClient struct {
 	lockboxPayloadClient api.PayloadServiceClient
 }
 
+// NewGrpcLockboxClient creates a new LockboxClient.
 func NewGrpcLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (LockboxClient, error) {
 	conn, err := common.NewGrpcConnection(
 		ctx,

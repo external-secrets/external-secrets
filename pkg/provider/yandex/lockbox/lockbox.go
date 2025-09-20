@@ -64,7 +64,7 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 			folderID = policy.ByName.FolderID
 
 		case policy.ByID != nil:
-			resourceKeyType = common.ResourceKeyTypeId
+			resourceKeyType = common.ResourceKeyTypeID
 
 		default:
 			return nil, errors.New("invalid Yandex Lockbox SecretStore: requires either 'byName' or 'byID' policy")

@@ -997,7 +997,7 @@ func newCertificateManagerProvider(clock clock.Clock, fakeCertificateManagerServ
 		ctrl.Log.WithName("provider").WithName("yandex").WithName("certificatemanager"),
 		clock,
 		adaptInput,
-		func(_ context.Context, _ string, authorizedKey *iamkey.Key, _ []byte) (common.SecretGetter, error) {
+		func(_ context.Context, _ string, _ *iamkey.Key, _ []byte) (common.SecretGetter, error) {
 			return newCertificateManagerSecretGetter(client.NewFakeCertificateManagerClient(fakeCertificateManagerServer))
 		},
 		func(_ context.Context, _ string, authorizedKey *iamkey.Key, _ []byte) (*common.IamToken, error) {
