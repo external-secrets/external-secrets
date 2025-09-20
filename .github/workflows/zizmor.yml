@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Run zizmor 🌈
-        uses: zizmorcore/zizmor-action@bcaa1bb94e561d2f3dd1673a5865840773c62970 # v1.13.0
+        uses: zizmorcore/zizmor-action@e673c3917a1aef3c65c972347ed84ccd013ecda4 # v0.2.0
         with:
           inputs: |
             token: ${{ github.token}}
