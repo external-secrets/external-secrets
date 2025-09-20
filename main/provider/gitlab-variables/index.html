@@ -2897,6 +2897,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Configuring the secret store">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment-scope-fallback-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      Environment Scope Fallback Behavior
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -4107,6 +4122,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Configuring the secret store">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment-scope-fallback-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      Environment Scope Fallback Behavior
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -4192,6 +4222,17 @@
 <p>Be sure the <code>gitlab</code> provider is listed in the <code>Kind=SecretStore</code> and the ProjectID is set. If you are not using <code>https://gitlab.com</code>, you must set the <code>url</code> field as well.</p>
 <p>In order to sync group variables <code>inheritFromGroups</code> must be true or <code>groupIDs</code> have to be defined.</p>
 <p>In case you have defined multiple environments in Gitlab, the secret store should be constrained to a specific <code>environment_scope</code>.</p>
+<h4 id="environment-scope-fallback-behavior">Environment Scope Fallback Behavior</h4>
+<p>The GitLab provider implements an intelligent fallback mechanism for environment scopes:</p>
+<ol>
+<li><strong>Primary lookup</strong>: When you configure a specific <code>environment</code> in your SecretStore (example: <code>environment: "production"</code>), the provider first tries to find variables with that exact environment scope.</li>
+<li><strong>Automatic fallback</strong>: If no variable is found with the specific environment scope, the provider automatically falls back to variables with "All environments" scope (<code>*</code> wildcard).</li>
+<li><strong>Priority order</strong>: Variables with specific environment scopes take precedence over wildcard variables when both exist.</li>
+</ol>
+<p><strong>Example</strong>: If your SecretStore has <code>environment: "production"</code> but your GitLab variable is set to "All environments", the variable will still be successfully retrieved through the fallback mechanism.</p>
+<blockquote>
+<p><strong>Implementation Note</strong>: This fallback behavior is implemented in the <a href="https://github.com/external-secrets/external-secrets/blob/636ce0578dda4a623a681066def8998a68b051a6/pkg/provider/gitlab/provider.go#L134-L151"><code>getVariables</code> function</a> where the provider automatically retries with <code>EnvironmentScope: "*"</code> when the initial lookup with the specific environment scope returns a 404 Not Found response.</p>
+</blockquote>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
