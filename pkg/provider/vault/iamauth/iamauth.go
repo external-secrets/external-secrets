@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package iamauth provides utilities for AWS IAM authentication using Kubernetes Service Accounts.
 // Mostly sourced from ~/external-secrets/pkg/provider/aws/auth
 package iamauth
 
@@ -56,8 +57,11 @@ const (
 	audienceAnnotation   = "eks.amazonaws.com/audience"
 	defaultTokenAudience = "sts.amazonaws.com"
 
-	STSEndpointEnv                       = "AWS_STS_ENDPOINT"
-	AWSWebIdentityTokenFileEnvVar        = "AWS_WEB_IDENTITY_TOKEN_FILE"
+	// STSEndpointEnv is the environment variable that can be used to override the default STS endpoint.
+	STSEndpointEnv = "AWS_STS_ENDPOINT"
+	// AWSWebIdentityTokenFileEnvVar is the environment variable that points to the service account token file.
+	AWSWebIdentityTokenFileEnvVar = "AWS_WEB_IDENTITY_TOKEN_FILE"
+	// AWSContainerCredentialsFullURIEnvVar is the environment variable that points to the full credentials URI for ECS tasks.
 	AWSContainerCredentialsFullURIEnvVar = "AWS_CONTAINER_CREDENTIALS_FULL_URI"
 )
 
@@ -108,6 +112,7 @@ func ResolveEndpoint() endpoints.ResolverFunc {
 	return ResolveEndpointWithServiceMap(customEndpoints)
 }
 
+// ResolveEndpointWithServiceMap returns a ResolverFunc with customizable endpoints for specific services.
 func ResolveEndpointWithServiceMap(customEndpoints map[string]string) endpoints.ResolverFunc {
 	defaultResolver := endpoints.DefaultResolver()
 	return func(service, region string, opts ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
@@ -191,14 +196,15 @@ func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region
 	return credentials.NewCredentials(jwtProv), nil
 }
 
-func CredsFromControllerServiceAccount(ctx context.Context, saname, ns, region string, kube kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
-	name := saname
-	nmspc := ns
-
+// CredsFromControllerServiceAccount uses a Kubernetes Service Account to acquire temporary
+// credentials using aws.AssumeRoleWithWebIdentity. It will assume the role defined
+// in the ServiceAccount annotation.
+// The namespace of the controller service account is used.
+func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region string, kube kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
 	sa := v1.ServiceAccount{}
 	err := kube.Get(ctx, types.NamespacedName{
-		Name:      name,
-		Namespace: nmspc,
+		Name:      saName,
+		Namespace: ns,
 	}, &sa)
 	if err != nil {
 		return nil, err
@@ -207,7 +213,7 @@ func CredsFromControllerServiceAccount(ctx context.Context, saname, ns, region s
 	// this is used as input to assumeRoleWithWebIdentity
 	roleArn := sa.Annotations[roleARNAnnotation]
 	if roleArn == "" {
-		return nil, fmt.Errorf("an IAM role must be associated with service account %s (namespace: %s)", name, nmspc)
+		return nil, fmt.Errorf("an IAM role must be associated with service account %s (namespace: %s)", saName, ns)
 	}
 
 	tokenAud := sa.Annotations[audienceAnnotation]
@@ -216,7 +222,7 @@ func CredsFromControllerServiceAccount(ctx context.Context, saname, ns, region s
 	}
 	audiences := []string{tokenAud}
 
-	jwtProv, err := jwtProvider(name, nmspc, roleArn, audiences, region)
+	jwtProv, err := jwtProvider(saName, ns, roleArn, audiences, region)
 	if err != nil {
 		return nil, err
 	}
@@ -262,13 +268,15 @@ func CredsFromSecretRef(ctx context.Context, auth esv1.VaultIamAuth, storeKind s
 	return credentials.NewStaticCredentials(akid, sak, sessionToken), err
 }
 
+// STSProvider is a function type that returns an stsiface.STSAPI implementation.
 type STSProvider func(*session.Session) stsiface.STSAPI
 
+// DefaultSTSProvider returns the default sts client which implements stsiface.STSAPI.
 func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 	return sts.New(sess)
 }
 
-// getAWSSession returns the aws session or an error.
+// GetAWSSession returns the aws session or an error.
 func GetAWSSession(config *aws.Config) (*session.Session, error) {
 	handlers := defaults.Handlers()
 	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))

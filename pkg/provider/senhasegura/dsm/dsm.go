@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package dsm provides functionality to interact with Senhasegura DevOps Secrets Management (DSM) service.
 package dsm
 
 import (
@@ -38,18 +39,14 @@ type clientDSMInterface interface {
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &DSM{}
 
-/*
-DSM service for SenhaseguraProvider.
-*/
+// DSM service for SenhaseguraProvider.
 type DSM struct {
 	isoSession *senhaseguraAuth.SenhaseguraIsoSession
 	dsmClient  clientDSMInterface
 }
 
-/*
-IsoDappResponse is a response object from senhasegura /iso/dapp/response (DevOps Secrets Management API endpoint)
-Contains information about API request and Secrets linked with authorization.
-*/
+// IsoDappResponse is a response object from senhasegura /iso/dapp/response (DevOps Secrets Management API endpoint)
+// Contains information about API request and Secrets linked with authorization.
 type IsoDappResponse struct {
 	Response struct {
 		Status    int    `json:"status"`
@@ -84,9 +81,7 @@ var (
 	errNotImplemented      = errors.New("not implemented")
 )
 
-/*
-New creates an senhasegura DSM client based on ISO session.
-*/
+// New creates a senhasegura DSM client based on ISO session.
 func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 	return &DSM{
 		isoSession: isoSession,
@@ -94,22 +89,25 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 	}, nil
 }
 
+// DeleteSecret implements ESO interface and delete a single secret from senhasegura provider with DSM service.
+// Not implemented yet.
 func (dsm *DSM) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errNotImplemented
 }
 
+// SecretExists implements ESO interface and check if a single secret exists in senhasegura provider with DSM service.
+// Not implemented yet.
 func (dsm *DSM) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errNotImplemented
 }
 
-// Not Implemented PushSecret.
+// PushSecret implements ESO interface and push a single secret to senhasegura provider with DSM service.
+// Not implemented yet.
 func (dsm *DSM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errNotImplemented
 }
 
-/*
-GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service.
-*/
+// GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service.
 func (dsm *DSM) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (resp []byte, err error) {
 	appSecrets, err := dsm.FetchSecrets()
 	if err != nil {
@@ -142,9 +140,7 @@ func (dsm *DSM) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRe
 	return []byte(""), esv1.NoSecretErr
 }
 
-/*
-GetSecretMap implements ESO interface and returns miltiple k/v pairs from senhasegura provider with DSM service.
-*/
+// GetSecretMap implements ESO interface and returns miltiple k/v pairs from senhasegura provider with DSM service.
 func (dsm *DSM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (secretData map[string][]byte, err error) {
 	secretData = make(map[string][]byte)
 	appSecrets, err := dsm.FetchSecrets()
@@ -164,20 +160,15 @@ func (dsm *DSM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemot
 	return secretData, nil
 }
 
-/*
-GetAllSecrets implements ESO interface and returns multiple secrets from senhasegura provider with DSM service
-
-TODO: GetAllSecrets functionality is to get secrets from either regexp-matching against the names or via metadata label matching.
-https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107
-*/
+// GetAllSecrets implements ESO interface and returns multiple secrets from senhasegura provider with DSM service
+// TODO: GetAllSecrets functionality is to get secrets from either regexp-matching against the names or via metadata label matching.
+// https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107
 func (dsm *DSM) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (secretData map[string][]byte, err error) {
 	return nil, errNotImplemented
 }
 
-/*
-fetchSecrets calls senhasegura DSM /iso/dapp/application API endpoint
-Return an IsoDappResponse with all related information from senhasegura provider with DSM service and error.
-*/
+// FetchSecrets calls senhasegura DSM /iso/dapp/application API endpoint
+// Return an IsoDappResponse with all related information from senhasegura provider with DSM service and error.
 func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 	u, _ := url.ParseRequestURI(dsm.isoSession.URL)
 	u.Path = "/iso/dapp/application"
@@ -226,15 +217,15 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 	return respObj, nil
 }
 
-/*
-Close implements ESO interface and do nothing in senhasegura.
-*/
+// Close implements ESO interface and do nothing in senhasegura.
 func (dsm *DSM) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate if has valid connection with senhasegura, credentials, authorization using fetchSecrets method
-// fetchSecrets method implement required check about request
+// Validate if it has valid connection with senhasegura, credentials, authorization using fetchSecrets method
+//
+//	implement required check about request.
+//
 // https://github.com/external-secrets/external-secrets/pull/830#discussion_r833275463
 func (dsm *DSM) Validate() (esv1.ValidationResult, error) {
 	_, err := dsm.FetchSecrets()

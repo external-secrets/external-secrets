@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package util provides utility types and functions for interacting with HashiCorp Vault.
 package util
 
 import (
@@ -23,17 +24,21 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
+// JwtProviderFactory is a function type that creates a JWT credentials provider.
 type JwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error)
 
+// Auth defines the interface for Vault authentication.
 type Auth interface {
 	Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
 }
 
+// Token defines the interface for Vault token operations.
 type Token interface {
 	RevokeSelfWithContext(ctx context.Context, token string) error
 	LookupSelfWithContext(ctx context.Context) (*vault.Secret, error)
 }
 
+// Logical defines the interface for Vault's logical operations.
 type Logical interface {
 	ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
 	ListWithContext(ctx context.Context, path string) (*vault.Secret, error)
@@ -41,6 +46,8 @@ type Logical interface {
 	DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error)
 }
 
+// Client defines the interface for a Vault client with methods for token management,
+// authentication, and secret operations.
 type Client interface {
 	SetToken(v string)
 	Token() string
@@ -53,6 +60,8 @@ type Client interface {
 	AddHeader(key, value string)
 }
 
+// VaultClient is a wrapper around the HashiCorp Vault API client that provides
+// methods for authentication, token management, and secret operations.
 type VaultClient struct {
 	SetTokenFunc     func(v string)
 	TokenFunc        func() string

@@ -33,6 +33,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
+// Provider implements the External Secrets provider interface for Bitwarden Secrets Manager.
 type Provider struct {
 	kube               client.Client
 	namespace          string

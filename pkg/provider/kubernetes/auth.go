@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package kubernetes implements a provider for Kubernetes secrets, allowing
+// External Secrets to read from and write to Kubernetes Secrets
 package kubernetes
 
 import (

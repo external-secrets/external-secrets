@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package beyondtrust provides a Password Safe secrets provider for External Secrets Operator.
 package beyondtrust
 
 import (
@@ -54,8 +55,9 @@ var (
 	errSecretRefAndValueConflict = errors.New("cannot specify both secret reference and value")
 	errMissingSecretName         = errors.New("must specify a secret name")
 	errMissingSecretKey          = errors.New("must specify a secret key")
-	ESOLogger                    = ctrl.Log.WithName("provider").WithName("beyondtrust")
-	maxFileSecretSizeBytes       = 5000000
+	// ESOLogger is the logger instance for the Beyondtrust provider.
+	ESOLogger              = ctrl.Log.WithName("provider").WithName("beyondtrust")
+	maxFileSecretSizeBytes = 5000000
 )
 
 // Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
@@ -67,6 +69,7 @@ type Provider struct {
 	separator     string
 }
 
+// AuthenticatorInput is used to pass parameters to the getAuthenticator function.
 type AuthenticatorInput struct {
 	Config                     *esv1.BeyondtrustProvider
 	HTTPClientObj              utils.HttpClientObj
@@ -118,6 +121,8 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// SecretExists checks if a secret exists in the provider.
+// Currently not implemented for this provider.
 func (*Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
@@ -135,10 +140,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	certificate, certificateKey, err := loadCertificateFromConfig(ctx, config, kube, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error loading certificate: %w", err)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("error loading secrets: %w", err)
 	}
 
 	clientTimeOutInSeconds, separator, retryMaxElapsedTimeMinutes := getConfigValues(config)
@@ -339,6 +340,7 @@ func validateSecretRef(ref *esv1.BeyondTrustProviderSecretRef) error {
 	return nil
 }
 
+// GetAllSecrets retrieves all secrets from Beyondtrust.
 func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("GetAllSecrets not implemented")
 }

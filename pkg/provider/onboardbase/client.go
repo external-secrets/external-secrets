@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package onboardbase implements a client for interacting with Onboardbase secrets management service.
 package onboardbase
 
 import (
@@ -48,6 +49,7 @@ const (
 	errSecretKeyFmt                                         = "cannot find property %s in secret data for key: %q"
 )
 
+// Client implements the Onboardbase secrets client.
 type Client struct {
 	onboardbase         SecretsClientInterface
 	onboardbaseAPIKey   string
@@ -109,6 +111,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 	return nil
 }
 
+// Validate performs validation of the Onboardbase client configuration.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	clientURL := c.onboardbase.BaseURL().String()
@@ -124,21 +127,25 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// DeleteSecret removes a secret from Onboardbase.
 func (c *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	// not implemented
 	return nil
 }
 
+// SecretExists checks if a secret exists in Onboardbase.
 func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	// not implemented
 	return false, nil
 }
 
+// PushSecret creates or updates a secret in Onboardbase.
 func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	// not implemented
 	return nil
 }
 
+// GetSecret retrieves a secret from Onboardbase by its reference.
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	request := obclient.SecretRequest{
 		Project:     c.project,
@@ -164,6 +171,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	return []byte(value), nil
 }
 
+// GetSecretMap retrieves a secret from Onboardbase and returns it as a map.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.GetSecret(ctx, ref)
 	if err != nil {
@@ -189,6 +197,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return secretData, nil
 }
 
+// GetAllSecrets retrieves all secrets from Onboardbase that match the given criteria.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if len(ref.Tags) > 0 {
 		return nil, errors.New("find by tags not supported")
@@ -224,6 +233,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	return selected, nil
 }
 
+// Close implements cleanup operations for the Onboardbase client.
 func (c *Client) Close(_ context.Context) error {
 	return nil
 }

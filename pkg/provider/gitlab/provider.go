@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package gitlab implements a GitLab provider for External Secrets.
 package gitlab
 
 import (
@@ -49,12 +50,13 @@ type gitlabBase struct {
 	groupVariablesClient   GroupVariablesClient
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+// Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (g *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
-// Method on GitLab Provider to set up projectVariablesClient with credentials, populate projectID and environment.
+// NewClient creates a new GitLab client with the given store configuration.
+// It sets up the project variables client with credentials and populates projectID and environment.
 func (g *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
@@ -150,6 +152,7 @@ func (g *gitlabBase) getVariables(ref esv1.ExternalSecretDataRemoteRef, vopts *g
 	return data, resp, nil
 }
 
+// ValidateStore validates the GitLab store configuration.
 func (g *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	gitlabSpec := storeSpec.Provider.Gitlab

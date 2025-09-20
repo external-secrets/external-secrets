@@ -44,6 +44,7 @@ const (
 	metaAnnotations = "annotations"
 )
 
+// GetSecret retrieves a secret from the Kubernetes API server by its key.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.userSecretClient.Get(ctx, ref.Key, metav1.GetOptions{})
 	if err != nil {
@@ -78,6 +79,8 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return getSecret(secret, ref)
 }
 
+// DeleteSecret removes a secret value from Kubernetes.
+// It requires a property to be specified in the RemoteRef.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	if remoteRef.GetProperty() == "" {
 		return errors.New("requires property in RemoteRef to delete secret value")
@@ -103,10 +106,13 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
+// SecretExists checks if a secret exists in Kubernetes.
+// This method is not implemented and always returns an error.
 func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
+// PushSecret creates or updates a secret in Kubernetes.
 func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.PushSecretData) error {
 	if data.GetProperty() == "" && data.GetSecretKey() != "" {
 		return errors.New("requires property in RemoteRef to push secret value if secret key is defined")
@@ -232,6 +238,8 @@ func (c *Client) marshalData(secret *v1.Secret) ([]byte, error) {
 	return value, nil
 }
 
+// GetSecretMap retrieves a secret from Kubernetes and returns it as a map.
+// The secret data is converted to a map of key/value pairs.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.userSecretClient.Get(ctx, ref.Key, metav1.GetOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
@@ -331,6 +339,7 @@ func getSecretMetadata(secret *v1.Secret) (map[string][]byte, error) {
 	return tmpMap, nil
 }
 
+// GetAllSecrets retrieves multiple secrets from Kubernetes based on the search criteria.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return c.findByTags(ctx, ref)
@@ -387,6 +396,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (m
 	return esutils.ConvertKeys(ref.ConversionStrategy, data)
 }
 
+// Close implements cleanup operations for the Kubernetes client.
 func (c *Client) Close(_ context.Context) error {
 	return nil
 }

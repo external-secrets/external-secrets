@@ -123,10 +123,12 @@ func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) err
 	return errors.New(errDeleteSecretsNotSupported)
 }
 
+// Validate returns a ready validation result without doing any additional checks.
 func (c *client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// GetMapFromInterface converts an interface{} to a map[string][]byte.
 func GetMapFromInterface(i interface{}) (map[string][]byte, error) {
 	// Assert the interface{} to map[string]interface{}
 	m, ok := i.(map[string]interface{})

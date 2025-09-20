@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package doppler implements a provider for Doppler secrets management.
 package doppler
 
 import (
@@ -48,6 +49,7 @@ const (
 	errInvalidClusterStoreMissingDopplerTokenNamespace = "missing auth.secretRef.dopplerToken.namespace"
 )
 
+// Client implements the SecretsClient interface for Doppler.
 type Client struct {
 	doppler         SecretsClientInterface
 	dopplerToken    string
@@ -85,6 +87,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 	return nil
 }
 
+// Validate validates the Doppler client configuration.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	clientURL := c.doppler.BaseURL().String()
@@ -100,6 +103,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// DeleteSecret removes a secret from Doppler.
 func (c *Client) DeleteSecret(_ context.Context, ref esv1.PushSecretRemoteRef) error {
 	request := dclient.UpdateSecretsRequest{
 		ChangeRequests: []dclient.Change{
@@ -121,10 +125,12 @@ func (c *Client) DeleteSecret(_ context.Context, ref esv1.PushSecretRemoteRef) e
 	return nil
 }
 
+// SecretExists checks if a secret exists in Doppler.
 func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
+// PushSecret creates or updates a secret in Doppler.
 func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
 
@@ -144,6 +150,7 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 	return nil
 }
 
+// GetSecret retrieves a secret from Doppler.
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	request := dclient.SecretRequest{
 		Name:    ref.Key,
@@ -159,6 +166,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	return []byte(secret.Value), nil
 }
 
+// GetSecretMap retrieves a secret from Doppler and returns it as a map.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.GetSecret(ctx, ref)
 	if err != nil {
@@ -184,6 +192,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return secretData, nil
 }
 
+// GetAllSecrets retrieves all secrets from Doppler that match the given criteria.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	secrets, err := c.getSecrets(ctx)
 	selected := map[string][]byte{}
@@ -215,6 +224,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	return selected, nil
 }
 
+// Close implements cleanup operations for the Doppler client.
 func (c *Client) Close(_ context.Context) error {
 	return nil
 }

@@ -49,7 +49,9 @@ import (
 )
 
 const (
-	CloudPlatformRole               = "https://www.googleapis.com/auth/cloud-platform"
+	// CloudPlatformRole is the OAuth2 scope required for GCP Cloud Platform access.
+	CloudPlatformRole = "https://www.googleapis.com/auth/cloud-platform"
+
 	defaultVersion                  = "latest"
 	errGCPSMStore                   = "received invalid GCPSM SecretStore resource"
 	errUnableGetCredentials         = "unable to get credentials: %w"
@@ -81,6 +83,7 @@ const (
 	regionalSecretVersionsPath = "projects/%s/locations/%s/secrets/%s/versions/%s"
 )
 
+// Client represents a Google Cloud Platform Secret Manager client.
 type Client struct {
 	smClient  GoogleSecretManagerClient
 	kube      kclient.Client
@@ -92,6 +95,7 @@ type Client struct {
 	workloadIdentity *workloadIdentity
 }
 
+// GoogleSecretManagerClient defines the interface for interacting with Google Secret Manager.
 type GoogleSecretManagerClient interface {
 	DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
@@ -105,6 +109,7 @@ type GoogleSecretManagerClient interface {
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
 
+// DeleteSecret deletes a secret from Google Cloud Secret Manager.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	name := getName(c.store.ProjectID, c.store.Location, remoteRef.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
@@ -139,6 +144,7 @@ func parseError(err error) error {
 	return err
 }
 
+// SecretExists checks if a secret exists in Google Cloud Secret Manager.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
@@ -625,6 +631,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return secretData, nil
 }
 
+// Close closes the Google Cloud Secret Manager client connection.
 func (c *Client) Close(_ context.Context) error {
 	var err error
 	if c.smClient != nil {
@@ -640,6 +647,7 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate performs validation of the Google Cloud Secret Manager client configuration.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
 		return esv1.ValidationResultUnknown, nil

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package akeyless provides integration with Akeyless Vault for secrets management
 package akeyless
 
 import (
@@ -45,12 +46,13 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 )
 
-type AkeylessCtx string
+// Ctx is a type used for context keys in Akeyless provider implementations.
+type Ctx string
 
 const (
-	defaultAPIUrl                   = "https://api.akeyless.io"
-	extSecretManagedTag             = "k8s-external-secrets"
-	aKeylessToken       AkeylessCtx = "AKEYLESS_TOKEN"
+	defaultAPIUrl           = "https://api.akeyless.io"
+	extSecretManagedTag     = "k8s-external-secrets"
+	aKeylessToken       Ctx = "AKEYLESS_TOKEN"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -72,11 +74,13 @@ type akeylessBase struct {
 	RestAPI          *akeyless.V2ApiService
 }
 
+// Akeyless represents a client for the Akeyless Vault service.
 type Akeyless struct {
 	Client akeylessVaultInterface
 	url    string
 }
 
+// Item represents an item in the Akeyless Vault.
 type Item struct {
 	ItemName    string `json:"item_name"`
 	ItemType    string `json:"item_type"`
@@ -121,6 +125,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
+// ValidateStore validates the configuration of the Akeyless provider in the store.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	akeylessSpec := storeSpec.Provider.Akeyless
@@ -128,12 +133,12 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	akeylessGWApiURL := akeylessSpec.AkeylessGWApiURL
 
 	if akeylessGWApiURL != nil && *akeylessGWApiURL != "" {
-		url, err := url.Parse(*akeylessGWApiURL)
+		parsedURL, err := url.Parse(*akeylessGWApiURL)
 		if err != nil {
 			return nil, errors.New(errInvalidAkeylessURL)
 		}
 
-		if url.Host == "" {
+		if parsedURL.Host == "" {
 			return nil, errors.New(errInvalidAkeylessURL)
 		}
 	}
@@ -241,23 +246,25 @@ func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error
 	return context.WithValue(ctx, aKeylessToken, token), nil
 }
 
+// Close closes the Akeyless client connection.
 func (a *Akeyless) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate validates the Akeyless connection by testing network connectivity.
 func (a *Akeyless) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
-	url := a.url
+	serviceURL := a.url
 
-	if err := esutils.NetworkValidate(url, timeout); err != nil {
+	if err := esutils.NetworkValidate(serviceURL, timeout); err != nil {
 		return esv1.ValidationResultError, err
 	}
 
 	return esv1.ValidationResultReady, nil
 }
 
+// GetSecret retrieves a secret with the secret name defined in ref.Name.
 // Implements store.Client.GetSecret Interface.
-// Retrieves a secret with the secret name defined in ref.Name.
 func (a *Akeyless) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if esutils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
@@ -413,6 +420,7 @@ func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 	return secretData, nil
 }
 
+// SecretExists checks if a secret exists in Akeyless Vault at the specified remote reference.
 func (a *Akeyless) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	if esutils.IsNil(a.Client) {
 		return false, errors.New(errUninitalizedAkeylessProvider)
@@ -444,6 +452,7 @@ func initMapIfNotExist(psd esv1.PushSecretData, secretMapSize int) map[string]an
 	return make(map[string]any, mapSize)
 }
 
+// PushSecret pushes a Kubernetes secret to Akeyless Vault using the provided data.
 func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
 	if esutils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
@@ -487,6 +496,7 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 	return a.Client.UpdateSecret(ctx, psd.GetRemoteKey(), string(dataByte))
 }
 
+// DeleteSecret deletes a secret from Akeyless Vault at the specified remote reference.
 func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRef) error {
 	if esutils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
