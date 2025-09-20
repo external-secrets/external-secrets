@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package certificatemanager implements the Yandex Cloud Certificate Manager provider for External Secrets Operator.
 package certificatemanager
 
 import (

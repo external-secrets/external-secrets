@@ -31,6 +31,7 @@ type grpcCertificateManagerClient struct {
 	certificateContentServiceClient api.CertificateContentServiceClient
 }
 
+// NewGrpcCertificateManagerClient creates a new gRPC client for Yandex Certificate Manager.
 func NewGrpcCertificateManagerClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (CertificateManagerClient, error) {
 	conn, err := common.NewGrpcConnection(
 		ctx,

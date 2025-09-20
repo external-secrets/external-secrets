@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package metadata provides utilities for parsing PushSecretMetadata..
 package metadata
 
 import (
@@ -24,8 +25,10 @@ import (
 )
 
 const (
+	// APIVersion is the apiVersion for PushSecretMetadata.
 	APIVersion = "kubernetes.external-secrets.io/v1alpha1"
-	Kind       = "PushSecretMetadata"
+	// Kind is the kind for PushSecretMetadata.
+	Kind = "PushSecretMetadata"
 )
 
 type PushSecretMetadata[T any] struct {

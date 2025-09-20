@@ -85,6 +85,7 @@ func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
 	return dst
 }
 
+// RewriteMap applies a series of rewrite operations to the input map.
 func RewriteMap(operations []esv1.ExternalSecretRewrite, in map[string][]byte) (map[string][]byte, error) {
 	out := in
 	var err error
@@ -260,6 +261,7 @@ func DecodeMap(strategy esv1.ExternalSecretDecodingStrategy, in map[string][]byt
 	return out, nil
 }
 
+// Decode decodes the input byte slice according to the provided decoding strategy.
 func Decode(strategy esv1.ExternalSecretDecodingStrategy, in []byte) ([]byte, error) {
 	switch strategy {
 	case esv1.ExternalSecretDecodeBase64:
@@ -405,10 +407,13 @@ func MergeStringMap(dest, src map[string]string) {
 }
 
 var (
+	// ErrUnexpectedKey is returned when an unexpected key is found in the data.
 	ErrUnexpectedKey = errors.New("unexpected key in data")
-	ErrSecretType    = errors.New("can not handle secret value with type")
+	// ErrSecretType is returned when a secret value cannot be handled due to its type.
+	ErrSecretType = errors.New("can not handle secret value with type")
 )
 
+// GetByteValueFromMap retrieves a byte value from a map by key.
 func GetByteValueFromMap(data map[string]any, key string) ([]byte, error) {
 	v, ok := data[key]
 	if !ok {
@@ -416,6 +421,8 @@ func GetByteValueFromMap(data map[string]any, key string) ([]byte, error) {
 	}
 	return GetByteValue(v)
 }
+
+// GetByteValue converts an interface value to a byte slice.
 func GetByteValue(v any) ([]byte, error) {
 	switch t := v.(type) {
 	case string:
@@ -462,6 +469,7 @@ func ObjectHash(object any) string {
 	return fmt.Sprintf("%x", sha3.Sum224([]byte(textualVersion)))
 }
 
+// ErrorContains checks if the error message contains the specified substring.
 func ErrorContains(out error, want string) bool {
 	if out == nil {
 		return want == ""
@@ -529,6 +537,7 @@ func ValidateReferentServiceAccountSelector(store esv1.GenericStore, ref esmeta.
 	return nil
 }
 
+// NetworkValidate checks if a network endpoint is reachable within the given timeout.
 func NetworkValidate(endpoint string, timeout time.Duration) error {
 	hostname, err := url.Parse(endpoint)
 
@@ -554,6 +563,7 @@ func NetworkValidate(endpoint string, timeout time.Duration) error {
 	return nil
 }
 
+// Deref returns the value pointed to by v, or the zero value if v is nil.
 func Deref[V any](v *V) V {
 	if v == nil {
 		// Create zero value
@@ -563,10 +573,12 @@ func Deref[V any](v *V) V {
 	return *v
 }
 
+// Ptr returns a pointer to the given value.
 func Ptr[T any](i T) *T {
 	return &i
 }
 
+// ConvertToType converts an object to the specified type using JSON marshaling.
 func ConvertToType[T any](obj any) (T, error) {
 	var v T
 
@@ -624,6 +636,7 @@ func dig[T any](key string, data map[string]any) (t T, _ error) {
 	return t, errKeyNotFound
 }
 
+// CompareStringAndByteSlices compares a string pointer and a byte slice for equality.
 func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
 	if valueString == nil {
 		return false
@@ -632,6 +645,7 @@ func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
 	return bytes.Equal(valueByte, []byte(*valueString))
 }
 
+// ExtractSecretData extracts secret data from a Kubernetes Secret based on PushSecretData configuration.
 func ExtractSecretData(data esv1.PushSecretData, secret *corev1.Secret) ([]byte, error) {
 	var (
 		err   error
@@ -751,7 +765,7 @@ func GetTargetNamespaces(ctx context.Context, cl client.Client, namespaceList []
 // NamespacePredicate can be used to watch for new or updated or deleted namespaces.
 func NamespacePredicate() predicate.Predicate {
 	return predicate.Funcs{
-		CreateFunc: func(e event.CreateEvent) bool {
+		CreateFunc: func(_ event.CreateEvent) bool {
 			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -760,7 +774,7 @@ func NamespacePredicate() predicate.Predicate {
 			}
 			return !reflect.DeepEqual(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels())
 		},
-		DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
+		DeleteFunc: func(_ event.DeleteEvent) bool {
 			return true
 		},
 	}
@@ -835,6 +849,8 @@ func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client
 	return []byte(val), nil
 }
 
+// CheckEndpointSlicesReady checks if there are any EndpointSlice objects for the given service
+// that have ready addresses.
 func CheckEndpointSlicesReady(ctx context.Context, c client.Client, svcName, svcNamespace string) error {
 	var sliceList discoveryv1.EndpointSliceList
 	err := c.List(ctx, &sliceList,

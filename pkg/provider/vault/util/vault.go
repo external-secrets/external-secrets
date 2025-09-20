@@ -65,38 +65,47 @@ type VaultClient struct {
 	AddHeaderFunc    func(key, value string)
 }
 
+// AddHeader adds a header to all requests using the provided key, value pair.
 func (v VaultClient) AddHeader(key, value string) {
 	v.AddHeaderFunc(key, value)
 }
 
+// Namespace returns the current Vault namespace.
 func (v VaultClient) Namespace() string {
 	return v.NamespaceFunc()
 }
 
+// SetNamespace sets the Vault namespace to use for requests.
 func (v VaultClient) SetNamespace(namespace string) {
 	v.SetNamespaceFunc(namespace)
 }
 
+// ClearToken clears the Vault token.
 func (v VaultClient) ClearToken() {
 	v.ClearTokenFunc()
 }
 
+// Token returns the current Vault token.
 func (v VaultClient) Token() string {
 	return v.TokenFunc()
 }
 
+// SetToken sets the Vault token to use for requests.
 func (v VaultClient) SetToken(token string) {
 	v.SetTokenFunc(token)
 }
 
+// Auth returns the Auth interface for authentication operations.
 func (v VaultClient) Auth() Auth {
 	return v.AuthField
 }
 
+// AuthToken returns the Token interface for token operations.
 func (v VaultClient) AuthToken() Token {
 	return v.AuthTokenField
 }
 
+// Logical returns the Logical interface for secret operations.
 func (v VaultClient) Logical() Logical {
 	return v.LogicalField
 }

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package lockbox implements a Yandex Lockbox provider for External Secrets.
 package lockbox
 
 import (
