@@ -31,6 +31,8 @@ jobs:
   zizmor:
     name: Run zizmor 🌈
     runs-on: ubuntu-latest
+    needs: detect-noop
+    if: needs.detect-noop.outputs.noop != 'true'
     permissions:
       security-events: write
     steps:
@@ -44,6 +46,6 @@ jobs:
         with:
           inputs: |
             token: ${{ github.token}}
-            .github/**
+            .github/
             # min-severity: high
             # min-confidence: low
