@@ -45,7 +45,7 @@ jobs:
         uses: zizmorcore/zizmor-action@e673c3917a1aef3c65c972347ed84ccd013ecda4 # v0.2.0
         with:
           inputs: |
-            token: ${{ github.token}}
             .github/
-            # min-severity: high
-            # min-confidence: low
+          token: ${{ github.token }}
+          # min-severity: high
+          # min-confidence: low
