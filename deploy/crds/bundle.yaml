@@ -165,6 +165,7 @@ spec:
                                       - Webhook
                                       - Grafana
                                       - MFA
+                                      - OIDC
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -383,6 +384,7 @@ spec:
                                       - Webhook
                                       - Grafana
                                       - MFA
+                                      - OIDC
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -918,6 +920,7 @@ spec:
                                       - VaultDynamicSecret
                                       - Webhook
                                       - Grafana
+                                      - OIDC
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -1109,6 +1112,7 @@ spec:
                                       - VaultDynamicSecret
                                       - Webhook
                                       - Grafana
+                                      - OIDC
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -1761,6 +1765,7 @@ spec:
                                 - Webhook
                                 - Grafana
                                 - MFA
+                                - OIDC
                               type: string
                             name:
                               description: Specify the name of the generator resource
@@ -11548,6 +11553,7 @@ spec:
                                   - Webhook
                                   - Grafana
                                   - MFA
+                                  - OIDC
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -11766,6 +11772,7 @@ spec:
                                   - Webhook
                                   - Grafana
                                   - MFA
+                                  - OIDC
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -12182,6 +12189,7 @@ spec:
                                   - VaultDynamicSecret
                                   - Webhook
                                   - Grafana
+                                  - OIDC
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -12373,6 +12381,7 @@ spec:
                                   - VaultDynamicSecret
                                   - Webhook
                                   - Grafana
+                                  - OIDC
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -12850,6 +12859,7 @@ spec:
                             - Webhook
                             - Grafana
                             - MFA
+                            - OIDC
                           type: string
                         name:
                           description: Specify the name of the generator resource
@@ -23608,6 +23618,246 @@ spec:
                       required:
                         - secret
                       type: object
+                    oidcSpec:
+                      properties:
+                        additionalHeaders:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            AdditionalHeaders allows specifying additional HTTP headers for all requests.
+                            This can be used for provider-specific authentication or metadata requirements.
+                          type: object
+                        additionalParameters:
+                          additionalProperties:
+                            type: string
+                          description: AdditionalParameters allows specifying provider-specific form parameters (e.g., Dex's connector_id).
+                          type: object
+                        clientId:
+                          description: ClientID is the OAuth2 client ID
+                          type: string
+                        clientSecretRef:
+                          description: ClientSecretRef is a reference to the secret containing the OAuth2 client secret
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        grant:
+                          description: |-
+                            Grant specifies the OAuth2 grant type and its parameters
+                            Exactly one grant type must be specified
+                          properties:
+                            password:
+                              description: Password grant (Resource Owner Password Credentials)
+                              properties:
+                                passwordRef:
+                                  description: PasswordRef is a reference to the secret containing the password
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                usernameRef:
+                                  description: UsernameRef is a reference to the secret containing the username
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - passwordRef
+                                - usernameRef
+                              type: object
+                            tokenExchange:
+                              description: TokenExchange grant (RFC 8693)
+                              properties:
+                                actorTokenRef:
+                                  description: ActorTokenRef is a reference to an optional actor token for delegation scenarios
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                actorTokenType:
+                                  description: ActorTokenType specifies the type of the actor token
+                                  type: string
+                                additionalHeaders:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    AdditionalHeaders allows specifying additional HTTP headers for the token exchange request.
+                                    This can be used for provider-specific authentication or metadata requirements.
+                                  type: object
+                                additionalParameters:
+                                  additionalProperties:
+                                    type: string
+                                  description: AdditionalParameters allows specifying provider-specific form parameters for the token exchange request (e.g., Dex's connector_id).
+                                  type: object
+                                audience:
+                                  description: Audience specifies the logical name of the target service or resource
+                                  type: string
+                                requestedTokenType:
+                                  description: RequestedTokenType specifies the type of token to request (defaults to access token)
+                                  type: string
+                                resource:
+                                  description: Resource specifies the physical or logical URI of the target service or resource
+                                  type: string
+                                serviceAccountRef:
+                                  description: |-
+                                    ServiceAccountRef is the service account to use for token exchange
+                                    Mutually exclusive with SubjectTokenRef
+                                    This will be used to obtain the 'subject_token' parameter value
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                subjectTokenRef:
+                                  description: |-
+                                    SubjectTokenRef is a reference to the secret containing the subject token to exchange
+                                    Mutually exclusive with ServiceAccountRef
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                subjectTokenType:
+                                  description: SubjectTokenType specifies the type of the subject token (defaults to ID token for service accounts)
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of subjectTokenRef or serviceAccountRef must be specified
+                                  rule: has(self.subjectTokenRef) != has(self.serviceAccountRef)
+                          type: object
+                        scopes:
+                          description: Scopes is the list of OAuth2 scopes to request (defaults to ["openid"])
+                          items:
+                            type: string
+                          type: array
+                        tokenUrl:
+                          description: TokenURL configures the OAuth2 token endpoint URL (e.g., https://dex.example.com/token, https://keycloak.example.com/realms/master/protocol/openid-connect/token)
+                          type: string
+                      required:
+                        - clientId
+                        - grant
+                        - tokenUrl
+                      type: object
                     passwordSpec:
                       description: PasswordSpec controls the behavior of the password generator.
                       properties:
@@ -24869,6 +25119,8 @@ spec:
                     - VaultDynamicSecret
                     - Webhook
                     - Grafana
+                    - MFA
+                    - OIDC
                   type: string
               required:
                 - generator
@@ -25823,6 +26075,299 @@ spec:
                 - secret
               type: object
           type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    external-secrets.io/component: controller
+  name: oidcs.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: OIDC
+    listKind: OIDCList
+    plural: oidcs
+    singular: oidc
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: OIDC generates OAuth2/OIDC access tokens using various grant types
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                additionalHeaders:
+                  additionalProperties:
+                    type: string
+                  description: |-
+                    AdditionalHeaders allows specifying additional HTTP headers for all requests.
+                    This can be used for provider-specific authentication or metadata requirements.
+                  type: object
+                additionalParameters:
+                  additionalProperties:
+                    type: string
+                  description: AdditionalParameters allows specifying provider-specific form parameters (e.g., Dex's connector_id).
+                  type: object
+                clientId:
+                  description: ClientID is the OAuth2 client ID
+                  type: string
+                clientSecretRef:
+                  description: ClientSecretRef is a reference to the secret containing the OAuth2 client secret
+                  properties:
+                    key:
+                      description: |-
+                        A key in the referenced Secret.
+                        Some instances of this field may be defaulted, in others it may be required.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[-._a-zA-Z0-9]+$
+                      type: string
+                    name:
+                      description: The name of the Secret resource being referred to.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: |-
+                        The namespace of the Secret resource being referred to.
+                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  type: object
+                grant:
+                  description: |-
+                    Grant specifies the OAuth2 grant type and its parameters
+                    Exactly one grant type must be specified
+                  properties:
+                    password:
+                      description: Password grant (Resource Owner Password Credentials)
+                      properties:
+                        passwordRef:
+                          description: PasswordRef is a reference to the secret containing the password
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        usernameRef:
+                          description: UsernameRef is a reference to the secret containing the username
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                      required:
+                        - passwordRef
+                        - usernameRef
+                      type: object
+                    tokenExchange:
+                      description: TokenExchange grant (RFC 8693)
+                      properties:
+                        actorTokenRef:
+                          description: ActorTokenRef is a reference to an optional actor token for delegation scenarios
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        actorTokenType:
+                          description: ActorTokenType specifies the type of the actor token
+                          type: string
+                        additionalHeaders:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            AdditionalHeaders allows specifying additional HTTP headers for the token exchange request.
+                            This can be used for provider-specific authentication or metadata requirements.
+                          type: object
+                        additionalParameters:
+                          additionalProperties:
+                            type: string
+                          description: AdditionalParameters allows specifying provider-specific form parameters for the token exchange request (e.g., Dex's connector_id).
+                          type: object
+                        audience:
+                          description: Audience specifies the logical name of the target service or resource
+                          type: string
+                        requestedTokenType:
+                          description: RequestedTokenType specifies the type of token to request (defaults to access token)
+                          type: string
+                        resource:
+                          description: Resource specifies the physical or logical URI of the target service or resource
+                          type: string
+                        serviceAccountRef:
+                          description: |-
+                            ServiceAccountRef is the service account to use for token exchange
+                            Mutually exclusive with SubjectTokenRef
+                            This will be used to obtain the 'subject_token' parameter value
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                        subjectTokenRef:
+                          description: |-
+                            SubjectTokenRef is a reference to the secret containing the subject token to exchange
+                            Mutually exclusive with ServiceAccountRef
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        subjectTokenType:
+                          description: SubjectTokenType specifies the type of the subject token (defaults to ID token for service accounts)
+                          type: string
+                      type: object
+                      x-kubernetes-validations:
+                        - message: exactly one of subjectTokenRef or serviceAccountRef must be specified
+                          rule: has(self.subjectTokenRef) != has(self.serviceAccountRef)
+                  type: object
+                scopes:
+                  description: Scopes is the list of OAuth2 scopes to request (defaults to ["openid"])
+                  items:
+                    type: string
+                  type: array
+                tokenUrl:
+                  description: TokenURL configures the OAuth2 token endpoint URL (e.g., https://dex.example.com/token, https://keycloak.example.com/realms/master/protocol/openid-connect/token)
+                  type: string
+              required:
+                - clientId
+                - grant
+                - tokenUrl
+              type: object
+          required:
+            - spec
+          type: object
+          x-kubernetes-validations:
+            - message: exactly one grant type must be specified
+              rule: '[has(self.spec.grant.password), has(self.spec.grant.tokenExchange)].filter(x, x).size() == 1'
       served: true
       storage: true
       subresources:

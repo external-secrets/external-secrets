@@ -18,6 +18,7 @@ resources:
   - generators.external-secrets.io_githubaccesstokens.yaml
   - generators.external-secrets.io_grafanas.yaml
   - generators.external-secrets.io_mfas.yaml
+  - generators.external-secrets.io_oidcs.yaml
   - generators.external-secrets.io_passwords.yaml
   - generators.external-secrets.io_quayaccesstokens.yaml
   - generators.external-secrets.io_sshkeys.yaml
