@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package metadata provides utilities for parsing PushSecretMetadata..
+// Package metadata provides functionality for handling metadata for pushed secrets.
 package metadata
 
 import (
@@ -31,10 +31,15 @@ const (
 	Kind = "PushSecretMetadata"
 )
 
+// PushSecretMetadata represents metadata associated with a pushed secret.
+// T represents the type of custom metadata that can be associated with the secret.
 type PushSecretMetadata[T any] struct {
-	Kind       string `json:"kind"`
+	// Kind is the type of the resource.
+	Kind string `json:"kind"`
+	// APIVersion is the version of the API.
 	APIVersion string `json:"apiVersion"`
-	Spec       T      `json:"spec,omitempty"`
+	// Spec holds the specific metadata for the pushed secret.
+	Spec T `json:"spec,omitempty"`
 }
 
 // ParseMetadataParameters parses metadata with an arbitrary Spec.

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package vaultdynamic provides functionality for generating dynamic credentials from HashiCorp Vault.
 package vaultdynamic
 
 import (
@@ -36,6 +37,7 @@ import (
 	provider "github.com/external-secrets/external-secrets/pkg/provider/vault"
 )
 
+// Generator implements credential generation using HashiCorp Vault's dynamic secrets.
 type Generator struct{}
 
 const (
@@ -45,6 +47,7 @@ const (
 	errGetSecret   = "unable to get dynamic secret: %w"
 )
 
+// Generate creates dynamic credentials using HashiCorp Vault's secrets engines.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	c := &provider.Provider{NewVaultClient: provider.NewVaultClient}
 
@@ -63,7 +66,8 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), namespace)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+// Cleanup performs any necessary cleanup after token generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

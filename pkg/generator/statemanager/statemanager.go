@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package statemanager provides functionality for managing state of generator operations.
 package statemanager
 
 import (
@@ -49,6 +50,7 @@ type Manager struct {
 	queue []QueueItem
 }
 
+// QueueItem represents a single item in the state manager's queue.
 type QueueItem struct {
 	Rollback func() error
 	Commit   func() error
@@ -64,6 +66,7 @@ func init() {
 	})
 }
 
+// New creates a new state manager instance with the given configuration.
 func New(ctx context.Context, client client.Client, scheme *runtime.Scheme, namespace string,
 	resource genapi.StatefulResource) *Manager {
 	return &Manager{
@@ -222,7 +225,7 @@ func (m *Manager) disposeState(key string) error {
 	return errors.Join(errs...)
 }
 
-// GetLatest returns the latest state for the given key.
+// GetAllStates retrieves all the stored states for the given key.
 func (m *Manager) GetAllStates(key string) ([]genapi.GeneratorState, error) {
 	var stateList genapi.GeneratorStateList
 	if err := m.client.List(m.ctx, &stateList, &client.MatchingLabels{
