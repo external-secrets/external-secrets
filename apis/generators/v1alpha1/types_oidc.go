@@ -85,6 +85,8 @@ type TokenExchangeGrantSpec struct {
 	// +kubebuilder:validation:Optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 	// SubjectTokenType specifies the type of the subject token (defaults to ID token for service accounts)
+	// +kubebuilder:validation:Enum=urn:ietf:params:oauth:token-type:access_token;urn:ietf:params:oauth:token-type:id_token;urn:ietf:params:oauth:token-type:jwt
+	// +kubebuilder:default:="urn:ietf:params:oauth:token-type:id_token"
 	// +kubebuilder:validation:Optional
 	SubjectTokenType string `json:"subjectTokenType,omitempty"`
 	// RequestedTokenType specifies the type of token to request (defaults to access token)
