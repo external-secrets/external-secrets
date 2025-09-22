@@ -1103,19 +1103,17 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	if len(a.provider.ServiceAccountRef.Audiences) > 0 {
 		audiences = append(audiences, a.provider.ServiceAccountRef.Audiences...)
 	}
-	if len(a.provider.ServiceAccountRef.Audiences) > 0 {
-		token, err := FetchSAToken(ctx, ns, a.provider.ServiceAccountRef.Name, audiences, a.kubeClient)
-		if err != nil {
-			return nil, err
-		}
-		tp, err := tokenProvider(ctx, token, clientID, tenantID, aadEndpoint, kvResource)
-		if err != nil {
-			return nil, err
-		}
-		return autorest.NewBearerAuthorizer(tp), nil
+
+	token, err := FetchSAToken(ctx, ns, a.provider.ServiceAccountRef.Name, audiences, a.kubeClient)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, errors.New("no audiences specified for service account")
+	tp, err := tokenProvider(ctx, token, clientID, tenantID, aadEndpoint, kvResource)
+	if err != nil {
+		return nil, err
+	}
+	return autorest.NewBearerAuthorizer(tp), nil
 }
 
 // FetchSAToken retrieves a service account token from Kubernetes with the specified audiences.
