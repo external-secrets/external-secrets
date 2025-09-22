@@ -85,7 +85,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Check License Headers
-        uses: apache/skywalking-eyes/header@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91 # v0.6.0
+        uses: apache/skywalking-eyes/header@5c5b974209f0de5d905f37deb69369068ebfc15c # v0.7.0
 
   check-diff:
     runs-on: ubuntu-latest
