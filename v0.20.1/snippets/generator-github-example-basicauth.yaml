@@ -1,0 +1,26 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: github-auth-template
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: GithubAccessToken
+        name: github-auth-token
+  refreshInterval: "15m" # Be sure to set this value lower than 60m since that is the expiration time from github
+  target:
+    template:
+      metadata:
+        annotations:
+          tekton.dev/git-0: "https://github.com"
+      type: kubernetes.io/basic-auth
+      engineVersion: v2
+      data:
+        username: "token"
+        password: "{{ .token }}"
+    name: github-auth-template
+
+{% endraw %}

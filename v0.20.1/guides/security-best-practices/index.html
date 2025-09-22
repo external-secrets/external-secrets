@@ -1,0 +1,4910 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../multi-tenancy/">
+      
+      
+        <link rel="next" href="../threat-model/">
+      
+      
+      <link rel="icon" href="../../pictures/eso-round-logo.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.20">
+    
+    
+      
+        <title>Security Best Practices - External Secrets Operator</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.e53b48f4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-QP38TD8K7V"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-QP38TD8K7V",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-QP38TD8K7V",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#security-best-practices" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="External Secrets Operator" class="md-header__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+      
+  <img src="../../pictures/eso-round-logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            External Secrets Operator
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Security Best Practices
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/external-secrets/external-secrets" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    External Secrets Operator
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+    
+  
+  Introduction
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/components/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../provider/aws-secrets-manager/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Provider
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/gitops-using-fluxcd/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/devguide/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="External Secrets Operator" class="md-nav__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+      
+  <img src="../../pictures/eso-round-logo.svg" alt="logo">
+
+    </a>
+    External Secrets Operator
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/external-secrets/external-secrets" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    External Secrets Operator
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../.." class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Introduction
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prerequisites
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Getting started
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/stability-support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Stability and Support
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/deprecation-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Deprecation Policy
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    API
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Components
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Core Resources
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Core Resources
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/externalsecret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ExternalSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/secretstore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    SecretStore
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clustersecretstore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ClusterSecretStore
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clusterexternalsecret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ClusterExternalSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clusterpushsecret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ClusterPushSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/pushsecret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    PushSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../api/generator/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Generators
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            Generators
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/acr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Azure Container Registry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/ecr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AWS Elastic Container Registry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/sts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AWS STS Session Token
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/cloudsmith/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cloudsmith
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cluster Generator
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/gcr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Google Container Registry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/quay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quay
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Vault Dynamic Secret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/password/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Password
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/fake/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Fake
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/webhook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Webhook
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/github/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Github
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/uuid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    UUID
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/mfa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    MFA
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/sshkey/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    SSHKey
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Reference Docs
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference Docs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API specification
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/controller-options/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Controller Options
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metrics
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/selectable-fields/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Selectable Fields
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    External Secrets
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            External Secrets
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../all-keys-one-secret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Extract structured data
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getallsecrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Find Secrets by Name or Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../datafrom-rewrite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Rewriting Keys
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_4" id="__nav_3_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Advanced Templating
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced Templating
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../templating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    v2
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../templating-v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    v1
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../common-k8s-secret-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Kubernetes Secret Types
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ownership-deletion-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Lifecycle: ownership & deletion
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decoding-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decoding Strategies
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../controller-class/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Controller Classes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Generators
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pushsecrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Push Secrets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Operations
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../multi-tenancy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Multi Tenancy
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Security Best Practices
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Security Best Practices
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#security-functions-and-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security Functions and Features
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Functions and Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-namespace-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Namespace Isolation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-configure-clustersecretstore-match-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Configure ClusterSecretStore match conditions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-selectively-disable-reconciliation-of-cluster-wide-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Selectively Disable Reconciliation of Cluster-Wide Resources
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-implement-namespace-scoped-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Implement Namespace-Scoped Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-restrict-webhook-tls-ciphers" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Restrict Webhook TLS Ciphers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-harden-the-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Harden the Helm Chart
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pod-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pod Security
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#role-based-access-control-rbac" class="md-nav__link">
+    <span class="md-ellipsis">
+      Role-Based Access Control (RBAC)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#network-traffic-and-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Network Traffic and Security
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Network Traffic and Security">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#outbound-traffic-restrictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outbound Traffic Restrictions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Outbound Traffic Restrictions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-controller" class="md-nav__link">
+    <span class="md-ellipsis">
+      Core Controller
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cert-controller" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cert Controller
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inbound-traffic-restrictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inbound Traffic Restrictions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inbound Traffic Restrictions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-controller_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Core Controller
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cert-controller_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cert Controller
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#policy-engine-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Policy Engine Best Practices
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regular-patches" class="md-nav__link">
+    <span class="md-ellipsis">
+      Regular Patches
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-artefacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify Artefacts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Verify Artefacts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verify-container-images" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify Container Images
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verifying-provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verifying Provenance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fetching-sbom" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fetching SBOM
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../threat-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Threat Model
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v1beta1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Upgrading to v1beta1
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using-latest-image/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Using Latest Image
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../disable-cluster-features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Disable Cluster Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tooling
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tooling
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using-esoctl-tool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Using the esoctl tool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Provider
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Provider
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/aws-secrets-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AWS Secrets Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/aws-parameter-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AWS Parameter Store
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/azure-key-vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Azure Key Vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/beyondtrust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    BeyondTrust
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/bitwarden-secrets-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bitwarden Secrets Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/chef/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Chef
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/cloudru/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cloud.ru Secret Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/conjur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CyberArk Conjur
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/device42/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Device42
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/google-secrets-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Google Cloud Secret Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/hashicorp-vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    HashiCorp Vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Kubernetes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/ibm-secrets-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    IBM Secrets Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/akeyless/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Akeyless
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/yandex-certificate-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Yandex Certificate Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/yandex-lockbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Yandex Lockbox
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/alibaba/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Alibaba Cloud
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/gitlab-variables/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    GitLab Variables
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/github/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Github Actions Secrets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/oracle-vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Oracle Vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/1password-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    1Password Connect Server
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/1password-sdk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    1Password SDK
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/webhook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Webhook
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/fake/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Fake
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/senhasegura-dsm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    senhasegura DevOps Secrets Management (DSM)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/doppler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Doppler
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/keeper-security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Keeper Security
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/cloak/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cloak End 2 End Encrypted Secrets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/scaleway/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Scaleway
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/delinea/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Delinea
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/secretserver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Secret Server
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/passbolt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Passbolt
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/pulumi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pulumi ESC
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/onboardbase/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Onboardbase
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider-passworddepot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Password Depot
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/fortanix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Fortanix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/infisical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Infisical
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/previder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Previder
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/openbao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    OpenBao
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/volcengine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Volcengine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/gitops-using-fluxcd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FluxCD
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/anchore-engine-credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Anchore Engine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/jenkins-kubernetes-credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Jenkins
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/bitwarden/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bitwarden
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Community
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/devguide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Developer guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing Process
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/release/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Process
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/coc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Code of Conduct
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/calendar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Community meetings calendar
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Roadmap
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/burnout-mitigation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Burnout Prevention
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    External Resources
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            External Resources
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../eso-talks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Talks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../eso-demos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Demos
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../eso-blogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Blogs
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../eso-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#security-functions-and-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security Functions and Features
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Functions and Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-namespace-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Namespace Isolation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-configure-clustersecretstore-match-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Configure ClusterSecretStore match conditions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-selectively-disable-reconciliation-of-cluster-wide-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Selectively Disable Reconciliation of Cluster-Wide Resources
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-implement-namespace-scoped-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Implement Namespace-Scoped Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-restrict-webhook-tls-ciphers" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Restrict Webhook TLS Ciphers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-harden-the-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Harden the Helm Chart
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pod-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pod Security
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#role-based-access-control-rbac" class="md-nav__link">
+    <span class="md-ellipsis">
+      Role-Based Access Control (RBAC)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#network-traffic-and-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Network Traffic and Security
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Network Traffic and Security">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#outbound-traffic-restrictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outbound Traffic Restrictions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Outbound Traffic Restrictions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-controller" class="md-nav__link">
+    <span class="md-ellipsis">
+      Core Controller
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cert-controller" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cert Controller
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inbound-traffic-restrictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inbound Traffic Restrictions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inbound Traffic Restrictions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-controller_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Core Controller
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cert-controller_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cert Controller
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#policy-engine-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Policy Engine Best Practices
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regular-patches" class="md-nav__link">
+    <span class="md-ellipsis">
+      Regular Patches
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-artefacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify Artefacts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Verify Artefacts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verify-container-images" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify Container Images
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verifying-provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verifying Provenance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fetching-sbom" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fetching SBOM
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="security-best-practices">Security Best Practices</h1>
+<p>The purpose of this document is to outline a set of best practices for securing the External Secrets Operator (ESO). These practices aim to mitigate the risk of successful attacks against ESO and the Kubernetes cluster it integrates with.</p>
+<h2 id="security-functions-and-features">Security Functions and Features</h2>
+<h3 id="1-namespace-isolation">1. Namespace Isolation</h3>
+<p>To maintain security boundaries, ESO ensures that namespaced resources like <code>SecretStore</code> and <code>ExternalSecret</code> are limited to their respective namespaces. The following rules apply:</p>
+<ol>
+<li><code>ExternalSecret</code> resources must not have cross-namespace references of <code>Kind=SecretStore</code> or <code>Kind=Secret</code> resources</li>
+<li><code>SecretStore</code> resources must not have cross-namespace references of <code>Kind=Secret</code> or others</li>
+</ol>
+<p>For cluster-wide resources like <code>ClusterSecretStore</code> and <code>ClusterExternalSecret</code>, exercise caution since they have access to Secret resources across all namespaces. Minimize RBAC permissions for administrators and developers to the necessary minimum. If cluster-wide resources are not required, it is recommended to disable them.</p>
+<h3 id="2-configure-clustersecretstore-match-conditions">2. Configure ClusterSecretStore match conditions</h3>
+<p>Utilize the ClusterSecretStore resource to define specific match conditions using <code>namespaceSelector</code> or an explicit namespaces list. This restricts the usage of the <code>ClusterSecretStore</code> to a predetermined list of namespaces or a namespace that matches a predefined label. Here's an example:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fake</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">conditions</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespaceSelector</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">frontend</span>
+</code></pre></div>
+<h3 id="3-selectively-disable-reconciliation-of-cluster-wide-resources">3. Selectively Disable Reconciliation of Cluster-Wide Resources</h3>
+<p>ESO allows you to selectively disable the reconciliation of cluster-wide resources <code>ClusterSecretStore</code>, <code>ClusterExternalSecret</code>, and <code>PushSecret</code>.
+You can disable the installation of CRDs and reconciliation in the Helm chart, or disable reconciliation in the core controller.</p>
+<p>To disable reconciliation in the Helm chart:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">processClusterExternalSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">processClusterStore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">processPushSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</code></pre></div>
+<p>To disable CRD installation in the Helm chart:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">crds</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">createClusterExternalSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">createClusterSecretStore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">createPushSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</code></pre></div>
+<p>Note that disabling CRD installation for a cluster-wide resource does not automatically disable its reconciliation.
+The core controller will issue error logs if the CRD is not installed but the reconciliation is not disabled.</p>
+<p>To disable reconciliation in the core controller, set the following flags:</p>
+<div class="highlight"><pre><span></span><code>--enable-cluster-external-secret-reconciler=false
+--enable-cluster-store-reconciler=false
+--enable-push-secret-reconciler=false
+</code></pre></div>
+<h3 id="4-implement-namespace-scoped-installation">4. Implement Namespace-Scoped Installation</h3>
+<p>To further enhance security, consider installing ESO into a specific namespace with restricted access to only that namespace's resources. This prevents access to cluster-wide secrets. Use the following Helm values to scope the controller to a specific namespace:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># If set to true, create scoped RBAC roles under the scoped namespace</span>
+<span class="c1"># and implicitly disable cluster stores and cluster external secrets</span>
+<span class="nt">scopedRBAC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="c1"># Specify the namespace where external secrets should be reconciled</span>
+<span class="nt">scopedNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-namespace</span>
+</code></pre></div>
+<h3 id="5-restrict-webhook-tls-ciphers">5. Restrict Webhook TLS Ciphers</h3>
+<p>Consider installing ESO restricting webhook ciphers. Use the following Helm values to scope webhook for specific TLS ciphers:
+<div class="highlight"><pre><span></span><code><span class="nt">webhook</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">extraArgs</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">tls-ciphers</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256&quot;</span>
+</code></pre></div></p>
+<h3 id="6-harden-the-helm-chart">6. Harden the Helm Chart</h3>
+<p>The provided Helm chart is designed for ease of use and may not meet your organization's specific security requirements out-of-the-box. It is crucial to review the default Helm chart values and harden the configuration. Any misconfiguration caused by using the provided helm charts is not covered by our support policy - even if it leads to a security incident.</p>
+<p>Here are some examples of how you can harden the Helm chart:</p>
+<ul>
+<li>
+<p><strong>Scope RBAC Permissions</strong>: The default chart grants permissions to create service account tokens for any service account. You can restrict this by modifying the <code>ClusterRole</code> to only allow token creation for specific, known service accounts. This limits the operator's ability to impersonate other service accounts.</p>
+</li>
+<li>
+<p><strong>Use Tightly Scoped Deployments</strong>: If you don't need certain features, disable them. For example, you can prevent the injection of sidecar containers by using a custom appArmor profile, or an admission controller like Kyverno to enforce restrictions on your deployment.</p>
+</li>
+<li>
+<p><strong>Use it as a Dependency</strong>: Instead of deploying the chart directly, you can use it as a dependency in your own Helm chart. This allows you to extend its functionality and layer on your own security controls, such as <code>NetworkPolicies</code>, custom <code>RBAC</code> roles, and other security mechanisms that are specific to your environment.</p>
+</li>
+</ul>
+<h2 id="pod-security">Pod Security</h2>
+<p>The Pods of the External Secrets Operator have been configured to meet the <a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standards</a>, specifically the restricted profile. This configuration ensures a strong security posture by implementing recommended best practices for hardening Pods, including those outlined in the <a href="https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF">NSA Kubernetes Hardening Guide</a>.</p>
+<p>By adhering to these standards, the External Secrets Operator benefits from a secure and resilient operating environment. The restricted profile has been set as the default configuration since version <code>v0.8.2</code>, and it is recommended to maintain this setting to align with the principle of least privilege.</p>
+<h2 id="role-based-access-control-rbac">Role-Based Access Control (RBAC)</h2>
+<p>The External Secrets Operator operates with elevated privileges within your Kubernetes cluster, allowing it to read and write to all secrets across all namespaces. It is crucial to properly restrict access to ESO resources such as <code>ExternalSecret</code> and <code>SecretStore</code> where necessary. This is particularly important for cluster-scoped resources like <code>ClusterExternalSecret</code> and <code>ClusterSecretStore</code>. Unauthorized tampering with these resources by an attacker could lead to unauthorized access to secrets or potential data exfiltration from your system.</p>
+<p>In most scenarios, the External Secrets Operator is deployed cluster-wide. However, if you prefer to run it on a per-namespace basis, you can scope it to a specific namespace using the <code>scopedRBAC</code> and <code>scopedNamespace</code> options in the helm chart.</p>
+<p>To ensure a secure RBAC configuration, consider the following checklist:</p>
+<ul>
+<li>Restrict access to execute shell commands (pods/exec) within the External Secrets Operator Pod.</li>
+<li>Restrict access to (Cluster)ExternalSecret and (Cluster)SecretStore resources.</li>
+<li>Limit access to aggregated ClusterRoles (view/edit/admin) as needed.</li>
+<li>If necessary, deploy ESO with scoped RBAC or within a specific namespace.</li>
+</ul>
+<p>By carefully managing RBAC permissions and scoping the External Secrets Operator appropriately, you can enhance the security of your Kubernetes cluster.</p>
+<h2 id="network-traffic-and-security">Network Traffic and Security</h2>
+<p>To ensure a secure network environment, it is recommended to restrict network traffic to and from the External Secrets Operator using <code>NetworkPolicies</code> or similar mechanisms. By default, the External Secrets Operator does not include pre-defined Network Policies.</p>
+<p>To implement network restrictions effectively, consider the following steps:</p>
+<ul>
+<li>Define and apply appropriate NetworkPolicies to limit inbound and outbound traffic for the External Secrets Operator.</li>
+<li>Specify a "deny all" policy by default and selectively permit necessary communication based on your specific requirements.</li>
+<li>Restrict access to only the required endpoints and protocols for the External Secrets Operator, such as communication with the Kubernetes API server or external secret providers.</li>
+<li>Regularly review and update the Network Policies to align with changes in your network infrastructure and security requirements.</li>
+</ul>
+<p>It is the responsibility of the user to define and configure Network Policies tailored to their specific environment and security needs. By implementing proper network restrictions, you can enhance the overall security posture of the External Secrets Operator within your Kubernetes cluster.</p>
+<div class="admonition danger">
+<p class="admonition-title">Data Exfiltration Risk</p>
+<p>If not configured properly ESO may be used to exfiltrate data out of your cluster.
+It is advised to create tight NetworkPolicies and use a policy engine such as kyverno to prevent data exfiltration.</p>
+</div>
+<h3 id="outbound-traffic-restrictions">Outbound Traffic Restrictions</h3>
+<h4 id="core-controller">Core Controller</h4>
+<p>Restrict outbound traffic from the core controller component to the following destinations:</p>
+<ul>
+<li><code>kube-apiserver</code>: The Kubernetes API server.</li>
+<li>Secret provider (e.g., AWS, GCP): Whenever possible, use private endpoints to establish secure and private communication.</li>
+</ul>
+<h4 id="webhook">Webhook</h4>
+<ul>
+<li>Restrict outbound traffic from the webhook component to the <code>kube-apiserver</code>.</li>
+</ul>
+<h4 id="cert-controller">Cert Controller</h4>
+<ul>
+<li>Restrict outbound traffic from the cert controller component to the <code>kube-apiserver</code>.</li>
+</ul>
+<h3 id="inbound-traffic-restrictions">Inbound Traffic Restrictions</h3>
+<h4 id="core-controller_1">Core Controller</h4>
+<ul>
+<li>Restrict inbound traffic to the core controller component by allowing communication on port <code>8080</code> from your monitoring agent.</li>
+</ul>
+<h4 id="cert-controller_1">Cert Controller</h4>
+<ul>
+<li>Restrict inbound traffic to the cert controller component by allowing communication on port <code>8080</code> from your monitoring agent.</li>
+<li>Additionally, permit inbound traffic on port <code>8081</code> from the kubelet for health check endpoints (healthz/readyz).</li>
+</ul>
+<h4 id="webhook_1">Webhook</h4>
+<p>Restrict inbound traffic to the webhook component as follows:</p>
+<ul>
+<li>Allow communication on port <code>10250</code> from the kube-apiserver.</li>
+<li>Allow communication on port <code>8080</code> from your monitoring agent.</li>
+<li>Permit inbound traffic on port <code>8081</code> from the kubelet for health check endpoints (healthz/readyz).</li>
+</ul>
+<h2 id="policy-engine-best-practices">Policy Engine Best Practices</h2>
+<p>To enhance the security and enforce specific policies for External Secrets Operator (ESO) resources such as SecretStore and ExternalSecret, it is recommended to utilize a policy engine like <a href="http://kyverno.io/">Kyverno</a> or <a href="https://github.com/open-policy-agent/gatekeeper">OPA Gatekeeper</a>. These policy engines provide a way to define and enforce custom policies that restrict changes made to ESO resources.</p>
+<div class="admonition danger">
+<p class="admonition-title">Data Exfiltration Risk</p>
+<p>ESO could be used to exfiltrate data out of your cluster. You should disable all providers you don't need.
+Further, you should implement <code>NetworkPolicies</code> to restrict network access to known entities (see above), to prevent data exfiltration.</p>
+</div>
+<p>Here are some recommendations to consider when configuring your policies:</p>
+<ol>
+<li><strong>Explicitly Deny Unused Providers</strong>: Create policies that explicitly deny the usage of secret providers that are not required in your environment. This prevents unauthorized access to unnecessary providers and reduces the attack surface.</li>
+<li><strong>Restrict Access to Secrets</strong>: Implement policies that restrict access to secrets based on specific conditions. For example, you can define policies to allow access to secrets only if they have a particular prefix in the <code>.spec.data[].remoteRef.key</code> field. This helps ensure that only authorized entities can access sensitive information.</li>
+<li><strong>Restrict <code>ClusterSecretStore</code> References</strong>: Define policies to restrict the usage of ClusterSecretStore references within ExternalSecret resources. This ensures that the resources are properly scoped and prevent potential unauthorized access to secrets across namespaces.</li>
+</ol>
+<p>By leveraging a policy engine, you can implement these recommendations and enforce custom policies that align with your organization's security requirements. Please refer to the documentation of the chosen policy engine (e.g., Kyverno or OPA Gatekeeper) for detailed instructions on how to define and enforce policies for ESO resources.</p>
+<div class="admonition note">
+<p class="admonition-title">Provider Validation Example Policy</p>
+<p>The following policy validates the usage of the <code>provider</code> field in the SecretStore manifest.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kyverno.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterPolicy</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">require-secretstore-aws-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">validationFailureAction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Enforce</span>
+<span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">require-secretstore-aws-provider</span>
+<span class="w">    </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">any</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">kinds</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">    </span><span class="nt">validate</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;You</span><span class="nv"> </span><span class="s">must</span><span class="nv"> </span><span class="s">only</span><span class="nv"> </span><span class="s">use</span><span class="nv"> </span><span class="s">AWS</span><span class="nv"> </span><span class="s">SecretsManager&quot;</span>
+<span class="w">      </span><span class="nt">pattern</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+</code></pre></div>
+</div>
+<h2 id="regular-patches">Regular Patches</h2>
+<p>To maintain a secure environment, it is crucial to regularly patch and update all software components of External Secrets Operator and the underlying cluster. By doing so, known vulnerabilities can be addressed, and the overall system's security can be improved. Here are some recommended practices for ensuring timely updates:</p>
+<ol>
+<li><strong>Automated Patching and Updating</strong>: Utilize automated patching and updating tools to streamline the process of keeping software components up-to-date</li>
+<li><strong>Regular Update ESO</strong>: Stay informed about the latest updates and releases provided for ESO. The development team regularly releases updates to improve stability, performance, and security. Please refer to the <a href="../../introduction/stability-support/">Stability and Support</a> documentation for more information on the available updates</li>
+<li><strong>Cluster-wide Updates</strong>: Apart from ESO, ensure that all other software components within your cluster, such as the operating system, container runtime, and Kubernetes itself, are regularly patched and updated.</li>
+</ol>
+<p>By adhering to a regular patching and updating schedule, you can proactively mitigate security risks associated with known vulnerabilities and ensure the overall stability and security of your ESO deployment.</p>
+<h2 id="verify-artefacts">Verify Artefacts</h2>
+<h3 id="verify-container-images">Verify Container Images</h3>
+<p>The container images of External Secrets Operator are signed using Cosign and the keyless signing feature. To ensure the authenticity and integrity of the container image, you can follow the steps outlined below:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Retrieve Image Signature</span>
+$<span class="w"> </span>crane<span class="w"> </span>digest<span class="w"> </span>ghcr.io/external-secrets/external-secrets:v0.8.1
+sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554
+
+<span class="c1"># verify signature</span>
+$<span class="w"> </span><span class="nv">COSIGN_EXPERIMENTAL</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>cosign<span class="w"> </span>verify<span class="w"> </span>ghcr.io/external-secrets/external-secrets@sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq
+
+<span class="c1"># ...</span>
+<span class="o">[</span>
+<span class="w">  </span><span class="o">{</span>
+<span class="w">    </span><span class="s2">&quot;critical&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">      </span><span class="s2">&quot;identity&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;docker-reference&quot;</span>:<span class="w"> </span><span class="s2">&quot;ghcr.io/external-secrets/external-secrets&quot;</span>
+<span class="w">      </span><span class="o">}</span>,
+<span class="w">      </span><span class="s2">&quot;image&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;docker-manifest-digest&quot;</span>:<span class="w"> </span><span class="s2">&quot;sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554&quot;</span>
+<span class="w">      </span><span class="o">}</span>,
+<span class="w">      </span><span class="s2">&quot;type&quot;</span>:<span class="w"> </span><span class="s2">&quot;cosign container image signature&quot;</span>
+<span class="w">    </span><span class="o">}</span>,
+<span class="w">    </span><span class="s2">&quot;optional&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">      </span><span class="s2">&quot;1.3.6.1.4.1.57264.1.1&quot;</span>:<span class="w"> </span><span class="s2">&quot;https://token.actions.githubusercontent.com&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;1.3.6.1.4.1.57264.1.2&quot;</span>:<span class="w"> </span><span class="s2">&quot;workflow_dispatch&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;1.3.6.1.4.1.57264.1.3&quot;</span>:<span class="w"> </span><span class="s2">&quot;a0d2aef2e35c259c9ee75d65f7587e6ed71ef2ad&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;1.3.6.1.4.1.57264.1.4&quot;</span>:<span class="w"> </span><span class="s2">&quot;Create Release&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;1.3.6.1.4.1.57264.1.5&quot;</span>:<span class="w"> </span><span class="s2">&quot;external-secrets/external-secrets&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;1.3.6.1.4.1.57264.1.6&quot;</span>:<span class="w"> </span><span class="s2">&quot;refs/heads/main&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;Bundle&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="c1"># ...</span>
+<span class="w">      </span><span class="o">}</span>,
+<span class="w">      </span><span class="s2">&quot;GITHUB_ACTOR&quot;</span>:<span class="w"> </span><span class="s2">&quot;gusfcarvalho&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;Issuer&quot;</span>:<span class="w"> </span><span class="s2">&quot;https://token.actions.githubusercontent.com&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;Subject&quot;</span>:<span class="w"> </span><span class="s2">&quot;https://github.com/external-secrets/external-secrets/.github/workflows/release.yml@refs/heads/main&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;githubWorkflowName&quot;</span>:<span class="w"> </span><span class="s2">&quot;Create Release&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;githubWorkflowRef&quot;</span>:<span class="w"> </span><span class="s2">&quot;refs/heads/main&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;githubWorkflowRepository&quot;</span>:<span class="w"> </span><span class="s2">&quot;external-secrets/external-secrets&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;githubWorkflowSha&quot;</span>:<span class="w"> </span><span class="s2">&quot;a0d2aef2e35c259c9ee75d65f7587e6ed71ef2ad&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;githubWorkflowTrigger&quot;</span>:<span class="w"> </span><span class="s2">&quot;workflow_dispatch&quot;</span>
+<span class="w">    </span><span class="o">}</span>
+<span class="w">  </span><span class="o">}</span>
+<span class="o">]</span>
+</code></pre></div>
+<p>In the output of the verification process, pay close attention to the <code>optional.Issuer</code> and <code>optional.Subject</code> fields. These fields contain important information about the image's authenticity. Verify that the values of Issuer and Subject match the expected values for the ESO container image. If they do not match, it indicates that the image is not legitimate and should not be used.</p>
+<p>By following these steps and confirming that the Issuer and Subject fields align with the expected values for the ESO container image, you can ensure that the image has not been tampered with and is safe to use.</p>
+<h3 id="verifying-provenance">Verifying Provenance</h3>
+<p>The External Secrets Operator employs the <a href="https://slsa.dev/provenance/v0.1">SLSA</a> (Supply Chain Levels for Software Artifacts) standard to create and attest to the provenance of its builds. Provenance verification is essential to ensure the integrity and trustworthiness of the software supply chain. This outlines the process of verifying the attested provenance of External Secrets Operator builds using the cosign tool.</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span><span class="nv">COSIGN_EXPERIMENTAL</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>cosign<span class="w"> </span>verify-attestation<span class="w"> </span>--type<span class="w"> </span>slsaprovenance<span class="w"> </span>ghcr.io/external-secrets/external-secrets:v0.8.1<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.payload<span class="w"> </span>-r<span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>--decode<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq
+
+Verification<span class="w"> </span><span class="k">for</span><span class="w"> </span>ghcr.io/external-secrets/external-secrets:v0.8.1<span class="w"> </span>--
+The<span class="w"> </span>following<span class="w"> </span>checks<span class="w"> </span>were<span class="w"> </span>performed<span class="w"> </span>on<span class="w"> </span>each<span class="w"> </span>of<span class="w"> </span>these<span class="w"> </span>signatures:
+<span class="w">  </span>-<span class="w"> </span>The<span class="w"> </span>cosign<span class="w"> </span>claims<span class="w"> </span>were<span class="w"> </span>validated
+<span class="w">  </span>-<span class="w"> </span>Existence<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>claims<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w"> </span>transparency<span class="w"> </span>log<span class="w"> </span>was<span class="w"> </span>verified<span class="w"> </span>offline
+<span class="w">  </span>-<span class="w"> </span>Any<span class="w"> </span>certificates<span class="w"> </span>were<span class="w"> </span>verified<span class="w"> </span>against<span class="w"> </span>the<span class="w"> </span>Fulcio<span class="w"> </span>roots.
+Certificate<span class="w"> </span>subject:<span class="w">  </span>https://github.com/external-secrets/external-secrets/.github/workflows/release.yml@refs/heads/main
+Certificate<span class="w"> </span>issuer<span class="w"> </span>URL:<span class="w">  </span>https://token.actions.githubusercontent.com
+GitHub<span class="w"> </span>Workflow<span class="w"> </span>Trigger:<span class="w"> </span>workflow_dispatch
+GitHub<span class="w"> </span>Workflow<span class="w"> </span>SHA:<span class="w"> </span>a0d2aef2e35c259c9ee75d65f7587e6ed71ef2ad
+GitHub<span class="w"> </span>Workflow<span class="w"> </span>Name:<span class="w"> </span>Create<span class="w"> </span>Release
+GitHub<span class="w"> </span>Workflow<span class="w"> </span>Trigger<span class="w"> </span>external-secrets/external-secrets
+GitHub<span class="w"> </span>Workflow<span class="w"> </span>Ref:<span class="w"> </span>refs/heads/main
+<span class="o">{</span>
+<span class="w">  </span><span class="s2">&quot;_type&quot;</span>:<span class="w"> </span><span class="s2">&quot;https://in-toto.io/Statement/v0.1&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;predicateType&quot;</span>:<span class="w"> </span><span class="s2">&quot;https://slsa.dev/provenance/v0.2&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;subject&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<span class="w">    </span><span class="o">{</span>
+<span class="w">      </span><span class="s2">&quot;name&quot;</span>:<span class="w"> </span><span class="s2">&quot;ghcr.io/external-secrets/external-secrets&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;digest&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;sha256&quot;</span>:<span class="w"> </span><span class="s2">&quot;36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554&quot;</span>
+<span class="w">      </span><span class="o">}</span>
+<span class="w">    </span><span class="o">}</span>
+<span class="w">  </span><span class="o">]</span>,
+<span class="w">  </span><span class="s2">&quot;predicate&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="s2">&quot;builder&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">      </span><span class="s2">&quot;id&quot;</span>:<span class="w"> </span><span class="s2">&quot;https://github.com/external-secrets/external-secrets/Attestations/GitHubHostedActions@v1&quot;</span>
+<span class="w">    </span><span class="o">}</span>,
+<span class="w">    </span><span class="s2">&quot;buildType&quot;</span>:<span class="w"> </span><span class="s2">&quot;https://github.com/Attestations/GitHubActionsWorkflow@v1&quot;</span>,
+<span class="w">    </span><span class="s2">&quot;invocation&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">      </span><span class="s2">&quot;configSource&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;uri&quot;</span>:<span class="w"> </span><span class="s2">&quot;git+https://github.com/external-secrets/external-secrets&quot;</span>,
+<span class="w">        </span><span class="s2">&quot;digest&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">          </span><span class="s2">&quot;sha1&quot;</span>:<span class="w"> </span><span class="s2">&quot;a0d2aef2e35c259c9ee75d65f7587e6ed71ef2ad&quot;</span>
+<span class="w">        </span><span class="o">}</span>,
+<span class="w">        </span><span class="s2">&quot;entryPoint&quot;</span>:<span class="w"> </span><span class="s2">&quot;Create Release&quot;</span>
+<span class="w">      </span><span class="o">}</span>,
+<span class="w">      </span><span class="s2">&quot;parameters&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;version&quot;</span>:<span class="w"> </span><span class="s2">&quot;v0.8.1&quot;</span>
+<span class="w">      </span><span class="o">}</span>
+<span class="w">    </span><span class="o">}</span>,
+<span class="w">    </span><span class="o">[</span>...<span class="o">]</span>
+<span class="w">  </span><span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+<h3 id="fetching-sbom">Fetching SBOM</h3>
+<p>Every External Secrets Operator image is accompanied by an SBOM (Software Bill of Materials) in SPDX JSON format. The SBOM provides detailed information about the software components and dependencies used in the image. This technical documentation explains the process of downloading and verifying the SBOM for a specific version of External Secrets Operator using the Cosign tool.</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>crane<span class="w"> </span>digest<span class="w"> </span>ghcr.io/external-secrets/external-secrets:v0.8.1
+sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554
+
+$<span class="w"> </span><span class="nv">COSIGN_EXPERIMENTAL</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>cosign<span class="w"> </span>verify-attestation<span class="w"> </span>--type<span class="w"> </span>spdx<span class="w"> </span>ghcr.io/external-secrets/external-secrets@sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.payload |= @base64d | .payload | fromjson&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.predicate.Data | fromjson&#39;</span>
+
+<span class="o">[</span>...<span class="o">]</span>
+<span class="o">{</span>
+<span class="w">  </span><span class="s2">&quot;SPDXID&quot;</span>:<span class="w"> </span><span class="s2">&quot;SPDXRef-DOCUMENT&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;name&quot;</span>:<span class="w"> </span><span class="s2">&quot;ghcr.io/external-secrets/external-secrets@sha256-36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;spdxVersion&quot;</span>:<span class="w"> </span><span class="s2">&quot;SPDX-2.2&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;creationInfo&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="s2">&quot;created&quot;</span>:<span class="w"> </span><span class="s2">&quot;2023-03-17T23:17:01.568002344Z&quot;</span>,
+<span class="w">    </span><span class="s2">&quot;creators&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<span class="w">      </span><span class="s2">&quot;Organization: Anchore, Inc&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;Tool: syft-0.40.1&quot;</span>
+<span class="w">    </span><span class="o">]</span>,
+<span class="w">    </span><span class="s2">&quot;licenseListVersion&quot;</span>:<span class="w"> </span><span class="s2">&quot;3.16&quot;</span>
+<span class="w">  </span><span class="o">}</span>,
+<span class="w">  </span><span class="s2">&quot;dataLicense&quot;</span>:<span class="w"> </span><span class="s2">&quot;CC0-1.0&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;documentNamespace&quot;</span>:<span class="w"> </span><span class="s2">&quot;https://anchore.com/syft/image/ghcr.io/external-secrets/external-secrets@sha256-36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554-83484ebb-b469-45fa-8fcc-9290c4ea4f6f&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;packages&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<span class="w">    </span><span class="o">[</span>...<span class="o">]</span>
+<span class="w">    </span><span class="o">{</span>
+<span class="w">      </span><span class="s2">&quot;SPDXID&quot;</span>:<span class="w"> </span><span class="s2">&quot;SPDXRef-c809070b0beb099e&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;name&quot;</span>:<span class="w"> </span><span class="s2">&quot;tzdata&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;licenseConcluded&quot;</span>:<span class="w"> </span><span class="s2">&quot;NONE&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;downloadLocation&quot;</span>:<span class="w"> </span><span class="s2">&quot;NOASSERTION&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;externalRefs&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<span class="w">        </span><span class="o">{</span>
+<span class="w">          </span><span class="s2">&quot;referenceCategory&quot;</span>:<span class="w"> </span><span class="s2">&quot;SECURITY&quot;</span>,
+<span class="w">          </span><span class="s2">&quot;referenceLocator&quot;</span>:<span class="w"> </span><span class="s2">&quot;cpe:2.3:a:tzdata:tzdata:2021a-1\\+deb11u8:*:*:*:*:*:*:*&quot;</span>,
+<span class="w">          </span><span class="s2">&quot;referenceType&quot;</span>:<span class="w"> </span><span class="s2">&quot;cpe23Type&quot;</span>
+<span class="w">        </span><span class="o">}</span>,
+<span class="w">        </span><span class="o">{</span>
+<span class="w">          </span><span class="s2">&quot;referenceCategory&quot;</span>:<span class="w"> </span><span class="s2">&quot;PACKAGE_MANAGER&quot;</span>,
+<span class="w">          </span><span class="s2">&quot;referenceLocator&quot;</span>:<span class="w"> </span><span class="s2">&quot;pkg:deb/debian/tzdata@2021a-1+deb11u8?arch=all&amp;distro=debian-11&quot;</span>,
+<span class="w">          </span><span class="s2">&quot;referenceType&quot;</span>:<span class="w"> </span><span class="s2">&quot;purl&quot;</span>
+<span class="w">        </span><span class="o">}</span>
+<span class="w">      </span><span class="o">]</span>,
+<span class="w">      </span><span class="s2">&quot;filesAnalyzed&quot;</span>:<span class="w"> </span>false,
+<span class="w">      </span><span class="s2">&quot;licenseDeclared&quot;</span>:<span class="w"> </span><span class="s2">&quot;NONE&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;originator&quot;</span>:<span class="w"> </span><span class="s2">&quot;Person: GNU Libc Maintainers &lt;debian-glibc@lists.debian.org&gt;&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;sourceInfo&quot;</span>:<span class="w"> </span><span class="s2">&quot;acquired package info from DPKG DB: /var/lib/dpkg/status.d/tzdata, /usr/share/doc/tzdata/copyright&quot;</span>,
+<span class="w">      </span><span class="s2">&quot;versionInfo&quot;</span>:<span class="w"> </span><span class="s2">&quot;2021a-1+deb11u8&quot;</span>
+<span class="w">    </span><span class="o">}</span>
+<span class="w">  </span><span class="o">]</span>
+<span class="o">}</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=6658a9eb-067d-49f1-94f2-b8b00f21451e"  alt=""/>
+  
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      &copy; 2025 The external-secrets Authors.<br/>
+&copy; 2025 The Linux Foundation. All rights reserved.<br/><br/>
+The Linux Foundation has registered trademarks and uses trademarks.<br/>
+For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.indexes", "navigation.expand"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>
