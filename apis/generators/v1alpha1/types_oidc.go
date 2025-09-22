@@ -90,6 +90,8 @@ type TokenExchangeGrantSpec struct {
 	// +kubebuilder:validation:Optional
 	SubjectTokenType string `json:"subjectTokenType,omitempty"`
 	// RequestedTokenType specifies the type of token to request (defaults to access token)
+	// +kubebuilder:validation:Enum=urn:ietf:params:oauth:token-type:access_token;urn:ietf:params:oauth:token-type:id_token
+	// +kubebuilder:default:="urn:ietf:params:oauth:token-type:access_token"
 	// +kubebuilder:validation:Optional
 	RequestedTokenType string `json:"requestedTokenType,omitempty"`
 	// ActorTokenRef is a reference to an optional actor token for delegation scenarios
