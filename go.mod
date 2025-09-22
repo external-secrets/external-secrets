@@ -26,6 +26,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.15.0
 	github.com/hashicorp/vault/api v1.21.0
 	github.com/hashicorp/vault/api/auth/approle v0.10.0
+	github.com/hashicorp/vault/api/auth/gcp v0.10.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.10.0
 	github.com/hashicorp/vault/api/auth/ldap v0.10.0
 	github.com/huandu/xstrings v1.5.0 // indirect
