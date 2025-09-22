@@ -33,6 +33,7 @@ type OIDCSpec struct {
 	// +kubebuilder:validation:Optional
 	ClientSecretRef *esmeta.SecretKeySelector `json:"clientSecretRef,omitempty"`
 	// Scopes is the list of OAuth2 scopes to request (defaults to ["openid"])
+    // +kubebuilder:default={"openid"}
 	// +kubebuilder:validation:Optional
 	Scopes []string `json:"scopes,omitempty"`
 	// Grant specifies the OAuth2 grant type and its parameters
