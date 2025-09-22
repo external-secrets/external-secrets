@@ -23,7 +23,7 @@ env:
   GHCR_USERNAME: ${{ github.actor }}
   GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
   GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
-  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
+  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account
   GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
 

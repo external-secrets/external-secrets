@@ -22,9 +22,9 @@ env:
   GCP_SM_SA_GKE_JSON: ${{ secrets.GCP_SM_SA_GKE_JSON}}
   GCP_GKE_CLUSTER: test-cluster
   GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
-  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
+  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account
   GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
-  TF_VAR_GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account for tf
+  TF_VAR_GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account for tf
   TF_VAR_GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account for tf
 
   AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN}}
