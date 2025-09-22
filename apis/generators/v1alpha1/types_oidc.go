@@ -24,7 +24,7 @@ import (
 
 type OIDCSpec struct {
 	// TokenURL configures the OAuth2 token endpoint URL (e.g., https://dex.example.com/token, https://keycloak.example.com/realms/master/protocol/openid-connect/token)
-		// +kubebuilder:validation:XValidation:rule="isURL(self)",message="tokenUrl must be a valid URL"
+	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="tokenUrl must be a valid URL"
 	// +kubebuilder:validation:Required
 	TokenURL string `json:"tokenUrl"`
 	// ClientID is the OAuth2 client ID
@@ -34,7 +34,7 @@ type OIDCSpec struct {
 	// +kubebuilder:validation:Optional
 	ClientSecretRef *esmeta.SecretKeySelector `json:"clientSecretRef,omitempty"`
 	// Scopes is the list of OAuth2 scopes to request (defaults to ["openid"])
-    // +kubebuilder:default={"openid"}
+	// +kubebuilder:default={"openid"}
 	// +kubebuilder:validation:Optional
 	Scopes []string `json:"scopes,omitempty"`
 	// Grant specifies the OAuth2 grant type and its parameters
@@ -48,6 +48,12 @@ type OIDCSpec struct {
 	// This can be used for provider-specific authentication or metadata requirements.
 	// +kubebuilder:validation:Optional
 	AdditionalHeaders map[string]string `json:"additionalHeaders,omitempty"`
+	// RequestTimeout specifies the timeout for HTTP requests to the OIDC provider (defaults to 30s)
+	// +kubebuilder:default="30s"
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern="^[0-9]+(ns|us|µs|ms|s|m|h)$"
+	RequestTimeout *string `json:"requestTimeout,omitempty"`
 }
 
 // GrantSpec is a union type for different OAuth2 grant types
@@ -64,9 +70,9 @@ type GrantSpec struct {
 
 // PasswordGrantSpec defines parameters for Resource Owner Password Credentials grant.
 type PasswordGrantSpec struct {
-	// UsernameRef is a reference to the secret containing the username
+	// Username is the username for authentication
 	// +kubebuilder:validation:Required
-	UsernameRef esmeta.SecretKeySelector `json:"usernameRef"`
+	Username string `json:"username"`
 	// PasswordRef is a reference to the secret containing the password
 	// +kubebuilder:validation:Required
 	PasswordRef esmeta.SecretKeySelector `json:"passwordRef"`
@@ -85,12 +91,12 @@ type TokenExchangeGrantSpec struct {
 	// +kubebuilder:validation:Optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 	// SubjectTokenType specifies the type of the subject token (defaults to ID token for service accounts)
-	// +kubebuilder:validation:Enum=urn:ietf:params:oauth:token-type:access_token;urn:ietf:params:oauth:token-type:id_token;urn:ietf:params:oauth:token-type:jwt
+	// +kubebuilder:validation:Enum="urn:ietf:params:oauth:token-type:access_token";"urn:ietf:params:oauth:token-type:id_token";"urn:ietf:params:oauth:token-type:jwt"
 	// +kubebuilder:default:="urn:ietf:params:oauth:token-type:id_token"
 	// +kubebuilder:validation:Optional
 	SubjectTokenType string `json:"subjectTokenType,omitempty"`
 	// RequestedTokenType specifies the type of token to request (defaults to access token)
-	// +kubebuilder:validation:Enum=urn:ietf:params:oauth:token-type:access_token;urn:ietf:params:oauth:token-type:id_token
+	// +kubebuilder:validation:Enum="urn:ietf:params:oauth:token-type:access_token";"urn:ietf:params:oauth:token-type:id_token"
 	// +kubebuilder:default:="urn:ietf:params:oauth:token-type:access_token"
 	// +kubebuilder:validation:Optional
 	RequestedTokenType string `json:"requestedTokenType,omitempty"`

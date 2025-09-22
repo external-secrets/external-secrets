@@ -77,13 +77,19 @@ const (
 	errFetchSecret         = "failed to fetch secret: %w"
 	errFetchServiceAccount = "failed to fetch service account token: %w"
 	errInvalidGrantType    = "no valid grant type specified"
+	errInvalidTimeout      = "invalid timeout format: %w"
 
-	httpClientTimeout = 30 * time.Second
+	defaultHTTPTimeout = 30 * time.Second
 )
 
 func (g *Generator) Generate(ctx context.Context, oidcSpec *apiextensions.JSON, kubeClient client.Client, targetNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if g.httpClient == nil {
-		g.httpClient = &http.Client{Timeout: httpClientTimeout}
+		spec, err := parseOIDCSpec(oidcSpec.Raw)
+		if err != nil {
+			return nil, nil, fmt.Errorf(errParseSpec, err)
+		}
+		timeout := parseRequestTimeout(spec.Spec.RequestTimeout)
+		g.httpClient = &http.Client{Timeout: timeout}
 	}
 	return g.generate(ctx, oidcSpec, kubeClient, targetNamespace)
 }
@@ -106,26 +112,18 @@ func (g *Generator) generate(
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 
-	scopes := g.getScopes(spec)
 	clientSecret, err := g.getClientSecret(ctx, kubeClient, targetNamespace, spec)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	tokenResp, err := g.authenticateWithGrant(ctx, spec, clientSecret, scopes, kubeClient, targetNamespace)
+	tokenResp, err := g.authenticateWithGrant(ctx, spec, clientSecret, spec.Spec.Scopes, kubeClient, targetNamespace)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	result := g.buildTokenResult(tokenResp)
 	return result, nil, nil
-}
-
-func (g *Generator) getScopes(spec *genv1alpha1.OIDC) []string {
-	if len(spec.Spec.Scopes) == 0 {
-		return []string{"openid"}
-	}
-	return spec.Spec.Scopes
 }
 
 func (g *Generator) getClientSecret(ctx context.Context, kubeClient client.Client, targetNamespace string, spec *genv1alpha1.OIDC) (string, error) {
@@ -197,14 +195,7 @@ func (g *Generator) buildTokenResult(tokenResp *TokenResponse) map[string][]byte
 func (g *Generator) authenticateWithPassword(ctx context.Context, spec *genv1alpha1.OIDC, clientSecret string, scopes []string, kubeClient client.Client, targetNamespace string) (*TokenResponse, error) {
 	log := logr.FromContextOrDiscard(ctx)
 
-	username, err := resolvers.SecretKeyRef(ctx, kubeClient, resolvers.EmptyStoreKind, targetNamespace, &esmeta.SecretKeySelector{
-		Namespace: &targetNamespace,
-		Name:      spec.Spec.Grant.Password.UsernameRef.Name,
-		Key:       spec.Spec.Grant.Password.UsernameRef.Key,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch username: %w", err)
-	}
+	username := spec.Spec.Grant.Password.Username
 
 	password, err := resolvers.SecretKeyRef(ctx, kubeClient, resolvers.EmptyStoreKind, targetNamespace, &esmeta.SecretKeySelector{
 		Namespace: &targetNamespace,
@@ -364,7 +355,7 @@ func executeTokenRequest(ctx context.Context, httpClient *http.Client, req authR
 	log := logr.FromContextOrDiscard(ctx)
 
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: httpClientTimeout}
+		httpClient = &http.Client{Timeout: defaultHTTPTimeout}
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", req.endpoint, strings.NewReader(req.formData.Encode()))
@@ -462,6 +453,19 @@ func fetchServiceAccountToken(ctx context.Context, saRef esmeta.ServiceAccountSe
 		return "", fmt.Errorf("failed to create token: %w", err)
 	}
 	return tokenResponse.Status.Token, nil
+}
+
+func parseRequestTimeout(requestTimeout *string) time.Duration {
+	if requestTimeout == nil || *requestTimeout == "" {
+		return defaultHTTPTimeout
+	}
+
+	duration, err := time.ParseDuration(*requestTimeout)
+	if err != nil {
+		return defaultHTTPTimeout
+	}
+
+	return duration
 }
 
 func init() {

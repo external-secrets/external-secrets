@@ -110,10 +110,7 @@ func TestOIDCGenerator_PasswordGrant(t *testing.T) {
 			Scopes: []string{"openid", "profile"},
 			Grant: genv1alpha1.GrantSpec{
 				Password: &genv1alpha1.PasswordGrantSpec{
-					UsernameRef: esmeta.SecretKeySelector{
-						Name: "user-credentials",
-						Key:  "username",
-					},
+					Username: "testuser",
 					PasswordRef: esmeta.SecretKeySelector{
 						Name: "user-credentials",
 						Key:  "password",
@@ -622,6 +619,108 @@ func TestOIDCGenerator_RFC8693Compliance(t *testing.T) {
 	if token != mockJWTToken {
 		t.Errorf("Expected token %q, got %q", mockJWTToken, token)
 	}
+}
+
+func TestParseRequestTimeout(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    *string
+		expected time.Duration
+	}{
+		{
+			name:     "nil timeout uses default",
+			input:    nil,
+			expected: defaultHTTPTimeout,
+		},
+		{
+			name:     "empty timeout uses default",
+			input:    stringPtr(""),
+			expected: defaultHTTPTimeout,
+		},
+		{
+			name:     "valid timeout in seconds",
+			input:    stringPtr("45s"),
+			expected: 45 * time.Second,
+		},
+		{
+			name:     "valid timeout in minutes",
+			input:    stringPtr("2m"),
+			expected: 2 * time.Minute,
+		},
+		{
+			name:     "valid timeout in milliseconds",
+			input:    stringPtr("500ms"),
+			expected: 500 * time.Millisecond,
+		},
+		{
+			name:     "invalid timeout format uses default",
+			input:    stringPtr("invalid"),
+			expected: defaultHTTPTimeout,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseRequestTimeout(tt.input)
+			if result != tt.expected {
+				t.Errorf("parseRequestTimeout() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestOIDCGenerator_RequestTimeout(t *testing.T) {
+	// Test that the timeout is properly configured in the HTTP client
+	spec := &genv1alpha1.OIDC{
+		Spec: genv1alpha1.OIDCSpec{
+			TokenURL:       "https://example.com/token",
+			ClientID:       testClientID,
+			Scopes:         []string{"openid"},
+			RequestTimeout: stringPtr("45s"),
+			Grant: genv1alpha1.GrantSpec{
+				Password: &genv1alpha1.PasswordGrantSpec{
+					Username: "testuser",
+					PasswordRef: esmeta.SecretKeySelector{
+						Name: "user-credentials",
+						Key:  "password",
+					},
+				},
+			},
+		},
+	}
+
+	generator := &Generator{}
+
+	specBytes, err := yaml.Marshal(spec)
+	if err != nil {
+		t.Fatalf("Failed to marshal spec: %v", err)
+	}
+
+	// Call Generate to trigger HTTP client creation with timeout
+	_, _, err = generator.Generate(
+		context.Background(),
+		&apiextensions.JSON{Raw: specBytes},
+		fake.NewClientBuilder().Build(),
+		"test-namespace",
+	)
+
+	// We expect an error since the secrets don't exist, but the HTTP client should be created
+	if err == nil {
+		t.Fatal("Expected error due to missing secrets")
+	}
+
+	// Verify the HTTP client was created with the correct timeout
+	if generator.httpClient == nil {
+		t.Fatal("Expected HTTP client to be created")
+	}
+
+	if generator.httpClient.Timeout != 45*time.Second {
+		t.Errorf("Expected timeout to be 45s, got %v", generator.httpClient.Timeout)
+	}
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
 
 func TestParseOIDCSpec(t *testing.T) {

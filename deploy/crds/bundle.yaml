@@ -920,7 +920,6 @@ spec:
                                       - VaultDynamicSecret
                                       - Webhook
                                       - Grafana
-                                      - OIDC
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -1112,7 +1111,6 @@ spec:
                                       - VaultDynamicSecret
                                       - Webhook
                                       - Grafana
-                                      - OIDC
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -12189,7 +12187,6 @@ spec:
                                   - VaultDynamicSecret
                                   - Webhook
                                   - Grafana
-                                  - OIDC
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -12381,7 +12378,6 @@ spec:
                                   - VaultDynamicSecret
                                   - Webhook
                                   - Grafana
-                                  - OIDC
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -23695,35 +23691,12 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
-                                usernameRef:
-                                  description: UsernameRef is a reference to the secret containing the username
-                                  properties:
-                                    key:
-                                      description: |-
-                                        A key in the referenced Secret.
-                                        Some instances of this field may be defaulted, in others it may be required.
-                                      maxLength: 253
-                                      minLength: 1
-                                      pattern: ^[-._a-zA-Z0-9]+$
-                                      type: string
-                                    name:
-                                      description: The name of the Secret resource being referred to.
-                                      maxLength: 253
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                      type: string
-                                    namespace:
-                                      description: |-
-                                        The namespace of the Secret resource being referred to.
-                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
-                                      maxLength: 63
-                                      minLength: 1
-                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                                      type: string
-                                  type: object
+                                username:
+                                  description: Username is the username for authentication
+                                  type: string
                               required:
                                 - passwordRef
-                                - usernameRef
+                                - username
                               type: object
                             tokenExchange:
                               description: TokenExchange grant (RFC 8693)
@@ -23773,7 +23746,11 @@ spec:
                                   description: Audience specifies the logical name of the target service or resource
                                   type: string
                                 requestedTokenType:
+                                  default: urn:ietf:params:oauth:token-type:access_token
                                   description: RequestedTokenType specifies the type of token to request (defaults to access token)
+                                  enum:
+                                    - urn:ietf:params:oauth:token-type:access_token
+                                    - urn:ietf:params:oauth:token-type:id_token
                                   type: string
                                 resource:
                                   description: Resource specifies the physical or logical URI of the target service or resource
@@ -23838,14 +23815,29 @@ spec:
                                       type: string
                                   type: object
                                 subjectTokenType:
+                                  default: urn:ietf:params:oauth:token-type:id_token
                                   description: SubjectTokenType specifies the type of the subject token (defaults to ID token for service accounts)
+                                  enum:
+                                    - urn:ietf:params:oauth:token-type:access_token
+                                    - urn:ietf:params:oauth:token-type:id_token
+                                    - urn:ietf:params:oauth:token-type:jwt
                                   type: string
                               type: object
                               x-kubernetes-validations:
                                 - message: exactly one of subjectTokenRef or serviceAccountRef must be specified
                                   rule: has(self.subjectTokenRef) != has(self.serviceAccountRef)
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one grant type must be specified
+                              rule: '[has(self.password), has(self.tokenExchange)].filter(x, x).size() == 1'
+                        requestTimeout:
+                          default: 30s
+                          description: RequestTimeout specifies the timeout for HTTP requests to the OIDC provider (defaults to 30s)
+                          pattern: ^[0-9]+(ns|us|µs|ms|s|m|h)$
+                          type: string
                         scopes:
+                          default:
+                            - openid
                           description: Scopes is the list of OAuth2 scopes to request (defaults to ["openid"])
                           items:
                             type: string
@@ -23853,6 +23845,9 @@ spec:
                         tokenUrl:
                           description: TokenURL configures the OAuth2 token endpoint URL (e.g., https://dex.example.com/token, https://keycloak.example.com/realms/master/protocol/openid-connect/token)
                           type: string
+                          x-kubernetes-validations:
+                            - message: tokenUrl must be a valid URL
+                              rule: isURL(self)
                       required:
                         - clientId
                         - grant
@@ -26199,35 +26194,12 @@ spec:
                               pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                               type: string
                           type: object
-                        usernameRef:
-                          description: UsernameRef is a reference to the secret containing the username
-                          properties:
-                            key:
-                              description: |-
-                                A key in the referenced Secret.
-                                Some instances of this field may be defaulted, in others it may be required.
-                              maxLength: 253
-                              minLength: 1
-                              pattern: ^[-._a-zA-Z0-9]+$
-                              type: string
-                            name:
-                              description: The name of the Secret resource being referred to.
-                              maxLength: 253
-                              minLength: 1
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                              type: string
-                            namespace:
-                              description: |-
-                                The namespace of the Secret resource being referred to.
-                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
-                              maxLength: 63
-                              minLength: 1
-                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                              type: string
-                          type: object
+                        username:
+                          description: Username is the username for authentication
+                          type: string
                       required:
                         - passwordRef
-                        - usernameRef
+                        - username
                       type: object
                     tokenExchange:
                       description: TokenExchange grant (RFC 8693)
@@ -26277,7 +26249,11 @@ spec:
                           description: Audience specifies the logical name of the target service or resource
                           type: string
                         requestedTokenType:
+                          default: urn:ietf:params:oauth:token-type:access_token
                           description: RequestedTokenType specifies the type of token to request (defaults to access token)
+                          enum:
+                            - urn:ietf:params:oauth:token-type:access_token
+                            - urn:ietf:params:oauth:token-type:id_token
                           type: string
                         resource:
                           description: Resource specifies the physical or logical URI of the target service or resource
@@ -26342,14 +26318,29 @@ spec:
                               type: string
                           type: object
                         subjectTokenType:
+                          default: urn:ietf:params:oauth:token-type:id_token
                           description: SubjectTokenType specifies the type of the subject token (defaults to ID token for service accounts)
+                          enum:
+                            - urn:ietf:params:oauth:token-type:access_token
+                            - urn:ietf:params:oauth:token-type:id_token
+                            - urn:ietf:params:oauth:token-type:jwt
                           type: string
                       type: object
                       x-kubernetes-validations:
                         - message: exactly one of subjectTokenRef or serviceAccountRef must be specified
                           rule: has(self.subjectTokenRef) != has(self.serviceAccountRef)
                   type: object
+                  x-kubernetes-validations:
+                    - message: exactly one grant type must be specified
+                      rule: '[has(self.password), has(self.tokenExchange)].filter(x, x).size() == 1'
+                requestTimeout:
+                  default: 30s
+                  description: RequestTimeout specifies the timeout for HTTP requests to the OIDC provider (defaults to 30s)
+                  pattern: ^[0-9]+(ns|us|µs|ms|s|m|h)$
+                  type: string
                 scopes:
+                  default:
+                    - openid
                   description: Scopes is the list of OAuth2 scopes to request (defaults to ["openid"])
                   items:
                     type: string
@@ -26357,6 +26348,9 @@ spec:
                 tokenUrl:
                   description: TokenURL configures the OAuth2 token endpoint URL (e.g., https://dex.example.com/token, https://keycloak.example.com/realms/master/protocol/openid-connect/token)
                   type: string
+                  x-kubernetes-validations:
+                    - message: tokenUrl must be a valid URL
+                      rule: isURL(self)
               required:
                 - clientId
                 - grant
