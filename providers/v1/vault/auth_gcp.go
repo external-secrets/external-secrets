@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	authgcp "github.com/hashicorp/vault/api/auth/gcp"
 
@@ -91,53 +92,72 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 }
 
 func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.VaultGcpAuth) error {
-	// If SecretRef is provided, set up service account credentials
+	// Priority order following AWS pattern: SecretRef -> WorkloadIdentity -> ServiceAccountRef -> Default ADC
+
+	// First priority: Service account key from secret
 	if gcpAuth.SecretRef != nil {
-		tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
-			SecretRef: gcpAuth.SecretRef,
-		}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
-		if err != nil {
-			return fmt.Errorf("failed to create token source from secret: %w", err)
-		}
-		
-		// Get credentials to set environment variables that the Vault GCP auth method can use
-		token, err := tokenSource.Token()
-		if err != nil {
-			return fmt.Errorf("failed to retrieve token from secret: %w", err)
-		}
-		
-		// Set GOOGLE_OAUTH_ACCESS_TOKEN environment variable for the Vault GCP auth to use
-		c.log.V(1).Info("Setting up GCP authentication using service account credentials from secret")
-		return c.setGCPEnvironment(token.AccessToken)
+		return c.setupServiceAccountKeyAuth(ctx, gcpAuth)
 	}
 
-	// If WorkloadIdentity is provided, set up workload identity
+	// Second priority: Workload identity
 	if gcpAuth.WorkloadIdentity != nil {
-		tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
-			WorkloadIdentity: gcpAuth.WorkloadIdentity,
-		}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
-		if err != nil {
-			return fmt.Errorf("failed to create token source from workload identity: %w", err)
-		}
-		
-		token, err := tokenSource.Token()
-		if err != nil {
-			return fmt.Errorf("failed to retrieve token from workload identity: %w", err)
-		}
-		
-		c.log.V(1).Info("Setting up GCP authentication using workload identity")
-		return c.setGCPEnvironment(token.AccessToken)
+		return c.setupWorkloadIdentityAuth(ctx, gcpAuth)
 	}
 
-	// If ServiceAccountRef is provided, use service account token for workload identity
+	// Third priority: Service account reference (for token creation)
 	if gcpAuth.ServiceAccountRef != nil {
-		c.log.V(1).Info("Setting up GCP authentication using service account reference")
-		// For now, this falls through to default auth - could be enhanced to create specific tokens
-		return nil
+		return c.setupServiceAccountRefAuth(ctx, gcpAuth)
 	}
 
-	// Use default GCP authentication (metadata server, ADC, etc.)
-	c.log.V(1).Info("Using default GCP authentication")
+	// Last resort: Default GCP authentication (ADC)
+	return c.setupDefaultGCPAuth()
+}
+
+func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.VaultGcpAuth) error {
+	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
+		SecretRef: gcpAuth.SecretRef,
+	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
+	if err != nil {
+		return fmt.Errorf("failed to create token source from secret: %w", err)
+	}
+
+	token, err := tokenSource.Token()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve token from secret: %w", err)
+	}
+
+	c.log.V(1).Info("Setting up GCP authentication using service account credentials from secret")
+	return c.setGCPEnvironment(token.AccessToken)
+}
+
+func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.VaultGcpAuth) error {
+	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
+		WorkloadIdentity: gcpAuth.WorkloadIdentity,
+	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
+	if err != nil {
+		return fmt.Errorf("failed to create token source from workload identity: %w", err)
+	}
+
+	token, err := tokenSource.Token()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve token from workload identity: %w", err)
+	}
+
+	c.log.V(1).Info("Setting up GCP authentication using workload identity")
+	return c.setGCPEnvironment(token.AccessToken)
+}
+
+func (c *client) setupServiceAccountRefAuth(_ context.Context, _ *esv1.VaultGcpAuth) error {
+	// This could be enhanced to create service account tokens similar to AWS IRSA pattern
+	// For now, fall back to default authentication
+	c.log.V(1).Info("Setting up GCP authentication using service account reference - falling back to default auth")
+	return c.setupDefaultGCPAuth()
+}
+
+func (c *client) setupDefaultGCPAuth() error {
+	// Use Application Default Credentials (ADC) - metadata server, gcloud, etc.
+	c.log.V(1).Info("Using default GCP authentication (ADC)")
+	// No explicit setup needed - the Vault GCP auth method will use ADC
 	return nil
 }
 
@@ -150,10 +170,11 @@ func (c *client) setGCPEnvironment(accessToken string) error {
 }
 
 func (c *client) setEnvVar(key, value string) error {
-	// In a real implementation, you might want to be more careful about environment variable handling
-	// For now, we'll use a simple approach
 	if value == "" {
 		return fmt.Errorf("empty value for environment variable %s", key)
+	}
+	if err := os.Setenv(key, value); err != nil {
+		return fmt.Errorf("failed to set environment variable %s: %w", key, err)
 	}
 	c.log.V(1).Info("Set environment variable for GCP authentication", "key", key)
 	return nil
