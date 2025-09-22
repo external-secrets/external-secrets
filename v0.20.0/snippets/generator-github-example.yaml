@@ -1,0 +1,15 @@
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: github-auth-token
+spec:
+  refreshInterval: "30m" # Be sure to set this value lower than 60m since that is the expiration time from github
+  target:
+    name: github-auth-token # Name for the secret to be created on the cluster
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: GithubAccessToken
+        name: github-auth-token

@@ -1,0 +1,4869 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../oracle-vault/">
+      
+      
+        <link rel="next" href="../1password-sdk/">
+      
+      
+      <link rel="icon" href="../../pictures/eso-round-logo.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.20">
+    
+    
+      
+        <title>1Password Connect Server - External Secrets Operator</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.e53b48f4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-QP38TD8K7V"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-QP38TD8K7V",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-QP38TD8K7V",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#1password-secrets-automation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You're not viewing the latest version.
+  <a href="../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="External Secrets Operator" class="md-header__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+      
+  <img src="../../pictures/eso-round-logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            External Secrets Operator
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              1Password Connect Server
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/external-secrets/external-secrets" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    External Secrets Operator
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+    
+  
+  Introduction
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/components/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../aws-secrets-manager/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Provider
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/gitops-using-fluxcd/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/devguide/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="External Secrets Operator" class="md-nav__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+      
+  <img src="../../pictures/eso-round-logo.svg" alt="logo">
+
+    </a>
+    External Secrets Operator
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/external-secrets/external-secrets" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    External Secrets Operator
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../.." class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Introduction
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prerequisites
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Getting started
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/stability-support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Stability and Support
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/deprecation-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Deprecation Policy
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    API
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Components
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Core Resources
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Core Resources
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/externalsecret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ExternalSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/secretstore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    SecretStore
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clustersecretstore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ClusterSecretStore
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clusterexternalsecret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ClusterExternalSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clusterpushsecret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ClusterPushSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/pushsecret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    PushSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../api/generator/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Generators
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            Generators
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/acr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Azure Container Registry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/ecr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AWS Elastic Container Registry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/sts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AWS STS Session Token
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/cloudsmith/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cloudsmith
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cluster Generator
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/gcr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Google Container Registry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/quay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quay
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Vault Dynamic Secret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/password/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Password
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/fake/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Fake
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/webhook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Webhook
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/github/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Github
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/uuid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    UUID
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/mfa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    MFA
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/sshkey/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    SSHKey
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Reference Docs
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference Docs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API specification
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/controller-options/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Controller Options
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metrics
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/selectable-fields/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Selectable Fields
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    External Secrets
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            External Secrets
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/all-keys-one-secret/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Extract structured data
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/getallsecrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Find Secrets by Name or Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/datafrom-rewrite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Rewriting Keys
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_4" id="__nav_3_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Advanced Templating
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced Templating
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/templating/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    v2
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/templating-v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    v1
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/common-k8s-secret-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Kubernetes Secret Types
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ownership-deletion-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Lifecycle: ownership & deletion
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/decoding-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decoding Strategies
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/controller-class/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Controller Classes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Generators
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pushsecrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Push Secrets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Operations
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/multi-tenancy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Multi Tenancy
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/security-best-practices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Security Best Practices
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/threat-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Threat Model
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/v1beta1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Upgrading to v1beta1
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/using-latest-image/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Using Latest Image
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/disable-cluster-features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Disable Cluster Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tooling
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tooling
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/using-esoctl-tool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Using the esoctl tool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Provider
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Provider
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../aws-secrets-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AWS Secrets Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../aws-parameter-store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AWS Parameter Store
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../azure-key-vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Azure Key Vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beyondtrust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    BeyondTrust
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bitwarden-secrets-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bitwarden Secrets Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chef/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Chef
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cloudru/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cloud.ru Secret Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../conjur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CyberArk Conjur
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../device42/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Device42
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../google-secrets-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Google Cloud Secret Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hashicorp-vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    HashiCorp Vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Kubernetes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ibm-secrets-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    IBM Secrets Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../akeyless/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Akeyless
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../yandex-certificate-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Yandex Certificate Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../yandex-lockbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Yandex Lockbox
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alibaba/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Alibaba Cloud
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gitlab-variables/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    GitLab Variables
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../github/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Github Actions Secrets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../oracle-vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Oracle Vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    1Password Connect Server
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    1Password Connect Server
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1password-secrets-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      1Password Secrets Automation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deprecation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deprecation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deprecation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#important-note-about-this-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Important note about this documentation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      Behavior
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Setup Authentication
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deploy-a-connect-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deploy a Connect Server
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-compatible-1password-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating Compatible 1Password Items
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating Compatible 1Password Items">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manually-password-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually (Password type)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manually-document-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually (Document type)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scripting-password-type-with-op-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scripting (Password type with op CLI)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scripting-document-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scripting (Document type)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#in-built-field-labeled-password-on-password-type-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      In-built field labeled password on Password type Items
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Notes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Additional Notes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general" class="md-nav__link">
+    <span class="md-ellipsis">
+      General
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-no-version-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why no version history
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keeping-misconfiguration-from-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keeping misconfiguration from working
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#patching-externalsecrets-with-kustomize" class="md-nav__link">
+    <span class="md-ellipsis">
+      Patching ExternalSecrets with Kustomize
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#push-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Push Secret
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1password-sdk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    1Password SDK
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../webhook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Webhook
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fake/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Fake
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../senhasegura-dsm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    senhasegura DevOps Secrets Management (DSM)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../doppler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Doppler
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keeper-security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Keeper Security
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cloak/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cloak End 2 End Encrypted Secrets
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scaleway/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Scaleway
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../delinea/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Delinea
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../secretserver/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Secret Server
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../passbolt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Passbolt
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pulumi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pulumi ESC
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboardbase/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Onboardbase
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider-passworddepot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Password Depot
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fortanix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Fortanix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../infisical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Infisical
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../previder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Previder
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../openbao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    OpenBao
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../volcengine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Volcengine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Examples
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/gitops-using-fluxcd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FluxCD
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/anchore-engine-credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Anchore Engine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/jenkins-kubernetes-credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Jenkins
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/bitwarden/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Bitwarden
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Community
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/devguide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Developer guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing Process
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/release/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Process
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/coc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Code of Conduct
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/calendar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Community meetings calendar
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Roadmap
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/burnout-mitigation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Burnout Prevention
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    External Resources
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            External Resources
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../eso-talks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Talks
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../eso-demos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Demos
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../eso-blogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Blogs
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../eso-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1password-secrets-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      1Password Secrets Automation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deprecation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deprecation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deprecation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#important-note-about-this-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Important note about this documentation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      Behavior
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Setup Authentication
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deploy-a-connect-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deploy a Connect Server
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-compatible-1password-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating Compatible 1Password Items
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating Compatible 1Password Items">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manually-password-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually (Password type)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manually-document-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually (Document type)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scripting-password-type-with-op-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scripting (Password type with op CLI)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scripting-document-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scripting (Document type)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#in-built-field-labeled-password-on-password-type-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      In-built field labeled password on Password type Items
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Notes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Additional Notes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general" class="md-nav__link">
+    <span class="md-ellipsis">
+      General
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-no-version-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why no version history
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keeping-misconfiguration-from-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keeping misconfiguration from working
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#patching-externalsecrets-with-kustomize" class="md-nav__link">
+    <span class="md-ellipsis">
+      Patching ExternalSecrets with Kustomize
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#push-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Push Secret
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>1Password Connect Server</h1>
+
+<h2 id="1password-secrets-automation">1Password Secrets Automation</h2>
+<p>External Secrets Operator integrates with <a href="https://1password.com/products/secrets/">1Password Secrets Automation</a> for secret management.</p>
+<h2 id="deprecation">Deprecation</h2>
+<p>Consider using <a href="../1password-sdk/">1Password SDK provider</a> instead. It uses an official <a href="https://developer.1password.com/docs/sdks">SDK for 1Password</a> created
+by 1Password. It's feature complete and has parity with this provider's capabilities.</p>
+<h3 id="important-note-about-this-documentation">Important note about this documentation</h3>
+<p><em><strong>The 1Password API calls the entries in vaults 'Items'. These docs use the same term.</strong></em></p>
+<h3 id="behavior">Behavior</h3>
+<ul>
+<li>How an Item is equated to an ExternalSecret:<ul>
+<li><code>remoteRef.key</code> is equated to an Item's Title</li>
+<li><code>remoteRef.property</code> is equated to:<ul>
+<li>An Item's field's Label (Password type)</li>
+<li>An Item's file's Name (Document type)</li>
+<li>If empty, defaults to the first file name, or the field labeled <code>password</code></li>
+</ul>
+</li>
+<li><code>remoteRef.version</code> is currently not supported.</li>
+<li>One Item in a vault can equate to one Kubernetes Secret to keep things easy to comprehend.</li>
+</ul>
+</li>
+<li>Support for 1Password secret types of <code>Password</code> and <code>Document</code>.<ul>
+<li>The <code>Password</code> type can get data from multiple <code>fields</code> in the Item.</li>
+<li>The <code>Document</code> type can get data from files.</li>
+<li>See <a href="#creating-compatible-1password-items">creating 1Password Items compatible with ExternalSecrets</a>.</li>
+</ul>
+</li>
+<li>Ordered vaults<ul>
+<li>Specify an ordered list of vaults in a SecretStore and the value will be sourced from the first vault with a matching Item.</li>
+<li>If no matching Item is found, an error is returned.</li>
+<li>This supports having a default or shared set of values that can also be overridden for specific environments.</li>
+</ul>
+</li>
+<li><code>dataFrom</code>:<ul>
+<li><code>find.path</code> is equated to Item Title.</li>
+<li><code>find.name.regexp</code> is equated to field Labels.</li>
+<li><code>find.tags</code> fetches for Items with the same tags matching the keys of <code>find.tags</code>.</li>
+</ul>
+</li>
+</ul>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul>
+<li>1Password requires running a 1Password Connect Server to which the API requests will be made.<ul>
+<li>External Secrets does not run this server. See <a href="#deploy-a-connect-server">Deploy a Connect Server</a>.</li>
+<li>One Connect Server is needed per 1Password Automation Environment.</li>
+<li>Many Vaults can be added to an Automation Environment, and Tokens can be generated in that Environment with access to any set or subset of those Vaults.</li>
+</ul>
+</li>
+<li>1Password Connect Server version 1.5.6 or higher.</li>
+</ul>
+<h3 id="setup-authentication">Setup Authentication</h3>
+<p><em>Authentication requires a <code>1password-credentials.json</code> file provided to the Connect Server, and a related 'Access Token' for the client in this provider to authenticate to that Connect Server. Both of these are generated by 1Password.</em></p>
+<ol>
+<li>Setup an Automation Environment <a href="https://support.1password.com/secrets-automation/">at 1Password.com</a>, or <a href="https://github.com/1Password/connect/blob/a0a5f3d92e68497098d9314721335a7bb68a3b2d/README.md#create-server-and-access-token">via the op CLI</a>.<ul>
+<li>Note: don't be confused by the <code>op connect server create</code> syntax. This will create an Automation Environment in 1Password, and corresponding credentials for a Connect Server, nothing more.</li>
+<li>This will result in a <code>1password-credentials.json</code> file to provide to a Connect Server Deployment, and an Access Token to provide as a Secret referenced by a <code>SecretStore</code> or <code>ClusterSecretStore</code>.</li>
+</ul>
+</li>
+<li>Create a Kubernetes secret with the Access Token
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-token-staging</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-token</span>
+</code></pre></div></li>
+<li>Reference the secret in a SecretStore or ClusterSecretStore
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">staging</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">onepassword</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">connectHost</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://onepassword-connect-staging:8080</span>
+<span class="w">      </span><span class="nt">vaults</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">staging</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w">  </span><span class="c1"># look in this vault first</span>
+<span class="w">        </span><span class="nt">shared</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">   </span><span class="c1"># next look in here. error if not found</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">connectTokenSecretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-token-staging</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+</code></pre></div></li>
+<li>Create a Kubernetes secret with the Connect Server credentials
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">connect-server-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># NOTE: This secret value must be base64 encoded after it becomes the OP_SESSION env var in the Connect Server Deployment, that means double base64 encoded here. (Or single w/ stringData.)</span>
+<span class="w">  </span><span class="nt">1password-credentials.json</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
+<span class="w">    </span><span class="no">eyJ2ZXJpZmllciI6eyJzYWx0IjoiZXhhbXBsZSIsImxvY2FsSGFzaCI6ImV4YW1wbGUifSwiZW5jQ3JlZGVudGlhbHMiOnsia2lkIjoiZXhhbXBsZSIsImVuYyI6ImV4YW1wbGUiLCJjdHkiOiJleGFtcGxlIiwiaXYiOiJleGFtcGxlIiwiZGF0YSI6ImV4YW1wbGUifSwidmVyc2lvbiI6IjIiLCJkZXZpY2VVdWlkIjoiZXhhbXBsZSIsInVuaXF1ZUtleSI6eyJhbGciOiJleGFtcGxlIiwiZXh0Ijp0cnVlLCJrIjoiZXhhbXBsZSIsImtleV9vcHMiOlsiZW5jcnlwdCIsImRlY3J5cHQiXSwia3R5Ijoib2N0Iiwia2lkIjoiZXhhbXBsZSJ9fQ==</span>
+</code></pre></div></li>
+<li>Reference the secret in a Connect Server Deployment
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-staging</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">connect-api</span>
+<span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1password/connect-api:1.5.0</span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OP_SESSION</span>
+<span class="w">          </span><span class="nt">valueFrom</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">secretKeyRef</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">connect-server-credentials</span>
+<span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1password-credentials.json</span>
+<span class="w">        </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">connect-sync</span>
+<span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1password/connect-sync:1.5.0</span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OP_SESSION</span>
+<span class="w">          </span><span class="nt">valueFrom</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">secretKeyRef</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">connect-server-credentials</span>
+<span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1password-credentials.json</span>
+<span class="w">        </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+<span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+</code></pre></div></li>
+</ol>
+<h3 id="deploy-a-connect-server">Deploy a Connect Server</h3>
+<ul>
+<li>Follow the remaining instructions in the <a href="https://github.com/1Password/connect/blob/a0a5f3d92e68497098d9314721335a7bb68a3b2d/README.md#quick-start">Quick Start guide</a>.<ul>
+<li>Deploy at minimum a Deployment and Service for a Connect Server, to go along with the Secret for the Server created in the <a href="#setup-authentication">Setup Authentication section</a>.</li>
+</ul>
+</li>
+<li>The Service's name will be referenced in SecretStores/ClusterSecretStores.</li>
+<li>Keep in mind the likely need for additional Connect Servers for other Automation Environments when naming objects. For example dev, staging, prod, etc.</li>
+<li>Unencrypted secret values are passed over the connection between the Operator and the Connect Server. <strong>Encrypting the connection is recommended.</strong></li>
+</ul>
+<h3 id="creating-compatible-1password-items">Creating Compatible 1Password Items</h3>
+<p><em>Also see <a href="#examples">examples below</a> for matching SecretStore and ExternalSecret specs.</em></p>
+<h4 id="manually-password-type">Manually (Password type)</h4>
+<ol>
+<li>Click the plus button to create a new Password type Item.</li>
+<li>Change the title to what you want <code>remoteRef.key</code> to be.</li>
+<li>Set what you want <code>remoteRef.property</code> to be in the field sections where is says 'label', and values where it says 'new field'.</li>
+<li>Click the 'Save' button.</li>
+</ol>
+<p><img alt="create-password-screenshot" src="../../pictures/screenshot_1password_create_password.png" /></p>
+<h4 id="manually-document-type">Manually (Document type)</h4>
+<ul>
+<li>Click the plus button to create a new Document type Item.</li>
+<li>Choose the file to upload and upload it.</li>
+<li>Change the title to match <code>remoteRef.key</code></li>
+<li>Click the 'Add New File' button to add more files.</li>
+<li>Click the 'Save' button.</li>
+</ul>
+<p><img alt="create-document-screenshot" src="../../pictures/screenshot_1password_create_document.png" /></p>
+<h4 id="scripting-password-type-with-op-cli">Scripting (Password type with op <a href="https://developer.1password.com/docs/cli/v1/get-started/">CLI</a>)</h4>
+<ul>
+<li>Create <code>file.json</code> with the following contents, swapping in your keys and values. Note: <code>section.name</code>'s and <code>section.title</code>'s values are ignored by the Operator, but cannot be empty for the <code>op</code> CLI
+    <div class="highlight"><pre><span></span><code><span class="w">   </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-title&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;vault&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vault-id&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;LOGIN&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;fields&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;username&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;STRING&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;purpose&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;USERNAME&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;username&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;a-username&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CONCEALED&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;purpose&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PASSWORD&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;password_details&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;strength&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;TERRIBLE&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;a-password&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;notesPlain&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;STRING&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;purpose&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;NOTES&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;notesPlain&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;notesPlain&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;customField&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CONCEALED&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;purpose&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;custom&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;custom&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;custom-value&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+</code></pre></div></li>
+<li>Run <code>op item create --template file.json</code></li>
+</ul>
+<h4 id="scripting-document-type">Scripting (Document type)</h4>
+<ul>
+<li>Unfortunately the <code>op</code> CLI doesn't seem to support uploading multiple files to the same Item, and the current Go lib has a <a href="https://github.com/1Password/connect-sdk-go/issues/45">bug</a>. <code>op</code> can be used to create a Document type Item with one file in it, but for now it's necessary to add multiple files to the same Document via the GUI.</li>
+</ul>
+<h4 id="in-built-field-labeled-password-on-password-type-items">In-built field labeled <code>password</code> on Password type Items</h4>
+<ul>
+<li>TL;DR if you need a field labeled <code>password</code>, use the in-built one rather than the one in a fields Section.</li>
+</ul>
+<p><img alt="password-field-example" src="../../pictures/screenshot_1password_password_field.png" /></p>
+<ul>
+<li>1Password automatically adds a field labeled <code>password</code> on every Password type Item, whether it's created through a GUI or the API or <code>op</code> CLI.</li>
+<li>There's no problem with using this field just like any other field, <em>just make sure you don't end up with two fields with the same label</em>. (For example, by automating the <code>op</code> CLI to create Items.)</li>
+<li>The in-built <code>password</code> field is not otherwise special for the purposes of ExternalSecrets. It can be ignored when not in use.</li>
+</ul>
+<h3 id="examples">Examples</h3>
+<p>Examples of using the <code>my-env-config</code> and <code>my-cert</code> Items <a href="#manually-password-type">seen above</a>.</p>
+<ul>
+<li>Note: with this configuration a 1Password Item titled <code>my-env-config</code> is correlated to a ExternalSecret named <code>my-env-config</code> that results in a Kubernetes secret named <code>my-env-config</code>, all with matching names for the key/value pairs. This is a way to increase comprehensibility.
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">staging</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">onepassword</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">connectHost</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://onepassword-connect-staging:8080</span>
+<span class="w">      </span><span class="nt">vaults</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">staging</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w">  </span><span class="c1"># look in this vault first</span>
+<span class="w">        </span><span class="nt">shared</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">   </span><span class="c1"># next look in here. error if not found</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">connectTokenSecretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-token-staging</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-env-config</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">staging</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MY_ENV_VAR1</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-env-config</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MY_ENV_VAR1</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MY_ENV_VAR2</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-env-config</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MY_ENV_VAR2</span>
+<span class="w">  </span><span class="c1"># OR</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-env-config</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MY_ENV_VAR1</span><span class="w">  </span><span class="c1"># optional field Label to match exactly</span>
+<span class="w">  </span><span class="c1"># OR</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-env-config</span><span class="w">  </span><span class="c1"># optional Item Title to match exactly</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;^MY_ENV_VAR.*&quot;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cert</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">staging</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cert.crt</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cert</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cert.crt</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cert.key</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cert</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cert.key</span>
+<span class="w">  </span><span class="c1"># OR</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cert</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cert.key</span><span class="w">  </span><span class="c1"># optional field Label to match exactly</span>
+<span class="w">  </span><span class="c1"># OR</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cert</span><span class="w">  </span><span class="c1"># optional Item Title to match exactly</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;^cert.*&quot;</span>
+</code></pre></div></li>
+</ul>
+<h3 id="additional-notes">Additional Notes</h3>
+<h4 id="general">General</h4>
+<ul>
+<li>It's intuitive to use Document type Items for Kubernetes secrets mounted as files, and Password type Items for ones that will be mounted as environment variables, but either can be used for either. It comes down to what's more convenient.</li>
+</ul>
+<h4 id="why-no-version-history">Why no version history</h4>
+<ul>
+<li>1Password only supports version history on their in-built <code>password</code> field. Therefore, implementing version history in this provider would require one Item in 1Password per <code>remoteRef</code> in an ExternalSecret. Additionally <code>remoteRef.property</code> would be pointless/unusable.</li>
+<li>For example, a Kubernetes secret with 15 keys (say, used in <code>envFrom</code>,) would require 15 Items in the 1Password vault, instead of 15 Fields in 1 Item. This would quickly get untenable for more than a few secrets, because:<ul>
+<li>All Items would have to have unique names which means <code>secretKey</code> couldn't match the Item name the <code>remoteRef</code> is targeting.</li>
+<li>Maintenance, particularly clean up of no longer used secrets, would be significantly more work.</li>
+<li>A vault would often become a huge list of unorganized entries as opposed to a much smaller list organized by Kubernetes Secret.</li>
+</ul>
+</li>
+<li>To support new and old versions of a secret value at the same time, create a new Item in 1Password with the new value, and point some ExternalSecrets at a time to the new Item.</li>
+</ul>
+<h4 id="keeping-misconfiguration-from-working">Keeping misconfiguration from working</h4>
+<ul>
+<li>One instance of the ExternalSecrets Operator <em>can</em> work with many Connect Server instances, but it may not be the best approach.</li>
+<li>With one Operator instance per Connect Server instance, namespaces and RBAC can be used to improve security posture, and perhaps just as importantly, it's harder to misconfigure something and have it work (supply env A's secret values to env B for example.)</li>
+<li>You can run as many 1Password Connect Servers as you need security boundaries to help protect against accidental misconfiguration.</li>
+</ul>
+<h4 id="patching-externalsecrets-with-kustomize">Patching ExternalSecrets with Kustomize</h4>
+<ul>
+<li>An overlay can provide a SecretStore specific to that overlay, and then use JSON6902 to patch all the ExternalSecrets coming from base to point to that SecretStore. Here's an example <code>overlays/staging/kustomization.yaml</code>:
+    <div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.config.k8s.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
+
+<span class="nt">resources</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../../base/something-with-external-secrets</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretStore.staging.yaml</span>
+
+<span class="nt">patchesJson6902</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.*&quot;</span>
+<span class="w">  </span><span class="nt">patch</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
+<span class="w">    </span><span class="no">- op: replace</span>
+<span class="w">      </span><span class="no">path: /spec/secretStoreRef/name</span>
+<span class="w">      </span><span class="no">value: staging</span>
+</code></pre></div></li>
+</ul>
+<h3 id="push-secret">Push Secret</h3>
+<p>To push a secret from Kubernetes cluster and create it as a secret in 1Password, a <code>Kind=PushSecret</code> resource is needed.</p>
+<p>Updating the vault on an existing PushSecret is currently not supported. To update the vault, create a new PushSecret with the updated vault.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-secret</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">source-key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1password</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-secret</span><span class="w"> </span><span class="c1"># Source Kubernetes secret</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-key</span><span class="w"> </span><span class="c1"># Source Kubernetes secret key to be pushed</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1pw-secret-name</span><span class="w"> </span><span class="c1"># 1Password item/secret name</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w">         </span><span class="c1"># (Optional) 1Password field type, default password</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">vault</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">staging</span><span class="w">            </span><span class="c1"># Optional the vault the secret is going to be pushed to, defaults to the first defined vault in the (Cluster)SecretStore</span>
+<span class="w">          </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;tag1&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;tag2&quot;</span><span class="p p-Indicator">]</span><span class="w">    </span><span class="c1"># Optional metadata to be pushed with the secret</span>
+</code></pre></div>
+<p>Then it will create an item in onepassword <code>op://staging/1pw-secret-name/password</code> equal to <code>my-secret</code>.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=6658a9eb-067d-49f1-94f2-b8b00f21451e"  alt=""/>
+  
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      &copy; 2025 The external-secrets Authors.<br/>
+&copy; 2025 The Linux Foundation. All rights reserved.<br/><br/>
+The Linux Foundation has registered trademarks and uses trademarks.<br/>
+For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.indexes", "navigation.expand"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>
