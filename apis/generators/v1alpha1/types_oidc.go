@@ -24,6 +24,7 @@ import (
 
 type OIDCSpec struct {
 	// TokenURL configures the OAuth2 token endpoint URL (e.g., https://dex.example.com/token, https://keycloak.example.com/realms/master/protocol/openid-connect/token)
+		// +kubebuilder:validation:XValidation:rule="isURL(self)",message="tokenUrl must be a valid URL"
 	// +kubebuilder:validation:Required
 	TokenURL string `json:"tokenUrl"`
 	// ClientID is the OAuth2 client ID
