@@ -227,55 +227,102 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 	}
 }
 
-func TestGCPAuthWithValidSecret(t *testing.T) {
-	// Create a fake Kubernetes client with a secret containing GCP credentials
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "gcp-secret",
-			Namespace: "default",
-		},
-		Data: map[string][]byte{
-			"credentials.json": []byte(`{
-				"type": "service_account",
-				"project_id": "test-project",
-				"private_key_id": "key-id",
-				"private_key": "-----BEGIN PRIVATE KEY-----\ntest-key\n-----END PRIVATE KEY-----\n",
-				"client_email": "test@test-project.iam.gserviceaccount.com",
-				"client_id": "123456789",
-				"auth_uri": "https://accounts.google.com/o/oauth2/auth",
-				"token_uri": "https://oauth2.googleapis.com/token"
-			}`),
-		},
-	}
-
-	kube := clientfake.NewClientBuilder().WithObjects(secret).Build()
-
-	c := &client{
-		log:       logr.Discard(),
-		kube:      kube,
-		namespace: "default",
-		storeKind: "SecretStore",
-	}
-
-	gcpAuth := &esv1.VaultGcpAuth{
-		Role:      "test-role",
-		ProjectID: "test-project",
-		SecretRef: &esv1.GCPSMAuthSecretRef{
-			SecretAccessKey: esmeta.SecretKeySelector{
-				Name: "gcp-secret",
-				Key:  "credentials.json",
+func TestGCPAuthMethodSelection(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupClient func() *client
+		gcpAuth     *esv1.VaultGcpAuth
+		expectError bool
+		description string
+	}{
+		{
+			name: "SecretRef method selected",
+			setupClient: func() *client {
+				// Create a secret with invalid credentials to trigger expected error
+				secret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "gcp-secret",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"credentials.json": []byte(`{"type": "service_account", "project_id": "test"}`),
+					},
+				}
+				kube := clientfake.NewClientBuilder().WithObjects(secret).Build()
+				return &client{
+					log:       logr.Discard(),
+					kube:      kube,
+					namespace: "default",
+					storeKind: "SecretStore",
+				}
 			},
+			gcpAuth: &esv1.VaultGcpAuth{
+				Role:      "test-role",
+				ProjectID: "test-project",
+				SecretRef: &esv1.GCPSMAuthSecretRef{
+					SecretAccessKey: esmeta.SecretKeySelector{
+						Name: "gcp-secret",
+						Key:  "credentials.json",
+					},
+				},
+			},
+			expectError: true, // Expected to fail in test environment
+			description: "Should attempt to use SecretRef method",
+		},
+		{
+			name: "WorkloadIdentity method selected",
+			setupClient: func() *client {
+				return &client{
+					log:       logr.Discard(),
+					kube:      clientfake.NewClientBuilder().Build(),
+					namespace: "default",
+					storeKind: "SecretStore",
+				}
+			},
+			gcpAuth: &esv1.VaultGcpAuth{
+				Role:      "test-role",
+				ProjectID: "test-project",
+				WorkloadIdentity: &esv1.GCPWorkloadIdentity{
+					ServiceAccountRef: esmeta.ServiceAccountSelector{
+						Name: "test-sa",
+					},
+				},
+			},
+			expectError: true, // Expected to fail in test environment
+			description: "Should attempt to use WorkloadIdentity method",
+		},
+		{
+			name: "Default ADC method selected",
+			setupClient: func() *client {
+				return &client{
+					log:       logr.Discard(),
+					kube:      clientfake.NewClientBuilder().Build(),
+					namespace: "default",
+					storeKind: "SecretStore",
+				}
+			},
+			gcpAuth: &esv1.VaultGcpAuth{
+				Role: "test-role",
+			},
+			expectError: false, // Should succeed as it just sets up default auth
+			description: "Should use default ADC method",
 		},
 	}
 
-	// This will likely fail due to token creation, but we can test the setup path
-	err := c.setupServiceAccountKeyAuth(context.Background(), gcpAuth)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.setupClient()
+			err := c.setupGCPAuth(context.Background(), tt.gcpAuth)
 
-	// We expect an error here because we can't actually create a real token source
-	// but we can verify the function doesn't panic and handles the setup correctly
-	if err == nil {
-		t.Log("setupServiceAccountKeyAuth() succeeded - this might indicate the test environment has actual GCP access")
-	} else {
-		t.Logf("setupServiceAccountKeyAuth() failed as expected in test environment: %v", err)
+			if tt.expectError && err == nil {
+				t.Errorf("%s: expected error but got none", tt.description)
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("%s: unexpected error: %v", tt.description, err)
+			}
+
+			// All tests should at least not panic and follow the correct code path
+			t.Logf("%s: completed as expected", tt.description)
+		})
 	}
 }
