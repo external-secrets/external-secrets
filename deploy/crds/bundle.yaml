@@ -23661,6 +23661,8 @@ spec:
                           description: |-
                             Grant specifies the OAuth2 grant type and its parameters
                             Exactly one grant type must be specified
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             password:
                               description: Password grant (Resource Owner Password Credentials)
@@ -23700,6 +23702,8 @@ spec:
                               type: object
                             tokenExchange:
                               description: TokenExchange grant (RFC 8693)
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 actorTokenRef:
                                   description: ActorTokenRef is a reference to an optional actor token for delegation scenarios
@@ -23756,10 +23760,7 @@ spec:
                                   description: Resource specifies the physical or logical URI of the target service or resource
                                   type: string
                                 serviceAccountRef:
-                                  description: |-
-                                    ServiceAccountRef is the service account to use for token exchange
-                                    Mutually exclusive with SubjectTokenRef
-                                    This will be used to obtain the 'subject_token' parameter value
+                                  description: ServiceAccountRef is the service account to use for token exchange
                                   properties:
                                     audiences:
                                       description: |-
@@ -23787,9 +23788,7 @@ spec:
                                     - name
                                   type: object
                                 subjectTokenRef:
-                                  description: |-
-                                    SubjectTokenRef is a reference to the secret containing the subject token to exchange
-                                    Mutually exclusive with ServiceAccountRef
+                                  description: SubjectTokenRef is a reference to the secret containing the subject token to exchange
                                   properties:
                                     key:
                                       description: |-
@@ -23823,13 +23822,7 @@ spec:
                                     - urn:ietf:params:oauth:token-type:jwt
                                   type: string
                               type: object
-                              x-kubernetes-validations:
-                                - message: exactly one of subjectTokenRef or serviceAccountRef must be specified
-                                  rule: has(self.subjectTokenRef) != has(self.serviceAccountRef)
                           type: object
-                          x-kubernetes-validations:
-                            - message: exactly one grant type must be specified
-                              rule: '[has(self.password), has(self.tokenExchange)].filter(x, x).size() == 1'
                         requestTimeout:
                           default: 30s
                           description: RequestTimeout specifies the timeout for HTTP requests to the OIDC provider (defaults to 30s)
@@ -26164,6 +26157,8 @@ spec:
                   description: |-
                     Grant specifies the OAuth2 grant type and its parameters
                     Exactly one grant type must be specified
+                  maxProperties: 1
+                  minProperties: 1
                   properties:
                     password:
                       description: Password grant (Resource Owner Password Credentials)
@@ -26203,6 +26198,8 @@ spec:
                       type: object
                     tokenExchange:
                       description: TokenExchange grant (RFC 8693)
+                      maxProperties: 1
+                      minProperties: 1
                       properties:
                         actorTokenRef:
                           description: ActorTokenRef is a reference to an optional actor token for delegation scenarios
@@ -26259,10 +26256,7 @@ spec:
                           description: Resource specifies the physical or logical URI of the target service or resource
                           type: string
                         serviceAccountRef:
-                          description: |-
-                            ServiceAccountRef is the service account to use for token exchange
-                            Mutually exclusive with SubjectTokenRef
-                            This will be used to obtain the 'subject_token' parameter value
+                          description: ServiceAccountRef is the service account to use for token exchange
                           properties:
                             audiences:
                               description: |-
@@ -26290,9 +26284,7 @@ spec:
                             - name
                           type: object
                         subjectTokenRef:
-                          description: |-
-                            SubjectTokenRef is a reference to the secret containing the subject token to exchange
-                            Mutually exclusive with ServiceAccountRef
+                          description: SubjectTokenRef is a reference to the secret containing the subject token to exchange
                           properties:
                             key:
                               description: |-
@@ -26326,13 +26318,7 @@ spec:
                             - urn:ietf:params:oauth:token-type:jwt
                           type: string
                       type: object
-                      x-kubernetes-validations:
-                        - message: exactly one of subjectTokenRef or serviceAccountRef must be specified
-                          rule: has(self.subjectTokenRef) != has(self.serviceAccountRef)
                   type: object
-                  x-kubernetes-validations:
-                    - message: exactly one grant type must be specified
-                      rule: '[has(self.password), has(self.tokenExchange)].filter(x, x).size() == 1'
                 requestTimeout:
                   default: 30s
                   description: RequestTimeout specifies the timeout for HTTP requests to the OIDC provider (defaults to 30s)
@@ -26359,9 +26345,6 @@ spec:
           required:
             - spec
           type: object
-          x-kubernetes-validations:
-            - message: exactly one grant type must be specified
-              rule: '[has(self.spec.grant.password), has(self.spec.grant.tokenExchange)].filter(x, x).size() == 1'
       served: true
       storage: true
       subresources:

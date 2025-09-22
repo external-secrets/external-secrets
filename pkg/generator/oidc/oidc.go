@@ -47,12 +47,28 @@ type Generator struct {
 	httpClient *http.Client
 }
 
+// TokenResponse represents an OAuth 2.0 token response.
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
+	// AccessToken is the issued security token
+	AccessToken string `json:"access_token"`
+
+	// IssuedTokenType identifies the token representation
+	IssuedTokenType string `json:"issued_token_type"`
+
+	// TokenType specifies how to use the access token
+	TokenType string `json:"token_type"`
+
+	// ExpiresIn is the token validity lifetime in seconds
+	ExpiresIn int `json:"expires_in,omitempty"`
+
+	// Scope is the scope of the issued token
+	Scope string `json:"scope,omitempty"`
+
+	// RefreshToken for obtaining new access tokens
 	RefreshToken string `json:"refresh_token,omitempty"`
-	IDToken      string `json:"id_token,omitempty"`
+
+	// IDToken is an OpenID Connect ID Token
+	IDToken string `json:"id_token,omitempty"`
 }
 
 type authRequest struct {
@@ -117,6 +133,7 @@ func (g *Generator) generate(
 		return nil, nil, err
 	}
 
+	// Perform fresh authentication
 	tokenResp, err := g.authenticateWithGrant(ctx, spec, clientSecret, spec.Spec.Scopes, kubeClient, targetNamespace)
 	if err != nil {
 		return nil, nil, err
@@ -179,6 +196,19 @@ func (g *Generator) buildTokenResult(tokenResp *TokenResponse) map[string][]byte
 
 	if tokenResp.ExpiresIn > 0 {
 		result["expires_in"] = []byte(fmt.Sprintf("%d", tokenResp.ExpiresIn))
+
+		if _, hasExpiry := result["expiry"]; !hasExpiry {
+			expiryTime := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
+			result["expiry"] = []byte(expiryTime.Format(time.RFC3339))
+		}
+	}
+
+	if tokenResp.Scope != "" {
+		result["scope"] = []byte(tokenResp.Scope)
+	}
+
+	if tokenResp.IssuedTokenType != "" {
+		result["issued_token_type"] = []byte(tokenResp.IssuedTokenType)
 	}
 
 	if tokenResp.RefreshToken != "" {
@@ -264,7 +294,15 @@ func (g *Generator) authenticateWithTokenExchange(ctx context.Context, spec *gen
 
 func (g *Generator) getSubjectToken(ctx context.Context, spec *genv1alpha1.OIDC, kubeClient client.Client, targetNamespace string) (string, error) {
 	if spec.Spec.Grant.TokenExchange.ServiceAccountRef != nil {
-		return fetchServiceAccountToken(ctx, *spec.Spec.Grant.TokenExchange.ServiceAccountRef, targetNamespace)
+		cfg, err := ctrlcfg.GetConfig()
+		if err != nil {
+			return "", err
+		}
+		k8sClient, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			return "", fmt.Errorf("failed to create kubernetes client: %w", err)
+		}
+		return fetchServiceAccountToken(ctx, k8sClient, *spec.Spec.Grant.TokenExchange.ServiceAccountRef, targetNamespace)
 	}
 
 	if spec.Spec.Grant.TokenExchange.SubjectTokenRef != nil {
@@ -431,16 +469,7 @@ func extractJWTExpiration(tokenString string) (string, error) {
 	return expTime.Format(time.RFC3339), nil
 }
 
-func fetchServiceAccountToken(ctx context.Context, saRef esmeta.ServiceAccountSelector, namespace string) (string, error) {
-	cfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return "", err
-	}
-	kubeClient, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return "", fmt.Errorf("failed to create kubernetes client: %w", err)
-	}
-
+func fetchServiceAccountToken(ctx context.Context, kubeClient kubernetes.Interface, saRef esmeta.ServiceAccountSelector, namespace string) (string, error) {
 	expirationSeconds := int64(600)
 	tokenRequest := &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{

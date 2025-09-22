@@ -57,8 +57,8 @@ type OIDCSpec struct {
 }
 
 // GrantSpec is a union type for different OAuth2 grant types
-// Exactly one of the grant types must be specified.
-// +kubebuilder:validation:XValidation:rule="[has(self.password), has(self.tokenExchange)].filter(x, x).size() == 1",message="exactly one grant type must be specified"
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type GrantSpec struct {
 	// Password grant (Resource Owner Password Credentials)
 	// +kubebuilder:validation:Optional
@@ -79,15 +79,13 @@ type PasswordGrantSpec struct {
 }
 
 // TokenExchangeGrantSpec defines parameters for OAuth2 Token Exchange (RFC 8693).
-// +kubebuilder:validation:XValidation:rule="has(self.subjectTokenRef) != has(self.serviceAccountRef)",message="exactly one of subjectTokenRef or serviceAccountRef must be specified"
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type TokenExchangeGrantSpec struct {
 	// SubjectTokenRef is a reference to the secret containing the subject token to exchange
-	// Mutually exclusive with ServiceAccountRef
 	// +kubebuilder:validation:Optional
 	SubjectTokenRef *esmeta.SecretKeySelector `json:"subjectTokenRef,omitempty"`
 	// ServiceAccountRef is the service account to use for token exchange
-	// Mutually exclusive with SubjectTokenRef
-	// This will be used to obtain the 'subject_token' parameter value
 	// +kubebuilder:validation:Optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 	// SubjectTokenType specifies the type of the subject token (defaults to ID token for service accounts)
@@ -127,7 +125,6 @@ type TokenExchangeGrantSpec struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators}
-// +kubebuilder:validation:XValidation:rule="[has(self.spec.grant.password), has(self.spec.grant.tokenExchange)].filter(x, x).size() == 1",message="exactly one grant type must be specified"
 type OIDC struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
