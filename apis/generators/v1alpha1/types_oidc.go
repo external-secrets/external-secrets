@@ -52,6 +52,7 @@ type OIDCSpec struct {
 
 // GrantSpec is a union type for different OAuth2 grant types
 // Exactly one of the grant types must be specified.
+// +kubebuilder:validation:XValidation:rule="[has(self.password), has(self.tokenExchange)].filter(x, x).size() == 1",message="exactly one grant type must be specified"
 type GrantSpec struct {
 	// Password grant (Resource Owner Password Credentials)
 	// +kubebuilder:validation:Optional
