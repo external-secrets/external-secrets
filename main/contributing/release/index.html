@@ -4073,12 +4073,23 @@ Otherwise the <code>latest</code> documentation will point to the older version.
 </ol>
 <h2 id="release-helm-chart">Release Helm Chart</h2>
 <ol>
-<li>Update <code>version</code> and/or <code>appVersion</code> in <code>Chart.yaml</code> and run <code>make helm.docs helm.update.appversion helm.test.update helm.test</code></li>
+<li>Update <code>version</code> and/or <code>appVersion</code> in <code>Chart.yaml</code> and run <code>make helm.docs helm.update.appversion helm.test.update docs.update test.crds.update</code></li>
 <li>push to branch and open pr</li>
 <li>run <code>/ok-to-test-managed</code> commands for all cloud providers</li>
 <li>merge PR if everything is green</li>
 <li>CI picks up the new chart version and creates a new GitHub Release for it</li>
 </ol>
+<p>The following things are updated with those commands:
+1. Update helm docs
+2. Update the apiVersion in the snapshots for the helm tests
+3. Update all the helm tests with potential added values
+4. Update the stability docs with the latest minor version if exists
+5. Update the CRD conformance tests</p>
+<p>The branch to create this release should be <code>release-chart-x.y.z</code>. Though be aware that release branches are <em>immutable</em>.
+This means that if there is anything that needs to be fixed, a new branch will need to be created.</p>
+<p>Also, keep an eye on <code>main</code> so nothing is merged while the chart branch is running the e2e tests. If that happens,
+the chart PR CANNOT be merged because we don't allow not up-to-date pull requests to be merged. And you can't update
+because the branch is immutable.</p>
 
 
 
