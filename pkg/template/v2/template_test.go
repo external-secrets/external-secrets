@@ -17,6 +17,10 @@ limitations under the License.
 package template
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"os"
 	"strings"
 	"testing"
@@ -186,13 +190,35 @@ ejJKh20FmJegJhkImmNTokNbQZbYiLAP07Ykx9A8jLg=
 
 `
 	rsaDecryptDataPKCS1Base64 = `Xd9Jij8+hTqM7ii1nnKbKZy7pHhn3BJwxrENwIlvf0iRysVKn7gmAaD6UV4EpNwYOHvLbo6yLWBme6msVAhIV9KOp22jDe9j837C48rcUiF93Jb7+plabbwTQt4iqi1EKxEfVvKi4tLsLBRhu0v583oQAfCf5aLwF3Vb5bPgGeY=`
+	rsaDecryptPubKeyRSAPKCS1  = `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8ronsBTX6GD5YhoE/v76+ZkWX
+0gODzAD+aCYIyTs4PiWruxlVSOtjwq2gRgUexE5Hsz8cxhFz5Db8qFXBsA+GgXjB
+yQuVbBw04SCKHgc0zhbcWonV3Rk03pjVB1HfuxcDRja8JZontfMAJyPNJovPu3rI
+i8npSC+T5g7Fq9UCbQIDAQAB
+-----END PUBLIC KEY-----
+
+`
 )
 
-func readFile(t testing.TB, filePath string) []byte {
+func rsaEncryptOAEP(t testing.TB, publicKeyPEM []byte, hash, plaintext string) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filePath)
-	require.NoError(t, err, "failed to read file: %s", filePath)
-	return data
+	block, _ := pem.Decode(publicKeyPEM)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		t.Fatalf("failed to decode PEM block containing public key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse DER encoded public key: %v", err)
+	}
+
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		t.Fatalf("not RSA public key")
+	}
+	ciphertext, err := rsa.EncryptOAEP(getHash(hash), rand.Reader, rsaPub, []byte(plaintext), nil)
+	require.NoError(t, err)
+	return ciphertext
 }
 
 func TestExecute(t *testing.T) {
@@ -595,7 +621,7 @@ func TestExecute(t *testing.T) {
 			},
 			data: map[string][]byte{
 				"private_key":      []byte(rsaDecryptPKRSAPKCS1),
-				"data_crypted_bin": readFile(t, "_testdata/rsa_oaep_sha256_pkcs1.enc"),
+				"data_crypted_bin": rsaEncryptOAEP(t, []byte(rsaDecryptPubKeyRSAPKCS1), "SHA256", "hellopkcs1sha256"),
 			},
 			expectedData: map[string][]byte{
 				"data_decrypted": []byte("hellopkcs1sha256"),
