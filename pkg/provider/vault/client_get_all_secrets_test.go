@@ -290,7 +290,7 @@ func TestGetAllSecrets(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ListWithContextFn: func(ctx context.Context, path string) (*vault.Secret, error) {
+					ListWithContextFn: func(_ context.Context, _ string) (*vault.Secret, error) {
 						return nil, nil
 					},
 					ReadWithDataWithContextFn: newReadtWithContextFn(map[string]any{}),
@@ -329,7 +329,7 @@ func TestGetAllSecrets(t *testing.T) {
 				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn: newListWithContextFn(kv2secret),
-					ReadWithDataWithContextFn: func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
+					ReadWithDataWithContextFn: func(_ context.Context, _ string, _ map[string][]string) (*vault.Secret, error) {
 						return nil, nil
 					},
 				},
@@ -365,7 +365,7 @@ func TestGetAllSecrets(t *testing.T) {
 }
 
 func newListWithContextFn(secrets map[string]any) func(ctx context.Context, path string) (*vault.Secret, error) {
-	return func(ctx context.Context, path string) (*vault.Secret, error) {
+	return func(_ context.Context, path string) (*vault.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/metadata/") // kvv2
 		if path == "" {
 			path = "default"
@@ -387,7 +387,7 @@ func newListWithContextFn(secrets map[string]any) func(ctx context.Context, path
 }
 
 func newListWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, path string) (*vault.Secret, error) {
-	return func(ctx context.Context, path string) (*vault.Secret, error) {
+	return func(_ context.Context, path string) (*vault.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/")
 
 		keys := make([]any, 0, len(secrets))
@@ -398,7 +398,7 @@ func newListWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, 
 			}
 		}
 		if len(keys) == 0 {
-			return nil, errors.New("Secret not found")
+			return nil, errors.New("secret not found")
 		}
 
 		secret := &vault.Secret{
@@ -411,7 +411,7 @@ func newListWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, 
 }
 
 func newReadtWithContextFn(secrets map[string]any) func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
-	return func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
+	return func(_ context.Context, path string, _ map[string][]string) (*vault.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/data/")
 		path = strings.TrimPrefix(path, "secret/metadata/")
 
@@ -433,12 +433,12 @@ func newReadtWithContextFn(secrets map[string]any) func(ctx context.Context, pat
 }
 
 func newReadtWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
-	return func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
+	return func(_ context.Context, path string, _ map[string][]string) (*vault.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/")
 
 		data, ok := secrets[path]
 		if !ok {
-			return nil, errors.New("Secret not found")
+			return nil, errors.New("secret not found")
 		}
 
 		dataAsMap := data.(map[string]any)

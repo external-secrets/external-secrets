@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ibm provides integration with IBM Cloud Secrets Manager
+// for External Secrets Operator.
 package ibm
 
 import (
@@ -69,6 +71,7 @@ var (
 	_ esv1.Provider      = &providerIBM{}
 )
 
+// SecretManagerClient defines the interface for interacting with IBM Cloud Secrets Manager.
 type SecretManagerClient interface {
 	GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
 	GetSecretByNameTypeWithContext(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)

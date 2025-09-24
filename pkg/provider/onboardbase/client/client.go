@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package client implements an HTTP client for interacting with the Onboardbase API,
+// providing functionality to securely retrieve and manage secrets.
 package client
 
 import (
@@ -31,11 +33,17 @@ import (
 	aesdecrypt "github.com/Onboardbase/go-cryptojs-aes-decrypt/decrypt"
 )
 
-const HTTPTimeoutDuration = 20 * time.Second
-const ObbSecretsEndpointPath = "/secrets"
+const (
+	// HTTPTimeoutDuration defines the default timeout for HTTP requests.
+	HTTPTimeoutDuration = 20 * time.Second
 
-const errUnableToDecrtypt = "unable to decrypt secret payload"
+	// ObbSecretsEndpointPath defines the endpoint path for secrets API.
+	ObbSecretsEndpointPath = "/secrets"
 
+	errUnableToDecrtypt = "unable to decrypt secret payload"
+)
+
+// OnboardbaseClient defines the interface for interacting with Onboardbase API.
 type OnboardbaseClient struct {
 	baseURL             *url.URL
 	OnboardbaseAPIKey   string
@@ -48,21 +56,27 @@ type OnboardbaseClient struct {
 type queryParams map[string]string
 
 type headers map[string]string
+
+// DeleteSecretsRequest represents a request to delete secrets from Onboardbase.
 type DeleteSecretsRequest struct {
 	SecretID string `json:"secretId,omitempty"`
 }
 
 type httpRequestBody []byte
 
+// Secrets represents a map of secret key-value pairs.
 type Secrets map[string]string
 
+// RawSecret represents a raw secret from Onboardbase.
 type RawSecret struct {
 	Key   string `json:"key,omitempty"`
 	Value string `json:"value,omitempty"`
 }
 
+// RawSecrets represents a collection of raw secrets.
 type RawSecrets []RawSecret
 
+// APIError represents an error response from the Onboardbase API.
 type APIError struct {
 	Err     error
 	Message string
@@ -79,12 +93,14 @@ type apiErrorResponse struct {
 	Success  bool
 }
 
+// SecretRequest represents a request for a single secret.
 type SecretRequest struct {
 	Environment string
 	Project     string
 	Name        string
 }
 
+// SecretsRequest represents a request for multiple secrets.
 type SecretsRequest struct {
 	Environment string
 	Project     string
@@ -116,16 +132,20 @@ type secretResponseBody struct {
 	Status  string                 `json:"status,omitempty"`
 }
 
+// SecretResponse represents a single secret response from Onboardbase.
 type SecretResponse struct {
 	Name  string
 	Value string
 }
 
+// SecretsResponse represents a collection of secrets from Onboardbase.
 type SecretsResponse struct {
 	Secrets Secrets
 	Body    []byte
 }
 
+// NewOnboardbaseClient creates a new client for interacting with Onboardbase API.
+// It requires an API key and passcode for authentication.
 func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*OnboardbaseClient, error) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -152,11 +172,13 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*Onboa
 	return client, nil
 }
 
+// BaseURL returns the base URL of the Onboardbase API.
 func (c *OnboardbaseClient) BaseURL() *url.URL {
 	u := *c.baseURL
 	return &u
 }
 
+// SetBaseURL updates the base URL for the Onboardbase API client.
 func (c *OnboardbaseClient) SetBaseURL(urlStr string) error {
 	baseURL, err := url.Parse(strings.TrimSuffix(urlStr, "/"))
 
@@ -167,6 +189,7 @@ func (c *OnboardbaseClient) SetBaseURL(urlStr string) error {
 	return nil
 }
 
+// Authenticate verifies the API credentials with Onboardbase.
 func (c *OnboardbaseClient) Authenticate() error {
 	_, err := c.performRequest(
 		&performRequestConfig{
@@ -214,6 +237,7 @@ func (c *OnboardbaseClient) mapSecretsByPlainKey(data secretResponseBodyData) (m
 	return kv, nil
 }
 
+// GetSecret retrieves a specific secret from Onboardbase.
 func (c *OnboardbaseClient) GetSecret(request SecretRequest) (*SecretResponse, error) {
 	response, err := c.performRequest(
 		&performRequestConfig{
@@ -242,6 +266,7 @@ func (c *OnboardbaseClient) GetSecret(request SecretRequest) (*SecretResponse, e
 	return &SecretResponse{Name: request.Name, Value: secrets[request.Name]}, nil
 }
 
+// DeleteSecret removes a secret from Onboardbase.
 func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 	secretsrequest := SecretsRequest{
 		Project:     request.Project,
@@ -302,6 +327,7 @@ func (c *OnboardbaseClient) makeGetSecretsRequest(request SecretsRequest) (*secr
 	return data, response, nil
 }
 
+// GetSecrets retrieves multiple secrets from Onboardbase.
 func (c *OnboardbaseClient) GetSecrets(request SecretsRequest) (*SecretsResponse, error) {
 	data, response, err := c.makeGetSecretsRequest(request)
 	if err != nil {

@@ -83,7 +83,7 @@ func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resour
 
 func (g *lockboxSecretGetter) fetchPayloadEntries(ctx context.Context, iamToken, resourceKey string, resourceKeyType common.ResourceKeyType, folderID, versionID string) ([]*lockbox.Payload_Entry, error) {
 	switch resourceKeyType {
-	case common.ResourceKeyTypeId:
+	case common.ResourceKeyTypeID:
 		return g.lockboxClient.GetPayloadEntries(ctx, iamToken, resourceKey, versionID)
 	case common.ResourceKeyTypeName:
 		entriesMap, err := g.lockboxClient.GetExPayload(ctx, iamToken, folderID, resourceKey, versionID)
