@@ -20,6 +20,7 @@ package register
 import (
 	// Import all generators for their side effects (registration).
 	_ "github.com/external-secrets/external-secrets/pkg/generator/acr"
+	_ "github.com/external-secrets/external-secrets/pkg/generator/cloudsmith"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/ecr"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/gcr"

@@ -32,7 +32,7 @@ const (
 	withReferentStaticAuth = "with static referent auth"
 )
 
-var _ = Describe("[aws] ", Label("aws", "parameterstore"), func() {
+var _ = Describe("[aws] ", Label("aws", "parameterstore"), Ordered, func() {
 	f := framework.New("eso-aws-ps")
 	prov := NewFromEnv(f)
 

@@ -1415,3 +1415,36 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 		})
 	}
 }
+
+const mockJWTToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoxNzAwMDAwMDAwfQ.signature"
+
+func TestParseJWTClaims(t *testing.T) {
+	// Mock JWT token with known payload
+	mockToken := mockJWTToken
+
+	claims, err := ParseJWTClaims(mockToken)
+	if err != nil {
+		t.Fatalf("Failed to get claims: %v", err)
+	}
+
+	if claims["sub"] != "1234567890" {
+		t.Errorf("Expected sub claim to be '1234567890', got %v", claims["sub"])
+	}
+	if claims["name"] != "John Doe" {
+		t.Errorf("Expected name claim to be 'John Doe', got %v", claims["name"])
+	}
+}
+
+func TestExtractJWTExpiration(t *testing.T) {
+	// Mock JWT token with known exp claim
+	mockToken := mockJWTToken
+
+	exp, err := ExtractJWTExpiration(mockToken)
+	if err != nil {
+		t.Fatalf("Failed to get token expiration: %v", err)
+	}
+
+	if exp != "1700000000" {
+		t.Errorf("Expected expiration to be '1700000000', got %s", exp)
+	}
+}

@@ -105,7 +105,7 @@ func (p *oracleProvider) BeforeEach() {
 			secretName: "value",
 		},
 	}
-	err := p.framework.CRClient.Create(context.Background(), OracleCreds)
+	err := p.framework.CRClient.Create(GinkgoT().Context(), OracleCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	secretStore := &esv1.SecretStore{
@@ -136,6 +136,6 @@ func (p *oracleProvider) BeforeEach() {
 			},
 		},
 	}
-	err = p.framework.CRClient.Create(context.Background(), secretStore)
+	err = p.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }

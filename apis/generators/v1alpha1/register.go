@@ -71,6 +71,7 @@ var (
 	MFAKind = reflect.TypeOf(MFA{}).Name()
 	// ClusterGeneratorKind is the kind name for ClusterGenerator resource.
 	ClusterGeneratorKind = reflect.TypeOf(ClusterGenerator{}).Name()
+	CloudsmithAccessTokenKind = reflect.TypeOf(CloudsmithAccessToken{}).Name()
 )
 
 func init() {
@@ -93,6 +94,7 @@ func init() {
 
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
 	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
+	SchemeBuilder.Register(&CloudsmithAccessToken{}, &CloudsmithAccessTokenList{})
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
