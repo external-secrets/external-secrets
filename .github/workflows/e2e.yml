@@ -23,7 +23,7 @@ env:
   GHCR_USERNAME: ${{ github.actor }}
   GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
   GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
-  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
+  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account
   GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
 
@@ -64,7 +64,7 @@ jobs:
       contents: read  #for checkout
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
     steps:
-    - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+    - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:
         egress-policy: audit
 
@@ -85,7 +85,7 @@ jobs:
       pull-requests: write # to publish the status as comments
     if: github.event_name == 'repository_dispatch'
     steps:
-    - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+    - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:
         egress-policy: audit
 

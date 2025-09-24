@@ -95,11 +95,17 @@ var _ = Describe("SecretStore Controller", func() {
 					if err != nil {
 						return true
 					}
-					return len(ss.GetStatus().Conditions) == 0
+
+					conditionLen := len(ss.GetStatus().Conditions) == 0
+					if !conditionLen {
+						GinkgoLogr.Info("store conditions is NOT empty but should have been", "conditions", ss.GetStatus().Conditions)
+					}
+
+					return conditionLen
 				}).
-					WithTimeout(time.Second * 3).
-					WithPolling(time.Millisecond * 500).
-					Should(BeTrue())
+					WithTimeout(time.Second*3).
+					WithPolling(time.Millisecond*500).
+					Should(BeTrue(), "condition should have been empty")
 			}
 		}
 
