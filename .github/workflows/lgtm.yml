@@ -187,7 +187,7 @@ jobs:
 
           // Check if user has any required reviewer role
           if (commenterReviewerRoles.size === 0) {
-            const rolesList = Array.from(requiredReviewerRoles).join(', ');
+            const rolesList = Array.from(requiredReviewerRoles).map(role => role.replace(`@${organization}/`, '')).join(', ');
             await github.rest.issues.createComment({
               owner, repo, issue_number: prNumber,
               body: `@${commenter} You must be a member of one of the required reviewer roles to use /lgtm.\n\nRequired roles for this PR: ${rolesList}`
