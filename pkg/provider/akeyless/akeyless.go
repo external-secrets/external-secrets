@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package akeyless provides integration with Akeyless Vault for secrets management
+// Package akeyless provides integration with Akeyless Vault for secrets management.
 package akeyless
 
 import (
