@@ -43,7 +43,6 @@ var (
 	errWriteOnlyOperations     = errors.New("not implemented - the ngrok provider only supports write operations")
 	errVaultDoesNotExist       = errors.New("vault does not exist")
 	errVaultSecretDoesNotExist = errors.New("vault secret does not exist")
-	errCannotPushNilSecret     = errors.New("cannot push nil secret")
 )
 
 type PushSecretMetadataSpec struct {
@@ -78,10 +77,6 @@ type client struct {
 }
 
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	if secret == nil {
-		return errCannotPushNilSecret
-	}
-
 	// First, make sure the vault name still matches the ID we have stored. If not, we have to look it up again.
 	err := c.verifyVaultNameStillMatchesID(ctx)
 	if err != nil {
@@ -239,7 +234,7 @@ func (c *client) verifyVaultNameStillMatchesID(ctx context.Context) error {
 	}
 
 	vault, err := c.vaultClient.Get(ctx, vaultID)
-	if err != nil || vault == nil || vault.Name != c.vaultName {
+	if err != nil || vault.Name != c.vaultName {
 		return c.refreshVaultID(ctx)
 	}
 

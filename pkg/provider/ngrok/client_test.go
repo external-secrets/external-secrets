@@ -143,17 +143,6 @@ var _ = Describe("client", func() {
 			pushErr = c.PushSecret(ctx, k8Secret, pushData)
 		})
 
-		When("the secret is nil", func() {
-			BeforeEach(func() {
-				k8Secret = nil
-			})
-
-			It("should return an error", func(ctx SpecContext) {
-				Expect(pushErr).To(HaveOccurred())
-				Expect(pushErr).To(Equal(errCannotPushNilSecret))
-			})
-		})
-
 		When("the vault exists", func() {
 			var (
 				getSecretErr error
