@@ -52,6 +52,5 @@ jobs:
           inputs: |
             .github/
           token: ${{ github.token }}
-          annotations: true
           # min-severity: medium
           # min-confidence: medium
