@@ -31,11 +31,12 @@ import (
 )
 
 const (
-	defaultGCPAuthMountPath = "gcp"
+	defaultGCPAuthMountPath    = "gcp"
+	googleOAuthAccessTokenKey = "GOOGLE_OAUTH_ACCESS_TOKEN"
 )
 
 func setGcpAuthToken(ctx context.Context, v *client) (bool, error) {
-	gcpAuth := v.store.Auth.Gcp
+	gcpAuth := v.store.Auth.GCP
 	if gcpAuth != nil {
 		// Only proceed with actual authentication if the auth client is available
 		if v.auth == nil {
@@ -51,7 +52,7 @@ func setGcpAuthToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.VaultGcpAuth) error {
+func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
 	authMountPath := c.getGCPAuthMountPathOrDefault(gcpAuth.Path)
 	role := gcpAuth.Role
 
@@ -91,7 +92,7 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 	return nil
 }
 
-func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.VaultGcpAuth) error {
+func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
 	// Priority order following AWS pattern: SecretRef -> WorkloadIdentity -> ServiceAccountRef -> Default ADC
 
 	// First priority: Service account key from secret
@@ -113,7 +114,7 @@ func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.VaultGcpAuth) e
 	return c.setupDefaultGCPAuth()
 }
 
-func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.VaultGcpAuth) error {
+func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
 	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
 		SecretRef: gcpAuth.SecretRef,
 	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
@@ -130,7 +131,7 @@ func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.V
 	return c.setGCPEnvironment(token.AccessToken)
 }
 
-func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.VaultGcpAuth) error {
+func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
 	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
 		WorkloadIdentity: gcpAuth.WorkloadIdentity,
 	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
@@ -147,7 +148,7 @@ func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.Va
 	return c.setGCPEnvironment(token.AccessToken)
 }
 
-func (c *client) setupServiceAccountRefAuth(_ context.Context, _ *esv1.VaultGcpAuth) error {
+func (c *client) setupServiceAccountRefAuth(_ context.Context, _ *esv1.VaultGCPAuth) error {
 	// This could be enhanced to create service account tokens similar to AWS IRSA pattern
 	// For now, fall back to default authentication
 	c.log.V(1).Info("Setting up GCP authentication using service account reference - falling back to default auth")
@@ -163,7 +164,7 @@ func (c *client) setupDefaultGCPAuth() error {
 
 func (c *client) setGCPEnvironment(accessToken string) error {
 	// The Vault GCP auth method will use this environment variable if set
-	if err := c.setEnvVar("GOOGLE_OAUTH_ACCESS_TOKEN", accessToken); err != nil {
+	if err := c.setEnvVar(googleOAuthAccessTokenKey, accessToken); err != nil {
 		return fmt.Errorf("failed to set GCP environment variable: %w", err)
 	}
 	return nil

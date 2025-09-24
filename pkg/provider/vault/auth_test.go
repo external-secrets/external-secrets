@@ -284,13 +284,13 @@ func TestCheckTokenTtl(t *testing.T) {
 func TestGCPAuthDetection(t *testing.T) {
 	tests := []struct {
 		name           string
-		gcpAuth        *esv1.VaultGcpAuth
+		gcpAuth        *esv1.VaultGCPAuth
 		expectedHasAuth bool
 		expectError    bool
 	}{
 		{
 			name: "GCP auth configured",
-			gcpAuth: &esv1.VaultGcpAuth{
+			gcpAuth: &esv1.VaultGCPAuth{
 				Role: "test-role",
 				Path: "gcp",
 			},
@@ -311,7 +311,7 @@ func TestGCPAuthDetection(t *testing.T) {
 			c := &client{
 				store: &esv1.VaultProvider{
 					Auth: &esv1.VaultAuth{
-						Gcp: tt.gcpAuth,
+						GCP: tt.gcpAuth,
 					},
 				},
 				// auth: nil (not initialized for test)

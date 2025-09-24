@@ -169,7 +169,7 @@ type VaultAuth struct {
 	// Gcp authenticates with Vault using Google Cloud Platform authentication method
 	// GCP authentication method
 	// +optional
-	Gcp *VaultGcpAuth `json:"gcp,omitempty"`
+	GCP *VaultGCPAuth `json:"gcp,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -388,12 +388,12 @@ type VaultUserPassAuth struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// VaultGcpAuth authenticates with Vault using Google Cloud Platform authentication method.
+// VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
 // Refer: https://developer.hashicorp.com/vault/docs/auth/gcp
 //
 // When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod's
 // identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.
-type VaultGcpAuth struct {
+type VaultGCPAuth struct {
 	// Path where the GCP auth method is enabled in Vault, e.g: "gcp"
 	// +kubebuilder:default=gcp
 	// +optional
