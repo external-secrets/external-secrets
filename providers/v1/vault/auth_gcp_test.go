@@ -108,7 +108,7 @@ func TestSetGCPEnvironment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up environment variable after test
-			defer os.Unsetenv("GOOGLE_OAUTH_ACCESS_TOKEN")
+			defer os.Unsetenv(googleOAuthAccessTokenKey)
 
 			err := c.setGCPEnvironment(tt.accessToken)
 
@@ -121,9 +121,9 @@ func TestSetGCPEnvironment(t *testing.T) {
 
 			// If successful, verify the GOOGLE_OAUTH_ACCESS_TOKEN was set
 			if !tt.wantError && err == nil {
-				actualValue := os.Getenv("GOOGLE_OAUTH_ACCESS_TOKEN")
+				actualValue := os.Getenv(googleOAuthAccessTokenKey)
 				if actualValue != tt.accessToken {
-					t.Errorf("setGCPEnvironment() GOOGLE_OAUTH_ACCESS_TOKEN not set correctly, got %v, want %v", actualValue, tt.accessToken)
+					t.Errorf("setGCPEnvironment() %s not set correctly, got %v, want %v", googleOAuthAccessTokenKey, actualValue, tt.accessToken)
 				}
 			}
 		})
@@ -151,13 +151,13 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		gcpAuth     *esv1.VaultGcpAuth
+		gcpAuth     *esv1.VaultGCPAuth
 		expectError bool
 		description string
 	}{
 		{
 			name: "SecretRef has priority",
-			gcpAuth: &esv1.VaultGcpAuth{
+			gcpAuth: &esv1.VaultGCPAuth{
 				Role:      "test-role",
 				ProjectID: "test-project",
 				SecretRef: &esv1.GCPSMAuthSecretRef{
@@ -177,7 +177,7 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 		},
 		{
 			name: "WorkloadIdentity second priority",
-			gcpAuth: &esv1.VaultGcpAuth{
+			gcpAuth: &esv1.VaultGCPAuth{
 				Role:      "test-role",
 				ProjectID: "test-project",
 				WorkloadIdentity: &esv1.GCPWorkloadIdentity{
@@ -194,7 +194,7 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 		},
 		{
 			name: "ServiceAccountRef third priority",
-			gcpAuth: &esv1.VaultGcpAuth{
+			gcpAuth: &esv1.VaultGCPAuth{
 				Role: "test-role",
 				ServiceAccountRef: &esmeta.ServiceAccountSelector{
 					Name: "test-sa",
@@ -205,7 +205,7 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 		},
 		{
 			name: "Default auth last resort",
-			gcpAuth: &esv1.VaultGcpAuth{
+			gcpAuth: &esv1.VaultGCPAuth{
 				Role: "test-role",
 			},
 			expectError: false,
@@ -231,7 +231,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupClient func() *client
-		gcpAuth     *esv1.VaultGcpAuth
+		gcpAuth     *esv1.VaultGCPAuth
 		expectError bool
 		description string
 	}{
@@ -256,7 +256,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 					storeKind: "SecretStore",
 				}
 			},
-			gcpAuth: &esv1.VaultGcpAuth{
+			gcpAuth: &esv1.VaultGCPAuth{
 				Role:      "test-role",
 				ProjectID: "test-project",
 				SecretRef: &esv1.GCPSMAuthSecretRef{
@@ -279,7 +279,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 					storeKind: "SecretStore",
 				}
 			},
-			gcpAuth: &esv1.VaultGcpAuth{
+			gcpAuth: &esv1.VaultGCPAuth{
 				Role:      "test-role",
 				ProjectID: "test-project",
 				WorkloadIdentity: &esv1.GCPWorkloadIdentity{
@@ -301,7 +301,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 					storeKind: "SecretStore",
 				}
 			},
-			gcpAuth: &esv1.VaultGcpAuth{
+			gcpAuth: &esv1.VaultGCPAuth{
 				Role: "test-role",
 			},
 			expectError: false, // Should succeed as it just sets up default auth
