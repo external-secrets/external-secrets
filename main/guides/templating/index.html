@@ -1926,6 +1926,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#rsa-decryption-data-from-provider" class="md-nav__link">
+    <span class="md-ellipsis">
+      RSA Decryption Data From Provider
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4178,6 +4187,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#rsa-decryption-data-from-provider" class="md-nav__link">
+    <span class="md-ellipsis">
+      RSA Decryption Data From Provider
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4576,6 +4594,59 @@ NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
 <span class="w">        </span><span class="nt">tls.crt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">filterPEM</span><span class="nv"> </span><span class="s">&quot;</span><span class="l l-Scalar l-Scalar-Plain">CERTIFICATE&quot; | filterCertChain &quot;leaf&quot; }}&quot;</span>
 <span class="w">        </span><span class="nt">tls.key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">filterPEM</span><span class="nv"> </span><span class="s">&quot;</span><span class="l l-Scalar l-Scalar-Plain">PRIVATE KEY&quot; }}&quot;</span>
 </code></pre></div>
+<h3 id="rsa-decryption-data-from-provider">RSA Decryption Data From Provider</h3>
+<p>When a provider returns RSA-encrypted values, you can decrypt them directly in the template using the <code>getSecretKey</code> and <code>rsaDecrypt</code> functions (engine v2).</p>
+<ul>
+<li><code>getSecretKey</code> reads a specific key from a Kubernetes Secret. Use it to fetch the RSA private key (PEM in plain text, without passphrase) used for decryption. (<strong>Note:</strong> It is recommended to fetch the key from a different Secret to ensure stronger security in the process).</li>
+<li><code>rsaDecrypt</code> performs decryption with the private key passed through the pipeline: <code>&lt;privateKeyPEM | rsaDecrypt "&lt;SCHEME&gt;" "&lt;HASH&gt;" &lt;ciphertext&gt; &gt;</code>. <code>SCHEME</code> and <code>HASH</code> are strings (for example, <code>"RSA-OAEP"</code> and <code>"SHA1"</code>). The third argument must be the ciphertext in binary form.</li>
+</ul>
+<p>Base64 handling: providers often return ciphertext as Base64. You can either:
+- decode in the template with <code>b64dec</code> (for example: <code>(.password_encrypted_base64 | b64dec)</code>), or
+- set <code>decodingStrategy: Base64</code> on the corresponding <code>spec.data.remoteRef</code> so the template receives binary data.</p>
+<p>Prerequisites
+- <code>spec.target.template.engineVersion: v2</code>.
+- A valid RSA private key in PEM format without passphrase (from another Secret via <code>getSecretKey</code>, or from the same ExternalSecret).
+- Ciphertext must match the key pair and the chosen algorithm/hash.</p>
+<p>Full example:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rsa-decrypt-template-v2</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># Decrypt a binary ciphertext using a private key stored in a Kubernetes Secret.</span>
+<span class="w">        </span><span class="c1"># getSecretKey(&quot;secret-name&quot;, &quot;namespace&quot;, &quot;key&quot;) reads the PEM private key.</span>
+<span class="w">        </span><span class="c1"># rsaDecrypt(&quot;SCHEME&quot;, &quot;HASH&quot;, ciphertext, privateKeyPEM) decrypts the ciphertext (binary).</span>
+<span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{{</span><span class="nv"> </span><span class="s">getSecretKey</span><span class="nv"> </span><span class="s">&quot;my_secret_with_pk&quot;</span><span class="nv"> </span><span class="s">&quot;namespace_pk&quot;</span><span class="nv"> </span><span class="s">&quot;key_pk&quot;</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">rsaDecrypt</span><span class="nv"> </span><span class="s">&quot;RSA-OAEP&quot;</span><span class="nv"> </span><span class="s">&quot;SHA1&quot;</span><span class="nv"> </span><span class="s">.password_encrypted_binary</span><span class="nv"> </span><span class="s">}}&#39;</span>
+
+<span class="w">        </span><span class="c1"># Alternatives:</span>
+<span class="w">        </span><span class="c1"># - If provider returns Base64, decode in-template with b64dec:</span>
+<span class="w">        </span><span class="c1"># password: &#39;{{ getSecretKey &quot;my_secret_with_pk&quot; &quot;namespace_pk&quot; &quot;key_pk&quot; | rsaDecrypt &quot;RSA-OAEP&quot; &quot;SHA1&quot; (.password_encrypted_base64 | b64dec) }}&#39;</span>
+<span class="w">        </span><span class="c1"># - Or set decodingStrategy: Base64 on the spec.data.remoteRef so template receives binary.</span>
+<span class="w">        </span><span class="c1"># - Or use a private key pulled into this ExternalSecret (then use {{ .private_key }}):</span>
+<span class="w">        </span><span class="c1"># password: &#39;{{ .private_key | rsaDecrypt &quot;RSA-OAEP&quot; &quot;SHA1&quot; .password_encrypted_binary }}&#39;</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password_encrypted_binary</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/credentials/password_encrypted_binary</span>
+<span class="w">  </span><span class="c1"># If ciphertext is Base64 encoded, either decode in-template (b64dec) or use decodingStrategy: Base64</span>
+<span class="w">  </span><span class="c1"># Example (decode here -&gt; template receives binary):</span>
+<span class="w">  </span><span class="c1"># - secretKey: password_encrypted_base64</span>
+<span class="w">  </span><span class="c1">#   remoteRef:</span>
+<span class="w">  </span><span class="c1">#     key: /credentials/password_encrypted_base64</span>
+<span class="w">  </span><span class="c1">#     decodingStrategy: Base64</span>
+<span class="w">  </span><span class="c1"># ...</span>
+</code></pre></div>
+<p>Useful variations (included as comments in the example):
+- Base64 decode in the template with <code>b64dec</code> or via <code>decodingStrategy: Base64</code> on <code>spec.data</code>.
+- Use a private key available in the same ExternalSecret (for example: <code>( .private_key | rsaDecrypt ... )</code>).</p>
+<p>Error notes
+- Referencing a missing key in the template will fail rendering.
+- If key/algorithm/hash do not match the ciphertext, decryption will fail and reconciliation will retry.</p>
 <h2 id="templating-with-pushsecret">Templating with PushSecret</h2>
 <p><code>PushSecret</code> templating is much like <code>ExternalSecrets</code> templating. In-fact under the hood, it's using the same data structure.
 Which means, anything described in the above should be possible with push secret as well resulting in a templated secret
@@ -4668,6 +4739,14 @@ created at the provider.</p>
 <tr>
 <td>jwkPrivateKeyPem</td>
 <td>Takes an json-serialized JWK as <code>string</code> and returns an PEM block of type <code>PRIVATE KEY</code> that contains the private key in PKCS #8 format. <a href="https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey">See here</a> for details.</td>
+</tr>
+<tr>
+<td>getSecretKey</td>
+<td>Reads a specific key from a Kubernetes <code>Secret</code> and returns it as a string. Typical usage: <code>getSecretKey "secret-name" "namespace" "key"</code>.</td>
+</tr>
+<tr>
+<td>rsaDecrypt</td>
+<td>Decrypts RSA ciphertext using a PEM private key. Usage: <code>&lt;rsaDecrypt "SCHEME" "HASH" ciphertext privateKeyPEM&gt;</code> or <code>&lt;privateKeyPEM \| rsaDecrypt "SCHEME" "HASH" ciphertext&gt;</code>. <strong>SCHEME</strong>: supported values are <code>"None"</code> and <code>"RSA-OAEP"</code>. <strong>HASH</strong>: supported values are <code>"SHA1"</code> and <code>"SHA256"</code>. <strong>Ciphertext</strong> must be binary — use <code>b64dec</code> or <code>decodingStrategy: Base64</code> to convert Base64 payloads.</td>
 </tr>
 <tr>
 <td>toYaml</td>
