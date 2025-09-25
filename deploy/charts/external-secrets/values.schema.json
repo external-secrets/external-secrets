@@ -412,37 +412,42 @@
         "livenessProbe": {
             "type": "object",
             "properties": {
-                "address": {
-                    "type": "string"
-                },
                 "enabled": {
                     "type": "boolean"
                 },
-                "failureThreshold": {
-                    "type": "integer"
-                },
-                "httpGet": {
+                "spec": {
                     "type": "object",
                     "properties": {
-                        "path": {
+                        "address": {
                             "type": "string"
                         },
-                        "port": {
-                            "type": "string"
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "httpGet": {
+                            "type": "object",
+                            "properties": {
+                                "path": {
+                                    "type": "string"
+                                },
+                                "port": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
                         }
                     }
-                },
-                "initialDelaySeconds": {
-                    "type": "integer"
-                },
-                "periodSeconds": {
-                    "type": "integer"
-                },
-                "successThreshold": {
-                    "type": "integer"
-                },
-                "timeoutSeconds": {
-                    "type": "integer"
                 }
             }
         },

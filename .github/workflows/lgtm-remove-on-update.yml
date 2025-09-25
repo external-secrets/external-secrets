@@ -1,6 +1,6 @@
 name: Pull Request Maintenance
 on:
-  pull_request:
+  pull_request_target:
     types: [synchronize]
 
 permissions:
