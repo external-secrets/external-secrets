@@ -236,7 +236,7 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1.External
 		return []byte(val.(string)), nil
 	} else if ref.Property == intermediateConst {
 		// we want to return an empty string in case the secret doesn't contain an intermediate cert
-		// this is to ensure that secret of type 'kubernetes.io/tls' gets created as expected, even with an empty private key
+		// this is to ensure that secret of type 'kubernetes.io/tls' gets created as expected, even with an empty intermediate cert
 		fmt.Printf(errFieldIsEmpty, intermediateConst, *secretName)
 		return []byte(""), nil
 	} else if ref.Property == privateKeyConst {
