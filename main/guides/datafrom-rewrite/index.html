@@ -4237,8 +4237,9 @@
 <p>This method implements rewriting keys by merging operation and solving key collisions. It supports two merging strategies: <code>Extract</code> and <code>JSON</code>.</p>
 <p>The <code>Extract</code> strategy interprets all secret values in the secret map as JSON and merges all contained key/value pairs hoisting them to the top level, substituting the original secret map.</p>
 <p>The <code>JSON</code> strategy interprets all secret values in the secret map as JSON and merges all contained key/value pairs in the key specified by the <em>required</em> parameter <code>into</code>. If the key specified by <code>into</code> already exists in the original secrets map it will be overwritten.</p>
-<p>Key collisions can be ignored or cause an error according to <code>conflictPolicy</code> which can be either <code>Ignore</code> or <code>Error</code>.  </p>
+<p>Key collisions can be ignored or cause an error according to <code>conflictPolicy</code> which can be either <code>Ignore</code> or <code>Error</code>.</p>
 <p>To guarantee deterministic results of the merge operation, secret keys are processed in alphabetical order. Key priority can also be made explicit by providing a list of secret keys in the <code>priority</code> parameter. These keys will be processed last in the order they appear while all other keys will still be processed in alphabetical order.</p>
+<p>Specifying a key in the <code>priority</code> list which is not found in the source secret will cause an error. You can override this behavior setting <code>priorityPolicy</code> to <code>IgnoreNotFound</code> instead of the default <code>Strict</code>.</p>
 <h2 id="considerations-about-rewrite-implementation">Considerations about Rewrite implementation</h2>
 <ol>
 <li>The input of a subsequent rewrite operation are the outputs of the previous rewrite.</li>

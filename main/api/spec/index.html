@@ -8192,6 +8192,20 @@ Required if strategy is JSON. Ignored otherwise.</p>
 </tr>
 <tr>
 <td>
+<code>priorityPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMergePriorityPolicy">
+ExternalSecretRewriteMergePriorityPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the policy when a key in the priority list does not exist in the input.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conflictPolicy</code></br>
 <em>
 <a href="#external-secrets.io/v1.ExternalSecretRewriteMergeConflictPolicy">
@@ -8238,6 +8252,27 @@ ExternalSecretRewriteMergeStrategy
 <tbody><tr><td><p>&#34;Error&#34;</p></td>
 <td></td>
 </tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMergePriorityPolicy">ExternalSecretRewriteMergePriorityPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;IgnoreNotFound&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Strict&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
