@@ -480,13 +480,18 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretD
 		return secretMap, nil
 
 	case sm.Secret_SecretType_ImportedCert:
-		if err := checkNilFn([]string{certificateConst, intermediateConst}); err != nil {
+		if err := checkNilFn([]string{certificateConst}); err != nil {
 			return nil, err
 		}
 		secretMap[certificateConst] = secMapBytes[certificateConst]
-		secretMap[intermediateConst] = secMapBytes[intermediateConst]
-		if v, ok := secMapBytes[privateKeyConst]; ok {
-			secretMap[privateKeyConst] = v
+		if v1, ok := secMapBytes[intermediateConst]; ok {
+			secretMap[intermediateConst] = v1
+		} else {
+			fmt.Printf("warn: %s is empty for secret %s\n", intermediateConst, secretName)
+			secretMap[intermediateConst] = []byte("")
+		}
+		if v2, ok := secMapBytes[privateKeyConst]; ok {
+			secretMap[privateKeyConst] = v2
 		} else {
 			fmt.Printf("warn: %s is empty for secret %s\n", privateKeyConst, secretName)
 			secretMap[privateKeyConst] = []byte("")
