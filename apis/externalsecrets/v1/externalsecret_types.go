@@ -356,6 +356,7 @@ type ExternalSecretRewriteMerge struct {
 	Strategy ExternalSecretRewriteMergeStrategy `json:"strategy,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Ignore;Error
 type ExternalSecretRewriteMergeConflictPolicy string
 
 const (
@@ -363,6 +364,7 @@ const (
 	ExternalSecretRewriteMergeConflictPolicyError  ExternalSecretRewriteMergeConflictPolicy = "Error"
 )
 
+// +kubebuilder:validation:Enum=IgnoreNotFound;Strict
 type ExternalSecretRewriteMergePriorityPolicy string
 
 const (
@@ -370,6 +372,7 @@ const (
 	ExternalSecretRewriteMergePriorityPolicyStrict         ExternalSecretRewriteMergePriorityPolicy = "Strict"
 )
 
+// +kubebuilder:validation:Enum=Extract;JSON
 type ExternalSecretRewriteMergeStrategy string
 
 const (
@@ -511,6 +514,7 @@ type GeneratorRef struct {
 	Name string `json:"name"`
 }
 
+// +kubebuilder:validation:Enum=Ready;Deleted
 type ExternalSecretConditionType string
 
 const (
