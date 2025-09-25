@@ -236,7 +236,7 @@ tests:
     set:
       certController.startupProbe.enabled: true
       certController.startupProbe.useReadinessProbePort: false
-      certController.startupProbe.port: 8083
+      certController.startupProbe.port: "8083"
     templates:
       - cert-controller-deployment.yaml
     asserts:

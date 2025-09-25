@@ -616,7 +616,7 @@ certController:
     # -- whether to use the readiness probe port for startup probe.
     useReadinessProbePort: true
     # -- Port for startup probe.
-    port: 8081
+    port: ""
 
     ## -- Extra environment variables to add to container.
   extraEnv: []
