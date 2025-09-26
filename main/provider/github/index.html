@@ -2896,6 +2896,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Limitations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#configuring-github-provider" class="md-nav__link">
     <span class="md-ellipsis">
       Configuring Github provider
@@ -4050,6 +4059,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Limitations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#configuring-github-provider" class="md-nav__link">
     <span class="md-ellipsis">
       Configuring Github provider
@@ -4104,8 +4122,11 @@
 
 <h2 id="github">GitHub</h2>
 <p>External Secrets Operator integrates with GitHub to sync Kubernetes secrets with <a href="https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions">GitHub Actions secrets</a>.</p>
+<h3 id="limitations">Limitations</h3>
+<p>The GitHub provider is <strong>write-only</strong>, designed specifically to <strong>create and update</strong> GitHub Actions secrets using the
+<a href="https://docs.github.com/en/rest/actions/secrets">GitHub REST API</a>, and does not support <strong>fetching the secret values</strong>.</p>
 <h3 id="configuring-github-provider">Configuring Github provider</h3>
-<p>The GitHub API requires to install the ESO app to your GitHub organisation in order to use the Github provider features.</p>
+<p>The GitHub API requires to install the ESO app to your GitHub organisation in order to use the GitHub provider features.</p>
 <h3 id="configuring-the-secret-store">Configuring the secret store</h3>
 <p>Verify that <code>github</code> provider is listed in the <code>Kind=SecretStore</code>. The properties <code>appID</code>, <code>installationID</code>, <code>organization</code> are required to register the provider. In addition, authentication has to be provided.</p>
 <p>Optionally, to target <code>repository</code> and <code>environment</code> secrets, the fields <code>repository</code> and <code>environment</code> need also to be added.</p>
