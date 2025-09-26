@@ -8510,7 +8510,8 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push Github Action secrets using Github API provider</p>
+<p>Github configures this store to push GitHub Action secrets using GitHub API provider.
+Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
 <tr>
