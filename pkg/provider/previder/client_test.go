@@ -46,3 +46,9 @@ func (v *PreviderVaultFakeClient) GetSecrets() ([]model.Secret, error) {
 	}
 	return secretList, nil
 }
+
+func (v *PreviderVaultFakeClient) GetTokenInfo() (*model.Token, error) {
+	token := new(model.Token)
+	token.TokenType = "ReadOnly"
+	return token, nil
+}
