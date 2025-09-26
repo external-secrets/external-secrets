@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -101,6 +102,7 @@ type GoogleSecretManagerClient interface {
 	Close() error
 	GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	UpdateSecret(context.Context, *secretmanagerpb.UpdateSecretRequest, ...gax.CallOption) (*secretmanagerpb.Secret, error)
+	ListSecretVersions(ctx context.Context, req *secretmanagerpb.ListSecretVersionsRequest, opts ...gax.CallOption) *secretmanager.SecretVersionIterator
 }
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
@@ -500,8 +502,19 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	}
 	result, err := c.smClient.AccessSecretVersion(ctx, req)
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
-	err = parseError(err)
+	if err != nil && c.store.SecretVersionSelectionPolicy == esv1.SecretVersionSelectionPolicyLatestOrFetch &&
+		ref.Version == "" && isErrSecretDestroyedOrDisabled(err) {
+		// if the secret is destroyed or disabled, and we are configured to get the latest enabled secret,
+		// we need to get the latest enabled secret
+		// Extract the secret name from the version name for ListSecretVersions
+		secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.Key)
+		if c.store.Location != "" {
+			secretName = fmt.Sprintf(regionalSecretPath, c.store.ProjectID, c.store.Location, ref.Key)
+		}
+		result, err = getLatestEnabledVersion(ctx, c.smClient, secretName)
+	}
 	if err != nil {
+		err = parseError(err)
 		return nil, fmt.Errorf(errClientGetSecretAccess, err)
 	}
 
@@ -676,4 +689,33 @@ func getParentName(projectID, location string) string {
 		return fmt.Sprintf(regionalSecretParentPath, projectID, location)
 	}
 	return fmt.Sprintf(globalSecretParentPath, projectID)
+}
+
+func isErrSecretDestroyedOrDisabled(err error) bool {
+	st, _ := status.FromError(err)
+	return st.Code() == codes.FailedPrecondition &&
+		(strings.Contains(st.Message(), "DESTROYED state") || strings.Contains(st.Message(), "DISABLED state"))
+}
+
+func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClient, name string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+	iter := client.ListSecretVersions(ctx, &secretmanagerpb.ListSecretVersionsRequest{
+		Parent: name,
+		Filter: "state:ENABLED",
+	})
+	latestCreateTime := time.Unix(0, 0)
+	latestVersion := &secretmanagerpb.SecretVersion{}
+	for {
+		version, err := iter.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if version.CreateTime.AsTime().After(latestCreateTime) {
+			latestCreateTime = version.CreateTime.AsTime()
+			latestVersion = version
+		}
+	}
+	req := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: fmt.Sprintf("%s/versions/%s", name, latestVersion.Name),
+	}
+	return client.AccessSecretVersion(ctx, req)
 }
