@@ -37,6 +37,7 @@ import (
 
 const (
 	defaultDescription = "Managed by External Secrets Operator"
+	defaultListTimeout = 1 * time.Minute
 )
 
 var (
@@ -238,7 +239,6 @@ func (c *client) verifyVaultNameStillMatchesID(ctx context.Context) error {
 		return c.refreshVaultID(ctx)
 	}
 
-	c.setVaultID(vault.ID)
 	return nil
 }
 
@@ -267,8 +267,11 @@ func (c *client) refreshVaultID(ctx context.Context) error {
 }
 
 func (c *client) getVaultByName(ctx context.Context, name string) (*ngrok.Vault, error) {
+	listCtx, cancel := context.WithTimeout(ctx, defaultListTimeout)
+	defer cancel()
+
 	iter := c.vaultClient.List(nil)
-	for iter.Next(ctx) {
+	for iter.Next(listCtx) {
 		vault := iter.Item()
 		if vault.Name == name {
 			return vault, nil

@@ -52,5 +52,6 @@ type NgrokVault struct {
 
 type NgrokProviderSecretRef struct {
 	// SecretRef is a reference to a secret containing the ngrok API key.
+	// +optional
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }

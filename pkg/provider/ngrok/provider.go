@@ -90,9 +90,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kubeC
 	vaultClient := getVaultsClient(clientConfig)
 	secretsClient := getSecretsClient(clientConfig)
 
+	listCtx, cancel := context.WithTimeout(ctx, defaultListTimeout)
+	defer cancel()
+
 	var vault *ngrok.Vault
 	vaultIter := vaultClient.List(nil)
-	for vaultIter.Next(ctx) {
+	for vaultIter.Next(listCtx) {
 		if vaultIter.Item().Name == cfg.Vault.Name {
 			vault = vaultIter.Item()
 			break
