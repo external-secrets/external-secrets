@@ -2813,6 +2813,54 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#secret-version-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Secret Version Management
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Secret Version Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secret-version-selection-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Secret Version Selection Policy
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Secret Version Selection Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Policies
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4267,6 +4315,54 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#secret-version-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Secret Version Management
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Secret Version Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secret-version-selection-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Secret Version Selection Policy
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Secret Version Selection Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Policies
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4672,6 +4768,29 @@ This approach can be used on any Kubernetes cluster.</p>
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
 <span class="w">      </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east1</span><span class="w"> </span><span class="c1"># uses regional secrets on us-east1</span>
 </code></pre></div>
+<h2 id="secret-version-management">Secret Version Management</h2>
+<h3 id="secret-version-selection-policy">Secret Version Selection Policy</h3>
+<p>The Google Secret Manager provider includes a <code>secretVersionSelectionPolicy</code> field that controls how the provider handles secret version selection when the default "latest" version is unavailable.</p>
+<p>By default, when you request a secret without specifying a version, the provider attempts to fetch the "latest" version. The <code>secretVersionSelectionPolicy</code> determines what happens if that version is in a DESTROYED or DISABLED state.</p>
+<h4 id="available-policies">Available Policies</h4>
+<ul>
+<li><strong><code>LatestOrFail</code></strong> (default): The provider always uses "latest", or fails if that version is disabled/destroyed.</li>
+<li><strong><code>LatestOrFetch</code></strong>: The provider falls back to fetching the latest enabled version if the "latest" version is DESTROYED or DISABLED.</li>
+</ul>
+<h4 id="configuration-example">Configuration Example</h4>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">      </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east1</span>
+<span class="w">      </span><span class="nt">secretVersionSelectionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LatestOrFetch</span><span class="w">  </span><span class="c1"># or LatestOrFail (default)</span>
+</code></pre></div>
+<p><strong>Note</strong>: When using <code>secretVersionSelectionPolicy: LatestOrFetch</code>, the service account requires additional permissions to list secret versions. You'll need to grant the <code>roles/secretmanager.viewer</code> role (which includes <code>secretmanager.versions.list</code>) or the specific <code>secretmanager.versions.list</code> permission in addition to the standard <code>secretmanager.secretAccessor</code> role.</p>
+<p>```</p>
 
 
 
