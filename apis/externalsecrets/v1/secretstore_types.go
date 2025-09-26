@@ -107,7 +107,8 @@ type SecretStoreProvider struct {
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
 
-	// Github configures this store to push Github Action secrets using Github API provider
+	// Github configures this store to push GitHub Action secrets using GitHub API provider.
+	// Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
 	// +optional
 	Github *GithubProvider `json:"github,omitempty"`
 
@@ -210,6 +211,10 @@ type SecretStoreProvider struct {
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
+
+	// Volcengine configures this store to sync secrets using the Volcengine provider
+	// +optional
+	Volcengine *VolcengineProvider `json:"volcengine,omitempty"`
 }
 
 type CAProviderType string

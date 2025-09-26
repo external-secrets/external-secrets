@@ -26,6 +26,14 @@ spec:
       registry: string
       scope: string
       tenantId: string
+    cloudsmithAccessTokenSpec:
+      apiUrl: string
+      orgSlug: string
+      serviceAccountRef:
+        audiences: [] # minItems 0 of type string
+        name: string
+        namespace: string
+      serviceSlug: string
     ecrAuthorizationTokenSpec:
       auth:
         jwt:
@@ -318,4 +326,4 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"
+  kind: "ACRAccessToken" # "ACRAccessToken", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"

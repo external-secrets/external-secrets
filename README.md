@@ -2,39 +2,6 @@
     <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
 </p>
 
-
-## Project Releases Paused Until Maintainer Team is Rebuilt ⚠️
-
-The current maintainers of External Secrets Operator decided to pause official SemVer releases.
-
-Despite strong adoption and a growing user base, the project is currently maintained by a very small core team. This limited capacity makes it unsustainable to continue regular development, community support, and release management.
-
-To ensure the long-term health of the project, we are temporarily pausing all official releases - including new features, patches, and published container images - until we have at least five consistent, long-term community maintainers.
-
-### What does this mean?
-
-✅ We will continue reviewing and merging community PRs.
-
-✅ Contributions will be available on the main branch.
-
-❌ We will not provide support via Slack, or issue comments.
-
-❌ We will not publish any new releases (major, minor, or patch), including 0.19.x and 1.0.x.
-
-
-
-### How You Can Help
-
-If your company or team relies on External Secrets Operator, please consider contributing back - especially if you work for an organization with a defined open source strategy.
-
-➡️ To get involved, please fill out [this form](https://forms.gle/utsekWEBwrfo1dHs8).
-
-You can also check out the [Governance document](https://github.com/external-secrets/external-secrets/blob/main/GOVERNANCE.md) or join the [GitHub Issue](https://github.com/external-secrets/external-secrets/issues/5084) for more context.
-
-We truly regret having to take this step, but it's necessary to raise awareness among the many organizations relying on External Secrets in production. We need your support to continue moving the project forward.
-
-Thank you for your understanding and for being part of this community.
-
 # External Secrets
 
 ![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)
@@ -65,14 +32,16 @@ External Secrets Operator guides and reference documentation is available at [ex
 
 We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/main/contributing/devguide/) and [Contribution process](https://www.external-secrets.io/main/contributing/process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/main/contributing/coc/) and adhere to its guidelines.
 
+Also, please take a look our [Contribution Ladder](CONTRIBUTOR_LADDER.md) for a _very_ detailed explanation of what roles and tracks are available for people to try and help this project.
+
 ### Sponsoring
 
 Please consider sponsoring this project, there are many ways you can help us with: engineering time, providing infrastructure, donating money, etc. We are open to cooperations, feel free to approach as and we discuss how this could look like. We can keep your contribution anonymized if that's required (depending on the type of contribution), and anonymous donations are possible inside [Opencollective](https://opencollective.com/external-secrets-org).
 
 ## Bi-weekly Development Meeting
 
-We host our development meeting every odd wednesday on [Jitsi](https://meet.jit.si/eso-community-meeting). We run the meeting with alternating times [8:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=20:00&tz=Europe/Berlin) and [1:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=13:00&tz=Europe/Berlin), we'll announce the time in our [Kubernetes Slack
-  channel](https://kubernetes.slack.com/messages/external-secrets). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
+We host our development meeting every odd wednesday on [Zoom](https://zoom-lfx.platform.linuxfoundation.org/meeting/92843470602?password=b953d8fb-825b-48ae-8fd7-226e498cc316). We run the meeting with alternating times [8:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=20:00&tz=Europe/Berlin) and [1:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=13:00&tz=Europe/Berlin). Be sure to check the [CNCF Calendar](https://zoom-lfx.platform.linuxfoundation.org/meetings/externalsecretsoperator?view=month) to see when the next meeting is scheduled, we'll also announce the time in our [Kubernetes Slack channel](https://kubernetes.slack.com/messages/external-secrets).
+Meeting notes are recorded on [this google document](https://docs.google.com/document/d/1etFaDlLd01PUWuMlAwCXnpUg85QiTkNjw0SHu-rQjDs/).
 
 Anyone is welcome to join. Feel free to ask questions, request feedback, raise awareness for an issue, or just say hi. ;)
 
@@ -80,7 +49,7 @@ Anyone is welcome to join. Feel free to ask questions, request feedback, raise a
 
 Please report vulnerabilities by email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io. Also see our [SECURITY.md file](SECURITY.md) for details.
 
-## software bill of materials
+## Software bill of materials
 We attach SBOM and provenance file to our GitHub release. Also, they are attached to container images.
 
 ## Adopters

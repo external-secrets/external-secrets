@@ -103,8 +103,7 @@ func (s *GcpProvider) getClient(ctx context.Context) (client *secretmanager.Clie
 }
 
 func (s *GcpProvider) CreateSecret(key string, val framework.SecretEntry) {
-	ctx := context.Background()
-	client, err := s.getClient(ctx)
+	client, err := s.getClient(GinkgoT().Context())
 	Expect(err).ToNot(HaveOccurred())
 	defer client.Close()
 	// Create the request to create the secret.
@@ -120,7 +119,7 @@ func (s *GcpProvider) CreateSecret(key string, val framework.SecretEntry) {
 			},
 		},
 	}
-	secret, err := client.CreateSecret(ctx, createSecretReq)
+	secret, err := client.CreateSecret(GinkgoT().Context(), createSecretReq)
 	Expect(err).ToNot(HaveOccurred())
 	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
 		Parent: secret.Name,
@@ -128,20 +127,19 @@ func (s *GcpProvider) CreateSecret(key string, val framework.SecretEntry) {
 			Data: []byte(val.Value),
 		},
 	}
-	_, err = client.AddSecretVersion(ctx, addSecretVersionReq)
+	_, err = client.AddSecretVersion(GinkgoT().Context(), addSecretVersionReq)
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *GcpProvider) DeleteSecret(key string) {
-	ctx := context.Background()
-	client, err := s.getClient(ctx)
+	client, err := s.getClient(GinkgoT().Context())
 	Expect(err).ToNot(HaveOccurred())
 	Expect(err).ToNot(HaveOccurred())
 	defer client.Close()
 	req := &secretmanagerpb.DeleteSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", s.projectID, key),
 	}
-	err = client.DeleteSecret(ctx, req)
+	err = client.DeleteSecret(GinkgoT().Context(), req)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -178,9 +176,9 @@ func (s *GcpProvider) CreateSAKeyStore() {
 			serviceAccountKey: s.credentials,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), gcpCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), gcpCreds)
 	if err != nil {
-		err = s.framework.CRClient.Update(context.Background(), gcpCreds)
+		err = s.framework.CRClient.Update(GinkgoT().Context(), gcpCreds)
 		Expect(err).ToNot(HaveOccurred())
 	}
 	secretStore := makeStore(s)
@@ -192,7 +190,7 @@ func (s *GcpProvider) CreateSAKeyStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -206,9 +204,9 @@ func (s *GcpProvider) CreateReferentSAKeyStore() {
 			serviceAccountKey: s.credentials,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), gcpCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), gcpCreds)
 	if err != nil {
-		err = s.framework.CRClient.Update(context.Background(), gcpCreds)
+		err = s.framework.CRClient.Update(GinkgoT().Context(), gcpCreds)
 		Expect(err).ToNot(HaveOccurred())
 	}
 
@@ -233,7 +231,7 @@ func (s *GcpProvider) CreateReferentSAKeyStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), css)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), css)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -244,7 +242,7 @@ func referentName(f *framework.Framework) string {
 func (s *GcpProvider) CreatePodIDStore() {
 	secretStore := makeStore(s)
 	secretStore.ObjectMeta.Name = PodIDSecretStoreName
-	err := s.framework.CRClient.Create(context.Background(), secretStore)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -258,7 +256,7 @@ func (s *GcpProvider) CreateSpecifcSASecretStore() {
 			Name: s.SAClusterSecretStoreName(),
 		},
 	}
-	_, err := controllerutil.CreateOrUpdate(context.Background(), s.framework.CRClient, clusterSecretStore, func() error {
+	_, err := controllerutil.CreateOrUpdate(GinkgoT().Context(), s.framework.CRClient, clusterSecretStore, func() error {
 		clusterSecretStore.Spec.Controller = s.controllerClass
 		clusterSecretStore.Spec.Provider = &esv1.SecretStoreProvider{
 			GCPSM: &esv1.GCPSMProvider{
@@ -283,7 +281,7 @@ func (s *GcpProvider) CreateSpecifcSASecretStore() {
 // Cleanup removes global resources that may have been
 // created by this provider.
 func (s *GcpProvider) DeleteSpecifcSASecretStore() {
-	err := s.framework.CRClient.Delete(context.Background(), &esv1.ClusterSecretStore{
+	err := s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.SAClusterSecretStoreName(),
 		},

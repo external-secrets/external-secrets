@@ -25,7 +25,9 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
-	"github.com/onsi/gomega"
+
+	// nolint
+	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,10 +138,10 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 			},
 		}
 		tc.VerifyPushSecretOutcome = func(sourcePs *esv1alpha1.PushSecret, pushClient esv1.SecretsClient) {
-			gomega.Eventually(func() bool {
+			Eventually(func() bool {
 				s := &esv1alpha1.PushSecret{}
-				err := tc.Framework.CRClient.Get(context.Background(), types.NamespacedName{Name: tc.PushSecret.Name, Namespace: tc.PushSecret.Namespace}, s)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				err := tc.Framework.CRClient.Get(GinkgoT().Context(), types.NamespacedName{Name: tc.PushSecret.Name, Namespace: tc.PushSecret.Namespace}, s)
+				Expect(err).ToNot(HaveOccurred())
 				for i := range s.Status.Conditions {
 					c := s.Status.Conditions[i]
 					if c.Type == esv1alpha1.PushSecretReady && c.Status == v1.ConditionTrue {
@@ -148,7 +150,7 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 				}
 
 				return false
-			}, time.Minute*1, time.Second*5).Should(gomega.BeTrue())
+			}, time.Minute*1, time.Second*5).Should(BeTrue())
 
 			// create an external secret that fetches the created remote secret
 			// and check the value
@@ -177,12 +179,12 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 				},
 			}
 
-			err := tc.Framework.CRClient.Create(context.Background(), es)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			err := tc.Framework.CRClient.Create(GinkgoT().Context(), es)
+			Expect(err).ToNot(HaveOccurred())
 
 			outputSecret := &v1.Secret{}
-			err = wait.PollImmediate(time.Second*5, time.Second*15, func() (bool, error) {
-				err := f.CRClient.Get(context.Background(), types.NamespacedName{
+			err = wait.PollUntilContextTimeout(GinkgoT().Context(), time.Second*5, time.Second*15, true, func(ctx context.Context) (bool, error) {
+				err := f.CRClient.Get(ctx, types.NamespacedName{
 					Namespace: f.Namespace.Name,
 					Name:      exampleOutput,
 				}, outputSecret)
@@ -191,11 +193,11 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 				}
 				return true, nil
 			})
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
 			v, ok := outputSecret.Data[exampleOutput]
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(string(v)).To(gomega.Equal("executed: BAR"))
+			Expect(ok).To(BeTrue())
+			Expect(string(v)).To(Equal("executed: BAR"))
 		}
 	}
 }

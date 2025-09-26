@@ -714,7 +714,7 @@ func TestRewriteMerge(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "using priority with keys not in input",
+			name: "using priority with keys not in input (default strict)",
 			args: args{
 				operation: esv1.ExternalSecretRewriteMerge{
 					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
@@ -727,6 +727,27 @@ func TestRewriteMerge(t *testing.T) {
 			},
 			want:    nil,
 			wantErr: true,
+		},
+		{
+			name: "using priority with keys not in input and ignore policy",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+					Priority:       []string{"non-existent-key", "mongo-credentials"},
+					PriorityPolicy: esv1.ExternalSecretRewriteMergePriorityPolicyIgnoreNotFound,
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want: map[string][]byte{
+				"username": []byte("foz"),
+				"password": []byte("baz"),
+				"host":     []byte("redis.example.com"),
+				"port":     []byte("6379"),
+			},
+			wantErr: false,
 		},
 		{
 			name: "using conflict policy error",
@@ -1413,5 +1434,38 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 				return
 			}
 		})
+	}
+}
+
+const mockJWTToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoxNzAwMDAwMDAwfQ.signature"
+
+func TestParseJWTClaims(t *testing.T) {
+	// Mock JWT token with known payload
+	mockToken := mockJWTToken
+
+	claims, err := ParseJWTClaims(mockToken)
+	if err != nil {
+		t.Fatalf("Failed to get claims: %v", err)
+	}
+
+	if claims["sub"] != "1234567890" {
+		t.Errorf("Expected sub claim to be '1234567890', got %v", claims["sub"])
+	}
+	if claims["name"] != "John Doe" {
+		t.Errorf("Expected name claim to be 'John Doe', got %v", claims["name"])
+	}
+}
+
+func TestExtractJWTExpiration(t *testing.T) {
+	// Mock JWT token with known exp claim
+	mockToken := mockJWTToken
+
+	exp, err := ExtractJWTExpiration(mockToken)
+	if err != nil {
+		t.Fatalf("Failed to get token expiration: %v", err)
+	}
+
+	if exp != "1700000000" {
+		t.Errorf("Expected expiration to be '1700000000', got %s", exp)
 	}
 }

@@ -62,8 +62,15 @@ runs:
       env:
         COSIGN_EXPERIMENTAL: "1"
       run: |
+        # Image SBOM (OS + application libs contained in the image)
         syft "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}" -o spdx-json=sbom.${{ inputs.image-tag }}.spdx.json
         cosign attest --predicate sbom.${{ inputs.image-tag }}.spdx.json --type spdx "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
+        cosign verify-attestation --type spdx ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }} | jq '.payload |= @base64d | .payload | fromjson'
+
+        # Go modules SBOM (dependencies from the source tree)
+        # Requires repository to be checked out before this composite action runs.
+        syft dir:. -o spdx-json=sbom.gomod.${{ inputs.image-tag }}.spdx.json
+        cosign attest --predicate sbom.gomod.${{ inputs.image-tag }}.spdx.json --type spdx "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
         cosign verify-attestation --type spdx ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }} | jq '.payload |= @base64d | .payload | fromjson'
 
     - name: Generate provenance

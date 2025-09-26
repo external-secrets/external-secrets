@@ -16,25 +16,44 @@ During a minor version support time, we cover:
 We do not do test coverage for any other kubernetes version than the ones running on our test suites.
 As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
-| ESO Version | Kubernetes Version | Release Date   | End of Life     |
-| ----------- | ------------------ | -------------- | --------------- |
-| 0.19.x      | 1.33               | August 2, 2025 | Release of 0.20 |
-| 0.18.x      | 1.33               | July 17, 2025  | August 2, 2025  |
-| 0.17.x      | 1.33               | May 14, 2025   | July 17, 2025   |
-| 0.16.x      | 1.32               | Apr 14, 2025   | May 14, 2025    |
-| 0.15.x      | 1.32               | Mar 19, 2025   | Apr 14, 2025    |
-| 0.14.x      | 1.32               | Feb 4, 2025    | Mar 19, 2025    |
-| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025   | Feb 4, 2025     |
-| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024   | Jan 21, 2025    |
-| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024    | Dec 24, 2024    |
-| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024    | Dec 24, 2024    |
-| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023   | Dec 2, 2024     |
-| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023   | Aug 3, 2024     |
-| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022   | Jun 22, 2023    |
-| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022    | Mar 16, 2023    |
-| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022    | Dec 11, 2022    |
-| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022    | Oct 9, 2022     |
-| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021   | Apr 6, 2022     |
+| ESO Version | Kubernetes Version | Release Date       | End of Life        |
+|-------------|--------------------|--------------------|--------------------|
+| 0.20.x      | 1.34               | September 22, 2025 | Release of 0.21    |
+| 0.19.x      | 1.33               | August 2, 2025     | September 22, 2025 |
+| 0.18.x      | 1.33               | July 17, 2025      | August 2, 2025     |
+| 0.17.x      | 1.33               | May 14, 2025       | July 17, 2025      |
+| 0.16.x      | 1.32               | Apr 14, 2025       | May 14, 2025       |
+| 0.15.x      | 1.32               | Mar 19, 2025       | Apr 14, 2025       |
+| 0.14.x      | 1.32               | Feb 4, 2025        | Mar 19, 2025       |
+| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025       | Feb 4, 2025        |
+| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024       | Jan 21, 2025       |
+| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024        | Dec 24, 2024       |
+| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024        | Dec 24, 2024       |
+| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023       | Dec 2, 2024        |
+| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023       | Aug 3, 2024        |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022       | Jun 22, 2023       |
+| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022        | Mar 16, 2023       |
+| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022        | Dec 11, 2022       |
+| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022        | Oct 9, 2022        |
+| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021       | Apr 6, 2022        |
+
+## Upgrading
+
+External Secrets Operator has not reached stable 1.0 yet. This means that **we treat each minor version bump as a potentially breaking change**. Breaking changes may include:
+
+- API schema changes
+- Default behavior modifications
+- Deprecated feature removals
+- Provider authentication changes
+- Configuration format updates
+
+**Important upgrade recommendations:**
+
+1. **Plan your upgrades carefully** - Always review release notes before upgrading, it could contain breaking changes information
+2. **Upgrade version by version** - We strongly recommend upgrading one minor version at a time (e.g., 0.18.x → 0.19.x → 0.20.x) rather than skipping versions
+3. **Test in non-production first** - Always validate upgrades in development/staging environments
+
+Until we reach v1.0, please treat minor version upgrades with the same caution you would give to major version upgrades in other projects.
 
 ## Provider Stability and Support Level
 
@@ -72,6 +91,7 @@ The following table describes the stability level of each provider and who's res
 | [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         | alpha     | [@skarlso](https://github.com/Skarlso)                                                              |
 | [Previder](https://external-secrets.io/latest/provider/previder)                                           | stable    | [@previder](https://github.com/previder)                                                            |
 | [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            | alpha     | [@default23](https://github.com/default23)                                                          |
+| [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       | alpha     | [@kevinyancn](https://github.com/kevinyancn)                                                        |
 
 
 ## Provider Feature Support
@@ -110,6 +130,7 @@ The following table show the support for features across different providers.
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
+| Volcengine                |              |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 

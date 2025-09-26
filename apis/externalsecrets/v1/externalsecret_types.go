@@ -340,6 +340,11 @@ type ExternalSecretRewriteMerge struct {
 	// +optional
 	Priority []string `json:"priority,omitempty"`
 
+	// Used to define the policy when a key in the priority list does not exist in the input.
+	// +optional
+	// +kubebuilder:default="Strict"
+	PriorityPolicy ExternalSecretRewriteMergePriorityPolicy `json:"priorityPolicy,omitempty"`
+
 	// Used to define the policy to use in conflict resolution.
 	// +optional
 	// +kubebuilder:default="Error"
@@ -351,6 +356,7 @@ type ExternalSecretRewriteMerge struct {
 	Strategy ExternalSecretRewriteMergeStrategy `json:"strategy,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Ignore;Error
 type ExternalSecretRewriteMergeConflictPolicy string
 
 const (
@@ -358,6 +364,15 @@ const (
 	ExternalSecretRewriteMergeConflictPolicyError  ExternalSecretRewriteMergeConflictPolicy = "Error"
 )
 
+// +kubebuilder:validation:Enum=IgnoreNotFound;Strict
+type ExternalSecretRewriteMergePriorityPolicy string
+
+const (
+	ExternalSecretRewriteMergePriorityPolicyIgnoreNotFound ExternalSecretRewriteMergePriorityPolicy = "IgnoreNotFound"
+	ExternalSecretRewriteMergePriorityPolicyStrict         ExternalSecretRewriteMergePriorityPolicy = "Strict"
+)
+
+// +kubebuilder:validation:Enum=Extract;JSON
 type ExternalSecretRewriteMergeStrategy string
 
 const (
@@ -489,7 +504,7 @@ type GeneratorRef struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 
 	// Specify the Kind of the generator resource
-	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 	Kind string `json:"kind"`
 
 	// Specify the name of the generator resource
@@ -499,6 +514,7 @@ type GeneratorRef struct {
 	Name string `json:"name"`
 }
 
+// +kubebuilder:validation:Enum=Ready;Deleted
 type ExternalSecretConditionType string
 
 const (

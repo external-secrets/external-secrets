@@ -4215,6 +4215,20 @@ Required if strategy is JSON. Ignored otherwise.</p>
 </tr>
 <tr>
 <td>
+<code>priorityPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMergePriorityPolicy">
+ExternalSecretRewriteMergePriorityPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the policy when a key in the priority list does not exist in the input.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conflictPolicy</code></br>
 <em>
 <a href="#external-secrets.io/v1.ExternalSecretRewriteMergeConflictPolicy">
@@ -4261,6 +4275,27 @@ ExternalSecretRewriteMergeStrategy
 <tbody><tr><td><p>&#34;Error&#34;</p></td>
 <td></td>
 </tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMergePriorityPolicy">ExternalSecretRewriteMergePriorityPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;IgnoreNotFound&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Strict&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -8475,7 +8510,8 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push Github Action secrets using Github API provider</p>
+<p>Github configures this store to push GitHub Action secrets using GitHub API provider.
+Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
 <tr>
@@ -8826,6 +8862,20 @@ CloudruSMProvider
 <td>
 <em>(Optional)</em>
 <p>CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>volcengine</code></br>
+<em>
+<a href="#external-secrets.io/v1.VolcengineProvider">
+VolcengineProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Volcengine configures this store to sync secrets using the Volcengine provider</p>
 </td>
 </tr>
 </tbody>
@@ -10980,6 +11030,145 @@ External Secrets meta/v1.SecretKeySelector
 <p>SecretRef to a key in a Secret resource containing password for the
 user used to authenticate with Vault using the UserPass authentication
 method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.VolcengineAuth">VolcengineAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.VolcengineProvider">VolcengineProvider</a>)
+</p>
+<p>
+<p>VolcengineAuth defines the authentication method for the Volcengine provider.
+Only one of the fields should be set.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.VolcengineAuthSecretRef">
+VolcengineAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef defines the static credentials to use for authentication.
+If not set, IRSA is used.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.VolcengineAuthSecretRef">VolcengineAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.VolcengineAuth">VolcengineAuth</a>)
+</p>
+<p>
+<p>VolcengineAuthSecretRef defines the secret reference for static credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessKeyID</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AccessKeyID is the reference to the secret containing the Access Key ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretAccessKey</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretAccessKey is the reference to the secret containing the Secret Access Key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Token is the reference to the secret containing the STS(Security Token Service) Token.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.VolcengineProvider">VolcengineProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>VolcengineProvider defines the configuration for the Volcengine provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region specifies the Volcengine region to connect to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.VolcengineAuth">
+VolcengineAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the authentication method to use.
+If not specified, the provider will try to use IRSA (IAM Role for Service Account).</p>
 </td>
 </tr>
 </tbody>
