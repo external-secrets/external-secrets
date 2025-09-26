@@ -61,20 +61,22 @@ type secretManagerTestCase struct {
 	expectError    string
 	expectedSecret string
 	// for testing SecretMap
-	expectedData map[string][]byte
+	expectedData              map[string][]byte
+	latestEnabledSecretPolicy esv1.SecretVersionSelectionPolicy
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc := secretManagerTestCase{
-		mockClient:     &fakesm.MockSMClient{},
-		apiInput:       makeValidAPIInput(),
-		ref:            makeValidRef(),
-		apiOutput:      makeValidAPIOutput(),
-		projectID:      "default",
-		apiErr:         nil,
-		expectError:    "",
-		expectedSecret: "",
-		expectedData:   map[string][]byte{},
+		mockClient:                &fakesm.MockSMClient{},
+		apiInput:                  makeValidAPIInput(),
+		ref:                       makeValidRef(),
+		apiOutput:                 makeValidAPIOutput(),
+		projectID:                 "default",
+		apiErr:                    nil,
+		expectError:               "",
+		expectedSecret:            "",
+		expectedData:              map[string][]byte{},
+		latestEnabledSecretPolicy: esv1.SecretVersionSelectionPolicyLatestOrFail,
 	}
 	smtc.mockClient.NilClose()
 	smtc.mockClient.WithValue(context.Background(), smtc.apiInput, smtc.apiOutput, smtc.apiErr)
@@ -131,6 +133,15 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	setSecretString := func(smtc *secretManagerTestCase) {
 		smtc.apiOutput.Payload.Data = []byte("testtesttest")
 		smtc.expectedSecret = "testtesttest"
+	}
+	latestSecretDestroyed := func(smtc *secretManagerTestCase) {
+		// Test the LatestOrFail policy (default behavior)
+		// Ideally we would test the LatestOrFetch policy, but we don't have a mock for the ListSecretVersions call
+		// so we can't test that until it's implemented.
+		smtc.apiErr = status.Error(codes.FailedPrecondition, "DESTROYED state")
+		smtc.latestEnabledSecretPolicy = esv1.SecretVersionSelectionPolicyLatestOrFail
+		smtc.expectedSecret = ""
+		smtc.expectError = smtc.apiErr.Error()
 	}
 	secretNotFound := func(smtc *secretManagerTestCase) {
 		fErr := status.Error(codes.NotFound, "failed")
@@ -190,6 +201,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCase(),
 		makeValidSecretManagerTestCaseCustom(setSecretString),
+		makeValidSecretManagerTestCaseCustom(latestSecretDestroyed),
 		makeValidSecretManagerTestCaseCustom(secretNotFound),
 		makeValidSecretManagerTestCaseCustom(setCustomVersion),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
@@ -200,7 +212,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 
 	sm := Client{}
 	for k, v := range successCases {
-		sm.store = &esv1.GCPSMProvider{ProjectID: v.projectID}
+		sm.store = &esv1.GCPSMProvider{ProjectID: v.projectID, SecretVersionSelectionPolicy: v.latestEnabledSecretPolicy}
 		sm.smClient = v.mockClient
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {

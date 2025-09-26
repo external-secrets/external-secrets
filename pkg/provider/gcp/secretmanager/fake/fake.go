@@ -40,6 +40,7 @@ type MockSMClient struct {
 	closeFn                 func() error
 	GetSecretFn             func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	DeleteSecretFn          func(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
+	ListSecretVersionsFn    func(ctx context.Context, req *secretmanagerpb.ListSecretVersionsRequest, opts ...gax.CallOption) *secretmanager.SecretVersionIterator
 }
 
 func (mc *MockSMClient) Cleanup() {
@@ -200,6 +201,10 @@ func (mc *MockSMClient) NewUpdateSecretFn(mock SecretMockReturn) {
 	mc.updateSecretFn = func(_ context.Context, _ *secretmanagerpb.UpdateSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 		return mock.Secret, mock.Err
 	}
+}
+
+func (mc *MockSMClient) ListSecretVersions(ctx context.Context, req *secretmanagerpb.ListSecretVersionsRequest, _ ...gax.CallOption) *secretmanager.SecretVersionIterator {
+	return mc.ListSecretVersionsFn(ctx, req)
 }
 
 func (mc *MockSMClient) WithValue(_ context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
