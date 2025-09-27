@@ -17,6 +17,10 @@ limitations under the License.
 package template
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"os"
 	"strings"
 	"testing"
@@ -138,7 +142,84 @@ t8H2KyX5T92nGul1chFeMT5hlr2hRANCAAR8OODc2riM9/wg5nTbvto9VqX/yJfJ
 KfMtQkBmCFTNk3fOtz3sgTiv0OHbokplsICEc4tUT5RWU0frwAjJT4Pk
 -----END PRIVATE KEY-----
 `
+	rsaDecryptPKRSAPKCS8 = `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQChzs1R+jA3Goqi
+ropPzF4Ehpbi6VklbeZWP+RoU3rJshONJO6w9tPhbp0YIXrPSM9P5a9xaaNxDR9e
+u84O05+vq3C4P9I0jb5GSjiuznrmsprFWGaGdd4Vr7Fir1oqfeVc+znQFUCvkq7B
+EWobOonl6ktQ2OHBK0bEzXB7qY7P4ETI6owDUL+pkAwHzdnwk4sXMDKBLT3WZVRn
+xPppIJ4VAEph1fJOCIIskxVBh8cAT4QRxsdu8oB7cAuYJLBBKiS/GGIA7vh9sQrb
++0BAgLqvy+kiQeQhYgF/Y/uVwkgAphFzSjSjoSFQ50nNE2VJA5J6o7QZ413DlIWr
+VJKNZJDbAgMBAAECggEAemklU5te1pExyJka8fu+NNZNWCUI2BQoaZ+0gGiHQAeE
+WwdRvHc/HBC+r/7EFgUTMXKmI7qzd1diIB0caoMXD6M3h2xg7nk9NZf5AeYbfGQq
+SpnyFk8dUHK2U94s7HCKEKnOtukdIrZplo5CI49Ju7JggC1TvPuscj6pliRUclYY
+Pc6pTVaG+bludDR8YkQ1mGi04wMQHpnisegRpMSjt9uZc1jKM7SSaHggu4/vuewo
+CFdra50/MjidIOXd5T5iVYY28J+gR8oCCKySTogNJ3JpNMNAW4FHfime5B+uS0IA
+YI/N8yjT/BPgRt4lQpR+6zi3fpguWNIM71xye1/R4QKBgQDNZNGFOntbFM2NTPYu
+4APRVu4a0gM+JEA/ozuxTigkgaj6dNeJvaNTxcKG0MmGxQLEcvgCDaWIoM6Qrj1K
+YVwdiv1MddRDdSHQjGjNM6n7jNfYVQ2gP+1wDwTMN+eyAW8KoZByaQimmjyBj/Ps
+C8VWPxyrw/UeHqzTazyEIZ2fHQKBgQDJrM2/xx7F63C6GaW+5gMeColxkdYb29Aw
+R3xb2rn5lVPLW0BORQQuepZuaI+ZLTb4Op7V4yAC/S9femFXpgkZa56aacwy1jxb
+R9WO0CWP3QCUCcIBF/4lbJDZ6gQLr51oahXhhjbgGMrlguC/j4R9n3i58EaeukeE
++Hsu/hMWVwKBgETsWALFJS/jQzbvZI1GTwGoki4d20i3EXhJZnaRK5dUi0fAfbOT
+F4O9ERH8biPzaIJTsjW+LpYyoB6c2aRkF20yft1xjNE2NSquc1yowZnQIX5OzEvC
+KAM6hvmgqPdq08BVhwtdg7GkgDlZ/Rhwur++XfilwVNiJ8yqZ5xPS31hAoGBALnu
+hB5MMPXd86bPoHyYSMV4h3DaOGCkzpLERUXWKOGOp5tzfJzsikdjo68U3VcmVWiT
+ev7MkCXRUMyg4n/RRtBV5PqNkcJIu4qYdq5c/lRdN3xEZsVlXl0Yc49EbghsFx49
+uACdIZiHov/oItbZNRgwXzhl6mXKbceM4tzXR7evAoGBALug2beVoVAl2nAB2RkQ
+Jy3viDKO+C6Z82gsS5x9Wif9cJTppIarZC+t7w33f4WHJiYT1VDxse08dohC5Nn7
+7WWKdtLMSyUaXE46s37Kl5tkTkROj3wBzSIzwLYAwsthcpQVubwDAMsig8EUAdr/
+0IwaauEPX9lBYMZDMYuSAR5n
+-----END PRIVATE KEY-----
+`
+	rsaDecryptDataPKCS8Base64 = `hAZJktRFdzSkGxxiiSE46T271veCgwvC0GrY+AwDYA/KeuFZFdPgZsJ74awu1WR6x4BrbMLTXNpQw4UqChdbaM7VoKUCkPTcCU1jsveqYNisM2MNF98QjNjvp+9jXHfAsClLA5AvJxe3GjfWIi18E4PieFpATn/BTrmoklx4rSkWmfifZol7Wcny0D2fhrj/JOdxEIqowUB/tNwYzNd+lXgm55wea+G3YnD3Fr4ARaCCaQMUcdW9Kgx7mmZGZE3xDAhs8WMfpe9xVZ17Ca7Sw2r1JKS0o0fYiZNHUmCXVsP9O+//+0sfEtETiVUF0jItrwlK4GL8+bVcXQ9N2TW7+g==`
+	rsaDecryptPKRSAPKCS1      = `-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQC8ronsBTX6GD5YhoE/v76+ZkWX0gODzAD+aCYIyTs4PiWruxlV
+SOtjwq2gRgUexE5Hsz8cxhFz5Db8qFXBsA+GgXjByQuVbBw04SCKHgc0zhbcWonV
+3Rk03pjVB1HfuxcDRja8JZontfMAJyPNJovPu3rIi8npSC+T5g7Fq9UCbQIDAQAB
+AoGAAo2+MiKT63GejmYro6g9taf+syJVh9gf/1F7ikzm70jwC5X5rszQ2sXMwcmQ
+0izH/nJvnT0VCWOCVwMUPg3a9+odoMNFyg2u3XCLBNr3vlgG3xeCTdjzaMnY61ct
+xU4JgpIuiAlwCqhNfKuHxeesM/cvh9eC11ELXh27gLsNCEECQQDng5klIGPLHfiN
+3wam6wxLnqHPuhXAyrOAKA1qBlZGKI6n6iBYpfN+Y70gt10f3SBlFfkSyF7uZsUy
+maofmjARAkEA0KM6Rj+p2CRMFMh4NpON4RKaQIYNGMTpe/akYBOx6wcZy0saON9l
+eHS3nq77TDT+mA3uDbu+6VD8j8eEcXUInQJAYJkfQEd4fBrAR+nj66etVKwW1gbN
+5shtBy8vEasdOl7XzyY4YuSzaWwSUOFRYOcyChuV9olWWuDUrR1Cx7bdEQJBALzY
+gg7D4UA62oKVUfpUZL+szuJIc+JPmecSwIYWTZymuLpCKGICEx6Mxwdi6yN3dFq9
+gRP9NDiLjY+20DLB9CECQB5IqCvT396rjJn3g6sRXHX5qApJwInofLByafcjGd34
+ejJKh20FmJegJhkImmNTokNbQZbYiLAP07Ykx9A8jLg=
+-----END RSA PRIVATE KEY-----
+
+`
+	rsaDecryptDataPKCS1Base64 = `Xd9Jij8+hTqM7ii1nnKbKZy7pHhn3BJwxrENwIlvf0iRysVKn7gmAaD6UV4EpNwYOHvLbo6yLWBme6msVAhIV9KOp22jDe9j837C48rcUiF93Jb7+plabbwTQt4iqi1EKxEfVvKi4tLsLBRhu0v583oQAfCf5aLwF3Vb5bPgGeY=`
+	rsaDecryptPubKeyRSAPKCS1  = `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8ronsBTX6GD5YhoE/v76+ZkWX
+0gODzAD+aCYIyTs4PiWruxlVSOtjwq2gRgUexE5Hsz8cxhFz5Db8qFXBsA+GgXjB
+yQuVbBw04SCKHgc0zhbcWonV3Rk03pjVB1HfuxcDRja8JZontfMAJyPNJovPu3rI
+i8npSC+T5g7Fq9UCbQIDAQAB
+-----END PUBLIC KEY-----
+
+`
 )
+
+func rsaEncryptOAEP(t testing.TB, publicKeyPEM []byte, hash, plaintext string) []byte {
+	t.Helper()
+	block, _ := pem.Decode(publicKeyPEM)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		t.Fatalf("failed to decode PEM block containing public key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse DER encoded public key: %v", err)
+	}
+
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		t.Fatalf("not RSA public key")
+	}
+	ciphertext, err := rsa.EncryptOAEP(getHash(hash), rand.Reader, rsaPub, []byte(plaintext), nil)
+	require.NoError(t, err)
+	return ciphertext
+}
 
 func TestExecute(t *testing.T) {
 	tbl := []struct {
@@ -505,6 +586,45 @@ func TestExecute(t *testing.T) {
 			},
 			expectedStringData: map[string]string{
 				"foo": "1234",
+			},
+		},
+		{
+			name: "rsa decrypt rsa-oaep sha1 pkcs8 data base64",
+			tpl: map[string][]byte{
+				"data_decrypted": []byte(`{{ .private_key | rsaDecrypt "RSA-OAEP" "SHA1" (.data_crypted_base64 | b64dec) }}`),
+			},
+			data: map[string][]byte{
+				"private_key":         []byte(rsaDecryptPKRSAPKCS8),
+				"data_crypted_base64": []byte(rsaDecryptDataPKCS8Base64),
+			},
+			expectedData: map[string][]byte{
+				"data_decrypted": []byte("a1b2c3d4"),
+			},
+		},
+		{
+			name: "rsa decrypt rsa-oaep sha256 pkcs1 data base64",
+			tpl: map[string][]byte{
+				"data_decrypted": []byte(`{{ .private_key | rsaDecrypt "RSA-OAEP" "SHA256" (.data_crypted_base64 | b64dec) }}`),
+			},
+			data: map[string][]byte{
+				"private_key":         []byte(rsaDecryptPKRSAPKCS1),
+				"data_crypted_base64": []byte(rsaDecryptDataPKCS1Base64),
+			},
+			expectedData: map[string][]byte{
+				"data_decrypted": []byte("hellopkcs1sha256"),
+			},
+		},
+		{
+			name: "rsa decrypt rsa-oaep sha256 pkcs1 data bin",
+			tpl: map[string][]byte{
+				"data_decrypted": []byte(`{{ .private_key | rsaDecrypt "RSA-OAEP" "SHA256" .data_crypted_bin }}`),
+			},
+			data: map[string][]byte{
+				"private_key":      []byte(rsaDecryptPKRSAPKCS1),
+				"data_crypted_bin": rsaEncryptOAEP(t, []byte(rsaDecryptPubKeyRSAPKCS1), "SHA256", "hellopkcs1sha256"),
+			},
+			expectedData: map[string][]byte{
+				"data_decrypted": []byte("hellopkcs1sha256"),
 			},
 		},
 	}

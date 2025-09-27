@@ -18,9 +18,11 @@ The `Extract` strategy interprets all secret values in the secret map as JSON an
 
 The `JSON` strategy interprets all secret values in the secret map as JSON and merges all contained key/value pairs in the key specified by the _required_ parameter `into`. If the key specified by `into` already exists in the original secrets map it will be overwritten.
 
-Key collisions can be ignored or cause an error according to `conflictPolicy` which can be either `Ignore` or `Error`.  
+Key collisions can be ignored or cause an error according to `conflictPolicy` which can be either `Ignore` or `Error`.
 
 To guarantee deterministic results of the merge operation, secret keys are processed in alphabetical order. Key priority can also be made explicit by providing a list of secret keys in the `priority` parameter. These keys will be processed last in the order they appear while all other keys will still be processed in alphabetical order.
+
+Specifying a key in the `priority` list which is not found in the source secret will cause an error. You can override this behavior setting `priorityPolicy` to `IgnoreNotFound` instead of the default `Strict`.
 
 ## Considerations about Rewrite implementation
 
@@ -105,7 +107,7 @@ data:
     foo_baz: MjIyMg== #2222
 ```
 
-### Merging all secrets 
+### Merging all secrets
 
 The following ExternalSecret:
 ```yaml

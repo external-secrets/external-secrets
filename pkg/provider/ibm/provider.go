@@ -59,6 +59,7 @@ const (
 	errExtractingSecret         = "unable to extract the fetched secret %s of type %s while performing %s"
 	errNotImplemented           = "not implemented"
 	errKeyDoesNotExist          = "key %s does not exist in secret %s"
+	errFieldIsEmpty             = "warn: %s is empty for secret %s\n"
 )
 
 var contextTimeout = time.Minute * 2
@@ -233,10 +234,15 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1.External
 	val, ok := secMap[ref.Property]
 	if ok {
 		return []byte(val.(string)), nil
+	} else if ref.Property == intermediateConst {
+		// we want to return an empty string in case the secret doesn't contain an intermediate certificate
+		// this is to ensure that secret of type 'kubernetes.io/tls' gets created as expected, even with an empty intermediate certificate
+		fmt.Printf(errFieldIsEmpty, intermediateConst, *secretName)
+		return []byte(""), nil
 	} else if ref.Property == privateKeyConst {
 		// we want to return an empty string in case the secret doesn't contain a private key
 		// this is to ensure that secret of type 'kubernetes.io/tls' gets created as expected, even with an empty private key
-		fmt.Printf("warn: %s is empty for secret %s\n", privateKeyConst, *secretName)
+		fmt.Printf(errFieldIsEmpty, privateKeyConst, *secretName)
 		return []byte(""), nil
 	}
 	return nil, fmt.Errorf(errKeyDoesNotExist, ref.Property, ref.Key)
@@ -480,15 +486,20 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretD
 		return secretMap, nil
 
 	case sm.Secret_SecretType_ImportedCert:
-		if err := checkNilFn([]string{certificateConst, intermediateConst}); err != nil {
+		if err := checkNilFn([]string{certificateConst}); err != nil {
 			return nil, err
 		}
 		secretMap[certificateConst] = secMapBytes[certificateConst]
-		secretMap[intermediateConst] = secMapBytes[intermediateConst]
-		if v, ok := secMapBytes[privateKeyConst]; ok {
-			secretMap[privateKeyConst] = v
+		if v1, ok := secMapBytes[intermediateConst]; ok {
+			secretMap[intermediateConst] = v1
 		} else {
-			fmt.Printf("warn: %s is empty for secret %s\n", privateKeyConst, secretName)
+			fmt.Printf(errFieldIsEmpty, intermediateConst, secretName)
+			secretMap[intermediateConst] = []byte("")
+		}
+		if v2, ok := secMapBytes[privateKeyConst]; ok {
+			secretMap[privateKeyConst] = v2
+		} else {
+			fmt.Printf(errFieldIsEmpty, privateKeyConst, secretName)
 			secretMap[privateKeyConst] = []byte("")
 		}
 		return secretMap, nil
