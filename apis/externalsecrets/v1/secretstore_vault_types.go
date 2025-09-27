@@ -27,7 +27,7 @@ const (
 	VaultKVStoreV2 VaultKVStoreVersion = "v2"
 )
 
-// Configures an store to sync secrets using a HashiCorp Vault
+// Configures an store to sync secrets using a HashiCorp Vault.
 // KV backend.
 type VaultProvider struct {
 	// Auth configures how secret-manager authenticates with the Vault server.
@@ -399,7 +399,8 @@ type VaultGCPAuth struct {
 	// +optional
 	Path string `json:"path,omitempty"`
 
-	// Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine
+	// Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
+	//+required
 	Role string `json:"role"`
 
 	// Project ID of the Google Cloud Platform project
