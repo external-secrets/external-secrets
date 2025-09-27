@@ -46,6 +46,17 @@ type PasswordSpec struct {
 	// set AllowRepeat to true to allow repeating characters.
 	// +kubebuilder:default=false
 	AllowRepeat bool `json:"allowRepeat"`
+
+	// Encoding specifies the encoding of the generated password.
+	// Valid values are:
+	// - "raw" (default): no encoding
+	// - "base64": standard base64 encoding
+	// - "base64url": base64url encoding
+	// - "base32": base32 encoding
+	// - "hex": hexadecimal encoding
+	// +kubebuilder:default="raw"
+	// +kubebuilder:validation:Enum=base64;base64url;base32;hex;raw
+	Encoding *string `json:"encoding,omitempty"`
 }
 
 // Password generates a random password based on the

@@ -17,6 +17,8 @@ limitations under the License.
 package password
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"reflect"
 	"testing"
@@ -109,6 +111,54 @@ func TestGenerate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "spec with hex encoding should encode password as hex",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"encoding":"hex"}}`),
+				},
+				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "test_hex", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte(hex.EncodeToString([]byte("test_hex"))),
+			},
+			wantErr: false,
+		},
+		{
+			name: "spec with raw encoding should return raw password",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"encoding":"raw"}}`),
+				},
+				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "test_raw", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte(`test_raw`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "spec with base64 encoding should encode password as base64",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"encoding":"base64"}}`),
+				},
+				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "test_base64", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte(base64.StdEncoding.EncodeToString([]byte("test_base64"))),
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
