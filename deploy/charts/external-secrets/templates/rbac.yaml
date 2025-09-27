@@ -100,6 +100,7 @@ rules:
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
+    - "oidcs"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
@@ -234,6 +235,7 @@ rules:
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
+    - "oidcs"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
@@ -298,6 +300,7 @@ rules:
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
+    - "oidcs"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
