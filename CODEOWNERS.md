@@ -41,6 +41,7 @@ pkg/provider/ibm/             @external-secrets/provider-ibm-reviewers
 pkg/provider/infisical/       @external-secrets/provider-infisical-reviewers
 pkg/provider/keepersecurity/  @external-secrets/provider-keepersecurity-reviewers
 pkg/provider/kubernetes/      @external-secrets/provider-kubernetes-reviewers
+pkg/provider/ngrok/           @external-secrets/provider-ngrok-reviewers
 pkg/provider/onboardbase/     @external-secrets/provider-onboardbase-reviewers
 pkg/provider/onepassword/     @external-secrets/provider-onepassword-reviewers
 pkg/provider/onepasswordsdk/  @external-secrets/provider-onepasswordsdk-reviewers

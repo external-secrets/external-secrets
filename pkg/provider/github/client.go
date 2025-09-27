@@ -145,8 +145,7 @@ func (g *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
 }
 
-func (g *Client) Close(ctx context.Context) error {
-	ctx.Done()
+func (g *Client) Close(_ context.Context) error {
 	return nil
 }
 
