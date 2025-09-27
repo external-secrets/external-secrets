@@ -237,6 +237,20 @@
                         }
                     }
                 },
+                "startupProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "port": {
+                            "type": "string"
+                        },
+                        "useReadinessProbePort": {
+                            "type": "boolean"
+                        }
+                    }
+                },
                 "strategy": {
                     "type": "object"
                 },
