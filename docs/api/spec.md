@@ -6930,6 +6930,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>SecretRef is a reference to a secret containing the ngrok API key.</p>
 </td>
 </tr>
