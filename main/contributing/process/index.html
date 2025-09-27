@@ -4271,6 +4271,10 @@ We're using the pull request <code>assignee</code> feature to track who is respo
 for the lifecycle of the PR: review, merging, ping on inactivity, close.
 We close pull requests or issues if there is no response from the author for
 a period of time. Feel free to reopen if you want to get back on it.</p>
+<p><em>Note:</em>
+Pull requests that are labelled with <em>size/l</em> and above <em>MUST</em> have at least <strong>TWO</strong>
+approvers for it to be merged. Please respect this policy to ensure the quality
+of code in this project.</p>
 <h3 id="triggering-e2e-tests">Triggering e2e tests</h3>
 <p>We have an extensive set of e2e tests that test the integration with <em>real</em> cloud provider APIs.
 Maintainers must trigger these kind of tests manually for PRs that come from forked repositories. These tests run inside a <code>kind</code> cluster in the GitHub Actions runner:</p>
