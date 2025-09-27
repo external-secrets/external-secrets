@@ -114,6 +114,12 @@ func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 		return err
 	}
 
+	tokenExists, err = setGcpAuthToken(ctx, c)
+	if tokenExists {
+		c.log.V(1).Info("Retrieved new token using GCP auth")
+		return err
+	}
+
 	return errors.New(errAuthFormat)
 }
 
