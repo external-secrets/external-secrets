@@ -56,6 +56,7 @@ const (
 	defaultCacheSize = 2 << 17
 )
 
+// Provider implements the ESO Provider interface for Hashicorp Vault.
 type Provider struct {
 	// NewVaultClient is a function that returns a new Vault client.
 	// This is used for testing to inject a fake client.
@@ -102,6 +103,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return p.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
+// NewGeneratorClient creates a new Vault client for the generator controller.
 func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1.VaultProvider, namespace string, retrySettings *esv1.SecretStoreRetrySettings) (util.Client, error) {
 	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
 	if err != nil {

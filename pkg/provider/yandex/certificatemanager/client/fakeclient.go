@@ -37,6 +37,7 @@ type fakeCertificateManagerClient struct {
 	fakeCertificateManagerServer *FakeCertificateManagerServer
 }
 
+// NewFakeCertificateManagerClient creates a new fake client for testing.
 func NewFakeCertificateManagerClient(fakeCertificateManagerServer *FakeCertificateManagerServer) CertificateManagerClient {
 	return &fakeCertificateManagerClient{fakeCertificateManagerServer}
 }
@@ -49,7 +50,7 @@ func (c *fakeCertificateManagerClient) GetExCertificateContent(_ context.Context
 	return c.fakeCertificateManagerServer.getExCertificateContent(iamToken, folderID, name, versionID)
 }
 
-// Fakes Yandex Certificate Manager service backend.
+// FakeCertificateManagerServer fakes Yandex Certificate Manager service backend.
 type FakeCertificateManagerServer struct {
 	certificateMap   map[certificateKey]certificateValue     // certificate specific data
 	versionMap       map[versionKey]versionValue             // version specific data
@@ -96,6 +97,7 @@ type folderAndNameValue struct {
 	certificateID string
 }
 
+// NewFakeCertificateManagerServer creates a new fake server for testing.
 func NewFakeCertificateManagerServer(clock clock.Clock, tokenExpirationDuration time.Duration) *FakeCertificateManagerServer {
 	return &FakeCertificateManagerServer{
 		certificateMap:          make(map[certificateKey]certificateValue),
@@ -107,6 +109,7 @@ func NewFakeCertificateManagerServer(clock clock.Clock, tokenExpirationDuration 
 	}
 }
 
+// CreateCertificate creates a new certificate in the fake server.
 func (s *FakeCertificateManagerServer) CreateCertificate(authorizedKey *iamkey.Key, folderID, name string, content *api.GetCertificateContentResponse) (string, string) {
 	certificateID := uuid.NewString()
 	versionID := uuid.NewString()
@@ -124,6 +127,7 @@ func (s *FakeCertificateManagerServer) CreateCertificate(authorizedKey *iamkey.K
 	return certificateID, versionID
 }
 
+// AddVersion adds a new version to an existing certificate.
 func (s *FakeCertificateManagerServer) AddVersion(certificateID string, content *api.GetCertificateContentResponse) string {
 	versionID := uuid.NewString()
 
@@ -133,6 +137,7 @@ func (s *FakeCertificateManagerServer) AddVersion(certificateID string, content 
 	return versionID
 }
 
+// NewIamToken creates a new IAM token for the given authorized key.
 func (s *FakeCertificateManagerServer) NewIamToken(authorizedKey *iamkey.Key) *common.IamToken {
 	token := uuid.NewString()
 	expiresAt := s.clock.CurrentTime().Add(s.tokenExpirationDuration)

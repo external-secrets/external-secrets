@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package scaleway provides functionality to interact with Scaleway Secrets Management service.
 package scaleway
 
 import (

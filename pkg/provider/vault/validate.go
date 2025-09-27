@@ -50,6 +50,7 @@ const (
 	errCASNotSupportedInKVv1  = "checkAndSet is not supported with Vault KV version v1"
 )
 
+// ValidateStore validates the Vault provider configuration in the SecretStore.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errInvalidStore)

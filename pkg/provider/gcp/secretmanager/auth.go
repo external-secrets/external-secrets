@@ -14,6 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+/*
+Package secretmanager implements the GCP Secret Manager provider for External Secrets.
+It provides functionality to interact with GCP Secret Manager, handle workload identity,
+and manage secret operations.
+*/
 package secretmanager
 
 import (
@@ -28,6 +33,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
+// NewTokenSource creates a new OAuth2 token source for GCP Secret Manager authentication.
+// It attempts to create a token source using service account credentials, workload identity,
+// or workload identity federation in that order.
 func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	ts, err := serviceAccountTokenSource(ctx, auth, storeKind, kube, namespace)
 	if ts != nil || err != nil {

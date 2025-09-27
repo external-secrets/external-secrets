@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package auth provides authentication mechanisms for senhasegura provider in External Secrets Operator
 package auth
 
 import (
@@ -33,6 +34,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
+// ISOInterface defines methods for senhasegura ISO authentication.
 type ISOInterface interface {
 	IsoSessionFromSecretRef(ctx context.Context, provider *esv1.SenhaseguraProvider, store esv1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error)
 	GetIsoToken(clientID, clientSecret, systemURL string, ignoreSslCertificate bool) (token string, err error)

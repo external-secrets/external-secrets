@@ -38,6 +38,9 @@ var (
 	log           = ctrl.Log.WithName("provider").WithName("scaleway")
 )
 
+var _ esv1.Provider = &Provider{}
+
+// Provider is a Scaleway provider implementation that satisfies the esv1.Provider interface.
 type Provider struct{}
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -45,6 +48,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
 
+// NewClient creates a new secrets client based on provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kubeClient.Client, namespace string) (esv1.SecretsClient, error) {
 	cfg, err := getConfig(store)
 	if err != nil {
@@ -163,6 +167,7 @@ func getConfig(store esv1.GenericStore) (*esv1.ScalewayProvider, error) {
 	return cfg, nil
 }
 
+// ValidateStore validates the store's configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	_, err := getConfig(store)
 	return nil, err

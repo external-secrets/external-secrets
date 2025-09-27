@@ -43,18 +43,25 @@ import (
 )
 
 var (
-	apiErr            akeyless.GenericOpenAPIError
-	ErrItemNotExists  = errors.New("item does not exist")
+	apiErr akeyless.GenericOpenAPIError
+	// ErrItemNotExists is returned when a requested item doesn't exist in Akeyless vault.
+	ErrItemNotExists = errors.New("item does not exist")
+	// ErrTokenNotExists is returned when the authentication token is not available.
 	ErrTokenNotExists = errors.New("token does not exist")
 )
 
+// DefServiceAccountFile is the default path to the Kubernetes service account token.
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
+// Tokener is the interface for types that can have tokens set on them.
 type Tokener interface {
 	SetToken(v string)
 	SetUidToken(v string)
 }
 
+// GetToken retrieves an authentication token from Akeyless Gateway.
+// It supports various authentication methods including API key, access key,
+// Kubernetes service account token, and cloud provider-specific methods.
 func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, k8sAuth *esv1.AkeylessKubernetesAuth) (string, error) {
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = akeyless.PtrString(accessID)
@@ -94,6 +101,7 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 	return token, nil
 }
 
+// GetSecretByType retrieves a secret from Akeyless based on its type.
 func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName string, version int32) (string, error) {
 	item, err := a.DescribeItem(ctx, secretName)
 	if err != nil {
@@ -117,7 +125,8 @@ func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName string, v
 	}
 }
 
-func SetBodyToken(t Tokener, ctx context.Context) error {
+// SetBodyToken sets the appropriate token in the request body based on the context.
+func SetBodyToken(ctx context.Context, t Tokener) error {
 	token, ok := ctx.Value(aKeylessToken).(string)
 	if !ok {
 		return ErrTokenNotExists
@@ -134,7 +143,7 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 	body := akeyless.DescribeItem{
 		Name: itemName,
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return nil, err
 	}
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
@@ -161,7 +170,7 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName strin
 		Name:    certificateName,
 		Version: &version,
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
 	}
 	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
@@ -189,7 +198,7 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName string,
 		Names:   secretName,
 		Version: &version,
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
 	}
 	gsvOut, res, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
@@ -230,7 +239,7 @@ func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName string)
 	body := akeyless.GetDynamicSecretValue{
 		Name: secretName,
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
 	}
 	gsvOut, res, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
@@ -256,7 +265,7 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 		Names:   []string{secretName},
 		Version: &version,
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
 	}
 	gsvOut, res, err := a.RestAPI.GetSecretValue(ctx).Body(body).Execute()
@@ -310,7 +319,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag string) ([]str
 		MinimalView: &MinimalView,
 		Tag:         &tag,
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return nil, err
 	}
 	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(body).Execute()
@@ -343,7 +352,7 @@ func (a *akeylessBase) CreateSecret(ctx context.Context, remoteKey, data string)
 		Value: data,
 		Tags:  &[]string{extSecretManagedTag},
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return err
 	}
 	_, res, err := a.RestAPI.CreateSecret(ctx).Body(body).Execute()
@@ -359,7 +368,7 @@ func (a *akeylessBase) UpdateSecret(ctx context.Context, remoteKey, data string)
 		Name:  remoteKey,
 		Value: data,
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return err
 	}
 	_, res, err := a.RestAPI.UpdateSecretVal(ctx).Body(body).Execute()
@@ -374,7 +383,7 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 	body := akeyless.DeleteItem{
 		Name: remoteKey,
 	}
-	if err := SetBodyToken(&body, ctx); err != nil {
+	if err := SetBodyToken(ctx, &body); err != nil {
 		return err
 	}
 	_, res, err := a.RestAPI.DeleteItem(ctx).Body(body).Execute()

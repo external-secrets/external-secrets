@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package secretmanager implements the External Secrets provider for CloudRu Secret Manager.
 package secretmanager
 
 import (
@@ -24,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	smsV2 "github.com/cloudru-tech/secret-manager-sdk/api/v2"
+	smsv2 "github.com/cloudru-tech/secret-manager-sdk/api/v2"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
@@ -42,14 +43,14 @@ var (
 // SecretProvider is an API client for the Cloud.ru Secret Manager.
 type SecretProvider interface {
 	// ListSecrets lists secrets by the given request.
-	ListSecrets(ctx context.Context, req *adapter.ListSecretsRequest) ([]*smsV2.Secret, error)
+	ListSecrets(ctx context.Context, req *adapter.ListSecretsRequest) ([]*smsv2.Secret, error)
 	// AccessSecretVersionByPath gets the secret by the given path.
 	AccessSecretVersionByPath(ctx context.Context, projectID, path string, version *int32) ([]byte, error)
 	// AccessSecretVersion gets the secret by the given request.
 	AccessSecretVersion(ctx context.Context, id, version string) ([]byte, error)
 }
 
-// Client is a client for the Cloud.ru Secret Manager.
+// Client is a provider for CloudRu Secret Manager.
 type Client struct {
 	apiClient SecretProvider
 
@@ -86,6 +87,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return []byte(result.Str), nil
 }
 
+// GetSecretMap retrieves a secret from CloudRu SecretManager and returns it as a map of key/value pairs.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.accessSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
@@ -161,14 +163,17 @@ func (c *Client) accessSecret(ctx context.Context, key, version string) ([]byte,
 	return c.apiClient.AccessSecretVersion(ctx, key, version)
 }
 
+// PushSecret pushes a secret to CloudRu Secret Manager.
 func (c *Client) PushSecret(context.Context, *corev1.Secret, esv1.PushSecretData) error {
 	return fmt.Errorf("push secret is not supported")
 }
 
+// DeleteSecret deletes a secret from CloudRu Secret Manager.
 func (c *Client) DeleteSecret(context.Context, esv1.PushSecretRemoteRef) error {
-	return fmt.Errorf("delete secret is not supported")
+	return fmt.Errorf("not implemented")
 }
 
+// SecretExists checks if a secret exists in CloudRu Secret Manager.
 func (c *Client) SecretExists(context.Context, esv1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf("secret exists is not supported")
 }

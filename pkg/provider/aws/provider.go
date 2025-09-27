@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package aws implements AWS provider interfaces for External Secrets Operator,
+// supporting SecretManager and ParameterStore services.
 package aws
 
 import (
@@ -61,6 +63,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return newClient(ctx, store, kube, namespace, awsauth.DefaultSTSProvider)
 }
 
+// ValidateStore validates the configuration of the AWS SecretStore.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
@@ -222,7 +225,7 @@ type fixedDelayer struct {
 	delay time.Duration
 }
 
-func (f fixedDelayer) BackoffDelay(attempt int, err error) (time.Duration, error) {
+func (f fixedDelayer) BackoffDelay(int, error) (time.Duration, error) {
 	return f.delay, nil
 }
 

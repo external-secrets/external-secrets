@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package alibaba provides an implementation to interact with the Alibaba Cloud KMS and Secrets Manager.
 package alibaba
 
 import (
@@ -40,6 +41,7 @@ const (
 	kmsAPIVersion = "2016-01-20"
 )
 
+// SecretsManagerClient defines the interface for interacting with the Alibaba Cloud Secrets Manager service.
 type SecretsManagerClient interface {
 	GetSecretValue(
 		ctx context.Context,
@@ -72,10 +74,7 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 		return nil, errors.New("error KMS endpoint is missing")
 	}
 
-	const (
-		connectTimeoutSec   = 30
-		readWriteTimeoutSec = 60
-	)
+	const readWriteTimeoutSec = 60
 
 	retryClient := retryablehttp.NewClient()
 	retryClient.CheckRetry = retryablehttp.ErrorPropagatedRetryPolicy

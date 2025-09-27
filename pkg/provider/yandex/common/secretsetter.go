@@ -16,6 +16,7 @@ limitations under the License.
 
 package common
 
+// SecretSetter is an interface that defines methods for setting secrets.
 type SecretSetter interface {
 	SetSecret() error
 }

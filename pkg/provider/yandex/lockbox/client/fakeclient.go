@@ -38,6 +38,7 @@ type fakeLockboxClient struct {
 	fakeLockboxServer *FakeLockboxServer
 }
 
+// NewFakeLockboxClient creates a new fake LockboxClient.
 func NewFakeLockboxClient(fakeLockboxServer *FakeLockboxServer) LockboxClient {
 	return &fakeLockboxClient{fakeLockboxServer}
 }
@@ -50,7 +51,7 @@ func (c *fakeLockboxClient) GetExPayload(_ context.Context, iamToken, folderID, 
 	return c.fakeLockboxServer.getExPayload(iamToken, folderID, name, versionID)
 }
 
-// Fakes Yandex Lockbox service backend.
+// FakeLockboxServer fakes Yandex Lockbox service backend.
 type FakeLockboxServer struct {
 	secretMap        map[secretKey]secretValue               // secret specific data
 	versionMap       map[versionKey]versionValue             // version specific data
@@ -97,6 +98,7 @@ type tokenValue struct {
 	expiresAt     time.Time
 }
 
+// NewFakeLockboxServer creates a new FakeLockboxServer.
 func NewFakeLockboxServer(clock clock.Clock, tokenExpirationDuration time.Duration) *FakeLockboxServer {
 	return &FakeLockboxServer{
 		secretMap:               make(map[secretKey]secretValue),
@@ -108,6 +110,7 @@ func NewFakeLockboxServer(clock clock.Clock, tokenExpirationDuration time.Durati
 	}
 }
 
+// CreateSecret creates a new secret with the given entries in the fake server.
 func (s *FakeLockboxServer) CreateSecret(authorizedKey *iamkey.Key, folderID, name string, entries ...*api.Payload_Entry) (string, string) {
 	secretID := uuid.NewString()
 	versionID := uuid.NewString()
@@ -124,6 +127,7 @@ func (s *FakeLockboxServer) CreateSecret(authorizedKey *iamkey.Key, folderID, na
 	return secretID, versionID
 }
 
+// AddVersion adds a new version with the given entries to an existing secret in the fake server.
 func (s *FakeLockboxServer) AddVersion(secretID string, entries ...*api.Payload_Entry) string {
 	versionID := uuid.NewString()
 
@@ -133,6 +137,8 @@ func (s *FakeLockboxServer) AddVersion(secretID string, entries ...*api.Payload_
 	return versionID
 }
 
+// NewIamToken creates a new IAM token for the given authorized key.
+// The token is valid for the duration configured in FakeLockboxServer.
 func (s *FakeLockboxServer) NewIamToken(authorizedKey *iamkey.Key) *common.IamToken {
 	token := uuid.NewString()
 	expiresAt := s.clock.CurrentTime().Add(s.tokenExpirationDuration)

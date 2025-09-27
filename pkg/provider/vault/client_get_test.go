@@ -241,7 +241,7 @@ func TestGetSecret(t *testing.T) {
 					Property: "access_key",
 				},
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+					ReadWithDataWithContextFn: func(_ context.Context, _ string, _ map[string][]string) (*vault.Secret, error) {
 						return nil, nil
 					},
 				},

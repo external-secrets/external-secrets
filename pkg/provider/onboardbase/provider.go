@@ -48,10 +48,12 @@ func init() {
 	}, esv1.MaintenanceStatusMaintained)
 }
 
+// Capabilities returns the provider's supported capabilities.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
+// NewClient creates a new Onboardbase client with the provided store configuration.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 
@@ -84,6 +86,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return client, nil
 }
 
+// ValidateStore validates the Onboardbase SecretStore configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	onboardbaseStoreSpec := storeSpec.Provider.Onboardbase

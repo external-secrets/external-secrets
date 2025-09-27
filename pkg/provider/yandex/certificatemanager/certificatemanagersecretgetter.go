@@ -79,7 +79,7 @@ func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamTo
 
 func (g *certificateManagerSecretGetter) fetchCertificateContentResponse(ctx context.Context, iamToken, resourceID string, resourceKeyType common.ResourceKeyType, folderID, versionID string) (*api.GetCertificateContentResponse, error) {
 	switch resourceKeyType {
-	case common.ResourceKeyTypeId:
+	case common.ResourceKeyTypeID:
 		return g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)
 	case common.ResourceKeyTypeName:
 		responseEx, err := g.certificateManagerClient.GetExCertificateContent(ctx, iamToken, folderID, resourceID, versionID)

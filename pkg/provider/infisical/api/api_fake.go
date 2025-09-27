@@ -35,7 +35,7 @@ func newMockServer(status int, data any) *httptest.Server {
 		panic(err)
 	}
 
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		_, err := w.Write(body)
@@ -73,6 +73,7 @@ func NewMockClient(status int, data any) (infisicalSdk.InfisicalClientInterface,
 	return infisicalSdk, closeFunc
 }
 
+// NewAPIClient creates a new Infisical API client with the specified base URL and optional certificate.
 func NewAPIClient(baseURL string, certificate *x509.Certificate) (infisicalSdk.InfisicalClientInterface, context.CancelFunc, error) {
 	baseParsedURL, err := url.Parse(baseURL)
 	if err != nil {

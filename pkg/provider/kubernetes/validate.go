@@ -32,6 +32,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+// ValidateStore validates the Kubernetes SecretStore configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
@@ -78,6 +79,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
+// Validate checks if the client has the necessary permissions to access secrets in the target namespace.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called

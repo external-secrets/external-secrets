@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package keyvault provides functionality to authenticate to Azure Key Vault using in-memory certificates.
 package keyvault
 
 import (
@@ -37,6 +39,7 @@ type ClientInMemoryCertificateConfig struct {
 	Resource    string
 }
 
+// NewClientInMemoryCertificateConfig creates a new ClientInMemoryCertificateConfig.
 func NewClientInMemoryCertificateConfig(clientID string, certificate []byte, tenantID string) ClientInMemoryCertificateConfig {
 	return ClientInMemoryCertificateConfig{
 		ClientID:    clientID,
@@ -113,7 +116,7 @@ func parsePrivateKey(der []byte) (*rsa.PrivateKey, error) {
 	return nil, errors.New("failed to parse private key")
 }
 
-// Implementation of the AuthorizerConfig interface.
+// Authorizer creates an autorest.Authorizer from the ServicePrincipalToken.
 func (ccc ClientInMemoryCertificateConfig) Authorizer() (autorest.Authorizer, error) {
 	spToken, err := ccc.ServicePrincipalToken()
 	if err != nil {

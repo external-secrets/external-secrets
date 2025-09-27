@@ -457,19 +457,21 @@ func TestGetSecret(t *testing.T) {
 	}
 }
 
-func TestResolveGroupIds(t *testing.T) {
+// TestResolveGroupIDs tests the resolving of group IDs for a GitLab store.
+func TestResolveGroupIDs(t *testing.T) {
 	v := makeValidSecretManagerTestCaseCustom()
 	sm := gitlabBase{}
 	sm.store = &esv1.GitlabProvider{}
 	sm.projectsClient = v.mockProjectsClient
 	sm.store.ProjectID = v.projectID
 	sm.store.InheritFromGroups = true
-	err := sm.ResolveGroupIds()
+
+	err := sm.ResolveGroupIDs()
 	if err != nil {
 		t.Errorf(defaultErrorMessage, 0, err.Error(), "")
 	}
 	if !reflect.DeepEqual(sm.store.GroupIDs, []string{"1", "10", "100"}) {
-		t.Errorf("unexpected groupIds: %s, expected %s", sm.store.GroupIDs, []string{"1", "10", "100"})
+		t.Errorf("unexpected groupIDs: %s, expected %s", sm.store.GroupIDs, []string{"1", "10", "100"})
 	}
 }
 

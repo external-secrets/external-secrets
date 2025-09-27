@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package parameterstore implements the AWS SSM Parameter Store provider for external-secrets
 package parameterstore
 
 import (
@@ -125,6 +126,8 @@ func (pm *ParameterStore) getTagsByName(ctx context.Context, ref *ssm.GetParamet
 	return tags, nil
 }
 
+// DeleteSecret deletes a secret from AWS Parameter Store.
+// It will only delete secrets that are managed by external-secrets (have the managed-by tag).
 func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	secretName := pm.prefix + remoteRef.GetRemoteKey()
 	secretValue := ssm.GetParameterInput{
@@ -161,6 +164,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 	return nil
 }
 
+// SecretExists checks if a secret exists in AWS Parameter Store.
 func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := pm.prefix + pushSecretRef.GetRemoteKey()
 
@@ -168,12 +172,10 @@ func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1.P
 		Name: &secretName,
 	}
 
-	_, err := pm.client.GetParameter(ctx, &secretValue)
-
 	var resourceNotFoundErr *ssmTypes.ResourceNotFoundException
 	var parameterNotFoundErr *ssmTypes.ParameterNotFound
 
-	if err != nil {
+	if _, err := pm.client.GetParameter(ctx, &secretValue); err != nil {
 		if errors.As(err, &resourceNotFoundErr) {
 			return false, nil
 		}
@@ -186,6 +188,11 @@ func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1.P
 	return true, nil
 }
 
+// PushSecret uploads a secret to AWS Parameter Store.
+// It can create a new secret or update an existing one.
+// The secret is identified by the remote key, which is the name of the parameter in Parameter Store.
+// The value of the secret is taken from the secret data, and can be either the entire secret or a specific key within the secret.
+// Tags are applied to the secret for management and identification.
 func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	var (
 		value []byte
@@ -619,10 +626,12 @@ func (pm *ParameterStore) parameterNameWithVersion(ref esv1.ExternalSecretDataRe
 	return &name
 }
 
+// Close cleans up resources held by the ParameterStore provider.
 func (pm *ParameterStore) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate checks if the provider is configured correctly.
 func (pm *ParameterStore) Validate() (esv1.ValidationResult, error) {
 	// skip validation stack because it depends on the namespace
 	// of the ExternalSecret

@@ -21,6 +21,7 @@ import (
 	"fmt"
 )
 
+// FakeClient is a mock implementation of the Bitwarden client interface.
 type FakeClient struct {
 	getSecretCallArguments []string
 	getSecretReturnsOnCall map[int]*SecretResponse
@@ -43,6 +44,7 @@ type FakeClient struct {
 	listSecretsCalledN       int
 }
 
+// GetSecretReturnsOnCallN sets up the mock to return a specific response for GetSecret on the Nth call.
 func (c *FakeClient) GetSecretReturnsOnCallN(call int, ret *SecretResponse) {
 	if c.getSecretReturnsOnCall == nil {
 		c.getSecretReturnsOnCall = make(map[int]*SecretResponse)
@@ -51,7 +53,8 @@ func (c *FakeClient) GetSecretReturnsOnCallN(call int, ret *SecretResponse) {
 	c.getSecretReturnsOnCall[call] = ret
 }
 
-func (c *FakeClient) GetSecret(ctx context.Context, id string) (*SecretResponse, error) {
+// GetSecret retrieves a secret from the mock client.
+func (c *FakeClient) GetSecret(_ context.Context, id string) (*SecretResponse, error) {
 	ret, ok := c.getSecretReturnsOnCall[c.getSecretCalledN]
 	if !ok {
 		return nil, fmt.Errorf("get secret no canned responses set for call %d", c.getSecretCalledN)
@@ -62,6 +65,7 @@ func (c *FakeClient) GetSecret(ctx context.Context, id string) (*SecretResponse,
 	return ret, nil
 }
 
+// DeleteSecretReturnsOnCallN sets up the mock to return a specific response for DeleteSecret on the Nth call.
 func (c *FakeClient) DeleteSecretReturnsOnCallN(call int, ret *SecretsDeleteResponse) {
 	if c.deleteSecretReturnsOnCall == nil {
 		c.deleteSecretReturnsOnCall = make(map[int]*SecretsDeleteResponse)
@@ -70,7 +74,8 @@ func (c *FakeClient) DeleteSecretReturnsOnCallN(call int, ret *SecretsDeleteResp
 	c.deleteSecretReturnsOnCall[call] = ret
 }
 
-func (c *FakeClient) DeleteSecret(ctx context.Context, ids []string) (*SecretsDeleteResponse, error) {
+// DeleteSecret deletes secrets from the mock client.
+func (c *FakeClient) DeleteSecret(_ context.Context, ids []string) (*SecretsDeleteResponse, error) {
 	ret, ok := c.deleteSecretReturnsOnCall[c.deleteSecretCalledN]
 	if !ok {
 		return nil, fmt.Errorf("delete secret no canned responses set for call %d", c.deleteSecretCalledN)
@@ -81,6 +86,7 @@ func (c *FakeClient) DeleteSecret(ctx context.Context, ids []string) (*SecretsDe
 	return ret, nil
 }
 
+// CreateSecretReturnsOnCallN sets up the mock to return a specific response for CreateSecret on the Nth call.
 func (c *FakeClient) CreateSecretReturnsOnCallN(call int, ret *SecretResponse) {
 	if c.createSecretReturnsOnCall == nil {
 		c.createSecretReturnsOnCall = make(map[int]*SecretResponse)
@@ -89,7 +95,8 @@ func (c *FakeClient) CreateSecretReturnsOnCallN(call int, ret *SecretResponse) {
 	c.createSecretReturnsOnCall[call] = ret
 }
 
-func (c *FakeClient) CreateSecret(ctx context.Context, secret SecretCreateRequest) (*SecretResponse, error) {
+// CreateSecret creates a new secret in the mock client.
+func (c *FakeClient) CreateSecret(_ context.Context, secret SecretCreateRequest) (*SecretResponse, error) {
 	ret, ok := c.createSecretReturnsOnCall[c.createSecretCalledN]
 	if !ok {
 		return nil, fmt.Errorf("create secret no canned responses set for call %d", c.createSecretCalledN)
@@ -100,6 +107,7 @@ func (c *FakeClient) CreateSecret(ctx context.Context, secret SecretCreateReques
 	return ret, nil
 }
 
+// UpdateSecretReturnsOnCallN sets up the mock to return a specific response for UpdateSecret on the Nth call.
 func (c *FakeClient) UpdateSecretReturnsOnCallN(call int, ret *SecretResponse) {
 	if c.updateSecretReturnsOnCall == nil {
 		c.updateSecretReturnsOnCall = make(map[int]*SecretResponse)
@@ -108,7 +116,8 @@ func (c *FakeClient) UpdateSecretReturnsOnCallN(call int, ret *SecretResponse) {
 	c.updateSecretReturnsOnCall[call] = ret
 }
 
-func (c *FakeClient) UpdateSecret(ctx context.Context, secret SecretPutRequest) (*SecretResponse, error) {
+// UpdateSecret updates an existing secret in the mock client.
+func (c *FakeClient) UpdateSecret(_ context.Context, secret SecretPutRequest) (*SecretResponse, error) {
 	ret, ok := c.updateSecretReturnsOnCall[c.updateSecretCalledN]
 	if !ok {
 		return nil, fmt.Errorf("secret update no canned responses set for call %d", c.updateSecretCalledN)
@@ -119,6 +128,7 @@ func (c *FakeClient) UpdateSecret(ctx context.Context, secret SecretPutRequest) 
 	return ret, nil
 }
 
+// ListSecretReturnsOnCallN sets up the mock to return a specific response for ListSecrets on the Nth call.
 func (c *FakeClient) ListSecretReturnsOnCallN(call int, ret *SecretIdentifiersResponse) {
 	if c.listSecretsReturnsOnCall == nil {
 		c.listSecretsReturnsOnCall = make(map[int]*SecretIdentifiersResponse)
@@ -127,7 +137,8 @@ func (c *FakeClient) ListSecretReturnsOnCallN(call int, ret *SecretIdentifiersRe
 	c.listSecretsReturnsOnCall[call] = ret
 }
 
-func (c *FakeClient) ListSecrets(ctx context.Context, organizationID string) (*SecretIdentifiersResponse, error) {
+// ListSecrets lists secrets from the mock client.
+func (c *FakeClient) ListSecrets(_ context.Context, organizationID string) (*SecretIdentifiersResponse, error) {
 	ret, ok := c.listSecretsReturnsOnCall[c.listSecretsCalledN]
 	if !ok {
 		return nil, fmt.Errorf("secret list no canned responses set for call %d", c.listSecretsCalledN)
