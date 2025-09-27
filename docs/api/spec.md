@@ -4215,6 +4215,20 @@ Required if strategy is JSON. Ignored otherwise.</p>
 </tr>
 <tr>
 <td>
+<code>priorityPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMergePriorityPolicy">
+ExternalSecretRewriteMergePriorityPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the policy when a key in the priority list does not exist in the input.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conflictPolicy</code></br>
 <em>
 <a href="#external-secrets.io/v1.ExternalSecretRewriteMergeConflictPolicy">
@@ -4261,6 +4275,27 @@ ExternalSecretRewriteMergeStrategy
 <tbody><tr><td><p>&#34;Error&#34;</p></td>
 <td></td>
 </tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMergePriorityPolicy">ExternalSecretRewriteMergePriorityPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;IgnoreNotFound&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Strict&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -5230,6 +5265,24 @@ string
 </td>
 <td>
 <p>Location optionally defines a location for a secret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretVersionSelectionPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretVersionSelectionPolicy">
+SecretVersionSelectionPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretVersionSelectionPolicy specifies how the provider selects a secret version
+when &ldquo;latest&rdquo; is disabled or destroyed.
+Possible values are:
+- LatestOrFail: the provider always uses &ldquo;latest&rdquo;, or fails if that version is disabled/destroyed.
+- LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED</p>
 </td>
 </tr>
 </tbody>
@@ -8475,7 +8528,8 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push Github Action secrets using Github API provider</p>
+<p>Github configures this store to push GitHub Action secrets using GitHub API provider.
+Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
 <tr>
@@ -9135,6 +9189,29 @@ Kubernetes meta/v1.Time
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.SecretVersionSelectionPolicy">SecretVersionSelectionPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GCPSMProvider">GCPSMProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;LatestOrFail&#34;</p></td>
+<td><p>SecretVersionSelectionPolicyLatestOrFail means the provider always uses &ldquo;latest&rdquo;, or fails if that version is disabled/destroyed.</p>
+</td>
+</tr><tr><td><p>&#34;LatestOrFetch&#34;</p></td>
+<td><p>SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.SecretsClient">SecretsClient
 </h3>
