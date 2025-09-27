@@ -1399,3 +1399,45 @@ func TestValidateStore(t *testing.T) {
 		})
 	}
 }
+
+func TestGetDataByProperty(t *testing.T) {
+	tests := []struct {
+		desc                          string
+		accessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
+		ref                           *esv1.ExternalSecretDataRemoteRef
+		wantErr                       bool
+	}{
+		{
+			desc: "valid json",
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte(`{"testKey1":{"testKey2":"testValue1"}}`),
+					},
+				},
+			},
+			ref:     makeValidRef(),
+			wantErr: false,
+		},
+		{
+			desc: "invalid json",
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte(`{"testKey1":{"testKey2":"testValue1"},}`),
+					},
+				},
+			},
+			ref:     makeValidRef(),
+			wantErr: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			_, err := getDataByProperty(tc.accessSecretVersionMockReturn.Res.Payload.Data, tc.ref.Property)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("getDataByProperty() error = %v, wantErr %v", err, tc.wantErr)
+			}
+		})
+	}
+}
