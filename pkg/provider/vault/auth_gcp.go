@@ -23,6 +23,7 @@ import (
 	"os"
 
 	authgcp "github.com/hashicorp/vault/api/auth/gcp"
+	"golang.org/x/oauth2/google"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -31,25 +32,26 @@ import (
 )
 
 const (
-	defaultGCPAuthMountPath    = "gcp"
+	defaultGCPAuthMountPath   = "gcp"
 	googleOAuthAccessTokenKey = "GOOGLE_OAUTH_ACCESS_TOKEN"
 )
 
 func setGcpAuthToken(ctx context.Context, v *client) (bool, error) {
 	gcpAuth := v.store.Auth.GCP
-	if gcpAuth != nil {
-		// Only proceed with actual authentication if the auth client is available
-		if v.auth == nil {
-			return true, errors.New("vault auth client not initialized")
-		}
-		
-		err := v.requestTokenWithGcpAuth(ctx, gcpAuth)
-		if err != nil {
-			return true, err
-		}
-		return true, nil
+	if gcpAuth == nil {
+		return false, nil
 	}
-	return false, nil
+
+	// Only proceed with actual authentication if the auth client is available
+	if v.auth == nil {
+		return true, errors.New("vault auth client not initialized")
+	}
+
+	err := v.requestTokenWithGcpAuth(ctx, gcpAuth)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
@@ -62,22 +64,22 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 		return fmt.Errorf("failed to set up GCP authentication: %w", err)
 	}
 
-	// Determine which GCP auth method to use
+	// Determine which GCP auth method to use based on available authentication
 	var gcpAuthClient *authgcp.GCPAuth
-	if gcpAuth.WorkloadIdentity != nil || gcpAuth.ServiceAccountRef != nil {
-		// Use IAM auth method for workload identity or service account
+	if gcpAuth.SecretRef != nil || gcpAuth.WorkloadIdentity != nil {
+		// Use IAM auth method when we have explicit credentials (service account key or workload identity)
 		gcpAuthClient, err = authgcp.NewGCPAuth(role,
 			authgcp.WithMountPath(authMountPath),
-			authgcp.WithIAMAuth(""), // Service account email will be determined automatically
+			authgcp.WithIAMAuth(""), // Service account email will be determined automatically from credentials
 		)
 	} else {
-		// Use GCE auth method for GCE instances
+		// Use GCE auth method for GCE instances (includes ServiceAccountRef and default ADC scenarios)
 		gcpAuthClient, err = authgcp.NewGCPAuth(role,
 			authgcp.WithMountPath(authMountPath),
 			authgcp.WithGCEAuth(),
 		)
 	}
-	
+
 	if err != nil {
 		return err
 	}
@@ -93,7 +95,11 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 }
 
 func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
-	// Priority order following AWS pattern: SecretRef -> WorkloadIdentity -> ServiceAccountRef -> Default ADC
+	// Priority order for GCP authentication methods:
+	// 1. SecretRef: Service account key from Kubernetes secret (uses IAM auth method)
+	// 2. WorkloadIdentity: GKE Workload Identity (uses IAM auth method)
+	// 3. ServiceAccountRef: Pod's service account (uses GCE auth method)
+	// 4. Default ADC: Application Default Credentials (uses GCE auth method)
 
 	// First priority: Service account key from secret
 	if gcpAuth.SecretRef != nil {
@@ -149,16 +155,29 @@ func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.Va
 }
 
 func (c *client) setupServiceAccountRefAuth(_ context.Context, _ *esv1.VaultGCPAuth) error {
-	// This could be enhanced to create service account tokens similar to AWS IRSA pattern
-	// For now, fall back to default authentication
-	c.log.V(1).Info("Setting up GCP authentication using service account reference - falling back to default auth")
-	return c.setupDefaultGCPAuth()
+	// When ServiceAccountRef is specified, we use the Kubernetes service account
+	// The GCE auth method will automatically use the service account attached to the pod
+	// This leverages GKE Workload Identity or service account key mounted in the pod
+	c.log.V(1).Info("Setting up GCP authentication using service account reference with GCE auth method")
+
+	// No explicit token setup needed - GCE auth method will use the pod's service account
+	// This works with both Workload Identity and traditional service account keys
+	return nil
 }
 
 func (c *client) setupDefaultGCPAuth() error {
-	// Use Application Default Credentials (ADC) - metadata server, gcloud, etc.
-	c.log.V(1).Info("Using default GCP authentication (ADC)")
-	// No explicit setup needed - the Vault GCP auth method will use ADC
+	c.log.V(1).Info("Setting up default GCP authentication (ADC)")
+
+	// Validate that ADC is available before proceeding
+	ctx := context.Background()
+	creds, err := google.FindDefaultCredentials(ctx)
+	if err != nil {
+		return fmt.Errorf("Application Default Credentials (ADC) not available: %w", err)
+	}
+
+	c.log.V(1).Info("ADC validation successful", "project_id", creds.ProjectID)
+
+	// No explicit token setup needed - the Vault GCP auth method will use ADC automatically
 	return nil
 }
 
