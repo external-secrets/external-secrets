@@ -43,9 +43,6 @@
                 "extraVolumes": {
                     "type": "array"
                 },
-                "fullnameOverride": {
-                    "type": "string"
-                },
                 "hostNetwork": {
                     "type": "boolean"
                 },
@@ -106,9 +103,6 @@
                             }
                         }
                     }
-                },
-                "nameOverride": {
-                    "type": "string"
                 },
                 "nodeSelector": {
                     "type": "object"
@@ -810,9 +804,6 @@
                 "failurePolicy": {
                     "type": "string"
                 },
-                "fullnameOverride": {
-                    "type": "string"
-                },
                 "hostNetwork": {
                     "type": "boolean"
                 },
@@ -877,9 +868,6 @@
                         }
                     }
                 },
-                "nameOverride": {
-                    "type": "string"
-                },
                 "nodeSelector": {
                     "type": "object"
                 },
@@ -919,14 +907,6 @@
                 },
                 "priorityClassName": {
                     "type": "string"
-                },
-                "rbac": {
-                    "type": "object",
-                    "properties": {
-                        "create": {
-                            "type": "boolean"
-                        }
-                    }
                 },
                 "readinessProbe": {
                     "type": "object",
