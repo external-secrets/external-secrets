@@ -215,6 +215,9 @@ type SecretStoreProvider struct {
 	// Volcengine configures this store to sync secrets using the Volcengine provider
 	// +optional
 	Volcengine *VolcengineProvider `json:"volcengine,omitempty"`
+	// Ngrok configures this store to sync secrets using the ngrok provider.
+	// +optional
+	Ngrok *NgrokProvider `json:"ngrok,omitempty"`
 }
 
 type CAProviderType string
