@@ -5,7 +5,7 @@
 [![Form3](./pictures/form3_logo.png)](https://www.form3.tech/)
 [![Pento](./pictures/pento_logo.png)](https://www.pento.io)
 
-# Introduction
+# External Secrets Operator
 
 ![high-level](./pictures/diagrams-high-level-simple.png)
 
@@ -19,7 +19,7 @@ operator reads information from external APIs and automatically injects the
 values into a [Kubernetes
 Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
-### What is the goal of External Secrets Operator?
+## What is External Secrets Operator?
 
 The goal of External Secrets Operator is to synchronize secrets from external
 APIs into Kubernetes. ESO is a collection of custom API resources -
@@ -27,33 +27,70 @@ APIs into Kubernetes. ESO is a collection of custom API resources -
 user-friendly abstraction for the external API that stores and manages the
 lifecycle of the secrets for you.
 
-### Where to get started
+## Find Your Path
 
-To get started, please read through [API overview](introduction/overview.md) this should
-give you a high-level overview to understand the API and use-cases. After that
-please follow one of our [guides](guides/introduction.md) to get a jump start
-using the operator. See our [getting started guide](introduction/getting-started.md) for installation instructions.
+ESO serves different roles in different organizations. Choose your path:
 
-For a complete reference of the API types please refer to our [API
-Reference](api/spec.md).
+### 👨‍💼 **Decision Maker**
+Evaluating ESO for your organization? Understanding business value and capabilities?
 
-### How to get involved
+→ [**Start Here**](./personas/decision-maker.md)
+- Business value and ROI
+- Architecture overview
+- Security and compliance
+- Adoption considerations
 
-This project is driven by its users and contributors, and we welcome everybody
-to get involved. Join our meetings, open issues or ask questions in Slack. The
-success of this project depends on your input: No contribution is too small -
-even opinions matter!
+### 🏗️ **Platform Administrator**
+Installing and maintaining ESO in production clusters?
 
-How to get involved:
+→ [**Platform Admin Guide**](./personas/platform-admin.md)
+- Installation and deployment
+- Operations and maintenance
+- Monitoring and troubleshooting
 
-- Bi-weekly Development Meeting every odd week at [8:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=20:00&tz=Europe/Berlin) on Wednesday
+### 🔧 **DevOps Engineer**
+Configuring secret stores and managing ESO resources?
+
+→ [**DevOps Engineer Guide**](./personas/devops-engineer.md)
+- Secret store configuration
+- Provider setup and integration
+- Advanced features and automation
+
+### 👩‍💻 **Application Developer**
+Building applications that need to access secrets via ESO?
+
+→ [**Application Developer Guide**](./personas/app-developer.md)
+- Using ESO in your applications
+- Secret retrieval patterns
+- Provider integration
+
+### 🔒 **Security Professional**
+Evaluating ESO for security compliance and risk management?
+
+→ [**Security Team Guide**](./personas/security-team.md)
+- Security assessment and compliance
+- Threat modeling and mitigation
+- Access control and auditing
+
+## Quick Start
+
+Want to try ESO immediately?
+
+- [**Getting Started**](./introduction/getting-started.md) - Deploy ESO and create your first secret
+- [**Overview**](./introduction/overview.md) - Understand ESO architecture and concepts
+- [**Find Your Path**](./personas/index.md) - More detailed persona guidance
+
+## Community & Support
+
+This project is driven by its users and contributors. Join our community:
+
+- **Bi-weekly Development Meeting**: Every odd Wednesday at [8:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=20:00&tz=Europe/Berlin)
   ([agenda](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA), [jitsi call](https://meet.jit.si/eso-community-meeting))
-- [Kubernetes Slack
-  #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
-- [Contributing Process](contributing/process.md)
-- [Twitter](https://twitter.com/ExtSecretsOptr)
+- [**Kubernetes Slack #external-secrets**](https://kubernetes.slack.com/messages/external-secrets)
+- [**Contributing Process**](./contributing/process.md)
+- [**Twitter**](https://twitter.com/ExtSecretsOptr)
 
-### Kicked off by
+## Kicked off by
 
 ![godaddy-logo](./pictures/godaddy_logo.png)
 
