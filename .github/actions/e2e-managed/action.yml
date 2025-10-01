@@ -63,6 +63,8 @@ runs:
         key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
+    - uses: hashicorp/setup-terraform@v3
+
     - name: Setup TFLint
       uses: terraform-linters/setup-tflint@v2
       with:
