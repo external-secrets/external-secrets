@@ -152,6 +152,13 @@ createOperator: true
 # -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook.
 enableHTTP2: false
 
+# -- Vault token cache configuration
+vault:
+  # -- Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.
+  enableTokenCache: false
+  # -- Maximum size of Vault token cache. Only used if enableTokenCache is true.
+  tokenCacheSize: 0
+
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1

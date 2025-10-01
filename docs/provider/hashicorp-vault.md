@@ -538,6 +538,44 @@ spec:
         # ...
 ```
 
+### Token Cache Configuration
+
+The Vault provider supports token caching to improve performance by reusing Vault tokens across multiple requests instead of creating new ones each time. This is particularly useful when using authentication methods that generate short-lived tokens.
+
+#### Configuration Flags
+
+The following command-line flags control the Vault token cache behavior:
+
+- `--enable-vault-token-cache`: Enable Vault token cache (default: `false`)
+- `--vault-token-cache-size`: Maximum size of the Vault token cache (default: `0`)
+
+#### Usage
+
+To enable token caching, set the `--enable-vault-token-cache` flag to `true`:
+
+```bash
+external-secrets --enable-vault-token-cache --vault-token-cache-size=1000
+```
+
+#### Cache Behavior
+
+- **Cache Key**: The cache uses a combination of the SecretStore name, namespace, and kind as the cache key
+- **Token Validation**: Before using a cached token, the provider validates its TTL to ensure it hasn't expired
+- **Cache Eviction**: When the cache reaches its maximum size, the least recently used tokens are evicted
+- **Token Revocation**: When tokens are evicted from the cache, they are properly revoked from Vault
+
+#### When to Use Token Caching
+
+Token caching is beneficial when:
+- Using authentication methods that generate short-lived tokens (e.g., AppRole, Kubernetes auth)
+- Running multiple ExternalSecrets that use the same SecretStore
+- Experiencing high token generation overhead
+
+Token caching should **not** be used when:
+- Using static tokens (no performance benefit)
+- Security requirements mandate fresh tokens for each request
+- Memory usage is a concern
+
 #### Read Your Writes
 
 Vault 1.10.0 and later encodes information in the token to detect the case

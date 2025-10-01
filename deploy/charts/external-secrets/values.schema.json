@@ -784,6 +784,17 @@
         "topologySpreadConstraints": {
             "type": "array"
         },
+        "vault": {
+            "type": "object",
+            "properties": {
+                "enableTokenCache": {
+                    "type": "boolean"
+                },
+                "tokenCacheSize": {
+                    "type": "integer"
+                }
+            }
+        },
         "webhook": {
             "type": "object",
             "properties": {
