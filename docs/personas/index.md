@@ -2,6 +2,9 @@
 
 External Secrets Operator serves different roles in different organizations. Choose the path that matches your responsibilities:
 
+!!! tip "Navigation Guides"
+    These persona pages are **curated pathways** to existing documentation, not duplicate content. Each guide helps you quickly find the right information for your role.
+
 ## Who Are You?
 
 ### 👨‍💼 **Technical Leader / Decision Maker**
