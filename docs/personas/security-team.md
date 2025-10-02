@@ -12,13 +12,13 @@ As a **Security Professional**, you're focused on ensuring ESO implementation me
 
 ### Access Control
 - [Multi-tenancy Architecture](../guides/multi-tenancy.md)
-- [Namespace Isolation](../api/secretstore.md#namespace-scoped-vs-cluster-scoped)
-- [RBAC Configuration](../guides/security-best-practices.md#rbac-and-access-control)
+- [Namespace Isolation](../api/secretstore.md)
+- [RBAC Configuration](../guides/security-best-practices.md#role-based-access-control-rbac)
 
 ### Encryption & Protection
 - [Decoding Strategies](../guides/decoding-strategy.md)
-- [Provider-Specific Security](../guides/security-best-practices.md#provider-specific-considerations)
-- [Certificate Management](../api/controller-options.md#webhook-configuration)
+- [Provider-Specific Security](../guides/security-best-practices.md)
+- [Certificate Management](../api/controller-options.md#webhook-flags)
 
 ## Provider Security Assessment
 
@@ -38,18 +38,18 @@ As a **Security Professional**, you're focused on ensuring ESO implementation me
 ### Secret Rotation
 - [Dynamic Secret Generation](../guides/generator.md)
 - [Push Secrets for Sync](../guides/pushsecrets.md)
-- [Automated Rotation Patterns](../guides/security-best-practices.md#secret-rotation)
+- [Automated Rotation Patterns](../guides/security-best-practices.md)
 
 ### Monitoring & Auditing
 - [Metrics & Observability](../api/metrics.md)
-- [Audit Logging](../guides/security-best-practices.md#monitoring-and-auditing)
+- [Audit Logging](../guides/security-best-practices.md)
 - [esoctl for Investigations](../guides/using-esoctl-tool.md)
 
 ## Risk Mitigation
 
 ### Network Security
 - [Webhook Security](../api/controller-options.md)
-- [Provider Network Isolation](../guides/security-best-practices.md#network-security)
+- [Provider Network Isolation](../guides/security-best-practices.md#network-traffic-and-security)
 
 ### Operational Security
 - [Controller Class Isolation](../guides/controller-class.md)
@@ -60,7 +60,7 @@ As a **Security Professional**, you're focused on ensuring ESO implementation me
 
 ### Testing Security
 - [Fake Provider for Testing](../provider/fake.md)
-- [Security Testing Scenarios](../guides/security-best-practices.md#testing-and-validation)
+- [Security Testing Scenarios](../guides/security-best-practices.md)
 
 ### Compliance Validation
 - [Supported Compliance Standards](../introduction/stability-support.md)
@@ -68,11 +68,11 @@ As a **Security Professional**, you're focused on ensuring ESO implementation me
 
 ## Emergency Response
 
-- [Secret Compromise Procedures](../guides/security-best-practices.md#incident-response)
-- [Emergency Access Patterns](../guides/security-best-practices.md#emergency-access)
+- [Secret Compromise Procedures](../guides/security-best-practices.md)
+- [Emergency Access Patterns](../guides/security-best-practices.md)
 
 ## Resources
 
 - [Security Response Process](../SECURITY_RESPONSE.md)
 - [Security Policy](../SECURITY.md)
-- [Contributing to Security](../contributing/process.md#security-related-contributions)
+- [Contributing to Security](../contributing/process.md)
