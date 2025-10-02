@@ -36,6 +36,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -47,10 +48,22 @@ import (
 )
 
 type PushSecretMetadataSpec struct {
-	Tags             map[string]string `json:"tags,omitempty"`
-	Description      string            `json:"description,omitempty"`
-	SecretPushFormat string            `json:"secretPushFormat,omitempty"`
-	KMSKeyID         string            `json:"kmsKeyId,omitempty"`
+	Tags             map[string]string   `json:"tags,omitempty"`
+	Description      string              `json:"description,omitempty"`
+	SecretPushFormat string              `json:"secretPushFormat,omitempty"`
+	KMSKeyID         string              `json:"kmsKeyId,omitempty"`
+	ResourcePolicy   *ResourcePolicySpec `json:"resourcePolicy,omitempty"`
+}
+
+type ResourcePolicySpec struct {
+	BlockPublicPolicy *bool            `json:"blockPublicPolicy,omitempty"`
+	PolicySourceRef   *PolicySourceRef `json:"policySourceRef,omitempty"`
+}
+
+type PolicySourceRef struct {
+	Kind string `json:"kind"`
+	Name string `json:"name"`
+	Key  string `json:"key"`
 }
 
 // Declares metadata information for pushing secrets to AWS Secret Store.
@@ -73,6 +86,8 @@ type SecretsManager struct {
 	config       *esv1.SecretsManager
 	prefix       string
 	newUUID      func() string
+	kube         client.Client
+	namespace    string
 }
 
 // SMInterface is a subset of the smiface api.
@@ -87,6 +102,9 @@ type SMInterface interface {
 	DeleteSecret(ctx context.Context, params *awssm.DeleteSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
 	TagResource(ctx context.Context, params *awssm.TagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
 	UntagResource(ctx context.Context, params *awssm.UntagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
+	PutResourcePolicy(ctx context.Context, params *awssm.PutResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.PutResourcePolicyOutput, error)
+	GetResourcePolicy(ctx context.Context, params *awssm.GetResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error)
+	DeleteResourcePolicy(ctx context.Context, params *awssm.DeleteResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error)
 }
 
 const (
@@ -99,7 +117,7 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(_ context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsManager, prefix string, referentAuth bool) (*SecretsManager, error) {
+func New(_ context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsManager, prefix string, referentAuth bool, kube client.Client, namespace string) (*SecretsManager, error) {
 	return &SecretsManager{
 		cfg: cfg,
 		client: awssm.NewFromConfig(*cfg, func(o *awssm.Options) {
@@ -109,6 +127,8 @@ func New(_ context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsMana
 		cache:        make(map[string]*awssm.GetSecretValueOutput),
 		config:       secretsManagerCfg,
 		prefix:       prefix,
+		kube:         kube,
+		namespace:    namespace,
 	}, nil
 }
 
@@ -529,10 +549,35 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		input.SecretString = aws.String(string(value))
 	}
 
-	_, err = sm.client.CreateSecret(ctx, input)
+	createOutput, err := sm.client.CreateSecret(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
+	if err != nil {
+		return err
+	}
 
-	return err
+	// Apply resource policy if specified
+	if mdata.Spec.ResourcePolicy != nil && mdata.Spec.ResourcePolicy.PolicySourceRef != nil {
+		policyJSON, err := sm.resolveResourcePolicy(ctx, mdata.Spec.ResourcePolicy.PolicySourceRef)
+		if err != nil {
+			return fmt.Errorf("failed to resolve resource policy: %w", err)
+		}
+
+		putPolicyInput := &awssm.PutResourcePolicyInput{
+			SecretId:       createOutput.ARN,
+			ResourcePolicy: aws.String(policyJSON),
+		}
+		if mdata.Spec.ResourcePolicy.BlockPublicPolicy != nil {
+			putPolicyInput.BlockPublicPolicy = mdata.Spec.ResourcePolicy.BlockPublicPolicy
+		}
+
+		_, err = sm.client.PutResourcePolicy(ctx, putPolicyInput)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutResourcePolicy, err)
+		if err != nil {
+			return fmt.Errorf("failed to put resource policy: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
@@ -572,7 +617,12 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 	for _, tag := range tags {
 		currentTags[*tag.Key] = *tag.Value
 	}
-	return sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags)
+	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
+		return err
+	}
+
+	// Manage resource policy if specified in metadata
+	return sm.manageResourcePolicy(ctx, psd.GetMetadata(), &secretArn)
 }
 
 func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretId *string, tags map[string]string) error {
@@ -741,6 +791,114 @@ func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 	meta.Spec.Tags[managedBy] = externalSecrets
 
 	return meta, nil
+}
+
+// resolveResourcePolicy resolves the policy JSON from the PolicySourceRef.
+func (sm *SecretsManager) resolveResourcePolicy(ctx context.Context, policyRef *PolicySourceRef) (string, error) {
+	if policyRef == nil {
+		return "", errors.New("policySourceRef is nil")
+	}
+
+	switch policyRef.Kind {
+	case "ConfigMap":
+		cm := &corev1.ConfigMap{}
+		if err := sm.kube.Get(ctx, client.ObjectKey{
+			Namespace: sm.namespace,
+			Name:      policyRef.Name,
+		}, cm); err != nil {
+			return "", fmt.Errorf("failed to get ConfigMap %s/%s: %w", sm.namespace, policyRef.Name, err)
+		}
+		policy, ok := cm.Data[policyRef.Key]
+		if !ok {
+			return "", fmt.Errorf("key %s not found in ConfigMap %s/%s", policyRef.Key, sm.namespace, policyRef.Name)
+		}
+		return policy, nil
+
+	case "Secret":
+		secret := &corev1.Secret{}
+		if err := sm.kube.Get(ctx, client.ObjectKey{
+			Namespace: sm.namespace,
+			Name:      policyRef.Name,
+		}, secret); err != nil {
+			return "", fmt.Errorf("failed to get Secret %s/%s: %w", sm.namespace, policyRef.Name, err)
+		}
+		policyBytes, ok := secret.Data[policyRef.Key]
+		if !ok {
+			return "", fmt.Errorf("key %s not found in Secret %s/%s", policyRef.Key, sm.namespace, policyRef.Name)
+		}
+		return string(policyBytes), nil
+
+	default:
+		return "", fmt.Errorf("unsupported PolicySourceRef kind: %s (must be ConfigMap or Secret)", policyRef.Kind)
+	}
+}
+
+// manageResourcePolicy applies or removes the resource policy based on metadata.
+func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *apiextensionsv1.JSON, secretId *string) error {
+	meta, err := sm.constructMetadataWithDefaults(metadata)
+	if err != nil {
+		return err
+	}
+
+	// Delete policy if policyRef is nil and the policy exists.
+	if meta.Spec.ResourcePolicy == nil {
+		deletePolicyInput := &awssm.DeleteResourcePolicyInput{
+			SecretId: secretId,
+		}
+		_, err = sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
+
+		var nf *types.ResourceNotFoundException
+		if err != nil && !errors.As(err, &nf) {
+			return fmt.Errorf("failed to delete resource policy: %w", err)
+		}
+
+		return nil
+	}
+
+	// Normal flow, is to create the policy.
+	policyJSON, err := sm.resolveResourcePolicy(ctx, meta.Spec.ResourcePolicy.PolicySourceRef)
+	if err != nil {
+		return fmt.Errorf("failed to resolve resource policy: %w", err)
+	}
+
+	getCurrentPolicyInput := &awssm.GetResourcePolicyInput{
+		SecretId: secretId,
+	}
+	currentPolicyOutput, err := sm.client.GetResourcePolicy(ctx, getCurrentPolicyInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetResourcePolicy, err)
+
+	var nf *types.ResourceNotFoundException
+	if err != nil && !errors.As(err, &nf) {
+		return fmt.Errorf("failed to get current resource policy: %w", err)
+	}
+
+	// Only update it if the policy is different
+	currentPolicy := ""
+	if currentPolicyOutput != nil && currentPolicyOutput.ResourcePolicy != nil {
+		currentPolicy = *currentPolicyOutput.ResourcePolicy
+	}
+
+	if currentPolicy == policyJSON {
+		// nothing to do
+		return nil
+	}
+
+	putPolicyInput := &awssm.PutResourcePolicyInput{
+		SecretId:       secretId,
+		ResourcePolicy: aws.String(policyJSON),
+	}
+	if meta.Spec.ResourcePolicy.BlockPublicPolicy != nil {
+		putPolicyInput.BlockPublicPolicy = meta.Spec.ResourcePolicy.BlockPublicPolicy
+	}
+
+	_, err = sm.client.PutResourcePolicy(ctx, putPolicyInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutResourcePolicy, err)
+	if err != nil {
+		return fmt.Errorf("failed to put resource policy: %w", err)
+	}
+
+	return nil
 }
 
 // computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
