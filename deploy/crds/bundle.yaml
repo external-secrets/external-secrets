@@ -6137,6 +6137,12 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                path:
+                                  default: cert
+                                  description: |-
+                                    Path where the Certificate authentication backend is mounted
+                                    in Vault, e.g: "cert"
+                                  type: string
                                 secretRef:
                                   description: |-
                                     SecretRef to a key in a Secret resource containing client private key to
@@ -6165,6 +6171,8 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - path
                               type: object
                             iam:
                               description: |-
@@ -17337,6 +17345,12 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                path:
+                                  default: cert
+                                  description: |-
+                                    Path where the Certificate authentication backend is mounted
+                                    in Vault, e.g: "cert"
+                                  type: string
                                 secretRef:
                                   description: |-
                                     SecretRef to a key in a Secret resource containing client private key to
@@ -17365,6 +17379,8 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - path
                               type: object
                             iam:
                               description: |-
@@ -24165,6 +24181,12 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
+                                    path:
+                                      default: cert
+                                      description: |-
+                                        Path where the Certificate authentication backend is mounted
+                                        in Vault, e.g: "cert"
+                                      type: string
                                     secretRef:
                                       description: |-
                                         SecretRef to a key in a Secret resource containing client private key to
@@ -24193,6 +24215,8 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
+                                  required:
+                                    - path
                                   type: object
                                 iam:
                                   description: |-
@@ -26673,6 +26697,12 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            path:
+                              default: cert
+                              description: |-
+                                Path where the Certificate authentication backend is mounted
+                                in Vault, e.g: "cert"
+                              type: string
                             secretRef:
                               description: |-
                                 SecretRef to a key in a Secret resource containing client private key to
@@ -26701,6 +26731,8 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                          required:
+                            - path
                           type: object
                         iam:
                           description: |-

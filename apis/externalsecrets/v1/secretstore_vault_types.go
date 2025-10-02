@@ -324,6 +324,11 @@ type VaultJwtAuth struct {
 // VaultCertAuth authenticates with Vault using the JWT/OIDC authentication
 // method, with the role name and token stored in a Kubernetes Secret resource.
 type VaultCertAuth struct {
+	// Path where the Certificate authentication backend is mounted
+	// in Vault, e.g: "cert"
+	// +kubebuilder:default=cert
+	Path string `json:"path"`
+
 	// ClientCert is a certificate to authenticate using the Cert Vault
 	// authentication method
 	// +optional
