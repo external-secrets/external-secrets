@@ -83,6 +83,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | certController.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| certController.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's enabled |
+| certController.startupProbe.port | string | `""` | Port for startup probe. |
+| certController.startupProbe.useReadinessProbePort | bool | `true` | whether to use the readiness probe port for startup probe. |
 | certController.strategy | object | `{}` | Set deployment strategy |
 | certController.tolerations | list | `[]` |  |
 | certController.topologySpreadConstraints | list | `[]` |  |

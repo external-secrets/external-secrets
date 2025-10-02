@@ -9,7 +9,7 @@ secret management systems like [AWS Secrets
 Manager](https://aws.amazon.com/secrets-manager/), [HashiCorp
 Vault](https://www.vaultproject.io/), [Google Secrets
 Manager](https://cloud.google.com/secret-manager), [Azure Key
-Vault](https://azure.microsoft.com/en-us/services/key-vault/), [CyberArk Conjur](https://www.conjur.org) and many more. The
+Vault](https://azure.microsoft.com/en-us/services/key-vault/), [CyberArk Secrets Manager](https://www.cyberark.com/products/secrets-management/) and many more. The
 operator reads information from external APIs and automatically injects the
 values into a [Kubernetes
 Secret](https://kubernetes.io/docs/concepts/configuration/secret/).

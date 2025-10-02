@@ -612,6 +612,14 @@ certController:
     # -- ReadinessProbe port for kubelet
     port: 8081
 
+  startupProbe:
+    # -- Enabled determines if the startup probe should be used or not. By default it's enabled
+    enabled: false
+    # -- whether to use the readiness probe port for startup probe.
+    useReadinessProbePort: true
+    # -- Port for startup probe.
+    port: ""
+
     ## -- Extra environment variables to add to container.
   extraEnv: []
 

@@ -64,5 +64,11 @@ should match snapshot of default values:
                 runAsUser: 1000
                 seccompProfile:
                   type: RuntimeDefault
+              startupProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8081
+                initialDelaySeconds: 20
+                periodSeconds: 5
           hostNetwork: false
           serviceAccountName: external-secrets-cert-controller
