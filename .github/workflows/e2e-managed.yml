@@ -2,6 +2,8 @@ on:
   repository_dispatch:
     types: [ok-to-test-managed-command]
 
+  pull_request:
+
 permissions:
   contents: read
 
@@ -42,20 +44,24 @@ env:
   TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL}}
 
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  GITHUB_PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
-  CLOUD_PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
+
+  # TODO: temporarily replace vars for testing in PR
+  GITHUB_PR_NUMBER: "5409"
+  CLOUD_PROVIDER: "gcp"
+  #GITHUB_PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
+  #CLOUD_PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
 
 name: managed e2e tests
 
 jobs:
   run-e2e-managed:
     runs-on: ubuntu-latest
+    # TODO: temporarily disabled to test in PR
+    #if: github.event_name == 'repository_dispatch'
     permissions:
       id-token: write #for oidc auth with aws/gcp/azure
       checks: write   #publish the commit status
       contents: read  #for checkout
-    if: github.event_name == 'repository_dispatch'
-
     steps:
     - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:

@@ -98,16 +98,6 @@ runs:
         tenant-id: ${{ env.TFC_AZURE_TENANT_ID }}
         subscription-id: ${{ env.TFC_AZURE_SUBSCRIPTION_ID }}
 
-    - name: Show TF
-      shell: bash
-      env:
-        ARM_CLIENT_ID: "${{ env.TFC_AZURE_CLIENT_ID }}"
-        ARM_SUBSCRIPTION_ID: "${{ env.TFC_AZURE_SUBSCRIPTION_ID }}"
-        ARM_TENANT_ID: "${{ env.TFC_AZURE_TENANT_ID }}"
-      run: |-
-        PROVIDER=${{env.CLOUD_PROVIDER}}
-        make tf.show.${PROVIDER}
-
     - name: Apply TF
       shell: bash
       env:
