@@ -308,13 +308,32 @@ func initCache(size int) {
 
 func init() {
 	var vaultTokenCacheSize int
+	var experimentalEnableCache bool
+	var experimentalCacheSize int
+
 	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
-	fs.BoolVar(&enableCache, "experimental-enable-vault-token-cache", false, "Enable experimental Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.")
+	fs.BoolVar(&enableCache, "enable-vault-token-cache", false, "Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.")
 	// max. 265k vault leases with 30bytes each ~= 7MB
-	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", defaultCacheSize, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
+	fs.IntVar(&vaultTokenCacheSize, "vault-token-cache-size", 0, "Maximum size of Vault token cache. When more tokens than Only used if --enable-vault-token-cache is set.")
+
+	// Deprecated experimental flags for backward compatibility
+	fs.BoolVar(&experimentalEnableCache, "experimental-enable-vault-token-cache", false, "DEPRECATED: Use --enable-vault-token-cache instead. This flag will be removed in a future release.")
+	fs.IntVar(&experimentalCacheSize, "experimental-vault-token-cache-size", 0, "DEPRECATED: Use --vault-token-cache-size instead. This flag will be removed in a future release.")
+
 	feature.Register(feature.Feature{
-		Flags:      fs,
-		Initialize: func() { initCache(vaultTokenCacheSize) },
+		Flags: fs,
+		Initialize: func() {
+			// Check for deprecated experimental flags and warn users
+			if experimentalEnableCache {
+				logger.Info("DEPRECATION WARNING: --experimental-enable-vault-token-cache is deprecated. Please use --enable-vault-token-cache instead. This flag will be removed in a future release.")
+				enableCache = true
+			}
+			if experimentalCacheSize > 0 {
+				logger.Info("DEPRECATION WARNING: --experimental-vault-token-cache-size is deprecated. Please use --vault-token-cache-size instead. This flag will be removed in a future release.")
+				vaultTokenCacheSize = experimentalCacheSize
+			}
+			initCache(vaultTokenCacheSize)
+		},
 	})
 
 	esv1.Register(&Provider{
