@@ -13,7 +13,7 @@ If you're new to ESO, start here:
 ## Installation & Setup
 
 ### Deploying ESO
-- [Helm Installation](../introduction/getting-started.md#install-external-secrets-operator)
+- [Helm Installation](../introduction/getting-started.md#installing-with-helm)
 - [Custom Resource Definitions](../api/spec.md)
 - [Controller Options](../api/controller-options.md)
 

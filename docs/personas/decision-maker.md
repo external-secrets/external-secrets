@@ -62,12 +62,12 @@ ESO supports 40+ secret management systems including:
 ### Compliance Considerations
 - [Supported Standards](../introduction/stability-support.md)
 - [Audit Capabilities](../api/metrics.md)
-- [Access Control](../guides/security-best-practices.md#rbac-and-access-control)
+- [Access Control](../guides/security-best-practices.md#role-based-access-control-rbac)
 
 ## Operational Considerations
 
 ### Deployment Options
-- [Helm Charts](../introduction/getting-started.md#install-external-secrets-operator)
+- [Helm Charts](../introduction/getting-started.md#installing-with-helm)
 - [Controller Classes](../guides/controller-class.md) - Multiple ESO instances
 - [Multi-tenancy](../guides/multi-tenancy.md) - Shared cluster deployments
 
@@ -80,7 +80,7 @@ ESO supports 40+ secret management systems including:
 
 ### Migration Paths
 - [Upgrading from v1beta1](../guides/v1beta1.md)
-- [Provider Migration](../guides/security-best-practices.md#migration-considerations)
+- [Provider Migration](../guides/security-best-practices.md)
 - [Integration Patterns](../examples/gitops-using-fluxcd.md)
 
 ## Community & Ecosystem
