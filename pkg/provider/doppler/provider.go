@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
+	dclient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -50,10 +50,12 @@ func init() {
 	}, esv1.MaintenanceStatusMaintained)
 }
 
+// Capabilities returns the provider's supported capabilities.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
+// NewClient creates a new Doppler client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 
@@ -79,7 +81,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	doppler, err := dClient.NewDopplerClient(client.dopplerToken)
+	doppler, err := dclient.NewDopplerClient(client.dopplerToken)
 	if err != nil {
 		return nil, fmt.Errorf(errNewClient, err)
 	}
@@ -106,6 +108,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return client, nil
 }
 
+// ValidateStore validates the Doppler provider configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	dopplerStoreSpec := storeSpec.Provider.Doppler

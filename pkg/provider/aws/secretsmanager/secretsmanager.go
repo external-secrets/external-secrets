@@ -29,6 +29,7 @@ import (
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/smithy-go"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -43,9 +44,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
+// PushSecretMetadataSpec contains metadata information for pushing secrets to AWS Secret Manager.
 type PushSecretMetadataSpec struct {
 	Tags             map[string]string `json:"tags,omitempty"`
 	Description      string            `json:"description,omitempty"`
@@ -141,6 +142,7 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1.ExternalSecretData
 	return secretOut, nil
 }
 
+// DeleteSecret deletes a secret from AWS Secrets Manager.
 func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	secretName := sm.prefix + remoteRef.GetRemoteKey()
 	secretValue := awssm.GetSecretValueInput{
@@ -187,6 +189,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 	return err
 }
 
+// SecretExists checks if a secret exists in AWS Secrets Manager.
 func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := sm.prefix + pushSecretRef.GetRemoteKey()
 	secretValue := awssm.GetSecretValueInput{
@@ -210,6 +213,7 @@ func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
 	return false, err
 }
 
+// PushSecret pushes a secret to AWS Secrets Manager.
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
 	value, err := utils.ExtractSecretData(psd, secret)
 	if err != nil {
@@ -479,10 +483,12 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1.ExternalSec
 	return secretData, nil
 }
 
+// Close closes the provider client connection.
 func (sm *SecretsManager) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate validates the provider configuration.
 func (sm *SecretsManager) Validate() (esv1.ValidationResult, error) {
 	// skip validation stack because it depends on the namespace
 	// of the ExternalSecret
@@ -497,6 +503,7 @@ func (sm *SecretsManager) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// Capabilities returns the provider's esv1.SecretStoreCapabilities.
 func (sm *SecretsManager) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
@@ -575,7 +582,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 	return sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags)
 }
 
-func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretId *string, tags map[string]string) error {
+func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
 	meta, err := sm.constructMetadataWithDefaults(metadata)
 	if err != nil {
 		return err
@@ -584,7 +591,7 @@ func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensions
 	tagKeysToRemove := util.FindTagKeysToRemove(tags, meta.Spec.Tags)
 	if len(tagKeysToRemove) > 0 {
 		_, err = sm.client.UntagResource(ctx, &awssm.UntagResourceInput{
-			SecretId: secretId,
+			SecretId: secretID,
 			TagKeys:  tagKeysToRemove,
 		})
 		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMUntagResource, err)
@@ -596,7 +603,7 @@ func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensions
 	tagsToUpdate, isModified := computeTagsToUpdate(tags, meta.Spec.Tags)
 	if isModified {
 		_, err = sm.client.TagResource(ctx, &awssm.TagResourceInput{
-			SecretId: secretId,
+			SecretId: secretID,
 			Tags:     tagsToUpdate,
 		})
 		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMTagResource, err)

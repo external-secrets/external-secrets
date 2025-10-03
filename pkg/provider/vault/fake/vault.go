@@ -29,11 +29,15 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
+// LoginFn is a function type that represents logging in to Vault using a specific authentication method.
 type LoginFn func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
+
+// Auth is a mock implementation of the Vault authentication interface for testing purposes.
 type Auth struct {
 	LoginFn LoginFn
 }
 
+// Login logs in to Vault using the specified authentication method.
 func (f Auth) Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error) {
 	return f.LoginFn(ctx, authMethod)
 }
@@ -135,66 +139,76 @@ func ExpectDeleteWithContextNoCall() DeleteWithContextFn {
 		return nil, errors.New("fail")
 	}
 }
-func WriteChangingReadContext(secret map[string]any, l Logical) WriteWithContextFn {
-	v := &vault.Secret{
-		Data: secret,
-	}
-	return func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
-		l.ReadWithDataWithContextFn = func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
-			return v, nil
-		}
-		return v, nil
-	}
-}
 
+// ReadWithDataWithContext reads the secret at the specified path in Vault with additional data.
 func (f Logical) ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 	return f.ReadWithDataWithContextFn(ctx, path, data)
 }
+
+// ListWithContext lists the secrets at the specified path in Vault.
 func (f Logical) ListWithContext(ctx context.Context, path string) (*vault.Secret, error) {
 	return f.ListWithContextFn(ctx, path)
 }
+
+// WriteWithContext writes data to the specified path in Vault.
 func (f Logical) WriteWithContext(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
 	return f.WriteWithContextFn(ctx, path, data)
 }
 
+// RevokeSelfWithContextFn is a function type that represents revoking the Vault token associated with the current client.
 type RevokeSelfWithContextFn func(ctx context.Context, token string) error
+
+// LookupSelfWithContextFn is a function type that represents looking up the Vault token associated with the current client.
 type LookupSelfWithContextFn func(ctx context.Context) (*vault.Secret, error)
 
+// Token is a mock implementation of the Vault token interface for testing purposes.
 type Token struct {
 	RevokeSelfWithContextFn RevokeSelfWithContextFn
 	LookupSelfWithContextFn LookupSelfWithContextFn
 }
 
+// RevokeSelfWithContext revokes the token associated with the current client.
 func (f Token) RevokeSelfWithContext(ctx context.Context, token string) error {
 	return f.RevokeSelfWithContextFn(ctx, token)
 }
+
+// LookupSelfWithContext looks up the token associated with the current client.
 func (f Token) LookupSelfWithContext(ctx context.Context) (*vault.Secret, error) {
 	return f.LookupSelfWithContextFn(ctx)
 }
 
+// MockSetTokenFn is a function type that represents setting the Vault token.
 type MockSetTokenFn func(v string)
 
+// MockTokenFn is a function type that represents getting the Vault token.
 type MockTokenFn func() string
 
+// MockClearTokenFn is a function type that represents clearing the Vault token.
 type MockClearTokenFn func()
 
+// MockNamespaceFn is a function type that represents getting the Vault namespace.
 type MockNamespaceFn func() string
 
+// MockSetNamespaceFn is a function type that represents setting the Vault namespace.
 type MockSetNamespaceFn func(namespace string)
 
+// MockAddHeaderFn is a function type that represents adding a header to the Vault client requests.
 type MockAddHeaderFn func(key, value string)
 
+// VaultListResponse is a struct to represent the response from a Vault list operation.
 type VaultListResponse struct {
 	Metadata *vault.Response
 	Data     *vault.Response
 }
 
+// NewAuthTokenFn returns a MockAuthToken that always returns a nil secret and nil error.
 func NewAuthTokenFn() Token {
-	return Token{nil, func(ctx context.Context) (*vault.Secret, error) {
+	return Token{nil, func(context.Context) (*vault.Secret, error) {
 		return &(vault.Secret{}), nil
 	}}
 }
 
+// NewSetTokenFn returns a MockSetTokenFn that calls the provided functions in order.
 func NewSetTokenFn(ofn ...func(v string)) MockSetTokenFn {
 	return func(v string) {
 		for _, fn := range ofn {
@@ -203,24 +217,14 @@ func NewSetTokenFn(ofn ...func(v string)) MockSetTokenFn {
 	}
 }
 
+// NewTokenFn returns a MockTokenFn that always returns the provided string.
 func NewTokenFn(v string) MockTokenFn {
 	return func() string {
 		return v
 	}
 }
 
-func NewClearTokenFn() MockClearTokenFn {
-	return func() {
-		// no-op
-	}
-}
-
-func NewAddHeaderFn() MockAddHeaderFn {
-	return func(key, value string) {
-		// no header
-	}
-}
-
+// VaultClient is a mock implementation of the Vault client interface for testing purposes.
 type VaultClient struct {
 	MockLogical      Logical
 	MockAuth         Auth
@@ -236,52 +240,63 @@ type VaultClient struct {
 	lock      sync.RWMutex
 }
 
+// Logical returns the mock Logical.
 func (c *VaultClient) Logical() Logical {
 	return c.MockLogical
 }
 
+// NewVaultLogical returns a new vault Logical instance.
 func NewVaultLogical() Logical {
 	logical := Logical{
-		ReadWithDataWithContextFn: func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+		ReadWithDataWithContextFn: func(context.Context, string, map[string][]string) (*vault.Secret, error) {
 			return nil, nil
 		},
-		ListWithContextFn: func(ctx context.Context, path string) (*vault.Secret, error) {
+		ListWithContextFn: func(context.Context, string) (*vault.Secret, error) {
 			return nil, nil
 		},
-		WriteWithContextFn: func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
+		WriteWithContextFn: func(context.Context, string, map[string]any) (*vault.Secret, error) {
 			return nil, nil
 		},
 	}
 	return logical
 }
+
+// Auth returns the mock authentication.
 func (c *VaultClient) Auth() Auth {
 	return c.MockAuth
 }
 
+// NewVaultAuth returns a mock authentication Auth.
 func NewVaultAuth() Auth {
 	auth := Auth{
-		LoginFn: func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error) {
+		LoginFn: func(context.Context, vault.AuthMethod) (*vault.Secret, error) {
 			return nil, nil
 		},
 	}
 	return auth
 }
+
+// AuthToken returns the mock authentication token interface.
 func (c *VaultClient) AuthToken() Token {
 	return c.MockAuthToken
 }
 
+// SetToken sets the authentication token.
 func (c *VaultClient) SetToken(v string) {
 	c.MockSetToken(v)
 }
 
+// Token returns the current authentication token.
 func (c *VaultClient) Token() string {
 	return c.MockToken()
 }
 
+// ClearToken clears the current authentication token.
 func (c *VaultClient) ClearToken() {
 	c.MockClearToken()
 }
 
+// Namespace returns the current Vault namespace.
 func (c *VaultClient) Namespace() string {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -289,20 +304,24 @@ func (c *VaultClient) Namespace() string {
 	return ns
 }
 
+// SetNamespace sets the Vault namespace.
 func (c *VaultClient) SetNamespace(namespace string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.namespace = namespace
 }
 
+// AddHeader adds a header to the Vault client requests.
 func (c *VaultClient) AddHeader(key, value string) {
 	c.MockAddHeader(key, value)
 }
 
+// ClientWithLoginMock returns a client with mocked login functionality.
 func ClientWithLoginMock(config *vault.Config) (util.Client, error) {
 	return clientWithLoginMockOptions(config)
 }
 
+// ModifiableClientWithLoginMock returns a factory function that creates clients with customizable mock behavior.
 func ModifiableClientWithLoginMock(opts ...func(cl *VaultClient)) func(config *vault.Config) (util.Client, error) {
 	return func(config *vault.Config) (util.Client, error) {
 		return clientWithLoginMockOptions(config, opts...)

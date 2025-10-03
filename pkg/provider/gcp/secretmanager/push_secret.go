@@ -29,13 +29,17 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
+// PushSecretMetadataMergePolicy defines how metadata should be merged when pushing secrets.
 type PushSecretMetadataMergePolicy string
 
 const (
+	// PushSecretMetadataMergePolicyReplace indicates that metadata should be replaced entirely.
 	PushSecretMetadataMergePolicyReplace PushSecretMetadataMergePolicy = "Replace"
-	PushSecretMetadataMergePolicyMerge   PushSecretMetadataMergePolicy = "Merge"
+	// PushSecretMetadataMergePolicyMerge indicates that metadata should be merged.
+	PushSecretMetadataMergePolicyMerge PushSecretMetadataMergePolicy = "Merge"
 )
 
+// PushSecretMetadataSpec defines the metadata specification for pushed secrets.
 type PushSecretMetadataSpec struct {
 	Annotations         map[string]string             `json:"annotations,omitempty"`
 	Labels              map[string]string             `json:"labels,omitempty"`
@@ -146,7 +150,7 @@ func (b *propertyPSBuilder) needUpdate(original []byte) bool {
 		return true
 	}
 
-	val := getDataByProperty(original, b.pushSecretData.GetProperty())
+	val, _ := getDataByProperty(original, b.pushSecretData.GetProperty())
 	return !val.Exists() || val.String() != string(b.payload)
 }
 

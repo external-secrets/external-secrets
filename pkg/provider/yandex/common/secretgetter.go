@@ -20,7 +20,7 @@ import (
 	"context"
 )
 
-// Adapts the secrets received from a remote Yandex.Cloud service for the format expected by v1beta1.SecretsClient.
+// SecretGetter adapts the secrets received from a remote Yandex.Cloud service for the format expected by v1.SecretsClient.
 type SecretGetter interface {
 	GetSecret(ctx context.Context, iamToken, resourceKey string, resourceKeyType ResourceKeyType, folderID, versionID, property string) ([]byte, error)
 	GetSecretMap(ctx context.Context, iamToken, resourceKey string, resourceKeyType ResourceKeyType, folderID, versionID string) (map[string][]byte, error)

@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package passworddepot implements a SecretStore provider for PasswordDepot.
 package passworddepot
 
 import (
@@ -40,6 +42,7 @@ const (
 	errNotImplemented                         = "%s not implemented"
 )
 
+// Client defines the interface for interacting with the PasswordDepot API.
 type Client interface {
 	GetSecret(database, key string) (SecretEntry, error)
 }
@@ -50,10 +53,12 @@ type PasswordDepot struct {
 	database string
 }
 
+// ValidateStore validates the PasswordDepot SecretStore resource configuration.
 func (p *PasswordDepot) ValidateStore(esv1.GenericStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *PasswordDepot) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
@@ -65,6 +70,8 @@ type passwordDepotClient struct {
 	namespace string
 	storeKind string
 }
+
+// Provider represents the PasswordDepot provider configuration.
 type Provider struct{}
 
 func (c *passwordDepotClient) getAuth(ctx context.Context) (string, string, error) {
@@ -99,7 +106,7 @@ func (c *passwordDepotClient) getAuth(ctx context.Context) (string, string, erro
 	return string(username), string(password), nil
 }
 
-// NewClient Method on PasswordDepot Provider to set up client with credentials and populate projectID.
+// NewClient constructs a new secrets client based on the provided store.
 func (p *PasswordDepot) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.PasswordDepot == nil {
@@ -131,26 +138,33 @@ func (p *PasswordDepot) NewClient(ctx context.Context, store esv1.GenericStore, 
 	return p, nil
 }
 
+// SecretExists checks if the secret exists in the PasswordDepot. This method is not implemented
+// as PasswordDepot is read-only.
 func (p *PasswordDepot) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf(errNotImplemented, "SecretExists")
 }
 
+// Validate performs validation of the PasswordDepot provider configuration.
 func (p *PasswordDepot) Validate() (esv1.ValidationResult, error) {
-	return 0, nil
+	return esv1.ValidationResultReady, nil
 }
 
+// PushSecret is not implemented for PasswordDepot as it is read-only.
 func (p *PasswordDepot) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return fmt.Errorf(errNotImplemented, "PushSecret")
 }
 
+// GetAllSecrets retrieves all secrets from PasswordDepot that match the given criteria.
 func (p *PasswordDepot) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf(errNotImplemented, "GetAllSecrets")
 }
 
+// DeleteSecret is not implemented for PasswordDepot as it is read-only.
 func (p *PasswordDepot) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return fmt.Errorf(errNotImplemented, "DeleteSecret")
 }
 
+// GetSecret retrieves a secret from PasswordDepot.
 func (p *PasswordDepot) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(p.client) {
 		return nil, errors.New(errUninitalizedPasswordDepotProvider)
@@ -169,6 +183,7 @@ func (p *PasswordDepot) GetSecret(_ context.Context, ref esv1.ExternalSecretData
 	return value, nil
 }
 
+// GetSecretMap retrieves a secret and returns it as a map of key/value pairs.
 func (p *PasswordDepot) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := p.client.GetSecret(p.database, ref.Key)
 	if err != nil {
@@ -178,6 +193,7 @@ func (p *PasswordDepot) GetSecretMap(_ context.Context, ref esv1.ExternalSecretD
 	return data.ToMap(), nil
 }
 
+// Close implements cleanup operations for the PasswordDepot provider.
 func (p *PasswordDepot) Close(_ context.Context) error {
 	return nil
 }
