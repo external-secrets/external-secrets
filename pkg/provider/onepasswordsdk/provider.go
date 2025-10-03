@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package onepasswordsdk implements a provider for 1Password using the official SDK.
+// It allows fetching and managing secrets stored in 1Password using their official Go SDK.
 package onepasswordsdk
 
 import (
@@ -42,12 +44,14 @@ const (
 	errNotImplemented                                   = "not implemented"
 )
 
+// Provider implements the External Secrets provider interface for 1Password SDK.
 type Provider struct {
 	client      *onepassword.Client
 	vaultPrefix string
 	vaultID     string
 }
 
+// NewClient constructs a new secrets client based on the provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	config := store.GetSpec().Provider.OnePasswordSDK
 	serviceAccountToken, err := resolvers.SecretKeyRef(
@@ -89,6 +93,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return p, nil
 }
 
+// ValidateStore validates the 1Password SDK SecretStore resource configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil {
@@ -121,6 +126,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }

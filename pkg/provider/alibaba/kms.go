@@ -49,29 +49,34 @@ const (
 var _ esv1.SecretsClient = &KeyManagementService{}
 var _ esv1.Provider = &KeyManagementService{}
 
+// KeyManagementService implements the Alibaba KMS provider for External Secrets.
 type KeyManagementService struct {
 	Client SMInterface
 	Config *openapi.Config
 }
 
+// SMInterface defines the interface for interacting with the Alibaba Secrets Manager.
 type SMInterface interface {
 	GetSecretValue(ctx context.Context, request *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponseBody, error)
 	Endpoint() string
 }
 
+// PushSecret implements the SecretsClient PushSecret interface for Alibaba Cloud KMS.
 func (kms *KeyManagementService) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
+// DeleteSecret implements the SecretsClient DeleteSecret interface for Alibaba Cloud KMS.
 func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
+// SecretExists implements the SecretsClient SecretExists interface for Alibaba Cloud KMS.
 func (kms *KeyManagementService) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets returns all secrets from the provider.
 func (kms *KeyManagementService) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, errors.New(errNotImplemented)
@@ -246,15 +251,16 @@ func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1.Gener
 	return credential.NewCredential(credentialConfig)
 }
 
+// Close cleans up resources when the provider is done being used.
 func (kms *KeyManagementService) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate checks if the provider is properly configured and ready to use.
 func (kms *KeyManagementService) Validate() (esv1.ValidationResult, error) {
 	err := retry.Do(
 		func() error {
-			_, err := kms.Config.Credential.GetCredential()
-			if err != nil {
+			if _, err := kms.Config.Credential.GetCredential(); err != nil {
 				return err
 			}
 
@@ -269,6 +275,7 @@ func (kms *KeyManagementService) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// ValidateStore validates the configuration of the store.
 func (kms *KeyManagementService) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba

@@ -35,11 +35,17 @@ import (
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
 
+// ActionsServiceClient defines the interface for interacting with GitHub Actions secrets.
 type ActionsServiceClient interface {
+	// CreateOrUpdateOrgSecret creates or updates an organization secret.
 	CreateOrUpdateOrgSecret(ctx context.Context, org string, eSecret *github.EncryptedSecret) (response *github.Response, err error)
+	// GetOrgSecret retrieves an organization secret.
 	GetOrgSecret(ctx context.Context, org string, name string) (*github.Secret, *github.Response, error)
+	// ListOrgSecrets lists all organization secrets.
 	ListOrgSecrets(ctx context.Context, org string, opts *github.ListOptions) (*github.Secrets, *github.Response, error)
 }
+
+// Client implements the External Secrets Kubernetes provider for GitHub Actions secrets.
 type Client struct {
 	crClient         client.Client
 	store            esv1.GenericStore
@@ -55,6 +61,7 @@ type Client struct {
 	deleteSecretFn   func(ctx context.Context, ref esv1.PushSecretRemoteRef) (*github.Response, error)
 }
 
+// DeleteSecret deletes a secret from GitHub Actions.
 func (g *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	_, err := g.deleteSecretFn(ctx, remoteRef)
 	if err != nil {
@@ -63,6 +70,7 @@ func (g *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return nil
 }
 
+// SecretExists checks if a secret exists in GitHub Actions.
 func (g *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	githubSecret, _, err := g.getSecretFn(ctx, ref)
 	if err != nil {
@@ -74,6 +82,7 @@ func (g *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	return false, nil
 }
 
+// PushSecret pushes a new secret to GitHub Actions.
 func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRef esv1.PushSecretData) error {
 	githubSecret, response, err := g.getSecretFn(ctx, remoteRef)
 	if err != nil && (response == nil || response.StatusCode != 404) {
@@ -133,15 +142,18 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 	return nil
 }
 
-func (g *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+// GetAllSecrets is not implemented as this provider is write-only.
+func (g *Client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
 }
 
-func (g *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+// GetSecret is not implemented as this provider is write-only.
+func (g *Client) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
 }
 
-func (g *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+// GetSecretMap is not implemented as this provider is write-only.
+func (g *Client) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
 }
 
@@ -149,6 +161,7 @@ func (g *Client) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate checks if the client is properly configured and has access to the GitHub Actions API.
 func (g *Client) Validate() (esv1.ValidationResult, error) {
 	if g.store.GetKind() == esv1.ClusterSecretStoreKind {
 		return esv1.ValidationResultUnknown, nil
