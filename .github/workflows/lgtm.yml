@@ -23,6 +23,7 @@ jobs:
       with:
         sparse-checkout: |
           CODEOWNERS.md
+        persist-credentials: false
 
     # Generate a GitHub App installation access token
     - name: Generate token
