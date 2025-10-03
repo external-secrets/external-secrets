@@ -327,6 +327,7 @@ type VaultCertAuth struct {
 	// Path where the Certificate authentication backend is mounted
 	// in Vault, e.g: "cert"
 	// +kubebuilder:default=cert
+	// +optional
 	Path string `json:"path"`
 
 	// ClientCert is a certificate to authenticate using the Cert Vault

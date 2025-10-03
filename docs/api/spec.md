@@ -10461,6 +10461,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the Certificate authentication backend is mounted
 in Vault, e.g: &ldquo;cert&rdquo;</p>
 </td>

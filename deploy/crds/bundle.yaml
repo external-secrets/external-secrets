@@ -6171,8 +6171,6 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
-                              required:
-                                - path
                               type: object
                             iam:
                               description: |-
@@ -17379,8 +17377,6 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
-                              required:
-                                - path
                               type: object
                             iam:
                               description: |-
@@ -24215,8 +24211,6 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
-                                  required:
-                                    - path
                                   type: object
                                 iam:
                                   description: |-
@@ -26731,8 +26725,6 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
-                          required:
-                            - path
                           type: object
                         iam:
                           description: |-
