@@ -15,7 +15,7 @@ fi
 
 # Assign parameters to variables
 ESO_VERSION="$1"
-K8S_VERSION="$(echo 1.$(cat $ROOT/go.mod | grep 'k8s.io/client-go' | cut -d'v' -f2 | cut -d'.' -f2))"
+K8S_VERSION="$(echo 1.$(cat "${ROOT}"/go.mod | grep 'k8s.io/client-go' | cut -d'v' -f2 | cut -d'.' -f2))"
 RELEASE_DATE=$(date +%B\ %d,\ %Y)
 
 
@@ -30,14 +30,14 @@ if [ ! -f "$FILE_PATH" ]; then
 fi
 
 echo "Checking for version: $ESO_VERSION"
-current=$(cat $ROOT/docs/introduction/stability-support.md | grep "$ESO_VERSION") || true
-if [[ $current != "" ]]; then
+current=$(cat "${ROOT}"/docs/introduction/stability-support.md | grep "$ESO_VERSION") || true
+if [[ "${current}" != "" ]]; then
 		echo "Version already exists. Nothing to do"
         exit 0
 fi
 
 # Set End of Life to "Release of next version"
-END_OF_LIFE="Release of $(echo $ESO_VERSION | awk -F. '{print $1"."$2+1}')"
+END_OF_LIFE="Release of $(echo "${ESO_VERSION}" | awk -F. '{print $1"."$2+1}')"
 
 # Create the new line to insert
 NEW_LINE="| $ESO_VERSION      | $K8S_VERSION               | $RELEASE_DATE  | $END_OF_LIFE |"
