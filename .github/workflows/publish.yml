@@ -61,6 +61,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ inputs.ref }}
+          persist-credentials: false
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
@@ -100,13 +101,15 @@ jobs:
         shell: bash
         env:
           GITHUB_REF: ${{ github.ref }}
+          INPUTS_IMAGE_TAG: ${{ inputs.image-tag }}
+          INPUTS_TAG_SUFFIX: ${{ inputs.tag-suffix }}
         run: |
           # rebuild-image
-          if [ "${{ inputs.image-tag }}" != "" ]; then
-            TAG="${{ inputs.image-tag }}${{ inputs.tag-suffix }}"
+          if [ "${INPUTS_IMAGE_TAG}" != "" ]; then
+            TAG="${INPUTS_IMAGE_TAG}${INPUTS_TAG_SUFFIX}"
           # main
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
-            TAG=${GITHUB_REF#refs/heads/}${{ inputs.tag-suffix }}
+            TAG=${GITHUB_REF#refs/heads/}${INPUTS_TAG_SUFFIX}
           # Pull Request
           else
             TAG=$(make docker.tag)
@@ -156,6 +159,8 @@ jobs:
           egress-policy: audit
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: Sign image
         if: env.IS_FORK != ''
         uses: ./.github/actions/sign
