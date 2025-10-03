@@ -157,9 +157,7 @@ func (g *Client) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemote
 	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
 }
 
-// Close cleans up any resources.
-func (g *Client) Close(ctx context.Context) error {
-	ctx.Done()
+func (g *Client) Close(_ context.Context) error {
 	return nil
 }
 

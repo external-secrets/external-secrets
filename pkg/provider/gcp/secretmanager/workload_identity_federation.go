@@ -295,7 +295,7 @@ func (w *workloadIdentityFederation) updateExternalAccountConfigWithSubjectToken
 		ns = *w.config.ServiceAccountRef.Namespace
 	}
 	config.SubjectTokenSupplier = &k8sSATokenReader{
-		audience:         config.Audience,
+		audience:         w.config.Audience,
 		subjectTokenType: workloadIdentitySubjectTokenType,
 		saTokenGenerator: w.saTokenGenerator,
 		saAudience:       w.config.ServiceAccountRef.Audiences,
