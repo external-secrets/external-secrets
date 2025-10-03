@@ -196,6 +196,7 @@ spec:
               key: string
               name: string
               namespace: string
+            path: "cert"
             secretRef:
               key: string
               name: string
