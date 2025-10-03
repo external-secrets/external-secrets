@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "pki-example-com"
+spec:
+  refreshInterval: "768h"
+  target:
+    name: pki-example-com
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: VaultDynamicSecret
+        name: "pki-example"

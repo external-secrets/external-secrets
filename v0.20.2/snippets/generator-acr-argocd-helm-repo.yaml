@@ -1,0 +1,38 @@
+{% raw %}
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ACRAccessToken
+metadata:
+  name: azurecr
+spec:
+  tenantId: 11111111-2222-3333-4444-111111111111
+  registry: example.azurecr.io
+  auth:
+    managedIdentity:
+      identityId: 11111111-2222-3333-4444-111111111111
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: azurecr-credentials
+spec:
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: ACRAccessToken
+          name: azurecr
+  refreshInterval: 3h
+  target:
+    name: azurecr-credentials
+    template:
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repository
+      data:
+        name: "example.azurecr.io"
+        url: "example.azurecr.io"
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+        enableOCI: "true"
+        type: "helm"
+{% endraw %}
