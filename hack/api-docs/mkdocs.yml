@@ -49,15 +49,17 @@ extra:
     provider: google
     property: G-QP38TD8K7V
 nav:
-  - Introduction:
-      - Introduction: index.md
+  - Get Started:
+      - Welcome: index.md
+      - Find Your Path: personas/index.md
+      - Quick Start: introduction/getting-started.md
       - Overview: introduction/overview.md
-      - Glossary: introduction/glossary.md
-      - Prerequisites: introduction/prerequisites.md
-      - Getting started: introduction/getting-started.md
-      - FAQ: introduction/faq.md
-      - Stability and Support: introduction/stability-support.md
-      - Deprecation Policy: introduction/deprecation-policy.md
+  - By Role:
+      - Decision Maker: personas/decision-maker.md
+      - Platform Admin: personas/platform-admin.md
+      - DevOps Engineer: personas/devops-engineer.md
+      - Application Developer: personas/app-developer.md
+      - Security Professional: personas/security-team.md
   - API:
       - Components: api/components.md
       - Core Resources:
@@ -89,30 +91,28 @@ nav:
           - Controller Options: api/controller-options.md
           - Metrics: api/metrics.md
           - Selectable Fields: api/selectable-fields.md
-  - Guides:
-      - Introduction: guides/introduction.md
-      - External Secrets:
-          - Extract structured data: guides/all-keys-one-secret.md
-          - Find Secrets by Name or Metadata: guides/getallsecrets.md
-          - Rewriting Keys: guides/datafrom-rewrite.md
-          - Advanced Templating:
-              - v2: guides/templating.md
-              - v1: guides/templating-v1.md
+  - How-To Guides:
+      - Getting Started: guides/introduction.md
+      - Secret Management:
+          - Working with External Secrets: guides/all-keys-one-secret.md
+          - Finding Secrets: guides/getallsecrets.md
+          - Transforming Data: guides/datafrom-rewrite.md
+          - Templating: guides/templating.md
           - Kubernetes Secret Types: guides/common-k8s-secret-types.md
-          - "Lifecycle: ownership & deletion": guides/ownership-deletion-policy.md
+          - Secret Lifecycle: guides/ownership-deletion-policy.md
           - Decoding Strategies: guides/decoding-strategy.md
+      - Advanced Features:
+          - Secret Generators: guides/generator.md
+          - Push Secrets: guides/pushsecrets.md
           - Controller Classes: guides/controller-class.md
-      - Generators: guides/generator.md
-      - Push Secrets: guides/pushsecrets.md
       - Operations:
-          - Multi Tenancy: guides/multi-tenancy.md
+          - Multi-tenancy: guides/multi-tenancy.md
           - Security Best Practices: guides/security-best-practices.md
           - Threat Model: guides/threat-model.md
-          - Upgrading to v1beta1: guides/v1beta1.md
-          - Using Latest Image: guides/using-latest-image.md
-          - Disable Cluster Features: guides/disable-cluster-features.md
-      - Tooling:
-          - Using the esoctl tool: guides/using-esoctl-tool.md
+          - Upgrading: guides/v1beta1.md
+          - Latest Image: guides/using-latest-image.md
+          - Disable Features: guides/disable-cluster-features.md
+          - esoctl Tool: guides/using-esoctl-tool.md
   - Provider:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
@@ -160,17 +160,24 @@ nav:
       - Anchore Engine: examples/anchore-engine-credentials.md
       - Jenkins: examples/jenkins-kubernetes-credentials.md
       - Bitwarden: examples/bitwarden.md
+  - Reference:
+      - Prerequisites: introduction/prerequisites.md
+      - FAQ: introduction/faq.md
+      - Glossary: introduction/glossary.md
+      - Stability & Support: introduction/stability-support.md
+      - Deprecation Policy: introduction/deprecation-policy.md
   - Community:
       - Contributing:
-          - Developer guide: contributing/devguide.md
+          - Developer Guide: contributing/devguide.md
           - Contributing Process: contributing/process.md
           - Release Process: contributing/release.md
           - Code of Conduct: contributing/coc.md
-          - Community meetings calendar: contributing/calendar.md
+          - Community Calendar: contributing/calendar.md
           - Roadmap: contributing/roadmap.md
           - Burnout Prevention: contributing/burnout-mitigation.md
-      - External Resources:
-          - Talks: eso-talks.md
-          - Demos: eso-demos.md
-          - Blogs: eso-blogs.md
-          - Tools: eso-tools.md
+      - Resources:
+          - Talks & Presentations: eso-talks.md
+          - Demos & Tutorials: eso-demos.md
+          - Blogs & Articles: eso-blogs.md
+          - Tools & Integrations: eso-tools.md
+          - Adopters: ../ADOPTERS.md
