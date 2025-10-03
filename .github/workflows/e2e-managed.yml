@@ -11,7 +11,7 @@ env:
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   GHCR_USERNAME: ${{ github.actor }}
   USE_GKE_GCLOUD_AUTH_PLUGIN: true
-  
+
   # GCP variables
   GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
   GCP_SM_SA_GKE_JSON: ${{ secrets.GCP_SM_SA_GKE_JSON }}
@@ -25,7 +25,7 @@ env:
   TF_VAR_GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
   GCP_FED_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
   GCP_FED_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
-  
+
   # AWS variables
   AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
   AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
@@ -36,7 +36,7 @@ env:
   TF_VAR_AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
   TF_VAR_AWS_REGION: "eu-central-1"
   TF_VAR_AWS_CLUSTER_NAME: "eso-e2e-managed"
-  
+
   # Azure variables
   TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID }}
   TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
@@ -352,7 +352,7 @@ jobs:
           script: |
             const conclusion = '${{ needs.test-aws.result }}${{ needs.test-gcp.result }}${{ needs.test-azure.result }}';
             const checkRunId = '${{ needs.setup.outputs.check_run_id }}';
-            
+
             // Determine the overall conclusion
             let finalConclusion = 'success';
             if (conclusion.includes('failure')) {
@@ -362,7 +362,7 @@ jobs:
             } else if (conclusion === '') {
               finalConclusion = 'skipped';
             }
-            
+
             if (checkRunId) {
               await github.rest.checks.update({
                 ...context.repo,

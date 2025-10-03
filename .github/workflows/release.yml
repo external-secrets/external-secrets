@@ -35,9 +35,12 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
+          persist-credentials: false
       - name: check-docs
         run: |
-          DOCS_VERSION=${{ github.event.inputs.version }} make docs.check
+          DOCS_VERSION=${GITHUB_EVENT_INPUTS_VERSION} make docs.check
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -54,6 +57,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
+          persist-credentials: false
 
       - name: Create Release
         uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
@@ -75,9 +79,10 @@ jobs:
 
       - name: Update Docs
         if: github.ref == 'refs/heads/main'
-        run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
+        run: make docs.publish DOCS_VERSION=${GITHUB_EVENT_INPUTS_VERSION} DOCS_ALIAS=latest
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
 
   promote:
     name: Promote Container Image
@@ -106,12 +111,14 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         id: setup-go
         with:
           go-version-file: "go.mod"
+          cache: false
 
       - name: Download Go modules
         if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
@@ -130,9 +137,11 @@ jobs:
       - name: Build release manifests
         run: |
           # temporarily patch the version so we generate manifests with the new version
-          yq e -i '.version = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
-          yq e -i '.appVersion = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i '.version = "${GITHUB_EVENT_INPUTS_VERSION}"' ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i '.appVersion = "${GITHUB_EVENT_INPUTS_VERSION}"' ./deploy/charts/external-secrets/Chart.yaml
           make manifests
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
 
       - name: Sign promoted image
         id: sign
