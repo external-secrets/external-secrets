@@ -52,6 +52,7 @@ func GetAWSProvider(store esv1.GenericStore) (*esv1.AWSProvider, error) {
 	return prov, nil
 }
 
+// IsReferentSpec checks if the AWS authentication configuration refers to resources in a different namespace.
 func IsReferentSpec(prov esv1.AWSAuth) bool {
 	if prov.JWTAuth != nil && prov.JWTAuth.ServiceAccountRef != nil && prov.JWTAuth.ServiceAccountRef.Namespace == nil {
 		return true
@@ -66,6 +67,7 @@ func IsReferentSpec(prov esv1.AWSAuth) bool {
 	return false
 }
 
+// SecretTagsToJSONString converts AWS Secrets Manager tags to a JSON string.
 func SecretTagsToJSONString(tags []awssm.Tag) (string, error) {
 	tagMap := make(map[string]string, len(tags))
 	for _, tag := range tags {
@@ -80,6 +82,7 @@ func SecretTagsToJSONString(tags []awssm.Tag) (string, error) {
 	return string(byteArr), nil
 }
 
+// ParameterTagsToJSONString converts parameter tags map to a JSON string.
 func ParameterTagsToJSONString(tags map[string]string) (string, error) {
 	byteArr, err := json.Marshal(tags)
 	if err != nil {
@@ -94,7 +97,7 @@ func ParameterTagsToJSONString(tags map[string]string) (string, error) {
 // synchronize the tags with the desired state.
 func FindTagKeysToRemove(tags, metaTags map[string]string) []string {
 	var diff []string
-	for key, _ := range tags {
+	for key := range tags {
 		if _, ok := metaTags[key]; !ok {
 			diff = append(diff, key)
 		}

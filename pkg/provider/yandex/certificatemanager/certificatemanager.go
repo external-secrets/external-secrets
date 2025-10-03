@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package certificatemanager implements the Yandex Cloud Certificate Manager provider for External Secrets Operator.
 package certificatemanager
 
 import (
@@ -63,7 +64,7 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 			folderID = policy.ByName.FolderID
 
 		case policy.ByID != nil:
-			resourceKeyType = common.ResourceKeyTypeId
+			resourceKeyType = common.ResourceKeyTypeID
 
 		default:
 			return nil, errors.New("invalid Yandex Certificate Manager SecretStore: requires either 'byName' or 'byID' policy")

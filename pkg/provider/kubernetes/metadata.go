@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package kubernetes implements a provider for Kubernetes secrets, allowing
+// External Secrets to read from and write to Kubernetes Secrets.
 package kubernetes
 
 import (
@@ -24,6 +26,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
+// PushSecretMetadataSpec defines the metadata configuration for pushing secrets.
 type PushSecretMetadataSpec struct {
 	TargetMergePolicy targetMergePolicy `json:"targetMergePolicy,omitempty"`
 	SourceMergePolicy sourceMergePolicy `json:"sourceMergePolicy,omitempty"`
@@ -35,6 +38,7 @@ type PushSecretMetadataSpec struct {
 
 type targetMergePolicy string
 
+// Target merge policy constants.
 const (
 	targetMergePolicyMerge   targetMergePolicy = "Merge"
 	targetMergePolicyReplace targetMergePolicy = "Replace"
@@ -43,6 +47,7 @@ const (
 
 type sourceMergePolicy string
 
+// Source merge policy constants.
 const (
 	sourceMergePolicyMerge   sourceMergePolicy = "Merge"
 	sourceMergePolicyReplace sourceMergePolicy = "Replace"
