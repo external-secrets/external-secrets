@@ -21,14 +21,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 	infisicalSdk "github.com/infisical/go-sdk"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -36,7 +36,7 @@ import (
 const (
 	machineIdentityLoginViaUniversalAuth         = "MachineIdentityLoginViaUniversalAuth"
 	machineIdentityLoginViaAzureAuth             = "MachineIdentityLoginViaAzureAuth"
-	machineIdentityLoginViaGcpIdTokenAuth        = "MachineIdentityLoginViaGcpIdTokenAuth"
+	machineIdentityLoginViaGCPIDTokenAuth        = "MachineIdentityLoginViaGcpIdTokenAuth"
 	machineIdentityLoginViaGcpServiceAccountAuth = "MachineIdentityLoginViaGcpServiceAccountAuth"
 	machineIdentityLoginViaJwtAuth               = "MachineIdentityLoginViaJwtAuth"
 	machineIdentityLoginViaLdapAuth              = "MachineIdentityLoginViaLdapAuth"
@@ -49,14 +49,16 @@ const (
 
 const errSecretDataFormat = "failed to get secret data identityId %w"
 
+// Provider implements the Infisical external secrets provider.
 type Provider struct {
 	cancelSdkClient context.CancelFunc
 	sdkClient       infisicalSdk.InfisicalClientInterface
-	apiScope        *InfisicalClientScope
+	apiScope        *ClientScope
 	authMethod      string
 }
 
-type InfisicalClientScope struct {
+// ClientScope represents the scope configuration for an Infisical client.
+type ClientScope struct {
 	EnvironmentSlug        string
 	ProjectSlug            string
 	Recursive              bool
@@ -74,6 +76,7 @@ func init() {
 	}, esv1.MaintenanceStatusMaintained)
 }
 
+// Capabilities returns the provider's supported capabilities.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
@@ -126,15 +129,15 @@ func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisic
 	return nil
 }
 
-func performGcpIdTokenAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
-	gcpIdTokenAuthCredentials := infisicalSpec.Auth.GcpIdTokenAuthCredentials
-	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIdTokenAuthCredentials.IdentityID)
+func performGcpIDTokenAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	gcpIDTokenAuthCredentials := infisicalSpec.Auth.GcpIdTokenAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIDTokenAuthCredentials.IdentityID)
 	if err != nil {
 		return fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	_, err = sdkClient.Auth().GcpIdTokenAuthLogin(identityID)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGcpIdTokenAuth, err)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGCPIDTokenAuth, err)
 
 	if err != nil {
 		return fmt.Errorf("failed to authenticate via gcp id token auth %w", err)
@@ -226,7 +229,7 @@ func performOciAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 		return fmt.Errorf("failed to get secret data privateKey %w", err)
 	}
 
-	var privateKeyPassphrase *string = nil
+	var privateKeyPassphrase *string
 	if ociAuthCredentials.PrivateKeyPassphrase.Name != "" {
 		passphrase, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.PrivateKeyPassphrase)
 		if err != nil {
@@ -329,6 +332,7 @@ func performTokenAuthLogin(ctx context.Context, store esv1.GenericStore, infisic
 	return nil
 }
 
+// NewClient creates a new Infisical client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 
@@ -358,8 +362,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		loginFn = performAzureAuthLogin
 		authMethod = machineIdentityLoginViaAzureAuth
 	case infisicalSpec.Auth.GcpIdTokenAuthCredentials != nil:
-		loginFn = performGcpIdTokenAuthLogin
-		authMethod = machineIdentityLoginViaGcpIdTokenAuth
+		loginFn = performGcpIDTokenAuthLogin
+		authMethod = machineIdentityLoginViaGCPIDTokenAuth
 	case infisicalSpec.Auth.GcpIamAuthCredentials != nil:
 		loginFn = performGcpIamAuthLogin
 		authMethod = machineIdentityLoginViaGcpServiceAccountAuth
@@ -394,7 +398,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return &Provider{
 		cancelSdkClient: cancelSdkClient,
 		sdkClient:       sdkClient,
-		apiScope: &InfisicalClientScope{
+		apiScope: &ClientScope{
 			EnvironmentSlug:        infisicalSpec.SecretsScope.EnvironmentSlug,
 			ProjectSlug:            infisicalSpec.SecretsScope.ProjectSlug,
 			Recursive:              infisicalSpec.SecretsScope.Recursive,
@@ -405,7 +409,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}, nil
 }
 
-func (p *Provider) Close(ctx context.Context) error {
+// Close releases any resources used by the provider.
+func (p *Provider) Close(_ context.Context) error {
 	p.cancelSdkClient()
 
 	// Don't revoke token if token auth was used
@@ -419,6 +424,8 @@ func (p *Provider) Close(ctx context.Context) error {
 	return err
 }
 
+// GetStoreSecretData retrieves secret data from a Kubernetes secret using the provided reference.
+// It handles namespace resolution and returns the secret value as a string.
 func GetStoreSecretData(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string, secret esmeta.SecretKeySelector) (string, error) {
 	secretRef := esmeta.SecretKeySelector{
 		Name: secret.Name,
@@ -435,6 +442,8 @@ func GetStoreSecretData(ctx context.Context, store esv1.GenericStore, kube kclie
 	return secretData, nil
 }
 
+// ValidateStore validates the Infisical SecretStore configuration.
+// It checks for required fields and valid authentication settings.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	infisicalStoreSpec := storeSpec.Provider.Infisical

@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -49,7 +50,9 @@ import (
 )
 
 const (
-	CloudPlatformRole               = "https://www.googleapis.com/auth/cloud-platform"
+	// CloudPlatformRole is the OAuth2 scope required for GCP Cloud Platform access.
+	CloudPlatformRole = "https://www.googleapis.com/auth/cloud-platform"
+
 	defaultVersion                  = "latest"
 	errGCPSMStore                   = "received invalid GCPSM SecretStore resource"
 	errUnableGetCredentials         = "unable to get credentials: %w"
@@ -81,6 +84,7 @@ const (
 	regionalSecretVersionsPath = "projects/%s/locations/%s/secrets/%s/versions/%s"
 )
 
+// Client represents a Google Cloud Platform Secret Manager client.
 type Client struct {
 	smClient  GoogleSecretManagerClient
 	kube      kclient.Client
@@ -92,6 +96,7 @@ type Client struct {
 	workloadIdentity *workloadIdentity
 }
 
+// GoogleSecretManagerClient defines the interface for interacting with Google Secret Manager.
 type GoogleSecretManagerClient interface {
 	DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
@@ -101,10 +106,12 @@ type GoogleSecretManagerClient interface {
 	Close() error
 	GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	UpdateSecret(context.Context, *secretmanagerpb.UpdateSecretRequest, ...gax.CallOption) (*secretmanagerpb.Secret, error)
+	ListSecretVersions(ctx context.Context, req *secretmanagerpb.ListSecretVersionsRequest, opts ...gax.CallOption) *secretmanager.SecretVersionIterator
 }
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
 
+// DeleteSecret deletes a secret from Google Cloud Secret Manager.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	name := getName(c.store.ProjectID, c.store.Location, remoteRef.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
@@ -139,6 +146,7 @@ func parseError(err error) error {
 	return err
 }
 
+// SecretExists checks if a secret exists in Google Cloud Secret Manager.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
@@ -500,8 +508,19 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	}
 	result, err := c.smClient.AccessSecretVersion(ctx, req)
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
-	err = parseError(err)
+	if err != nil && c.store.SecretVersionSelectionPolicy == esv1.SecretVersionSelectionPolicyLatestOrFetch &&
+		ref.Version == "" && isErrSecretDestroyedOrDisabled(err) {
+		// if the secret is destroyed or disabled, and we are configured to get the latest enabled secret,
+		// we need to get the latest enabled secret
+		// Extract the secret name from the version name for ListSecretVersions
+		secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.Key)
+		if c.store.Location != "" {
+			secretName = fmt.Sprintf(regionalSecretPath, c.store.ProjectID, c.store.Location, ref.Key)
+		}
+		result, err = getLatestEnabledVersion(ctx, c.smClient, secretName)
+	}
 	if err != nil {
+		err = parseError(err)
 		return nil, fmt.Errorf(errClientGetSecretAccess, err)
 	}
 
@@ -512,7 +531,10 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
-	val := getDataByProperty(result.Payload.Data, ref.Property)
+	val, err := getDataByProperty(result.Payload.Data, ref.Property)
+	if err != nil {
+		return nil, err
+	}
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
@@ -625,6 +647,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return secretData, nil
 }
 
+// Close closes the Google Cloud Secret Manager client connection.
 func (c *Client) Close(_ context.Context) error {
 	var err error
 	if c.smClient != nil {
@@ -640,6 +663,7 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate performs validation of the Google Cloud Secret Manager client configuration.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
 		return esv1.ValidationResultUnknown, nil
@@ -647,7 +671,10 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-func getDataByProperty(data []byte, property string) gjson.Result {
+func getDataByProperty(data []byte, property string) (gjson.Result, error) {
+	if !json.Valid(data) {
+		return gjson.Result{}, errors.New(errJSONSecretUnmarshal)
+	}
 	var payload string
 	if data != nil {
 		payload = string(data)
@@ -658,10 +685,10 @@ func getDataByProperty(data []byte, property string) gjson.Result {
 		refProperty = strings.ReplaceAll(refProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if val.Exists() {
-			return val
+			return val, nil
 		}
 	}
-	return gjson.Get(payload, property)
+	return gjson.Get(payload, property), nil
 }
 
 func getName(projectID, location, key string) string {
@@ -676,4 +703,33 @@ func getParentName(projectID, location string) string {
 		return fmt.Sprintf(regionalSecretParentPath, projectID, location)
 	}
 	return fmt.Sprintf(globalSecretParentPath, projectID)
+}
+
+func isErrSecretDestroyedOrDisabled(err error) bool {
+	st, _ := status.FromError(err)
+	return st.Code() == codes.FailedPrecondition &&
+		(strings.Contains(st.Message(), "DESTROYED state") || strings.Contains(st.Message(), "DISABLED state"))
+}
+
+func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClient, name string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+	iter := client.ListSecretVersions(ctx, &secretmanagerpb.ListSecretVersionsRequest{
+		Parent: name,
+		Filter: "state:ENABLED",
+	})
+	latestCreateTime := time.Unix(0, 0)
+	latestVersion := &secretmanagerpb.SecretVersion{}
+	for {
+		version, err := iter.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if version.CreateTime.AsTime().After(latestCreateTime) {
+			latestCreateTime = version.CreateTime.AsTime()
+			latestVersion = version
+		}
+	}
+	req := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: fmt.Sprintf("%s/versions/%s", name, latestVersion.Name),
+	}
+	return client.AccessSecretVersion(ctx, req)
 }

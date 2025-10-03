@@ -18,18 +18,24 @@ package clock
 
 import "time"
 
+// FakeClock provides a clock implementation with manually controlled time for testing.
 type FakeClock struct {
 	now time.Time
 }
 
+// NewFakeClock creates a new FakeClock instance initialized to current time.
 func NewFakeClock() *FakeClock {
-	return &FakeClock{time.Time{}}
+	return &FakeClock{
+		now: time.Now(),
+	}
 }
 
+// CurrentTime returns the current fake time.
 func (c *FakeClock) CurrentTime() time.Time {
 	return c.now
 }
 
+// AddDuration advances the fake clock by the specified duration.
 func (c *FakeClock) AddDuration(duration time.Duration) {
 	c.now = c.now.Add(duration)
 }

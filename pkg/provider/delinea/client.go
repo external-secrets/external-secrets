@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package delinea implements a provider for Delinea DevOps Secrets Vault.
+// It provides functionality to interact with secrets stored in Delinea DSV,
+// supporting operations like fetching secrets and managing secret lifecycles.
 package delinea
 
 import (

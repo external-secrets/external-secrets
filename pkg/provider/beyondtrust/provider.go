@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package beyondtrust provides a Password Safe secrets provider for External Secrets Operator.
 package beyondtrust
 
 import (
@@ -26,7 +27,7 @@ import (
 
 	auth "github.com/BeyondTrust/go-client-library-passwordsafe/api/authentication"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/logging"
-	managed_account "github.com/BeyondTrust/go-client-library-passwordsafe/api/managed_account"
+	managedaccount "github.com/BeyondTrust/go-client-library-passwordsafe/api/managed_account"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/secrets"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/utils"
 	"github.com/cenkalti/backoff/v4"
@@ -36,8 +37,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esoClient "github.com/external-secrets/external-secrets/pkg/utils"
-	resolvers "github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	esutils "github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -55,8 +56,9 @@ var (
 	errSecretRefAndValueConflict = errors.New("cannot specify both secret reference and value")
 	errMissingSecretName         = errors.New("must specify a secret name")
 	errMissingSecretKey          = errors.New("must specify a secret key")
-	ESOLogger                    = ctrl.Log.WithName("provider").WithName("beyondtrust")
-	maxFileSecretSizeBytes       = 5000000
+	// ESOLogger is the logger instance for the Beyondtrust provider.
+	ESOLogger              = ctrl.Log.WithName("provider").WithName("beyondtrust")
+	maxFileSecretSizeBytes = 5000000
 )
 
 // Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
@@ -68,6 +70,7 @@ type Provider struct {
 	separator     string
 }
 
+// AuthenticatorInput is used to pass parameters to the getAuthenticator function.
 type AuthenticatorInput struct {
 	Config                     *esv1.BeyondtrustProvider
 	HTTPClientObj              utils.HttpClientObj
@@ -111,7 +114,7 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	clientURL := p.apiURL
 
-	if err := esoClient.NetworkValidate(clientURL, timeout); err != nil {
+	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
 		ESOLogger.Error(err, "Network Validate", "clientURL:", clientURL)
 		return esv1.ValidationResultError, err
 	}
@@ -119,6 +122,8 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// SecretExists checks if a secret exists in the provider.
+// Currently not implemented for this provider.
 func (*Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
@@ -137,10 +142,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	certificate, certificateKey, err := loadCertificateFromConfig(ctx, config, kube, namespace, storeKind)
 	if err != nil {
 		return nil, fmt.Errorf("error loading certificate: %w", err)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("error loading secrets: %w", err)
 	}
 
 	clientTimeOutInSeconds, separator, retryMaxElapsedTimeMinutes := getConfigValues(config)
@@ -309,6 +310,7 @@ func validateSecretRef(ref *esv1.BeyondTrustProviderSecretRef) error {
 	return nil
 }
 
+// GetAllSecrets retrieves all secrets from Beyondtrust.
 func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("GetAllSecrets not implemented")
 }
@@ -333,7 +335,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 
 	managedFetch := func() (string, error) {
 		ESOLogger.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
-		manageAccountObj, _ := managed_account.NewManagedAccountObj(p.authenticate, &p.log)
+		manageAccountObj, _ := managedaccount.NewManagedAccountObj(p.authenticate, &p.log)
 		return manageAccountObj.GetSecret(retrievalPath, p.separator)
 	}
 	unmanagedFetch := func() (string, error) {

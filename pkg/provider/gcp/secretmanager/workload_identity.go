@@ -92,13 +92,14 @@ type workloadIdentity struct {
 	clusterProjectID     string
 }
 
-// interface to GCP IAM API.
+// IamClient provides an interface to the GCP IAM API.
 type IamClient interface {
 	GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
 	Close() error
 }
 
-// interface to GCP Metadata API.
+// MetadataClient defines the interface for interacting with GCP Metadata service.
+// It provides access to instance metadata and project information.
 type MetadataClient interface {
 	InstanceAttributeValueWithContext(ctx context.Context, attr string) (string, error)
 	ProjectIDWithContext(ctx context.Context) (string, error)
