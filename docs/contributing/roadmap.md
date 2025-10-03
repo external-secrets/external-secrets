@@ -1,3 +1,5 @@
+// TODO EVRARDJP: Review with SKARLSO whether we remove this page!!!
+
 # The road to external-secrets GA
 
 The following external-secret custom resource APIs are considered stable:
