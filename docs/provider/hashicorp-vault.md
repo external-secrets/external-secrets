@@ -321,7 +321,7 @@ Vault validates the service account token by using the TokenReview API. ⚠️ Y
 In Vault 1.21 and later, roles must include an audience or authentication will fail.
 
 Update your role definitions to include an audience, for example:
-```
+```yaml
  auth:
    kubernetes:
      mountPath: kubernetes/my-cluster
@@ -329,7 +329,7 @@ Update your role definitions to include an audience, for example:
      serviceAccountRef:
        name: my-service-account
        audiences:
-         - vault # <-- required in Vault 1.21+
+         - vault # Required for Vault 1.21+
 ```
 
 
