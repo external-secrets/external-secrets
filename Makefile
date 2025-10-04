@@ -347,6 +347,14 @@ tf.destroy.%:
 	terraform init && \
 	terraform destroy -auto-approve
 
+# The TF workspaces can output values which are fed into GitHub Actions
+# They are consumed by the e2e tests.
+# for instance, GCP creates a service account private key which is
+# passed into the e2e tests as an environment variable.
+tf.gha.output.%:
+	@cd $(TF_DIR)/$*/infrastructure && \
+	terraform output -json | jq -r 'to_entries[] | "\(.key)=\(.value.value)"' >> $$GITHUB_OUTPUT
+
 tf.fmt:
 	@cd $(TF_DIR) && \
 	terraform fmt -recursive

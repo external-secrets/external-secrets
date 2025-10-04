@@ -15,17 +15,19 @@ env:
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
   # credentials have been provided before trying to run steps that need them.
   GHCR_USERNAME: ${{ github.actor }}
-  GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
+  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY}}
   USE_GKE_GCLOUD_AUTH_PLUGIN: true
-  TF_VAR_GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
   GCP_SM_SA_GKE_JSON: ${{ secrets.GCP_SM_SA_GKE_JSON}}
-  GCP_GKE_CLUSTER: test-cluster
-  GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
-  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account
+  GCP_GKE_CLUSTER: e2e
+  TF_VAR_GCP_GKE_CLUSTER: e2e
+  GCP_FED_REGION: ${{ secrets.GCP_FED_REGION}}
+  TF_VAR_GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
   GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
-  TF_VAR_GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account for tf
   TF_VAR_GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account for tf
+  GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
+  TF_VAR_GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
+  GCP_FED_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
+  GCP_FED_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
 
   AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN}}
   AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
@@ -62,6 +64,7 @@ jobs:
       id-token: write #for oidc auth with aws/gcp/azure
       checks: write   #publish the commit status
       contents: read  #for checkout
+      packages: write #for publishing packages 
     steps:
     - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:

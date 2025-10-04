@@ -10,9 +10,9 @@ variable "network" {
 variable "subnetwork" {
   type = string
 }
-variable "GCP_GSA_NAME" {
-  type = string
+variable "workload_identity_users" {
+  type = list(string)
 }
-variable "GCP_KSA_NAME" {
+variable "cluster_name" {
   type = string
 }

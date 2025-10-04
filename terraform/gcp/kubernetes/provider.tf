@@ -1,28 +1,28 @@
 terraform {
+  backend "gcs" {
+    bucket = "eso-e2e-tfstate"
+    prefix = "gcp-kubernetes"
+  }
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 3.5"
+      version = "~> 7.5"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = "~> 3.5"
+      version = "~> 7.5"
     }
   }
 }
 
 provider "google" {
-  project     = "external-secrets-operator"
-  region      = "europe-west1"
-  zone        = "europe-west1-b"
-  credentials = file("../secrets/gcloud-service-account-key.json")
+  project = "external-secrets-operator"
+  region  = "europe-west1"
 }
 
 provider "google-beta" {
-  project     = "external-secrets-operator"
-  region      = "europe-west1"
-  zone        = "europe-west1-b"
-  credentials = file("../secrets/gcloud-service-account-key.json")
+  project = "external-secrets-operator"
+  region  = "europe-west1"
 }
 
 
@@ -36,7 +36,7 @@ provider "kubernetes" {
 
 
 data "google_container_cluster" "this" {
-  project  = var.GCP_PROJECT_ID
-  location = "europe-west1-b" # must match ../infrastructure
+  project  = var.GCP_FED_PROJECT_ID
+  location = "europe-west1" # must match ../infrastructure
   name     = "e2e"
 }

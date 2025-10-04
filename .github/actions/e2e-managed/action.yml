@@ -81,14 +81,13 @@ runs:
         role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Setup TF Gcloud Provider
-      shell: bash
+    - uses: 'google-github-actions/auth@fc2174804b84f912b1f6d334e9463f484f1c552d' # v3
       if: env.CLOUD_PROVIDER == 'gcp'
-      env:
-        GCP_SM_SA_GKE_JSON: ${{ env.GCP_SM_SA_GKE_JSON }}
-      run: |-
-        mkdir -p terraform/gcp/secrets
-        echo ${GCP_SM_SA_GKE_JSON} > terraform/gcp/secrets/gcloud-service-account-key.json
+      with:
+        project_id: ${{ env.GCP_FED_PROJECT_ID }}
+        service_account: ${{ env.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
+        workload_identity_provider: ${{ env.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
+        create_credentials_file: true
 
     - name: 'Az CLI login'
       uses: azure/login@v1
@@ -107,20 +106,20 @@ runs:
       run: |-
         PROVIDER=${{env.CLOUD_PROVIDER}}
         make tf.apply.${PROVIDER}
+        make tf.gha.output.${PROVIDER}
 
     - name: Setup gcloud CLI
       if: env.CLOUD_PROVIDER == 'gcp'
-      uses: google-github-actions/setup-gcloud@v0
+      uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
       with:
-        service_account_key: ${{ env.GCP_SM_SA_GKE_JSON }}
-        project_id: ${{ env.GCP_PROJECT_ID }}
         install_components: 'gke-gcloud-auth-plugin'
 
-    - name: Get the GKE credentials
-      shell: bash
-      if: env.CLOUD_PROVIDER == 'gcp'
-      run: |-
-        gcloud container clusters get-credentials "$GCP_GKE_CLUSTER" --zone "$GCP_GKE_ZONE" --project "$GCP_PROJECT_ID"
+    - id: 'get-credentials'
+      uses: 'google-github-actions/get-gke-credentials@v3'
+      with:
+        cluster_name: '${{ env.GCP_GKE_CLUSTER }}'
+        location: 'europe-west1'
+        project_id: '${{ env.GCP_FED_PROJECT_ID }}'
 
     - name: Get the AWS credentials
       shell: bash
@@ -145,11 +144,10 @@ runs:
     - name: Run managed e2e Tests
       shell: bash
       env:
-        GCP_SM_SA_JSON: ${{ env.GCP_SM_SA_JSON }}
+        GCP_SERVICE_ACCOUNT_KEY: ${{ env.GCP_SERVICE_ACCOUNT_KEY }}
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
         PROVIDER=${{env.CLOUD_PROVIDER}}
-        go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.6
         make test.e2e.managed GINKGO_LABELS="${PROVIDER} && managed" TEST_SUITES="provider"
 
     - name: Destroy TF
