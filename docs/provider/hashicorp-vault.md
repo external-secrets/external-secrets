@@ -317,6 +317,23 @@ Vault validates the service account token by using the TokenReview API. ⚠️ Y
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `serviceAccountRef` or in `secretRef`, if used.
 
+**NOTE:** Starting with Vault 1.20, roles without an audience will trigger warnings during authentication.
+In Vault 1.21 and later, roles must include an audience or authentication will fail.
+
+Update your role definitions to include an audience, for example:
+```
+ auth:
+   kubernetes:
+     mountPath: kubernetes/my-cluster
+     role: my-role
+     serviceAccountRef:
+       name: my-service-account
+       audiences:
+         - vault # <-- required in Vault 1.21+
+```
+
+
+
 #### LDAP authentication
 
 [LDAP authentication](https://www.vaultproject.io/docs/auth/ldap) uses
