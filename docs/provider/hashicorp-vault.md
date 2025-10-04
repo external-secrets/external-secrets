@@ -322,14 +322,14 @@ In Vault 1.21 and later, roles must include an audience or authentication will f
 
 Update your role definitions to include an audience, for example:
 ```yaml
- auth:
-   kubernetes:
-     mountPath: kubernetes/my-cluster
-     role: my-role
-     serviceAccountRef:
-       name: my-service-account
-       audiences:
-         - vault # Required for Vault 1.21+
+auth:
+  kubernetes:
+    mountPath: kubernetes/my-cluster
+    role: my-role
+    serviceAccountRef:
+      name: my-service-account
+      audiences:
+        - vault # Required for Vault 1.21+
 ```
 
 
