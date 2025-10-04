@@ -1,6 +1,6 @@
 resource "google_service_account" "default" {
   project    = var.project_id
-  account_id = var.GCP_GSA_NAME
+  account_id = "e2e-managed-secretmanager"
 }
 
 resource "google_project_iam_member" "secretadmin" {
@@ -34,6 +34,7 @@ resource "google_container_cluster" "primary" {
   network            = var.network
   subnetwork         = var.subnetwork
   location           = var.region
+  deletion_protection = false
 
   ip_allocation_policy {}
   workload_identity_config {
