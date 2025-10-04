@@ -49,7 +49,6 @@ kubectl run --rm \
   --env="GINKGO_LABELS=${GINKGO_LABELS:-.*}" \
   --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON:-}" \
   --env="GCP_PROJECT_ID=${GCP_PROJECT_ID:-}" \
-  --env="GCP_GSA_NAME=${GCP_GSA_NAME:-}" \
   --env="GCP_KSA_NAME=${GCP_KSA_NAME:-}" \
   --env="GCP_GKE_ZONE=${GCP_GKE_ZONE:-}" \
   --env="GCP_GKE_CLUSTER=${GCP_GKE_CLUSTER:-}" \

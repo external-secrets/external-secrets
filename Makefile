@@ -72,7 +72,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check ## Ensure a PR is ready for review.
+reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check tf.fmt ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 
@@ -324,26 +324,32 @@ docker.promote: ## Promote the docker image to the registry
 # ====================================================================================
 # Terraform
 
-tf.plan.%: ## Runs terraform plan for a provider
-	@cd $(TF_DIR)/$*; \
-	terraform init; \
-	terraform plan
+define run_terraform
+	@cd $(TF_DIR)/$1/infrastructure && \
+	terraform init && \
+	$2 && \
+	cd ../kubernetes && \
+	terraform init && \
+	$3
+endef
 
-tf.apply.%: ## Runs terraform apply for a provider
-	@cd $(TF_DIR)/$*; \
-	terraform init; \
-	terraform apply -auto-approve
+tf.plan.%:
+	$(call run_terraform,$*,terraform plan,terraform plan)
 
-tf.destroy.%: ## Runs terraform destroy for a provider
-	@cd $(TF_DIR)/$*; \
-	terraform init; \
+tf.apply.%:
+	$(call run_terraform,$*,terraform apply -auto-approve,terraform apply -auto-approve)
+
+tf.destroy.%:
+	@cd $(TF_DIR)/$*/kubernetes && \
+	terraform init && \
+	terraform destroy -auto-approve && \
+	cd ../infrastructure && \
+	terraform init && \
 	terraform destroy -auto-approve
 
-tf.show.%: ## Runs terraform show for a provider and outputs to a file
-	@cd $(TF_DIR)/$*; \
-	terraform init; \
-	terraform plan -out tfplan.binary; \
-	terraform show -json tfplan.binary > plan.json
+tf.fmt:
+	@cd $(TF_DIR) && \
+	terraform fmt -recursive
 
 # ====================================================================================
 # Help
