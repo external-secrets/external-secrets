@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package common contains shared functionality for Yandex.Cloud providers.
-package common
+// Package ydxcommon contains shared functionality for Yandex.Cloud providers.
+package ydxcommon
 
 import (
 	"context"

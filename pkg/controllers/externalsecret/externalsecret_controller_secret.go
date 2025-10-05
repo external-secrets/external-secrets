@@ -38,7 +38,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 )
 
-// getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
+// GetProviderSecretData returns the provider's secret data with the provided ExternalSecret.
 func (r *Reconciler) GetProviderSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret) (providerData map[string][]byte, err error) {
 	// We MUST NOT create multiple instances of a provider client (mostly due to limitations with GCP)
 	// Clientmanager keeps track of the client instances

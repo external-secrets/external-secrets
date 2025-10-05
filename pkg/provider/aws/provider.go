@@ -65,7 +65,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 // ValidateStore validates the configuration of the AWS SecretStore.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
-	prov, err := util.GetAWSProvider(store)
+	prov, err := awsutil.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
 	}
@@ -131,14 +131,14 @@ func validateSecretsManagerConfig(prov *esv1.AWSProvider) error {
 	if prov.SecretsManager == nil {
 		return nil
 	}
-	return util.ValidateDeleteSecretInput(awssm.DeleteSecretInput{
+	return awsutil.ValidateDeleteSecretInput(awssm.DeleteSecretInput{
 		ForceDeleteWithoutRecovery: &prov.SecretsManager.ForceDeleteWithoutRecovery,
 		RecoveryWindowInDays:       &prov.SecretsManager.RecoveryWindowInDays,
 	})
 }
 
 func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1.SecretsClient, error) {
-	prov, err := util.GetAWSProvider(store)
+	prov, err := awsutil.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
-	if util.IsReferentSpec(prov.Auth) && namespace == "" &&
+	if awsutil.IsReferentSpec(prov.Auth) && namespace == "" &&
 		store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind {
 		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("eu-west-1"))
 		if err != nil {

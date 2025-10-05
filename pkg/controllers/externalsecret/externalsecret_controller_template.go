@@ -32,7 +32,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register" // Loading registered providers.
 )
 
-// merge template in the following order:
+// ApplyTemplate merges templates in the following order:
 // * template.Data (highest precedence)
 // * template.TemplateFrom
 // * secret via es.data or es.dataFrom (if template.MergePolicy is Merge, or there is no template)

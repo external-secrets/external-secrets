@@ -158,7 +158,7 @@ func (p authTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region string, isClusterKind bool, kube kclient.Client, namespace string, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
+func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region string, isClusterKind bool, kube kclient.Client, namespace string, jwtProvider vaultutil.JwtProviderFactory) (*credentials.Credentials, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
@@ -200,7 +200,7 @@ func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region
 // credentials using aws.AssumeRoleWithWebIdentity. It will assume the role defined
 // in the ServiceAccount annotation.
 // The namespace of the controller service account is used.
-func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region string, kube kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
+func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region string, kube kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (*credentials.Credentials, error) {
 	sa := v1.ServiceAccount{}
 	err := kube.Get(ctx, types.NamespacedName{
 		Name:      saName,

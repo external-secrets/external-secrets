@@ -30,7 +30,7 @@ import (
 
 // ValidateStore validates the store.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
-	prov, err := util.GetConjurProvider(store)
+	prov, err := conjurutil.GetConjurProvider(store)
 	if err != nil {
 		return nil, err
 	}

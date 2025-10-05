@@ -57,6 +57,7 @@ var getSecretsClient secretsClientFactory = func(cfg *ngrok.ClientConfig) Secret
 	return secrets.NewClient(cfg)
 }
 
+// Provider implements the ngrok provider for External Secrets Operator.
 type Provider struct{}
 
 // Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite). Currently,

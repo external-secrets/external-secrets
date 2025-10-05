@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package pushsecret implements the controller for managing PushSecret resources.
 package pushsecret
 
 import (
@@ -49,6 +50,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
+	// Load registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 )
 
@@ -64,6 +66,9 @@ const (
 	errCloudNotUpdateFinalizer = "could not update finalizers: %w"
 )
 
+// Reconciler is the controller for PushSecret resources.
+// It manages the lifecycle of PushSecrets, ensuring that secrets are pushed to
+// specified secret stores according to the defined policies and templates.
 type Reconciler struct {
 	client.Client
 	Log             logr.Logger
@@ -74,6 +79,9 @@ type Reconciler struct {
 	ControllerClass string
 }
 
+// SetupWithManager sets up the controller with the Manager.
+// It configures the controller to watch PushSecret resources and
+// manages indexing for efficient lookups based on secret stores and deletion policies.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("pushsecret")
 
@@ -111,6 +119,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Complete(r)
 }
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("pushsecret", req.NamespacedName)
 
@@ -191,7 +203,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	if !shouldRefresh(ps) {
 		refreshInt = (ps.Spec.RefreshInterval.Duration - timeSinceLastRefresh) + 5*time.Second
-		log.V(1).Info("skipping refresh", "rv", util.GetResourceVersion(ps.ObjectMeta), "nr", refreshInt.Seconds())
+		log.V(1).Info("skipping refresh", "rv", ctrlutil.GetResourceVersion(ps.ObjectMeta), "nr", refreshInt.Seconds())
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 
@@ -269,7 +281,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 func shouldRefresh(ps esapi.PushSecret) bool {
-	if ps.Status.SyncedResourceVersion != util.GetResourceVersion(ps.ObjectMeta) {
+	if ps.Status.SyncedResourceVersion != ctrlutil.GetResourceVersion(ps.ObjectMeta) {
 		return true
 	}
 	if ps.Spec.RefreshInterval.Duration == 0 && ps.Status.SyncedResourceVersion != "" {
@@ -299,7 +311,7 @@ func (r *Reconciler) markAsDone(ps *esapi.PushSecret, secrets esapi.SyncedPushSe
 	SetPushSecretCondition(ps, *cond)
 	r.setSecrets(ps, secrets)
 	ps.Status.RefreshTime = metav1.NewTime(start)
-	ps.Status.SyncedResourceVersion = util.GetResourceVersion(ps.ObjectMeta)
+	ps.Status.SyncedResourceVersion = ctrlutil.GetResourceVersion(ps.ObjectMeta)
 	r.recorder.Event(ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
 }
 
@@ -323,6 +335,9 @@ func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSe
 	return out
 }
 
+// DeleteSecretFromProviders removes secrets from providers that are no longer needed.
+// It compares the existing synced secrets in the PushSecret status with the new desired state,
+// and deletes any secrets that are no longer present in the new state.
 func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap, mgr *secretstore.Manager) (esapi.SyncedPushSecretsMap, error) {
 	out := mergeSecretState(newMap, ps.Status.SyncedPushSecrets)
 	for storeName, oldData := range ps.Status.SyncedPushSecrets {
@@ -357,6 +372,7 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 	return out, nil
 }
 
+// DeleteAllSecretsFromStore removes all secrets from a given secret store.
 func (r *Reconciler) DeleteAllSecretsFromStore(ctx context.Context, client esv1.SecretsClient, data map[string]esapi.PushSecretData) error {
 	for _, v := range data {
 		err := r.DeleteSecretFromStore(ctx, client, v)
@@ -367,10 +383,14 @@ func (r *Reconciler) DeleteAllSecretsFromStore(ctx context.Context, client esv1.
 	return nil
 }
 
+// DeleteSecretFromStore removes a specific secret from a given secret store.
 func (r *Reconciler) DeleteSecretFromStore(ctx context.Context, client esv1.SecretsClient, data esapi.PushSecretData) error {
 	return client.DeleteSecret(ctx, data.Match.RemoteRef)
 }
 
+// PushSecretToProviders pushes the secret data to the specified secret stores.
+// It iterates over each store and handles the push operation according to the
+// defined update policies and conversion strategies.
 func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi.PushSecretStoreRef]esv1.GenericStore, ps esapi.PushSecret, secret *v1.Secret, mgr *secretstore.Manager) (esapi.SyncedPushSecretsMap, error) {
 	out := make(esapi.SyncedPushSecretsMap)
 	for ref, store := range stores {
@@ -513,6 +533,9 @@ func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace s
 	}, err
 }
 
+// GetSecretStores retrieves the SecretStore and ClusterSecretStore resources
+// referenced in the PushSecret. It supports both direct references by name
+// and label selectors to find multiple stores.
 func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (map[esapi.PushSecretStoreRef]esv1.GenericStore, error) {
 	stores := make(map[esapi.PushSecretStoreRef]esv1.GenericStore)
 	for _, refStore := range ps.Spec.SecretStoreRefs {
@@ -583,6 +606,7 @@ func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.
 	return &store, nil
 }
 
+// NewPushSecretCondition creates a new PushSecret condition.
 func NewPushSecretCondition(condType esapi.PushSecretConditionType, status v1.ConditionStatus, reason, message string) *esapi.PushSecretStatusCondition {
 	return &esapi.PushSecretStatusCondition{
 		Type:               condType,
@@ -593,6 +617,7 @@ func NewPushSecretCondition(condType esapi.PushSecretConditionType, status v1.Co
 	}
 }
 
+// SetPushSecretCondition updates the PushSecret to include the provided condition.
 func SetPushSecretCondition(ps *esapi.PushSecret, condition esapi.PushSecretStatusCondition) {
 	currentCond := GetPushSecretCondition(ps.Status.Conditions, condition.Type)
 	if currentCond != nil && currentCond.Status == condition.Status &&

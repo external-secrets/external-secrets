@@ -143,7 +143,7 @@ func TestGetAllSecrets(t *testing.T) {
 	type args struct {
 		store    *esv1.VaultProvider
 		kube     kclient.Client
-		vLogical util.Logical
+		vLogical vaultutil.Logical
 		ns       string
 		data     esv1.ExternalSecretFind
 	}

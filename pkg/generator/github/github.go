@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package github provides functionality for generating authentication tokens for GitHub.
 package github
 
 import (
@@ -36,10 +37,12 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
+// Generator implements GitHub token generation functionality.
 type Generator struct {
 	httpClient *http.Client
 }
 
+// Github represents a GitHub instance configuration with authentication details.
 type Github struct {
 	HTTP         *http.Client
 	Kube         client.Client
@@ -62,6 +65,8 @@ const (
 	httpClientTimeout = 5 * time.Second
 )
 
+// Generate creates an authentication token for GitHub.
+// It uses a GitHub App installation token to authenticate with GitHub API.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
@@ -71,7 +76,8 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+// Cleanup performs any necessary cleanup after token generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 
@@ -186,12 +192,11 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	return gh, nil
 }
 
-// Get github installation token.
+// GetInstallationToken generates a GitHub installation token using the provided private key and app ID.
 func GetInstallationToken(key *rsa.PrivateKey, aid string) (string, error) {
 	claims := jwt.RegisteredClaims{
-		Issuer:    aid,
-		IssuedAt:  jwt.NewNumericDate(time.Now().Add(-time.Second * 10)),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 300)),
+		Issuer:   aid,
+		IssuedAt: jwt.NewNumericDate(time.Now().Add(-time.Second * 10)),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)

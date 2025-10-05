@@ -180,7 +180,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 	if sm.config != nil && sm.config.RecoveryWindowInDays > 0 {
 		deleteInput.RecoveryWindowInDays = &sm.config.RecoveryWindowInDays
 	}
-	err = util.ValidateDeleteSecretInput(*deleteInput)
+	err = awsutil.ValidateDeleteSecretInput(*deleteInput)
 	if err != nil {
 		return err
 	}
@@ -404,7 +404,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1.ExternalSecret
 		return nil, err
 	}
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, awsutil.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if secretOut.SecretString != nil {
@@ -497,7 +497,7 @@ func (sm *SecretsManager) Validate() (esv1.ValidationResult, error) {
 	}
 	_, err := sm.cfg.Credentials.Retrieve(context.Background())
 	if err != nil {
-		return esv1.ValidationResultError, util.SanitizeErr(err)
+		return esv1.ValidationResultError, awsutil.SanitizeErr(err)
 	}
 
 	return esv1.ValidationResultReady, nil
@@ -588,7 +588,7 @@ func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensions
 		return err
 	}
 
-	tagKeysToRemove := util.FindTagKeysToRemove(tags, meta.Spec.Tags)
+	tagKeysToRemove := awsutil.FindTagKeysToRemove(tags, meta.Spec.Tags)
 	if len(tagKeysToRemove) > 0 {
 		_, err = sm.client.UntagResource(ctx, &awssm.UntagResourceInput{
 			SecretId: secretID,
@@ -666,7 +666,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, key, ver str
 		}
 		log.Info("found metadata secret", "key", key, "output", descOutput)
 
-		jsonTags, err := util.SecretTagsToJSONString(descOutput.Tags)
+		jsonTags, err := awsutil.SecretTagsToJSONString(descOutput.Tags)
 		if err != nil {
 			return nil, err
 		}

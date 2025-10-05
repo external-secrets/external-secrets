@@ -41,7 +41,7 @@ var (
 	_           esv1.Provider = &Provider{}
 	enableCache bool
 	logger      = ctrl.Log.WithName("provider").WithName("vault")
-	clientCache *cache.Cache[util.Client]
+	clientCache *cache.Cache[vaultutil.Client]
 )
 
 const (
@@ -60,16 +60,16 @@ const (
 type Provider struct {
 	// NewVaultClient is a function that returns a new Vault client.
 	// This is used for testing to inject a fake client.
-	NewVaultClient func(config *vault.Config) (util.Client, error)
+	NewVaultClient func(config *vault.Config) (vaultutil.Client, error)
 }
 
 // NewVaultClient returns a new Vault client.
-func NewVaultClient(config *vault.Config) (util.Client, error) {
+func NewVaultClient(config *vault.Config) (vaultutil.Client, error) {
 	vaultClient, err := vault.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
-	return &util.VaultClient{
+	return &vaultutil.VaultClient{
 		SetTokenFunc:     vaultClient.SetToken,
 		TokenFunc:        vaultClient.Token,
 		ClearTokenFunc:   vaultClient.ClearToken,
@@ -104,7 +104,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 }
 
 // NewGeneratorClient creates a new Vault client for the generator controller.
-func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1.VaultProvider, namespace string, retrySettings *esv1.SecretStoreRetrySettings) (util.Client, error) {
+func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1.VaultProvider, namespace string, retrySettings *esv1.SecretStoreRetrySettings) (vaultutil.Client, error) {
 	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 	return p.initClient(ctx, vStore, client, cfg, vaultSpec)
 }
 
-func (p *Provider) initClient(ctx context.Context, c *client, client util.Client, cfg *vault.Config, vaultSpec *esv1.VaultProvider) (esv1.SecretsClient, error) {
+func (p *Provider) initClient(ctx context.Context, c *client, client vaultutil.Client, cfg *vault.Config, vaultSpec *esv1.VaultProvider) (esv1.SecretsClient, error) {
 	if vaultSpec.Namespace != nil {
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
@@ -219,7 +219,7 @@ func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev
 	return c, cfg, nil
 }
 
-func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (util.Client, error) {
+func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (vaultutil.Client, error) {
 	vaultProvider := store.GetSpec().Provider.Vault
 	auth := vaultProvider.Auth
 	isStaticToken := auth != nil && auth.TokenSecretRef != nil
@@ -300,7 +300,7 @@ func isReferentSpec(prov *esv1.VaultProvider) bool {
 
 func initCache(size int) {
 	logger.Info("initializing vault cache", "size", size)
-	clientCache = cache.Must(size, func(client util.Client) {
+	clientCache = cache.Must(size, func(client vaultutil.Client) {
 		err := revokeTokenIfValid(context.Background(), client)
 		if err != nil {
 			logger.Error(err, "unable to revoke cached token on eviction")

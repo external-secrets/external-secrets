@@ -64,7 +64,7 @@ func TestGetSecret(t *testing.T) {
 	type args struct {
 		store    *esv1.VaultProvider
 		kube     kclient.Client
-		vLogical util.Logical
+		vLogical vaultutil.Logical
 		ns       string
 		data     esv1.ExternalSecretDataRemoteRef
 	}
@@ -387,7 +387,7 @@ func TestGetSecretMap(t *testing.T) {
 	type args struct {
 		store   *esv1.VaultProvider
 		kube    kclient.Client
-		vClient util.Logical
+		vClient vaultutil.Logical
 		ns      string
 		data    esv1.ExternalSecretDataRemoteRef
 	}
@@ -769,7 +769,7 @@ func TestSecretExists(t *testing.T) {
 	errNope := errors.New("nope")
 	type args struct {
 		store   *esv1.VaultProvider
-		vClient util.Logical
+		vClient vaultutil.Logical
 	}
 	type want struct {
 		exists bool

@@ -33,7 +33,7 @@ type grpcLockboxClient struct {
 
 // NewGrpcLockboxClient creates a new LockboxClient.
 func NewGrpcLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (LockboxClient, error) {
-	conn, err := common.NewGrpcConnection(
+	conn, err := ydxcommon.NewGrpcConnection(
 		ctx,
 		apiEndpoint,
 		"lockbox-payload", // taken from https://api.cloud.yandex.net/endpoints
@@ -53,7 +53,7 @@ func (c *grpcLockboxClient) GetPayloadEntries(ctx context.Context, iamToken, sec
 			SecretId:  secretID,
 			VersionId: versionID,
 		},
-		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
+		grpc.PerRPCCredentials(ydxcommon.PerRPCCredentials{IamToken: iamToken}),
 	)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (c *grpcLockboxClient) GetExPayload(ctx context.Context, iamToken, folderID
 	response, err := c.lockboxPayloadClient.GetEx(
 		ctx,
 		request,
-		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
+		grpc.PerRPCCredentials(ydxcommon.PerRPCCredentials{IamToken: iamToken}),
 	)
 	if err != nil {
 		return nil, err

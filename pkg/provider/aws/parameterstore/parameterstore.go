@@ -311,7 +311,7 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 		return err
 	}
 
-	tagKeysToRemove := util.FindTagKeysToRemove(tags, metaTags)
+	tagKeysToRemove := awsutil.FindTagKeysToRemove(tags, metaTags)
 	if len(tagKeysToRemove) > 0 {
 		_, err = pm.client.RemoveTagsFromResource(ctx, &ssm.RemoveTagsFromResourceInput{
 			ResourceId:   existing.Parameter.Name,
@@ -516,7 +516,7 @@ func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byt
 	})
 	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
 	if err != nil {
-		return util.SanitizeErr(err)
+		return awsutil.SanitizeErr(err)
 	}
 
 	data[name] = []byte(*out.Parameter.Value)
@@ -539,7 +539,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1.ExternalSecret
 		return nil, esv1.NoSecretErr
 	}
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, awsutil.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if out.Parameter.Value != nil {
@@ -572,13 +572,15 @@ func (pm *ParameterStore) getParameterTags(ctx context.Context, ref esv1.Externa
 	if err != nil {
 		return nil, err
 	}
-	json, err := util.ParameterTagsToJSONString(tags)
+
+	jsonStr, err := awsutil.ParameterTagsToJSONString(tags)
 	if err != nil {
 		return nil, err
 	}
+
 	out := &ssm.GetParameterOutput{
 		Parameter: &ssmTypes.Parameter{
-			Value: &json,
+			Value: &jsonStr,
 		},
 	}
 	return out, nil

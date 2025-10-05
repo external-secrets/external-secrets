@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package externalsecret implements the controller for managing ExternalSecret resources
 package externalsecret
 
 import (
@@ -605,7 +606,7 @@ func (r *Reconciler) markAsDone(externalSecret *esv1.ExternalSecret, start time.
 	SetExternalSecretCondition(externalSecret, *newReadyCondition)
 
 	externalSecret.Status.RefreshTime = metav1.NewTime(start)
-	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersion(externalSecret.ObjectMeta)
+	externalSecret.Status.SyncedResourceVersion = ctrlutil.GetResourceVersion(externalSecret.ObjectMeta)
 
 	// if the status or reason has changed, log at the appropriate verbosity level
 	if oldReadyCondition == nil || oldReadyCondition.Status != newReadyCondition.Status || oldReadyCondition.Reason != newReadyCondition.Reason {
@@ -930,7 +931,7 @@ func shouldRefresh(es *esv1.ExternalSecret) bool {
 			return true
 		}
 
-		return es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta)
+		return es.Status.SyncedResourceVersion != ctrlutil.GetResourceVersion(es.ObjectMeta)
 
 	case esv1.RefreshPolicyPeriodic:
 		return shouldRefreshPeriodic(es)
@@ -947,7 +948,7 @@ func shouldRefreshPeriodic(es *esv1.ExternalSecret) bool {
 	}
 
 	// if the ExternalSecret has been updated, we should refresh
-	if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
+	if es.Status.SyncedResourceVersion != ctrlutil.GetResourceVersion(es.ObjectMeta) {
 		return true
 	}
 

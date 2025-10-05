@@ -61,7 +61,7 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		return c.client, nil
 	}
 
-	prov, err := util.GetConjurProvider(c.store)
+	prov, err := conjurutil.GetConjurProvider(c.store)
 	if err != nil {
 		return nil, err
 	}

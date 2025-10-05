@@ -43,10 +43,10 @@ type client struct {
 	store     *esv1.VaultProvider
 	log       logr.Logger
 	corev1    typedcorev1.CoreV1Interface
-	client    util.Client
-	auth      util.Auth
-	logical   util.Logical
-	token     util.Token
+	client    vaultutil.Client
+	auth      vaultutil.Auth
+	logical   vaultutil.Logical
+	token     vaultutil.Token
 	namespace string
 	storeKind string
 }

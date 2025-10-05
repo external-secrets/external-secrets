@@ -88,7 +88,7 @@ type Opts struct {
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
 func New(ctx context.Context, opts Opts) (*aws.Config, error) {
-	prov, err := util.GetAWSProvider(opts.Store)
+	prov, err := awsutil.GetAWSProvider(opts.Store)
 	if err != nil {
 		return nil, err
 	}

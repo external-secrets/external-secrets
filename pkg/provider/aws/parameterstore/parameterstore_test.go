@@ -865,7 +865,7 @@ func TestGetSecret(t *testing.T) {
 			TagList: getTagSlice(),
 		}
 		pstc.fakeClient.ListTagsForResourceFn = fakeps.NewListTagsForResourceFn(&output, nil)
-		pstc.expectedSecret, _ = util.ParameterTagsToJSONString(normaliseTags(getTagSlice()))
+		pstc.expectedSecret, _ = awsutil.ParameterTagsToJSONString(normaliseTags(getTagSlice()))
 	}
 
 	// good case: metadata property returned
