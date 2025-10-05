@@ -18,8 +18,8 @@ package v1
 
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// ScalewayProviderSecretRef defines the configuration for Scaleway secret references.
 type ScalewayProviderSecretRef struct {
-
 	// Value can be specified directly to set a value without using a secret.
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -29,8 +29,8 @@ type ScalewayProviderSecretRef struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
+// ScalewayProvider defines the configuration for the Scaleway Secret Manager provider.
 type ScalewayProvider struct {
-
 	// APIURL is the url of the api to use. Defaults to https://api.scaleway.com
 	// +optional
 	APIURL string `json:"apiUrl,omitempty"`

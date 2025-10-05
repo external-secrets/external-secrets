@@ -20,12 +20,14 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// YandexAuth defines the authentication method for the Yandex provider.
 type YandexAuth struct {
 	// The authorized key used for authentication
 	// +optional
 	AuthorizedKey esmeta.SecretKeySelector `json:"authorizedKeySecretRef,omitempty"`
 }
 
+// YandexCAProvider defines the configuration for Yandex custom certificate authority.
 type YandexCAProvider struct {
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 }
@@ -39,6 +41,7 @@ type ByName struct {
 	FolderID string `json:"folderID"`
 }
 
+// FetchingPolicy configures how the provider interprets the `data.secretKey.remoteRef.key` field in ExternalSecret.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type FetchingPolicy struct {

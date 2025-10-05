@@ -18,6 +18,7 @@ package v1beta1
 
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// BeyondTrustProviderSecretRef defines a reference to a secret containing credentials for the BeyondTrust provider.
 type BeyondTrustProviderSecretRef struct {
 
 	// Value can be specified directly to set a value without using a secret.
@@ -29,7 +30,7 @@ type BeyondTrustProviderSecretRef struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// Configures a store to sync secrets using BeyondTrust Password Safe.
+// BeyondtrustAuth configures authentication for BeyondTrust Password Safe.
 type BeyondtrustAuth struct {
 	// APIKey If not provided then ClientID/ClientSecret become required.
 	APIKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
@@ -43,7 +44,7 @@ type BeyondtrustAuth struct {
 	CertificateKey *BeyondTrustProviderSecretRef `json:"certificateKey,omitempty"`
 }
 
-// Configures a store to sync secrets using BeyondTrust Password Safe.
+// BeyondtrustServer defines configuration for connecting to BeyondTrust Password Safe server.
 type BeyondtrustServer struct {
 	// +required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
 	APIURL string `json:"apiUrl"`
@@ -59,6 +60,7 @@ type BeyondtrustServer struct {
 	ClientTimeOutSeconds int `json:"clientTimeOutSeconds,omitempty"`
 }
 
+// BeyondtrustProvider defines configuration for the BeyondTrust Password Safe provider.
 type BeyondtrustProvider struct {
 
 	// Auth configures how the operator authenticates with Beyondtrust.

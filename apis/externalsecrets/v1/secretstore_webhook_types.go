@@ -22,7 +22,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// WebHookProvider Configures an store to sync secrets from simple web apis.
+// WebhookProvider configures a store to sync secrets from simple web APIs.
 type WebhookProvider struct {
 	// Webhook Method
 	// +optional, default GET
@@ -83,14 +83,19 @@ type NTLMProtocol struct {
 	UserName esmeta.SecretKeySelector `json:"usernameSecret"`
 	Password esmeta.SecretKeySelector `json:"passwordSecret"`
 }
+
+// WebhookCAProviderType defines the type of provider for certificate authority in webhook connections.
 type WebhookCAProviderType string
 
+// These are valid CA provider types for webhook connections.
 const (
-	WebhookCAProviderTypeSecret    WebhookCAProviderType = "Secret"
+	// WebhookCAProviderTypeSecret indicates that the CA certificate is stored in a Secret resource.
+	WebhookCAProviderTypeSecret WebhookCAProviderType = "Secret"
+	// WebhookCAProviderTypeConfigMap indicates that the CA certificate is stored in a ConfigMap resource.
 	WebhookCAProviderTypeConfigMap WebhookCAProviderType = "ConfigMap"
 )
 
-// Defines a location to fetch the cert for the webhook provider from.
+// WebhookCAProvider defines a location to fetch the cert for the webhook provider from.
 type WebhookCAProvider struct {
 	// The type of provider to use such as "Secret", or "ConfigMap".
 	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
@@ -117,12 +122,14 @@ type WebhookCAProvider struct {
 	Namespace *string `json:"namespace,omitempty"`
 }
 
+// WebhookResult defines how to process and extract secrets from the webhook response.
 type WebhookResult struct {
 	// Json path of return value
 	// +optional
 	JSONPath string `json:"jsonPath,omitempty"`
 }
 
+// WebhookSecret defines a secret that will be passed to the webhook request.
 type WebhookSecret struct {
 	// Name of this secret in templates
 	Name string `json:"name"`

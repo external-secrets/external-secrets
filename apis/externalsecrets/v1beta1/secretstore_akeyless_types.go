@@ -40,6 +40,7 @@ type AkeylessProvider struct {
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
+// AkeylessAuth defines methods of authentication with Akeyless Vault.
 type AkeylessAuth struct {
 
 	// Reference to a Secret that contains the details
@@ -53,7 +54,7 @@ type AkeylessAuth struct {
 	KubernetesAuth *AkeylessKubernetesAuth `json:"kubernetesAuth,omitempty"`
 }
 
-// AkeylessAuthSecretRef
+// AkeylessAuthSecretRef defines how to authenticate using a secret reference.
 // AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.
 type AkeylessAuthSecretRef struct {
 	// The SecretAccessID is used for authentication
@@ -62,7 +63,7 @@ type AkeylessAuthSecretRef struct {
 	AccessTypeParam esmeta.SecretKeySelector `json:"accessTypeParam,omitempty"`
 }
 
-// Authenticate with Kubernetes ServiceAccount token stored.
+// AkeylessKubernetesAuth authenticates with Akeyless using a Kubernetes ServiceAccount token.
 type AkeylessKubernetesAuth struct {
 
 	// the Akeyless Kubernetes auth-method access-id

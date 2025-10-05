@@ -22,6 +22,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// ECRAuthorizationTokenSpec defines the desired state to generate an AWS ECR authorization token.
 type ECRAuthorizationTokenSpec struct {
 	// Region specifies the region to operate in.
 	Region string `json:"region"`
@@ -67,13 +68,12 @@ type AWSAuthSecretRef struct {
 	SessionToken *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
 }
 
-// Authenticate against AWS using service account tokens.
+// AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
 type AWSJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
-// ECRAuthorizationTokenSpec uses the GetAuthorizationToken API to retrieve an
-// authorization token.
+// ECRAuthorizationToken uses the GetAuthorizationToken API to retrieve an authorization token.
 // The authorization token is valid for 12 hours.
 // The authorizationToken returned is a base64 encoded string that can be decoded
 // and used in a docker login command to authenticate to a registry.

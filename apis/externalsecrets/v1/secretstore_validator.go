@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+// Ensures ExternalSecretValidator implements the admission.CustomValidator interface correctly.
 var _ admission.CustomValidator = &GenericStoreValidator{}
 
 const (
@@ -33,6 +34,7 @@ const (
 	warnStoreUnmaintained = "store %s isn't currently maintained. Please plan and prepare accordingly."
 )
 
+// GenericStoreValidator implements webhook validation for SecretStore and ClusterSecretStore resources.
 type GenericStoreValidator struct{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
