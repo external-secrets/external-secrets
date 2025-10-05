@@ -4921,6 +4921,18 @@ options of obtaining credentials for vault:</p>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault&quot;</span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>serviceAccountRef</code> or in <code>secretRef</code>, if used.</p>
+<p><strong>NOTE:</strong> Starting with Vault 1.20, roles without an audience will trigger warnings during authentication.
+In Vault 1.21 and later, roles must include an audience or authentication will fail.</p>
+<p>Update your role definitions to include an audience, for example:
+<div class="highlight"><pre><span></span><code><span class="nt">auth</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">kubernetes</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes/my-cluster</span>
+<span class="w">    </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-role</span>
+<span class="w">    </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-service-account</span>
+<span class="w">      </span><span class="nt">audiences</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault</span><span class="w"> </span><span class="c1"># Required for Vault 1.21+</span>
+</code></pre></div></p>
 <h4 id="ldap-authentication">LDAP authentication</h4>
 <p><a href="https://www.vaultproject.io/docs/auth/ldap">LDAP authentication</a> uses
 username/password pair to get an access token. Username is stored directly in
