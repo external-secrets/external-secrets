@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package cache provides a generic lru cache with versioning support.
+// Package cache provides a generic LRU cache with versioning support.
 package cache
 
 import (
