@@ -32,9 +32,9 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (

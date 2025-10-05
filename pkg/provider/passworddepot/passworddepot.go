@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 // Requires PASSWORDDEPOT_TOKEN and PASSWORDDEPOT_PROJECT_ID to be set in environment variables
@@ -166,7 +166,7 @@ func (p *PasswordDepot) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteR
 
 // GetSecret retrieves a secret from PasswordDepot.
 func (p *PasswordDepot) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(p.client) {
+	if esutils.IsNil(p.client) {
 		return nil, errors.New(errUninitalizedPasswordDepotProvider)
 	}
 

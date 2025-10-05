@@ -30,8 +30,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
+
 )
 
 // Generator implements GCR token generation functionality.

@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 // Generator implements the Cloudsmith access token generator.
@@ -96,7 +96,7 @@ func (g *Generator) generate(ctx context.Context, cloudsmithSpec *apiextensions.
 	}
 
 	// Fetch the service account token
-	oidcToken, err := utils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, targetNamespace)
+	oidcToken, err := esutils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, targetNamespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
@@ -111,7 +111,7 @@ func (g *Generator) generate(ctx context.Context, cloudsmithSpec *apiextensions.
 		return nil, nil, fmt.Errorf(errExchangeToken, err)
 	}
 
-	exp, err := utils.ExtractJWTExpiration(accessToken)
+	exp, err := esutils.ExtractJWTExpiration(accessToken)
 	if err != nil {
 		return nil, nil, err
 	}

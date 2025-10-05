@@ -29,7 +29,7 @@ import (
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/smithy-go"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -40,10 +40,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to AWS Secret Manager.
@@ -215,7 +215,7 @@ func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
 
 // PushSecret pushes a secret to AWS Secrets Manager.
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
-	value, err := utils.ExtractSecretData(psd, secret)
+	value, err := esutils.ExtractSecretData(psd, secret)
 	if err != nil {
 		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
@@ -543,7 +543,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 }
 
 func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
-	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
+	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || esutils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
 		return nil
 	}
 
@@ -560,7 +560,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 		SecretBinary:       value,
 		ClientRequestToken: aws.String(newVersionNumber),
 	}
-	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	secretPushFormat, err := esutils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
 	if err != nil {
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}

@@ -44,8 +44,8 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/util"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -162,7 +162,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 						esv1.LabelManaged: esv1.LabelManagedValue,
 					},
 					Annotations: map[string]string{
-						esv1.AnnotationDataHash: utils.ObjectHash(validData),
+						esv1.AnnotationDataHash: esutils.ObjectHash(validData),
 					},
 				},
 				Data: validData,
@@ -1999,7 +1999,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const secretVal = "someValue"
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
-			expectedHash := utils.ObjectHash(map[string][]byte{
+			expectedHash := esutils.ObjectHash(map[string][]byte{
 				targetProp: []byte(secretVal),
 			})
 			Expect(secret.Annotations[esv1.AnnotationDataHash]).To(Equal(expectedHash))
@@ -2024,7 +2024,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
-			expectedHash := utils.ObjectHash(map[string][]byte{
+			expectedHash := esutils.ObjectHash(map[string][]byte{
 				existingKey: []byte(existingVal),
 				targetProp:  []byte(secretVal),
 			})

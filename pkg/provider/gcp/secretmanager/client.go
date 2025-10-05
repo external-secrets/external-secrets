@@ -42,11 +42,11 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -175,7 +175,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		for k, v := range secret.Data {
 			secretStringVal[k] = string(v)
 		}
-		payload, err = utils.JSONMarshal(secretStringVal)
+		payload, err = esutils.JSONMarshal(secretStringVal)
 		if err != nil {
 			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
 		}
@@ -235,7 +235,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 			scrt.Replication = replication
 		}
 
-		topics, err := utils.FetchValueFromMetadata(topicsKey, pushSecretData.GetMetadata(), []any{})
+		topics, err := esutils.FetchValueFromMetadata(topicsKey, pushSecretData.GetMetadata(), []any{})
 		if err != nil {
 			return fmt.Errorf("failed to fetch topics from metadata: %w", err)
 		}
@@ -413,7 +413,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (m
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+	return esutils.ConvertKeys(ref.ConversionStrategy, secretMap)
 }
 
 func (c *Client) getData(ctx context.Context, key string) ([]byte, error) {
@@ -466,7 +466,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1.ExternalSecretFind) (m
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+	return esutils.ConvertKeys(ref.ConversionStrategy, secretMap)
 }
 
 func (c *Client) trimName(name string) string {
@@ -487,7 +487,7 @@ func (c *Client) extractProjectIDNumber(secretFullName string) string {
 
 // GetSecret returns a single secret from the provider.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(c.smClient) || c.store.ProjectID == "" {
+	if esutils.IsNil(c.smClient) || c.store.ProjectID == "" {
 		return nil, errors.New(errUninitalizedGCPProvider)
 	}
 

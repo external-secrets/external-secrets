@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 // Generator implements token generation for Quay.io container registry.
@@ -80,7 +80,7 @@ func (g *Generator) generate(
 	}
 
 	// Fetch the service account token
-	token, err := utils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
+	token, err := esutils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
@@ -94,7 +94,7 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, err
 	}
-	exp, err := utils.ExtractJWTExpiration(accessToken)
+	exp, err := esutils.ExtractJWTExpiration(accessToken)
 	if err != nil {
 		return nil, nil, err
 	}

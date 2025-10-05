@@ -37,9 +37,9 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Webhook implements functionality to interact with webhook endpoints
@@ -116,7 +116,7 @@ func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1.Ex
 	// Change the map of generic objects to a map of byte arrays
 	values := make(map[string][]byte)
 	for rKey := range jsonvalue {
-		values[rKey], err = utils.GetByteValueFromMap(jsonvalue, rKey)
+		values[rKey], err = esutils.GetByteValueFromMap(jsonvalue, rKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get response for key '%s': %w", rKey, err)
 		}
@@ -408,7 +408,7 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 // GetCACertPool returns a certificate pool for TLS connections based on provider configuration.
 func (w *Webhook) GetCACertPool(ctx context.Context, provider *Spec) (*x509.CertPool, error) {
 	caCertPool := x509.NewCertPool()
-	ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+	ca, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 		CABundle:   provider.CABundle,
 		CAProvider: provider.CAProvider,
 		StoreKind:  w.StoreKind,

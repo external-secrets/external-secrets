@@ -22,7 +22,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 // GetResourceVersion returns a string representing the resource version of the object.
@@ -37,7 +37,7 @@ func HashMeta(m metav1.ObjectMeta) string {
 		annotations map[string]string
 		labels      map[string]string
 	}
-	return utils.ObjectHash(meta{
+	return esutils.ObjectHash(meta{
 		annotations: m.Annotations,
 		labels:      m.Labels,
 	})

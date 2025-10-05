@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	genapi "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/feature"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Manager takes care of maintaining the state of the generators.
@@ -185,7 +185,7 @@ func (m *Manager) createGeneratorState(resource *apiextensions.JSON, state genap
 }
 
 func ownerKey(resource genapi.StatefulResource, key string) string {
-	return utils.ObjectHash(fmt.Sprintf("%s-%s-%s-%s",
+	return esutils.ObjectHash(fmt.Sprintf("%s-%s-%s-%s",
 		resource.GetObjectKind().GroupVersionKind().Kind,
 		resource.GetNamespace(),
 		resource.GetName(),

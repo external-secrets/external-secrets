@@ -28,9 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -66,7 +66,7 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		return nil, err
 	}
 
-	cert, getCertErr := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+	cert, getCertErr := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 		CABundle:   []byte(prov.CABundle),
 		CAProvider: prov.CAProvider,
 		StoreKind:  c.store.GetKind(),

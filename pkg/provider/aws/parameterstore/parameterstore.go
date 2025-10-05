@@ -36,11 +36,11 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 // Tier defines policy details for PushSecret.
@@ -270,10 +270,10 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 func (pm *ParameterStore) encodeSecretData(encodeAsDecoded bool, data map[string][]byte) ([]byte, error) {
 	if encodeAsDecoded {
 		// This will result in map byte slices not being base64 encoded by json.Marshal.
-		return utils.JSONMarshal(convertMap(data))
+		return esutils.JSONMarshal(convertMap(data))
 	}
 
-	return utils.JSONMarshal(data)
+	return esutils.JSONMarshal(data)
 }
 
 func convertMap(in map[string][]byte) map[string]string {

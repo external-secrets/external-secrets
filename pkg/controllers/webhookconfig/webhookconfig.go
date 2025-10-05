@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/go-logr/logr"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -170,7 +170,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 		return errors.New(errWebhookNotReady)
 	}
 
-	return utils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
+	return esutils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
 }
 
 // reads the ca cert and updates the webhook config.

@@ -32,11 +32,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -80,14 +80,14 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	// case: static credentials
 	if prov.Auth.SecretRef != nil {
-		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
 			return nil, fmt.Errorf("invalid Auth.SecretRef.AccessKeyID: %w", err)
 		}
-		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
 			return nil, fmt.Errorf("invalid Auth.SecretRef.SecretAccessKey: %w", err)
 		}
 		if prov.Auth.SecretRef.SessionToken != nil {
-			if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.SecretRef.SessionToken); err != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *prov.Auth.SecretRef.SessionToken); err != nil {
 				return nil, fmt.Errorf("invalid Auth.SecretRef.SessionToken: %w", err)
 			}
 		}
@@ -95,7 +95,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	// case: jwt credentials
 	if prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.ServiceAccountRef != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
 			return nil, fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
 		}
 	}
