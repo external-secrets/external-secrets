@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package fortanix provides a Fortanix provider implementation.
 package fortanix
 
 import (
@@ -30,6 +32,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
+// Provider implements provider interface for Fortanix Key Management.
 type Provider struct{}
 
 const (
@@ -50,10 +53,12 @@ func init() {
 	}, esv1.MaintenanceStatusMaintained)
 }
 
+// Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
+// NewClient creates a new Fortanix Key Management client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kubeclient.Client, namespace string) (esv1.SecretsClient, error) {
 	config, err := getConfig(store)
 	if err != nil {
@@ -76,6 +81,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}, nil
 }
 
+// ValidateStore validates the Fortanix Key Management store configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	_, err := getConfig(store)
 	return nil, err

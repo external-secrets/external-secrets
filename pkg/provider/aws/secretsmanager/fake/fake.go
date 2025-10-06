@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package fake provides mock implementations of AWS Secrets Manager interfaces for testing.
+// It allows simulating AWS API responses without making actual API calls.
 package fake
 
 import (
@@ -83,8 +85,9 @@ func (sm *Client) DeleteSecret(ctx context.Context, input *awssm.DeleteSecretInp
 	return sm.DeleteSecretFn(ctx, input, opts...)
 }
 
+// NewDeleteSecretFn returns a DeleteSecretFn that simulates AWS DeleteSecret API behavior.
 func NewDeleteSecretFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretFn {
-	return func(ctx context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
+	return func(_ context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
 		if input.ForceDeleteWithoutRecovery != nil && *input.ForceDeleteWithoutRecovery {
 			output.DeletionDate = ptr.To(time.Now())
 		}
@@ -92,8 +95,9 @@ func NewDeleteSecretFn(output *awssm.DeleteSecretOutput, err error) DeleteSecret
 	}
 }
 
+// NewGetSecretValueFn returns a GetSecretValueFn that returns the provided output and error.
 func NewGetSecretValueFn(output *awssm.GetSecretValueOutput, err error) GetSecretValueFn {
-	return func(ctx context.Context, input *awssm.GetSecretValueInput, options ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
+	return func(_ context.Context, input *awssm.GetSecretValueInput, options ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
 		return output, err
 	}
 }

@@ -67,7 +67,11 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
 	}
 
-	url := strings.Join([]string{"auth", "cert", "login"}, "/")
+	path := certAuth.Path
+	if path == "" {
+		path = "cert"
+	}
+	url := strings.Join([]string{"auth", path, "login"}, "/")
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, nil)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
 	if err != nil {
