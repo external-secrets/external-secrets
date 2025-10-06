@@ -4342,7 +4342,7 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <p>NOTE: In this example the Liveness probe is querying /sync to ensure that the Bitwarden CLI is able to connect to the server and is also synchronised. (The secret sync is only every 2 minutes in this example)</p>
 </blockquote>
 <h2 id="deploy-clustersecretstores">Deploy (Cluster)SecretStores</h2>
-<p>There are four possible (Cluster)SecretStores to deploy, each can access different types of fields from an item in the Bitwarden vault. It is not required to deploy them all.</p>
+<p>There are five possible (Cluster)SecretStores to deploy, each can access different types of fields from an item in the Bitwarden vault. It is not required to deploy them all.</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
@@ -4388,6 +4388,19 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://bitwarden-cli:8087/object/attachment/{{</span><span class="nv"> </span><span class="s">.remoteRef.property</span><span class="nv"> </span><span class="s">}}?itemid={{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
 <span class="w">      </span><span class="nt">result</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-ssh</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://bitwarden-cli:8087/object/item/{{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">      </span><span class="nt">headers</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
+<span class="w">      </span><span class="nt">result</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.data.sshKey.{{</span><span class="nv"> </span><span class="s">.remoteRef.property</span><span class="nv"> </span><span class="s">}}&quot;</span>
 </code></pre></div>
 <h2 id="usage">Usage</h2>
 <p>(Cluster)SecretStores:</p>
@@ -4396,6 +4409,7 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <li><code>bitwarden-fields</code>: Use to get custom fields</li>
 <li><code>bitwarden-notes</code>: Use to get notes</li>
 <li><code>bitwarden-attachments</code>: Use to get attachments</li>
+<li><code>bitwarden-ssh</code>: Use to get ssh key stored in <code>privateKey</code> (other possible fields are <code>publicKey</code> and <code>keyFingerprint</code>)</li>
 </ul>
 <p>remoteRef:</p>
 <ul>
@@ -4410,6 +4424,7 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <li><code>password</code> for the password of a secret (<code>bitwarden-login</code> SecretStore)</li>
 <li><code>name_of_the_custom_field</code> for any custom field (<code>bitwarden-fields</code> SecretStore)</li>
 <li><code>id_or_name_of_the_attachment</code> for any attachment (<code>bitwarden-attachment</code>, SecretStore)</li>
+<li><code>name_of_the_ssh_field</code> for any ssh field (<code>bitwarden-ssh</code> SecretStore) possible fields are <code>publicKey</code>, <code>privateKey</code> and <code>keyFingerprint</code></li>
 </ul>
 </li>
 </ul>
@@ -4487,6 +4502,27 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aaaabbbb-cccc-dddd-eeee-000011112222</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id_rsa.pub</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secrets-ssh</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/ssh-auth</span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">ssh-privatekey</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.privateKey</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span>
+<span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">storeRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-ssh</span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w">  </span><span class="c1"># or SecretStore</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aaaabbbb-cccc-dddd-eeee-000011112222</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span>
 </code></pre></div>
 
 
