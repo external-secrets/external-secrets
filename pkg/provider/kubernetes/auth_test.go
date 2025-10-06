@@ -88,14 +88,43 @@ func TestSetAuth(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "should return err if no ca provided",
+			name: "should use system trust store when no ca provided",
 			fields: fields{
 				store: &esv1.KubernetesProvider{
-					Server: esv1.KubernetesServer{},
+					Server: esv1.KubernetesServer{
+						URL: serverURL,
+					},
+					Auth: &esv1.KubernetesAuth{
+						Token: &esv1.TokenAuth{
+							BearerToken: v1.SecretKeySelector{
+								Name:      "foobar",
+								Namespace: pointer.To("default"),
+								Key:       "token",
+							},
+						},
+					},
+				},
+				namespace: "default",
+				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foobar",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"token": []byte("mytoken"),
+					},
+				}).Build(),
+			},
+			want: &want{
+				Host:        serverURL,
+				BearerToken: "mytoken",
+				TLSClientConfig: rest.TLSClientConfig{
+					Insecure: false,
+					// CAData should be nil to use system trust store
+					CAData: nil,
 				},
 			},
-			want:    nil,
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "should return err if no auth provided",

@@ -66,15 +66,27 @@ func TestValidateStore(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "empty ca",
+			name: "empty ca - system trust store allowed",
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
-						Kubernetes: &esv1.KubernetesProvider{},
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
+								URL: "https://demo.gardener.cloud",
+							},
+							Auth: &esv1.KubernetesAuth{
+								Token: &esv1.TokenAuth{
+									BearerToken: v1.SecretKeySelector{
+										Name: "token-secret",
+										Key:  "token",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "invalid client cert name",
