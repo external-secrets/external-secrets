@@ -48,10 +48,6 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		return clientcmd.RESTConfigFromKubeConfig(cfg)
 	}
 
-	if c.store.Auth == nil {
-		return nil, errors.New("no auth provider given")
-	}
-
 	if c.store.Server.URL == "" {
 		return nil, errors.New("no server URL provided")
 	}
@@ -77,6 +73,8 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 	}
 
 	switch {
+	case c.store.Auth == nil:
+		return cfg, nil
 	case c.store.Auth.Token != nil:
 		token, err := c.fetchSecretKey(ctx, c.store.Auth.Token.BearerToken)
 		if err != nil {

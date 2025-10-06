@@ -36,9 +36,9 @@ import (
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
-	if k8sSpec.AuthRef == nil && k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
-		return nil, errors.New("a CABundle or CAProvider is required")
-	}
+	// Allow system trust store when neither caBundle nor caProvider is provided
+	// This matches kubectl behavior where system roots are used when no certificate-authority is specified
+
 	if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind &&
 		k8sSpec.Server.CAProvider != nil &&
 		k8sSpec.Server.CAProvider.Namespace == nil {
