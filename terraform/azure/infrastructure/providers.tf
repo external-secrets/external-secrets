@@ -1,4 +1,10 @@
 terraform {
+  backend "azurerm" {
+    resource_group_name  = "external-secrets-tfstate-rg"
+    storage_account_name = "esoe2emanagedtfstate"
+    container_name       = "tfstate"
+    key                  = "infrastructure/terraform.tfstate"
+  }
   required_providers {
     azuread = {
       source  = "hashicorp/azuread"

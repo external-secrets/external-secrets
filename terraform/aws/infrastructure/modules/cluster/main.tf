@@ -55,6 +55,17 @@ module "eks" {
         }
       }
     }
+    github-actions = {
+      principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/github-actions-external-secrets"
+      policy_associations = {
+        github-actions = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
   }
 }
 

@@ -22,7 +22,6 @@ resource "kubernetes_service_account" "e2e" {
     namespace = "default"
     annotations = {
       "azure.workload.identity/client-id" = data.azuread_application.e2e.client_id
-      "azure.workload.identity/tenant-id" = data.azurerm_client_config.current.tenant_id
     }
     labels = {
       "azure.workload.identity/use" = "true"
@@ -37,7 +36,6 @@ resource "kubernetes_service_account" "current" {
     namespace = "external-secrets-operator"
     annotations = {
       "azure.workload.identity/client-id" = data.azuread_application.eso.client_id
-      "azure.workload.identity/tenant-id" = data.azurerm_client_config.current.tenant_id
     }
     labels = {
       "azure.workload.identity/use" = "true"

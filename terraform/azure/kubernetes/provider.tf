@@ -1,6 +1,13 @@
 terraform {
   required_version = ">= 0.13"
 
+  backend "azurerm" {
+    resource_group_name  = "external-secrets-tfstate-rg"
+    storage_account_name = "esoe2emanagedtfstate"
+    container_name       = "tfstate"
+    key                  = "kubernetes/terraform.tfstate"
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"

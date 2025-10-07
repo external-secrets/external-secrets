@@ -116,6 +116,7 @@ runs:
 
     - id: 'get-credentials'
       uses: 'google-github-actions/get-gke-credentials@v3'
+      if: env.CLOUD_PROVIDER == 'gcp'
       with:
         cluster_name: '${{ env.GCP_GKE_CLUSTER }}'
         location: 'europe-west1'
@@ -131,7 +132,7 @@ runs:
       if: env.CLOUD_PROVIDER == 'azure'
       shell: bash
       run: |-
-        az aks get-credentials --admin --name eso-cluster --resource-group external-secrets-operator
+        az aks get-credentials --admin --name eso-cluster --resource-group external-secrets-e2e
 
     - name: Login to Docker
       uses: docker/login-action@v2
@@ -150,14 +151,14 @@ runs:
         PROVIDER=${{env.CLOUD_PROVIDER}}
         make test.e2e.managed GINKGO_LABELS="${PROVIDER} && managed" TEST_SUITES="provider"
 
-    - name: Destroy TF
-      shell: bash
-      if: always()
-      env:
-        ARM_CLIENT_ID: "${{ env.TFC_AZURE_CLIENT_ID }}"
-        ARM_SUBSCRIPTION_ID: "${{ env.TFC_AZURE_SUBSCRIPTION_ID }}"
-        ARM_TENANT_ID: "${{ env.TFC_AZURE_TENANT_ID }}"
-      run: |-
-        PROVIDER=${{env.CLOUD_PROVIDER}}
-        make tf.destroy.${PROVIDER}
+    # - name: Destroy TF
+    #   shell: bash
+    #   if: always()
+    #   env:
+    #     ARM_CLIENT_ID: "${{ env.TFC_AZURE_CLIENT_ID }}"
+    #     ARM_SUBSCRIPTION_ID: "${{ env.TFC_AZURE_SUBSCRIPTION_ID }}"
+    #     ARM_TENANT_ID: "${{ env.TFC_AZURE_TENANT_ID }}"
+    #   run: |-
+    #     PROVIDER=${{env.CLOUD_PROVIDER}}
+    #     make tf.destroy.${PROVIDER}
 

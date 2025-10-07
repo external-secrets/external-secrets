@@ -49,7 +49,7 @@ env:
 
   # TODO: temporarily replace vars for testing in PR
   GITHUB_PR_NUMBER: "5409"
-  CLOUD_PROVIDER: "gcp"
+  CLOUD_PROVIDER: "azure"
   #GITHUB_PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
   #CLOUD_PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
 
