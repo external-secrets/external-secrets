@@ -4228,7 +4228,7 @@ to a supported version before installing external-secrets.</p>
 <h2 id="installing-with-helm">Installing with Helm</h2>
 <p>The default install options will automatically install and manage the CRDs as part of your helm release. If you do not want the CRDs to be automatically upgraded and managed, you must set the <code>installCRDs</code> option to <code>false</code>. (e.g. <code>--set installCRDs=false</code>)</p>
 <p>You can install those CRDs outside of <code>helm</code> using:
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-k<span class="w"> </span><span class="s2">&quot;https://raw.githubusercontent.com/external-secrets/external-secrets/&lt;replace_with_your_version&gt;/deploy/crds/bundle.yaml&quot;</span><span class="w"> </span>--server-side
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;https://raw.githubusercontent.com/external-secrets/external-secrets/&lt;replace_with_your_version&gt;/deploy/crds/bundle.yaml&quot;</span><span class="w"> </span>--server-side
 </code></pre></div></p>
 <p>Uncomment the relevant line in the next steps to disable the automatic install of CRDs.</p>
 <h3 id="option-1-install-from-chart-repository">Option 1: Install from chart repository</h3>
