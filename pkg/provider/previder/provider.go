@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	previderclient "github.com/previder/vault-cli/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,6 +39,7 @@ var _ esv1.Provider = &SecretManager{}
 // SecretManager implements the esv1.Provider interface for Previder Vault.
 type SecretManager struct {
 	VaultClient previderclient.PreviderVaultClient
+	TokenType   string
 }
 
 func init() {
@@ -66,6 +66,13 @@ func (s *SecretManager) NewClient(ctx context.Context, store esv1.GenericStore, 
 	if err != nil {
 		return nil, err
 	}
+
+	tokenInfo, err := s.VaultClient.GetTokenInfo()
+	if err != nil {
+		return nil, err
+	}
+	s.TokenType = tokenInfo.TokenType
+
 	return s, nil
 }
 
@@ -122,11 +129,10 @@ func (s *SecretManager) SecretExists(context.Context, esv1.PushSecretRemoteRef) 
 
 // Validate checks if the Vault client can connect and retrieve secrets.
 func (s *SecretManager) Validate() (esv1.ValidationResult, error) {
-	_, err := s.VaultClient.GetSecrets()
+	_, err := s.VaultClient.GetTokenInfo()
 	if err != nil {
 		return esv1.ValidationResultError, err
 	}
-
 	return esv1.ValidationResultReady, nil
 }
 
