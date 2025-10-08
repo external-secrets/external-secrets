@@ -1,4 +1,4 @@
-FROM golang:1.25.1@sha256:bb979b278ffb8d31c8b07336fd187ef8fafc8766ebeaece524304483ea137e96
+FROM golang:1.25.1@sha256:d7098379b7da665ab25b99795465ec320b1ca9d4addb9f77409c4827dc904211
 WORKDIR /
 COPY ./bin/external-secrets /external-secrets
 

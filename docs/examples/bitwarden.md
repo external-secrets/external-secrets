@@ -84,7 +84,7 @@ bw serve --hostname 0.0.0.0 #--disable-origin-protection
 
 ## Deploy (Cluster)SecretStores
 
-There are four possible (Cluster)SecretStores to deploy, each can access different types of fields from an item in the Bitwarden vault. It is not required to deploy them all.
+There are five possible (Cluster)SecretStores to deploy, each can access different types of fields from an item in the Bitwarden vault. It is not required to deploy them all.
 
 ```yaml
 {% include 'bitwarden-secret-store.yaml' %}
@@ -98,6 +98,7 @@ There are four possible (Cluster)SecretStores to deploy, each can access differe
 * `bitwarden-fields`: Use to get custom fields
 * `bitwarden-notes`: Use to get notes
 * `bitwarden-attachments`: Use to get attachments
+* `bitwarden-ssh`: Use to get ssh key stored in `privateKey` (other possible fields are `publicKey` and `keyFingerprint`)
 
 remoteRef:
 
@@ -109,6 +110,7 @@ remoteRef:
     * `password` for the password of a secret (`bitwarden-login` SecretStore)
     * `name_of_the_custom_field` for any custom field (`bitwarden-fields` SecretStore)
     * `id_or_name_of_the_attachment` for any attachment (`bitwarden-attachment`, SecretStore)
+    * `name_of_the_ssh_field` for any ssh field (`bitwarden-ssh` SecretStore) possible fields are `publicKey`, `privateKey` and `keyFingerprint`
 
 ```yaml
 {% include 'bitwarden-secret.yaml' %}
