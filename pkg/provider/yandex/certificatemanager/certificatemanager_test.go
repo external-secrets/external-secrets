@@ -992,15 +992,15 @@ func TestGetSecretWithInvalidFetchingPolicy(t *testing.T) {
 
 // helper functions
 
-func newCertificateManagerProvider(clock clock.Clock, fakeCertificateManagerServer *client.FakeCertificateManagerServer) *common.YandexCloudProvider {
-	return common.InitYandexCloudProvider(
+func newCertificateManagerProvider(clock clock.Clock, fakeCertificateManagerServer *client.FakeCertificateManagerServer) *ydxcommon.YandexCloudProvider {
+	return ydxcommon.InitYandexCloudProvider(
 		ctrl.Log.WithName("provider").WithName("yandex").WithName("certificatemanager"),
 		clock,
 		adaptInput,
-		func(_ context.Context, _ string, _ *iamkey.Key, _ []byte) (common.SecretGetter, error) {
+		func(_ context.Context, _ string, _ *iamkey.Key, _ []byte) (ydxcommon.SecretGetter, error) {
 			return newCertificateManagerSecretGetter(client.NewFakeCertificateManagerClient(fakeCertificateManagerServer))
 		},
-		func(_ context.Context, _ string, authorizedKey *iamkey.Key, _ []byte) (*common.IamToken, error) {
+		func(_ context.Context, _ string, authorizedKey *iamkey.Key, _ []byte) (*ydxcommon.IamToken, error) {
 			return fakeCertificateManagerServer.NewIamToken(authorizedKey), nil
 		},
 		0,

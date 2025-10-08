@@ -138,11 +138,11 @@ func (s *FakeCertificateManagerServer) AddVersion(certificateID string, content 
 }
 
 // NewIamToken creates a new IAM token for the given authorized key.
-func (s *FakeCertificateManagerServer) NewIamToken(authorizedKey *iamkey.Key) *common.IamToken {
+func (s *FakeCertificateManagerServer) NewIamToken(authorizedKey *iamkey.Key) *ydxcommon.IamToken {
 	token := uuid.NewString()
 	expiresAt := s.clock.CurrentTime().Add(s.tokenExpirationDuration)
 	s.tokenMap[tokenKey{token}] = tokenValue{authorizedKey, expiresAt}
-	return &common.IamToken{Token: token, ExpiresAt: expiresAt}
+	return &ydxcommon.IamToken{Token: token, ExpiresAt: expiresAt}
 }
 
 func (s *FakeCertificateManagerServer) getCertificateContent(iamToken, certificateID, versionID string) (*api.GetCertificateContentResponse, error) {

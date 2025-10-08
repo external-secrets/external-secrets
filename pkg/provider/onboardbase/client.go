@@ -32,9 +32,9 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	obclient "github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -116,7 +116,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	clientURL := c.onboardbase.BaseURL().String()
 
-	if err := utils.NetworkValidate(clientURL, timeout); err != nil {
+	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
 		return esv1.ValidationResultError, err
 	}
 

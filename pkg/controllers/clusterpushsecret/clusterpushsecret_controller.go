@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package clusterpushsecret implements a controller for managing ClusterPushSecret resources,
+// which allow pushing secrets to external systems across multiple namespaces.
 package clusterpushsecret
 
 import (
@@ -42,7 +44,7 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 // Reconciler reconciles a ClusterPushSecret object.
@@ -62,6 +64,9 @@ const (
 	errNamespacesFailed     = "one or more namespaces failed"
 )
 
+// Reconcile handles the reconciliation loop for ClusterPushSecret resources.
+// It ensures that PushSecrets are created in selected namespaces according to the
+// ClusterPushSecret specification and maintains their status.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterPushSecret", req.NamespacedName)
 
@@ -102,7 +107,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	cps.Status.PushSecretName = esName
 
-	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, nil, cps.Spec.NamespaceSelectors)
+	namespaces, err := esutils.GetTargetNamespaces(ctx, r.Client, nil, cps.Spec.NamespaceSelectors)
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
 		r.markAsFailed("failed to get target Namespaces", &cps)
@@ -322,7 +327,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		Watches(
 			&v1.Namespace{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForNamespace),
-			builder.WithPredicates(utils.NamespacePredicate()),
+			builder.WithPredicates(esutils.NamespacePredicate()),
 		).
 		Complete(r)
 }

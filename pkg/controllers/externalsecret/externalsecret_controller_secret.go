@@ -29,16 +29,16 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 )
 
-// getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
+// GetProviderSecretData returns the provider's secret data with the provided ExternalSecret.
 func (r *Reconciler) GetProviderSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret) (providerData map[string][]byte, err error) {
 	// We MUST NOT create multiple instances of a provider client (mostly due to limitations with GCP)
 	// Clientmanager keeps track of the client instances
@@ -103,7 +103,7 @@ func (r *Reconciler) GetProviderSecretData(ctx context.Context, externalSecret *
 			return nil, err
 		}
 
-		providerData = utils.MergeByteMap(providerData, secretMap)
+		providerData = esutils.MergeByteMap(providerData, secretMap)
 	}
 
 	for i, secretRef := range externalSecret.Spec.Data {
@@ -133,7 +133,7 @@ func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret *esv1.
 	}
 
 	// decode the secret if needed
-	secretData, err = utils.Decode(secretRef.RemoteRef.DecodingStrategy, secretData)
+	secretData, err = esutils.Decode(secretRef.RemoteRef.DecodingStrategy, secretData)
 	if err != nil {
 		return fmt.Errorf(errDecode, secretRef.RemoteRef.DecodingStrategy, err)
 	}
@@ -178,13 +178,13 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 		generatorState.EnqueueSetLatest(ctx, generatorStateKey(i), namespace, generatorResource, impl, newState)
 	}
 	// rewrite the keys if needed
-	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
+	secretMap, err = esutils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errRewrite, err)
 	}
 
 	// validate the keys
-	err = utils.ValidateKeys(r.Log, secretMap)
+	err = esutils.ValidateKeys(r.Log, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
@@ -212,25 +212,25 @@ func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *e
 	}
 
 	// rewrite the keys if needed
-	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
+	secretMap, err = esutils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errRewrite, err)
 	}
 	if len(remoteRef.Rewrite) == 0 {
-		secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
+		secretMap, err = esutils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
 		if err != nil {
 			return nil, fmt.Errorf(errConvert, remoteRef.Extract.ConversionStrategy, err)
 		}
 	}
 
 	// validate the keys
-	err = utils.ValidateKeys(r.Log, secretMap)
+	err = esutils.ValidateKeys(r.Log, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
 
 	// decode the secrets if needed
-	secretMap, err = utils.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
+	secretMap, err = esutils.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errDecode, remoteRef.Extract.DecodingStrategy, err)
 	}
@@ -253,25 +253,25 @@ func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *e
 	}
 
 	// rewrite the keys if needed
-	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
+	secretMap, err = esutils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errRewrite, err)
 	}
 	if len(remoteRef.Rewrite) == 0 {
-		secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
+		secretMap, err = esutils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
 		if err != nil {
 			return nil, fmt.Errorf(errConvert, remoteRef.Find.ConversionStrategy, err)
 		}
 	}
 
 	// validate the keys
-	err = utils.ValidateKeys(r.Log, secretMap)
+	err = esutils.ValidateKeys(r.Log, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
 
 	// decode the secrets if needed
-	secretMap, err = utils.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
+	secretMap, err = esutils.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errDecode, remoteRef.Find.DecodingStrategy, err)
 	}

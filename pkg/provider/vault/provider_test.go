@@ -257,7 +257,7 @@ func makeClusterSecretStore(tweaks ...secretStoreTweakFn) *esv1.ClusterSecretSto
 }
 
 type args struct {
-	newClientFunc func(c *vault.Config) (util.Client, error)
+	newClientFunc func(c *vault.Config) (vaultutil.Client, error)
 	store         esv1.GenericStore
 	kube          kclient.Client
 	corev1        typedcorev1.CoreV1Interface
