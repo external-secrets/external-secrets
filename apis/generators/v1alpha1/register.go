@@ -54,6 +54,7 @@ var (
 	UUIDKind                  = reflect.TypeOf(UUID{}).Name()
 	GrafanaKind               = reflect.TypeOf(Grafana{}).Name()
 	MFAKind                   = reflect.TypeOf(MFA{}).Name()
+	OIDCKind                  = reflect.TypeOf(OIDC{}).Name()
 	ClusterGeneratorKind      = reflect.TypeOf(ClusterGenerator{}).Name()
 )
 
@@ -91,4 +92,5 @@ func init() {
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
 	SchemeBuilder.Register(&MFA{}, &MFAList{})
+	SchemeBuilder.Register(&OIDC{}, &OIDCList{})
 }
