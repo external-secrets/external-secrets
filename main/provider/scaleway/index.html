@@ -3145,6 +3145,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#json-secret-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      JSON Secret Values
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4083,6 +4092,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#json-secret-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      JSON Secret Values
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4148,6 +4166,37 @@ a kubernetes secret.</p>
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id:&lt;SECRET_UUID&gt;</span>
 <span class="w">          </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">latest_enabled</span>
+</code></pre></div>
+<h3 id="json-secret-values">JSON Secret Values</h3>
+<p>Scaleway Secret Manager supports storing JSON objects as secrets. You can access values using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
+<p>Consider the following JSON object that is stored in a Scaleway secret:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;first&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tom&quot;</span><span class="p">,</span><span class="w"> </span>
+<span class="w">  </span><span class="nt">&quot;last&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Anderson&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This is an example on how you would look up keys in the above JSON object:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extract-data</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-data</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">first_name</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id:&lt;SECRET_UUID&gt;</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">first</span><span class="w"> </span><span class="c1"># Tom</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">last_name</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id:&lt;SECRET_UUID&gt;</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">last</span><span class="w"> </span><span class="c1"># Anderson</span>
 </code></pre></div>
 
 
