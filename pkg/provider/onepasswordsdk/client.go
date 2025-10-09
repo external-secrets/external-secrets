@@ -28,7 +28,7 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 )
 
 const (

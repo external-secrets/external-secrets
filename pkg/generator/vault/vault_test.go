@@ -40,7 +40,7 @@ type args struct {
 	jsonSpec      *apiextensions.JSON
 	kube          kclient.Client
 	corev1        typedcorev1.CoreV1Interface
-	vaultClientFn func(config *vaultapi.Config) (util.Client, error)
+	vaultClientFn func(config *vaultapi.Config) (vaultutil.Client, error)
 }
 
 type want struct {

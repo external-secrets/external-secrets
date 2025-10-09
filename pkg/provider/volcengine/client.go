@@ -94,17 +94,17 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataR
 }
 
 // GetAllSecrets retrieves all secrets matching the given criteria.
-func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind) (map[string][]byte, error) {
+func (c *Client) GetAllSecrets(_ context.Context, _ esapi.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New(notImplemented)
 }
 
 // PushSecret creates or updates a secret in Volcengine Secrets Manager.
-func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esapi.PushSecretData) error {
+func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esapi.PushSecretData) error {
 	return errors.New(notImplemented)
 }
 
 // DeleteSecret deletes a secret from Volcengine Secrets Manager.
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esapi.PushSecretRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, _ esapi.PushSecretRemoteRef) error {
 	return errors.New(notImplemented)
 }
 

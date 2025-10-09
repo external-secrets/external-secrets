@@ -37,9 +37,9 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -119,7 +119,7 @@ func (ibm *providerIBM) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFi
 }
 
 func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(ibm.IBMClient) {
+	if esutils.IsNil(ibm.IBMClient) {
 		return nil, errors.New(errUninitializedIBMProvider)
 	}
 
@@ -416,7 +416,7 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 }
 
 func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	if utils.IsNil(ibm.IBMClient) {
+	if esutils.IsNil(ibm.IBMClient) {
 		return nil, errors.New(errUninitializedIBMProvider)
 	}
 	var secretGroupName string
@@ -566,7 +566,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretD
 func byteArrayMap(secretData map[string]any, secretMap map[string][]byte) map[string][]byte {
 	var err error
 	for k, v := range secretData {
-		secretMap[k], err = utils.GetByteValue(v)
+		secretMap[k], err = esutils.GetByteValue(v)
 		if err != nil {
 			return nil
 		}
@@ -592,8 +592,8 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 	containerRef := ibmSpec.Auth.ContainerAuth
 	secretRef := ibmSpec.Auth.SecretRef
 
-	missingContainerRef := utils.IsNil(containerRef)
-	missingSecretRef := utils.IsNil(secretRef)
+	missingContainerRef := esutils.IsNil(containerRef)
+	missingSecretRef := esutils.IsNil(secretRef)
 
 	if missingContainerRef == missingSecretRef {
 		// since both are equal, if one is missing assume both are missing
@@ -621,7 +621,7 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 
 	// proceed with API Key Auth validation
 	secretKeyRef := secretRef.SecretAPIKey
-	err := utils.ValidateSecretSelector(store, secretKeyRef)
+	err := esutils.ValidateSecretSelector(store, secretKeyRef)
 	if err != nil {
 		return nil, err
 	}
@@ -654,7 +654,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 	var err error
 	var secretsManager *sm.SecretsManagerV2
 	containerAuth := iStore.store.Auth.ContainerAuth
-	if !utils.IsNil(containerAuth) && containerAuth.Profile != "" {
+	if !esutils.IsNil(containerAuth) && containerAuth.Profile != "" {
 		// container-based auth
 		containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
 		containerAuthToken := iStore.store.Auth.ContainerAuth.TokenLocation

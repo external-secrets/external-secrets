@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package quay provides functionality for generating authentication tokens for Quay container registry.
 package quay
 
 import (
@@ -32,9 +33,10 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
+// Generator implements token generation for Quay.io container registry.
 type Generator struct {
 	httpClient *http.Client
 }
@@ -49,6 +51,7 @@ const (
 	httpClientTimeout = 5 * time.Second
 )
 
+// Generate creates an authentication token for Quay container registry.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
@@ -58,7 +61,8 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+// Cleanup performs any necessary cleanup after token generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 
@@ -76,7 +80,7 @@ func (g *Generator) generate(
 	}
 
 	// Fetch the service account token
-	token, err := utils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
+	token, err := esutils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
@@ -90,7 +94,7 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, err
 	}
-	exp, err := utils.ExtractJWTExpiration(accessToken)
+	exp, err := esutils.ExtractJWTExpiration(accessToken)
 	if err != nil {
 		return nil, nil, err
 	}

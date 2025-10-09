@@ -317,18 +317,18 @@ func (c *VaultClient) AddHeader(key, value string) {
 }
 
 // ClientWithLoginMock returns a client with mocked login functionality.
-func ClientWithLoginMock(config *vault.Config) (util.Client, error) {
+func ClientWithLoginMock(config *vault.Config) (vaultutil.Client, error) {
 	return clientWithLoginMockOptions(config)
 }
 
 // ModifiableClientWithLoginMock returns a factory function that creates clients with customizable mock behavior.
-func ModifiableClientWithLoginMock(opts ...func(cl *VaultClient)) func(config *vault.Config) (util.Client, error) {
-	return func(config *vault.Config) (util.Client, error) {
+func ModifiableClientWithLoginMock(opts ...func(cl *VaultClient)) func(config *vault.Config) (vaultutil.Client, error) {
+	return func(config *vault.Config) (vaultutil.Client, error) {
 		return clientWithLoginMockOptions(config, opts...)
 	}
 }
 
-func clientWithLoginMockOptions(_ *vault.Config, opts ...func(cl *VaultClient)) (util.Client, error) {
+func clientWithLoginMockOptions(_ *vault.Config, opts ...func(cl *VaultClient)) (vaultutil.Client, error) {
 	cl := &VaultClient{
 		MockAuthToken: NewAuthTokenFn(),
 		MockSetToken:  NewSetTokenFn(),
@@ -341,7 +341,7 @@ func clientWithLoginMockOptions(_ *vault.Config, opts ...func(cl *VaultClient)) 
 		opt(cl)
 	}
 
-	return &util.VaultClient{
+	return &vaultutil.VaultClient{
 		SetTokenFunc:     cl.SetToken,
 		TokenFunc:        cl.Token,
 		ClearTokenFunc:   cl.ClearToken,

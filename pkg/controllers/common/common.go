@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
+// Package ctrlcommon provides shared utility functions for controllers
+package ctrlcommon
 
 import (
 	"context"

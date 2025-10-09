@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package statemanager provides functionality for managing state of generator operations.
 package statemanager
 
 import (
@@ -31,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	genapi "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/feature"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Manager takes care of maintaining the state of the generators.
@@ -49,6 +50,7 @@ type Manager struct {
 	queue []QueueItem
 }
 
+// QueueItem represents a single item in the state manager's queue.
 type QueueItem struct {
 	Rollback func() error
 	Commit   func() error
@@ -64,6 +66,7 @@ func init() {
 	})
 }
 
+// New creates a new state manager instance with the given configuration.
 func New(ctx context.Context, client client.Client, scheme *runtime.Scheme, namespace string,
 	resource genapi.StatefulResource) *Manager {
 	return &Manager{
@@ -182,7 +185,7 @@ func (m *Manager) createGeneratorState(resource *apiextensions.JSON, state genap
 }
 
 func ownerKey(resource genapi.StatefulResource, key string) string {
-	return utils.ObjectHash(fmt.Sprintf("%s-%s-%s-%s",
+	return esutils.ObjectHash(fmt.Sprintf("%s-%s-%s-%s",
 		resource.GetObjectKind().GroupVersionKind().Kind,
 		resource.GetNamespace(),
 		resource.GetName(),
@@ -222,7 +225,7 @@ func (m *Manager) disposeState(key string) error {
 	return errors.Join(errs...)
 }
 
-// GetLatest returns the latest state for the given key.
+// GetAllStates retrieves all the stored states for the given key.
 func (m *Manager) GetAllStates(key string) ([]genapi.GeneratorState, error) {
 	var stateList genapi.GeneratorStateList
 	if err := m.client.List(m.ctx, &stateList, &client.MatchingLabels{
