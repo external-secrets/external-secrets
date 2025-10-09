@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	vault "github.com/hashicorp/vault/api"
@@ -32,7 +33,8 @@ import (
 )
 
 const (
-	errVaultRequest = "error from Vault request: %w"
+	errVaultRequest          = "error from Vault request: %w"
+	errUnusupportedTransport = "unsupported http client transport: %s"
 )
 
 func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, error) {
@@ -63,8 +65,17 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 		return fmt.Errorf(errClientTLSAuth, err)
 	}
 
-	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
-		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+	switch transport := cfg.HttpClient.Transport.(type) {
+	case *http.Transport:
+		getClientCertificate := transport.TLSClientConfig.GetClientCertificate
+		transport.TLSClientConfig.GetClientCertificate = func(_ *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			return &cert, nil
+		}
+		defer func() {
+			transport.TLSClientConfig.GetClientCertificate = getClientCertificate
+		}()
+	default:
+		return fmt.Errorf(errUnusupportedTransport, reflect.TypeOf(transport).String())
 	}
 
 	path := certAuth.Path
