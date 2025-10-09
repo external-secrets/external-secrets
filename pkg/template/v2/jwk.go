@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package template provides utilities for working with JWK keys and PEM encoding.
 package template
 
 import (
