@@ -136,7 +136,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | livenessProbe.spec.address | string | `""` | Address for liveness probe. |
 | livenessProbe.spec.failureThreshold | int | `5` | Number of consecutive probe failures that should occur before considering the probe as failed. |
 | livenessProbe.spec.httpGet | object | `{"path":"/healthz","port":8082}` | Handler for liveness probe. |
-| livenessProbe.spec.httpGet.port | int | `8082` | Set this value to 8082 to active liveness probes. |
+| livenessProbe.spec.httpGet.path | string | `"/healthz"` | Path for liveness probe. |
+| livenessProbe.spec.httpGet.port | int | `8082` | Set this value to 8082 to active liveness probes. @schema type: [string, integer] |
 | livenessProbe.spec.initialDelaySeconds | int | `10` | Delay in seconds for the container to start before performing the initial probe. |
 | livenessProbe.spec.periodSeconds | int | `10` | Period in seconds for K8s to start performing probes. |
 | livenessProbe.spec.successThreshold | int | `1` | Number of successful probes to mark probe successful. |
