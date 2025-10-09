@@ -6,7 +6,7 @@ KIND_IMG       = "kindest/node:v1.33.4@sha256:25a6018e48dfcaee478f4a59af81157a43
 DOCKER_BUILD_ARGS     ?=
 
 export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
-export GINKGO_LABELS ?= !managed
+export GINKGO_LABELS ?= !managed && !secretserver
 export TEST_SUITES ?= provider generator flux argocd
 
 export OCI_IMAGE_NAME = oci.external-secrets.io/external-secrets/external-secrets

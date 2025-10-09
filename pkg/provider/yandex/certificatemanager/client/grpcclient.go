@@ -33,7 +33,7 @@ type grpcCertificateManagerClient struct {
 
 // NewGrpcCertificateManagerClient creates a new gRPC client for Yandex Certificate Manager.
 func NewGrpcCertificateManagerClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (CertificateManagerClient, error) {
-	conn, err := common.NewGrpcConnection(
+	conn, err := ydxcommon.NewGrpcConnection(
 		ctx,
 		apiEndpoint,
 		"certificate-manager-data", // taken from https://api.cloud.yandex.net/endpoints
@@ -53,7 +53,7 @@ func (c *grpcCertificateManagerClient) GetCertificateContent(ctx context.Context
 			CertificateId: certificateID,
 			VersionId:     versionID,
 		},
-		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
+		grpc.PerRPCCredentials(ydxcommon.PerRPCCredentials{IamToken: iamToken}),
 	)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (c *grpcCertificateManagerClient) GetExCertificateContent(ctx context.Conte
 			},
 			VersionId: versionID,
 		},
-		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
+		grpc.PerRPCCredentials(ydxcommon.PerRPCCredentials{IamToken: iamToken}),
 	)
 	if err != nil {
 		return nil, err

@@ -29,7 +29,7 @@ import (
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const mockJWTToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoxNzAwMDAwMDAwfQ.signature"
@@ -136,7 +136,7 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 		// Mock JWT token with known payload
 		mockToken := mockJWTToken
 
-		claims, err := utils.ParseJWTClaims(mockToken)
+		claims, err := esutils.ParseJWTClaims(mockToken)
 		if err != nil {
 			t.Fatalf("Failed to get claims: %v", err)
 		}
@@ -153,7 +153,7 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 		// Mock JWT token with known exp claim
 		mockToken := mockJWTToken
 
-		exp, err := utils.ExtractJWTExpiration(mockToken)
+		exp, err := esutils.ExtractJWTExpiration(mockToken)
 		if err != nil {
 			t.Fatalf("Failed to get token expiration: %v", err)
 		}

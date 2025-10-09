@@ -139,11 +139,11 @@ func (s *FakeLockboxServer) AddVersion(secretID string, entries ...*api.Payload_
 
 // NewIamToken creates a new IAM token for the given authorized key.
 // The token is valid for the duration configured in FakeLockboxServer.
-func (s *FakeLockboxServer) NewIamToken(authorizedKey *iamkey.Key) *common.IamToken {
+func (s *FakeLockboxServer) NewIamToken(authorizedKey *iamkey.Key) *ydxcommon.IamToken {
 	token := uuid.NewString()
 	expiresAt := s.clock.CurrentTime().Add(s.tokenExpirationDuration)
 	s.tokenMap[tokenKey{token}] = tokenValue{authorizedKey, expiresAt}
-	return &common.IamToken{Token: token, ExpiresAt: expiresAt}
+	return &ydxcommon.IamToken{Token: token, ExpiresAt: expiresAt}
 }
 
 func (s *FakeLockboxServer) getEntries(iamToken, secretID, versionID string) ([]*api.Payload_Entry, error) {

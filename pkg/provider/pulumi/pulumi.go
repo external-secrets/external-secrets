@@ -27,7 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 type client struct {
@@ -60,7 +60,7 @@ func (c *client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	if err != nil {
 		return nil, err
 	}
-	return utils.GetByteValue(value.GetValue())
+	return esutils.GetByteValue(value.GetValue())
 }
 
 func createSubmaps(input map[string]interface{}) map[string]interface{} {
@@ -141,7 +141,7 @@ func GetMapFromInterface(i interface{}) (map[string][]byte, error) {
 
 	// Iterate over the map and convert each value to []byte
 	for key, value := range m {
-		result[key], _ = utils.GetByteValue(value)
+		result[key], _ = esutils.GetByteValue(value)
 	}
 
 	return result, nil
@@ -159,7 +159,7 @@ func (c *client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemo
 	kv, _ := GetMapFromInterface(value.GetValue())
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
-		byteValue, err := utils.GetByteValue(v)
+		byteValue, err := esutils.GetByteValue(v)
 		if err != nil {
 			return nil, err
 		}
@@ -168,7 +168,7 @@ func (c *client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemo
 		if err != nil {
 			return nil, err
 		}
-		secretData[k], err = utils.GetByteValue(val.Value)
+		secretData[k], err = esutils.GetByteValue(val.Value)
 		if err != nil {
 			return nil, fmt.Errorf(errUnableToGetValues, k, err)
 		}

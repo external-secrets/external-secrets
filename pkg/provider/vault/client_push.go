@@ -28,8 +28,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
@@ -44,7 +44,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		for k, v := range secret.Data {
 			secretStringVal[k] = string(v)
 		}
-		value, err = utils.JSONMarshal(secretStringVal)
+		value, err = esutils.JSONMarshal(secretStringVal)
 		if err != nil {
 			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
 		}

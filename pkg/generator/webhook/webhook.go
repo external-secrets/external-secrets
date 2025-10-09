@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package webhook provides functionality for generating secrets through webhook calls.
 package webhook
 
 import (
@@ -28,11 +29,13 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/common/webhook"
 )
 
+// Webhook represents a generator that calls external webhooks to generate secrets.
 type Webhook struct {
 	wh  webhook.Webhook
 	url string
 }
 
+// Generate creates secrets by making webhook calls to external services.
 func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	w.wh.EnforceLabels = true
 	w.wh.ClusterScoped = false
@@ -52,7 +55,8 @@ func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	return data, nil, err
 }
 
-func (w *Webhook) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+// Cleanup performs any necessary cleanup operations after secret generation.
+func (w *Webhook) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

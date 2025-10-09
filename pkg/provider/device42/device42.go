@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (
@@ -144,7 +144,7 @@ func (p *Device42) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	url := fmt.Sprintf("https://%s:%s", p.client.(*API).baseURL, p.client.(*API).hostPort)
 
-	if err := utils.NetworkValidate(url, timeout); err != nil {
+	if err := esutils.NetworkValidate(url, timeout); err != nil {
 		return esv1.ValidationResultError, err
 	}
 	return esv1.ValidationResultReady, nil
@@ -167,7 +167,7 @@ func (p *Device42) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) e
 
 // GetSecret retrieves a secret from Device42.
 func (p *Device42) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(p.client) {
+	if esutils.IsNil(p.client) {
 		return nil, errors.New(errUninitializedProvider)
 	}
 

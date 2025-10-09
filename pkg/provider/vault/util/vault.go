@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package util provides utility types and functions for interacting with HashiCorp Vault.
-package util
+// Package vaultutil provides utility types and functions for interacting with HashiCorp Vault.
+package vaultutil
 
 import (
 	"context"

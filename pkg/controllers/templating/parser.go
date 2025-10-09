@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package templating provides functionality for templating secret data.
 package templating
 
 import (
@@ -40,6 +41,7 @@ var (
 	errExecTpl          = "could not execute template: %w"
 )
 
+// Parser is responsible for parsing and merging templates into a target secret.
 type Parser struct {
 	Exec         template.ExecFunc
 	DataMap      map[string][]byte
@@ -50,6 +52,7 @@ type Parser struct {
 	TemplateFromSecret    *v1.Secret
 }
 
+// MergeConfigMap merges the configmap template specified in the ExternalSecretTemplate's TemplateFrom field.
 func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1.TemplateFrom) error {
 	if tpl.ConfigMap == nil {
 		return nil
@@ -88,6 +91,7 @@ func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1.
 	return nil
 }
 
+// MergeSecret merges the secret template specified in the ExternalSecretTemplate's TemplateFrom field.
 func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1.TemplateFrom) error {
 	if tpl.Secret == nil {
 		return nil
@@ -126,6 +130,7 @@ func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1.Tem
 	return nil
 }
 
+// MergeLiteral merges the literal template specified in the ExternalSecretTemplate's TemplateFrom field.
 func (p *Parser) MergeLiteral(_ context.Context, tpl esv1.TemplateFrom) error {
 	if tpl.Literal == nil {
 		return nil
@@ -135,6 +140,7 @@ func (p *Parser) MergeLiteral(_ context.Context, tpl esv1.TemplateFrom) error {
 	return p.Exec(out, p.DataMap, esv1.TemplateScopeKeysAndValues, tpl.Target, p.TargetSecret)
 }
 
+// MergeTemplateFrom merges all templates specified in the ExternalSecretTemplate's TemplateFrom field.
 func (p *Parser) MergeTemplateFrom(ctx context.Context, namespace string, template *esv1.ExternalSecretTemplate) error {
 	if template == nil {
 		return nil
@@ -157,6 +163,7 @@ func (p *Parser) MergeTemplateFrom(ctx context.Context, namespace string, templa
 	return nil
 }
 
+// MergeMap merges the given map of templates into the target secret.
 func (p *Parser) MergeMap(tplMap map[string]string, target esv1.TemplateTarget) error {
 	byteMap := make(map[string][]byte)
 	for k, v := range tplMap {
@@ -169,6 +176,7 @@ func (p *Parser) MergeMap(tplMap map[string]string, target esv1.TemplateTarget) 
 	return nil
 }
 
+// GetManagedAnnotationKeys returns the keys of the annotations managed by the given field owner.
 func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
 	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
 		metadataFields, exists := fields["f:metadata"]
@@ -195,6 +203,9 @@ func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, e
 	})
 }
 
+// GetManagedLabelKeys returns the keys of labels that are managed by the given field owner.
+// It checks the ManagedFields of the secret for entries with the specified field owner
+// and extracts the keys of the labels from the fields managed by that owner.
 func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
 	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
 		metadataFields, exists := fields["f:metadata"]

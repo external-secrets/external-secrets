@@ -34,7 +34,7 @@ import (
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/hashicorp/go-retryablehttp"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (
@@ -70,7 +70,7 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 		return nil, fmt.Errorf("failed to get KMS endpoint: %w", err)
 	}
 
-	if utils.Deref(endpoint) == "" {
+	if esutils.Deref(endpoint) == "" {
 		return nil, errors.New("error KMS endpoint is missing")
 	}
 
@@ -85,9 +85,9 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 	}
 
 	const defaultRetryAttempts = 3
-	if utils.Deref(options.Autoretry) {
+	if esutils.Deref(options.Autoretry) {
 		if options.MaxAttempts != nil {
-			retryClient.RetryMax = utils.Deref(options.MaxAttempts)
+			retryClient.RetryMax = esutils.Deref(options.MaxAttempts)
 		} else {
 			retryClient.RetryMax = defaultRetryAttempts
 		}
@@ -96,7 +96,7 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 	return &secretsManagerClient{
 		config:   config,
 		options:  options,
-		endpoint: utils.Deref(endpoint),
+		endpoint: esutils.Deref(endpoint),
 		client:   retryClient.StandardClient(),
 	}, nil
 }
@@ -111,10 +111,10 @@ func (s *secretsManagerClient) GetSecretValue(
 ) (*kms.GetSecretValueResponseBody, error) {
 	resp, err := s.doAPICall(ctx, "GetSecretValue", request)
 	if err != nil {
-		return nil, fmt.Errorf("error getting secret [%s] latest value: %w", utils.Deref(request.SecretName), err)
+		return nil, fmt.Errorf("error getting secret [%s] latest value: %w", esutils.Deref(request.SecretName), err)
 	}
 
-	body, err := utils.ConvertToType[kms.GetSecretValueResponseBody](resp)
+	body, err := esutils.ConvertToType[kms.GetSecretValueResponseBody](resp)
 	if err != nil {
 		return nil, fmt.Errorf("error converting body: %w", err)
 	}
@@ -133,11 +133,11 @@ func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	apiRequest := newOpenAPIRequest(s.endpoint, action, methodTypeGET, request)
 	apiRequest.query["AccessKeyId"] = creds.AccessKeyId
 
-	if utils.Deref(creds.SecurityToken) != "" {
+	if esutils.Deref(creds.SecurityToken) != "" {
 		apiRequest.query["SecurityToken"] = creds.SecurityToken
 	}
 
-	apiRequest.query["Signature"] = openapiutil.GetRPCSignature(apiRequest.query, utils.Ptr(apiRequest.method.String()), creds.AccessKeySecret)
+	apiRequest.query["Signature"] = openapiutil.GetRPCSignature(apiRequest.query, esutils.Ptr(apiRequest.method.String()), creds.AccessKeySecret)
 
 	httpReq, err := newHTTPRequestWithContext(ctx, apiRequest)
 	if err != nil {
@@ -156,8 +156,8 @@ func (s *secretsManagerClient) doAPICall(ctx context.Context,
 }
 
 func (s *secretsManagerClient) parseResponse(resp *http.Response) (map[string]any, error) {
-	statusCode := utils.Ptr(resp.StatusCode)
-	if utils.Deref(util.Is4xx(statusCode)) || utils.Deref(util.Is5xx(statusCode)) {
+	statusCode := esutils.Ptr(resp.StatusCode)
+	if esutils.Deref(util.Is4xx(statusCode)) || esutils.Deref(util.Is5xx(statusCode)) {
 		return nil, s.parseErrorResponse(resp)
 	}
 
@@ -185,7 +185,7 @@ func (s *secretsManagerClient) parseErrorResponse(resp *http.Response) error {
 		return err
 	}
 
-	errorMap["statusCode"] = utils.Ptr(resp.StatusCode)
+	errorMap["statusCode"] = esutils.Ptr(resp.StatusCode)
 	err = tea.NewSDKError(map[string]any{
 		"code":               tea.ToString(defaultAny(errorMap["Code"], errorMap["code"])),
 		"message":            fmt.Sprintf("code: %s, %s", tea.ToString(resp.StatusCode), tea.ToString(defaultAny(errorMap["Message"], errorMap["message"]))),
@@ -223,18 +223,18 @@ func newOpenAPIRequest(endpoint string,
 		method:   method,
 		headers: map[string]*string{
 			"host":          &endpoint,
-			"x-acs-version": utils.Ptr(kmsAPIVersion),
+			"x-acs-version": esutils.Ptr(kmsAPIVersion),
 			"x-acs-action":  &action,
-			"user-agent":    utils.Ptr(fmt.Sprintf("AlibabaCloud (%s; %s) Golang/%s Core/%s TeaDSL/1", runtime.GOOS, runtime.GOARCH, strings.Trim(runtime.Version(), "go"), "0.01")),
+			"user-agent":    esutils.Ptr(fmt.Sprintf("AlibabaCloud (%s; %s) Golang/%s Core/%s TeaDSL/1", runtime.GOOS, runtime.GOARCH, strings.Trim(runtime.Version(), "go"), "0.01")),
 		},
 		query: map[string]*string{
 			"Action":           &action,
-			"Format":           utils.Ptr("json"),
-			"Version":          utils.Ptr(kmsAPIVersion),
+			"Format":           esutils.Ptr("json"),
+			"Version":          esutils.Ptr(kmsAPIVersion),
 			"Timestamp":        openapiutil.GetTimestamp(),
 			"SignatureNonce":   util.GetNonce(),
-			"SignatureMethod":  utils.Ptr("HMAC-SHA1"),
-			"SignatureVersion": utils.Ptr("1.0"),
+			"SignatureMethod":  esutils.Ptr("HMAC-SHA1"),
+			"SignatureVersion": esutils.Ptr("1.0"),
 		},
 	}
 
@@ -246,7 +246,7 @@ func newHTTPRequestWithContext(ctx context.Context,
 	req *openAPIRequest) (*http.Request, error) {
 	query := url.Values{}
 	for k, v := range req.query {
-		query.Add(k, utils.Deref(v))
+		query.Add(k, esutils.Deref(v))
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, req.method.String(), fmt.Sprintf("https://%s/?%s", url.PathEscape(req.endpoint), query.Encode()), http.NoBody)
@@ -255,14 +255,14 @@ func newHTTPRequestWithContext(ctx context.Context,
 	}
 
 	for k, v := range req.headers {
-		httpReq.Header.Add(k, utils.Deref(v))
+		httpReq.Header.Add(k, esutils.Deref(v))
 	}
 
 	return httpReq, nil
 }
 
 func defaultAny(inputValue, defaultValue any) any {
-	if utils.Deref(util.IsUnset(inputValue)) {
+	if esutils.Deref(util.IsUnset(inputValue)) {
 		return defaultValue
 	}
 

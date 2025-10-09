@@ -61,10 +61,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -319,18 +319,18 @@ func (a *Azure) ValidateStore(store esv1.GenericStore) (admission.Warnings, erro
 	}
 	if p.AuthSecretRef != nil {
 		if p.AuthSecretRef.ClientID != nil {
-			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
 				return nil, fmt.Errorf(errInvalidSecRefClientID, err)
 			}
 		}
 		if p.AuthSecretRef.ClientSecret != nil {
-			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
 				return nil, fmt.Errorf(errInvalidSecRefClientSecret, err)
 			}
 		}
 	}
 	if p.ServiceAccountRef != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
 			return nil, fmt.Errorf(errInvalidSARef, err)
 		}
 	}
@@ -710,7 +710,7 @@ func getSecretKey(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, erro
 	for k, v := range secret.Data {
 		secretStringVal[k] = string(v)
 	}
-	value, err := utils.JSONMarshal(secretStringVal)
+	value, err := esutils.JSONMarshal(secretStringVal)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize secret content as JSON: %w", err)
 	}

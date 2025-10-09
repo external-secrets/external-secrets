@@ -36,16 +36,17 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
 
+	// Load registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 )
 
 const (
-	errStoreClient         = "could not get provider client: %w"
-	errValidationFailed    = "could not validate provider: %w"
-	errValidationUnknown   = "could not determine validation status"
-	errPatchStatus         = "unable to patch status: %w"
-	errUnableCreateClient  = "unable to create client"
-	errUnableValidateStore = "unable to validate store"
+	errStoreClient          = "could not get provider client: %w"
+	errValidationFailed     = "could not validate provider: %w"
+	errValidationUnknownMsg = "could not determine validation status"
+	errPatchStatus          = "unable to patch status: %w"
+	errUnableCreateClient   = "unable to create client"
+	errUnableValidateStore  = "unable to validate store"
 
 	msgStoreValidated     = "store validated"
 	msgStoreNotMaintained = "store isn't currently maintained. Please plan and prepare accordingly."
@@ -54,8 +55,9 @@ const (
 	secretStoreFinalizer = "secretstore.externalsecrets.io/finalizer"
 )
 
-var validationUnknownError = errors.New("could not determine validation status")
+var errValidationUnknown = errors.New(errValidationUnknownMsg)
 
+// Opts holds the options for the reconcile function.
 type Opts struct {
 	ControllerClass string
 	GaugeVecGetter  metrics.GaugeVevGetter
@@ -107,7 +109,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		log.Error(err, "unable to validate store")
 		// in case of validation status unknown, validateStore will mark
 		// the store as ready but we should show ReasonValidationUnknown
-		if errors.Is(err, validationUnknownError) {
+		if errors.Is(err, errValidationUnknown) {
 			return ctrl.Result{RequeueAfter: requeueInterval}, nil
 		}
 		return ctrl.Result{}, err
@@ -161,10 +163,10 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 	validationResult, err := cl.Validate()
 	if err != nil {
 		if validationResult == esapi.ValidationResultUnknown {
-			cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonValidationUnknown, errValidationUnknown)
+			cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonValidationUnknown, errValidationUnknownMsg)
 			SetExternalSecretCondition(store, *cond, gaugeVecGetter)
 			recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationUnknown, err.Error())
-			return validationUnknownError
+			return errValidationUnknown
 		}
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableValidateStore)
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)

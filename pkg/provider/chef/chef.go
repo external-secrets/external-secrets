@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (
@@ -177,7 +177,7 @@ func (providerchef *Providerchef) GetAllSecrets(_ context.Context, _ esv1.Extern
 
 // GetSecret returns a databagItem present in the databag. format example: databagName/databagItemName.
 func (providerchef *Providerchef) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(providerchef.databagService) {
+	if esutils.IsNil(providerchef.databagService) {
 		return nil, errors.New(errUninitalizedChefProvider)
 	}
 
@@ -265,7 +265,7 @@ func getPropertyFromDatabagItem(jsonByte []byte, propertyName string) ([]byte, e
 // dataFrom.extract.key only accepts dataBagName, example : dataFrom.extract.key: myDatabag
 // databagItemName or Property not expected in key.
 func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	if utils.IsNil(providerchef.databagService) {
+	if esutils.IsNil(providerchef.databagService) {
 		return nil, errors.New(errUninitalizedChefProvider)
 	}
 	databagName := ref.Key
@@ -298,7 +298,7 @@ func (providerchef *Providerchef) ValidateStore(store esv1.GenericStore) (admiss
 		return nil, fmt.Errorf(errChefStore, err)
 	}
 	// check namespace compared to kind
-	if err := utils.ValidateSecretSelector(store, chefProvider.Auth.SecretRef.SecretKey); err != nil {
+	if err := esutils.ValidateSecretSelector(store, chefProvider.Auth.SecretRef.SecretKey); err != nil {
 		return nil, fmt.Errorf(errChefStore, err)
 	}
 	return nil, nil

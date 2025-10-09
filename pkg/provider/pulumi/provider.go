@@ -26,8 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 // Provider implements the esv1.Provider interface for Pulumi ESC.
@@ -126,7 +126,7 @@ func getConfig(store esv1.GenericStore) (*esv1.PulumiProvider, error) {
 
 func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.PulumiProviderSecretRef) error {
 	if ref != nil {
-		if err := utils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
 			return err
 		}
 	}

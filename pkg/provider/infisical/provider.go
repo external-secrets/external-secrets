@@ -29,8 +29,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (
@@ -458,12 +458,12 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if infisicalStoreSpec.Auth.UniversalAuthCredentials != nil {
 		uaCredential := infisicalStoreSpec.Auth.UniversalAuthCredentials
 		// to validate reference authentication
-		err := utils.ValidateReferentSecretSelector(store, uaCredential.ClientID)
+		err := esutils.ValidateReferentSecretSelector(store, uaCredential.ClientID)
 		if err != nil {
 			return nil, err
 		}
 
-		err = utils.ValidateReferentSecretSelector(store, uaCredential.ClientSecret)
+		err = esutils.ValidateReferentSecretSelector(store, uaCredential.ClientSecret)
 		if err != nil {
 			return nil, err
 		}

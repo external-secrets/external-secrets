@@ -13,26 +13,31 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package util
+
+// Package ctrlutil provides utility functions for controllers.
+package ctrlutil
 
 import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
+// GetResourceVersion returns a string representing the resource version of the object.
+// It is a combination of the generation and a hash of the labels and annotations.
 func GetResourceVersion(meta metav1.ObjectMeta) string {
 	return fmt.Sprintf("%d-%s", meta.GetGeneration(), HashMeta(meta))
 }
 
+// HashMeta returns a hash of the metadata's labels and annotations.
 func HashMeta(m metav1.ObjectMeta) string {
 	type meta struct {
 		annotations map[string]string
 		labels      map[string]string
 	}
-	return utils.ObjectHash(meta{
+	return esutils.ObjectHash(meta{
 		annotations: m.Annotations,
 		labels:      m.Labels,
 	})

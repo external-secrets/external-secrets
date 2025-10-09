@@ -37,9 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -88,7 +88,7 @@ type Opts struct {
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
 func New(ctx context.Context, opts Opts) (*aws.Config, error) {
-	prov, err := util.GetAWSProvider(opts.Store)
+	prov, err := awsutil.GetAWSProvider(opts.Store)
 	if err != nil {
 		return nil, err
 	}

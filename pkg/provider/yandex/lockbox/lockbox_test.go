@@ -946,15 +946,15 @@ func TestGetSecretWithInvalidFetchingPolicy(t *testing.T) {
 
 // helper fuxnctions
 
-func newLockboxProvider(clock clock.Clock, fakeLockboxServer *client.FakeLockboxServer) *common.YandexCloudProvider {
-	return common.InitYandexCloudProvider(
+func newLockboxProvider(clock clock.Clock, fakeLockboxServer *client.FakeLockboxServer) *ydxcommon.YandexCloudProvider {
+	return ydxcommon.InitYandexCloudProvider(
 		ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox"),
 		clock,
 		adaptInput,
-		func(context.Context, string, *iamkey.Key, []byte) (common.SecretGetter, error) {
+		func(context.Context, string, *iamkey.Key, []byte) (ydxcommon.SecretGetter, error) {
 			return newLockboxSecretGetter(client.NewFakeLockboxClient(fakeLockboxServer))
 		},
-		func(_ context.Context, _ string, authorizedKey *iamkey.Key, _ []byte) (*common.IamToken, error) {
+		func(_ context.Context, _ string, authorizedKey *iamkey.Key, _ []byte) (*ydxcommon.IamToken, error) {
 			return fakeLockboxServer.NewIamToken(authorizedKey), nil
 		},
 		0,

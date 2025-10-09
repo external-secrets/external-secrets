@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (
@@ -122,7 +122,7 @@ func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1.Extern
 	}
 
 	if ref.Property == "" {
-		return utils.JSONMarshal(secret)
+		return esutils.JSONMarshal(secret)
 	}
 
 	return secret.GetProp(ref.Property)
@@ -179,7 +179,7 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 		if err != nil {
 			return nil, err
 		}
-		marshaled, err := utils.JSONMarshal(secret)
+		marshaled, err := esutils.JSONMarshal(secret)
 		if err != nil {
 			return nil, err
 		}

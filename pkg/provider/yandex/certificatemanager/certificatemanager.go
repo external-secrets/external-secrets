@@ -34,7 +34,7 @@ import (
 
 var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("certificatemanager")
 
-func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
+func adaptInput(store esv1.GenericStore) (*ydxcommon.SecretsClientInput, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexCertificateManager == nil {
 		return nil, errors.New("received invalid Yandex Certificate Manager SecretStore resource")
@@ -51,7 +51,7 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 		caCertificate = &storeSpecYandexCertificateManager.CAProvider.Certificate
 	}
 
-	var resourceKeyType common.ResourceKeyType
+	var resourceKeyType ydxcommon.ResourceKeyType
 	var folderID string
 	policy := storeSpecYandexCertificateManager.FetchingPolicy
 	if policy != nil {
@@ -60,18 +60,18 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 			if policy.ByName.FolderID == "" {
 				return nil, errors.New("folderID is required when fetching policy is 'byName'")
 			}
-			resourceKeyType = common.ResourceKeyTypeName
+			resourceKeyType = ydxcommon.ResourceKeyTypeName
 			folderID = policy.ByName.FolderID
 
 		case policy.ByID != nil:
-			resourceKeyType = common.ResourceKeyTypeID
+			resourceKeyType = ydxcommon.ResourceKeyTypeID
 
 		default:
 			return nil, errors.New("invalid Yandex Certificate Manager SecretStore: requires either 'byName' or 'byID' policy")
 		}
 	}
 
-	return &common.SecretsClientInput{
+	return &ydxcommon.SecretsClientInput{
 		APIEndpoint:     storeSpecYandexCertificateManager.APIEndpoint,
 		AuthorizedKey:   authorizedKey,
 		CACertificate:   caCertificate,
@@ -80,7 +80,7 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 	}, nil
 }
 
-func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (common.SecretGetter, error) {
+func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (ydxcommon.SecretGetter, error) {
 	grpcClient, err := client.NewGrpcCertificateManagerClient(ctx, apiEndpoint, authorizedKey, caCertificate)
 	if err != nil {
 		return nil, err
@@ -89,12 +89,12 @@ func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iam
 }
 
 func init() {
-	provider := common.InitYandexCloudProvider(
+	provider := ydxcommon.InitYandexCloudProvider(
 		log,
 		clock.NewRealClock(),
 		adaptInput,
 		newSecretGetter,
-		common.NewIamToken,
+		ydxcommon.NewIamToken,
 		time.Hour,
 	)
 

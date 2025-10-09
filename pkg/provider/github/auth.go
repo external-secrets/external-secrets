@@ -25,7 +25,7 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	github "github.com/google/go-github/v56/github"
 
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 // AuthWithPrivateKey creates a new GitHub client authenticated using a private key.
