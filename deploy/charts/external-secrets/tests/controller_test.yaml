@@ -112,12 +112,12 @@ tests:
           successThreshold: 10
           httpGet:
             path: /healthz
-            port: "8080"
+            port: 8080
             scheme: HTTP
     asserts:
       - equal:
           path: spec.template.spec.containers[0].livenessProbe.httpGet.port
-          value: "8080"
+          value: 8080
   - it: should update args with enableHTTP2=true
     set:
       enableHTTP2: true

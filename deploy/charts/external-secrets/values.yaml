@@ -315,7 +315,9 @@ livenessProbe:
     # -- Handler for liveness probe.
     httpGet:
       # -- Set this value to 8082 to active liveness probes.
-      port: "8082"
+      # @schema type: [string, integer]
+      port: 8082
+      # -- Path for liveness probe.
       path: /healthz
 
 nodeSelector: {}
