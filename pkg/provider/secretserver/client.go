@@ -28,7 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 type client struct {
@@ -92,22 +92,22 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return []byte(out), nil
 }
 
-// Not supported at this time.
+// PushSecret not supported at this time.
 func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New("pushing secrets is not supported by Secret Server at this time")
 }
 
-// Not supported at this time.
+// DeleteSecret not supported at this time.
 func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New("deleting secrets is not supported by Secret Server at this time")
 }
 
-// Not supported at this time.
+// SecretExists not supported at this time.
 func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
-// Not supported at this time.
+// Validate not supported at this time.
 func (c *client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
@@ -126,7 +126,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 	data := make(map[string][]byte)
 	for k, v := range secretData {
-		data[k], err = utils.GetByteValue(v)
+		data[k], err = esutils.GetByteValue(v)
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +134,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return data, nil
 }
 
-// Not supported at this time.
+// GetAllSecrets not supported at this time.
 func (c *client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("getting all secrets is not supported by Delinea Secret Server at this time")
 }

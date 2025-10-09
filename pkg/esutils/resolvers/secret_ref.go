@@ -30,7 +30,7 @@ import (
 
 const (
 
-	// This is used to determine if a store is cluster-scoped or not.
+	// EmptyStoreKind is used to determine if a store is cluster-scoped or not.
 	// The EmptyStoreKind is not cluster-scoped, hence resources
 	// cannot be resolved across namespaces.
 	// TODO: when we implement cluster-scoped generators

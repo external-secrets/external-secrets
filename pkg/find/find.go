@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package find provides utilities for matching names against regular expressions.
 package find
 
 import (
@@ -23,10 +24,12 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
+// Matcher represents a pattern matcher that uses regular expressions to match names.
 type Matcher struct {
 	re *regexp.Regexp
 }
 
+// New creates a new Matcher using the provided FindName configuration.
 func New(findName esv1.FindName) (*Matcher, error) {
 	cmp, err := regexp.Compile(findName.RegExp)
 	if err != nil {
@@ -37,6 +40,7 @@ func New(findName esv1.FindName) (*Matcher, error) {
 	}, nil
 }
 
+// MatchName checks if the given name matches the configured regular expression pattern.
 func (m *Matcher) MatchName(name string) bool {
 	return m.re.MatchString(name)
 }

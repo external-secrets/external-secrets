@@ -27,8 +27,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -91,7 +91,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	}
 	byteMap := make(map[string][]byte, len(secretData))
 	for k := range secretData {
-		byteMap[k], err = utils.GetByteValueFromMap(secretData, k)
+		byteMap[k], err = esutils.GetByteValueFromMap(secretData, k)
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +175,7 @@ func getSecretValue(data map[string]any, property string) ([]byte, error) {
 	// actual keys to take precedence over gjson syntax
 	// (2): extract key from secret with property
 	if _, ok := data[property]; ok {
-		return utils.GetByteValueFromMap(data, property)
+		return esutils.GetByteValueFromMap(data, property)
 	}
 
 	// (3): extract key from secret using gjson

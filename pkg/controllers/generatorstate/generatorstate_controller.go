@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package generatorstate implements controllers for managing GeneratorState resources
 package generatorstate
 
 import (
@@ -36,6 +37,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
+// Reconciler reconciles a GeneratorState object, managing its lifecycle and cleanup.
 type Reconciler struct {
 	client.Client
 
@@ -47,6 +49,11 @@ type Reconciler struct {
 
 const generatorStateFinalizer = "generatorstate.externalsecrets.io/finalizer"
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	generatorState := &genv1alpha1.GeneratorState{}
 	err = r.Get(ctx, req.NamespacedName, generatorState)

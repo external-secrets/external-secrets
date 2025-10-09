@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package sts implements a generator for AWS STS session tokens
 package sts
 
 import (
@@ -38,8 +39,10 @@ type stsAPI interface {
 	GetSessionToken(ctx context.Context, params *sts.GetSessionTokenInput, optFns ...func(*sts.Options)) (*sts.GetSessionTokenOutput, error)
 }
 
+// Generator implements a generator for AWS STS session tokens.
 type Generator struct{}
 
+// const error messages.
 const (
 	errNoSpec     = "no config spec provided"
 	errParseSpec  = "unable to parse spec: %w"
@@ -47,6 +50,7 @@ const (
 	errGetToken   = "unable to get authorization token: %w"
 )
 
+// Generate creates AWS STS session tokens and returns credentials.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(ctx, jsonSpec, kube, namespace, stsFactory)
 }
@@ -105,7 +109,8 @@ func (g *Generator) generate(
 	}, nil, nil
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+// Cleanup is a no-op for STS generator as it doesn't require any cleanup.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

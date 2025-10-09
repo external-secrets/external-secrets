@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cpsmetrics provides functionality for tracking and exposing metrics related to ClusterPushSecret resources.
 package cpsmetrics
 
 import (
@@ -25,6 +26,7 @@ import (
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
+// Constants for metrics subsystem and keys.
 const (
 	ClusterPushSecretSubsystem            = "clusterpushsecret"
 	ClusterPushSecretReconcileDurationKey = "reconcile_duration"
@@ -56,10 +58,12 @@ func SetUpMetrics() {
 	}
 }
 
+// GetGaugeVec returns a GaugeVec for the given metric key.
 func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
 }
 
+// UpdateClusterPushSecretCondition updates the metrics for a ClusterPushSecret based on its condition.
 func UpdateClusterPushSecretCondition(ces *v1alpha1.ClusterPushSecret, condition *v1alpha1.PushSecretStatusCondition) {
 	if condition.Status != v1.ConditionTrue {
 		// This should not happen

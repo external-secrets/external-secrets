@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package webhook provides functionality for interacting with external webhook services
+// to fetch and push secret data.
 package webhook
 
 import (
@@ -23,6 +25,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// Spec defines the configuration for a webhook provider.
 type Spec struct {
 	// Webhook Method
 	// +optional, default GET
@@ -84,12 +87,14 @@ type NTLMProtocol struct {
 	Password esmeta.SecretKeySelector `json:"passwordSecret"`
 }
 
+// Result defines how to process and extract data from webhook responses.
 type Result struct {
 	// Json path of return value
 	// +optional
 	JSONPath string `json:"jsonPath,omitempty"`
 }
 
+// Secret defines a secret that can be used in webhook templates.
 type Secret struct {
 	// Name of this secret in templates
 	Name string `json:"name"`

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package webhookconfig contains the controller for the WebhookConfig resource.
 package webhookconfig
 
 import (
@@ -25,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/go-logr/logr"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -41,6 +42,8 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/constants"
 )
 
+// Reconciler reconciles a ValidatingWebhookConfiguration object
+// and updates it with the CA bundle from the given secret.
 type Reconciler struct {
 	client.Client
 	Log             logr.Logger
@@ -61,6 +64,7 @@ type Reconciler struct {
 	webhookReady   bool
 }
 
+// Opts are the options for the webhookconfig controller Reconciler.
 type Opts struct {
 	SvcName         string
 	SvcNamespace    string
@@ -69,6 +73,9 @@ type Opts struct {
 	RequeueInterval time.Duration
 }
 
+// New returns a new Reconciler.
+// The controller will watch ValidatingWebhookConfiguration resources
+// and update them with the CA bundle from the given secret.
 func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan struct{}, log logr.Logger, opts Opts) *Reconciler {
 	return &Reconciler{
 		Client:          k8sClient,
@@ -87,6 +94,7 @@ func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan stru
 }
 
 const (
+	// ReasonUpdateFailed is used when we fail to update the webhook config.
 	ReasonUpdateFailed = "UpdateFailed"
 	errWebhookNotReady = "webhook not ready"
 	errCACertNotReady  = "ca cert not yet ready"
@@ -94,6 +102,10 @@ const (
 	caCertName = "ca.crt"
 )
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// In this case, we reconcile ValidatingWebhookConfiguration resources
+// that are labeled with the well-known label key and value.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("Webhookconfig", req.NamespacedName)
 	var cfg admissionregistration.ValidatingWebhookConfiguration
@@ -130,6 +142,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, nil
 }
 
+// SetupWithManager sets up the controller with the Manager.
+// Also initializes the event recorder.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("validating-webhook-configuration")
 	return ctrl.NewControllerManagedBy(mgr).
@@ -138,6 +152,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		Complete(r)
 }
 
+// ReadyCheck does a readiness check for the webhook using the endpoint slices.
 func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	// skip readiness check if we're not leader
 	// as we depend on caches and being able to reconcile Webhooks
@@ -155,7 +170,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 		return errors.New(errWebhookNotReady)
 	}
 
-	return utils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
+	return esutils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
 }
 
 // reads the ca cert and updates the webhook config.
