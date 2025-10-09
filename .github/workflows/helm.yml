@@ -4,13 +4,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'deploy/charts/**'
-      - 'deploy/crds/**'
   pull_request:
-    paths:
-      - 'deploy/charts/**'
-      - 'deploy/crds/**'
   workflow_dispatch: {}
 
 permissions:
