@@ -445,7 +445,10 @@
                                     "type": "string"
                                 },
                                 "port": {
-                                    "type": "string"
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
                                 }
                             }
                         },
