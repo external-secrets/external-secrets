@@ -31,7 +31,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/common/webhook"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (
@@ -134,7 +134,7 @@ func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data es
 		return fmt.Errorf(errFailedToGetStore, err)
 	}
 
-	value, err := utils.ExtractSecretData(data, secret)
+	value, err := esutils.ExtractSecretData(data, secret)
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	url := w.url
 
-	if err := utils.NetworkValidate(url, timeout); err != nil {
+	if err := esutils.NetworkValidate(url, timeout); err != nil {
 		return esv1.ValidationResultError, err
 	}
 	return esv1.ValidationResultReady, nil

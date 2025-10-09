@@ -26,8 +26,8 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/template"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register" // Loading registered providers.
 )
@@ -106,8 +106,8 @@ func setMetadata(secret *v1.Secret, ps *v1alpha1.PushSecret) error {
 	}
 
 	secret.Type = ps.Spec.Template.Type
-	utils.MergeStringMap(secret.ObjectMeta.Labels, ps.Spec.Template.Metadata.Labels)
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, ps.Spec.Template.Metadata.Annotations)
+	esutils.MergeStringMap(secret.ObjectMeta.Labels, ps.Spec.Template.Metadata.Labels)
+	esutils.MergeStringMap(secret.ObjectMeta.Annotations, ps.Spec.Template.Metadata.Annotations)
 
 	return nil
 }

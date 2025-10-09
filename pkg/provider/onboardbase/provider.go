@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	oClient "github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -91,7 +91,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	storeSpec := store.GetSpec()
 	onboardbaseStoreSpec := storeSpec.Provider.Onboardbase
 	onboardbaseAPIKeySecretRef := onboardbaseStoreSpec.Auth.OnboardbaseAPIKeyRef
-	if err := utils.ValidateSecretSelector(store, onboardbaseAPIKeySecretRef); err != nil {
+	if err := esutils.ValidateSecretSelector(store, onboardbaseAPIKeySecretRef); err != nil {
 		return nil, fmt.Errorf(errInvalidStore, err)
 	}
 
@@ -100,7 +100,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	onboardbasePasscodeKeySecretRef := onboardbaseStoreSpec.Auth.OnboardbasePasscodeRef
-	if err := utils.ValidateSecretSelector(store, onboardbasePasscodeKeySecretRef); err != nil {
+	if err := esutils.ValidateSecretSelector(store, onboardbasePasscodeKeySecretRef); err != nil {
 		return nil, fmt.Errorf(errInvalidStore, err)
 	}
 

@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package util provides utility functions for AWS providers in External Secrets Operator
-package util
+// Package awsutil provides utility functions for AWS providers in External Secrets Operator
+package awsutil
 
 import (
 	"errors"
