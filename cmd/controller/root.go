@@ -121,7 +121,7 @@ var rootCmd = &cobra.Command{
 	Use:   "external-secrets",
 	Short: "operator that reconciles ExternalSecrets and SecretStores",
 	Long:  `For more information visit https://external-secrets.io`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		setupLogger()
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
@@ -329,6 +329,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute starts the command execution process.
 func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
 }

@@ -29,10 +29,12 @@ type Device42Provider struct {
 	Auth Device42Auth `json:"auth"`
 }
 
+// Device42Auth defines the authentication method for the Device42 provider.
 type Device42Auth struct {
 	SecretRef Device42SecretRef `json:"secretRef"`
 }
 
+// Device42SecretRef defines a reference to a secret containing credentials for the Device42 provider.
 type Device42SecretRef struct {
 	// Username / Password is used for authentication.
 	// +optional

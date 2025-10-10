@@ -20,7 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Configures a store to sync secrets with a Password Depot instance.
+// PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
 type PasswordDepotProvider struct {
 	// URL configures the Password Depot instance URL.
 	Host string `json:"host"`
@@ -32,10 +32,12 @@ type PasswordDepotProvider struct {
 	Auth PasswordDepotAuth `json:"auth"`
 }
 
+// PasswordDepotAuth defines the authentication method for the Password Depot provider.
 type PasswordDepotAuth struct {
 	SecretRef PasswordDepotSecretRef `json:"secretRef"`
 }
 
+// PasswordDepotSecretRef defines a reference to a secret containing credentials for the Password Depot provider.
 type PasswordDepotSecretRef struct {
 	// Username / Password is used for authentication.
 	// +optional

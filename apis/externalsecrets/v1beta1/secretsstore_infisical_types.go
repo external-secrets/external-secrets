@@ -20,6 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// UniversalAuthCredentials defines the credentials for Infisical Universal Auth.
 type UniversalAuthCredentials struct {
 	// +kubebuilder:validation:Required
 	ClientID esmeta.SecretKeySelector `json:"clientId"`
@@ -27,11 +28,13 @@ type UniversalAuthCredentials struct {
 	ClientSecret esmeta.SecretKeySelector `json:"clientSecret"`
 }
 
+// InfisicalAuth defines the authentication methods for the Infisical provider.
 type InfisicalAuth struct {
 	// +optional
 	UniversalAuthCredentials *UniversalAuthCredentials `json:"universalAuthCredentials,omitempty"`
 }
 
+// MachineIdentityScopeInWorkspace defines the scope of a machine identity in an Infisical workspace.
 type MachineIdentityScopeInWorkspace struct {
 	// SecretsPath specifies the path to the secrets within the workspace. Defaults to "/" if not provided.
 	// +kubebuilder:default="/"

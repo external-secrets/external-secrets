@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package fakes contains fake implementations for testing purposes.
 package fakes
 
 import (
@@ -22,6 +23,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
+// PushRemoteRef is a fake implementation of the PushRemoteRef interface for testing.
 type PushRemoteRef struct {
 	GetRemoteKeyStub        func() string
 	getRemoteKeyMutex       sync.RWMutex
@@ -37,6 +39,7 @@ type PushRemoteRef struct {
 	invocationsMutex sync.RWMutex
 }
 
+// GetRemoteKey returns a string representing the remote key.
 func (fake *PushRemoteRef) GetRemoteKey() string {
 	fake.getRemoteKeyMutex.Lock()
 	ret, specificReturn := fake.getRemoteKeyReturnsOnCall[len(fake.getRemoteKeyArgsForCall)]
@@ -55,22 +58,26 @@ func (fake *PushRemoteRef) GetRemoteKey() string {
 	return fakeReturns.result1
 }
 
+// GetProperty returns the property value as a string.
 func (fake *PushRemoteRef) GetProperty() string {
 	return ""
 }
 
+// GetRemoteKeyCallCount returns the number of times GetRemoteKey has been called.
 func (fake *PushRemoteRef) GetRemoteKeyCallCount() int {
 	fake.getRemoteKeyMutex.RLock()
 	defer fake.getRemoteKeyMutex.RUnlock()
 	return len(fake.getRemoteKeyArgsForCall)
 }
 
+// GetRemoteKeyCalls sets a custom stub function for the GetRemoteKey method.
 func (fake *PushRemoteRef) GetRemoteKeyCalls(stub func() string) {
 	fake.getRemoteKeyMutex.Lock()
 	defer fake.getRemoteKeyMutex.Unlock()
 	fake.GetRemoteKeyStub = stub
 }
 
+// GetRemoteKeyReturns sets return values that will be returned by GetRemoteKey.
 func (fake *PushRemoteRef) GetRemoteKeyReturns(result1 string) {
 	fake.getRemoteKeyMutex.Lock()
 	defer fake.getRemoteKeyMutex.Unlock()
@@ -80,6 +87,7 @@ func (fake *PushRemoteRef) GetRemoteKeyReturns(result1 string) {
 	}{result1}
 }
 
+// GetRemoteKeyReturnsOnCall sets return values for specific calls to GetRemoteKey.
 func (fake *PushRemoteRef) GetRemoteKeyReturnsOnCall(i int, result1 string) {
 	fake.getRemoteKeyMutex.Lock()
 	defer fake.getRemoteKeyMutex.Unlock()
@@ -94,6 +102,7 @@ func (fake *PushRemoteRef) GetRemoteKeyReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+// Invocations returns a map recording the calls to methods on this fake.
 func (fake *PushRemoteRef) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()

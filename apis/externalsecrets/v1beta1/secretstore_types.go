@@ -208,14 +208,17 @@ type SecretStoreProvider struct {
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
 }
 
+// CAProviderType defines the type of provider to use for CA certificates.
 type CAProviderType string
 
 const (
-	CAProviderTypeSecret    CAProviderType = "Secret"
+	// CAProviderTypeSecret indicates that the CA certificate is stored in a Secret.
+	CAProviderTypeSecret CAProviderType = "Secret"
+	// CAProviderTypeConfigMap indicates that the CA certificate is stored in a ConfigMap.
 	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
 )
 
-// Used to provide custom certificate authority (CA) certificates
+// CAProvider provides custom certificate authority (CA) certificates
 // for a secret store. The CAProvider points to a Secret or ConfigMap resource
 // that contains a PEM-encoded certificate.
 type CAProvider struct {
@@ -245,22 +248,32 @@ type CAProvider struct {
 	Namespace *string `json:"namespace,omitempty"`
 }
 
+// SecretStoreRetrySettings defines configuration for retrying failed requests to the provider.
 type SecretStoreRetrySettings struct {
-	MaxRetries    *int32  `json:"maxRetries,omitempty"`
+	// MaxRetries is the maximum number of retry attempts.
+	MaxRetries *int32 `json:"maxRetries,omitempty"`
+	// RetryInterval is the interval between retry attempts.
 	RetryInterval *string `json:"retryInterval,omitempty"`
 }
 
+// SecretStoreConditionType represents the condition type of the SecretStore.
 type SecretStoreConditionType string
 
 const (
+	// SecretStoreReady indicates that the SecretStore has been successfully configured.
 	SecretStoreReady SecretStoreConditionType = "Ready"
 
-	ReasonInvalidStore          = "InvalidStoreConfiguration"
+	// ReasonInvalidStore indicates that the SecretStore has invalid configuration.
+	ReasonInvalidStore = "InvalidStoreConfiguration"
+	// ReasonInvalidProviderConfig indicates that the provider configuration is invalid.
 	ReasonInvalidProviderConfig = "InvalidProviderConfig"
-	ReasonValidationFailed      = "ValidationFailed"
-	ReasonStoreValid            = "Valid"
+	// ReasonValidationFailed indicates that validation of the SecretStore failed.
+	ReasonValidationFailed = "ValidationFailed"
+	// ReasonStoreValid indicates that the store is valid.
+	ReasonStoreValid = "Valid"
 )
 
+// SecretStoreStatusCondition defines the observed condition of the SecretStore.
 type SecretStoreStatusCondition struct {
 	Type   SecretStoreConditionType `json:"type"`
 	Status corev1.ConditionStatus   `json:"status"`
@@ -279,8 +292,11 @@ type SecretStoreStatusCondition struct {
 type SecretStoreCapabilities string
 
 const (
-	SecretStoreReadOnly  SecretStoreCapabilities = "ReadOnly"
+	// SecretStoreReadOnly indicates that the SecretStore only supports reading secrets.
+	SecretStoreReadOnly SecretStoreCapabilities = "ReadOnly"
+	// SecretStoreWriteOnly indicates that the SecretStore only supports writing secrets.
 	SecretStoreWriteOnly SecretStoreCapabilities = "WriteOnly"
+	// SecretStoreReadWrite indicates that the SecretStore supports both reading and writing secrets.
 	SecretStoreReadWrite SecretStoreCapabilities = "ReadWrite"
 )
 

@@ -35,26 +35,44 @@ var (
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
-	AddToScheme   = SchemeBuilder.AddToScheme
+
+	// AddToScheme adds the types in this group-version to the given scheme.
+	AddToScheme = SchemeBuilder.AddToScheme
 )
 
 var (
+	// ECRAuthorizationTokenKind is the kind name for ECRAuthorizationToken resource.
 	ECRAuthorizationTokenKind = reflect.TypeOf(ECRAuthorizationToken{}).Name()
-	STSSessionTokenKind       = reflect.TypeOf(STSSessionToken{}).Name()
-	GCRAccessTokenKind        = reflect.TypeOf(GCRAccessToken{}).Name()
-	ACRAccessTokenKind        = reflect.TypeOf(ACRAccessToken{}).Name()
-	PasswordKind              = reflect.TypeOf(Password{}).Name()
-	SSHKeyKind                = reflect.TypeOf(SSHKey{}).Name()
-	WebhookKind               = reflect.TypeOf(Webhook{}).Name()
-	FakeKind                  = reflect.TypeOf(Fake{}).Name()
-	VaultDynamicSecretKind    = reflect.TypeOf(VaultDynamicSecret{}).Name()
-	GithubAccessTokenKind     = reflect.TypeOf(GithubAccessToken{}).Name()
-	QuayAccessTokenKind       = reflect.TypeOf(QuayAccessToken{}).Name()
+	// STSSessionTokenKind is the kind name for STSSessionToken resource.
+	STSSessionTokenKind = reflect.TypeOf(STSSessionToken{}).Name()
+	// GCRAccessTokenKind is the kind name for GCRAccessToken resource.
+	GCRAccessTokenKind = reflect.TypeOf(GCRAccessToken{}).Name()
+	// ACRAccessTokenKind is the kind name for ACRAccessToken resource.
+	ACRAccessTokenKind = reflect.TypeOf(ACRAccessToken{}).Name()
+	// PasswordKind is the kind name for Password resource.
+	PasswordKind = reflect.TypeOf(Password{}).Name()
+	// SSHKeyKind is the kind name for SSHKey resource.
+	SSHKeyKind = reflect.TypeOf(SSHKey{}).Name()
+	// WebhookKind is the kind name for Webhook resource.
+	WebhookKind = reflect.TypeOf(Webhook{}).Name()
+	// FakeKind is the kind name for Fake resource.
+	FakeKind = reflect.TypeOf(Fake{}).Name()
+	// VaultDynamicSecretKind is the kind name for VaultDynamicSecret resource.
+	VaultDynamicSecretKind = reflect.TypeOf(VaultDynamicSecret{}).Name()
+	// GithubAccessTokenKind is the kind name for GithubAccessToken resource.
+	GithubAccessTokenKind = reflect.TypeOf(GithubAccessToken{}).Name()
+	// QuayAccessTokenKind is the kind name for QuayAccessToken resource.
+	QuayAccessTokenKind = reflect.TypeOf(QuayAccessToken{}).Name()
+	// UUIDKind is the kind name for UUID resource.
+	UUIDKind = reflect.TypeOf(UUID{}).Name()
+	// GrafanaKind is the kind name for Grafana resource.
+	GrafanaKind = reflect.TypeOf(Grafana{}).Name()
+	// MFAKind is the kind name for MFA resource.
+	MFAKind = reflect.TypeOf(MFA{}).Name()
+	// ClusterGeneratorKind is the kind name for ClusterGenerator resource.
+	ClusterGeneratorKind = reflect.TypeOf(ClusterGenerator{}).Name()
+	// CloudsmithAccessTokenKind is the kind name for CloudsmithAccessToken resource.
 	CloudsmithAccessTokenKind = reflect.TypeOf(CloudsmithAccessToken{}).Name()
-	UUIDKind                  = reflect.TypeOf(UUID{}).Name()
-	GrafanaKind               = reflect.TypeOf(Grafana{}).Name()
-	MFAKind                   = reflect.TypeOf(MFA{}).Name()
-	ClusterGeneratorKind      = reflect.TypeOf(ClusterGenerator{}).Name()
 )
 
 func init() {

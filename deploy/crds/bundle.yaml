@@ -205,6 +205,9 @@ spec:
                         DataFrom is used to fetch all properties from a specific Provider data
                         If multiple entries are specified, the Secret keys are merged in the specified order
                       items:
+                        description: |-
+                          ExternalSecretDataFromRemoteRef defines the connection between the Kubernetes Secret keys and the Provider data
+                          when using DataFrom to fetch multiple values from a Provider.
                         properties:
                           extract:
                             description: |-
@@ -288,6 +291,7 @@ spec:
                               Used to rewrite secret Keys after getting them from the secret Provider
                               Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                             items:
+                              description: ExternalSecretRewrite defines how to rewrite secret data values before they are written to the Secret.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -472,8 +476,8 @@ spec:
                         creationPolicy: Owner
                         deletionPolicy: Retain
                       description: |-
-                        ExternalSecretTarget defines the Kubernetes Secret to be created
-                        There can be only one target per ExternalSecret.
+                        ExternalSecretTarget defines the Kubernetes Secret to be created,
+                        there can be only one target per ExternalSecret.
                       properties:
                         creationPolicy:
                           default: Owner
@@ -525,6 +529,7 @@ spec:
                               type: string
                             mergePolicy:
                               default: Replace
+                              description: TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
                               enum:
                                 - Replace
                                 - Merge
@@ -547,12 +552,17 @@ spec:
                               type: object
                             templateFrom:
                               items:
+                                description: |-
+                                  TemplateFrom specifies a source for templates.
+                                  Each item in the list can either reference a ConfigMap or a Secret resource.
                                 properties:
                                   configMap:
+                                    description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                     properties:
                                       items:
                                         description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                         items:
+                                          description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                           properties:
                                             key:
                                               description: A key in the ConfigMap/Secret
@@ -562,6 +572,7 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              description: TemplateScope specifies how the template keys should be interpreted.
                                               enum:
                                                 - Values
                                                 - KeysAndValues
@@ -583,10 +594,12 @@ spec:
                                   literal:
                                     type: string
                                   secret:
+                                    description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                     properties:
                                       items:
                                         description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                         items:
+                                          description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                           properties:
                                             key:
                                               description: A key in the ConfigMap/Secret
@@ -596,6 +609,7 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              description: TemplateScope specifies how the template keys should be interpreted.
                                               enum:
                                                 - Values
                                                 - KeysAndValues
@@ -616,6 +630,7 @@ spec:
                                     type: object
                                   target:
                                     default: Data
+                                    description: TemplateTarget specifies where the rendered templates should be applied.
                                     enum:
                                       - Data
                                       - Annotations
@@ -745,12 +760,14 @@ spec:
               properties:
                 conditions:
                   items:
+                    description: ClusterExternalSecretStatusCondition defines the observed state of a ClusterExternalSecret resource.
                     properties:
                       message:
                         type: string
                       status:
                         type: string
                       type:
+                        description: ClusterExternalSecretConditionType defines a value type for ClusterExternalSecret conditions.
                         type: string
                     required:
                       - status
@@ -800,7 +817,7 @@ spec:
       name: v1beta1
       schema:
         openAPIV3Schema:
-          description: ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
+          description: ClusterExternalSecret is the schema for the clusterexternalsecrets API.
           properties:
             apiVersion:
               description: |-
@@ -971,6 +988,7 @@ spec:
                         DataFrom is used to fetch all properties from a specific Provider data
                         If multiple entries are specified, the Secret keys are merged in the specified order
                       items:
+                        description: ExternalSecretDataFromRemoteRef defines a reference to multiple secrets in the provider to be fetched using options.
                         properties:
                           extract:
                             description: |-
@@ -1054,6 +1072,7 @@ spec:
                               Used to rewrite secret Keys after getting them from the secret Provider
                               Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                             items:
+                              description: ExternalSecretRewrite defines rules on how to rewrite secret keys.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -1251,6 +1270,7 @@ spec:
                               type: string
                             mergePolicy:
                               default: Replace
+                              description: TemplateMergePolicy defines how template values should be merged when generating a secret.
                               enum:
                                 - Replace
                                 - Merge
@@ -1269,12 +1289,15 @@ spec:
                               type: object
                             templateFrom:
                               items:
+                                description: TemplateFrom defines a source for template data.
                                 properties:
                                   configMap:
+                                    description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                     properties:
                                       items:
                                         description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                         items:
+                                          description: TemplateRefItem defines which key in the referenced ConfigMap or Secret to use as a template.
                                           properties:
                                             key:
                                               description: A key in the ConfigMap/Secret
@@ -1284,6 +1307,7 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              description: TemplateScope defines the scope of the template when processing template data.
                                               enum:
                                                 - Values
                                                 - KeysAndValues
@@ -1305,10 +1329,12 @@ spec:
                                   literal:
                                     type: string
                                   secret:
+                                    description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                     properties:
                                       items:
                                         description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                         items:
+                                          description: TemplateRefItem defines which key in the referenced ConfigMap or Secret to use as a template.
                                           properties:
                                             key:
                                               description: A key in the ConfigMap/Secret
@@ -1318,6 +1344,7 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              description: TemplateScope defines the scope of the template when processing template data.
                                               enum:
                                                 - Values
                                                 - KeysAndValues
@@ -1338,6 +1365,7 @@ spec:
                                     type: object
                                   target:
                                     default: Data
+                                    description: TemplateTarget defines the target field where the template result will be stored.
                                     enum:
                                       - Data
                                       - Annotations
@@ -1465,12 +1493,14 @@ spec:
               properties:
                 conditions:
                   items:
+                    description: ClusterExternalSecretStatusCondition indicates the status of the ClusterExternalSecret.
                     properties:
                       message:
                         type: string
                       status:
                         type: string
                       type:
+                        description: ClusterExternalSecretConditionType indicates the condition of the ClusterExternalSecret.
                         type: string
                     required:
                       - status
@@ -1536,6 +1566,7 @@ spec:
       name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: ClusterPushSecret is the Schema for the ClusterPushSecrets API that enables cluster-wide management of pushing Kubernetes secrets to external providers.
           properties:
             apiVersion:
               description: |-
@@ -1555,6 +1586,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: ClusterPushSecretSpec defines the configuration for a ClusterPushSecret resource.
               properties:
                 namespaceSelectors:
                   description: A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.
@@ -1632,6 +1664,7 @@ spec:
                     data:
                       description: Secret Data that should be pushed to providers
                       items:
+                        description: PushSecretData defines data to be pushed to the provider and associated metadata.
                         properties:
                           conversionStrategy:
                             default: None
@@ -1683,6 +1716,7 @@ spec:
                       type: string
                     secretStoreRefs:
                       items:
+                        description: PushSecretStoreRef contains a reference on how to sync to a SecretStore.
                         properties:
                           kind:
                             default: SecretStore
@@ -1860,6 +1894,7 @@ spec:
                           type: string
                         mergePolicy:
                           default: Replace
+                          description: TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
                           enum:
                             - Replace
                             - Merge
@@ -1882,12 +1917,17 @@ spec:
                           type: object
                         templateFrom:
                           items:
+                            description: |-
+                              TemplateFrom specifies a source for templates.
+                              Each item in the list can either reference a ConfigMap or a Secret resource.
                             properties:
                               configMap:
+                                description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -1897,6 +1937,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope specifies how the template keys should be interpreted.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -1918,10 +1959,12 @@ spec:
                               literal:
                                 type: string
                               secret:
+                                description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -1931,6 +1974,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope specifies how the template keys should be interpreted.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -1951,6 +1995,7 @@ spec:
                                 type: object
                               target:
                                 default: Data
+                                description: TemplateTarget specifies where the rendered templates should be applied.
                                 enum:
                                   - Data
                                   - Annotations
@@ -1979,6 +2024,7 @@ spec:
                 - pushSecretSpec
               type: object
             status:
+              description: ClusterPushSecretStatus contains the status information for the ClusterPushSecret resource.
               properties:
                 conditions:
                   items:
@@ -2284,7 +2330,7 @@ spec:
                                   type: object
                                 accessType:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -2312,7 +2358,7 @@ spec:
                                   type: object
                                 accessTypeParam:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -2391,7 +2437,7 @@ spec:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
                             rrsa:
-                              description: Authenticate against Alibaba using RRSA.
+                              description: AlibabaRRSAAuth authenticates against Alibaba using RRSA.
                               properties:
                                 oidcProviderArn:
                                   type: string
@@ -2489,10 +2535,10 @@ spec:
                             see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -2636,7 +2682,7 @@ spec:
                                 The number of days from 7 to 30 that Secrets Manager waits before
                                 permanently deleting the secret. You can't use both this parameter and
                                 ForceDeleteWithoutRecovery in the same call. If you don't use either,
-                                then by default Secrets Manager uses a 30 day recovery window.
+                                then by default Secrets Manager uses a 30-day recovery window.
                                 see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
                               format: int64
                               type: integer
@@ -2650,6 +2696,9 @@ spec:
                         sessionTags:
                           description: AWS STS assume role session tags
                           items:
+                            description: |-
+                              Tag is a key-value pair that can be attached to an AWS resource.
+                              see: https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html
                             properties:
                               key:
                                 type: string
@@ -3591,6 +3640,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a Device42 instance.
                           properties:
                             secretRef:
+                              description: Device42SecretRef contains the secret reference for accessing the Device42 instance.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -3636,6 +3686,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Doppler API
                           properties:
                             secretRef:
+                              description: DopplerAuthSecretRef contains the secret reference for accessing the Doppler API.
                               properties:
                                 dopplerToken:
                                   description: |-
@@ -3705,6 +3756,7 @@ spec:
                       properties:
                         data:
                           items:
+                            description: FakeProviderData defines a key-value pair with optional version for the fake provider.
                             properties:
                               key:
                                 type: string
@@ -3718,6 +3770,7 @@ spec:
                             type: object
                           type: array
                         validationResult:
+                          description: ValidationResult is defined type for the number of validation results.
                           type: integer
                       required:
                         - data
@@ -3766,6 +3819,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef contains the secret references for GCP Secret Manager authentication.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -3795,6 +3849,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines configuration for workload identity authentication to GCP.
                               properties:
                                 clusterLocation:
                                   description: |-
@@ -3812,7 +3867,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -3986,7 +4041,7 @@ spec:
                           properties:
                             privateKey:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -4048,6 +4103,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
                           properties:
                             SecretRef:
+                              description: GitlabSecretRef contains the secret reference for GitLab authentication credentials.
                               properties:
                                 accessToken:
                                   description: AccessToken is used for authentication.
@@ -4147,7 +4203,7 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBM Container-based auth with IAM Trusted Profile.
+                              description: IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -4161,6 +4217,7 @@ spec:
                                 - profile
                               type: object
                             secretRef:
+                              description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -4203,10 +4260,11 @@ spec:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
                             awsAuthCredentials:
+                              description: AwsAuthCredentials represents the credentials for AWS authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4236,10 +4294,11 @@ spec:
                                 - identityId
                               type: object
                             azureAuthCredentials:
+                              description: AzureAuthCredentials represents the credentials for Azure authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4267,7 +4326,7 @@ spec:
                                   type: object
                                 resource:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4297,10 +4356,11 @@ spec:
                                 - identityId
                               type: object
                             gcpIamAuthCredentials:
+                              description: GcpIamAuthCredentials represents the credentials for GCP IAM authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4328,7 +4388,7 @@ spec:
                                   type: object
                                 serviceAccountKeyFilePath:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4359,10 +4419,11 @@ spec:
                                 - serviceAccountKeyFilePath
                               type: object
                             gcpIdTokenAuthCredentials:
+                              description: GcpIDTokenAuthCredentials represents the credentials for GCP ID token authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4392,10 +4453,11 @@ spec:
                                 - identityId
                               type: object
                             jwtAuthCredentials:
+                              description: JwtAuthCredentials represents the credentials for JWT authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4423,7 +4485,7 @@ spec:
                                   type: object
                                 jwt:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4454,10 +4516,11 @@ spec:
                                 - jwt
                               type: object
                             kubernetesAuthCredentials:
+                              description: KubernetesAuthCredentials represents the credentials for Kubernetes authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4485,7 +4548,7 @@ spec:
                                   type: object
                                 serviceAccountTokenPath:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4515,10 +4578,11 @@ spec:
                                 - identityId
                               type: object
                             ldapAuthCredentials:
+                              description: LdapAuthCredentials represents the credentials for LDAP authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4546,7 +4610,7 @@ spec:
                                   type: object
                                 ldapPassword:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4574,7 +4638,7 @@ spec:
                                   type: object
                                 ldapUsername:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4606,10 +4670,11 @@ spec:
                                 - ldapUsername
                               type: object
                             ociAuthCredentials:
+                              description: OciAuthCredentials represents the credentials for OCI authentication.
                               properties:
                                 fingerprint:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4637,7 +4702,7 @@ spec:
                                   type: object
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4665,7 +4730,7 @@ spec:
                                   type: object
                                 privateKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4693,7 +4758,7 @@ spec:
                                   type: object
                                 privateKeyPassphrase:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4721,7 +4786,7 @@ spec:
                                   type: object
                                 region:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4749,7 +4814,7 @@ spec:
                                   type: object
                                 tenancyId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4777,7 +4842,7 @@ spec:
                                   type: object
                                 userId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4812,10 +4877,11 @@ spec:
                                 - userId
                               type: object
                             tokenAuthCredentials:
+                              description: TokenAuthCredentials represents the credentials for access token-based authentication.
                               properties:
                                 accessToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4845,10 +4911,11 @@ spec:
                                 - accessToken
                               type: object
                             universalAuthCredentials:
+                              description: UniversalAuthCredentials represents the client credentials for universal authentication.
                               properties:
                                 clientId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4876,7 +4943,7 @@ spec:
                                   type: object
                                 clientSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -4945,7 +5012,7 @@ spec:
                       properties:
                         authRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -4990,7 +5057,7 @@ spec:
                               properties:
                                 clientCert:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -5018,7 +5085,7 @@ spec:
                                   type: object
                                 clientKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -5078,7 +5145,7 @@ spec:
                               properties:
                                 bearerToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -5573,13 +5640,16 @@ spec:
                         - vault
                       type: object
                     passbolt:
+                      description: |-
+                        PassboltProvider provides access to Passbolt secrets manager.
+                        See: https://www.passbolt.com.
                       properties:
                         auth:
                           description: Auth defines the information necessary to authenticate against Passbolt Server
                           properties:
                             passwordSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -5607,7 +5677,7 @@ spec:
                               type: object
                             privateKeySecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -5645,12 +5715,13 @@ spec:
                         - host
                       type: object
                     passworddepot:
-                      description: Configures a store to sync secrets with a Password Depot instance.
+                      description: PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
                             secretRef:
+                              description: PasswordDepotSecretRef contains the secret reference for Password Depot authentication.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -5973,7 +6044,7 @@ spec:
                               type: string
                             clientSecretSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -6184,7 +6255,7 @@ spec:
                                   description: Specify a service account with IRSA enabled
                                   properties:
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -6911,7 +6982,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -6939,7 +7010,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -7032,6 +7103,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret that will be passed to the webhook request.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -7118,7 +7190,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -7207,7 +7279,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -7279,6 +7351,7 @@ spec:
                   type: string
                 conditions:
                   items:
+                    description: SecretStoreStatusCondition contains condition information for a SecretStore.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -7290,6 +7363,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: SecretStoreConditionType represents the condition of the SecretStore.
                         type: string
                     required:
                       - status
@@ -7536,7 +7610,7 @@ spec:
                                   type: object
                                 accessType:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -7564,7 +7638,7 @@ spec:
                                   type: object
                                 accessTypeParam:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -7643,7 +7717,7 @@ spec:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
                             rrsa:
-                              description: Authenticate against Alibaba using RRSA.
+                              description: AlibabaRRSAAuth authenticates against Alibaba using RRSA (Resource-oriented RAM-based Service Authentication).
                               properties:
                                 oidcProviderArn:
                                   type: string
@@ -7741,10 +7815,10 @@ spec:
                             see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth authenticates against AWS using service account tokens from the Kubernetes cluster.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -7902,6 +7976,7 @@ spec:
                         sessionTags:
                           description: AWS STS assume role session tags
                           items:
+                            description: Tag defines a tag key and value for AWS resources.
                             properties:
                               key:
                                 type: string
@@ -8811,6 +8886,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a Device42 instance.
                           properties:
                             secretRef:
+                              description: Device42SecretRef defines a reference to a secret containing credentials for the Device42 provider.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -8856,6 +8932,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Doppler API
                           properties:
                             secretRef:
+                              description: DopplerAuthSecretRef defines a reference to a secret containing credentials for the Doppler provider.
                               properties:
                                 dopplerToken:
                                   description: |-
@@ -8925,6 +9002,7 @@ spec:
                       properties:
                         data:
                           items:
+                            description: FakeProviderData defines a key-value pair for the fake provider used in testing.
                             properties:
                               key:
                                 type: string
@@ -8984,6 +9062,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef defines a reference to a secret containing credentials for the GCP Secret Manager provider.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -9013,6 +9092,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines configuration for using GCP Workload Identity authentication.
                               properties:
                                 clusterLocation:
                                   description: |-
@@ -9030,7 +9110,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -9080,7 +9160,7 @@ spec:
                           properties:
                             privateKey:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -9142,6 +9222,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
                           properties:
                             SecretRef:
+                              description: GitlabSecretRef defines a reference to a secret containing credentials for the GitLab provider.
                               properties:
                                 accessToken:
                                   description: AccessToken is used for authentication.
@@ -9241,7 +9322,7 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBM Container-based auth with IAM Trusted Profile.
+                              description: IBMAuthContainerAuth defines authentication using IBM Container-based auth with IAM Trusted Profile.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -9255,6 +9336,7 @@ spec:
                                 - profile
                               type: object
                             secretRef:
+                              description: IBMAuthSecretRef defines a reference to a secret containing credentials for the IBM provider.
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -9297,10 +9379,11 @@ spec:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
                             universalAuthCredentials:
+                              description: UniversalAuthCredentials defines the credentials for Infisical Universal Auth.
                               properties:
                                 clientId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9328,7 +9411,7 @@ spec:
                                   type: object
                                 clientSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9397,7 +9480,7 @@ spec:
                       properties:
                         authRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -9442,7 +9525,7 @@ spec:
                               properties:
                                 clientCert:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9470,7 +9553,7 @@ spec:
                                   type: object
                                 clientKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9530,7 +9613,7 @@ spec:
                               properties:
                                 bearerToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -9913,14 +9996,13 @@ spec:
                         - vault
                       type: object
                     passbolt:
+                      description: PassboltProvider defines configuration for the Passbolt provider.
                       properties:
                         auth:
                           description: Auth defines the information necessary to authenticate against Passbolt Server
                           properties:
                             passwordSecretRef:
-                              description: |-
-                                A reference to a specific 'key' within a Secret resource.
-                                In some instances, `key` is a required field.
+                              description: PasswordSecretRef is a reference to the secret containing the Passbolt password
                               properties:
                                 key:
                                   description: |-
@@ -9946,9 +10028,7 @@ spec:
                                   type: string
                               type: object
                             privateKeySecretRef:
-                              description: |-
-                                A reference to a specific 'key' within a Secret resource.
-                                In some instances, `key` is a required field.
+                              description: PrivateKeySecretRef is a reference to the secret containing the Passbolt private key
                               properties:
                                 key:
                                   description: |-
@@ -9985,12 +10065,13 @@ spec:
                         - host
                       type: object
                     passworddepot:
-                      description: Configures a store to sync secrets with a Password Depot instance.
+                      description: PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
                             secretRef:
+                              description: PasswordDepotSecretRef defines a reference to a secret containing credentials for the Password Depot provider.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -10310,7 +10391,7 @@ spec:
                               type: string
                             clientSecretSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -10515,7 +10596,7 @@ spec:
                                   description: Specify a service account with IRSA enabled
                                   properties:
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -11128,7 +11209,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -11156,7 +11237,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -11249,6 +11330,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret to be used in webhook templates.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -11335,7 +11417,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -11406,7 +11488,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -11444,9 +11526,11 @@ spec:
                   description: Used to configure http retries if failed
                   properties:
                     maxRetries:
+                      description: MaxRetries is the maximum number of retry attempts.
                       format: int32
                       type: integer
                     retryInterval:
+                      description: RetryInterval is the interval between retry attempts.
                       type: string
                   type: object
               required:
@@ -11460,6 +11544,7 @@ spec:
                   type: string
                 conditions:
                   items:
+                    description: SecretStoreStatusCondition defines the observed condition of the SecretStore.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -11471,6 +11556,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: SecretStoreConditionType represents the condition type of the SecretStore.
                         type: string
                     required:
                       - status
@@ -11524,7 +11610,9 @@ spec:
       name: v1
       schema:
         openAPIV3Schema:
-          description: ExternalSecret is the Schema for the external-secrets API.
+          description: |-
+            ExternalSecret is the Schema for the external-secrets API.
+            It defines how to fetch data from external APIs and make it available as Kubernetes Secrets.
           properties:
             apiVersion:
               description: |-
@@ -11674,6 +11762,9 @@ spec:
                     DataFrom is used to fetch all properties from a specific Provider data
                     If multiple entries are specified, the Secret keys are merged in the specified order
                   items:
+                    description: |-
+                      ExternalSecretDataFromRemoteRef defines the connection between the Kubernetes Secret keys and the Provider data
+                      when using DataFrom to fetch multiple values from a Provider.
                     properties:
                       extract:
                         description: |-
@@ -11757,6 +11848,7 @@ spec:
                           Used to rewrite secret Keys after getting them from the secret Provider
                           Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                         items:
+                          description: ExternalSecretRewrite defines how to rewrite secret data values before they are written to the Secret.
                           maxProperties: 1
                           minProperties: 1
                           properties:
@@ -11941,8 +12033,8 @@ spec:
                     creationPolicy: Owner
                     deletionPolicy: Retain
                   description: |-
-                    ExternalSecretTarget defines the Kubernetes Secret to be created
-                    There can be only one target per ExternalSecret.
+                    ExternalSecretTarget defines the Kubernetes Secret to be created,
+                    there can be only one target per ExternalSecret.
                   properties:
                     creationPolicy:
                       default: Owner
@@ -11994,6 +12086,7 @@ spec:
                           type: string
                         mergePolicy:
                           default: Replace
+                          description: TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
                           enum:
                             - Replace
                             - Merge
@@ -12016,12 +12109,17 @@ spec:
                           type: object
                         templateFrom:
                           items:
+                            description: |-
+                              TemplateFrom specifies a source for templates.
+                              Each item in the list can either reference a ConfigMap or a Secret resource.
                             properties:
                               configMap:
+                                description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -12031,6 +12129,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope specifies how the template keys should be interpreted.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -12052,10 +12151,12 @@ spec:
                               literal:
                                 type: string
                               secret:
+                                description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -12065,6 +12166,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope specifies how the template keys should be interpreted.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -12085,6 +12187,7 @@ spec:
                                 type: object
                               target:
                                 default: Data
+                                description: TemplateTarget specifies where the rendered templates should be applied.
                                 enum:
                                   - Data
                                   - Annotations
@@ -12098,6 +12201,7 @@ spec:
                   type: object
               type: object
             status:
+              description: ExternalSecretStatus defines the observed state of ExternalSecret.
               properties:
                 binding:
                   description: Binding represents a servicebinding.io Provisioned Service reference to the secret
@@ -12115,6 +12219,7 @@ spec:
                   x-kubernetes-map-type: atomic
                 conditions:
                   items:
+                    description: ExternalSecretStatusCondition defines a status condition of an ExternalSecret resource.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -12126,6 +12231,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: ExternalSecretConditionType defines a value type for ExternalSecret conditions.
                         enum:
                           - Ready
                           - Deleted
@@ -12176,7 +12282,7 @@ spec:
       name: v1beta1
       schema:
         openAPIV3Schema:
-          description: ExternalSecret is the Schema for the external-secrets API.
+          description: ExternalSecret is the schema for the external-secrets API.
           properties:
             apiVersion:
               description: |-
@@ -12324,6 +12430,7 @@ spec:
                     DataFrom is used to fetch all properties from a specific Provider data
                     If multiple entries are specified, the Secret keys are merged in the specified order
                   items:
+                    description: ExternalSecretDataFromRemoteRef defines a reference to multiple secrets in the provider to be fetched using options.
                     properties:
                       extract:
                         description: |-
@@ -12407,6 +12514,7 @@ spec:
                           Used to rewrite secret Keys after getting them from the secret Provider
                           Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                         items:
+                          description: ExternalSecretRewrite defines rules on how to rewrite secret keys.
                           maxProperties: 1
                           minProperties: 1
                           properties:
@@ -12604,6 +12712,7 @@ spec:
                           type: string
                         mergePolicy:
                           default: Replace
+                          description: TemplateMergePolicy defines how template values should be merged when generating a secret.
                           enum:
                             - Replace
                             - Merge
@@ -12622,12 +12731,15 @@ spec:
                           type: object
                         templateFrom:
                           items:
+                            description: TemplateFrom defines a source for template data.
                             properties:
                               configMap:
+                                description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem defines which key in the referenced ConfigMap or Secret to use as a template.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -12637,6 +12749,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope defines the scope of the template when processing template data.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -12658,10 +12771,12 @@ spec:
                               literal:
                                 type: string
                               secret:
+                                description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem defines which key in the referenced ConfigMap or Secret to use as a template.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -12671,6 +12786,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope defines the scope of the template when processing template data.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -12691,6 +12807,7 @@ spec:
                                 type: object
                               target:
                                 default: Data
+                                description: TemplateTarget defines the target field where the template result will be stored.
                                 enum:
                                   - Data
                                   - Annotations
@@ -12704,6 +12821,7 @@ spec:
                   type: object
               type: object
             status:
+              description: ExternalSecretStatus defines the observed state of ExternalSecret.
               properties:
                 binding:
                   description: Binding represents a servicebinding.io Provisioned Service reference to the secret
@@ -12721,6 +12839,7 @@ spec:
                   x-kubernetes-map-type: atomic
                 conditions:
                   items:
+                    description: ExternalSecretStatusCondition contains condition information for an ExternalSecret.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -12732,6 +12851,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: ExternalSecretConditionType defines the condition type for an ExternalSecret.
                         type: string
                     required:
                       - status
@@ -12786,6 +12906,7 @@ spec:
       name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: PushSecret is the Schema for the PushSecrets API that enables pushing Kubernetes secrets to external secret providers.
           properties:
             apiVersion:
               description: |-
@@ -12810,6 +12931,7 @@ spec:
                 data:
                   description: Secret Data that should be pushed to providers
                   items:
+                    description: PushSecretData defines data to be pushed to the provider and associated metadata.
                     properties:
                       conversionStrategy:
                         default: None
@@ -12861,6 +12983,7 @@ spec:
                   type: string
                 secretStoreRefs:
                   items:
+                    description: PushSecretStoreRef contains a reference on how to sync to a SecretStore.
                     properties:
                       kind:
                         default: SecretStore
@@ -13038,6 +13161,7 @@ spec:
                       type: string
                     mergePolicy:
                       default: Replace
+                      description: TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
                       enum:
                         - Replace
                         - Merge
@@ -13060,12 +13184,17 @@ spec:
                       type: object
                     templateFrom:
                       items:
+                        description: |-
+                          TemplateFrom specifies a source for templates.
+                          Each item in the list can either reference a ConfigMap or a Secret resource.
                         properties:
                           configMap:
+                            description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                             properties:
                               items:
                                 description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                 items:
+                                  description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                   properties:
                                     key:
                                       description: A key in the ConfigMap/Secret
@@ -13075,6 +13204,7 @@ spec:
                                       type: string
                                     templateAs:
                                       default: Values
+                                      description: TemplateScope specifies how the template keys should be interpreted.
                                       enum:
                                         - Values
                                         - KeysAndValues
@@ -13096,10 +13226,12 @@ spec:
                           literal:
                             type: string
                           secret:
+                            description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                             properties:
                               items:
                                 description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                 items:
+                                  description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                   properties:
                                     key:
                                       description: A key in the ConfigMap/Secret
@@ -13109,6 +13241,7 @@ spec:
                                       type: string
                                     templateAs:
                                       default: Values
+                                      description: TemplateScope specifies how the template keys should be interpreted.
                                       enum:
                                         - Values
                                         - KeysAndValues
@@ -13129,6 +13262,7 @@ spec:
                             type: object
                           target:
                             default: Data
+                            description: TemplateTarget specifies where the rendered templates should be applied.
                             enum:
                               - Data
                               - Annotations
@@ -13184,6 +13318,7 @@ spec:
                 syncedPushSecrets:
                   additionalProperties:
                     additionalProperties:
+                      description: PushSecretData defines data to be pushed to the provider and associated metadata.
                       properties:
                         conversionStrategy:
                           default: None
@@ -13490,7 +13625,7 @@ spec:
                                   type: object
                                 accessType:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -13518,7 +13653,7 @@ spec:
                                   type: object
                                 accessTypeParam:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -13597,7 +13732,7 @@ spec:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
                             rrsa:
-                              description: Authenticate against Alibaba using RRSA.
+                              description: AlibabaRRSAAuth authenticates against Alibaba using RRSA.
                               properties:
                                 oidcProviderArn:
                                   type: string
@@ -13695,10 +13830,10 @@ spec:
                             see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -13842,7 +13977,7 @@ spec:
                                 The number of days from 7 to 30 that Secrets Manager waits before
                                 permanently deleting the secret. You can't use both this parameter and
                                 ForceDeleteWithoutRecovery in the same call. If you don't use either,
-                                then by default Secrets Manager uses a 30 day recovery window.
+                                then by default Secrets Manager uses a 30-day recovery window.
                                 see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
                               format: int64
                               type: integer
@@ -13856,6 +13991,9 @@ spec:
                         sessionTags:
                           description: AWS STS assume role session tags
                           items:
+                            description: |-
+                              Tag is a key-value pair that can be attached to an AWS resource.
+                              see: https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html
                             properties:
                               key:
                                 type: string
@@ -14797,6 +14935,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a Device42 instance.
                           properties:
                             secretRef:
+                              description: Device42SecretRef contains the secret reference for accessing the Device42 instance.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -14842,6 +14981,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Doppler API
                           properties:
                             secretRef:
+                              description: DopplerAuthSecretRef contains the secret reference for accessing the Doppler API.
                               properties:
                                 dopplerToken:
                                   description: |-
@@ -14911,6 +15051,7 @@ spec:
                       properties:
                         data:
                           items:
+                            description: FakeProviderData defines a key-value pair with optional version for the fake provider.
                             properties:
                               key:
                                 type: string
@@ -14924,6 +15065,7 @@ spec:
                             type: object
                           type: array
                         validationResult:
+                          description: ValidationResult is defined type for the number of validation results.
                           type: integer
                       required:
                         - data
@@ -14972,6 +15114,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef contains the secret references for GCP Secret Manager authentication.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -15001,6 +15144,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines configuration for workload identity authentication to GCP.
                               properties:
                                 clusterLocation:
                                   description: |-
@@ -15018,7 +15162,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -15192,7 +15336,7 @@ spec:
                           properties:
                             privateKey:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -15254,6 +15398,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
                           properties:
                             SecretRef:
+                              description: GitlabSecretRef contains the secret reference for GitLab authentication credentials.
                               properties:
                                 accessToken:
                                   description: AccessToken is used for authentication.
@@ -15353,7 +15498,7 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBM Container-based auth with IAM Trusted Profile.
+                              description: IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -15367,6 +15512,7 @@ spec:
                                 - profile
                               type: object
                             secretRef:
+                              description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -15409,10 +15555,11 @@ spec:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
                             awsAuthCredentials:
+                              description: AwsAuthCredentials represents the credentials for AWS authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15442,10 +15589,11 @@ spec:
                                 - identityId
                               type: object
                             azureAuthCredentials:
+                              description: AzureAuthCredentials represents the credentials for Azure authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15473,7 +15621,7 @@ spec:
                                   type: object
                                 resource:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15503,10 +15651,11 @@ spec:
                                 - identityId
                               type: object
                             gcpIamAuthCredentials:
+                              description: GcpIamAuthCredentials represents the credentials for GCP IAM authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15534,7 +15683,7 @@ spec:
                                   type: object
                                 serviceAccountKeyFilePath:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15565,10 +15714,11 @@ spec:
                                 - serviceAccountKeyFilePath
                               type: object
                             gcpIdTokenAuthCredentials:
+                              description: GcpIDTokenAuthCredentials represents the credentials for GCP ID token authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15598,10 +15748,11 @@ spec:
                                 - identityId
                               type: object
                             jwtAuthCredentials:
+                              description: JwtAuthCredentials represents the credentials for JWT authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15629,7 +15780,7 @@ spec:
                                   type: object
                                 jwt:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15660,10 +15811,11 @@ spec:
                                 - jwt
                               type: object
                             kubernetesAuthCredentials:
+                              description: KubernetesAuthCredentials represents the credentials for Kubernetes authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15691,7 +15843,7 @@ spec:
                                   type: object
                                 serviceAccountTokenPath:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15721,10 +15873,11 @@ spec:
                                 - identityId
                               type: object
                             ldapAuthCredentials:
+                              description: LdapAuthCredentials represents the credentials for LDAP authentication.
                               properties:
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15752,7 +15905,7 @@ spec:
                                   type: object
                                 ldapPassword:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15780,7 +15933,7 @@ spec:
                                   type: object
                                 ldapUsername:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15812,10 +15965,11 @@ spec:
                                 - ldapUsername
                               type: object
                             ociAuthCredentials:
+                              description: OciAuthCredentials represents the credentials for OCI authentication.
                               properties:
                                 fingerprint:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15843,7 +15997,7 @@ spec:
                                   type: object
                                 identityId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15871,7 +16025,7 @@ spec:
                                   type: object
                                 privateKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15899,7 +16053,7 @@ spec:
                                   type: object
                                 privateKeyPassphrase:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15927,7 +16081,7 @@ spec:
                                   type: object
                                 region:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15955,7 +16109,7 @@ spec:
                                   type: object
                                 tenancyId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -15983,7 +16137,7 @@ spec:
                                   type: object
                                 userId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16018,10 +16172,11 @@ spec:
                                 - userId
                               type: object
                             tokenAuthCredentials:
+                              description: TokenAuthCredentials represents the credentials for access token-based authentication.
                               properties:
                                 accessToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16051,10 +16206,11 @@ spec:
                                 - accessToken
                               type: object
                             universalAuthCredentials:
+                              description: UniversalAuthCredentials represents the client credentials for universal authentication.
                               properties:
                                 clientId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16082,7 +16238,7 @@ spec:
                                   type: object
                                 clientSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16151,7 +16307,7 @@ spec:
                       properties:
                         authRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -16196,7 +16352,7 @@ spec:
                               properties:
                                 clientCert:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16224,7 +16380,7 @@ spec:
                                   type: object
                                 clientKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16284,7 +16440,7 @@ spec:
                               properties:
                                 bearerToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -16779,13 +16935,16 @@ spec:
                         - vault
                       type: object
                     passbolt:
+                      description: |-
+                        PassboltProvider provides access to Passbolt secrets manager.
+                        See: https://www.passbolt.com.
                       properties:
                         auth:
                           description: Auth defines the information necessary to authenticate against Passbolt Server
                           properties:
                             passwordSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -16813,7 +16972,7 @@ spec:
                               type: object
                             privateKeySecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -16851,12 +17010,13 @@ spec:
                         - host
                       type: object
                     passworddepot:
-                      description: Configures a store to sync secrets with a Password Depot instance.
+                      description: PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
                             secretRef:
+                              description: PasswordDepotSecretRef contains the secret reference for Password Depot authentication.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -17179,7 +17339,7 @@ spec:
                               type: string
                             clientSecretSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -17390,7 +17550,7 @@ spec:
                                   description: Specify a service account with IRSA enabled
                                   properties:
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -18117,7 +18277,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -18145,7 +18305,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -18238,6 +18398,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret that will be passed to the webhook request.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -18324,7 +18485,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -18413,7 +18574,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -18485,6 +18646,7 @@ spec:
                   type: string
                 conditions:
                   items:
+                    description: SecretStoreStatusCondition contains condition information for a SecretStore.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -18496,6 +18658,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: SecretStoreConditionType represents the condition of the SecretStore.
                         type: string
                     required:
                       - status
@@ -18742,7 +18905,7 @@ spec:
                                   type: object
                                 accessType:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -18770,7 +18933,7 @@ spec:
                                   type: object
                                 accessTypeParam:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -18849,7 +19012,7 @@ spec:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
                             rrsa:
-                              description: Authenticate against Alibaba using RRSA.
+                              description: AlibabaRRSAAuth authenticates against Alibaba using RRSA (Resource-oriented RAM-based Service Authentication).
                               properties:
                                 oidcProviderArn:
                                   type: string
@@ -18947,10 +19110,10 @@ spec:
                             see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth authenticates against AWS using service account tokens from the Kubernetes cluster.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -19108,6 +19271,7 @@ spec:
                         sessionTags:
                           description: AWS STS assume role session tags
                           items:
+                            description: Tag defines a tag key and value for AWS resources.
                             properties:
                               key:
                                 type: string
@@ -20017,6 +20181,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a Device42 instance.
                           properties:
                             secretRef:
+                              description: Device42SecretRef defines a reference to a secret containing credentials for the Device42 provider.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -20062,6 +20227,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Doppler API
                           properties:
                             secretRef:
+                              description: DopplerAuthSecretRef defines a reference to a secret containing credentials for the Doppler provider.
                               properties:
                                 dopplerToken:
                                   description: |-
@@ -20131,6 +20297,7 @@ spec:
                       properties:
                         data:
                           items:
+                            description: FakeProviderData defines a key-value pair for the fake provider used in testing.
                             properties:
                               key:
                                 type: string
@@ -20190,6 +20357,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef defines a reference to a secret containing credentials for the GCP Secret Manager provider.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -20219,6 +20387,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines configuration for using GCP Workload Identity authentication.
                               properties:
                                 clusterLocation:
                                   description: |-
@@ -20236,7 +20405,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -20286,7 +20455,7 @@ spec:
                           properties:
                             privateKey:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -20348,6 +20517,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
                           properties:
                             SecretRef:
+                              description: GitlabSecretRef defines a reference to a secret containing credentials for the GitLab provider.
                               properties:
                                 accessToken:
                                   description: AccessToken is used for authentication.
@@ -20447,7 +20617,7 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBM Container-based auth with IAM Trusted Profile.
+                              description: IBMAuthContainerAuth defines authentication using IBM Container-based auth with IAM Trusted Profile.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -20461,6 +20631,7 @@ spec:
                                 - profile
                               type: object
                             secretRef:
+                              description: IBMAuthSecretRef defines a reference to a secret containing credentials for the IBM provider.
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -20503,10 +20674,11 @@ spec:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
                             universalAuthCredentials:
+                              description: UniversalAuthCredentials defines the credentials for Infisical Universal Auth.
                               properties:
                                 clientId:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -20534,7 +20706,7 @@ spec:
                                   type: object
                                 clientSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -20603,7 +20775,7 @@ spec:
                       properties:
                         authRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -20648,7 +20820,7 @@ spec:
                               properties:
                                 clientCert:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -20676,7 +20848,7 @@ spec:
                                   type: object
                                 clientKey:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -20736,7 +20908,7 @@ spec:
                               properties:
                                 bearerToken:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -21119,14 +21291,13 @@ spec:
                         - vault
                       type: object
                     passbolt:
+                      description: PassboltProvider defines configuration for the Passbolt provider.
                       properties:
                         auth:
                           description: Auth defines the information necessary to authenticate against Passbolt Server
                           properties:
                             passwordSecretRef:
-                              description: |-
-                                A reference to a specific 'key' within a Secret resource.
-                                In some instances, `key` is a required field.
+                              description: PasswordSecretRef is a reference to the secret containing the Passbolt password
                               properties:
                                 key:
                                   description: |-
@@ -21152,9 +21323,7 @@ spec:
                                   type: string
                               type: object
                             privateKeySecretRef:
-                              description: |-
-                                A reference to a specific 'key' within a Secret resource.
-                                In some instances, `key` is a required field.
+                              description: PrivateKeySecretRef is a reference to the secret containing the Passbolt private key
                               properties:
                                 key:
                                   description: |-
@@ -21191,12 +21360,13 @@ spec:
                         - host
                       type: object
                     passworddepot:
-                      description: Configures a store to sync secrets with a Password Depot instance.
+                      description: PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
                             secretRef:
+                              description: PasswordDepotSecretRef defines a reference to a secret containing credentials for the Password Depot provider.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -21516,7 +21686,7 @@ spec:
                               type: string
                             clientSecretSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -21721,7 +21891,7 @@ spec:
                                   description: Specify a service account with IRSA enabled
                                   properties:
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -22334,7 +22504,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -22362,7 +22532,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -22455,6 +22625,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret to be used in webhook templates.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -22541,7 +22712,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -22612,7 +22783,7 @@ spec:
                           properties:
                             certSecretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -22650,9 +22821,11 @@ spec:
                   description: Used to configure http retries if failed
                   properties:
                     maxRetries:
+                      description: MaxRetries is the maximum number of retry attempts.
                       format: int32
                       type: integer
                     retryInterval:
+                      description: RetryInterval is the interval between retry attempts.
                       type: string
                   type: object
               required:
@@ -22666,6 +22839,7 @@ spec:
                   type: string
                 conditions:
                   items:
+                    description: SecretStoreStatusCondition defines the observed condition of the SecretStore.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -22677,6 +22851,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: SecretStoreConditionType represents the condition type of the SecretStore.
                         type: string
                     required:
                       - status
@@ -22747,6 +22922,7 @@ spec:
                 see: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview
               properties:
                 auth:
+                  description: ACRAuth defines the authentication methods for Azure Container Registry.
                   properties:
                     managedIdentity:
                       description: ManagedIdentity uses Azure Managed Identity to authenticate with Azure.
@@ -22760,8 +22936,8 @@ spec:
                       properties:
                         secretRef:
                           description: |-
-                            Configuration used to authenticate with Azure using static
-                            credentials stored in a Kind=Secret.
+                            AzureACRServicePrincipalAuthSecretRef defines the secret references for Azure Service Principal authentication.
+                            It uses static credentials stored in a Kind=Secret.
                           properties:
                             clientId:
                               description: The Azure clientId of the service principle used for authentication.
@@ -22858,7 +23034,7 @@ spec:
                   default: PublicCloud
                   description: |-
                     EnvironmentType specifies the Azure cloud environment endpoints to use for
-                    connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+                    connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
                     The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
                     PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
                   enum:
@@ -22941,6 +23117,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: CloudsmithAccessTokenSpec defines the configuration for generating a Cloudsmith access token using OIDC authentication.
               properties:
                 apiUrl:
                   description: APIURL configures the Cloudsmith API URL. Defaults to https://api.cloudsmith.io.
@@ -23033,6 +23210,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: ClusterGeneratorSpec defines the desired state of a ClusterGenerator.
               properties:
                 generator:
                   description: Generator the spec for this generator, must match the kind.
@@ -23046,6 +23224,7 @@ spec:
                         see: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview
                       properties:
                         auth:
+                          description: ACRAuth defines the authentication methods for Azure Container Registry.
                           properties:
                             managedIdentity:
                               description: ManagedIdentity uses Azure Managed Identity to authenticate with Azure.
@@ -23059,8 +23238,8 @@ spec:
                               properties:
                                 secretRef:
                                   description: |-
-                                    Configuration used to authenticate with Azure using static
-                                    credentials stored in a Kind=Secret.
+                                    AzureACRServicePrincipalAuthSecretRef defines the secret references for Azure Service Principal authentication.
+                                    It uses static credentials stored in a Kind=Secret.
                                   properties:
                                     clientId:
                                       description: The Azure clientId of the service principle used for authentication.
@@ -23157,7 +23336,7 @@ spec:
                           default: PublicCloud
                           description: |-
                             EnvironmentType specifies the Azure cloud environment endpoints to use for
-                            connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+                            connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
                             The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
                             PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
                           enum:
@@ -23192,6 +23371,7 @@ spec:
                         - registry
                       type: object
                     cloudsmithAccessTokenSpec:
+                      description: CloudsmithAccessTokenSpec defines the configuration for generating a Cloudsmith access token using OIDC authentication.
                       properties:
                         apiUrl:
                           description: APIURL configures the Cloudsmith API URL. Defaults to https://api.cloudsmith.io.
@@ -23236,15 +23416,16 @@ spec:
                         - serviceSlug
                       type: object
                     ecrAuthorizationTokenSpec:
+                      description: ECRAuthorizationTokenSpec defines the desired state to generate an AWS ECR authorization token.
                       properties:
                         auth:
                           description: Auth defines how to authenticate with AWS
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -23393,11 +23574,13 @@ spec:
                           type: object
                       type: object
                     gcrAccessTokenSpec:
+                      description: GCRAccessTokenSpec defines the desired state to generate a Google Container Registry access token.
                       properties:
                         auth:
                           description: Auth defines the means for authenticating with GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef defines the reference to a secret containing Google Cloud Platform credentials.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -23427,6 +23610,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines the configuration for using GCP Workload Identity authentication.
                               properties:
                                 clusterLocation:
                                   type: string
@@ -23435,7 +23619,7 @@ spec:
                                 clusterProjectID:
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -23589,6 +23773,7 @@ spec:
                         - projectID
                       type: object
                     githubAccessTokenSpec:
+                      description: GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
                       properties:
                         appID:
                           type: string
@@ -23596,10 +23781,11 @@ spec:
                           description: Auth configures how ESO authenticates with a Github instance.
                           properties:
                             privateKey:
+                              description: GithubSecretRef references a secret containing GitHub credentials.
                               properties:
                                 secretRef:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -23646,7 +23832,7 @@ spec:
                             type: string
                           type: array
                         url:
-                          description: URL configures the Github instance URL. Defaults to https://github.com/.
+                          description: URL configures the GitHub instance URL. Defaults to https://github.com/.
                           type: string
                       required:
                         - appID
@@ -23821,6 +24007,7 @@ spec:
                         - noUpper
                       type: object
                     quayAccessTokenSpec:
+                      description: QuayAccessTokenSpec defines the desired state to generate a Quay access token.
                       properties:
                         robotAccount:
                           description: Name of the robot account you are federating with
@@ -23883,15 +24070,16 @@ spec:
                           type: string
                       type: object
                     stsSessionTokenSpec:
+                      description: STSSessionTokenSpec defines the desired state to generate an AWS STS session token.
                       properties:
                         auth:
                           description: Auth defines how to authenticate with AWS
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -24039,6 +24227,7 @@ spec:
                       description: UUIDSpec controls the behavior of the uuid generator.
                       type: object
                     vaultDynamicSecretSpec:
+                      description: VaultDynamicSecretSpec defines the desired spec of VaultDynamicSecret.
                       properties:
                         allowEmptyResponse:
                           default: false
@@ -24224,7 +24413,7 @@ spec:
                                       description: Specify a service account with IRSA enabled
                                       properties:
                                         serviceAccountRef:
-                                          description: A reference to a ServiceAccount resource.
+                                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                           properties:
                                             audiences:
                                               description: |-
@@ -24840,7 +25029,7 @@ spec:
                           default: Data
                           description: |-
                             Result type defines which data is returned from the generator.
-                            By default it is the "data" section of the Vault API response.
+                            By default, it is the "data" section of the Vault API response.
                             When using e.g. /auth/token/create the "data" section is empty but
                             the "auth" section contains the generated token.
                             Please refer to the vault docs regarding the result data structure.
@@ -24876,7 +25065,7 @@ spec:
                               properties:
                                 passwordSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -24904,7 +25093,7 @@ spec:
                                   type: object
                                 usernameSecret:
                                   description: |-
-                                    A reference to a specific 'key' within a Secret resource.
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                     In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -24997,6 +25186,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret reference that will be used in webhook templates.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -25085,8 +25275,7 @@ spec:
       schema:
         openAPIV3Schema:
           description: |-
-            ECRAuthorizationTokenSpec uses the GetAuthorizationToken API to retrieve an
-            authorization token.
+            ECRAuthorizationToken uses the GetAuthorizationToken API to retrieve an authorization token.
             The authorization token is valid for 12 hours.
             The authorizationToken returned is a base64 encoded string that can be decoded
             and used in a docker login command to authenticate to a registry.
@@ -25110,15 +25299,16 @@ spec:
             metadata:
               type: object
             spec:
+              description: ECRAuthorizationTokenSpec defines the desired state to generate an AWS ECR authorization token.
               properties:
                 auth:
                   description: Auth defines how to authenticate with AWS
                   properties:
                     jwt:
-                      description: Authenticate against AWS using service account tokens.
+                      description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                       properties:
                         serviceAccountRef:
-                          description: A reference to a ServiceAccount resource.
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                           properties:
                             audiences:
                               description: |-
@@ -25367,11 +25557,13 @@ spec:
             metadata:
               type: object
             spec:
+              description: GCRAccessTokenSpec defines the desired state to generate a Google Container Registry access token.
               properties:
                 auth:
                   description: Auth defines the means for authenticating with GCP
                   properties:
                     secretRef:
+                      description: GCPSMAuthSecretRef defines the reference to a secret containing Google Cloud Platform credentials.
                       properties:
                         secretAccessKeySecretRef:
                           description: The SecretAccessKey is used for authentication
@@ -25401,6 +25593,7 @@ spec:
                           type: object
                       type: object
                     workloadIdentity:
+                      description: GCPWorkloadIdentity defines the configuration for using GCP Workload Identity authentication.
                       properties:
                         clusterLocation:
                           type: string
@@ -25409,7 +25602,7 @@ spec:
                         clusterProjectID:
                           type: string
                         serviceAccountRef:
-                          description: A reference to a ServiceAccount resource.
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                           properties:
                             audiences:
                               description: |-
@@ -25600,6 +25793,7 @@ spec:
       name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: GeneratorState represents the state created and managed by a generator resource.
           properties:
             apiVersion:
               description: |-
@@ -25619,6 +25813,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: GeneratorStateSpec defines the desired state of a generator state resource.
               properties:
                 garbageCollectionDeadline:
                   description: |-
@@ -25645,9 +25840,11 @@ spec:
                 - state
               type: object
             status:
+              description: GeneratorStateStatus defines the observed state of a generator state resource.
               properties:
                 conditions:
                   items:
+                    description: GeneratorStateStatusCondition represents the observed condition of a generator state.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -25659,6 +25856,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: GeneratorStateConditionType represents the type of condition for a generator state.
                         type: string
                     required:
                       - status
@@ -25714,6 +25912,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
               properties:
                 appID:
                   type: string
@@ -25721,10 +25920,11 @@ spec:
                   description: Auth configures how ESO authenticates with a Github instance.
                   properties:
                     privateKey:
+                      description: GithubSecretRef references a secret containing GitHub credentials.
                       properties:
                         secretRef:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -25771,7 +25971,7 @@ spec:
                     type: string
                   type: array
                 url:
-                  description: URL configures the Github instance URL. Defaults to https://github.com/.
+                  description: URL configures the GitHub instance URL. Defaults to https://github.com/.
                   type: string
               required:
                 - appID
@@ -25807,6 +26007,7 @@ spec:
     - name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: Grafana represents a generator for Grafana service account tokens.
           properties:
             apiVersion:
               description: |-
@@ -26140,6 +26341,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: QuayAccessTokenSpec defines the desired state to generate a Quay access token.
               properties:
                 robotAccount:
                   description: Name of the robot account you are federating with
@@ -26302,15 +26504,16 @@ spec:
             metadata:
               type: object
             spec:
+              description: STSSessionTokenSpec defines the desired state to generate an AWS STS session token.
               properties:
                 auth:
                   description: Auth defines how to authenticate with AWS
                   properties:
                     jwt:
-                      description: Authenticate against AWS using service account tokens.
+                      description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                       properties:
                         serviceAccountRef:
-                          description: A reference to a ServiceAccount resource.
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                           properties:
                             audiences:
                               description: |-
@@ -26534,6 +26737,7 @@ spec:
     - name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: VaultDynamicSecret represents a generator that can create dynamic secrets from HashiCorp Vault.
           properties:
             apiVersion:
               description: |-
@@ -26553,6 +26757,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: VaultDynamicSecretSpec defines the desired spec of VaultDynamicSecret.
               properties:
                 allowEmptyResponse:
                   default: false
@@ -26738,7 +26943,7 @@ spec:
                               description: Specify a service account with IRSA enabled
                               properties:
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
@@ -27354,7 +27559,7 @@ spec:
                   default: Data
                   description: |-
                     Result type defines which data is returned from the generator.
-                    By default it is the "data" section of the Vault API response.
+                    By default, it is the "data" section of the Vault API response.
                     When using e.g. /auth/token/create the "data" section is empty but
                     the "auth" section contains the generated token.
                     Please refer to the vault docs regarding the result data structure.
@@ -27442,7 +27647,7 @@ spec:
                       properties:
                         passwordSecret:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -27470,7 +27675,7 @@ spec:
                           type: object
                         usernameSecret:
                           description: |-
-                            A reference to a specific 'key' within a Secret resource.
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                             In some instances, `key` is a required field.
                           properties:
                             key:
@@ -27563,6 +27768,7 @@ spec:
                     Secrets to fill in templates
                     These secrets will be passed to the templating function as key value pairs under the given name
                   items:
+                    description: WebhookSecret defines a secret reference that will be used in webhook templates.
                     properties:
                       name:
                         description: Name of this secret in templates

@@ -68,10 +68,13 @@ type ExternalSecretMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+// ClusterExternalSecretConditionType defines a value type for ClusterExternalSecret conditions.
 type ClusterExternalSecretConditionType string
 
+// ClusterExternalSecretReady is a ClusterExternalSecretConditionType set when the ClusterExternalSecret is ready.
 const ClusterExternalSecretReady ClusterExternalSecretConditionType = "Ready"
 
+// ClusterExternalSecretStatusCondition defines the observed state of a ClusterExternalSecret resource.
 type ClusterExternalSecretStatusCondition struct {
 	Type   ClusterExternalSecretConditionType `json:"type"`
 	Status corev1.ConditionStatus             `json:"status"`
@@ -108,6 +111,7 @@ type ClusterExternalSecretStatus struct {
 	Conditions []ClusterExternalSecretStatusCondition `json:"conditions,omitempty"`
 }
 
+// ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=ces
@@ -116,7 +120,6 @@ type ClusterExternalSecretStatus struct {
 // +kubebuilder:printcolumn:name="Store",type=string,JSONPath=`.spec.externalSecretSpec.secretStoreRef.name`
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshTime`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
-// ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
 type ClusterExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

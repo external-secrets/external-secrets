@@ -20,12 +20,12 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Set DOPPLER_BASE_URL and DOPPLER_VERIFY_TLS environment variables to override defaults
-
+// DopplerAuth defines the authentication method for the Doppler provider.
 type DopplerAuth struct {
 	SecretRef DopplerAuthSecretRef `json:"secretRef"`
 }
 
+// DopplerAuthSecretRef defines a reference to a secret containing credentials for the Doppler provider.
 type DopplerAuthSecretRef struct {
 	// The DopplerToken is used for authentication.
 	// See https://docs.doppler.com/reference/api#authentication for auth token types.

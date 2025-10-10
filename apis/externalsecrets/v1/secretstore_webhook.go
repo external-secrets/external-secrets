@@ -20,6 +20,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+// SetupWebhookWithManager registers the SecretStore webhook with the controller manager.
 func (c *SecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(c).
@@ -27,6 +28,7 @@ func (c *SecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
+// SetupWebhookWithManager registers the ClusterSecretStore webhook with the controller manager.
 func (c *ClusterSecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(c).

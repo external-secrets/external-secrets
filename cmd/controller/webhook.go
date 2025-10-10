@@ -59,7 +59,7 @@ var webhookCmd = &cobra.Command{
 	Short: "Webhook implementation for ExternalSecrets and SecretStores.",
 	Long: `Webhook implementation for ExternalSecrets and SecretStores.
 	For more information visit https://external-secrets.io`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		setupLogger()
 
 		c := crds.CertInfo{
@@ -224,13 +224,13 @@ func getTLSCipherSuitesIDs(cipherListString string) ([]uint16, error) {
 		return nil, nil
 	}
 	cipherList := strings.Split(cipherListString, ",")
-	cipherIds := map[string]uint16{}
+	cipherIDs := map[string]uint16{}
 	for _, cs := range tls.CipherSuites() {
-		cipherIds[cs.Name] = cs.ID
+		cipherIDs[cs.Name] = cs.ID
 	}
 	ret := make([]uint16, 0, len(cipherList))
 	for _, c := range cipherList {
-		id, ok := cipherIds[c]
+		id, ok := cipherIDs[c]
 		if !ok {
 			return ret, fmt.Errorf("cipher %s was not found", c)
 		}

@@ -13,10 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1beta1
 
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// FortanixProvider configures a store to sync secrets using the Fortanix SDKMS provider.
 type FortanixProvider struct {
 	// APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
 	APIURL string `json:"apiUrl,omitempty"`
@@ -25,6 +27,7 @@ type FortanixProvider struct {
 	APIKey *FortanixProviderSecretRef `json:"apiKey,omitempty"`
 }
 
+// FortanixProviderSecretRef defines a reference to a secret containing credentials for the Fortanix provider.
 type FortanixProviderSecretRef struct {
 	// SecretRef is a reference to a secret containing the SDKMS API Key.
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`

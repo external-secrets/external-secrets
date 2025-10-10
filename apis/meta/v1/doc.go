@@ -14,6 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package meta contains meta types for external-secrets APIs
+// Package v1 contains meta types for external-secrets APIs
 // +kubebuilder:object:generate=true
 package v1

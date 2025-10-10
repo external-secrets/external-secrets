@@ -17,4 +17,5 @@ limitations under the License.
 //
 // +domain=external-secrets.io
 
+// Package apis contains Kubernetes API groups for external-secrets resources.
 package apis
