@@ -4264,7 +4264,7 @@
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-auth-token</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30m&quot;</span><span class="w"> </span><span class="c1"># Be sure to set this value lower than 60m since that is the expiration time from github</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30m0s&quot;</span><span class="w"> </span><span class="c1"># Be sure to set this value lower than 60m since that is the expiration time from github</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-auth-token</span><span class="w"> </span><span class="c1"># Name for the secret to be created on the cluster</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
@@ -4285,7 +4285,7 @@
 <span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
 <span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GithubAccessToken</span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-auth-token</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15m&quot;</span><span class="w"> </span><span class="c1"># Be sure to set this value lower than 60m since that is the expiration time from github</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15m0s&quot;</span><span class="w"> </span><span class="c1"># Be sure to set this value lower than 60m since that is the expiration time from github</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
