@@ -71,9 +71,15 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		return nil, err
 	}
 
+	// Configure TLS client config
 	cfg.TLSClientConfig = rest.TLSClientConfig{
 		Insecure: false,
-		CAData:   ca,
+	}
+	
+	// Only set CAData if we have a custom CA bundle
+	// If ca is nil, the Kubernetes client will use the system trust store
+	if ca != nil {
+		cfg.TLSClientConfig.CAData = ca
 	}
 
 	switch {
