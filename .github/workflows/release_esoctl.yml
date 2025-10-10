@@ -32,12 +32,14 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
+          persist-credentials: false
 
       - name: Setup Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         id: setup-go
         with:
           go-version-file: "go.mod"
+          cache: false
 
       - name: Download Go modules
         if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
@@ -56,17 +58,21 @@ jobs:
       - name: Check if Tag Exists
         id: check_tag
         run: |
-          if git rev-parse "${{ github.event.inputs.version }}" >/dev/null 2>&1; then
+          if git rev-parse "${GITHUB_EVENT_INPUTS_VERSION}" >/dev/null 2>&1; then
             echo "Tag exists."
             exit 1
           fi
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
 
       - name: Create Tag if Not Exists
         if: success()
         run: |
-          TAG="${{ github.event.inputs.version }}"
+          TAG="${GITHUB_EVENT_INPUTS_VERSION}"
           git tag $TAG
           git push origin $TAG
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0

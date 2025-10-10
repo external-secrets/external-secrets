@@ -48,30 +48,38 @@ runs:
     - name: Get docker image tag
       id: container_info
       shell: bash
-      run: echo "digest=$(crane digest ${{ inputs.image-name }}:${{ inputs.image-tag }})" >> $GITHUB_OUTPUT
+      run: echo "digest=$(crane digest ${INPUTS_IMAGE_NAME}:${INPUTS_IMAGE_TAG})" >> $GITHUB_OUTPUT
+      env:
+        INPUTS_IMAGE_NAME: ${{ inputs.image-name }}
+        INPUTS_IMAGE_TAG: ${{ inputs.image-tag }}
 
     - name: Sign image
       shell: bash
       env:
         COSIGN_EXPERIMENTAL: "1"
-      run: cosign sign -a GITHUB_ACTOR=${{ github.triggering_actor }} "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
+        INPUTS_IMAGE_NAME: ${{ inputs.image-name }}
+        STEPS_CONTAINER_INFO_OUTPUTS_DIGEST: ${{ steps.container_info.outputs.digest }}
+      run: cosign sign -a GITHUB_ACTOR=${GITHUB_TRIGGERING_ACTOR} "${INPUTS_IMAGE_NAME}@${STEPS_CONTAINER_INFO_OUTPUTS_DIGEST}"
 
     - name: Attach SBOM to image
       shell: bash
       id: sbom
       env:
         COSIGN_EXPERIMENTAL: "1"
+        INPUTS_IMAGE_NAME: ${{ inputs.image-name }}
+        STEPS_CONTAINER_INFO_OUTPUTS_DIGEST: ${{ steps.container_info.outputs.digest }}
+        INPUTS_IMAGE_TAG: ${{ inputs.image-tag }}
       run: |
         # Image SBOM (OS + application libs contained in the image)
-        syft "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}" -o spdx-json=sbom.${{ inputs.image-tag }}.spdx.json
-        cosign attest --predicate sbom.${{ inputs.image-tag }}.spdx.json --type spdx "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
-        cosign verify-attestation --type spdx ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }} | jq '.payload |= @base64d | .payload | fromjson'
+        syft "${INPUTS_IMAGE_NAME}@${STEPS_CONTAINER_INFO_OUTPUTS_DIGEST}" -o spdx-json=sbom.${INPUTS_IMAGE_TAG}.spdx.json
+        cosign attest --predicate sbom.${INPUTS_IMAGE_TAG}.spdx.json --type spdx "${INPUTS_IMAGE_NAME}@${STEPS_CONTAINER_INFO_OUTPUTS_DIGEST}"
+        cosign verify-attestation --type spdx ${INPUTS_IMAGE_NAME}@${STEPS_CONTAINER_INFO_OUTPUTS_DIGEST} | jq '.payload |= @base64d | .payload | fromjson'
 
         # Go modules SBOM (dependencies from the source tree)
         # Requires repository to be checked out before this composite action runs.
-        syft dir:. -o spdx-json=sbom.gomod.${{ inputs.image-tag }}.spdx.json
-        cosign attest --predicate sbom.gomod.${{ inputs.image-tag }}.spdx.json --type spdx "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
-        cosign verify-attestation --type spdx ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }} | jq '.payload |= @base64d | .payload | fromjson'
+        syft dir:. -o spdx-json=sbom.gomod.${INPUTS_IMAGE_TAG}.spdx.json
+        cosign attest --predicate sbom.gomod.${INPUTS_IMAGE_TAG}.spdx.json --type spdx "${INPUTS_IMAGE_NAME}@${STEPS_CONTAINER_INFO_OUTPUTS_DIGEST}"
+        cosign verify-attestation --type spdx ${INPUTS_IMAGE_NAME}@${STEPS_CONTAINER_INFO_OUTPUTS_DIGEST} | jq '.payload |= @base64d | .payload | fromjson'
 
     - name: Generate provenance
       uses: philips-labs/slsa-provenance-action@v0.7.2
@@ -88,7 +96,10 @@ runs:
       id: provenance
       env:
         COSIGN_EXPERIMENTAL: "1"
+        INPUTS_IMAGE_TAG: ${{ inputs.image-tag }}
+        INPUTS_IMAGE_NAME: ${{ inputs.image-name }}
+        STEPS_CONTAINER_INFO_OUTPUTS_DIGEST: ${{ steps.container_info.outputs.digest }}
       run: |
-        jq '.predicate' provenance.${{ inputs.image-tag }}.intoto.jsonl > provenance-predicate.att
-        cosign attest --predicate provenance-predicate.att --type slsaprovenance "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
-        cosign verify-attestation --type slsaprovenance ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}
+        jq '.predicate' provenance.${INPUTS_IMAGE_TAG}.intoto.jsonl > provenance-predicate.att
+        cosign attest --predicate provenance-predicate.att --type slsaprovenance "${INPUTS_IMAGE_NAME}@${STEPS_CONTAINER_INFO_OUTPUTS_DIGEST}"
+        cosign verify-attestation --type slsaprovenance ${INPUTS_IMAGE_NAME}@${STEPS_CONTAINER_INFO_OUTPUTS_DIGEST}

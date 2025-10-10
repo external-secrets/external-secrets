@@ -27,6 +27,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.ref }}
+          persist-credentials: false
       - name: set branches output
         id: branches
         run: echo "branches=[\"main\"]" >> $GITHUB_OUTPUT
@@ -59,6 +60,7 @@ jobs:
         token: ${{ steps.generate_token.outputs.token }}
         ref: ${{ matrix.branch }}
         fetch-depth: 0
+        persist-credentials: false
 
     - name: Setup Go
       uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
@@ -81,6 +83,7 @@ jobs:
         git add -A
         git commit -m "update dependencies" -s
         git push origin $BRANCH
-        gh pr create -B ${{ matrix.branch }} -H ${BRANCH} --title 'chore: update dependencies' --body 'Update dependencies'
+        gh pr create -B ${MATRIX_BRANCH} -H ${BRANCH} --title 'chore: update dependencies' --body 'Update dependencies'
       env:
         GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        MATRIX_BRANCH: ${{ matrix.branch }}
