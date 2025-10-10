@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  # this service account was created by azwi
+  name: workload-identity-sa
+  annotations:
+    azure.workload.identity/client-id: 7d8cdf74-xxxx-xxxx-xxxx-274d963d358b
+    azure.workload.identity/tenant-id: 5a02a20e-xxxx-xxxx-xxxx-0ad5b634c5d8
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: azure-store
+spec:
+  provider:
+    azurekv:
+      authType: WorkloadIdentity
+      vaultUrl: "https://xx-xxxx-xx.vault.azure.net"
+      # note: no serviceAccountRef was provided
