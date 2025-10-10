@@ -24,6 +24,12 @@ To guarantee deterministic results of the merge operation, secret keys are proce
 
 Specifying a key in the `priority` list which is not found in the source secret will cause an error. You can override this behavior setting `priorityPolicy` to `IgnoreNotFound` instead of the default `Strict`.
 
+### Transform
+
+This method uses Go templating to rewrite the keys of each secret. The `template` field is used to specify the template. You can reference the key of each secret by the `.value` string.
+
+You can also use [helper functions](templating.md#Helper functions) in the template.
+
 ## Considerations about Rewrite implementation
 
 1. The input of a subsequent rewrite operation are the outputs of the previous rewrite.
