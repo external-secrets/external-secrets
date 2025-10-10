@@ -81,21 +81,23 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		if !ok || manager != "external-secrets" {
 			return errors.New("secret not managed by external-secrets")
 		}
-	}
-	// Remove the metadata map to check the reconcile difference
-	if c.store.Version == esv1.VaultKVStoreV1 {
-		delete(vaultSecret, "custom_metadata")
-	}
-	buf := &bytes.Buffer{}
-	enc := json.NewEncoder(buf)
-	enc.SetEscapeHTML(false)
-	err = enc.Encode(vaultSecret)
-	if err != nil {
-		return fmt.Errorf("error encoding vault secret: %w", err)
-	}
-	vaultSecretValue := bytes.TrimSpace(buf.Bytes())
-	if bytes.Equal(vaultSecretValue, value) {
-		return nil
+		// Remove the metadata map to check the reconcile difference
+		if c.store.Version == esv1.VaultKVStoreV1 {
+			delete(vaultSecret, "custom_metadata")
+		}
+		// Only compare the entire secret if we're pushing the whole secret (not a single property)
+		if data.GetProperty() == "" {
+			// Convert incoming value to map for proper JSON comparison
+			var incomingSecretMap map[string]any
+			err = json.Unmarshal(value, &incomingSecretMap)
+			if err != nil {
+				return fmt.Errorf("error unmarshalling incoming secret value: %w", err)
+			}
+			// Compare maps instead of raw bytes to handle JSON field ordering and formatting
+			if maps.Equal(vaultSecret, incomingSecretMap) {
+				return nil
+			}
+		}
 	}
 	// If a Push of a property only, we should merge and add/update the property
 	if data.GetProperty() != "" {
