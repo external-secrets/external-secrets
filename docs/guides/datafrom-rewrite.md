@@ -11,6 +11,11 @@ Rewrite operations are all applied before `ConversionStrategy` is applied.
 ### Regexp
 This method implements rewriting through the use of regular expressions. It needs a `source` and a `target` field. The source field is where the definition of the matching regular expression goes, where the `target` field is where the replacing expression goes.
 
+### Transform
+This method uses Go templating to rewrite the keys of each secret. The `template` field is used to specify the template. You can reference the key of each secret by the `.value` string.
+
+You can also use [helper functions](templating.md#helper-functions) in the template.
+
 ### Merge
 This method implements rewriting keys by merging operation and solving key collisions. It supports two merging strategies: `Extract` and `JSON`.
 
@@ -23,12 +28,6 @@ Key collisions can be ignored or cause an error according to `conflictPolicy` wh
 To guarantee deterministic results of the merge operation, secret keys are processed in alphabetical order. Key priority can also be made explicit by providing a list of secret keys in the `priority` parameter. These keys will be processed last in the order they appear while all other keys will still be processed in alphabetical order.
 
 Specifying a key in the `priority` list which is not found in the source secret will cause an error. You can override this behavior setting `priorityPolicy` to `IgnoreNotFound` instead of the default `Strict`.
-
-### Transform
-
-This method uses Go templating to rewrite the keys of each secret. The `template` field is used to specify the template. You can reference the key of each secret by the `.value` string.
-
-You can also use [helper functions](templating.md#Helper functions) in the template.
 
 ## Considerations about Rewrite implementation
 
@@ -144,6 +143,36 @@ data:
     SECRET_KEY: WVlZWQ== #YYYY
     USERNAME: WFhYWA== #XXXX
     PASSWORD:  WVlZWQ== #YYYY
+```
+
+### Transform secret keys
+
+The following ExternalSecret:
+
+```yaml
+{% include 'datafrom-rewrite-transform.yaml' %}
+```
+
+Uses a template to transform all secret keys into an "environment variable" format by capitalizing, replacing `-` with `_` and prefixing them with `ENV_`.
+
+In this example, if we had the following secrets available in the provider:
+```json
+{
+"foo-nut-bar": "HELLO1"
+"foo-naz-bar": "HELLO2"
+"foo-bar-baz": '{"john": "doe"}'
+}
+```
+
+the output kubernetes secret would be:
+```yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+data:
+  ENV_FOO_BAR_BAZ: eyJqb2huIjogImRvZSJ9
+  ENV_FOO_NAZ_BAR: SEVMTE8y
+  ENV_FOO_NUT_BAR: SEVMTE8x
 ```
 
 ## Limitations
