@@ -340,9 +340,14 @@ func TestPluralizeKind(t *testing.T) {
 			expected: "statuses",
 		},
 		{
-			name:     "Ends with 'x'",
-			kind:     "Index",
-			expected: "indexes",
+			name:     "Irregular plural - Ingress",
+			kind:     "Ingress",
+			expected: "ingresses",
+		},
+		{
+			name:     "Endpoints (already plural)",
+			kind:     "Endpoints",
+			expected: "endpoints",
 		},
 	}
 

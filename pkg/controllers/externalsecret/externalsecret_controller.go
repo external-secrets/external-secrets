@@ -25,6 +25,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,12 +46,15 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	// Metrics.
@@ -129,7 +134,10 @@ var (
 	ErrSecretRemoveCtrlRef = fmt.Errorf("could not remove controller reference on secret")
 )
 
-const indexESTargetSecretNameField = ".metadata.targetSecretName"
+const (
+	indexESTargetSecretNameField = ".metadata.targetSecretName"
+	indexESTargetResourceField   = ".spec.target.resource"
+)
 
 // Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
@@ -146,6 +154,16 @@ type Reconciler struct {
 	EnableGeneratorState      bool
 	AllowNonSecretTargets     bool
 	recorder                  record.EventRecorder
+
+	// watchedGVKs tracks which GroupVersionKinds we're currently watching
+	// for non-Secret targets to enable drift detection
+	watchedGVKs sync.Map // map[schema.GroupVersionKind]bool
+
+	// controller is the underlying controller instance used for dynamic watch registration
+	controller controller.Controller
+
+	// cache is the manager's cache used for watching resources
+	cache cache.Cache
 }
 
 // Reconcile implements the main reconciliation loop
@@ -672,6 +690,15 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	gvk := getTargetGVK(externalSecret)
+	if watchErr := r.ensureWatchForGVK(ctx, gvk); watchErr != nil {
+		// Log the error but don't fail reconciliation - the resource was successfully created/updated
+		log.Error(watchErr, "failed to register dynamic watch for non-Secret target, drift detection may not work",
+			"group", gvk.Group,
+			"version", gvk.Version,
+			"kind", gvk.Kind)
+	}
+
 	r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretSynced, msgSynced)
 	return r.getRequeueResult(externalSecret), nil
 }
@@ -1115,6 +1142,7 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
+	r.cache = mgr.GetCache()
 
 	// Initialize dynamic client for non-Secret target support
 	if r.DynamicClient == nil && r.RestConfig != nil {
@@ -1122,6 +1150,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		if err != nil {
 			return fmt.Errorf("failed to create dynamic client: %w", err)
 		}
+
 		r.DynamicClient = dynClient
 	}
 
@@ -1139,13 +1168,30 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		return err
 	}
 
+	// index ExternalSecrets based on the target resource (GVK + name)
+	// this lets us quickly find all ExternalSecrets which target a specific non-Secret resource
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &esv1.ExternalSecret{}, indexESTargetResourceField, func(obj client.Object) []string {
+		es := obj.(*esv1.ExternalSecret)
+		if !isNonSecretTarget(es) || !r.AllowNonSecretTargets {
+			return nil
+		}
+
+		gvk := getTargetGVK(es)
+		targetName := getTargetName(es)
+		// Index format: "group/version/kind/name"
+		return []string{fmt.Sprintf("%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, targetName)}
+	}); err != nil {
+		return err
+	}
+
 	// predicate function to ignore secret events unless they have the "managed" label
 	secretHasESLabel := predicate.NewPredicateFuncs(func(object client.Object) bool {
 		value, hasLabel := object.GetLabels()[esv1.LabelManaged]
 		return hasLabel && value == esv1.LabelManagedValue
 	})
 
-	return ctrl.NewControllerManagedBy(mgr).
+	// Build the controller
+	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1.ExternalSecret{}).
 		// we cant use Owns(), as we don't set ownerReferences when the creationPolicy is not Owner.
@@ -1154,8 +1200,16 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 			&v1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSecret),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, secretHasESLabel),
-		).
-		Complete(r)
+		)
+
+	// Complete the controller and store reference for dynamic watches
+	var err error
+	r.controller, err = controllerBuilder.Build(r)
+	if err != nil {
+		return fmt.Errorf("failed to build controller: %w", err)
+	}
+
+	return nil
 }
 
 func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Object) []reconcile.Request {
@@ -1179,4 +1233,102 @@ func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Obj
 		}
 	}
 	return requests
+}
+
+// ensureWatchForGVK ensures that a watch is registered for the given GroupVersionKind.
+// This enables drift detection for non-Secret target resources.
+func (r *Reconciler) ensureWatchForGVK(ctx context.Context, gvk schema.GroupVersionKind) error {
+	// Check if already watching this GVK
+	if _, ok := r.watchedGVKs.Load(gvk.String()); ok {
+		return nil
+	}
+
+	if r.controller == nil {
+		return fmt.Errorf("controller not initialized, cannot register dynamic watch")
+	}
+
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(gvk)
+
+	// predicates for dynamic watches
+	hasManagedLabel := predicate.TypedFuncs[*unstructured.Unstructured]{
+		CreateFunc: func(e event.TypedCreateEvent[*unstructured.Unstructured]) bool {
+			value, hasLabel := e.Object.GetLabels()[esv1.LabelManaged]
+			return hasLabel && value == esv1.LabelManagedValue
+		},
+		UpdateFunc: func(e event.TypedUpdateEvent[*unstructured.Unstructured]) bool {
+			value, hasLabel := e.ObjectNew.GetLabels()[esv1.LabelManaged]
+			return hasLabel && value == esv1.LabelManagedValue
+		},
+		DeleteFunc: func(e event.TypedDeleteEvent[*unstructured.Unstructured]) bool {
+			value, hasLabel := e.Object.GetLabels()[esv1.LabelManaged]
+			return hasLabel && value == esv1.LabelManagedValue
+		},
+	}
+
+	// Create a Kind source for watching this type
+	// source.Kind creates a source that watches the specified kind
+	src := source.Kind(
+		r.cache,
+		u,
+		handler.TypedEnqueueRequestsFromMapFunc(r.findObjectsForNonSecretResource(gvk)),
+		predicate.TypedResourceVersionChangedPredicate[*unstructured.Unstructured]{},
+		hasManagedLabel,
+	)
+
+	if err := r.controller.Watch(src); err != nil {
+		return fmt.Errorf("failed to watch %s: %w", gvk.String(), err)
+	}
+
+	// store the GVK in the sync map so we don't start watching it again
+	r.watchedGVKs.Store(gvk.String(), true)
+	r.Log.Info("registered dynamic watch for non-Secret target",
+		"group", gvk.Group,
+		"version", gvk.Version,
+		"kind", gvk.Kind)
+
+	return nil
+}
+
+// findObjectsForNonSecretResource returns a typed mapper function that finds ExternalSecrets
+// targeting a specific non-Secret resource.
+func (r *Reconciler) findObjectsForNonSecretResource(gvk schema.GroupVersionKind) handler.TypedMapFunc[*unstructured.Unstructured, reconcile.Request] {
+	return func(ctx context.Context, obj *unstructured.Unstructured) []reconcile.Request {
+		externalSecretsList := &esv1.ExternalSecretList{}
+
+		// Query ExternalSecrets by the indexed field
+		indexValue := fmt.Sprintf("%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, obj.GetName())
+		listOps := &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(indexESTargetResourceField, indexValue),
+			Namespace:     obj.GetNamespace(),
+		}
+
+		err := r.List(ctx, externalSecretsList, listOps)
+		if err != nil {
+			r.Log.Error(err, "failed to list ExternalSecrets for non-Secret resource",
+				"gvk", gvk.String(),
+				"name", obj.GetName(),
+				"namespace", obj.GetNamespace())
+			return []reconcile.Request{}
+		}
+
+		requests := make([]reconcile.Request, len(externalSecretsList.Items))
+		for i := range externalSecretsList.Items {
+			requests[i] = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      externalSecretsList.Items[i].GetName(),
+					Namespace: externalSecretsList.Items[i].GetNamespace(),
+				},
+			}
+		}
+
+		if len(requests) > 0 {
+			r.Log.V(1).Info("non-Secret resource changed, triggering reconciliation",
+				"gvk", gvk.String(),
+				"resource", obj.GetName(),
+				"externalSecrets", len(requests))
+		}
+
+		return requests
+	}
 }
