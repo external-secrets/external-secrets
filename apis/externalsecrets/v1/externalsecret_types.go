@@ -194,6 +194,21 @@ type TemplateRefItem struct {
 	TemplateAs TemplateScope `json:"templateAs,omitempty"`
 }
 
+// ManifestTarget defines a custom Kubernetes resource type to be created
+// instead of a Secret. This allows ExternalSecret to create ConfigMaps,
+// Custom Resources, or any other Kubernetes resource type.
+type ManifestTarget struct {
+	// APIVersion of the target resource (e.g., "v1" for ConfigMap, "argoproj.io/v1alpha1" for ArgoCD Application)
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	APIVersion string `json:"apiVersion"`
+
+	// Kind of the target resource (e.g., "ConfigMap", "Application")
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	Kind string `json:"kind"`
+}
+
 // ExternalSecretTarget defines the Kubernetes Secret to be created,
 // there can be only one target per ExternalSecret.
 type ExternalSecretTarget struct {
@@ -220,6 +235,13 @@ type ExternalSecretTarget struct {
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
 	Template *ExternalSecretTemplate `json:"template,omitempty"`
+
+	// Manifest defines a custom Kubernetes resource to create instead of a Secret.
+	// When specified, ExternalSecret will create the resource type defined here
+	// (e.g., ConfigMap, Custom Resource) instead of a Secret.
+	// WARNING: Non-Secret resources are not encrypted at rest. Use with caution.
+	// +optional
+	Manifest *ManifestTarget `json:"manifest,omitempty"`
 
 	// Immutable defines if the final secret will be immutable
 	// +optional

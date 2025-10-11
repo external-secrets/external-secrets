@@ -38,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -54,13 +55,11 @@ import (
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
-	"github.com/external-secrets/external-secrets/pkg/controllers/util"
+	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 
 	// Loading registered generators.
-	_ "github.com/external-secrets/external-secrets/pkg/register"
-	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
@@ -136,6 +135,7 @@ const indexESTargetSecretNameField = ".metadata.targetSecretName"
 type Reconciler struct {
 	client.Client
 	SecretClient              client.Client
+	DynamicClient             dynamic.Interface
 	Log                       logr.Logger
 	Scheme                    *runtime.Scheme
 	RestConfig                *rest.Config
@@ -144,6 +144,7 @@ type Reconciler struct {
 	ClusterSecretStoreEnabled bool
 	EnableFloodGate           bool
 	EnableGeneratorState      bool
+	AllowNonSecretTargets     bool
 	recorder                  record.EventRecorder
 }
 
@@ -230,6 +231,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	if skip {
 		log.V(1).Info("skipping ExternalSecret, uses unmanaged SecretStore")
 		return ctrl.Result{}, nil
+	}
+
+	// if this is a non-Secret target, use a different reconciliation path
+	if isNonSecretTarget(externalSecret) {
+		// validate non-Secret target configuration early
+		if err := r.validateNonSecretTarget(log, externalSecret); err != nil {
+			r.markAsFailed("invalid non-Secret target", err, externalSecret, syncCallsError.With(resourceLabels))
+			return ctrl.Result{}, nil // don't requeue as this is a configuration error
+		}
+
+		return r.reconcileNonSecretTarget(ctx, req, externalSecret, log, start, resourceLabels, syncCallsError)
 	}
 
 	// the target secret name defaults to the ExternalSecret name, if not explicitly set
@@ -561,6 +573,109 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	return r.getRequeueResult(externalSecret), nil
 }
 
+// reconcileNonSecretTarget handles reconciliation for non-Secret targets (ConfigMaps, Custom Resources).
+func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Request, externalSecret *esv1.ExternalSecret, log logr.Logger, start time.Time, resourceLabels map[string]string, syncCallsError *prometheus.CounterVec) (ctrl.Result, error) {
+	// update the status of the ExternalSecret when this function returns, if needed
+	currentStatus := *externalSecret.Status.DeepCopy()
+	defer func() {
+		if equality.Semantic.DeepEqual(currentStatus, externalSecret.Status) {
+			return
+		}
+
+		updateErr := r.Status().Update(ctx, externalSecret)
+		if updateErr != nil && !apierrors.IsConflict(updateErr) {
+			log.Error(updateErr, logErrorUpdateESStatus)
+		}
+	}()
+
+	// retrieve the provider secret data
+	dataMap, err := r.GetProviderSecretData(ctx, externalSecret)
+	if err != nil {
+		r.markAsFailed(msgErrorGetSecretData, err, externalSecret, syncCallsError.With(resourceLabels))
+		return ctrl.Result{}, err
+	}
+
+	// if no data was found, handle according to deletion policy
+	if len(dataMap) == 0 {
+		switch externalSecret.Spec.Target.DeletionPolicy {
+		case esv1.DeletionPolicyDelete:
+			// safeguard that we only can delete resources we own
+			creationPolicy := externalSecret.Spec.Target.CreationPolicy
+			if creationPolicy != esv1.CreatePolicyOwner {
+				err = fmt.Errorf("unable to delete resource: creationPolicy=%s is not Owner", creationPolicy)
+				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels))
+				return ctrl.Result{}, nil
+			}
+
+			// delete the resource if it exists
+			err = r.deleteNonSecretResource(ctx, log, externalSecret)
+			if err != nil {
+				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels))
+				return ctrl.Result{}, err
+			}
+
+			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretDeleted, msgDeleted)
+			return r.getRequeueResult(externalSecret), nil
+
+		case esv1.DeletionPolicyRetain:
+			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretSynced, msgSyncedRetain)
+			return r.getRequeueResult(externalSecret), nil
+
+		case esv1.DeletionPolicyMerge:
+			// continue to process with empty data
+		}
+	}
+
+	// render the template for the manifest
+	obj, err := r.ApplyTemplateToManifest(ctx, externalSecret, dataMap)
+	if err != nil {
+		r.markAsFailed("could not apply template to manifest", err, externalSecret, syncCallsError.With(resourceLabels))
+		return ctrl.Result{}, err
+	}
+
+	// handle creation policies
+	switch externalSecret.Spec.Target.CreationPolicy {
+	case esv1.CreatePolicyNone:
+		log.V(1).Info("resource creation skipped due to CreationPolicy=None")
+		err = nil
+
+	case esv1.CreatePolicyMerge:
+		// for Merge policy, only update if resource exists
+		existing, getErr := r.getNonSecretResource(ctx, log, externalSecret)
+		if getErr != nil && !apierrors.IsNotFound(getErr) {
+			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels))
+			return ctrl.Result{}, getErr
+		}
+
+		if existing == nil || existing.GetUID() == "" {
+			// resource does not exist, wait until next refresh
+			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretMissing, msgMissing)
+			return r.getRequeueResult(externalSecret), nil
+		}
+
+		// update the existing resource
+		err = r.createOrUpdateNonSecretResource(ctx, log, externalSecret, obj)
+
+	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner:
+		// create or update the resource
+		err = r.createOrUpdateNonSecretResource(ctx, log, externalSecret, obj)
+	}
+
+	if err != nil {
+		// if we got an update conflict, requeue immediately
+		if apierrors.IsConflict(err) {
+			log.V(1).Info("conflict while updating resource, will requeue")
+			return ctrl.Result{Requeue: true}, nil
+		}
+
+		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+		return ctrl.Result{}, err
+	}
+
+	r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretSynced, msgSynced)
+	return r.getRequeueResult(externalSecret), nil
+}
+
 // getRequeueResult create a result with requeueAfter based on the ExternalSecret refresh interval.
 func (r *Reconciler) getRequeueResult(externalSecret *esv1.ExternalSecret) ctrl.Result {
 	// default to the global requeue interval
@@ -628,12 +743,18 @@ func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1.Ex
 }
 
 func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger, externalSecret *esv1.ExternalSecret) error {
-	// Only delete secrets if DeletionPolicy is Delete
+	// Only delete resources if DeletionPolicy is Delete
 	if externalSecret.Spec.Target.DeletionPolicy != esv1.DeletionPolicyDelete {
-		log.V(1).Info("skipping secret deletion due to DeletionPolicy", "policy", externalSecret.Spec.Target.DeletionPolicy)
+		log.V(1).Info("skipping resource deletion due to DeletionPolicy", "policy", externalSecret.Spec.Target.DeletionPolicy)
 		return nil
 	}
 
+	// if this is a non-Secret target, use deleteNonSecretResource
+	if isNonSecretTarget(externalSecret) {
+		return r.deleteNonSecretResource(ctx, log, externalSecret)
+	}
+
+	// handle Secret deletion
 	secretName := externalSecret.Spec.Target.Name
 	if secretName == "" {
 		secretName = externalSecret.Name
@@ -994,6 +1115,15 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
+
+	// Initialize dynamic client for non-Secret target support
+	if r.DynamicClient == nil && r.RestConfig != nil {
+		dynClient, err := dynamic.NewForConfig(r.RestConfig)
+		if err != nil {
+			return fmt.Errorf("failed to create dynamic client: %w", err)
+		}
+		r.DynamicClient = dynClient
+	}
 
 	// index ExternalSecrets based on the target secret name,
 	// this lets us quickly find all ExternalSecrets which target a specific Secret
