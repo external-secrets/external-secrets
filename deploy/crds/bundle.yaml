@@ -7074,7 +7074,6 @@ spec:
                           description: Webhook url to call
                           type: string
                       required:
-                        - result
                         - url
                       type: object
                     yandexcertificatemanager:
@@ -18280,7 +18279,6 @@ spec:
                           description: Webhook url to call
                           type: string
                       required:
-                        - result
                         - url
                       type: object
                     yandexcertificatemanager:

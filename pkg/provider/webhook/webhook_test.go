@@ -704,3 +704,134 @@ func makeClusterSecretStore(url string, args args) *esv1.ClusterSecretStore {
 	}
 	return store
 }
+
+func TestSecretExists(t *testing.T) {
+	tests := []struct {
+		name         string
+		statusCode   int
+		responseBody string
+		wantExists   bool
+		wantErr      bool
+	}{
+		{
+			name:         "secret exists - returns 200",
+			statusCode:   http.StatusOK,
+			responseBody: `{"data":"secret-value"}`,
+			wantExists:   true,
+			wantErr:      false,
+		},
+		{
+			name:         "secret does not exist - returns 404",
+			statusCode:   http.StatusNotFound,
+			responseBody: "not found",
+			wantExists:   false,
+			wantErr:      false,
+		},
+		{
+			name:         "server error - returns 500",
+			statusCode:   http.StatusInternalServerError,
+			responseBody: "internal server error",
+			wantExists:   false,
+			wantErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.statusCode)
+				w.Write([]byte(tt.responseBody))
+			}))
+			defer ts.Close()
+
+			store := makeClusterSecretStore(ts.URL, args{URL: "/api/secret"})
+			prov := &Provider{}
+			client, err := prov.NewClient(context.Background(), store, nil, "testnamespace")
+			if err != nil {
+				t.Fatalf("failed to create client: %v", err)
+			}
+
+			remoteRef := v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-key",
+			}
+
+			exists, err := client.SecretExists(context.Background(), remoteRef)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SecretExists() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if exists != tt.wantExists {
+				t.Errorf("SecretExists() = %v, want %v", exists, tt.wantExists)
+			}
+		})
+	}
+}
+
+func TestDeleteSecret(t *testing.T) {
+	tests := []struct {
+		name         string
+		statusCode   int
+		wantErr      bool
+		expectMethod string
+	}{
+		{
+			name:         "successful delete - returns 200",
+			statusCode:   http.StatusOK,
+			wantErr:      false,
+			expectMethod: http.MethodDelete,
+		},
+		{
+			name:         "successful delete - returns 204",
+			statusCode:   http.StatusNoContent,
+			wantErr:      false,
+			expectMethod: http.MethodDelete,
+		},
+		{
+			name:         "secret not found - returns 404",
+			statusCode:   http.StatusNotFound,
+			wantErr:      false,
+			expectMethod: http.MethodDelete,
+		},
+		{
+			name:         "server error - returns 500",
+			statusCode:   http.StatusInternalServerError,
+			wantErr:      true,
+			expectMethod: http.MethodDelete,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var receivedMethod string
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				receivedMethod = r.Method
+				w.WriteHeader(tt.statusCode)
+			}))
+			defer ts.Close()
+
+			store := makeClusterSecretStore(ts.URL, args{URL: "/api/secret"})
+			prov := &Provider{}
+			client, err := prov.NewClient(context.Background(), store, nil, "testnamespace")
+			if err != nil {
+				t.Fatalf("failed to create client: %v", err)
+			}
+
+			remoteRef := v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-key",
+			}
+
+			err = client.DeleteSecret(context.Background(), remoteRef)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if receivedMethod != tt.expectMethod {
+				t.Errorf("DeleteSecret() used method %v, want %v", receivedMethod, tt.expectMethod)
+			}
+		})
+	}
+}
