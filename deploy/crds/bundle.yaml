@@ -503,6 +503,25 @@ spec:
                         immutable:
                           description: Immutable defines if the final secret will be immutable
                           type: boolean
+                        manifest:
+                          description: |-
+                            Manifest defines a custom Kubernetes resource to create instead of a Secret.
+                            When specified, ExternalSecret will create the resource type defined here
+                            (e.g., ConfigMap, Custom Resource) instead of a Secret.
+                            WARNING: Non-Secret resources are not encrypted at rest. Use with caution.
+                          properties:
+                            apiVersion:
+                              description: APIVersion of the target resource (e.g., "v1" for ConfigMap, "argoproj.io/v1alpha1" for ArgoCD Application)
+                              minLength: 1
+                              type: string
+                            kind:
+                              description: Kind of the target resource (e.g., "ConfigMap", "Application")
+                              minLength: 1
+                              type: string
+                          required:
+                            - apiVersion
+                            - kind
+                          type: object
                         name:
                           description: |-
                             The name of the Secret resource to be managed.
@@ -12059,6 +12078,25 @@ spec:
                     immutable:
                       description: Immutable defines if the final secret will be immutable
                       type: boolean
+                    manifest:
+                      description: |-
+                        Manifest defines a custom Kubernetes resource to create instead of a Secret.
+                        When specified, ExternalSecret will create the resource type defined here
+                        (e.g., ConfigMap, Custom Resource) instead of a Secret.
+                        WARNING: Non-Secret resources are not encrypted at rest. Use with caution.
+                      properties:
+                        apiVersion:
+                          description: APIVersion of the target resource (e.g., "v1" for ConfigMap, "argoproj.io/v1alpha1" for ArgoCD Application)
+                          minLength: 1
+                          type: string
+                        kind:
+                          description: Kind of the target resource (e.g., "ConfigMap", "Application")
+                          minLength: 1
+                          type: string
+                      required:
+                        - apiVersion
+                        - kind
+                      type: object
                     name:
                       description: |-
                         The name of the Secret resource to be managed.
