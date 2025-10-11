@@ -25,10 +25,10 @@ import (
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -43,10 +43,6 @@ func isNonSecretTarget(es *esv1.ExternalSecret) bool {
 
 // validateNonSecretTarget validates that non-Secret targets are properly configured.
 func (r *Reconciler) validateNonSecretTarget(log logr.Logger, es *esv1.ExternalSecret) error {
-	if !isNonSecretTarget(es) {
-		return nil
-	}
-
 	// Check if non-Secret targets are allowed
 	if !r.AllowNonSecretTargets {
 		return fmt.Errorf("non-Secret targets are disabled. Enable with --unsafe-allow-non-secret-targets flag")
@@ -61,7 +57,6 @@ func (r *Reconciler) validateNonSecretTarget(log logr.Logger, es *esv1.ExternalS
 		return fmt.Errorf("target.manifest.kind is required")
 	}
 
-	// Log warning about non-Secret target usage
 	log.Info("WARNING: Using non-Secret target. Data will not be encrypted at rest.",
 		"apiVersion", manifest.APIVersion,
 		"kind", manifest.Kind,
@@ -72,15 +67,6 @@ func (r *Reconciler) validateNonSecretTarget(log logr.Logger, es *esv1.ExternalS
 
 // getTargetGVK returns the GroupVersionKind for the target resource.
 func getTargetGVK(es *esv1.ExternalSecret) schema.GroupVersionKind {
-	if !isNonSecretTarget(es) {
-		// Default to Secret
-		return schema.GroupVersionKind{
-			Group:   "",
-			Version: "v1",
-			Kind:    "Secret",
-		}
-	}
-
 	manifest := es.Spec.Target.Manifest
 	gv, _ := schema.ParseGroupVersion(manifest.APIVersion)
 
@@ -97,31 +83,6 @@ func getTargetName(es *esv1.ExternalSecret) string {
 		return es.Spec.Target.Name
 	}
 	return es.Name
-}
-
-// getOrCreateTargetResource gets or creates the target resource (Secret or custom resource).
-func (r *Reconciler) getOrCreateTargetResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) (client.Object, error) {
-	// Validate non-Secret target if applicable
-	if err := r.validateNonSecretTarget(log, es); err != nil {
-		return nil, err
-	}
-
-	// If it's a Secret, use existing logic
-	if !isNonSecretTarget(es) {
-		secret := &v1.Secret{}
-		err := r.SecretClient.Get(ctx, client.ObjectKey{
-			Namespace: es.Namespace,
-			Name:      getTargetName(es),
-		}, secret)
-
-		if apierrors.IsNotFound(err) {
-			return nil, err
-		}
-		return secret, err
-	}
-
-	// Handle non-Secret resources
-	return r.getNonSecretResource(ctx, log, es)
 }
 
 // getNonSecretResource retrieves a non-Secret resource using the dynamic client.
@@ -161,7 +122,6 @@ func (r *Reconciler) createOrUpdateNonSecretResource(ctx context.Context, log lo
 			return fmt.Errorf("failed to check if target resource exists: %w", err)
 		}
 
-		// Create new resource
 		log.Info("creating target resource", "gvk", gvk.String(), "name", getTargetName(es))
 		_, err = r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Create(ctx, obj, metav1.CreateOptions{})
 		if err != nil {
@@ -209,29 +169,11 @@ func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logge
 	return nil
 }
 
-// pluralizeKind converts a Kind to its plural resource name.
-// This is a simple implementation; for production, consider using discovery API or a more sophisticated approach.
+// pluralizeKind converts a Kind to its plural resource name using Kubernetes' built-in conversion.
+// Uses meta.UnsafeGuessKindToResource which handles irregular plurals (e.g., Ingress -> ingresses).
 func pluralizeKind(kind string) string {
-	// Handle common cases
-	switch kind {
-	case "ConfigMap":
-		return "configmaps"
-	case "Secret":
-		return "secrets"
-	default:
-		// Simple pluralization: add 's' or 'es'
-		lower := strings.ToLower(kind)
-		if len(lower) > 0 {
-			lastChar := lower[len(lower)-1]
-			if lastChar == 's' || lastChar == 'x' || lastChar == 'z' {
-				return lower + "es"
-			}
-			if lastChar == 'y' {
-				return lower[:len(lower)-1] + "ies"
-			}
-		}
-		return lower + "s"
-	}
+	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: kind})
+	return gvr.Resource
 }
 
 // ApplyTemplateToManifest renders templates for non-Secret resources and returns an unstructured object.
@@ -264,7 +206,7 @@ func (r *Reconciler) ApplyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	obj.SetLabels(labels)
 	obj.SetAnnotations(annotations)
 
-	// If no template, just create a simple ConfigMap/resource with data
+	// If no template, do a best-effort apply.
 	if es.Spec.Target.Template == nil {
 		return r.createSimpleManifest(obj, dataMap)
 	}
@@ -282,18 +224,20 @@ func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMa
 			data[k] = string(v)
 		}
 		obj.Object["data"] = data
-	} else {
-		// For other resources, put in spec.data or just data
-		data := make(map[string]string)
-		for k, v := range dataMap {
-			data[k] = string(v)
-		}
-		if obj.Object["spec"] == nil {
-			obj.Object["spec"] = make(map[string]interface{})
-		}
-		spec := obj.Object["spec"].(map[string]interface{})
-		spec["data"] = data
+
+		return obj, nil
 	}
+
+	// For other resources, put in spec.data or just data
+	data := make(map[string]string)
+	for k, v := range dataMap {
+		data[k] = string(v)
+	}
+	if obj.Object["spec"] == nil {
+		obj.Object["spec"] = make(map[string]interface{})
+	}
+	spec := obj.Object["spec"].(map[string]interface{})
+	spec["data"] = data
 
 	return obj, nil
 }
