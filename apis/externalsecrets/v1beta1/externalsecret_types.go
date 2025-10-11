@@ -147,7 +147,7 @@ const (
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
-// +kubebuilder:validation:Enum=Data;Annotations;Labels
+// +kubebuilder:validation:Pattern=^(Data|Annotations|Labels|\.?[a-zA-Z0-9_\-\.]+)$
 type TemplateTarget string
 
 const (

@@ -1,0 +1,502 @@
+/*
+Copyright © 2025 ESO Maintainer Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package externalsecret
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/go-logr/logr"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
+	"github.com/external-secrets/external-secrets/pkg/template"
+)
+
+// isNonSecretTarget checks if the ExternalSecret targets a non-Secret resource.
+func isNonSecretTarget(es *esv1.ExternalSecret) bool {
+	return es.Spec.Target.Manifest != nil
+}
+
+// validateNonSecretTarget validates that non-Secret targets are properly configured.
+func (r *Reconciler) validateNonSecretTarget(log logr.Logger, es *esv1.ExternalSecret) error {
+	if !isNonSecretTarget(es) {
+		return nil
+	}
+
+	// Check if non-Secret targets are allowed
+	if !r.AllowNonSecretTargets {
+		return fmt.Errorf("non-Secret targets are disabled. Enable with --unsafe-allow-non-secret-targets flag")
+	}
+
+	// Validate manifest configuration
+	manifest := es.Spec.Target.Manifest
+	if manifest.APIVersion == "" {
+		return fmt.Errorf("target.manifest.apiVersion is required")
+	}
+	if manifest.Kind == "" {
+		return fmt.Errorf("target.manifest.kind is required")
+	}
+
+	// Log warning about non-Secret target usage
+	log.Info("WARNING: Using non-Secret target. Data will not be encrypted at rest.",
+		"apiVersion", manifest.APIVersion,
+		"kind", manifest.Kind,
+		"name", getTargetName(es))
+
+	return nil
+}
+
+// getTargetGVK returns the GroupVersionKind for the target resource.
+func getTargetGVK(es *esv1.ExternalSecret) schema.GroupVersionKind {
+	if !isNonSecretTarget(es) {
+		// Default to Secret
+		return schema.GroupVersionKind{
+			Group:   "",
+			Version: "v1",
+			Kind:    "Secret",
+		}
+	}
+
+	manifest := es.Spec.Target.Manifest
+	gv, _ := schema.ParseGroupVersion(manifest.APIVersion)
+
+	return schema.GroupVersionKind{
+		Group:   gv.Group,
+		Version: gv.Version,
+		Kind:    manifest.Kind,
+	}
+}
+
+// getTargetName returns the name of the target resource.
+func getTargetName(es *esv1.ExternalSecret) string {
+	if es.Spec.Target.Name != "" {
+		return es.Spec.Target.Name
+	}
+	return es.Name
+}
+
+// getOrCreateTargetResource gets or creates the target resource (Secret or custom resource).
+func (r *Reconciler) getOrCreateTargetResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) (client.Object, error) {
+	// Validate non-Secret target if applicable
+	if err := r.validateNonSecretTarget(log, es); err != nil {
+		return nil, err
+	}
+
+	// If it's a Secret, use existing logic
+	if !isNonSecretTarget(es) {
+		secret := &v1.Secret{}
+		err := r.SecretClient.Get(ctx, client.ObjectKey{
+			Namespace: es.Namespace,
+			Name:      getTargetName(es),
+		}, secret)
+
+		if apierrors.IsNotFound(err) {
+			return nil, err
+		}
+		return secret, err
+	}
+
+	// Handle non-Secret resources
+	return r.getNonSecretResource(ctx, log, es)
+}
+
+// getNonSecretResource retrieves a non-Secret resource using the dynamic client.
+func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) (*unstructured.Unstructured, error) {
+	gvk := getTargetGVK(es)
+	gvr := schema.GroupVersionResource{
+		Group:    gvk.Group,
+		Version:  gvk.Version,
+		Resource: pluralizeKind(gvk.Kind),
+	}
+
+	resource, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Get(ctx, getTargetName(es), metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			log.V(1).Info("target resource does not exist", "gvk", gvk.String(), "name", getTargetName(es))
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to get target resource: %w", err)
+	}
+
+	return resource, nil
+}
+
+// createOrUpdateNonSecretResource creates or updates a non-Secret resource.
+func (r *Reconciler) createOrUpdateNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
+	gvk := getTargetGVK(es)
+	gvr := schema.GroupVersionResource{
+		Group:    gvk.Group,
+		Version:  gvk.Version,
+		Resource: pluralizeKind(gvk.Kind),
+	}
+
+	// Check if resource exists
+	existing, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Get(ctx, getTargetName(es), metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("failed to check if target resource exists: %w", err)
+		}
+
+		// Create new resource
+		log.Info("creating target resource", "gvk", gvk.String(), "name", getTargetName(es))
+		_, err = r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Create(ctx, obj, metav1.CreateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create target resource: %w", err)
+		}
+
+		r.recorder.Event(es, v1.EventTypeNormal, "Created", fmt.Sprintf("Created %s %s", gvk.Kind, getTargetName(es)))
+		return nil
+	}
+
+	// Update existing resource
+	log.Info("updating target resource", "gvk", gvk.String(), "name", getTargetName(es))
+	obj.SetResourceVersion(existing.GetResourceVersion())
+	obj.SetUID(existing.GetUID())
+
+	_, err = r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Update(ctx, obj, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update target resource: %w", err)
+	}
+
+	r.recorder.Event(es, v1.EventTypeNormal, "Updated", fmt.Sprintf("Updated %s %s", gvk.Kind, getTargetName(es)))
+	return nil
+}
+
+// deleteNonSecretResource deletes a non-Secret resource.
+func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) error {
+	if !isNonSecretTarget(es) {
+		return nil
+	}
+
+	gvk := getTargetGVK(es)
+	gvr := schema.GroupVersionResource{
+		Group:    gvk.Group,
+		Version:  gvk.Version,
+		Resource: pluralizeKind(gvk.Kind),
+	}
+
+	log.Info("deleting target resource", "gvk", gvk.String(), "name", getTargetName(es))
+	err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Delete(ctx, getTargetName(es), metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete target resource: %w", err)
+	}
+
+	r.recorder.Event(es, v1.EventTypeNormal, "Deleted", fmt.Sprintf("Deleted %s %s", gvk.Kind, getTargetName(es)))
+	return nil
+}
+
+// pluralizeKind converts a Kind to its plural resource name.
+// This is a simple implementation; for production, consider using discovery API or a more sophisticated approach.
+func pluralizeKind(kind string) string {
+	// Handle common cases
+	switch kind {
+	case "ConfigMap":
+		return "configmaps"
+	case "Secret":
+		return "secrets"
+	default:
+		// Simple pluralization: add 's' or 'es'
+		lower := strings.ToLower(kind)
+		if len(lower) > 0 {
+			lastChar := lower[len(lower)-1]
+			if lastChar == 's' || lastChar == 'x' || lastChar == 'z' {
+				return lower + "es"
+			}
+			if lastChar == 'y' {
+				return lower[:len(lower)-1] + "ies"
+			}
+		}
+		return lower + "s"
+	}
+}
+
+// ApplyTemplateToManifest renders templates for non-Secret resources and returns an unstructured object.
+func (r *Reconciler) ApplyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+	gvk := getTargetGVK(es)
+
+	// Create base unstructured object
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	obj.SetName(getTargetName(es))
+	obj.SetNamespace(es.Namespace)
+
+	// Set labels and annotations
+	labels := make(map[string]string)
+	annotations := make(map[string]string)
+
+	if es.Spec.Target.Template != nil {
+		// Copy template metadata
+		for k, v := range es.Spec.Target.Template.Metadata.Labels {
+			labels[k] = v
+		}
+		for k, v := range es.Spec.Target.Template.Metadata.Annotations {
+			annotations[k] = v
+		}
+	}
+
+	// Add managed label for tracking
+	labels[esv1.LabelManaged] = esv1.LabelManagedValue
+
+	obj.SetLabels(labels)
+	obj.SetAnnotations(annotations)
+
+	// If no template, just create a simple ConfigMap/resource with data
+	if es.Spec.Target.Template == nil {
+		return r.createSimpleManifest(obj, dataMap)
+	}
+
+	// Apply templates
+	return r.renderTemplatedManifest(ctx, es, obj, dataMap)
+}
+
+// createSimpleManifest creates a simple resource without templates (e.g., ConfigMap with data field).
+func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+	// For ConfigMaps and similar resources, put data in .data field
+	if obj.GetKind() == "ConfigMap" {
+		data := make(map[string]string)
+		for k, v := range dataMap {
+			data[k] = string(v)
+		}
+		obj.Object["data"] = data
+	} else {
+		// For other resources, put in spec.data or just data
+		data := make(map[string]string)
+		for k, v := range dataMap {
+			data[k] = string(v)
+		}
+		if obj.Object["spec"] == nil {
+			obj.Object["spec"] = make(map[string]interface{})
+		}
+		spec := obj.Object["spec"].(map[string]interface{})
+		spec["data"] = data
+	}
+
+	return obj, nil
+}
+
+// renderTemplatedManifest renders templates for a custom resource.
+func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.ExternalSecret, obj *unstructured.Unstructured, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template engine: %w", err)
+	}
+
+	// Process templateFrom entries
+	for _, tplFrom := range es.Spec.Target.Template.TemplateFrom {
+		if tplFrom.Literal != nil {
+			// Parse target path (e.g., "Data", "Spec", ".spec.config")
+			targetPath := string(tplFrom.Target)
+			rendered, err := r.renderTemplate(execute, *tplFrom.Literal, dataMap)
+			if err != nil {
+				return nil, fmt.Errorf("failed to render template: %w", err)
+			}
+
+			// Apply rendered content to the target path
+			if err := r.applyToPath(obj, targetPath, rendered); err != nil {
+				return nil, fmt.Errorf("failed to apply template to path %s: %w", targetPath, err)
+			}
+		}
+
+		// Handle ConfigMap and Secret templateFrom
+		if tplFrom.ConfigMap != nil || tplFrom.Secret != nil {
+			// Create a temporary secret to use the existing template parser
+			tempSecret := &v1.Secret{
+				Data: make(map[string][]byte),
+			}
+
+			p := templating.Parser{
+				Client:       r.Client,
+				TargetSecret: tempSecret,
+				DataMap:      dataMap,
+				Exec:         execute,
+			}
+
+			if tplFrom.ConfigMap != nil {
+				if err := p.MergeConfigMap(ctx, es.Namespace, tplFrom); err != nil {
+					return nil, fmt.Errorf("failed to merge configmap template: %w", err)
+				}
+			}
+
+			if tplFrom.Secret != nil {
+				if err := p.MergeSecret(ctx, es.Namespace, tplFrom); err != nil {
+					return nil, fmt.Errorf("failed to merge secret template: %w", err)
+				}
+			}
+
+			// Convert the temporary secret data to the target resource
+			targetPath := string(tplFrom.Target)
+			for k, v := range tempSecret.Data {
+				if err := r.applyToPath(obj, targetPath+"."+k, string(v)); err != nil {
+					return nil, fmt.Errorf("failed to apply data to path: %w", err)
+				}
+			}
+		}
+	}
+
+	// Apply template.Data (highest precedence)
+	for key, tmpl := range es.Spec.Target.Template.Data {
+		rendered, err := r.renderTemplate(execute, tmpl, dataMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to render template for key %s: %w", key, err)
+		}
+
+		// For ConfigMap, put in .data field
+		// For other resources, handle based on target path
+		if obj.GetKind() == "ConfigMap" {
+			if obj.Object["data"] == nil {
+				obj.Object["data"] = make(map[string]interface{})
+			}
+			data := obj.Object["data"].(map[string]interface{})
+			data[key] = rendered
+		} else {
+			// Default to spec.data for custom resources
+			if err := r.applyToPath(obj, "spec.data."+key, rendered); err != nil {
+				return nil, fmt.Errorf("failed to apply template data: %w", err)
+			}
+		}
+	}
+
+	return obj, nil
+}
+
+// renderTemplate executes a template string with the provided data.
+func (r *Reconciler) renderTemplate(execute template.ExecFunc, tmpl string, dataMap map[string][]byte) (string, error) {
+	// Create a temporary map for template execution
+	out := make(map[string][]byte)
+	out["template"] = []byte(tmpl)
+
+	// Create a temporary secret for template execution
+	tempSecret := &v1.Secret{
+		Data: make(map[string][]byte),
+	}
+
+	// Execute template
+	err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, esv1.TemplateTargetData, tempSecret)
+	if err != nil {
+		return "", err
+	}
+
+	// Return the rendered template
+	if rendered, ok := tempSecret.Data["template"]; ok {
+		return string(rendered), nil
+	}
+
+	return "", fmt.Errorf("template execution did not produce output")
+}
+
+// applyToPath applies a value to a specific path in the unstructured object.
+// Supports paths like "data", "spec", "spec.config", etc.
+func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, value interface{}) error {
+	// Handle special cases for standard fields
+	switch path {
+	case "Data", "data":
+		// For ConfigMap-style data field
+		if obj.Object["data"] == nil {
+			obj.Object["data"] = make(map[string]interface{})
+		}
+		// If value is a string that looks like YAML/JSON, try to parse it
+		if str, ok := value.(string); ok {
+			var parsed map[string]interface{}
+			if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
+				// Successfully parsed as YAML
+				for k, v := range parsed {
+					obj.Object["data"].(map[string]interface{})[k] = v
+				}
+				return nil
+			}
+		}
+		obj.Object["data"] = value
+		return nil
+
+	case "Spec", "spec":
+		// Set entire spec
+		if str, ok := value.(string); ok {
+			var parsed map[string]interface{}
+			if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
+				obj.Object["spec"] = parsed
+				return nil
+			}
+		}
+		obj.Object["spec"] = value
+		return nil
+
+	case "Annotations", "annotations":
+		if str, ok := value.(string); ok {
+			var parsed map[string]string
+			if err := json.Unmarshal([]byte(str), &parsed); err == nil {
+				obj.SetAnnotations(parsed)
+				return nil
+			}
+		}
+		return fmt.Errorf("annotations must be a valid JSON object")
+
+	case "Labels", "labels":
+		if str, ok := value.(string); ok {
+			var parsed map[string]string
+			if err := json.Unmarshal([]byte(str), &parsed); err == nil {
+				obj.SetLabels(parsed)
+				return nil
+			}
+		}
+		return fmt.Errorf("labels must be a valid JSON object")
+	}
+
+	// Handle nested paths like "spec.config.foo"
+	parts := strings.Split(path, ".")
+	if len(parts) == 0 {
+		return fmt.Errorf("invalid path: %s", path)
+	}
+
+	// Navigate to the parent and set the value
+	current := obj.Object
+	for i := 0; i < len(parts)-1; i++ {
+		part := parts[i]
+		if current[part] == nil {
+			current[part] = make(map[string]interface{})
+		}
+		var ok bool
+		current, ok = current[part].(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("path %s is not a map at segment %s", path, part)
+		}
+	}
+
+	// Set the final value
+	lastPart := parts[len(parts)-1]
+
+	// Try to parse as YAML if it's a string
+	if str, ok := value.(string); ok {
+		var parsed interface{}
+		if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
+			current[lastPart] = parsed
+			return nil
+		}
+	}
+
+	current[lastPart] = value
+	return nil
+}
