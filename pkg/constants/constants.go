@@ -30,6 +30,9 @@ const (
 	CallAWSSMBatchGetSecretValue = "BatchGetSecretValue"
 	CallAWSSMUntagResource       = "UntagResource"
 	CallAWSSMTagResource         = "TagResource"
+	CallAWSSMPutResourcePolicy   = "PutResourcePolicy"
+	CallAWSSMGetResourcePolicy   = "GetResourcePolicy"
+	CallAWSSMDeleteResourcePolicy = "DeleteResourcePolicy"
 
 	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"
