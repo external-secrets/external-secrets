@@ -36,7 +36,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	tpl "text/template"
+	template "text/template"
 	"time"
 	"unicode"
 
@@ -56,12 +56,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/pkg/template/v2"
-)
-
-const (
-	errParse   = "unable to parse transform template: %s"
-	errExecute = "unable to execute transform template: %s"
+	estemplate "github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
 var (
@@ -218,40 +213,21 @@ func RewriteRegexp(operation esv1.ExternalSecretRewriteRegexp, in map[string][]b
 // RewriteTransform applies string transformation on each secret key name to rewrite.
 func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[string][]byte) (map[string][]byte, error) {
 	out := make(map[string][]byte)
+
+	tmpl, err := template.New("transform").Funcs(estemplate.FuncMap()).Parse(operation.Template)
+	if err != nil {
+		return nil, fmt.Errorf("transform failed with failed to parse template: %w", err)
+	}
+
 	for key, value := range in {
-		data := map[string][]byte{
-			"value": []byte(key),
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, map[string]string{"value": key}); err != nil {
+			return nil, fmt.Errorf("transform failed with failed to execute template for key %q: %w", key, err)
 		}
-
-		result, err := transform(operation.Template, data)
-		if err != nil {
-			return nil, fmt.Errorf("transform failed with failed to transform key: %w", err)
-		}
-
-		newKey := string(result)
-		out[newKey] = value
+		out[buf.String()] = value
 	}
+
 	return out, nil
-}
-
-func transform(val string, data map[string][]byte) ([]byte, error) {
-	strValData := make(map[string]string, len(data))
-	for k := range data {
-		strValData[k] = string(data[k])
-	}
-
-	t, err := tpl.New("transform").
-		Funcs(template.FuncMap()).
-		Parse(val)
-	if err != nil {
-		return nil, fmt.Errorf(errParse, err)
-	}
-	buf := bytes.NewBuffer(nil)
-	err = t.Execute(buf, strValData)
-	if err != nil {
-		return nil, fmt.Errorf(errExecute, err)
-	}
-	return buf.Bytes(), nil
 }
 
 // DecodeMap decodes values from a secretMap.
