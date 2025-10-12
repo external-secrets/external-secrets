@@ -17,7 +17,6 @@ limitations under the License.
 package externalsecret
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -65,7 +64,7 @@ func TestEnsureWatchForGVK(t *testing.T) {
 			}
 
 			// error is expected as there is no controller setup.
-			err := r.ensureWatchForGVK(context.Background(), tt.gvk)
+			err := r.ensureWatchForGVK(tt.gvk)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "controller not initialized")
 		})

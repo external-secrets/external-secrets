@@ -100,34 +100,37 @@ func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, 
 	return resource, nil
 }
 
-// createOrUpdateNonSecretResource creates or updates a non-Secret resource.
-func (r *Reconciler) createOrUpdateNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
+func (r *Reconciler) createNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
 	gvk := getTargetGVK(es)
 	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
-
-	// Check if resource exists
 	existing, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Get(ctx, getTargetName(es), metav1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to check if target resource exists: %w", err)
 		}
-
-		log.Info("creating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-		_, err = r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Create(ctx, obj, metav1.CreateOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to create target resource: %w", err)
-		}
-
-		r.recorder.Event(es, v1.EventTypeNormal, "Created", fmt.Sprintf("Created %s %s", gvk.Kind, getTargetName(es)))
-		return nil
 	}
+
+	if existing != nil {
+		return fmt.Errorf("target resource with name %s already exists", getTargetName(es))
+	}
+
+	log.Info("creating target resource", "gvk", gvk.String(), "name", getTargetName(es))
+	_, err = r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Create(ctx, obj, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create target resource: %w", err)
+	}
+
+	r.recorder.Event(es, v1.EventTypeNormal, "Created", fmt.Sprintf("Created %s %s", gvk.Kind, getTargetName(es)))
+	return nil
+}
+
+func (r *Reconciler) updateNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, existing *unstructured.Unstructured) error {
+	gvk := getTargetGVK(es)
+	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
 
 	// Update existing resource
 	log.Info("updating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	obj.SetResourceVersion(existing.GetResourceVersion())
-	obj.SetUID(existing.GetUID())
-
-	_, err = r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Update(ctx, obj, metav1.UpdateOptions{})
+	_, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Update(ctx, existing, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update target resource: %w", err)
 	}

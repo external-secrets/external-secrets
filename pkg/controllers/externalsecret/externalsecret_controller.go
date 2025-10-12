@@ -255,11 +255,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	if isNonSecretTarget(externalSecret) {
 		// validate non-Secret target configuration early
 		if err := r.validateNonSecretTarget(log, externalSecret); err != nil {
-			r.markAsFailed("invalid non-Secret target", err, externalSecret, syncCallsError.With(resourceLabels))
+			r.markAsFailed("invalid non-Secret target", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, nil // don't requeue as this is a configuration error that is not recoverable
 		}
 
-		return r.reconcileNonSecretTarget(ctx, req, externalSecret, log, start, resourceLabels, syncCallsError)
+		return r.reconcileNonSecretTarget(ctx, externalSecret, log, start, resourceLabels, syncCallsError)
 	}
 
 	// the target secret name defaults to the ExternalSecret name, if not explicitly set
@@ -382,7 +382,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	// retrieve the provider secret data.
 	dataMap, err := r.GetProviderSecretData(ctx, externalSecret)
 	if err != nil {
-		r.markAsFailed(msgErrorGetSecretData, err, externalSecret, syncCallsError.With(resourceLabels))
+		r.markAsFailed(msgErrorGetSecretData, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 		return ctrl.Result{}, err
 	}
 
@@ -397,7 +397,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			creationPolicy := externalSecret.Spec.Target.CreationPolicy
 			if creationPolicy != esv1.CreatePolicyOwner {
 				err = fmt.Errorf(errDeleteCreatePolicy, secretName, creationPolicy)
-				r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+				r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 				return ctrl.Result{}, nil
 			}
 
@@ -405,7 +405,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			if existingSecret.UID != "" {
 				err = r.Delete(ctx, existingSecret)
 				if err != nil && !apierrors.IsNotFound(err) {
-					r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+					r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 					return ctrl.Result{}, err
 				}
 				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeleted)
@@ -543,7 +543,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// for example, if the target secret name was changed
 		err = r.deleteOrphanedSecrets(ctx, externalSecret, secretName)
 		if err != nil {
-			r.markAsFailed(msgErrorDeleteOrphaned, err, externalSecret, syncCallsError.With(resourceLabels))
+			r.markAsFailed(msgErrorDeleteOrphaned, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, err
 		}
 
@@ -565,25 +565,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// detect errors indicating that we failed to set ourselves as the owner of the secret
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 		if errors.Is(err, ErrSecretSetCtrlRef) {
-			r.markAsFailed(msgErrorBecomeOwner, err, externalSecret, syncCallsError.With(resourceLabels))
+			r.markAsFailed(msgErrorBecomeOwner, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, nil
 		}
 
 		// detect errors indicating that the secret has another ExternalSecret as owner
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 		if errors.Is(err, ErrSecretIsOwned) {
-			r.markAsFailed(msgErrorIsOwned, err, externalSecret, syncCallsError.With(resourceLabels))
+			r.markAsFailed(msgErrorIsOwned, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, nil
 		}
 
 		// detect errors indicating that the secret is immutable
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 		if errors.Is(err, ErrSecretImmutable) {
-			r.markAsFailed(msgErrorUpdateImmutable, err, externalSecret, syncCallsError.With(resourceLabels))
+			r.markAsFailed(msgErrorUpdateImmutable, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, nil
 		}
 
-		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 		return ctrl.Result{}, err
 	}
 
@@ -592,7 +592,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 }
 
 // reconcileNonSecretTarget handles reconciliation for non-Secret targets (ConfigMaps, Custom Resources).
-func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Request, externalSecret *esv1.ExternalSecret, log logr.Logger, start time.Time, resourceLabels map[string]string, syncCallsError *prometheus.CounterVec) (ctrl.Result, error) {
+func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecret *esv1.ExternalSecret, log logr.Logger, start time.Time, resourceLabels map[string]string, syncCallsError *prometheus.CounterVec) (ctrl.Result, error) {
 	// update the status of the ExternalSecret when this function returns, if needed
 	currentStatus := *externalSecret.Status.DeepCopy()
 	defer func() {
@@ -609,7 +609,7 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Requ
 	// retrieve the provider secret data
 	dataMap, err := r.GetProviderSecretData(ctx, externalSecret)
 	if err != nil {
-		r.markAsFailed(msgErrorGetSecretData, err, externalSecret, syncCallsError.With(resourceLabels))
+		r.markAsFailed(msgErrorGetSecretData, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 		return ctrl.Result{}, err
 	}
 
@@ -621,22 +621,22 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Requ
 			creationPolicy := externalSecret.Spec.Target.CreationPolicy
 			if creationPolicy != esv1.CreatePolicyOwner {
 				err = fmt.Errorf("unable to delete resource: creationPolicy=%s is not Owner", creationPolicy)
-				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels))
+				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 				return ctrl.Result{}, nil
 			}
 
 			// delete the resource if it exists
 			err = r.deleteNonSecretResource(ctx, log, externalSecret)
 			if err != nil {
-				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels))
+				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 				return ctrl.Result{}, err
 			}
 
-			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretDeleted, msgDeleted)
+			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceDeleted, msgDeleted)
 			return r.getRequeueResult(externalSecret), nil
 
 		case esv1.DeletionPolicyRetain:
-			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretSynced, msgSyncedRetain)
+			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceSynced, msgSyncedRetain)
 			return r.getRequeueResult(externalSecret), nil
 
 		case esv1.DeletionPolicyMerge:
@@ -647,7 +647,7 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Requ
 	// render the template for the manifest
 	obj, err := r.ApplyTemplateToManifest(ctx, externalSecret, dataMap)
 	if err != nil {
-		r.markAsFailed("could not apply template to manifest", err, externalSecret, syncCallsError.With(resourceLabels))
+		r.markAsFailed("could not apply template to manifest", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 		return ctrl.Result{}, err
 	}
 
@@ -661,37 +661,49 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Requ
 		// for Merge policy, only update if resource exists
 		existing, getErr := r.getNonSecretResource(ctx, log, externalSecret)
 		if getErr != nil && !apierrors.IsNotFound(getErr) {
-			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels))
+			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 			return ctrl.Result{}, getErr
 		}
 
 		if existing == nil || existing.GetUID() == "" {
-			// resource does not exist, wait until next refresh
-			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretMissing, msgMissing)
+			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceMissing, "resource will not be created due to CreationPolicy=Merge")
 			return r.getRequeueResult(externalSecret), nil
 		}
 
-		// update the existing resource
-		err = r.createOrUpdateNonSecretResource(ctx, log, externalSecret, obj)
+		obj.SetResourceVersion(existing.GetResourceVersion())
+		obj.SetUID(existing.GetUID())
 
+		// update the existing resource
+		err = r.updateNonSecretResource(ctx, log, externalSecret, obj)
 	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner:
-		// create or update the resource
-		err = r.createOrUpdateNonSecretResource(ctx, log, externalSecret, obj)
+		existing, getErr := r.getNonSecretResource(ctx, log, externalSecret)
+		if getErr != nil && !apierrors.IsNotFound(getErr) {
+			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+			return ctrl.Result{}, getErr
+		}
+
+		if existing != nil {
+			obj.SetResourceVersion(existing.GetResourceVersion())
+			obj.SetUID(existing.GetUID())
+			err = r.updateNonSecretResource(ctx, log, externalSecret, obj)
+		} else {
+			err = r.createNonSecretResource(ctx, log, externalSecret, obj)
+		}
 	}
 
 	if err != nil {
 		// if we got an update conflict, requeue immediately
 		if apierrors.IsConflict(err) {
 			log.V(1).Info("conflict while updating resource, will requeue")
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 
-		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 		return ctrl.Result{}, err
 	}
 
 	gvk := getTargetGVK(externalSecret)
-	if watchErr := r.ensureWatchForGVK(ctx, gvk); watchErr != nil {
+	if watchErr := r.ensureWatchForGVK(gvk); watchErr != nil {
 		// Log the error but don't fail reconciliation - the resource was successfully created/updated
 		log.Error(watchErr, "failed to register dynamic watch for non-Secret target, drift detection may not work",
 			"group", gvk.Group,
@@ -699,7 +711,7 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Requ
 			"kind", gvk.Kind)
 	}
 
-	r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretSynced, msgSynced)
+	r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceSynced, msgSynced)
 	return r.getRequeueResult(externalSecret), nil
 }
 
@@ -762,9 +774,9 @@ func (r *Reconciler) markAsDone(externalSecret *esv1.ExternalSecret, start time.
 	}
 }
 
-func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1.ExternalSecret, counter prometheus.Counter) {
+func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1.ExternalSecret, counter prometheus.Counter, reason string) {
 	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1.ReasonUpdateFailed, err.Error())
-	conditionSynced := NewExternalSecretCondition(esv1.ExternalSecretReady, v1.ConditionFalse, esv1.ConditionReasonSecretSyncedError, msg)
+	conditionSynced := NewExternalSecretCondition(esv1.ExternalSecretReady, v1.ConditionFalse, reason, msg)
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	counter.Inc()
 }
@@ -1237,7 +1249,7 @@ func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Obj
 
 // ensureWatchForGVK ensures that a watch is registered for the given GroupVersionKind.
 // This enables drift detection for non-Secret target resources.
-func (r *Reconciler) ensureWatchForGVK(ctx context.Context, gvk schema.GroupVersionKind) error {
+func (r *Reconciler) ensureWatchForGVK(gvk schema.GroupVersionKind) error {
 	// Check if already watching this GVK
 	if _, ok := r.watchedGVKs.Load(gvk.String()); ok {
 		return nil
