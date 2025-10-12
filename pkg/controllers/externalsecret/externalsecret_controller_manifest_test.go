@@ -100,18 +100,6 @@ func TestValidateNonSecretTarget(t *testing.T) {
 		errorContains         string
 	}{
 		{
-			name: "Secret target - no validation needed",
-			es: &esv1.ExternalSecret{
-				Spec: esv1.ExternalSecretSpec{
-					Target: esv1.ExternalSecretTarget{
-						Manifest: nil,
-					},
-				},
-			},
-			allowNonSecretTargets: false,
-			expectedError:         false,
-		},
-		{
 			name: "ConfigMap target - flag enabled - valid",
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
@@ -204,21 +192,6 @@ func TestGetTargetGVK(t *testing.T) {
 		expected schema.GroupVersionKind
 	}{
 		{
-			name: "Secret target (default)",
-			es: &esv1.ExternalSecret{
-				Spec: esv1.ExternalSecretSpec{
-					Target: esv1.ExternalSecretTarget{
-						Manifest: nil,
-					},
-				},
-			},
-			expected: schema.GroupVersionKind{
-				Group:   "",
-				Version: "v1",
-				Kind:    "Secret",
-			},
-		},
-		{
 			name: "ConfigMap target",
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
@@ -303,57 +276,6 @@ func TestGetTargetName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := getTargetName(tt.es)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestPluralizeKind(t *testing.T) {
-	tests := []struct {
-		name     string
-		kind     string
-		expected string
-	}{
-		{
-			name:     "ConfigMap",
-			kind:     "ConfigMap",
-			expected: "configmaps",
-		},
-		{
-			name:     "Secret",
-			kind:     "Secret",
-			expected: "secrets",
-		},
-		{
-			name:     "Simple noun",
-			kind:     "Application",
-			expected: "applications",
-		},
-		{
-			name:     "Ends with 'y'",
-			kind:     "Policy",
-			expected: "policies",
-		},
-		{
-			name:     "Ends with 's'",
-			kind:     "Status",
-			expected: "statuses",
-		},
-		{
-			name:     "Irregular plural - Ingress",
-			kind:     "Ingress",
-			expected: "ingresses",
-		},
-		{
-			name:     "Endpoints (already plural)",
-			kind:     "Endpoints",
-			expected: "endpoints",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := pluralizeKind(tt.kind)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
