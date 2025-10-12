@@ -568,6 +568,15 @@ const (
 	// ConditionReasonSecretMissing indicates that the secret is missing.
 	ConditionReasonSecretMissing = "SecretMissing"
 
+	// ConditionReasonResourceSynced indicates that the secrets was synced.
+	ConditionReasonResourceSynced = "ResourceSynced"
+	// ConditionReasonResourceSyncedError indicates that there was an error syncing the secret.
+	ConditionReasonResourceSyncedError = "ResourceSyncedError"
+	// ConditionReasonResourceDeleted indicates that the secret has been deleted.
+	ConditionReasonResourceDeleted = "ResourceDeleted"
+	// ConditionReasonResourceMissing indicates that the secret is missing.
+	ConditionReasonResourceMissing = "ResourceMissing"
+
 	ReasonUpdateFailed          = "UpdateFailed"
 	ReasonDeprecated            = "ParameterDeprecated"
 	ReasonCreated               = "Created"
