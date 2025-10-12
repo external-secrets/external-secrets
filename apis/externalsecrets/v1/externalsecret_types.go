@@ -629,6 +629,15 @@ const (
 	ReasonDeleted = "Deleted"
 	// ReasonMissingProviderSecret indicates that the provider secret is missing.
 	ReasonMissingProviderSecret = "MissingProviderSecret"
+
+	// ConditionReasonResourceSynced indicates that the secrets was synced.
+	ConditionReasonResourceSynced = "ResourceSynced"
+	// ConditionReasonResourceSyncedError indicates that there was an error syncing the secret.
+	ConditionReasonResourceSyncedError = "ResourceSyncedError"
+	// ConditionReasonResourceDeleted indicates that the secret has been deleted.
+	ConditionReasonResourceDeleted = "ResourceDeleted"
+	// ConditionReasonResourceMissing indicates that the secret is missing.
+	ConditionReasonResourceMissing = "ResourceMissing"
 )
 
 // ExternalSecretStatus defines the observed state of ExternalSecret.
