@@ -256,7 +256,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// validate non-Secret target configuration early
 		if err := r.validateNonSecretTarget(log, externalSecret); err != nil {
 			r.markAsFailed("invalid non-Secret target", err, externalSecret, syncCallsError.With(resourceLabels))
-			return ctrl.Result{}, nil // don't requeue as this is a configuration error
+			return ctrl.Result{}, nil // don't requeue as this is a configuration error that is not recoverable
 		}
 
 		return r.reconcileNonSecretTarget(ctx, req, externalSecret, log, start, resourceLabels, syncCallsError)
@@ -613,7 +613,7 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	// if no data was found, handle according to deletion policy
+	// if no data was found, handle it according to deletion policy
 	if len(dataMap) == 0 {
 		switch externalSecret.Spec.Target.DeletionPolicy {
 		case esv1.DeletionPolicyDelete:

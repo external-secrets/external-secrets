@@ -43,12 +43,10 @@ func isNonSecretTarget(es *esv1.ExternalSecret) bool {
 
 // validateNonSecretTarget validates that non-Secret targets are properly configured.
 func (r *Reconciler) validateNonSecretTarget(log logr.Logger, es *esv1.ExternalSecret) error {
-	// Check if non-Secret targets are allowed
 	if !r.AllowNonSecretTargets {
 		return fmt.Errorf("non-Secret targets are disabled. Enable with --unsafe-allow-non-secret-targets flag")
 	}
 
-	// Validate manifest configuration
 	manifest := es.Spec.Target.Manifest
 	if manifest.APIVersion == "" {
 		return fmt.Errorf("target.manifest.apiVersion is required")
@@ -88,11 +86,7 @@ func getTargetName(es *esv1.ExternalSecret) string {
 // getNonSecretResource retrieves a non-Secret resource using the dynamic client.
 func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) (*unstructured.Unstructured, error) {
 	gvk := getTargetGVK(es)
-	gvr := schema.GroupVersionResource{
-		Group:    gvk.Group,
-		Version:  gvk.Version,
-		Resource: pluralizeKind(gvk.Kind),
-	}
+	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
 
 	resource, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Get(ctx, getTargetName(es), metav1.GetOptions{})
 	if err != nil {
@@ -109,11 +103,7 @@ func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, 
 // createOrUpdateNonSecretResource creates or updates a non-Secret resource.
 func (r *Reconciler) createOrUpdateNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
 	gvk := getTargetGVK(es)
-	gvr := schema.GroupVersionResource{
-		Group:    gvk.Group,
-		Version:  gvk.Version,
-		Resource: pluralizeKind(gvk.Kind),
-	}
+	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
 
 	// Check if resource exists
 	existing, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Get(ctx, getTargetName(es), metav1.GetOptions{})
@@ -153,11 +143,7 @@ func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logge
 	}
 
 	gvk := getTargetGVK(es)
-	gvr := schema.GroupVersionResource{
-		Group:    gvk.Group,
-		Version:  gvk.Version,
-		Resource: pluralizeKind(gvk.Kind),
-	}
+	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
 
 	log.Info("deleting target resource", "gvk", gvk.String(), "name", getTargetName(es))
 	err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Delete(ctx, getTargetName(es), metav1.DeleteOptions{})
@@ -169,29 +155,19 @@ func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logge
 	return nil
 }
 
-// pluralizeKind converts a Kind to its plural resource name using Kubernetes' built-in conversion.
-// Uses meta.UnsafeGuessKindToResource which handles irregular plurals (e.g., Ingress -> ingresses).
-func pluralizeKind(kind string) string {
-	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: kind})
-	return gvr.Resource
-}
-
 // ApplyTemplateToManifest renders templates for non-Secret resources and returns an unstructured object.
 func (r *Reconciler) ApplyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
 	gvk := getTargetGVK(es)
 
-	// Create base unstructured object
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(gvk)
 	obj.SetName(getTargetName(es))
 	obj.SetNamespace(es.Namespace)
 
-	// Set labels and annotations
 	labels := make(map[string]string)
 	annotations := make(map[string]string)
 
 	if es.Spec.Target.Template != nil {
-		// Copy template metadata
 		for k, v := range es.Spec.Target.Template.Metadata.Labels {
 			labels[k] = v
 		}
@@ -200,18 +176,15 @@ func (r *Reconciler) ApplyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		}
 	}
 
-	// Add managed label for tracking
 	labels[esv1.LabelManaged] = esv1.LabelManagedValue
 
 	obj.SetLabels(labels)
 	obj.SetAnnotations(annotations)
 
-	// If no template, do a best-effort apply.
 	if es.Spec.Target.Template == nil {
 		return r.createSimpleManifest(obj, dataMap)
 	}
 
-	// Apply templates
 	return r.renderTemplatedManifest(ctx, es, obj, dataMap)
 }
 
@@ -249,25 +222,20 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 		return nil, fmt.Errorf("failed to get template engine: %w", err)
 	}
 
-	// Process templateFrom entries
 	for _, tplFrom := range es.Spec.Target.Template.TemplateFrom {
 		if tplFrom.Literal != nil {
-			// Parse target path (e.g., "Data", "Spec", ".spec.config")
 			targetPath := string(tplFrom.Target)
 			rendered, err := r.renderTemplate(execute, *tplFrom.Literal, dataMap)
 			if err != nil {
 				return nil, fmt.Errorf("failed to render template: %w", err)
 			}
 
-			// Apply rendered content to the target path
 			if err := r.applyToPath(obj, targetPath, rendered); err != nil {
 				return nil, fmt.Errorf("failed to apply template to path %s: %w", targetPath, err)
 			}
 		}
 
-		// Handle ConfigMap and Secret templateFrom
 		if tplFrom.ConfigMap != nil || tplFrom.Secret != nil {
-			// Create a temporary secret to use the existing template parser
 			tempSecret := &v1.Secret{
 				Data: make(map[string][]byte),
 			}
@@ -291,7 +259,6 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 				}
 			}
 
-			// Convert the temporary secret data to the target resource
 			targetPath := string(tplFrom.Target)
 			for k, v := range tempSecret.Data {
 				if err := r.applyToPath(obj, targetPath+"."+k, string(v)); err != nil {
@@ -301,15 +268,12 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 		}
 	}
 
-	// Apply template.Data (highest precedence)
 	for key, tmpl := range es.Spec.Target.Template.Data {
 		rendered, err := r.renderTemplate(execute, tmpl, dataMap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to render template for key %s: %w", key, err)
 		}
 
-		// For ConfigMap, put in .data field
-		// For other resources, handle based on target path
 		if obj.GetKind() == "ConfigMap" {
 			if obj.Object["data"] == nil {
 				obj.Object["data"] = make(map[string]interface{})
@@ -329,22 +293,17 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 
 // renderTemplate executes a template string with the provided data.
 func (r *Reconciler) renderTemplate(execute template.ExecFunc, tmpl string, dataMap map[string][]byte) (string, error) {
-	// Create a temporary map for template execution
 	out := make(map[string][]byte)
 	out["template"] = []byte(tmpl)
-
-	// Create a temporary secret for template execution
 	tempSecret := &v1.Secret{
 		Data: make(map[string][]byte),
 	}
 
-	// Execute template
 	err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, esv1.TemplateTargetData, tempSecret)
 	if err != nil {
 		return "", err
 	}
 
-	// Return the rendered template
 	if rendered, ok := tempSecret.Data["template"]; ok {
 		return string(rendered), nil
 	}
@@ -355,18 +314,14 @@ func (r *Reconciler) renderTemplate(execute template.ExecFunc, tmpl string, data
 // applyToPath applies a value to a specific path in the unstructured object.
 // Supports paths like "data", "spec", "spec.config", etc.
 func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, value interface{}) error {
-	// Handle special cases for standard fields
 	switch path {
 	case "Data", "data":
-		// For ConfigMap-style data field
 		if obj.Object["data"] == nil {
 			obj.Object["data"] = make(map[string]interface{})
 		}
-		// If value is a string that looks like YAML/JSON, try to parse it
 		if str, ok := value.(string); ok {
 			var parsed map[string]interface{}
 			if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
-				// Successfully parsed as YAML
 				for k, v := range parsed {
 					obj.Object["data"].(map[string]interface{})[k] = v
 				}
@@ -377,7 +332,6 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 		return nil
 
 	case "Spec", "spec":
-		// Set entire spec
 		if str, ok := value.(string); ok {
 			var parsed map[string]interface{}
 			if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
@@ -409,13 +363,11 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 		return fmt.Errorf("labels must be a valid JSON object")
 	}
 
-	// Handle nested paths like "spec.config.foo"
 	parts := strings.Split(path, ".")
 	if len(parts) == 0 {
 		return fmt.Errorf("invalid path: %s", path)
 	}
 
-	// Navigate to the parent and set the value
 	current := obj.Object
 	for i := 0; i < len(parts)-1; i++ {
 		part := parts[i]
@@ -429,10 +381,8 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 		}
 	}
 
-	// Set the final value
 	lastPart := parts[len(parts)-1]
 
-	// Try to parse as YAML if it's a string
 	if str, ok := value.(string); ok {
 		var parsed interface{}
 		if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
