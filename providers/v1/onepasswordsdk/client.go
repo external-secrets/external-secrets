@@ -380,12 +380,9 @@ func (p *Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (
 	return false, fmt.Errorf("not implemented")
 }
 
-// Checks that the client was initialized correctly.
-// We don't make calls the the API, as the rate-limit of the 1password SDK is quite restrictive.
+// Validate does nothing here. It would be possible to ping the SDK to prove we're healthy, but
+// since the 1password SDK rate-limit is pretty aggressive, we prefer to do nothing.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
-	if p.client == nil || p.vaultID == "" {
-		return esv1.ValidationResultError, fmt.Errorf("client not properly initialized")
-	}
 	return esv1.ValidationResultReady, nil
 }
 
