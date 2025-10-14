@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 var (
@@ -106,7 +106,7 @@ func validateSecretRef(store esv1.GenericStore, ref *esv1.ScalewayProviderSecret
 		if ref.Value != "" {
 			return errors.New("cannot specify both secret reference and value")
 		}
-		err := utils.ValidateReferentSecretSelector(store, *ref.SecretRef)
+		err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef)
 		if err != nil {
 			return err
 		}

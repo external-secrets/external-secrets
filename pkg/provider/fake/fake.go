@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
@@ -167,7 +167,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 				dataMap[originalKey] = []byte(data.Value)
 			}
 		}
-		return utils.ConvertKeys(ref.ConversionStrategy, dataMap)
+		return esutils.ConvertKeys(ref.ConversionStrategy, dataMap)
 	}
 	return nil, fmt.Errorf("unsupported find operator: %#v", ref)
 }

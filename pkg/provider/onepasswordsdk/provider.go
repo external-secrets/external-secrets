@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (
@@ -119,7 +119,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	// check namespace compared to kind
-	if err := utils.ValidateSecretSelector(store, config.Auth.ServiceAccountSecretRef); err != nil {
+	if err := esutils.ValidateSecretSelector(store, config.Auth.ServiceAccountSecretRef); err != nil {
 		return nil, fmt.Errorf(errOnePasswordSdkStore, err)
 	}
 

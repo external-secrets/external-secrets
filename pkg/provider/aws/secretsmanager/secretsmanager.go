@@ -29,7 +29,7 @@ import (
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/smithy-go"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -41,10 +41,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to AWS Secret Manager.
@@ -200,7 +200,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 	if sm.config != nil && sm.config.RecoveryWindowInDays > 0 {
 		deleteInput.RecoveryWindowInDays = &sm.config.RecoveryWindowInDays
 	}
-	err = util.ValidateDeleteSecretInput(*deleteInput)
+	err = awsutil.ValidateDeleteSecretInput(*deleteInput)
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
 
 // PushSecret pushes a secret to AWS Secrets Manager.
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
-	value, err := utils.ExtractSecretData(psd, secret)
+	value, err := esutils.ExtractSecretData(psd, secret)
 	if err != nil {
 		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
@@ -424,7 +424,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1.ExternalSecret
 		return nil, err
 	}
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, awsutil.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if secretOut.SecretString != nil {
@@ -517,7 +517,7 @@ func (sm *SecretsManager) Validate() (esv1.ValidationResult, error) {
 	}
 	_, err := sm.cfg.Credentials.Retrieve(context.Background())
 	if err != nil {
-		return esv1.ValidationResultError, util.SanitizeErr(err)
+		return esv1.ValidationResultError, awsutil.SanitizeErr(err)
 	}
 
 	return esv1.ValidationResultReady, nil
@@ -588,7 +588,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 }
 
 func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
-	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
+	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || esutils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
 		return nil
 	}
 
@@ -605,7 +605,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 		SecretBinary:       value,
 		ClientRequestToken: aws.String(newVersionNumber),
 	}
-	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	secretPushFormat, err := esutils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
 	if err != nil {
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
@@ -638,7 +638,7 @@ func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensions
 		return err
 	}
 
-	tagKeysToRemove := util.FindTagKeysToRemove(tags, meta.Spec.Tags)
+	tagKeysToRemove := awsutil.FindTagKeysToRemove(tags, meta.Spec.Tags)
 	if len(tagKeysToRemove) > 0 {
 		_, err = sm.client.UntagResource(ctx, &awssm.UntagResourceInput{
 			SecretId: secretID,
@@ -716,7 +716,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, key, ver str
 		}
 		log.Info("found metadata secret", "key", key, "output", descOutput)
 
-		jsonTags, err := util.SecretTagsToJSONString(descOutput.Tags)
+		jsonTags, err := awsutil.SecretTagsToJSONString(descOutput.Tags)
 		if err != nil {
 			return nil, err
 		}

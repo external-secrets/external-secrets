@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package sshkey provides functionality for generating SSH key pairs.
 package sshkey
 
 import (
@@ -33,6 +34,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
+// Generator implements SSH key pair generation functionality.
 type Generator struct{}
 
 const (
@@ -47,6 +49,7 @@ const (
 
 type generateFunc func(keyType string, keySize *int, comment string) (privateKey, publicKey []byte, err error)
 
+// Generate creates a new SSH key pair.
 func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		jsonSpec,
@@ -54,7 +57,8 @@ func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ 
 	)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+// Cleanup performs any necessary cleanup after key generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

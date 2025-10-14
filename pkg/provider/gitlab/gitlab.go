@@ -34,10 +34,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -107,7 +107,7 @@ func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.Push
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
 func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if utils.IsNil(g.projectVariablesClient) {
+	if esutils.IsNil(g.projectVariablesClient) {
 		return nil, errors.New(errUninitializedGitlabProvider)
 	}
 	var effectiveEnvironment = g.store.Environment
@@ -290,7 +290,7 @@ func (g *gitlabBase) getGroupVariables(groupID string, ref esv1.ExternalSecretDa
 }
 
 func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(g.projectVariablesClient) || utils.IsNil(g.groupVariablesClient) {
+	if esutils.IsNil(g.projectVariablesClient) || esutils.IsNil(g.groupVariablesClient) {
 		return nil, errors.New(errUninitializedGitlabProvider)
 	}
 

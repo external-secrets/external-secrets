@@ -31,15 +31,15 @@ import (
 )
 
 const (
-	ECREndpointEnv       = "AWS_ECR_ENDPOINT"
+	// ECREndpointEnv is the environment variable name for specifying a custom ECR endpoint.
+	ECREndpointEnv = "AWS_ECR_ENDPOINT"
+	// ECRPublicEndpointEnv is the environment variable name for specifying a custom ECR Public endpoint.
 	ECRPublicEndpointEnv = "AWS_ECR_PUBLIC_ENDPOINT"
 )
 
 type ecrCustomEndpointResolver struct{}
 
-// ResolveEndpoint returns a ResolverFunc with
-// customizable endpoints.
-
+// ResolveEndpoint returns a ResolverFunc with customizable endpoints.
 func (c ecrCustomEndpointResolver) ResolveEndpoint(ctx context.Context, params ecr.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	endpoint := smithyendpoints.Endpoint{}
 	if v := os.Getenv(ECREndpointEnv); v != "" {
@@ -56,6 +56,7 @@ func (c ecrCustomEndpointResolver) ResolveEndpoint(ctx context.Context, params e
 
 type ecrPublicCustomEndpointResolver struct{}
 
+// ResolveEndpoint returns a ResolverFunc with customizable endpoints.
 func (c ecrPublicCustomEndpointResolver) ResolveEndpoint(ctx context.Context, params ecrpublic.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	endpoint := smithyendpoints.Endpoint{}
 	if v := os.Getenv(ECRPublicEndpointEnv); v != "" {

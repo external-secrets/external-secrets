@@ -31,8 +31,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Provider satisfies the provider interface.
@@ -96,7 +96,7 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 
 	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
 		caCertPool := x509.NewCertPool()
-		ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		ca, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 			CABundle:   provider.CABundle,
 			CAProvider: provider.CAProvider,
 			StoreKind:  g.storeKind,
@@ -157,7 +157,7 @@ func (g *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	storeSpec := store.GetSpec()
 	gitlabSpec := storeSpec.Provider.Gitlab
 	accessToken := gitlabSpec.Auth.SecretRef.AccessToken
-	err := utils.ValidateSecretSelector(store, accessToken)
+	err := esutils.ValidateSecretSelector(store, accessToken)
 	if err != nil {
 		return nil, err
 	}
