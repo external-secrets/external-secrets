@@ -227,7 +227,14 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 
 	for _, tplFrom := range es.Spec.Target.Template.TemplateFrom {
 		if tplFrom.Literal != nil {
-			targetPath := string(tplFrom.Target)
+			// Determine target path: ManifestTarget takes precedence over Target
+			var targetPath string
+			if tplFrom.ManifestTarget != nil {
+				targetPath = *tplFrom.ManifestTarget
+			} else {
+				targetPath = string(tplFrom.Target)
+			}
+
 			rendered, err := r.renderTemplate(execute, *tplFrom.Literal, dataMap)
 			if err != nil {
 				return nil, fmt.Errorf("failed to render template: %w", err)
@@ -262,7 +269,14 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 				}
 			}
 
-			targetPath := string(tplFrom.Target)
+			// Determine target path: ManifestTarget takes precedence over Target
+			var targetPath string
+			if tplFrom.ManifestTarget != nil {
+				targetPath = *tplFrom.ManifestTarget
+			} else {
+				targetPath = string(tplFrom.Target)
+			}
+
 			for k, v := range tempSecret.Data {
 				if err := r.applyToPath(obj, targetPath+"."+k, string(v)); err != nil {
 					return nil, fmt.Errorf("failed to apply data to path: %w", err)
