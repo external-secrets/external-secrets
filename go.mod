@@ -102,6 +102,7 @@ require (
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250925215610-d92957c70d5c
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.11.0
+	github.com/hashicorp/vault/api/auth/gcp v0.11.0
 	github.com/hashicorp/vault/api/auth/userpass v0.11.0
 	github.com/infisical/go-sdk v0.5.100
 	github.com/keeper-security/secrets-manager-go/core v1.6.4
