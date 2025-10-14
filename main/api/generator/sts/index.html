@@ -4175,7 +4175,7 @@ Therefore, it is only usable with a secretRef for authentication.</p>
 <span class="w">  </span><span class="c1"># credentials from the environment of the controller.</span>
 <span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
 
-<span class="w">    </span><span class="c1"># 1: static credentials</span>
+<span class="w">    </span><span class="c1"># static credentials:</span>
 <span class="w">    </span><span class="c1"># point to a secret that contains static credentials</span>
 <span class="w">    </span><span class="c1"># like AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY</span>
 <span class="w">    </span><span class="nt">secretRef</span><span class="p">:</span>
@@ -4185,13 +4185,6 @@ Therefore, it is only usable with a secretRef for authentication.</p>
 <span class="w">      </span><span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-aws-creds&quot;</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;access-secret&quot;</span>
-
-<span class="w">    </span><span class="c1"># option 2: IAM Roles for Service Accounts</span>
-<span class="w">    </span><span class="c1"># point to a service account that should be used</span>
-<span class="w">    </span><span class="c1"># that is configured for IAM Roles for Service Accounts (IRSA)</span>
-<span class="w">    </span><span class="nt">jwt</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;oci-token-sync&quot;</span>
 
 <span class="w">  </span><span class="c1"># optional request parameters for further fine-tuning the Token generation.</span>
 <span class="w">  </span><span class="nt">requestParameters</span><span class="p">:</span>
