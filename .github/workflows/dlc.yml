@@ -23,6 +23,8 @@ jobs:
       - name: "Checkout Code"
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        with:
+          persist-credentials: false
 
       - name: "Run FOSSA Scan"
         uses: fossas/fossa-action@3ebcea1862c6ffbd5cf1b4d0bd6b3fe7bd6f2cac # main
