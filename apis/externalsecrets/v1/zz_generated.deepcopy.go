@@ -3649,6 +3649,11 @@ func (in *TemplateFrom) DeepCopyInto(out *TemplateFrom) {
 		*out = new(TemplateRef)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ManifestTarget != nil {
+		in, out := &in.ManifestTarget, &out.ManifestTarget
+		*out = new(string)
+		**out = **in
+	}
 	if in.Literal != nil {
 		in, out := &in.Literal, &out.Literal
 		*out = new(string)
