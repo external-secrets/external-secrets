@@ -1333,13 +1333,6 @@ spec:
                                     type: object
                                   literal:
                                     type: string
-                                  manifestTarget:
-                                    description: |-
-                                      ManifestTarget specifies a custom path for non-Secret resources.
-                                      Use this when spec.target.manifest is set. Supports nested paths
-                                      like "spec.database.config" or "data".
-                                      When set, this takes precedence over Target for non-Secret resources.
-                                    type: string
                                   secret:
                                     properties:
                                       items:
@@ -1374,10 +1367,10 @@ spec:
                                     type: object
                                   target:
                                     default: Data
-                                    description: |-
-                                      Target specifies where to place the template result for Secret resources.
-                                      Only supports: Data, Annotations, Labels
-                                    pattern: ^(Data|Annotations|Labels|\.?[a-zA-Z0-9_\-\.]+)$
+                                    enum:
+                                      - Data
+                                      - Annotations
+                                      - Labels
                                     type: string
                                 type: object
                               type: array
@@ -12732,13 +12725,6 @@ spec:
                                 type: object
                               literal:
                                 type: string
-                              manifestTarget:
-                                description: |-
-                                  ManifestTarget specifies a custom path for non-Secret resources.
-                                  Use this when spec.target.manifest is set. Supports nested paths
-                                  like "spec.database.config" or "data".
-                                  When set, this takes precedence over Target for non-Secret resources.
-                                type: string
                               secret:
                                 properties:
                                   items:
@@ -12773,10 +12759,10 @@ spec:
                                 type: object
                               target:
                                 default: Data
-                                description: |-
-                                  Target specifies where to place the template result for Secret resources.
-                                  Only supports: Data, Annotations, Labels
-                                pattern: ^(Data|Annotations|Labels|\.?[a-zA-Z0-9_\-\.]+)$
+                                enum:
+                                  - Data
+                                  - Annotations
+                                  - Labels
                                 type: string
                             type: object
                           type: array

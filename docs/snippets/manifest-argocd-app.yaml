@@ -1,0 +1,19 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-app
+spec:
+  refreshInterval: 15m
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  target:
+    name: my-application
+    manifest:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+  dataFrom:
+  - extract:
+      key: argocd/applications/my-app
+{% endraw %}

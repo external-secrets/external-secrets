@@ -1,0 +1,39 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: labeled-config
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  target:
+    name: labeled-configmap
+    manifest:
+      apiVersion: v1
+      kind: ConfigMap
+    template:
+      engineVersion: v2
+      metadata:
+        labels:
+          app: myapp
+          environment: production
+        annotations:
+          description: "Managed by External Secrets Operator"
+      data:
+        config.json: |
+          {
+            "feature_flags": {
+              "new_ui": {{ .featureNewUI }},
+              "beta_api": {{ .featureBetaAPI }}
+            }
+          }
+  data:
+  - secretKey: featureNewUI
+    remoteRef:
+      key: features/new-ui
+  - secretKey: featureBetaAPI
+    remoteRef:
+      key: features/beta-api
+{% endraw %}
