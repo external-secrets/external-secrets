@@ -6278,7 +6278,7 @@ spec:
                                   description: Project ID of the Google Cloud Platform project
                                   type: string
                                 role:
-                                  description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine
+                                  description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
                                   type: string
                                 secretRef:
                                   description: Specify credentials in a Secret object
@@ -17719,7 +17719,7 @@ spec:
                                   description: Project ID of the Google Cloud Platform project
                                   type: string
                                 role:
-                                  description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine
+                                  description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
                                   type: string
                                 secretRef:
                                   description: Specify credentials in a Secret object
@@ -24726,7 +24726,7 @@ spec:
                                       description: Project ID of the Google Cloud Platform project
                                       type: string
                                     role:
-                                      description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine
+                                      description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
                                       type: string
                                     secretRef:
                                       description: Specify credentials in a Secret object
@@ -27401,7 +27401,7 @@ spec:
                               description: Project ID of the Google Cloud Platform project
                               type: string
                             role:
-                              description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine
+                              description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
                               type: string
                             secretRef:
                               description: Specify credentials in a Secret object
