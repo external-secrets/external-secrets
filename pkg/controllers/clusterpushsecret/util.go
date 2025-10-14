@@ -23,6 +23,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 )
 
+// NewClusterPushSecretCondition creates a new PushSecretStatusCondition based on failed namespaces.
+// If there are no failed namespaces, it returns a Ready condition with True status.
+// Otherwise, it returns a Ready condition with False status and an error message.
 func NewClusterPushSecretCondition(failedNamespaces map[string]error) *v1alpha1.PushSecretStatusCondition {
 	if len(failedNamespaces) == 0 {
 		return &v1alpha1.PushSecretStatusCondition{
@@ -40,6 +43,8 @@ func NewClusterPushSecretCondition(failedNamespaces map[string]error) *v1alpha1.
 	return condition
 }
 
+// SetClusterPushSecretCondition updates the conditions on the ClusterPushSecret status
+// and updates the corresponding metrics.
 func SetClusterPushSecretCondition(ces *v1alpha1.ClusterPushSecret, condition v1alpha1.PushSecretStatusCondition) {
 	ces.Status.Conditions = append(filterOutCondition(ces.Status.Conditions, condition.Type), condition)
 	cpsmetrics.UpdateClusterPushSecretCondition(ces, &condition)

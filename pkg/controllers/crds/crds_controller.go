@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package crds implements controllers for handling Custom Resource Definitions.
 package crds
 
 import (
@@ -35,7 +36,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -54,11 +55,13 @@ const (
 	caCertName           = "ca.crt"
 	caKeyName            = "ca.key"
 	certValidityDuration = 10 * 365 * 24 * time.Hour
-	LookaheadInterval    = 90 * 24 * time.Hour
+	// LookaheadInterval defines the interval to look ahead for certificate expiration.
+	LookaheadInterval = 90 * 24 * time.Hour
 
 	errResNotReady = "resource not ready: %s"
 )
 
+// Reconciler implements a reconciliation handler for CRD controllers.
 type Reconciler struct {
 	client.Client
 	Log             logr.Logger
@@ -83,6 +86,7 @@ type Reconciler struct {
 	readyStatusMap   map[string]bool
 }
 
+// Opts defines configuration options for the CRD controller.
 type Opts struct {
 	SvcName         string
 	SvcNamespace    string
@@ -91,6 +95,7 @@ type Opts struct {
 	Resources       []string
 }
 
+// New returns a new CRD controller instance.
 func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan struct{}, logger logr.Logger,
 	interval time.Duration, opts Opts) *Reconciler {
 	return &Reconciler{
@@ -111,6 +116,7 @@ func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan stru
 	}
 }
 
+// CertInfo holds certificate data information.
 type CertInfo struct {
 	CertDir  string
 	CertName string
@@ -118,6 +124,7 @@ type CertInfo struct {
 	CAName   string
 }
 
+// Reconcile handles the reconciliation logic for CRDs.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("CustomResourceDefinition", req.NamespacedName)
 	if slices.Contains(r.CrdResources, req.NamespacedName.Name) {
@@ -152,7 +159,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	if err := r.checkCRDs(); err != nil {
 		return err
 	}
-	return utils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
+	return esutils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
 }
 
 func (r *Reconciler) checkCRDs() error {
@@ -167,6 +174,7 @@ func (r *Reconciler) checkCRDs() error {
 	return nil
 }
 
+// SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("custom-resource-definition")
 	return ctrl.NewControllerManagedBy(mgr).
@@ -254,6 +262,7 @@ func injectCert(crd *apiext.CustomResourceDefinition, certPem []byte) error {
 	return nil
 }
 
+// KeyPairArtifacts stores certificate key pair data.
 type KeyPairArtifacts struct {
 	Cert    *x509.Certificate
 	Key     *rsa.PrivateKey
@@ -261,6 +270,7 @@ type KeyPairArtifacts struct {
 	KeyPEM  []byte
 }
 
+// populateSecret populates the secret with the given certificate and key data.
 func populateSecret(cert, key []byte, caArtifacts *KeyPairArtifacts, secret *corev1.Secret) {
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
@@ -271,6 +281,7 @@ func populateSecret(cert, key []byte, caArtifacts *KeyPairArtifacts, secret *cor
 	secret.Data[keyName] = key
 }
 
+// ValidCert checks if the provided certificate is valid for the given DNS name.
 func ValidCert(caCert, cert, key []byte, dnsName string, at time.Time) (bool, error) {
 	if len(caCert) == 0 || len(cert) == 0 || len(key) == 0 {
 		return false, errors.New("empty cert")
@@ -414,6 +425,7 @@ func buildArtifactsFromSecret(secret *corev1.Secret) (*KeyPairArtifacts, error) 
 	}, nil
 }
 
+// CreateCACert creates a new CA certificate.
 func (r *Reconciler) CreateCACert(begin, end time.Time) (*KeyPairArtifacts, error) {
 	templ := &x509.Certificate{
 		SerialNumber: big.NewInt(0),
@@ -450,6 +462,7 @@ func (r *Reconciler) CreateCACert(begin, end time.Time) (*KeyPairArtifacts, erro
 	return &KeyPairArtifacts{Cert: cert, Key: key, CertPEM: certPEM, KeyPEM: keyPEM}, nil
 }
 
+// CreateCAChain creates a certificate chain using the provided CA.
 func (r *Reconciler) CreateCAChain(ca *KeyPairArtifacts, begin, end time.Time) (*KeyPairArtifacts, error) {
 	templ := &x509.Certificate{
 		SerialNumber: big.NewInt(2),
@@ -486,6 +499,7 @@ func (r *Reconciler) CreateCAChain(ca *KeyPairArtifacts, begin, end time.Time) (
 	return &KeyPairArtifacts{Cert: cert, Key: key, CertPEM: certPEM, KeyPEM: keyPEM}, nil
 }
 
+// CreateCertPEM creates a new certificate in PEM format.
 func (r *Reconciler) CreateCertPEM(ca *KeyPairArtifacts, begin, end time.Time) ([]byte, []byte, error) {
 	templ := &x509.Certificate{
 		SerialNumber: big.NewInt(1),

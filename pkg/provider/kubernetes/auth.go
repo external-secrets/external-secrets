@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package kubernetes implements a provider for Kubernetes secrets, allowing
+// External Secrets to read from and write to Kubernetes Secrets
 package kubernetes
 
 import (
@@ -28,8 +30,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (
@@ -58,7 +60,7 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		Host: c.store.Server.URL,
 	}
 
-	ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+	ca, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 		CABundle:   c.store.Server.CABundle,
 		CAProvider: c.store.Server.CAProvider,
 		StoreKind:  c.storeKind,

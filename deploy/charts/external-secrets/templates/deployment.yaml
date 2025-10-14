@@ -120,7 +120,7 @@ spec:
               name: metrics
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
-          {{- toYaml .Values.livenessProbe.spec | nindent 12 }}
+          {{- toYaml (omit .Values.livenessProbe.spec "address") | nindent 12 }}
           {{- end }}
           {{- with .Values.extraEnv }}
           env:

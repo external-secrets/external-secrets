@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -865,7 +865,7 @@ func TestGetSecret(t *testing.T) {
 			TagList: getTagSlice(),
 		}
 		pstc.fakeClient.ListTagsForResourceFn = fakeps.NewListTagsForResourceFn(&output, nil)
-		pstc.expectedSecret, _ = util.ParameterTagsToJSONString(normaliseTags(getTagSlice()))
+		pstc.expectedSecret, _ = awsutil.ParameterTagsToJSONString(normaliseTags(getTagSlice()))
 	}
 
 	// good case: metadata property returned

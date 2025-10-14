@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package senhasegura implements Senhasegura provider for External Secrets Operator
 package senhasegura
 
 import (
@@ -52,9 +53,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
-/*
-Construct a new secrets client based on provided store.
-*/
+// NewClient construct a new secrets client based on provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	spec := store.GetSpec()
 	provider := spec.Provider.Senhasegura
@@ -71,7 +70,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return nil, fmt.Errorf(errUnknownProviderService, provider.Module)
 }
 
-// Validate store using Validating webhook during secret store creating
+// ValidateStore validates store using Validating webhook during secret store creating
 // Checks here are usually the best experience for the user, as the SecretStore will not be created until it is a 'valid' one.
 // https://github.com/external-secrets/external-secrets/pull/830#discussion_r833278518
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {

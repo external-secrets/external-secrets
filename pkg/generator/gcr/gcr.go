@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package gcr provides functionality for generating authentication tokens for Google Container Registry.
 package gcr
 
 import (
@@ -29,10 +30,11 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
+// Generator implements GCR token generation functionality.
 type Generator struct{}
 
 const (
@@ -43,6 +45,8 @@ const (
 	errGetToken  = "unable to get authorization token: %w"
 )
 
+// Generate creates an authentication token for Google Container Registry.
+// It retrieves the token using the GCP credentials and returns it in the expected format.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
@@ -53,7 +57,8 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+// Cleanup performs any necessary cleanup after token generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

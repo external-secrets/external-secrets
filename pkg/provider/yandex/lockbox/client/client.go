@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package client provides a client interface and implementations for Yandex Cloud Lockbox.
 package client
 
 import (
@@ -22,7 +23,7 @@ import (
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 )
 
-// Requests the payload of the given secret from Lockbox.
+// LockboxClient requests the payload of the given secret from Lockbox.
 type LockboxClient interface {
 	GetPayloadEntries(ctx context.Context, iamToken, secretID, versionID string) ([]*api.Payload_Entry, error)
 	GetExPayload(ctx context.Context, iamToken, folderID, name, versionID string) (map[string][]byte, error)

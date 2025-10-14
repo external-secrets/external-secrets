@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package register imports all provider implementations to register them in the controller schema.
 package register
 
-// packages imported here are registered to the controller schema.
-
 import (
+	// To ensure all providers are registered, we import them here.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/akeyless"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/alibaba"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
@@ -40,6 +40,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/infisical"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/keepersecurity"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/kubernetes"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/ngrok"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onboardbase"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onepassword"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onepasswordsdk"

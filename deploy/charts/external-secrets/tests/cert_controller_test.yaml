@@ -217,3 +217,33 @@ tests:
       - notContains:
           path: spec.template.spec.containers[0].args
           content: "--enable-http2"
+  - it: should have startup Probe if enabled
+    set:
+      certController.startupProbe.enabled: true
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 5
+  - it: should override the startup Probe port
+    set:
+      certController.startupProbe.enabled: true
+      certController.startupProbe.useReadinessProbePort: false
+      certController.startupProbe.port: "8083"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              port: 8083
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5

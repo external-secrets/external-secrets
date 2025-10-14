@@ -315,7 +315,9 @@ livenessProbe:
     # -- Handler for liveness probe.
     httpGet:
       # -- Set this value to 8082 to active liveness probes.
-      port: "8082"
+      # @schema type: [string, integer]
+      port: 8082
+      # -- Path for liveness probe.
       path: /healthz
 
 nodeSelector: {}
@@ -611,6 +613,14 @@ certController:
     address: ""
     # -- ReadinessProbe port for kubelet
     port: 8081
+
+  startupProbe:
+    # -- Enabled determines if the startup probe should be used or not. By default it's enabled
+    enabled: false
+    # -- whether to use the readiness probe port for startup probe.
+    useReadinessProbePort: true
+    # -- Port for startup probe.
+    port: ""
 
     ## -- Extra environment variables to add to container.
   extraEnv: []

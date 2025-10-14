@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package parameterstore implements the AWS SSM Parameter Store provider for external-secrets
 package parameterstore
 
 import (
@@ -35,11 +36,11 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 // Tier defines policy details for PushSecret.
@@ -125,6 +126,8 @@ func (pm *ParameterStore) getTagsByName(ctx context.Context, ref *ssm.GetParamet
 	return tags, nil
 }
 
+// DeleteSecret deletes a secret from AWS Parameter Store.
+// It will only delete secrets that are managed by external-secrets (have the managed-by tag).
 func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	secretName := pm.prefix + remoteRef.GetRemoteKey()
 	secretValue := ssm.GetParameterInput{
@@ -161,6 +164,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 	return nil
 }
 
+// SecretExists checks if a secret exists in AWS Parameter Store.
 func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := pm.prefix + pushSecretRef.GetRemoteKey()
 
@@ -168,12 +172,10 @@ func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1.P
 		Name: &secretName,
 	}
 
-	_, err := pm.client.GetParameter(ctx, &secretValue)
-
 	var resourceNotFoundErr *ssmTypes.ResourceNotFoundException
 	var parameterNotFoundErr *ssmTypes.ParameterNotFound
 
-	if err != nil {
+	if _, err := pm.client.GetParameter(ctx, &secretValue); err != nil {
 		if errors.As(err, &resourceNotFoundErr) {
 			return false, nil
 		}
@@ -186,6 +188,11 @@ func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1.P
 	return true, nil
 }
 
+// PushSecret uploads a secret to AWS Parameter Store.
+// It can create a new secret or update an existing one.
+// The secret is identified by the remote key, which is the name of the parameter in Parameter Store.
+// The value of the secret is taken from the secret data, and can be either the entire secret or a specific key within the secret.
+// Tags are applied to the secret for management and identification.
 func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	var (
 		value []byte
@@ -263,10 +270,10 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 func (pm *ParameterStore) encodeSecretData(encodeAsDecoded bool, data map[string][]byte) ([]byte, error) {
 	if encodeAsDecoded {
 		// This will result in map byte slices not being base64 encoded by json.Marshal.
-		return utils.JSONMarshal(convertMap(data))
+		return esutils.JSONMarshal(convertMap(data))
 	}
 
-	return utils.JSONMarshal(data)
+	return esutils.JSONMarshal(data)
 }
 
 func convertMap(in map[string][]byte) map[string]string {
@@ -304,7 +311,7 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 		return err
 	}
 
-	tagKeysToRemove := util.FindTagKeysToRemove(tags, metaTags)
+	tagKeysToRemove := awsutil.FindTagKeysToRemove(tags, metaTags)
 	if len(tagKeysToRemove) > 0 {
 		_, err = pm.client.RemoveTagsFromResource(ctx, &ssm.RemoveTagsFromResourceInput{
 			ResourceId:   existing.Parameter.Name,
@@ -509,7 +516,7 @@ func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byt
 	})
 	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
 	if err != nil {
-		return util.SanitizeErr(err)
+		return awsutil.SanitizeErr(err)
 	}
 
 	data[name] = []byte(*out.Parameter.Value)
@@ -532,7 +539,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1.ExternalSecret
 		return nil, esv1.NoSecretErr
 	}
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, awsutil.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if out.Parameter.Value != nil {
@@ -565,13 +572,15 @@ func (pm *ParameterStore) getParameterTags(ctx context.Context, ref esv1.Externa
 	if err != nil {
 		return nil, err
 	}
-	json, err := util.ParameterTagsToJSONString(tags)
+
+	jsonStr, err := awsutil.ParameterTagsToJSONString(tags)
 	if err != nil {
 		return nil, err
 	}
+
 	out := &ssm.GetParameterOutput{
 		Parameter: &ssmTypes.Parameter{
-			Value: &json,
+			Value: &jsonStr,
 		},
 	}
 	return out, nil
@@ -619,10 +628,12 @@ func (pm *ParameterStore) parameterNameWithVersion(ref esv1.ExternalSecretDataRe
 	return &name
 }
 
+// Close cleans up resources held by the ParameterStore provider.
 func (pm *ParameterStore) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate checks if the provider is configured correctly.
 func (pm *ParameterStore) Validate() (esv1.ValidationResult, error) {
 	// skip validation stack because it depends on the namespace
 	// of the ExternalSecret

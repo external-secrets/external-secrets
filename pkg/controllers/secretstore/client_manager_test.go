@@ -142,7 +142,7 @@ func TestManagerGet(t *testing.T) {
 				namespace: defaultStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+			clientConstructor: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 				return clientA, nil
 			},
 			verify: func(sc esv1.SecretsClient) {
@@ -184,7 +184,7 @@ func TestManagerGet(t *testing.T) {
 				},
 				namespace: defaultStore.Namespace,
 			},
-			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+			clientConstructor: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 				return clientB, nil
 			},
 			verify: func(sc esv1.SecretsClient) {
@@ -226,7 +226,7 @@ func TestManagerGet(t *testing.T) {
 				namespace: defaultStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+			clientConstructor: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 				// constructor should not be called,
 				// the client from the cache should be returned instead
 				t.Fail()
@@ -272,7 +272,7 @@ func TestManagerGet(t *testing.T) {
 				namespace: otherStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+			clientConstructor: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 				// because there is a store mismatch
 				// we create a new client
 				return clientB, nil

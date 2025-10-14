@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package keepersecurity implements a provider for Keeper Security secrets management service
 package keepersecurity
 
 import (
@@ -27,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (
@@ -40,7 +41,7 @@ const (
 	errKeeperSecurityStoreMissingFolderID          = "missing: spec.provider.keepersecurity.folderID"
 )
 
-// Provider implements the necessary NewClient() and ValidateStore() funcs.
+// Provider implements the necessary NewClient() and ValidateStore() funcs for Keeper Security.
 type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -53,11 +54,12 @@ func init() {
 	}, esv1.MaintenanceStatusMaintained)
 }
 
+// Capabilities returns the provider's supported capabilities (ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
 
-// NewClient constructs a GCP Provider.
+// NewClient constructs a new Keeper Security client with the provided store configuration.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.KeeperSecurity == nil {
@@ -83,6 +85,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return client, nil
 }
 
+// ValidateStore validates the Keeper Security SecretStore configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, fmt.Errorf(errKeeperSecurityStore, store)
@@ -101,7 +104,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	// check mandatory fields
 	config := spc.Provider.KeeperSecurity
 
-	if err := utils.ValidateSecretSelector(store, config.Auth); err != nil {
+	if err := esutils.ValidateSecretSelector(store, config.Auth); err != nil {
 		return nil, fmt.Errorf("error validating secret selector: %w", err)
 	}
 	if config.FolderID == "" {

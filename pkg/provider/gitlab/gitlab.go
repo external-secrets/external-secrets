@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package gitlab implements a GitLab provider for External Secrets.
 package gitlab
 
 import (
@@ -33,10 +34,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -56,20 +57,24 @@ const (
 var _ esv1.SecretsClient = &gitlabBase{}
 var _ esv1.Provider = &Provider{}
 
+// ProjectsClient is an interface for interacting with GitLab project APIs.
 type ProjectsClient interface {
 	ListProjectsGroups(pid any, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error)
 }
 
+// ProjectVariablesClient is an interface for managing GitLab project variables.
 type ProjectVariablesClient interface {
 	GetVariable(pid any, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 	ListVariables(pid any, opt *gitlab.ListProjectVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
+// GroupVariablesClient is an interface for managing GitLab group variables.
 type GroupVariablesClient interface {
 	GetVariable(gid any, key string, opts *gitlab.GetGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
 	ListVariables(gid any, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
+// ProjectGroupPathSorter implements sort.Interface for sorting project groups by path length.
 type ProjectGroupPathSorter []*gitlab.ProjectGroup
 
 func (a ProjectGroupPathSorter) Len() int           { return len(a) }
@@ -102,7 +107,7 @@ func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.Push
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
 func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if utils.IsNil(g.projectVariablesClient) {
+	if esutils.IsNil(g.projectVariablesClient) {
 		return nil, errors.New(errUninitializedGitlabProvider)
 	}
 	var effectiveEnvironment = g.store.Environment
@@ -132,7 +137,7 @@ func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFin
 		matcher = m
 	}
 
-	err := g.ResolveGroupIds()
+	err := g.ResolveGroupIDs()
 	if err != nil {
 		return nil, err
 	}
@@ -247,6 +252,7 @@ func (g *gitlabBase) setGroupValues(
 	}
 }
 
+// ExtractTag extracts the environment scope from the provided tags map.
 func ExtractTag(tags map[string]string) (string, error) {
 	var environmentScope string
 	for tag, value := range tags {
@@ -284,7 +290,7 @@ func (g *gitlabBase) getGroupVariables(groupID string, ref esv1.ExternalSecretDa
 }
 
 func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(g.projectVariablesClient) || utils.IsNil(g.groupVariablesClient) {
+	if esutils.IsNil(g.projectVariablesClient) || esutils.IsNil(g.groupVariablesClient) {
 		return nil, errors.New(errUninitializedGitlabProvider)
 	}
 
@@ -312,7 +318,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 		return nil, err
 	}
 
-	err = g.ResolveGroupIds()
+	err = g.ResolveGroupIDs()
 	if err != nil {
 		return nil, err
 	}
@@ -409,7 +415,7 @@ func (g *gitlabBase) Close(_ context.Context) error {
 	return nil
 }
 
-func (g *gitlabBase) ResolveGroupIds() error {
+func (g *gitlabBase) ResolveGroupIDs() error {
 	if g.store.InheritFromGroups {
 		projectGroups, resp, err := g.projectsClient.ListProjectsGroups(g.store.ProjectID, nil)
 		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabListProjectsGroups, err)
@@ -417,11 +423,11 @@ func (g *gitlabBase) ResolveGroupIds() error {
 			return err
 		}
 		sort.Sort(ProjectGroupPathSorter(projectGroups))
-		discoveredIds := make([]string, len(projectGroups))
+		discoveredIDs := make([]string, len(projectGroups))
 		for i, group := range projectGroups {
-			discoveredIds[i] = strconv.Itoa(group.ID)
+			discoveredIDs[i] = strconv.Itoa(group.ID)
 		}
-		g.store.GroupIDs = discoveredIds
+		g.store.GroupIDs = discoveredIDs
 	}
 	return nil
 }
@@ -437,7 +443,7 @@ func (g *gitlabBase) Validate() (esv1.ValidationResult, error) {
 			return esv1.ValidationResultError, fmt.Errorf(errProjectAuth, g.store.ProjectID)
 		}
 
-		err = g.ResolveGroupIds()
+		err = g.ResolveGroupIDs()
 		if err != nil {
 			return esv1.ValidationResultError, fmt.Errorf(errList, err)
 		}

@@ -15,7 +15,7 @@ spec:
   # credentials from the environment of the controller.
   auth:
 
-    # 1: static credentials
+    # static credentials:
     # point to a secret that contains static credentials
     # like AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
     secretRef:
@@ -25,13 +25,6 @@ spec:
       secretAccessKeySecretRef:
         name: "my-aws-creds"
         key: "access-secret"
-
-    # option 2: IAM Roles for Service Accounts
-    # point to a service account that should be used
-    # that is configured for IAM Roles for Service Accounts (IRSA)
-    jwt:
-      serviceAccountRef:
-        name: "oci-token-sync"
 
   # optional request parameters for further fine-tuning the Token generation.
   requestParameters:

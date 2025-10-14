@@ -29,10 +29,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
+// Provider implements the External Secrets provider interface for Bitwarden Secrets Manager.
 type Provider struct {
 	kube               client.Client
 	namespace          string
@@ -113,7 +114,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 // newHTTPSClient creates a new HTTPS client with the given cert.
 func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace string, provider *esv1.BitwardenSecretsManagerProvider) (*http.Client, error) {
-	cert, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+	cert, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 		CABundle:   []byte(provider.CABundle),
 		CAProvider: provider.CAProvider,
 		StoreKind:  storeKind,

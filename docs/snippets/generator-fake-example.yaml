@@ -3,7 +3,7 @@ kind: ExternalSecret
 metadata:
   name: "fake"
 spec:
-  refreshInterval: "30m"
+  refreshInterval: "30m0s"
   target:
     name: fake
   dataFrom:

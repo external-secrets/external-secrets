@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
+package ydxcommon
 
 import (
 	"context"
@@ -38,11 +38,11 @@ type yandexCloudSecretsClient struct {
 	secretSetter    SecretSetter
 	iamToken        string
 	resourceKeyType ResourceKeyType
-	folderId        string
+	folderID        string
 }
 
 func (c *yandexCloudSecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return c.secretGetter.GetSecret(ctx, c.iamToken, ref.Key, c.resourceKeyType, c.folderId, ref.Version, ref.Property)
+	return c.secretGetter.GetSecret(ctx, c.iamToken, ref.Key, c.resourceKeyType, c.folderID, ref.Version, ref.Property)
 }
 
 func (c *yandexCloudSecretsClient) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
@@ -62,7 +62,7 @@ func (c *yandexCloudSecretsClient) Validate() (esv1.ValidationResult, error) {
 }
 
 func (c *yandexCloudSecretsClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return c.secretGetter.GetSecretMap(ctx, c.iamToken, ref.Key, c.resourceKeyType, c.folderId, ref.Version)
+	return c.secretGetter.GetSecretMap(ctx, c.iamToken, ref.Key, c.resourceKeyType, c.folderID, ref.Version)
 }
 
 func (c *yandexCloudSecretsClient) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {

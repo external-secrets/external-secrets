@@ -28,8 +28,8 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -105,19 +105,19 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1.VaultKube
 			return "", err
 		}
 		return jwt, nil
-	} else {
-		// Kubernetes authentication is specified, but without a referenced
-		// Kubernetes secret. We check if the file path for in-cluster service account
-		// exists and attempt to use the token for Vault Kubernetes auth.
-		if _, err := os.Stat(serviceAccTokenPath); err != nil {
-			return "", fmt.Errorf(errServiceAccount, err)
-		}
-		jwtByte, err := os.ReadFile(serviceAccTokenPath)
-		if err != nil {
-			return "", fmt.Errorf(errServiceAccount, err)
-		}
-		return string(jwtByte), nil
 	}
+
+	// Kubernetes authentication is specified, but without a referenced
+	// Kubernetes secret. We check if the file path for in-cluster service account
+	// exists and attempt to use the token for Vault Kubernetes auth.
+	if _, err := os.Stat(serviceAccTokenPath); err != nil {
+		return "", fmt.Errorf(errServiceAccount, err)
+	}
+	jwtByte, err := os.ReadFile(serviceAccTokenPath)
+	if err != nil {
+		return "", fmt.Errorf(errServiceAccount, err)
+	}
+	return string(jwtByte), nil
 }
 
 func (c *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {

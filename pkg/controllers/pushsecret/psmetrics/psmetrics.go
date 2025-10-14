@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package psmetrics provides metrics for PushSecret controller.
 package psmetrics
 
 import (
@@ -26,9 +27,14 @@ import (
 )
 
 const (
-	PushSecretSubsystem            = "pushsecret"
+	// PushSecretSubsystem is the subsystem name for PushSecret metrics.
+	PushSecretSubsystem = "pushsecret"
+
+	// PushSecretReconcileDurationKey is the key for the reconcile duration metric.
 	PushSecretReconcileDurationKey = "reconcile_duration"
-	PushSecretStatusConditionKey   = "status_condition"
+
+	// PushSecretStatusConditionKey is the key for the status condition metric.
+	PushSecretStatusConditionKey = "status_condition"
 )
 
 var gaugeVecMetrics = map[string]*prometheus.GaugeVec{}
@@ -56,6 +62,7 @@ func SetUpMetrics() {
 	}
 }
 
+// UpdatePushSecretCondition updates the condition metrics for a PushSecret.
 func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecretStatusCondition, value float64) {
 	psInfo := make(map[string]string)
 	psInfo["name"] = ps.Name
@@ -99,6 +106,7 @@ func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecret
 		})).Set(value)
 }
 
+// GetGaugeVec returns a GaugeVec for the given metric key.
 func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
 }

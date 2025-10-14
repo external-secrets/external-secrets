@@ -121,7 +121,7 @@ const (
 	externalAccountCredentialType = "external_account"
 
 	awsEnvironmentIDPrefix    = "aws"
-	awsAccessKeyIdKeyName     = "aws_access_key_id"
+	awsAccessKeyIDKeyName     = "aws_access_key_id"
 	awsSecretAccessKeyKeyName = "aws_secret_access_key"
 	awsSessionTokenKeyName    = "aws_session_token"
 )
@@ -295,7 +295,7 @@ func (w *workloadIdentityFederation) updateExternalAccountConfigWithSubjectToken
 		ns = *w.config.ServiceAccountRef.Namespace
 	}
 	config.SubjectTokenSupplier = &k8sSATokenReader{
-		audience:         config.Audience,
+		audience:         w.config.Audience,
 		subjectTokenType: workloadIdentitySubjectTokenType,
 		saTokenGenerator: w.saTokenGenerator,
 		saAudience:       w.config.ServiceAccountRef.Audiences,
@@ -324,11 +324,11 @@ func (w *workloadIdentityFederation) readAWSSecurityCredentials(ctx context.Cont
 		return nil, fmt.Errorf("failed to fetch AwsSecurityCredentials secret %q: %w", key, err)
 	}
 
-	accessKeyID := string(secret.Data[awsAccessKeyIdKeyName])
+	accessKeyID := string(secret.Data[awsAccessKeyIDKeyName])
 	secretAccessKey := string(secret.Data[awsSecretAccessKeyKeyName])
 	sessionToken := string(secret.Data[awsSessionTokenKeyName])
 	if accessKeyID == "" || secretAccessKey == "" {
-		return nil, fmt.Errorf("%s and %s keys must be present in AwsSecurityCredentials secret", awsAccessKeyIdKeyName, awsSecretAccessKeyKeyName)
+		return nil, fmt.Errorf("%s and %s keys must be present in AwsSecurityCredentials secret", awsAccessKeyIDKeyName, awsSecretAccessKeyKeyName)
 	}
 
 	return &awsSecurityCredentialsReader{
@@ -417,10 +417,12 @@ func (r *k8sSATokenReader) SubjectToken(ctx context.Context, options externalacc
 	return resp.Status.Token, nil
 }
 
-func (a *awsSecurityCredentialsReader) AwsRegion(ctx context.Context, options externalaccount.SupplierOptions) (string, error) {
+// AwsRegion returns the AWS region for workload identity federation.
+func (a *awsSecurityCredentialsReader) AwsRegion(_ context.Context, _ externalaccount.SupplierOptions) (string, error) {
 	return a.region, nil
 }
 
-func (a *awsSecurityCredentialsReader) AwsSecurityCredentials(ctx context.Context, options externalaccount.SupplierOptions) (*externalaccount.AwsSecurityCredentials, error) {
+// AwsSecurityCredentials returns AWS security credentials for workload identity federation.
+func (a *awsSecurityCredentialsReader) AwsSecurityCredentials(_ context.Context, _ externalaccount.SupplierOptions) (*externalaccount.AwsSecurityCredentials, error) {
 	return a.awsSecurityCredentials, nil
 }

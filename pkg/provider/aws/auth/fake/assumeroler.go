@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package fake implements mocks for AWS auth service clients.
 package fake
 
 import (
@@ -31,19 +32,23 @@ type stsAPI interface {
 	DecodeAuthorizationMessage(ctx context.Context, params *sts.DecodeAuthorizationMessageInput, optFns ...func(*sts.Options)) (*sts.DecodeAuthorizationMessageOutput, error)
 }
 
+// AssumeRoler is a mock implementation of the AWS STS AssumeRole API.
 type AssumeRoler struct {
 	stsAPI
 	AssumeRoleFunc func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error)
 }
 
-func (f *AssumeRoler) AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
+// AssumeRole mocks the AWS STS AssumeRole API.
+func (f *AssumeRoler) AssumeRole(_ context.Context, params *sts.AssumeRoleInput, _ ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
 	return f.AssumeRoleFunc(params)
 }
 
+// CredentialsProvider is a mock implementation of the AWS credentials provider.
 type CredentialsProvider struct {
 	RetrieveFunc func() (aws.Credentials, error)
 }
 
-func (t CredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
+// Retrieve mocks the AWS credentials provider Retrieve method.
+func (t CredentialsProvider) Retrieve(_ context.Context) (aws.Credentials, error) {
 	return t.RetrieveFunc()
 }

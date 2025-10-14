@@ -102,7 +102,7 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "configure aws using environment variables + assume role",
-			stsProvider: func(cfg *aws.Config) STSprovider {
+			stsProvider: func(_ *aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.RoleArn, "foo-bar-baz")
@@ -377,7 +377,7 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			jwtProvider: func(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
+			jwtProvider: func(name, namespace, roleArn string, _ []string, _ string) (aws.CredentialsProvider, error) {
 				assert.Equal(t, myServiceAccountKey, name)
 				assert.Equal(t, otherNsName, namespace)
 				assert.Equal(t, "my-sa-role", roleArn)
@@ -418,7 +418,7 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "configure aws using environment variables + assume role + check external id",
-			stsProvider: func(cfg *aws.Config) STSprovider {
+			stsProvider: func(_ *aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.ExternalId, "12345678")
@@ -577,22 +577,22 @@ func TestSMAssumeRole(t *testing.T) {
 						SessionToken:    aws.String("99992"),
 					},
 				}, nil
-			} else {
-				// make sure the correct role is passed in
-				assert.Equal(t, *input.RoleArn, "my-awesome-role")
-				return &sts.AssumeRoleOutput{
-					AssumedRoleUser: &ststypes.AssumedRoleUser{
-						Arn:           aws.String("1123132"),
-						AssumedRoleId: aws.String("xxxxx"),
-					},
-					Credentials: &ststypes.Credentials{
-						AccessKeyId:     aws.String("3333"),
-						SecretAccessKey: aws.String("4444"),
-						Expiration:      aws.Time(time.Now().Add(time.Hour)),
-						SessionToken:    aws.String("6666"),
-					},
-				}, nil
 			}
+
+			// make sure the correct role is passed in
+			assert.Equal(t, *input.RoleArn, "my-awesome-role")
+			return &sts.AssumeRoleOutput{
+				AssumedRoleUser: &ststypes.AssumedRoleUser{
+					Arn:           aws.String("1123132"),
+					AssumedRoleId: aws.String("xxxxx"),
+				},
+				Credentials: &ststypes.Credentials{
+					AccessKeyId:     aws.String("3333"),
+					SecretAccessKey: aws.String("4444"),
+					Expiration:      aws.Time(time.Now().Add(time.Hour)),
+					SessionToken:    aws.String("6666"),
+				},
+			}, nil
 		},
 	}
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
@@ -686,7 +686,7 @@ func TestNewGeneratorSession_CredentialProviderPriority(t *testing.T) {
 			AccessKeyID:     esmeta.SecretKeySelector{Name: "aws-creds", Key: "access-key"},
 			SecretAccessKey: esmeta.SecretKeySelector{Name: "aws-creds", Key: "secret-key"},
 		},
-	}, "", "us-east-1", k8sClient, "test-ns", DefaultSTSProvider, func(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
+	}, "", "us-east-1", k8sClient, "test-ns", DefaultSTSProvider, func(name, namespace, roleArn string, _ []string, _ string) (aws.CredentialsProvider, error) {
 		jwtProviderCalled = true
 		assert.Equal(t, "test-sa", name)
 		assert.Equal(t, "test-ns", namespace)

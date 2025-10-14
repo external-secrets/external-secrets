@@ -31,14 +31,17 @@ import (
 )
 
 const (
+	// DoRequestError is the error format string for HTTP request failures.
 	DoRequestError         = "error: do request: %w"
 	errJSONSecretUnmarshal = "unable to unmarshal secret from JSON: %w"
 )
 
+// HTTPClient is the interface for making HTTP requests.
 type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
+// API implements the Device42 REST API client.
 type API struct {
 	client   HTTPClient
 	baseURL  string
@@ -47,27 +50,30 @@ type API struct {
 	username string
 }
 
+// D42PasswordResponse represents the response from Device42 passwords API.
 type D42PasswordResponse struct {
 	Passwords []D42Password
 }
 
+// D42Password represents a password entry in Device42.
 type D42Password struct {
 	Password string `json:"password"`
 	ID       int    `json:"id"`
 }
 
+// NewAPI creates a new Device42 API client.
 func NewAPI(baseURL, username, password, hostPort string) *API {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
+	}
 	api := &API{
 		baseURL:  baseURL,
 		hostPort: hostPort,
 		username: username,
 		password: password,
-	}
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
+		client:   &http.Client{Transport: tr},
 	}
 
-	api.client = &http.Client{Transport: tr}
 	return api
 }
 
@@ -76,6 +82,7 @@ func (api *API) doAuthenticatedRequest(r *http.Request) (*http.Response, error) 
 	return api.client.Do(r)
 }
 
+// ReadAndUnmarshal reads an HTTP response body and unmarshals it into the target structure.
 func ReadAndUnmarshal(resp *http.Response, target any) error {
 	var buf bytes.Buffer
 	defer func() {
@@ -94,6 +101,7 @@ func ReadAndUnmarshal(resp *http.Response, target any) error {
 	return json.Unmarshal(buf.Bytes(), target)
 }
 
+// GetSecret retrieves a password from Device42.
 func (api *API) GetSecret(secretID string) (D42Password, error) {
 	// https://api.device42.com/#!/Passwords/getPassword
 	endpointURL := fmt.Sprintf("https://%s:%s/api/1.0/passwords/?id=%s&plain_text=yes", api.baseURL, api.hostPort, secretID)
@@ -121,10 +129,12 @@ func (api *API) GetSecret(secretID string) (D42Password, error) {
 	return d42PasswordResponse.Passwords[0], err
 }
 
+// GetSecretMap returns a map of secret values from Device42.
 func (api *API) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
+// ToMap converts a D42Password to a map of secret values.
 func (s D42Password) ToMap() map[string][]byte {
 	m := make(map[string][]byte)
 	m["password"] = []byte(s.Password)

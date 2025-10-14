@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package onepasswordsdk implements a provider for 1Password secrets management service.
 package onepasswordsdk
 
 import (
@@ -27,7 +28,7 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 )
 
 const (
@@ -40,11 +41,12 @@ const (
 // ErrKeyNotFound is returned when a key is not found in the 1Password Vaults.
 var ErrKeyNotFound = errors.New("key not found")
 
+// PushSecretMetadataSpec defines the metadata configuration for pushing secrets to 1Password.
 type PushSecretMetadataSpec struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
-// GetSecret returns a single secret from the provider.
+// GetSecret returns a single secret from 1Password provider.
 // Follows syntax is used for the ref key: https://developer.1password.com/docs/cli/secret-reference-syntax/
 func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
@@ -280,6 +282,7 @@ func generateNewItemField(title, newVal string) onepassword.ItemField {
 	return field
 }
 
+// PushSecret creates or updates a secret in 1Password.
 func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1.PushSecretData) error {
 	val, ok := secret.Data[ref.GetSecretKey()]
 	if !ok {
@@ -326,21 +329,22 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref es
 	return nil
 }
 
-func (p *Provider) GetVault(ctx context.Context, titleOrUuid string) (string, error) {
+// GetVault retrieves a vault by its title or UUID from 1Password.
+func (p *Provider) GetVault(ctx context.Context, titleOrUUID string) (string, error) {
 	vaults, err := p.client.VaultsAPI.List(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to list vaults: %w", err)
 	}
 
 	for _, v := range vaults {
-		if v.Title == titleOrUuid || v.ID == titleOrUuid {
+		if v.Title == titleOrUUID || v.ID == titleOrUUID {
 			// cache the ID so we don't have to repeat this lookup.
 			p.vaultID = v.ID
 			return v.ID, nil
 		}
 	}
 
-	return "", fmt.Errorf("vault %s not found", titleOrUuid)
+	return "", fmt.Errorf("vault %s not found", titleOrUUID)
 }
 
 func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item, error) {
@@ -371,8 +375,8 @@ func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item,
 	return p.client.Items().Get(ctx, p.vaultID, itemUUID)
 }
 
-// SecretExists Not Implemented.
-func (p *Provider) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+// SecretExists checks if a secret exists in 1Password.
+func (p *Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf("not implemented")
 }
 
