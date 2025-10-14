@@ -4,7 +4,7 @@ kind: ExternalSecret
 metadata:
   name: github-auth-token
 spec:
-  refreshInterval: "30m" # Be sure to set this value lower than 60m since that is the expiration time from github
+  refreshInterval: "30m0s" # Be sure to set this value lower than 60m since that is the expiration time from github
   target:
     name: github-auth-token # Name for the secret to be created on the cluster
   dataFrom:
