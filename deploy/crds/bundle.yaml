@@ -1356,13 +1356,6 @@ spec:
                                     type: object
                                   literal:
                                     type: string
-                                  manifestTarget:
-                                    description: |-
-                                      ManifestTarget specifies a custom path for non-Secret resources.
-                                      Use this when spec.target.manifest is set. Supports nested paths
-                                      like "spec.database.config" or "data".
-                                      When set, this takes precedence over Target for non-Secret resources.
-                                    type: string
                                   secret:
                                     description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                     properties:
@@ -1400,9 +1393,7 @@ spec:
                                     type: object
                                   target:
                                     default: Data
-                                    description: |-
-                                      Target specifies where to place the template result for Secret resources.
-                                      Only supports: Data, Annotations, Labels
+                                    description: TemplateTarget defines the target field where the template result will be stored.
                                     enum:
                                       - Data
                                       - Annotations
@@ -12843,13 +12834,6 @@ spec:
                                 type: object
                               literal:
                                 type: string
-                              manifestTarget:
-                                description: |-
-                                  ManifestTarget specifies a custom path for non-Secret resources.
-                                  Use this when spec.target.manifest is set. Supports nested paths
-                                  like "spec.database.config" or "data".
-                                  When set, this takes precedence over Target for non-Secret resources.
-                                type: string
                               secret:
                                 description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                 properties:
@@ -12887,9 +12871,7 @@ spec:
                                 type: object
                               target:
                                 default: Data
-                                description: |-
-                                  Target specifies where to place the template result for Secret resources.
-                                  Only supports: Data, Annotations, Labels
+                                description: TemplateTarget defines the target field where the template result will be stored.
                                 enum:
                                   - Data
                                   - Annotations

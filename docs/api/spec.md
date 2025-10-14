@@ -4784,6 +4784,23 @@ ExternalSecretTemplate
 </tr>
 <tr>
 <td>
+<code>manifest</code></br>
+<em>
+<a href="#external-secrets.io/v1.ManifestTarget">
+ManifestTarget
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Manifest defines a custom Kubernetes resource to create instead of a Secret.
+When specified, ExternalSecret will create the resource type defined here
+(e.g., ConfigMap, Custom Resource) instead of a Secret.
+WARNING: Non-Secret resources are not encrypted at rest. Use with caution.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>immutable</code></br>
 <em>
 bool
@@ -6857,6 +6874,49 @@ bool
 </tr><tr><td><p>false</p></td>
 <td></td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ManifestTarget">ManifestTarget
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretTarget">ExternalSecretTarget</a>)
+</p>
+<p>
+<p>ManifestTarget defines a custom Kubernetes resource type to be created
+instead of a Secret. This allows ExternalSecret to create ConfigMaps,
+Custom Resources, or any other Kubernetes resource type.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIVersion of the target resource (e.g., &ldquo;v1&rdquo; for ConfigMap, &ldquo;argoproj.io/v1alpha1&rdquo; for ArgoCD Application)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind of the target resource (e.g., &ldquo;ConfigMap&rdquo;, &ldquo;Application&rdquo;)</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1.NTLMProtocol">NTLMProtocol
 </h3>
@@ -9887,6 +9947,23 @@ TemplateTarget
 </td>
 <td>
 <em>(Optional)</em>
+<p>Target specifies where to place the template result for Secret resources.
+Only supports: Data, Annotations, Labels</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>manifestTarget</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ManifestTarget specifies a custom path for non-Secret resources.
+Use this when spec.target.manifest is set. Supports nested paths
+like &ldquo;spec.database.config&rdquo; or &ldquo;data&rdquo;.
+When set, this takes precedence over Target for non-Secret resources.</p>
 </td>
 </tr>
 <tr>

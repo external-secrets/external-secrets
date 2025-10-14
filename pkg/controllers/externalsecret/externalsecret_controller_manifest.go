@@ -210,9 +210,9 @@ func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMa
 		data[k] = string(v)
 	}
 	if obj.Object["spec"] == nil {
-		obj.Object["spec"] = make(map[string]interface{})
+		obj.Object["spec"] = make(map[string]any)
 	}
-	spec := obj.Object["spec"].(map[string]interface{})
+	spec := obj.Object["spec"].(map[string]any)
 	spec["data"] = data
 
 	return obj, nil
@@ -293,9 +293,9 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 
 		if obj.GetKind() == "ConfigMap" {
 			if obj.Object["data"] == nil {
-				obj.Object["data"] = make(map[string]interface{})
+				obj.Object["data"] = make(map[string]any)
 			}
-			data := obj.Object["data"].(map[string]interface{})
+			data := obj.Object["data"].(map[string]any)
 			data[key] = rendered
 		} else {
 			// Default to spec.data for custom resources
@@ -330,17 +330,18 @@ func (r *Reconciler) renderTemplate(execute template.ExecFunc, tmpl string, data
 
 // applyToPath applies a value to a specific path in the unstructured object.
 // Supports paths like "data", "spec", "spec.config", etc.
-func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, value interface{}) error {
+func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, value any) error {
+	path = strings.ToLower(path)
 	switch path {
-	case "Data", "data":
+	case "data":
 		if obj.Object["data"] == nil {
-			obj.Object["data"] = make(map[string]interface{})
+			obj.Object["data"] = make(map[string]any)
 		}
 		if str, ok := value.(string); ok {
-			var parsed map[string]interface{}
+			var parsed map[string]any
 			if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
 				for k, v := range parsed {
-					obj.Object["data"].(map[string]interface{})[k] = v
+					obj.Object["data"].(map[string]any)[k] = v
 				}
 				return nil
 			}
@@ -348,9 +349,9 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 		obj.Object["data"] = value
 		return nil
 
-	case "Spec", "spec":
+	case "spec":
 		if str, ok := value.(string); ok {
-			var parsed map[string]interface{}
+			var parsed map[string]any
 			if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
 				obj.Object["spec"] = parsed
 				return nil
@@ -359,7 +360,7 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 		obj.Object["spec"] = value
 		return nil
 
-	case "Annotations", "annotations":
+	case "annotations":
 		if str, ok := value.(string); ok {
 			var parsed map[string]string
 			if err := json.Unmarshal([]byte(str), &parsed); err == nil {
@@ -369,7 +370,7 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 		}
 		return fmt.Errorf("annotations must be a valid JSON object")
 
-	case "Labels", "labels":
+	case "labels":
 		if str, ok := value.(string); ok {
 			var parsed map[string]string
 			if err := json.Unmarshal([]byte(str), &parsed); err == nil {
@@ -386,13 +387,13 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 	}
 
 	current := obj.Object
-	for i := 0; i < len(parts)-1; i++ {
+	for i := range len(parts) {
 		part := parts[i]
 		if current[part] == nil {
-			current[part] = make(map[string]interface{})
+			current[part] = make(map[string]any)
 		}
 		var ok bool
-		current, ok = current[part].(map[string]interface{})
+		current, ok = current[part].(map[string]any)
 		if !ok {
 			return fmt.Errorf("path %s is not a map at segment %s", path, part)
 		}
@@ -401,7 +402,7 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 	lastPart := parts[len(parts)-1]
 
 	if str, ok := value.(string); ok {
-		var parsed interface{}
+		var parsed any
 		if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
 			current[lastPart] = parsed
 			return nil
