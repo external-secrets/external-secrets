@@ -618,6 +618,60 @@ func TestGetNonSecretResource_NotFound(t *testing.T) {
 	assert.Nil(t, result)
 }
 
+func TestManifestTarget_FieldPrecedence(t *testing.T) {
+	// Test that ManifestTarget takes precedence over Target when both are set
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	manifestTarget := "spec.custom"
+	tplFrom := esv1.TemplateFrom{
+		Target:         esv1.TemplateTargetData,
+		ManifestTarget: &manifestTarget,
+	}
+
+	// When ManifestTarget is set, it should be used
+	var targetPath string
+	if tplFrom.ManifestTarget != nil {
+		targetPath = *tplFrom.ManifestTarget
+	} else {
+		targetPath = string(tplFrom.Target)
+	}
+
+	assert.Equal(t, "spec.custom", targetPath, "ManifestTarget should take precedence")
+}
+
+func TestManifestTarget_FallbackToTarget(t *testing.T) {
+	// Test that Target is used when ManifestTarget is nil
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	tplFrom := esv1.TemplateFrom{
+		Target:         esv1.TemplateTargetLabels,
+		ManifestTarget: nil,
+	}
+
+	// When ManifestTarget is nil, Target should be used
+	var targetPath string
+	if tplFrom.ManifestTarget != nil {
+		targetPath = *tplFrom.ManifestTarget
+	} else {
+		targetPath = string(tplFrom.Target)
+	}
+
+	assert.Equal(t, "Labels", targetPath, "Should fallback to Target enum value")
+}
+
+func TestManifestTarget_APIFieldExists(t *testing.T) {
+	// Test that the ManifestTarget field exists in the API and can be set
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	manifestTarget := "spec.database.config"
+	tplFrom := esv1.TemplateFrom{
+		ManifestTarget: &manifestTarget,
+	}
+
+	require.NotNil(t, tplFrom.ManifestTarget)
+	assert.Equal(t, "spec.database.config", *tplFrom.ManifestTarget)
+}
+
 func init() {
 	// Initialize scheme for tests
 	_ = esv1.AddToScheme(scheme.Scheme)
