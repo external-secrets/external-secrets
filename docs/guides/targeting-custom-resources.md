@@ -6,7 +6,8 @@ External Secrets Operator can create and manage resources beyond Kubernetes Secr
     Custom resources are not encrypted at rest by Kubernetes. Only use this feature when you need to populate resources that do not contain sensitive credentials, or when the target resource is encrypted by other means.
 
 This feature must be explicitly enabled in your deployment using the `--unsafe-allow-non-secret-targets` flag.
-
+!!! note "Namespaced Resources Only"
+    With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.
 ## Basic ConfigMap Example
 
 The simplest use case is creating a ConfigMap from external secrets. This is useful when applications expect configuration in ConfigMaps rather than Secrets, or when the data is not sensitive.
