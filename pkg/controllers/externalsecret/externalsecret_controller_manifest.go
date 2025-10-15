@@ -337,27 +337,18 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 		if obj.Object["data"] == nil {
 			obj.Object["data"] = make(map[string]any)
 		}
-		if str, ok := value.(string); ok {
-			var parsed map[string]any
-			if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
-				for k, v := range parsed {
-					obj.Object["data"].(map[string]any)[k] = v
-				}
-				return nil
+		parsedValue := r.tryParseYAML(value)
+		if parsedMap, ok := parsedValue.(map[string]any); ok {
+			for k, v := range parsedMap {
+				obj.Object["data"].(map[string]any)[k] = v
 			}
+			return nil
 		}
-		obj.Object["data"] = value
+		obj.Object["data"] = parsedValue
 		return nil
 
 	case "spec":
-		if str, ok := value.(string); ok {
-			var parsed map[string]any
-			if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
-				obj.Object["spec"] = parsed
-				return nil
-			}
-		}
-		obj.Object["spec"] = value
+		obj.Object["spec"] = r.tryParseYAML(value)
 		return nil
 
 	case "annotations":
@@ -368,8 +359,8 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 				return nil
 			}
 		}
-		return fmt.Errorf("annotations must be a valid JSON object")
 
+		return fmt.Errorf("annotations must be a valid JSON object")
 	case "labels":
 		if str, ok := value.(string); ok {
 			var parsed map[string]string
@@ -378,6 +369,7 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 				return nil
 			}
 		}
+
 		return fmt.Errorf("labels must be a valid JSON object")
 	}
 
@@ -386,29 +378,37 @@ func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, va
 		return fmt.Errorf("invalid path: %s", path)
 	}
 
+	// Navigate to the parent of the target field
 	current := obj.Object
-	for i := range len(parts) {
+	for i := range len(parts) - 1 {
 		part := parts[i]
 		if current[part] == nil {
 			current[part] = make(map[string]any)
 		}
-		var ok bool
-		current, ok = current[part].(map[string]any)
+		next, ok := current[part].(map[string]any)
 		if !ok {
 			return fmt.Errorf("path %s is not a map at segment %s", path, part)
 		}
+		current = next
 	}
 
+	// Set the value at the final key
 	lastPart := parts[len(parts)-1]
+	current[lastPart] = r.tryParseYAML(value)
+	return nil
+}
 
-	if str, ok := value.(string); ok {
-		var parsed any
-		if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
-			current[lastPart] = parsed
-			return nil
-		}
+// tryParseYAML attempts to parse a string value as YAML, returns original value if parsing fails.
+func (r *Reconciler) tryParseYAML(value any) any {
+	str, ok := value.(string)
+	if !ok {
+		return value
 	}
 
-	current[lastPart] = value
-	return nil
+	var parsed any
+	if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
+		return parsed
+	}
+
+	return value
 }
