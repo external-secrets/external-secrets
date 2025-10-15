@@ -25,7 +25,6 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -155,9 +154,9 @@ type Reconciler struct {
 	AllowNonSecretTargets     bool
 	recorder                  record.EventRecorder
 
-	// watchedGVKs tracks which GroupVersionKinds we're currently watching
-	// for non-Secret targets to enable drift detection
-	watchedGVKs sync.Map // map[schema.GroupVersionKind]bool
+	// watchTracker tracks which GroupVersionKinds we're currently watching
+	// for non-Secret targets to enable drift detection.
+	watchTracker WatchTracker
 
 	// controller is the underlying controller instance used for dynamic watch registration
 	controller controller.Controller
@@ -1156,6 +1155,11 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
 	r.cache = mgr.GetCache()
 
+	// Initialize watch tracker if not already set (allows injection of custom implementations)
+	if r.watchTracker == nil {
+		r.watchTracker = NewInMemoryWatchTracker()
+	}
+
 	// Initialize dynamic client for non-Secret target support
 	if r.DynamicClient == nil && r.RestConfig != nil {
 		dynClient, err := dynamic.NewForConfig(r.RestConfig)
@@ -1251,7 +1255,7 @@ func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Obj
 // This enables drift detection for non-Secret target resources.
 func (r *Reconciler) ensureWatchForGVK(gvk schema.GroupVersionKind) error {
 	// Check if already watching this GVK
-	if _, ok := r.watchedGVKs.Load(gvk.String()); ok {
+	if r.watchTracker.IsWatched(gvk) {
 		return nil
 	}
 
@@ -1292,8 +1296,8 @@ func (r *Reconciler) ensureWatchForGVK(gvk schema.GroupVersionKind) error {
 		return fmt.Errorf("failed to watch %s: %w", gvk.String(), err)
 	}
 
-	// store the GVK in the sync map so we don't start watching it again
-	r.watchedGVKs.Store(gvk.String(), true)
+	// mark the GVK as watched so we don't start watching it again
+	r.watchTracker.MarkWatched(gvk)
 	r.Log.Info("registered dynamic watch for non-Secret target",
 		"group", gvk.Group,
 		"version", gvk.Version,

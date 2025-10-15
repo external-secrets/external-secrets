@@ -61,6 +61,7 @@ func TestEnsureWatchForGVK(t *testing.T) {
 			r := &Reconciler{
 				Log:                   log.Log.WithName("test"),
 				AllowNonSecretTargets: true,
+				watchTracker:          NewInMemoryWatchTracker(),
 			}
 
 			// error is expected as there is no controller setup.
@@ -140,26 +141,24 @@ func TestGetTargetResourceIndex(t *testing.T) {
 }
 
 func TestWatchedGVKTracking(t *testing.T) {
+	tracker := NewInMemoryWatchTracker()
 	r := &Reconciler{
-		Log: log.Log.WithName("test"),
+		Log:          log.Log.WithName("test"),
+		watchTracker: tracker,
 	}
 
 	gvk1 := schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"}
 	gvk2 := schema.GroupVersionKind{Group: "argoproj.io", Version: "v1alpha1", Kind: "Application"}
 
-	_, watched1 := r.watchedGVKs.Load(gvk1.String())
-	assert.False(t, watched1)
-	r.watchedGVKs.Store(gvk1.String(), true)
+	assert.False(t, r.watchTracker.IsWatched(gvk1))
+	r.watchTracker.MarkWatched(gvk1)
 
-	_, watched1 = r.watchedGVKs.Load(gvk1.String())
-	assert.True(t, watched1)
+	assert.True(t, r.watchTracker.IsWatched(gvk1))
 
-	_, watched2 := r.watchedGVKs.Load(gvk2.String())
-	assert.False(t, watched2)
+	assert.False(t, r.watchTracker.IsWatched(gvk2))
 
-	r.watchedGVKs.Store(gvk2.String(), true)
-	_, watched2 = r.watchedGVKs.Load(gvk2.String())
-	assert.True(t, watched2)
+	r.watchTracker.MarkWatched(gvk2)
+	assert.True(t, r.watchTracker.IsWatched(gvk2))
 }
 
 func TestGVKFromManifestTarget(t *testing.T) {
