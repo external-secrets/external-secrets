@@ -1184,7 +1184,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 	// this lets us quickly find all ExternalSecrets which target a specific non-Secret resource
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &esv1.ExternalSecret{}, indexESTargetResourceField, func(obj client.Object) []string {
 		es := obj.(*esv1.ExternalSecret)
-		if !isNonSecretTarget(es) || !r.AllowNonSecretTargets {
+		if !r.AllowNonSecretTargets || !isNonSecretTarget(es) {
 			return nil
 		}
 
