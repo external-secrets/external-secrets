@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#senhasegura-devops-secrets-management-dsm" class="md-skip">
+        <a href="#segura-devops-secret-manager-dsm" class="md-skip">
           Skip to content
         </a>
       
@@ -3026,9 +3026,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#senhasegura-devops-secrets-management-dsm" class="md-nav__link">
+  <a href="#segura-devops-secret-manager-dsm" class="md-nav__link">
     <span class="md-ellipsis">
-      senhasegura DevOps Secrets Management (DSM)
+      Segura® DevOps Secret Manager (DSM)
     </span>
   </a>
   
@@ -4107,9 +4107,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#senhasegura-devops-secrets-management-dsm" class="md-nav__link">
+  <a href="#segura-devops-secret-manager-dsm" class="md-nav__link">
     <span class="md-ellipsis">
-      senhasegura DevOps Secrets Management (DSM)
+      Segura® DevOps Secret Manager (DSM)
     </span>
   </a>
   
@@ -4211,13 +4211,12 @@
 
   <h1>senhasegura DevOps Secrets Management (DSM)</h1>
 
-<h2 id="senhasegura-devops-secrets-management-dsm">senhasegura DevOps Secrets Management (DSM)</h2>
-<p>External Secrets Operator integrates with <a href="https://senhasegura.com/">senhasegura</a> <a href="https://senhasegura.com/devops">DevOps Secrets Management (DSM)</a> module to sync application secrets to secrets held on the Kubernetes cluster.</p>
+<h2 id="segura-devops-secret-manager-dsm">Segura® DevOps Secret Manager (DSM)</h2>
+<p>External Secrets Operator integrates with <a href="https://segura.security/">Segura®</a> <a href="https://segura.security/solutions/devops">DevOps Secret Manager (DSM)</a> module to sync application secrets to secrets held on the Kubernetes cluster.</p>
 <hr />
 <h2 id="authentication">Authentication</h2>
-<p>Authentication in senhasegura uses DevOps Secrets Management (DSM) application authorization schema</p>
-<p>You need to create an Kubernetes Secret with desired auth parameters, for example:</p>
-<p>Instructions to setup authorizations and secrets in senhasegura DSM can be found at <a href="https://helpcenter.senhasegura.io/docs/3.22/dsm">senhasegura docs for DSM</a> and <a href="https://www.youtube.com/channel/UCpDms35l3tcrfb8kZSpeNYw/search?query=DSM%2C%20en-US">senhasegura YouTube channel</a></p>
+<p>Authentication in Segura® uses DevOps Secret Manager (DSM) application authorization schema. Instructions to setup Authorizations and Secrets in Segura® DSM can be found at <a href="https://docs.senhasegura.io/docs/how-to-manage-authorizations-per-application-in-devops-secret-manager">Segura docs for DSM</a>.</p>
+<p>You will need to create an Kubernetes Secret with desired auth parameters, for example:</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
@@ -4228,7 +4227,7 @@
 </code></pre></div>
 <hr />
 <h2 id="examples">Examples</h2>
-<p>To sync secrets between senhasegura and Kubernetes with External Secrets, we need to define an SecretStore or ClusterSecretStore resource with senhasegura provider, setting authentication in DSM module with Secret defined before</p>
+<p>To sync secrets between Segura® DSM and Kubernetes with External Secrets, you need to define a SecretStore or ClusterSecretStore resource with Segura® provider, setting up authentication in the DSM module with the Secret you defined before.</p>
 <h3 id="secretstore">SecretStore</h3>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -4268,7 +4267,7 @@
 </code></pre></div>
 <hr />
 <h2 id="syncing-secrets">Syncing secrets</h2>
-<p>In examples below, consider that three secrets (api-settings, db-settings and hsm-settings) are defined in senhasegura DSM</p>
+<p>In examples below, consider that three secrets (api-settings, db-settings and hsm-settings) are defined in Segura® DSM</p>
 <hr />
 <p>**Secret Identifier: ** api-settings</p>
 <p><strong>Secret data:</strong> </p>
@@ -4291,7 +4290,7 @@
 </code></pre></div>
 <hr />
 <h3 id="sync-dsm-secrets-using-secret-identifiers">Sync DSM secrets using Secret Identifiers</h3>
-<p>You can fetch all key/value pairs for a given secret identifier If you leave the remoteRef.property empty. This returns the json-encoded secret value for that path.</p>
+<p>You can fetch all key/value pairs for a given secret identifier if you leave the remoteRef.property empty. This returns the json-encoded secret value for that path.</p>
 <p>If you only need a specific key, you can select it using remoteRef.property as the key name.</p>
 <p>In this method, you can overwrites data name in Kubernetes Secret object (e.g API_SETTINGS and API_SETTINGS_TOKEN)</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
@@ -4323,8 +4322,8 @@
 </code></pre></div>
 <hr />
 <h3 id="sync-dsm-secrets-using-secret-identifiers-with-automatically-name-assignments">Sync DSM secrets using Secret Identifiers with automatically name assignments</h3>
-<p>If your app requires multiples secrets, it is not required to create multiple ExternalSecret resources, you can aggregate secrets using a single ExternalSecret resource</p>
-<p>In this method, every secret data in senhasegura creates an Kubernetes Secret <code>.data.X</code> field</p>
+<p>If your app requires multiples secrets, it is not required to create multiple ExternalSecret resources, as you can aggregate secrets using a single ExternalSecret resource.</p>
+<p>In this method, every secret data in Segura® creates a Kubernetes Secret <code>.data.X</code> field</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -4344,7 +4343,7 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-settings</span>
 </code></pre></div>
-<p>Kubernetes Secret will be create with follow <code>.data.X</code></p>
+<p>Kubernetes Secret will be created with the following <code>.data.X</code></p>
 <div class="highlight"><pre><span></span><code><span class="nv">URL</span><span class="o">=</span><span class="s1">&#39;https://example.com/api/example&#39;</span>
 <span class="nv">TOKEN</span><span class="o">=</span><span class="s1">&#39;example-token-value&#39;</span>
 <span class="nv">DB_HOST</span><span class="o">=</span><span class="s1">&#39;db.example&#39;</span>
@@ -4374,7 +4373,7 @@ You can sync all secrets that your authorization in DSM has using find, in a fut
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
 </code></pre></div>
 
-Kubernetes Secret will be create with follow `.data.X`
+Kubernetes Secret will be created with the following `.data.X`
 
 ```bash
 URL='https://example.com/api/example'
