@@ -526,6 +526,17 @@
         "nodeSelector": {
             "type": "object"
         },
+        "nonSecretTargets": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "resources": {
+                    "type": "array"
+                }
+            }
+        },
         "openshiftFinalizers": {
             "type": "boolean"
         },
