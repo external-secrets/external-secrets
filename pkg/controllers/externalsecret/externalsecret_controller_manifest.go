@@ -18,9 +18,7 @@ package externalsecret
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -29,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/yaml"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
@@ -225,31 +222,24 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 		return nil, fmt.Errorf("failed to get template engine: %w", err)
 	}
 
+	// Handle templateFrom entries
 	for _, tplFrom := range es.Spec.Target.Template.TemplateFrom {
+		targetPath := tplFrom.Target
+		if targetPath == "" {
+			targetPath = esv1.TemplateTargetData
+		}
+
 		if tplFrom.Literal != nil {
-			// Determine target path: ManifestTarget takes precedence over Target
-			var targetPath string
-			if tplFrom.ManifestTarget != nil {
-				targetPath = *tplFrom.ManifestTarget
-			} else {
-				targetPath = string(tplFrom.Target)
-			}
-
-			rendered, err := r.renderTemplate(execute, *tplFrom.Literal, dataMap)
-			if err != nil {
-				return nil, fmt.Errorf("failed to render template: %w", err)
-			}
-
-			if err := r.applyToPath(obj, targetPath, rendered); err != nil {
-				return nil, fmt.Errorf("failed to apply template to path %s: %w", targetPath, err)
+			// Execute template directly against the unstructured object
+			tplMap := map[string][]byte{"template": []byte(*tplFrom.Literal)}
+			if err := execute(tplMap, dataMap, esv1.TemplateScopeKeysAndValues, targetPath, obj); err != nil {
+				return nil, fmt.Errorf("failed to execute literal template: %w", err)
 			}
 		}
 
 		if tplFrom.ConfigMap != nil || tplFrom.Secret != nil {
-			tempSecret := &v1.Secret{
-				Data: make(map[string][]byte),
-			}
-
+			// Parser still uses v1.Secret, so collect data and apply via template engine to the end result.
+			tempSecret := &v1.Secret{Data: make(map[string][]byte)}
 			p := templating.Parser{
 				Client:       r.Client,
 				TargetSecret: tempSecret,
@@ -269,146 +259,24 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 				}
 			}
 
-			// Determine target path: ManifestTarget takes precedence over Target
-			var targetPath string
-			if tplFrom.ManifestTarget != nil {
-				targetPath = *tplFrom.ManifestTarget
-			} else {
-				targetPath = string(tplFrom.Target)
-			}
-
-			for k, v := range tempSecret.Data {
-				if err := r.applyToPath(obj, targetPath+"."+k, string(v)); err != nil {
-					return nil, fmt.Errorf("failed to apply data to path: %w", err)
-				}
+			// apply collected data to the target object
+			if err := execute(tempSecret.Data, dataMap, esv1.TemplateScopeValues, targetPath, obj); err != nil {
+				return nil, fmt.Errorf("failed to apply merged templates to path %s: %w", targetPath, err)
 			}
 		}
 	}
 
-	for key, tmpl := range es.Spec.Target.Template.Data {
-		rendered, err := r.renderTemplate(execute, tmpl, dataMap)
-		if err != nil {
-			return nil, fmt.Errorf("failed to render template for key %s: %w", key, err)
+	// Handle template.data entries
+	if len(es.Spec.Target.Template.Data) > 0 {
+		tplMap := make(map[string][]byte)
+		for k, v := range es.Spec.Target.Template.Data {
+			tplMap[k] = []byte(v)
 		}
 
-		if obj.GetKind() == "ConfigMap" {
-			if obj.Object["data"] == nil {
-				obj.Object["data"] = make(map[string]any)
-			}
-			data := obj.Object["data"].(map[string]any)
-			data[key] = rendered
-		} else {
-			// Default to spec.data for custom resources
-			if err := r.applyToPath(obj, "spec.data."+key, rendered); err != nil {
-				return nil, fmt.Errorf("failed to apply template data: %w", err)
-			}
+		if err := execute(tplMap, dataMap, esv1.TemplateScopeValues, esv1.TemplateTargetData, obj); err != nil {
+			return nil, fmt.Errorf("failed to execute template.data: %w", err)
 		}
 	}
 
 	return obj, nil
-}
-
-// renderTemplate executes a template string with the provided data.
-func (r *Reconciler) renderTemplate(execute template.ExecFunc, tmpl string, dataMap map[string][]byte) (string, error) {
-	out := make(map[string][]byte)
-	out["template"] = []byte(tmpl)
-	tempSecret := &v1.Secret{
-		Data: make(map[string][]byte),
-	}
-
-	err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, esv1.TemplateTargetData, tempSecret)
-	if err != nil {
-		return "", err
-	}
-
-	if rendered, ok := tempSecret.Data["template"]; ok {
-		return string(rendered), nil
-	}
-
-	return "", fmt.Errorf("template execution did not produce output")
-}
-
-// applyToPath applies a value to a specific path in the unstructured object.
-// Supports paths like "data", "spec", "spec.config", etc.
-func (r *Reconciler) applyToPath(obj *unstructured.Unstructured, path string, value any) error {
-	path = strings.ToLower(path)
-	switch path {
-	case "data":
-		if obj.Object["data"] == nil {
-			obj.Object["data"] = make(map[string]any)
-		}
-		parsedValue := r.tryParseYAML(value)
-		if parsedMap, ok := parsedValue.(map[string]any); ok {
-			for k, v := range parsedMap {
-				obj.Object["data"].(map[string]any)[k] = v
-			}
-			return nil
-		}
-		obj.Object["data"] = parsedValue
-		return nil
-
-	case "spec":
-		obj.Object["spec"] = r.tryParseYAML(value)
-		return nil
-
-	case "annotations":
-		if str, ok := value.(string); ok {
-			var parsed map[string]string
-			if err := json.Unmarshal([]byte(str), &parsed); err == nil {
-				obj.SetAnnotations(parsed)
-				return nil
-			}
-		}
-
-		return fmt.Errorf("annotations must be a valid JSON object")
-	case "labels":
-		if str, ok := value.(string); ok {
-			var parsed map[string]string
-			if err := json.Unmarshal([]byte(str), &parsed); err == nil {
-				obj.SetLabels(parsed)
-				return nil
-			}
-		}
-
-		return fmt.Errorf("labels must be a valid JSON object")
-	}
-
-	parts := strings.Split(path, ".")
-	if len(parts) == 0 {
-		return fmt.Errorf("invalid path: %s", path)
-	}
-
-	// Navigate to the parent of the target field
-	current := obj.Object
-	for i := range len(parts) - 1 {
-		part := parts[i]
-		if current[part] == nil {
-			current[part] = make(map[string]any)
-		}
-		next, ok := current[part].(map[string]any)
-		if !ok {
-			return fmt.Errorf("path %s is not a map at segment %s", path, part)
-		}
-		current = next
-	}
-
-	// Set the value at the final key
-	lastPart := parts[len(parts)-1]
-	current[lastPart] = r.tryParseYAML(value)
-	return nil
-}
-
-// tryParseYAML attempts to parse a string value as YAML, returns original value if parsing fails.
-func (r *Reconciler) tryParseYAML(value any) any {
-	str, ok := value.(string)
-	if !ok {
-		return value
-	}
-
-	var parsed any
-	if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
-		return parsed
-	}
-
-	return value
 }

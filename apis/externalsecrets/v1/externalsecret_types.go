@@ -134,18 +134,13 @@ type TemplateFrom struct {
 	ConfigMap *TemplateRef `json:"configMap,omitempty"`
 	Secret    *TemplateRef `json:"secret,omitempty"`
 
-	// Target specifies where to place the template result for Secret resources.
-	// Only supports: Data, Annotations, Labels
+	// Target specifies where to place the template result.
+	// For Secret resources, common values are: "Data", "Annotations", "Labels".
+	// For custom resources (when spec.target.manifest is set), this supports
+	// nested paths like "spec.database.config" or "data".
 	// +optional
 	// +kubebuilder:default="Data"
-	Target TemplateTarget `json:"target,omitempty"`
-
-	// ManifestTarget specifies a custom path for non-Secret resources.
-	// Use this when spec.target.manifest is set. Supports nested paths
-	// like "spec.database.config" or "data".
-	// When set, this takes precedence over Target for non-Secret resources.
-	// +optional
-	ManifestTarget *string `json:"manifestTarget,omitempty"`
+	Target string `json:"target,omitempty"`
 
 	// +optional
 	Literal *string `json:"literal,omitempty"`
@@ -159,13 +154,12 @@ const (
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
-// +kubebuilder:validation:Enum=Data;Annotations;Labels
-type TemplateTarget string
-
+// TemplateTarget defines common target locations for Secret resources.
+// These constants are provided for convenience but Target accepts any string.
 const (
-	TemplateTargetData        TemplateTarget = "Data"
-	TemplateTargetAnnotations TemplateTarget = "Annotations"
-	TemplateTargetLabels      TemplateTarget = "Labels"
+	TemplateTargetData        = "Data"
+	TemplateTargetAnnotations = "Annotations"
+	TemplateTargetLabels      = "Labels"
 )
 
 type TemplateRef struct {

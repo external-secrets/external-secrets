@@ -9821,30 +9821,15 @@ TemplateRef
 <td>
 <code>target</code></br>
 <em>
-<a href="#external-secrets.io/v1.TemplateTarget">
-TemplateTarget
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Target specifies where to place the template result for Secret resources.
-Only supports: Data, Annotations, Labels</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>manifestTarget</code></br>
-<em>
 string
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>ManifestTarget specifies a custom path for non-Secret resources.
-Use this when spec.target.manifest is set. Supports nested paths
-like &ldquo;spec.database.config&rdquo; or &ldquo;data&rdquo;.
-When set, this takes precedence over Target for non-Secret resources.</p>
+<p>Target specifies where to place the template result.
+For Secret resources, common values are: &ldquo;Data&rdquo;, &ldquo;Annotations&rdquo;, &ldquo;Labels&rdquo;.
+For custom resources (when spec.target.manifest is set), this supports
+nested paths like &ldquo;spec.database.config&rdquo; or &ldquo;data&rdquo;.</p>
 </td>
 </tr>
 <tr>
@@ -9982,29 +9967,6 @@ TemplateScope
 <tbody><tr><td><p>&#34;KeysAndValues&#34;</p></td>
 <td></td>
 </tr><tr><td><p>&#34;Values&#34;</p></td>
-<td></td>
-</tr></tbody>
-</table>
-<h3 id="external-secrets.io/v1.TemplateTarget">TemplateTarget
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.TemplateFrom">TemplateFrom</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr><td><p>&#34;Annotations&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Data&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Labels&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
