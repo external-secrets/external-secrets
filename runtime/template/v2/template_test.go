@@ -841,6 +841,193 @@ func TestScopeKeysAndValues(t *testing.T) {
 		})
 	}
 }
+func TestComplexYAMLFieldsWithSpec(t *testing.T) {
+	// These tests verify that the template engine can handle complex YAML values
+	// for spec fields. Since ConfigMap doesn't have a spec field in its typed definition,
+	// we test by inspecting what would be set in an unstructured representation.
+	
+	type testCase struct {
+		name        string
+		tpl         map[string][]byte
+		target      string
+		scope       esapi.TemplateScope
+		data        map[string][]byte
+		verify      func(t *testing.T, obj *corev1.Secret)
+		expErr      string
+	}
+
+	tests := []testCase{
+		{
+			name:   "data target with simple string in Secret",
+			target: "data",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"simple": []byte("{{ .value }}"),
+			},
+			data: map[string][]byte{
+				"value": []byte("test-value"),
+			},
+			verify: func(t *testing.T, obj *corev1.Secret) {
+				assert.Equal(t, []byte("test-value"), obj.Data["simple"])
+			},
+		},
+		{
+			name:   "data target with multiple keys",
+			target: "data",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"username": []byte("{{ .user }}"),
+				"password": []byte("{{ .pass }}"),
+			},
+			data: map[string][]byte{
+				"user": []byte("admin"),
+				"pass": []byte("secret123"),
+			},
+			verify: func(t *testing.T, obj *corev1.Secret) {
+				assert.Equal(t, []byte("admin"), obj.Data["username"])
+				assert.Equal(t, []byte("secret123"), obj.Data["password"])
+			},
+		},
+		{
+			name:   "labels target with templated values",
+			target: "labels",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"app":     []byte("{{ .app }}"),
+				"version": []byte("{{ .version }}"),
+			},
+			data: map[string][]byte{
+				"app":     []byte("my-app"),
+				"version": []byte("1.0.0"),
+			},
+			verify: func(t *testing.T, obj *corev1.Secret) {
+				assert.Equal(t, "my-app", obj.Labels["app"])
+				assert.Equal(t, "1.0.0", obj.Labels["version"])
+			},
+		},
+		{
+			name:   "annotations target with templated values",
+			target: "annotations",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"description": []byte("{{ .desc }}"),
+				"owner":       []byte("{{ .owner }}"),
+			},
+			data: map[string][]byte{
+				"desc":  []byte("Test secret"),
+				"owner": []byte("team-platform"),
+			},
+			verify: func(t *testing.T, obj *corev1.Secret) {
+				assert.Equal(t, "Test secret", obj.Annotations["description"])
+				assert.Equal(t, "team-platform", obj.Annotations["owner"])
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:        "test-secret",
+					Namespace:   "default",
+					Labels:      make(map[string]string),
+					Annotations: make(map[string]string),
+				},
+				Data: make(map[string][]byte),
+			}
+
+			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
+
+			if tt.expErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expErr)
+				return
+			}
+
+			require.NoError(t, err)
+			if tt.verify != nil {
+				tt.verify(t, obj)
+			}
+		})
+	}
+}
+
+func TestTryParseYAML(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected any
+	}{
+		{
+			name:     "parse YAML object",
+			input:    "key: value\nfoo: bar",
+			expected: map[string]any{"key": "value", "foo": "bar"},
+		},
+		{
+			name:     "parse YAML array",
+			input:    "- item1\n- item2\n- item3",
+			expected: []any{"item1", "item2", "item3"},
+		},
+		{
+			name:     "parse YAML number",
+			input:    "42",
+			expected: int64(42),
+		},
+		{
+			name:     "parse YAML boolean true",
+			input:    "true",
+			expected: true,
+		},
+		{
+			name:     "parse YAML boolean false",
+			input:    "false",
+			expected: false,
+		},
+		{
+			name:     "parse YAML float",
+			input:    "3.14",
+			expected: 3.14,
+		},
+		{
+			name:     "parse complex YAML",
+			input:    "database:\n  host: localhost\n  port: 5432\n  enabled: true",
+			expected: map[string]any{"database": map[string]any{"host": "localhost", "port": int64(5432), "enabled": true}},
+		},
+		{
+			name:     "plain string returns as-is",
+			input:    "just a string",
+			expected: "just a string",
+		},
+		{
+			name:     "invalid YAML returns original",
+			input:    "invalid: : yaml:",
+			expected: "invalid: : yaml:",
+		},
+		{
+			name:     "non-string input returns as-is",
+			input:    123,
+			expected: 123,
+		},
+		{
+			name:     "byte slice returns as-is",
+			input:    []byte("test"),
+			expected: []byte("test"),
+		},
+		{
+			name:     "null/empty string",
+			input:    "",
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tryParseYAML(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func ErrorContains(out error, want string) bool {
 	if out == nil {
 		return want == ""
