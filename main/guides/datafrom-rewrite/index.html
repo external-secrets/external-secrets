@@ -1810,6 +1810,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transform
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#merge" class="md-nav__link">
     <span class="md-ellipsis">
       Merge
@@ -1873,6 +1882,15 @@
   <a href="#merging-all-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       Merging all secrets
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transform-secret-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transform secret keys
     </span>
   </a>
   
@@ -4150,6 +4168,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transform
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#merge" class="md-nav__link">
     <span class="md-ellipsis">
       Merge
@@ -4218,6 +4245,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#transform-secret-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transform secret keys
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4258,6 +4294,9 @@
 <h2 id="methods">Methods</h2>
 <h3 id="regexp">Regexp</h3>
 <p>This method implements rewriting through the use of regular expressions. It needs a <code>source</code> and a <code>target</code> field. The source field is where the definition of the matching regular expression goes, where the <code>target</code> field is where the replacing expression goes.</p>
+<h3 id="transform">Transform</h3>
+<p>This method uses Go templating to rewrite the keys of each secret. The <code>template</code> field is used to specify the template. You can reference the key of each secret by the <code>.value</code> string.</p>
+<p>You can also use <a href="../templating/#helper-functions">helper functions</a> in the template.</p>
 <h3 id="merge">Merge</h3>
 <p>This method implements rewriting keys by merging operation and solving key collisions. It supports two merging strategies: <code>Extract</code> and <code>JSON</code>.</p>
 <p>The <code>Extract</code> strategy interprets all secret values in the secret map as JSON and merges all contained key/value pairs hoisting them to the top level, substituting the original secret map.</p>
@@ -4434,6 +4473,41 @@ the output kubernetes secret would be:
 <span class="w">    </span><span class="nt">SECRET_KEY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WVlZWQ==</span><span class="w"> </span><span class="c1">#YYYY</span>
 <span class="w">    </span><span class="nt">USERNAME</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WFhYWA==</span><span class="w"> </span><span class="c1">#XXXX</span>
 <span class="w">    </span><span class="nt">PASSWORD</span><span class="p">:</span><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">WVlZWQ==</span><span class="w"> </span><span class="c1">#YYYY</span>
+</code></pre></div></p>
+<h3 id="transform-secret-keys">Transform secret keys</h3>
+<p>The following ExternalSecret:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secret-transform</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fake</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.*&quot;</span>
+<span class="w">      </span><span class="nt">rewrite</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">transform</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;ENV_{{</span><span class="nv"> </span><span class="s">.value</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">upper</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">replace</span><span class="nv"> </span><span class="s">&quot;-&quot;</span><span class="nv"> </span><span class="s">&quot;_&quot;</span><span class="nv"> </span><span class="s">}}&#39;</span>
+</code></pre></div>
+<p>Uses a template to transform all secret keys into an "environment variable" format by capitalizing, replacing <code>-</code> with <code>_</code> and prefixing them with <code>ENV_</code>.</p>
+<p>In this example, if we had the following secrets available in the provider:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="nt">&quot;foo-nut-bar&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;HELLO1&quot;</span>
+<span class="nt">&quot;foo-naz-bar&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;HELLO2&quot;</span>
+<span class="nt">&quot;foo-bar-baz&quot;</span><span class="p">:</span><span class="w"> </span><span class="err">&#39;</span><span class="p">{</span><span class="nt">&quot;john&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;doe&quot;</span><span class="p">}</span><span class="err">&#39;</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>the output kubernetes secret would be:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ENV_FOO_BAR_BAZ</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eyJqb2huIjogImRvZSJ9</span>
+<span class="w">  </span><span class="nt">ENV_FOO_NAZ_BAR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SEVMTE8y</span>
+<span class="w">  </span><span class="nt">ENV_FOO_NUT_BAR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SEVMTE8x</span>
 </code></pre></div></p>
 <h2 id="limitations">Limitations</h2>
 <p>Regexp Rewrite is based on golang <code>regexp</code>, which in turns implements <code>RE2</code> regexp language. There a a series of known limitations to this implementation, such as:</p>
