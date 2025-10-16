@@ -195,8 +195,9 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 // GetInstallationToken generates a GitHub installation token using the provided private key and app ID.
 func GetInstallationToken(key *rsa.PrivateKey, aid string) (string, error) {
 	claims := jwt.RegisteredClaims{
-		Issuer:   aid,
-		IssuedAt: jwt.NewNumericDate(time.Now().Add(-time.Second * 10)),
+		Issuer:    aid,
+		IssuedAt:  jwt.NewNumericDate(time.Now().Add(-time.Second * 10)),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 300)),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
