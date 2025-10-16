@@ -164,7 +164,7 @@ func (p *Parser) MergeTemplateFrom(ctx context.Context, namespace string, templa
 }
 
 // MergeMap merges the given map of templates into the target secret.
-func (p *Parser) MergeMap(tplMap map[string]string, target esv1.TemplateTarget) error {
+func (p *Parser) MergeMap(tplMap map[string]string, target string) error {
 	byteMap := make(map[string][]byte)
 	for k, v := range tplMap {
 		byteMap[k] = []byte(v)

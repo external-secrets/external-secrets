@@ -19,12 +19,14 @@ package template
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	tpl "text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/spf13/pflag"
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/feature"
@@ -90,39 +92,83 @@ func init() {
 	})
 }
 
-func applyToTarget(k string, val []byte, target esapi.TemplateTarget, secret *corev1.Secret) {
+func applyToTarget(k string, val []byte, target string, obj client.Object) error {
+	target = strings.ToLower(target)
 	switch target {
-	case esapi.TemplateTargetAnnotations:
-		if secret.Annotations == nil {
-			secret.Annotations = make(map[string]string)
+	case "annotations":
+		annotations := obj.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
 		}
-		secret.Annotations[k] = string(val)
-	case esapi.TemplateTargetLabels:
-		if secret.Labels == nil {
-			secret.Labels = make(map[string]string)
+		annotations[k] = string(val)
+		obj.SetAnnotations(annotations)
+	case "labels":
+		labels := obj.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string)
 		}
-		secret.Labels[k] = string(val)
-	case esapi.TemplateTargetData:
-		if secret.Data == nil {
-			secret.Data = make(map[string][]byte)
+		labels[k] = string(val)
+		obj.SetLabels(labels)
+	case "data":
+		if err := setField(obj, "data", k, val); err != nil {
+			return fmt.Errorf("failed to set data field on object: %w", err)
 		}
-		secret.Data[k] = val
+	case "spec":
+		if err := setField(obj, "spec", k, val); err != nil {
+			return fmt.Errorf("failed to set data field on object: %w", err)
+		}
 	default:
+		parts := strings.Split(target, ".")
+		if len(parts) == 0 {
+			return fmt.Errorf("invalid path: %s", target)
+		}
+
+		unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+		if err != nil {
+			return fmt.Errorf("failed to convert object to unstructured: %w", err)
+		}
+
+		// Navigate to the parent of the target field
+		current := unstructured
+		for i := range len(parts) - 1 {
+			part := parts[i]
+			if current[part] == nil {
+				current[part] = make(map[string]any)
+			}
+			next, ok := current[part].(map[string]any)
+			if !ok {
+				return fmt.Errorf("path %s is not a map at segment %s", target, part)
+			}
+			current = next
+		}
+
+		// Set the value at the final key
+		lastPart := parts[len(parts)-1]
+		current[lastPart] = tryParseYAML(val)
+
+		// Convert back to the original object type
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
+			return fmt.Errorf("failed to convert unstructured to object: %w", err)
+		}
 	}
+
+	return nil
 }
 
-func valueScopeApply(tplMap, data map[string][]byte, target esapi.TemplateTarget, secret *corev1.Secret) error {
+func valueScopeApply(tplMap, data map[string][]byte, target string, secret client.Object) error {
 	for k, v := range tplMap {
 		val, err := execute(k, string(v), data)
 		if err != nil {
 			return fmt.Errorf(errExecute, k, err)
 		}
-		applyToTarget(k, val, target, secret)
+		if err := applyToTarget(k, val, target, secret); err != nil {
+			return fmt.Errorf("failed to apply to target: %w", err)
+		}
 	}
 	return nil
 }
 
-func mapScopeApply(tpl string, data map[string][]byte, target esapi.TemplateTarget, secret *corev1.Secret) error {
+func mapScopeApply(tpl string, data map[string][]byte, target string, secret client.Object) error {
 	val, err := execute(tpl, tpl, data)
 	if err != nil {
 		return fmt.Errorf(errExecute, tpl, err)
@@ -133,13 +179,15 @@ func mapScopeApply(tpl string, data map[string][]byte, target esapi.TemplateTarg
 		return fmt.Errorf("could not unmarshal template to 'map[string][]byte': %w", err)
 	}
 	for k, val := range src {
-		applyToTarget(k, []byte(val), target, secret)
+		if err := applyToTarget(k, []byte(val), target, secret); err != nil {
+			return fmt.Errorf("failed to apply to target: %w", err)
+		}
 	}
 	return nil
 }
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error {
+func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object) error {
 	if tpl == nil {
 		return nil
 	}
@@ -182,4 +230,44 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 		return nil, fmt.Errorf(errExecute, k, err)
 	}
 	return buf.Bytes(), nil
+}
+
+// setData sets the data field of the object.
+func setField(obj client.Object, field, k string, val []byte) error {
+	m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return fmt.Errorf("failed to convert object to unstructured: %w", err)
+	}
+	_, ok := m[field]
+	if !ok {
+		m[field] = map[string]any{}
+	}
+	specMap, ok := m[field].(map[string]any)
+	if !ok {
+		return fmt.Errorf("failed to convert data to map[string][]byte")
+	}
+
+	specMap[k] = tryParseYAML(val)
+	m[field] = specMap
+
+	// Convert back to the original object type
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(m, obj); err != nil {
+		return fmt.Errorf("failed to convert unstructured to object: %w", err)
+	}
+	return nil
+}
+
+// tryParseYAML attempts to parse a string value as YAML, returns original value if parsing fails.
+func tryParseYAML(value any) any {
+	str, ok := value.(string)
+	if !ok {
+		return value
+	}
+
+	var parsed any
+	if err := yaml.Unmarshal([]byte(str), &parsed); err == nil {
+		return parsed
+	}
+
+	return value
 }

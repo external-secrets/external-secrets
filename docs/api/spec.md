@@ -9940,30 +9940,15 @@ TemplateRef
 <td>
 <code>target</code></br>
 <em>
-<a href="#external-secrets.io/v1.TemplateTarget">
-TemplateTarget
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Target specifies where to place the template result for Secret resources.
-Only supports: Data, Annotations, Labels</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>manifestTarget</code></br>
-<em>
 string
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>ManifestTarget specifies a custom path for non-Secret resources.
-Use this when spec.target.manifest is set. Supports nested paths
-like &ldquo;spec.database.config&rdquo; or &ldquo;data&rdquo;.
-When set, this takes precedence over Target for non-Secret resources.</p>
+<p>Target specifies where to place the template result.
+For Secret resources, common values are: &ldquo;Data&rdquo;, &ldquo;Annotations&rdquo;, &ldquo;Labels&rdquo;.
+For custom resources (when spec.target.manifest is set), this supports
+nested paths like &ldquo;spec.database.config&rdquo; or &ldquo;data&rdquo;.</p>
 </td>
 </tr>
 <tr>
@@ -10108,6 +10093,7 @@ TemplateScope
 <td></td>
 </tr></tbody>
 </table>
+<<<<<<< HEAD
 <h3 id="external-secrets.io/v1.TemplateTarget">TemplateTarget
 (<code>string</code> alias)</p></h3>
 <p>
@@ -10132,6 +10118,8 @@ TemplateScope
 <td></td>
 </tr></tbody>
 </table>
+=======
+>>>>>>> a470ac688 (further refined and tried to generalize the templating)
 <h3 id="external-secrets.io/v1.TokenAuth">TokenAuth
 </h3>
 <p>
