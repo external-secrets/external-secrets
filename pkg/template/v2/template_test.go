@@ -629,9 +629,8 @@ func TestExecute(t *testing.T) {
 		},
 	}
 
-	for i := range tbl {
-		row := tbl[i]
-		t.Run(row.name, func(t *testing.T) {
+	for _, tt := range tbl {
+		t.Run(tt.name, func(t *testing.T) {
 			sec := &corev1.Secret{
 				Data:       make(map[string][]byte),
 				StringData: make(map[string]string),
@@ -639,36 +638,36 @@ func TestExecute(t *testing.T) {
 			}
 			oldLeftDelim := leftDelim
 			oldRightDelim := rightDelim
-			if row.leftDelimiter != "" {
-				leftDelim = row.leftDelimiter
+			if tt.leftDelimiter != "" {
+				leftDelim = tt.leftDelimiter
 			}
-			if row.rightDelimiter != "" {
-				rightDelim = row.rightDelimiter
+			if tt.rightDelimiter != "" {
+				rightDelim = tt.rightDelimiter
 			}
 			defer func() {
 				leftDelim = oldLeftDelim
 				rightDelim = oldRightDelim
 			}()
-			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec)
-			if !ErrorContains(err, row.expErr) {
-				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
+			err := Execute(tt.tpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec)
+			if !ErrorContains(err, tt.expErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
-			err = Execute(row.labelsTpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetLabels, sec)
-			if !ErrorContains(err, row.expLblErr) {
-				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
+			err = Execute(tt.labelsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetLabels, sec)
+			if !ErrorContains(err, tt.expLblErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
-			err = Execute(row.annotationsTpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetAnnotations, sec)
-			if !ErrorContains(err, row.expAnnoErr) {
-				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
+			err = Execute(tt.annotationsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetAnnotations, sec)
+			if !ErrorContains(err, tt.expAnnoErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
-			if row.expectedData != nil {
-				assert.EqualValues(t, row.expectedData, sec.Data)
+			if tt.expectedData != nil {
+				assert.EqualValues(t, tt.expectedData, sec.Data)
 			}
-			if row.expectedLabels != nil {
-				assert.EqualValues(t, row.expectedLabels, sec.ObjectMeta.Labels)
+			if tt.expectedLabels != nil {
+				assert.EqualValues(t, tt.expectedLabels, sec.ObjectMeta.Labels)
 			}
-			if row.expectedAnnotations != nil {
-				assert.EqualValues(t, row.expectedAnnotations, sec.ObjectMeta.Annotations)
+			if tt.expectedAnnotations != nil {
+				assert.EqualValues(t, tt.expectedAnnotations, sec.ObjectMeta.Annotations)
 			}
 		})
 	}
@@ -678,7 +677,7 @@ func TestScopeValuesWithSecretFieldsNil(t *testing.T) {
 	tbl := []struct {
 		name               string
 		tpl                map[string][]byte
-		target             esapi.TemplateTarget
+		target             string
 		data               map[string][]byte
 		expectedData       map[string][]byte
 		expectedStringData map[string]string
@@ -764,7 +763,7 @@ func TestScopeKeysAndValues(t *testing.T) {
 	tbl := []struct {
 		name               string
 		tpl                map[string][]byte
-		target             esapi.TemplateTarget
+		target             string
 		data               map[string][]byte
 		expectedData       map[string][]byte
 		expectedStringData map[string]string
