@@ -103,12 +103,12 @@ processClusterGenerator: true
 processPushSecret: true
 
 # -- Enable support for non-Secret targets (ConfigMaps, Custom Resources).
-# WARNING: Non-Secret resources are not encrypted at rest. Use with caution.
+# Warning: Using non-Secret target. Make sure access policies and encryption are properly configured.
 # When enabled, this grants the controller permissions to create/update/delete
 # ConfigMaps and optionally other resource types specified in nonSecretTargets.resources.
 nonSecretTargets:
   # -- Enable non-Secret target support
-  enabled: true
+  enabled: false
   # -- List of additional resource types to grant permissions for.
   # Each entry should specify apiGroup, resources, and verbs.
   # Example:
