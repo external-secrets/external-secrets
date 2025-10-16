@@ -152,6 +152,14 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 		}
 	}
 
+	// all fields have been nilled out if they weren't set.
+	if obj.GetLabels() == nil {
+		obj.SetLabels(make(map[string]string))
+	}
+	if obj.GetAnnotations() == nil {
+		obj.SetAnnotations(make(map[string]string))
+	}
+
 	return nil
 }
 

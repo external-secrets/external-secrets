@@ -856,8 +856,10 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 	// define and mutate the new secret
 	newSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: es.Namespace,
+			Name:        secretName,
+			Namespace:   es.Namespace,
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
 		},
 		Data: make(map[string][]byte),
 	}

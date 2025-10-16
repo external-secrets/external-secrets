@@ -52,7 +52,7 @@ func (r *Reconciler) validateNonSecretTarget(log logr.Logger, es *esv1.ExternalS
 		return fmt.Errorf("target.manifest.kind is required")
 	}
 
-	log.Info("WARNING: Using non-Secret target. Data will not be encrypted at rest.",
+	log.Info("Warning: Using non-Secret target. Make sure access policies and encryption are properly configured.",
 		"apiVersion", manifest.APIVersion,
 		"kind", manifest.Kind,
 		"name", getTargetName(es))
