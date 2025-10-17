@@ -279,3 +279,88 @@ func TestCheckTokenTtl(t *testing.T) {
 		})
 	}
 }
+
+// Test GCP authentication detection logic.
+func TestGCPAuthDetection(t *testing.T) {
+	tests := []struct {
+		name            string
+		gcpAuth         *esv1.VaultGCPAuth
+		expectedHasAuth bool
+		expectError     bool
+	}{
+		{
+			name: "GCP auth configured",
+			gcpAuth: &esv1.VaultGCPAuth{
+				Role: "test-role",
+				Path: "gcp",
+			},
+			expectedHasAuth: true,
+			expectError:     true, // Will error because auth client is not initialized in test
+		},
+		{
+			name:            "No GCP auth configured",
+			gcpAuth:         nil,
+			expectedHasAuth: false,
+			expectError:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock client
+			c := &client{
+				store: &esv1.VaultProvider{
+					Auth: &esv1.VaultAuth{
+						GCP: tt.gcpAuth,
+					},
+				},
+				// auth: nil (not initialized for test)
+			}
+
+			// Test detection logic
+			hasAuth, err := setGcpAuthToken(context.Background(), c)
+
+			if hasAuth != tt.expectedHasAuth {
+				t.Errorf("setGcpAuthToken() returned hasAuth = %v, want %v", hasAuth, tt.expectedHasAuth)
+			}
+
+			if tt.expectError && err == nil {
+				t.Errorf("setGcpAuthToken() expected error, got nil")
+			}
+
+			if !tt.expectError && err != nil {
+				t.Errorf("setGcpAuthToken() unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestGCPAuthMountPathDefault(t *testing.T) {
+	c := &client{}
+
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			name:     "default path when empty",
+			path:     "",
+			expected: "gcp",
+		},
+		{
+			name:     "custom path",
+			path:     "custom-gcp",
+			expected: "custom-gcp",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := c.getGCPAuthMountPathOrDefault(tt.path)
+			if result != tt.expected {
+				t.Errorf("getGCPAuthMountPathOrDefault() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
