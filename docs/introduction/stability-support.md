@@ -16,25 +16,26 @@ During a minor version support time, we cover:
 We do not do test coverage for any other kubernetes version than the ones running on our test suites.
 As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
-| ESO Version | Kubernetes Version | Release Date   | End of Life     |
-| ----------- | ------------------ | -------------- | --------------- |
-| 0.19.x      | 1.33               | August 2, 2025 | Release of 0.20 |
-| 0.18.x      | 1.33               | July 17, 2025  | August 2, 2025  |
-| 0.17.x      | 1.33               | May 14, 2025   | July 17, 2025   |
-| 0.16.x      | 1.32               | Apr 14, 2025   | May 14, 2025    |
-| 0.15.x      | 1.32               | Mar 19, 2025   | Apr 14, 2025    |
-| 0.14.x      | 1.32               | Feb 4, 2025    | Mar 19, 2025    |
-| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025   | Feb 4, 2025     |
-| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024   | Jan 21, 2025    |
-| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024    | Dec 24, 2024    |
-| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024    | Dec 24, 2024    |
-| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023   | Dec 2, 2024     |
-| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023   | Aug 3, 2024     |
-| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022   | Jun 22, 2023    |
-| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022    | Mar 16, 2023    |
-| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022    | Dec 11, 2022    |
-| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022    | Oct 9, 2022     |
-| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021   | Apr 6, 2022     |
+| ESO Version | Kubernetes Version | Release Date       | End of Life        |
+|-------------|--------------------|--------------------|--------------------|
+| 0.20.x      | 1.34               | September 22, 2025 | Release of 0.21    |
+| 0.19.x      | 1.33               | August 2, 2025     | September 22, 2025 |
+| 0.18.x      | 1.33               | July 17, 2025      | August 2, 2025     |
+| 0.17.x      | 1.33               | May 14, 2025       | July 17, 2025      |
+| 0.16.x      | 1.32               | Apr 14, 2025       | May 14, 2025       |
+| 0.15.x      | 1.32               | Mar 19, 2025       | Apr 14, 2025       |
+| 0.14.x      | 1.32               | Feb 4, 2025        | Mar 19, 2025       |
+| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025       | Feb 4, 2025        |
+| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024       | Jan 21, 2025       |
+| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024        | Dec 24, 2024       |
+| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024        | Dec 24, 2024       |
+| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023       | Dec 2, 2024        |
+| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023       | Aug 3, 2024        |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022       | Jun 22, 2023       |
+| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022        | Mar 16, 2023       |
+| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022        | Dec 11, 2022       |
+| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022        | Oct 9, 2022        |
+| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021       | Apr 6, 2022        |
 
 ## Upgrading
 
@@ -79,7 +80,7 @@ The following table describes the stability level of each provider and who's res
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          | alpha     | [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/)     |
 | [Keeper Security](https://www.keepersecurity.com/)                                                         | alpha     | [@ppodevlab](https://github.com/ppodevlab)                                                          |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           | alpha     | [@azert9](https://github.com/azert9/)                                                               |
-| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               | stable    | [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh)              |
+| [CyberArk Secrets Manager](https://external-secrets.io/latest/provider/conjur)                             | stable    | [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh)              |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             | alpha     | [@michaelsauter](https://github.com/michaelsauter/)                                                 |
 | [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     | alpha     | [@btfhernandez](https://github.com/btfhernandez/)                                                   |
 | [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   | alpha     | [@billhamilton](https://github.com/pacificcode/)                                                    |
@@ -91,6 +92,7 @@ The following table describes the stability level of each provider and who's res
 | [Previder](https://external-secrets.io/latest/provider/previder)                                           | stable    | [@previder](https://github.com/previder)                                                            |
 | [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            | alpha     | [@default23](https://github.com/default23)                                                          |
 | [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       | alpha     | [@kevinyancn](https://github.com/kevinyancn)                                                        |
+| [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 | alpha     | [@jonstacks](https://github.com/jonstacks)                                                          |
 
 
 ## Provider Feature Support
@@ -118,7 +120,7 @@ The following table show the support for features across different providers.
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| Conjur                    |      x       |      x       |                      |                         |        x         |             |                             |
+| CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 | Beyondtrust               |      x       |              |                      |                         |        x         |             |                             |
 | SecretServer              |      x       |              |                      |                         |        x         |             |                             |
@@ -130,6 +132,7 @@ The following table show the support for features across different providers.
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
 | Volcengine                |              |              |                      |                         |        x         |             |                             |
+| ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 
 ## Support Policy
 

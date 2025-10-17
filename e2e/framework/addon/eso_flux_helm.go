@@ -23,9 +23,9 @@ import (
 	"net/http"
 	"time"
 
-	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta1"
+	fluxhelm "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/meta"
-	fluxsrc "github.com/fluxcd/source-controller/api/v1beta2"
+	fluxsrc "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -90,7 +90,7 @@ func (c *FluxHelmRelease) Install() error {
 					Retries: -1,
 				},
 			},
-			Chart: fluxhelm.HelmChartTemplate{
+			Chart: &fluxhelm.HelmChartTemplate{
 				Spec: fluxhelm.HelmChartTemplateSpec{
 					Version: c.HelmRevision,
 					Chart:   c.HelmChart,

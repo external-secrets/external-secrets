@@ -14,7 +14,7 @@ kind: ExternalSecret
 metadata:
   name: "ecr-token"
 spec:
-  refreshInterval: "30m"
+  refreshInterval: "30m0s"
   target:
     name: ecr-token
   dataFrom:

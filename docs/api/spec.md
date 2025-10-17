@@ -4215,6 +4215,20 @@ Required if strategy is JSON. Ignored otherwise.</p>
 </tr>
 <tr>
 <td>
+<code>priorityPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMergePriorityPolicy">
+ExternalSecretRewriteMergePriorityPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the policy when a key in the priority list does not exist in the input.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conflictPolicy</code></br>
 <em>
 <a href="#external-secrets.io/v1.ExternalSecretRewriteMergeConflictPolicy">
@@ -4261,6 +4275,27 @@ ExternalSecretRewriteMergeStrategy
 <tbody><tr><td><p>&#34;Error&#34;</p></td>
 <td></td>
 </tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMergePriorityPolicy">ExternalSecretRewriteMergePriorityPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;IgnoreNotFound&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Strict&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -5230,6 +5265,24 @@ string
 </td>
 <td>
 <p>Location optionally defines a location for a secret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretVersionSelectionPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretVersionSelectionPolicy">
+SecretVersionSelectionPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretVersionSelectionPolicy specifies how the provider selects a secret version
+when &ldquo;latest&rdquo; is disabled or destroyed.
+Possible values are:
+- LatestOrFail: the provider always uses &ldquo;latest&rdquo;, or fails if that version is disabled/destroyed.
+- LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED</p>
 </td>
 </tr>
 </tbody>
@@ -6758,6 +6811,156 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokAuth">NgrokAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokProvider">NgrokProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiKey</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokProviderSecretRef">
+NgrokProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIKey is the API Key used to authenticate with ngrok. See <a href="https://ngrok.com/docs/api/#authentication">https://ngrok.com/docs/api/#authentication</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokProvider">NgrokProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>NgrokProvider configures a store to sync secrets with a ngrok vault to use in traffic policies.
+See: <a href="https://ngrok.com/blog-post/secrets-for-traffic-policy">https://ngrok.com/blog-post/secrets-for-traffic-policy</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIURL is the URL of the ngrok API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokAuth">
+NgrokAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the ngrok provider authenticates with the ngrok API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vault</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokVault">
+NgrokVault
+</a>
+</em>
+</td>
+<td>
+<p>Vault configures the ngrok vault to sync secrets with.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokProviderSecretRef">NgrokProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokAuth">NgrokAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef is a reference to a secret containing the ngrok API key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokVault">NgrokVault
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokProvider">NgrokProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the ngrok vault to sync secrets with.</p>
 </td>
 </tr>
 </tbody>
@@ -8475,7 +8678,8 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push Github Action secrets using Github API provider</p>
+<p>Github configures this store to push GitHub Action secrets using GitHub API provider.
+Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
 <tr>
@@ -8842,6 +9046,20 @@ VolcengineProvider
 <p>Volcengine configures this store to sync secrets using the Volcengine provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>ngrok</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokProvider">
+NgrokProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ngrok configures this store to sync secrets using the ngrok provider.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.SecretStoreRef">SecretStoreRef
@@ -9135,6 +9353,29 @@ Kubernetes meta/v1.Time
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.SecretVersionSelectionPolicy">SecretVersionSelectionPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GCPSMProvider">GCPSMProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;LatestOrFail&#34;</p></td>
+<td><p>SecretVersionSelectionPolicyLatestOrFail means the provider always uses &ldquo;latest&rdquo;, or fails if that version is disabled/destroyed.</p>
+</td>
+</tr><tr><td><p>&#34;LatestOrFetch&#34;</p></td>
+<td><p>SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.SecretsClient">SecretsClient
 </h3>
@@ -10212,6 +10453,19 @@ method, with the role name and token stored in a Kubernetes Secret resource.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path where the Certificate authentication backend is mounted
+in Vault, e.g: &ldquo;cert&rdquo;</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>clientCert</code></br>

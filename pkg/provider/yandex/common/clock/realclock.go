@@ -18,13 +18,16 @@ package clock
 
 import "time"
 
+// RealClock implements the Clock interface using the actual system time.
 type RealClock struct {
 }
 
+// NewRealClock creates a new instance of RealClock.
 func NewRealClock() *RealClock {
 	return &RealClock{}
 }
 
+// CurrentTime returns the current system time.
 func (c *RealClock) CurrentTime() time.Time {
 	return time.Now()
 }

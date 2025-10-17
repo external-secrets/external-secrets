@@ -17,7 +17,7 @@ secret management systems like [AWS Secrets
 Manager](https://aws.amazon.com/secrets-manager/), [HashiCorp
 Vault](https://www.vaultproject.io/), [Google Secrets
 Manager](https://cloud.google.com/secret-manager), [Azure Key
-Vault](https://azure.microsoft.com/en-us/services/key-vault/), [IBM Cloud Secrets Manager](https://www.ibm.com/cloud/secrets-manager), [Akeyless](https://akeyless.io), [CyberArk Conjur](https://www.conjur.org), [Pulumi ESC](https://www.pulumi.com/product/esc/) and many more. The
+Vault](https://azure.microsoft.com/en-us/services/key-vault/), [IBM Cloud Secrets Manager](https://www.ibm.com/cloud/secrets-manager), [Akeyless](https://akeyless.io), [CyberArk Secrets Manager](https://www.cyberark.com/products/secrets-management/), [Pulumi ESC](https://www.pulumi.com/product/esc/) and many more. The
 operator reads information from external APIs and automatically injects the
 values into a [Kubernetes
 Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
@@ -40,8 +40,8 @@ Please consider sponsoring this project, there are many ways you can help us wit
 
 ## Bi-weekly Development Meeting
 
-We host our development meeting every odd wednesday on [Jitsi](https://meet.jit.si/eso-community-meeting). We run the meeting with alternating times [8:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=20:00&tz=Europe/Berlin) and [1:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=13:00&tz=Europe/Berlin), we'll announce the time in our [Kubernetes Slack
-  channel](https://kubernetes.slack.com/messages/external-secrets). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
+We host our development meeting every odd wednesday on [Zoom](https://zoom-lfx.platform.linuxfoundation.org/meeting/92843470602?password=b953d8fb-825b-48ae-8fd7-226e498cc316). We run the meeting with alternating times [8:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=20:00&tz=Europe/Berlin) and [1:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=13:00&tz=Europe/Berlin). Be sure to check the [CNCF Calendar](https://zoom-lfx.platform.linuxfoundation.org/meetings/externalsecretsoperator?view=month) to see when the next meeting is scheduled, we'll also announce the time in our [Kubernetes Slack channel](https://kubernetes.slack.com/messages/external-secrets).
+Meeting notes are recorded on [this google document](https://docs.google.com/document/d/1etFaDlLd01PUWuMlAwCXnpUg85QiTkNjw0SHu-rQjDs/).
 
 Anyone is welcome to join. Feel free to ask questions, request feedback, raise awareness for an issue, or just say hi. ;)
 
@@ -49,7 +49,7 @@ Anyone is welcome to join. Feel free to ask questions, request feedback, raise a
 
 Please report vulnerabilities by email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io. Also see our [SECURITY.md file](SECURITY.md) for details.
 
-## software bill of materials
+## Software bill of materials
 We attach SBOM and provenance file to our GitHub release. Also, they are attached to container images.
 
 ## Adopters

@@ -10,8 +10,6 @@ name: e2e tests
 
 env:
   # Common versions
-  GO_VERSION: '1.24'
-  GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.30.0'
   KIND_IMAGE: 'kindest/node:v1.33.4'
@@ -21,11 +19,11 @@ env:
   # credentials have been provided before trying to run steps that need them.
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
   GHCR_USERNAME: ${{ github.actor }}
-  GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
-  GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
-  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
+  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY}}
+  GCP_FED_REGION: ${{ secrets.GCP_FED_REGION}}
+  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account
   GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
+  GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID}}
 
   AWS_REGION: "eu-central-1"
   AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
@@ -64,7 +62,7 @@ jobs:
       contents: read  #for checkout
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
     steps:
-    - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+    - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:
         egress-policy: audit
 
@@ -85,7 +83,7 @@ jobs:
       pull-requests: write # to publish the status as comments
     if: github.event_name == 'repository_dispatch'
     steps:
-    - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+    - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:
         egress-policy: audit
 
@@ -110,7 +108,7 @@ jobs:
 
     - name: Update on Succeess
       if: always() && steps.e2e.conclusion == 'success'
-      uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
@@ -118,7 +116,7 @@ jobs:
             [Bot] - :white_check_mark: [e2e for ${{ env.TARGET_SHA }} passed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
     - name: Update on Failure
       if: always() &&  steps.e2e.conclusion != 'success'
-      uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}

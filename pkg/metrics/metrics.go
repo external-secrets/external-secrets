@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package metrics provides functionality for collecting and managing metrics in the external-secrets system.
 package metrics
 
 import (
@@ -24,8 +25,10 @@ import (
 )
 
 const (
+	// ExternalSecretSubsystem is the subsystem name used for external secret metrics.
 	ExternalSecretSubsystem = "externalsecret"
-	providerAPICalls        = "provider_api_calls_count"
+
+	providerAPICalls = "provider_api_calls_count"
 )
 
 var (
@@ -36,6 +39,7 @@ var (
 	}, []string{"provider", "call", "status"})
 )
 
+// ObserveAPICall records metrics for an API call to a provider.
 func ObserveAPICall(provider, call string, err error) {
 	syncCallsTotal.WithLabelValues(provider, call, deriveStatus(err)).Inc()
 }

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package oracle implements a provider for Oracle Cloud Infrastructure Vault.
+// It allows fetching and managing secrets stored in OCI Vault using the OCI SDK.
 package oracle
 
 import (
@@ -42,8 +44,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (
@@ -67,6 +69,7 @@ const (
 var _ esv1.SecretsClient = &VaultManagementService{}
 var _ esv1.Provider = &VaultManagementService{}
 
+// VaultManagementService implements the External Secrets provider interface for Oracle Cloud Infrastructure Vault.
 type VaultManagementService struct {
 	Client                VMInterface
 	KmsVaultClient        KmsVCInterface
@@ -77,14 +80,17 @@ type VaultManagementService struct {
 	workloadIdentityMutex sync.Mutex
 }
 
+// VMInterface defines the interface for OCI Secrets Management Client operations.
 type VMInterface interface {
 	GetSecretBundleByName(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error)
 }
 
+// KmsVCInterface defines the interface for OCI Key Management Service Vault Client operations.
 type KmsVCInterface interface {
 	GetVault(ctx context.Context, request keymanagement.GetVaultRequest) (response keymanagement.GetVaultResponse, err error)
 }
 
+// VaultInterface defines the interface for OCI Vault operations.
 type VaultInterface interface {
 	ListSecrets(ctx context.Context, request vault.ListSecretsRequest) (response vault.ListSecretsResponse, err error)
 	CreateSecret(ctx context.Context, request vault.CreateSecretRequest) (response vault.CreateSecretResponse, err error)
@@ -93,11 +99,15 @@ type VaultInterface interface {
 }
 
 const (
+	// SecretNotFound indicates that the requested secret was not found in the vault.
 	SecretNotFound = iota
+	// SecretExists indicates that the secret exists in the vault.
 	SecretExists
+	// SecretAPIError indicates that an API error occurred while accessing the secret.
 	SecretAPIError
 )
 
+// PushSecret creates or updates a secret in the Oracle Cloud Infrastructure Vault.
 func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if vms.encryptionKey == "" {
 		return errors.New("SecretStore must reference encryption key")
@@ -154,6 +164,7 @@ func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev
 	}
 }
 
+// DeleteSecret removes a secret from the Oracle Cloud Infrastructure Vault.
 func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	resp, action, err := vms.getSecretBundleWithCode(ctx, secretName)
@@ -173,10 +184,12 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 	}
 }
 
+// SecretExists checks if a secret exists in the Oracle Cloud Infrastructure Vault.
 func (vms *VaultManagementService) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
+// GetAllSecrets retrieves all secrets from the Oracle Cloud Infrastructure Vault that match the given criteria.
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	var page *string
 	var summaries []vault.SecretSummary
@@ -199,8 +212,9 @@ func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1.E
 	return vms.filteredSummaryResult(ctx, summaries, ref)
 }
 
+// GetSecret retrieves a specific secret from the Oracle Cloud Infrastructure Vault.
 func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(vms.Client) {
+	if esutils.IsNil(vms.Client) {
 		return nil, errors.New(errUninitalizedOracleProvider)
 	}
 
@@ -241,6 +255,7 @@ func decodeBundle(sec secrets.GetSecretBundleByNameResponse) ([]byte, error) {
 	return payload, nil
 }
 
+// GetSecretMap retrieves a secret and returns it as a map of key/value pairs.
 func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := vms.GetSecret(ctx, ref)
 	if err != nil {
@@ -449,10 +464,12 @@ func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, 
 	return common.NewRawConfigurationProvider(store.Auth.Tenancy, store.Auth.User, region, fingerprint, privateKey, nil), nil
 }
 
+// Close releases any resources used by the VaultManagementService.
 func (vms *VaultManagementService) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate performs validation of the Oracle Cloud Infrastructure provider configuration.
 func (vms *VaultManagementService) Validate() (esv1.ValidationResult, error) {
 	_, err := vms.KmsVaultClient.GetVault(
 		context.Background(), keymanagement.GetVaultRequest{
@@ -488,6 +505,7 @@ func (vms *VaultManagementService) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// ValidateStore validates the Oracle Cloud Infrastructure SecretStore resource configuration.
 func (vms *VaultManagementService) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
@@ -526,7 +544,7 @@ func (vms *VaultManagementService) ValidateStore(store esv1.GenericStore) (admis
 		return nil, errors.New("privateKey.key cannot be empty")
 	}
 
-	err := utils.ValidateSecretSelector(store, privateKey)
+	err := esutils.ValidateSecretSelector(store, privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -541,13 +559,13 @@ func (vms *VaultManagementService) ValidateStore(store esv1.GenericStore) (admis
 		return nil, errors.New("fingerprint.key cannot be empty")
 	}
 
-	err = utils.ValidateSecretSelector(store, fingerprint)
+	err = esutils.ValidateSecretSelector(store, fingerprint)
 	if err != nil {
 		return nil, err
 	}
 
 	if oracleSpec.ServiceAccountRef != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, *oracleSpec.ServiceAccountRef); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *oracleSpec.ServiceAccountRef); err != nil {
 			return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
 		}
 	}
@@ -578,7 +596,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.Generi
 		return auth.OkeWorkloadIdentityConfigurationProvider()
 	}
 	// Ensure the service account ref is being used appropriately, so arbitrary tokens are not minted by the provider.
-	if err = utils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
+	if err = esutils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
 		return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
 	}
 	cfg, err := ctrlcfg.GetConfig()
@@ -656,5 +674,5 @@ func sanitizeOCISDKErr(err error) error {
 func init() {
 	esv1.Register(&VaultManagementService{}, &esv1.SecretStoreProvider{
 		Oracle: &esv1.OracleProvider{},
-	}, esv1.MaintenanceStatusNotMaintained)
+	}, esv1.MaintenanceStatusMaintained)
 }

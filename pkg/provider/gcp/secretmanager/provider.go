@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 // Provider is a secrets provider for GCP Secret Manager.
@@ -55,6 +55,7 @@ A Mutex was implemented to make sure only one connection can be in place at a ti
 */
 var useMu = sync.Mutex{}
 
+// Capabilities returns the provider's capabilities to read/write secrets.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
@@ -124,6 +125,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return client, nil
 }
 
+// ValidateStore validates the configuration of the secret store.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errInvalidStore)
@@ -140,12 +142,12 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, errors.New(errInvalidGCPProv)
 	}
 	if g.Auth.SecretRef != nil {
-		if err := utils.ValidateReferentSecretSelector(store, g.Auth.SecretRef.SecretAccessKey); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, g.Auth.SecretRef.SecretAccessKey); err != nil {
 			return nil, fmt.Errorf(errInvalidAuthSecretRef, err)
 		}
 	}
 	if g.Auth.WorkloadIdentity != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, g.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, g.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
 			return nil, fmt.Errorf(errInvalidWISARef, err)
 		}
 	}
@@ -155,11 +157,11 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 func clusterProjectID(spec *esv1.SecretStoreSpec) (string, error) {
 	if spec.Provider.GCPSM.Auth.WorkloadIdentity != nil && spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID != "" {
 		return spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID, nil
-	} else if spec.Provider.GCPSM.ProjectID != "" {
-		return spec.Provider.GCPSM.ProjectID, nil
-	} else {
-		return "", errors.New(errNoProjectID)
 	}
+	if spec.Provider.GCPSM.ProjectID != "" {
+		return spec.Provider.GCPSM.ProjectID, nil
+	}
+	return "", errors.New(errNoProjectID)
 }
 
 func isReferentSpec(prov *esv1.GCPSMProvider) bool {

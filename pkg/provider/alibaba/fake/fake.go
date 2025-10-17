@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package fake provides mock implementations for Alibaba provider testing.
 package fake
 
 import (
@@ -22,22 +23,26 @@ import (
 	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
 )
 
+// AlibabaMockClient implements a mock client for Alibaba KMS service.
 type AlibabaMockClient struct {
 	getSecretValue func(request *kmssdk.GetSecretValueRequest) (response *kmssdk.GetSecretValueResponseBody, err error)
 }
 
+// GetSecretValue retrieves a secret value from the mock Alibaba client.
 func (mc *AlibabaMockClient) GetSecretValue(context.Context, *kmssdk.GetSecretValueRequest) (result *kmssdk.GetSecretValueResponseBody, err error) {
 	return mc.getSecretValue(&kmssdk.GetSecretValueRequest{})
 }
 
+// WithValue sets the behavior of the mock client based on input and output values.
 func (mc *AlibabaMockClient) WithValue(_ *kmssdk.GetSecretValueRequest, val *kmssdk.GetSecretValueResponseBody, err error) {
 	if mc != nil {
-		mc.getSecretValue = func(paramIn *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponseBody, error) {
+		mc.getSecretValue = func(_ *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponseBody, error) {
 			return val, err
 		}
 	}
 }
 
+// Endpoint returns the endpoint URL of the mock Alibaba client.
 func (mc *AlibabaMockClient) Endpoint() string {
 	return ""
 }

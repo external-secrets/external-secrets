@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ibm provides integration with IBM Cloud Secrets Manager
+// for External Secrets Operator.
 package ibm
 
 import (
@@ -35,9 +37,9 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -59,6 +61,7 @@ const (
 	errExtractingSecret         = "unable to extract the fetched secret %s of type %s while performing %s"
 	errNotImplemented           = "not implemented"
 	errKeyDoesNotExist          = "key %s does not exist in secret %s"
+	errFieldIsEmpty             = "warn: %s is empty for secret %s\n"
 )
 
 var contextTimeout = time.Minute * 2
@@ -69,6 +72,7 @@ var (
 	_ esv1.Provider      = &providerIBM{}
 )
 
+// SecretManagerClient defines the interface for interacting with IBM Cloud Secrets Manager.
 type SecretManagerClient interface {
 	GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
 	GetSecretByNameTypeWithContext(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
@@ -115,7 +119,7 @@ func (ibm *providerIBM) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFi
 }
 
 func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(ibm.IBMClient) {
+	if esutils.IsNil(ibm.IBMClient) {
 		return nil, errors.New(errUninitializedIBMProvider)
 	}
 
@@ -233,10 +237,15 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1.External
 	val, ok := secMap[ref.Property]
 	if ok {
 		return []byte(val.(string)), nil
+	} else if ref.Property == intermediateConst {
+		// we want to return an empty string in case the secret doesn't contain an intermediate certificate
+		// this is to ensure that secret of type 'kubernetes.io/tls' gets created as expected, even with an empty intermediate certificate
+		fmt.Printf(errFieldIsEmpty, intermediateConst, *secretName)
+		return []byte(""), nil
 	} else if ref.Property == privateKeyConst {
 		// we want to return an empty string in case the secret doesn't contain a private key
 		// this is to ensure that secret of type 'kubernetes.io/tls' gets created as expected, even with an empty private key
-		fmt.Printf("warn: %s is empty for secret %s\n", privateKeyConst, *secretName)
+		fmt.Printf(errFieldIsEmpty, privateKeyConst, *secretName)
 		return []byte(""), nil
 	}
 	return nil, fmt.Errorf(errKeyDoesNotExist, ref.Property, ref.Key)
@@ -407,7 +416,7 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 }
 
 func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	if utils.IsNil(ibm.IBMClient) {
+	if esutils.IsNil(ibm.IBMClient) {
 		return nil, errors.New(errUninitializedIBMProvider)
 	}
 	var secretGroupName string
@@ -480,15 +489,20 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretD
 		return secretMap, nil
 
 	case sm.Secret_SecretType_ImportedCert:
-		if err := checkNilFn([]string{certificateConst, intermediateConst}); err != nil {
+		if err := checkNilFn([]string{certificateConst}); err != nil {
 			return nil, err
 		}
 		secretMap[certificateConst] = secMapBytes[certificateConst]
-		secretMap[intermediateConst] = secMapBytes[intermediateConst]
-		if v, ok := secMapBytes[privateKeyConst]; ok {
-			secretMap[privateKeyConst] = v
+		if v1, ok := secMapBytes[intermediateConst]; ok {
+			secretMap[intermediateConst] = v1
 		} else {
-			fmt.Printf("warn: %s is empty for secret %s\n", privateKeyConst, secretName)
+			fmt.Printf(errFieldIsEmpty, intermediateConst, secretName)
+			secretMap[intermediateConst] = []byte("")
+		}
+		if v2, ok := secMapBytes[privateKeyConst]; ok {
+			secretMap[privateKeyConst] = v2
+		} else {
+			fmt.Printf(errFieldIsEmpty, privateKeyConst, secretName)
 			secretMap[privateKeyConst] = []byte("")
 		}
 		return secretMap, nil
@@ -552,7 +566,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretD
 func byteArrayMap(secretData map[string]any, secretMap map[string][]byte) map[string][]byte {
 	var err error
 	for k, v := range secretData {
-		secretMap[k], err = utils.GetByteValue(v)
+		secretMap[k], err = esutils.GetByteValue(v)
 		if err != nil {
 			return nil
 		}
@@ -578,8 +592,8 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 	containerRef := ibmSpec.Auth.ContainerAuth
 	secretRef := ibmSpec.Auth.SecretRef
 
-	missingContainerRef := utils.IsNil(containerRef)
-	missingSecretRef := utils.IsNil(secretRef)
+	missingContainerRef := esutils.IsNil(containerRef)
+	missingSecretRef := esutils.IsNil(secretRef)
 
 	if missingContainerRef == missingSecretRef {
 		// since both are equal, if one is missing assume both are missing
@@ -607,7 +621,7 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 
 	// proceed with API Key Auth validation
 	secretKeyRef := secretRef.SecretAPIKey
-	err := utils.ValidateSecretSelector(store, secretKeyRef)
+	err := esutils.ValidateSecretSelector(store, secretKeyRef)
 	if err != nil {
 		return nil, err
 	}
@@ -640,7 +654,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 	var err error
 	var secretsManager *sm.SecretsManagerV2
 	containerAuth := iStore.store.Auth.ContainerAuth
-	if !utils.IsNil(containerAuth) && containerAuth.Profile != "" {
+	if !esutils.IsNil(containerAuth) && containerAuth.Profile != "" {
 		// container-based auth
 		containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
 		containerAuthToken := iStore.store.Auth.ContainerAuth.TokenLocation

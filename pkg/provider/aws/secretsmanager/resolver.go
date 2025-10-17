@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package secretsmanager implements AWS Secrets Manager provider for External Secrets Operator
 package secretsmanager
 
 import (
@@ -27,6 +28,7 @@ import (
 )
 
 const (
+	// SecretsManagerEndpointEnv is the environment variable name for custom AWS Secrets Manager endpoint.
 	SecretsManagerEndpointEnv = "AWS_SECRETSMANAGER_ENDPOINT"
 )
 

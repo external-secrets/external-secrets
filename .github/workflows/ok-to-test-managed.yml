@@ -20,7 +20,7 @@ jobs:
     # To create a new GitHub App:
     #   https://developer.github.com/apps/building-github-apps/creating-a-github-app/
     # See app.yml for an example app manifest
-    - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+    - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:
         egress-policy: audit
     - name: Generate token
@@ -37,7 +37,6 @@ jobs:
         TOKEN: ${{ steps.generate_token.outputs.token }}
       with:
         token: ${{ env.TOKEN }} # GitHub App installation access token
-        # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # PAT or OAuth token will also work
         reaction-token: ${{ secrets.GITHUB_TOKEN }}
         issue-type: pull-request
         commands: ok-to-test-managed

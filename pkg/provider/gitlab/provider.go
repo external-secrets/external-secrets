@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package gitlab implements a GitLab provider for External Secrets.
 package gitlab
 
 import (
@@ -30,8 +31,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Provider satisfies the provider interface.
@@ -49,12 +50,13 @@ type gitlabBase struct {
 	groupVariablesClient   GroupVariablesClient
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+// Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (g *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
-// Method on GitLab Provider to set up projectVariablesClient with credentials, populate projectID and environment.
+// NewClient creates a new GitLab client with the given store configuration.
+// It sets up the project variables client with credentials and populates projectID and environment.
 func (g *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
@@ -94,7 +96,7 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 
 	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
 		caCertPool := x509.NewCertPool()
-		ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		ca, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 			CABundle:   provider.CABundle,
 			CAProvider: provider.CAProvider,
 			StoreKind:  g.storeKind,
@@ -150,11 +152,12 @@ func (g *gitlabBase) getVariables(ref esv1.ExternalSecretDataRemoteRef, vopts *g
 	return data, resp, nil
 }
 
+// ValidateStore validates the GitLab store configuration.
 func (g *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	gitlabSpec := storeSpec.Provider.Gitlab
 	accessToken := gitlabSpec.Auth.SecretRef.AccessToken
-	err := utils.ValidateSecretSelector(store, accessToken)
+	err := esutils.ValidateSecretSelector(store, accessToken)
 	if err != nil {
 		return nil, err
 	}

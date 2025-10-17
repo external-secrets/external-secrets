@@ -68,7 +68,7 @@ func TestCacheGet(t *testing.T) {
 
 func TestCacheGetInvalidVersion(t *testing.T) {
 	var cleanupCalled bool
-	c, err := New(1, func(client *client) {
+	c, err := New(1, func(*client) {
 		cleanupCalled = true
 	})
 	if err != nil {
@@ -85,7 +85,7 @@ func TestCacheGetInvalidVersion(t *testing.T) {
 
 func TestCacheEvict(t *testing.T) {
 	var cleanupCalled bool
-	c, err := New(1, func(client client) {
+	c, err := New(1, func(client) {
 		cleanupCalled = true
 	})
 	if err != nil {

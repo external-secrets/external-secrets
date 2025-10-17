@@ -29,18 +29,22 @@ import (
 )
 
 const (
+	// DoRequestError is the error format string for request errors.
 	DoRequestError = "error: do request: %w"
 )
 
+// HTTPClient is an interface representing the ability to perform HTTP requests.
 type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
+// AccessData represents the access credentials returned by the Password Depot API upon successful login.
 type AccessData struct {
 	ClientID    string `json:"client_id"`
 	AccessToken string `json:"access_token"`
 }
 
+// Databases represents the list of Password Depot databases accessible with the current credentials.
 type Databases struct {
 	Databases []struct {
 		Name         string    `json:"name"`
@@ -57,6 +61,7 @@ type Databases struct {
 	Policyselectedgroups string `json:"policyselectedgroups"`
 }
 
+// DatabaseEntries represents the entries in a Password Depot database.
 type DatabaseEntries struct {
 	Name         string  `json:"name"`
 	Parent       string  `json:"parent"`
@@ -65,6 +70,7 @@ type DatabaseEntries struct {
 	Reasondelete string  `json:"reasondelete"`
 }
 
+// Entry represents a single entry in the Password Depot database.
 type Entry struct {
 	Name        string    `json:"name"`
 	Login       string    `json:"login"`
@@ -79,6 +85,7 @@ type Entry struct {
 	Itemclass   string    `json:"itemclass"`
 }
 
+// API represents a client for the Password Depot API.
 type API struct {
 	client   HTTPClient
 	baseURL  string
@@ -88,6 +95,7 @@ type API struct {
 	username string
 }
 
+// SecretEntry represents a secret entry in Password Depot.
 type SecretEntry struct {
 	Name        string    `json:"name"`
 	Fingerprint string    `json:"fingerprint"`
@@ -118,8 +126,7 @@ type SecretEntry struct {
 var errDBNotFound = errors.New("database not found")
 var errSecretNotFound = errors.New("secret not found")
 
-// load tls certificates
-
+// NewAPI creates a new instance of the PasswordDepot API client and performs login.
 func NewAPI(ctx context.Context, baseURL, username, password, hostPort string) (*API, error) {
 	api := &API{
 		baseURL:  baseURL,
@@ -209,6 +216,7 @@ func (api *API) login(ctx context.Context) error {
 	return nil
 }
 
+// ListSecrets retrieves the list of secrets from the specified database and folder.
 func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, error) {
 	endpointURL := api.getendpointURL(fmt.Sprintf("list?db=%s", dbFingerprint))
 	if folder != "" {
@@ -229,6 +237,7 @@ func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, erro
 	return dbEntries, err
 }
 
+// ReadAndUnmarshal reads the response body and unmarshals it into the target struct.
 func ReadAndUnmarshal(resp *http.Response, target any) error {
 	var buf bytes.Buffer
 	defer func() {
@@ -244,6 +253,7 @@ func ReadAndUnmarshal(resp *http.Response, target any) error {
 	return json.Unmarshal(buf.Bytes(), target)
 }
 
+// ListDatabases retrieves the list of databases accessible with the current credentials.
 func (api *API) ListDatabases() (Databases, error) {
 	listDBRequest, err := http.NewRequest("GET", api.getendpointURL("list"), http.NoBody)
 	if err != nil {
@@ -260,6 +270,7 @@ func (api *API) ListDatabases() (Databases, error) {
 	return databases, err
 }
 
+// GetSecret retrieves a secret by its name from the specified database.
 func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 	dbFingerprint, err := api.getDatabaseFingerprint(database)
 	if err != nil {
@@ -285,7 +296,8 @@ func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 	return secretEntry, err
 }
 
-func (s SecretEntry) ToMap() map[string][]byte {
+// ToMap converts the SecretEntry struct to a map[string][]byte.
+func (s *SecretEntry) ToMap() map[string][]byte {
 	m := make(map[string][]byte)
 
 	m["name"] = []byte(s.Name)

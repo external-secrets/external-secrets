@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package commontest provides testing utilities for controllers.
 package commontest
 
 import (
@@ -32,6 +33,7 @@ func CreateNamespace(baseName string, c client.Client) (string, error) {
 	return CreateNamespaceWithLabels(baseName, c, map[string]string{})
 }
 
+// CreateNamespaceWithLabels creates a namespace with the given labels and returns its name.
 func CreateNamespaceWithLabels(baseName string, c client.Client, labels map[string]string) (string, error) {
 	genName := fmt.Sprintf("ctrl-test-%v", baseName)
 	ns := &v1.Namespace{
@@ -54,6 +56,7 @@ func CreateNamespaceWithLabels(baseName string, c client.Client, labels map[stri
 	return ns.Name, nil
 }
 
+// HasOwnerRef checks if the given ObjectMeta has an owner reference with the specified kind and name.
 func HasOwnerRef(meta metav1.ObjectMeta, kind, name string) bool {
 	for _, ref := range meta.OwnerReferences {
 		if ref.Kind == kind && ref.Name == name {
