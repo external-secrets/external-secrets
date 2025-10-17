@@ -133,10 +133,6 @@ func (w *WebHook) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRem
 	}
 
 	method := http.MethodDelete
-	if provider.Method != "" {
-		method = provider.Method
-	}
-
 	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create delete request: %w", err)
