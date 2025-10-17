@@ -1297,6 +1297,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#encoding-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Encoding Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Encoding Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#encoding-output-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Encoding Output Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4076,6 +4100,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#encoding-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Encoding Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Encoding Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#encoding-output-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Encoding Output Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4158,6 +4206,11 @@
 <td>false</td>
 <td>allow repeating characters.</td>
 </tr>
+<tr>
+<td>encoding</td>
+<td>raw</td>
+<td>Encoding format for the generated password. Valid values: <code>raw</code>, <code>base64</code>, <code>base64url</code>, <code>base32</code>, <code>hex</code>.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="example-manifest">Example Manifest</h2>
@@ -4200,6 +4253,62 @@ Hi$-aK_3Rrrw1Pj9-sIpPZuk5abvEDJlabUYUcS$9L
 ZRv-k!y6x/V&quot;29:43aErSf$1
 Vk9*mwXE30Q+&gt;H?lY$5I64_q
 </code></pre></div>
+<h2 id="encoding-examples">Encoding Examples</h2>
+<p>The password generator supports different encoding formats for the output:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Example with hex encoding</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password-hex</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span>
+<span class="w">  </span><span class="nt">encoding</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;hex&quot;</span>
+<span class="nn">---</span>
+<span class="c1"># Example with base32 encoding</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password-base32</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+<span class="w">  </span><span class="nt">encoding</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;base32&quot;</span>
+<span class="nn">---</span>
+<span class="c1"># Example with raw encoding (no encoding)</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password-raw</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12</span>
+<span class="w">  </span><span class="nt">encoding</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;raw&quot;</span>
+<span class="nn">---</span>
+<span class="c1"># Example with base64url encoding</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password-base64url</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">24</span>
+<span class="w">  </span><span class="nt">encoding</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;base64url&quot;</span>
+</code></pre></div>
+<h3 id="encoding-output-examples">Encoding Output Examples</h3>
+<p>For the same password <code>Test&gt;&gt;Pass??word</code>, the different encodings would produce:</p>
+<ul>
+<li><strong>raw</strong> (default): <code>Test&gt;&gt;Pass??word</code> (original password string)</li>
+<li><strong>base64</strong>: <code>VGVzdD4+UGFzcz8/d29yZA==</code> (standard base64)</li>
+<li><strong>base64url</strong>: <code>VGVzdD4-UGFzcz8_d29yZA==</code> (URL-safe base64)</li>
+<li><strong>base32</strong>: <code>ORSXG5BRGIYTEMJQGQYQ====</code> (base32 encoding)</li>
+<li><strong>hex</strong>: <code>546573743e3e506173733f3f776f7264</code> (hexadecimal encoding)</li>
+</ul>
+<p>Key differences between <code>base64</code> and <code>base64url</code>:</p>
+<ul>
+<li>
+<p><strong>base64</strong>: <code>VGVzdD4+UGFzcz8/d29yZA==</code> uses <code>+</code>, <code>/</code>, and <code>=</code> for padding</p>
+</li>
+<li>
+<p><strong>base64url</strong>: <code>VGVzdD4-UGFzcz8_d29yZA==</code> uses <code>-</code>, <code>_</code>, and no padding (URL-safe)</p>
+</li>
+</ul>
 
 
 
