@@ -134,9 +134,13 @@ type TemplateFrom struct {
 	ConfigMap *TemplateRef `json:"configMap,omitempty"`
 	Secret    *TemplateRef `json:"secret,omitempty"`
 
+	// Target specifies where to place the template result.
+	// For Secret resources, common values are: "Data", "Annotations", "Labels".
+	// For custom resources (when spec.target.manifest is set), this supports
+	// nested paths like "spec.database.config" or "data".
 	// +optional
 	// +kubebuilder:default="Data"
-	Target TemplateTarget `json:"target,omitempty"`
+	Target string `json:"target,omitempty"`
 
 	// +optional
 	Literal *string `json:"literal,omitempty"`
@@ -150,13 +154,12 @@ const (
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
-// +kubebuilder:validation:Enum=Data;Annotations;Labels
-type TemplateTarget string
-
+// TemplateTarget defines common target locations for Secret resources.
+// These constants are provided for convenience but Target accepts any string.
 const (
-	TemplateTargetData        TemplateTarget = "Data"
-	TemplateTargetAnnotations TemplateTarget = "Annotations"
-	TemplateTargetLabels      TemplateTarget = "Labels"
+	TemplateTargetData        = "Data"
+	TemplateTargetAnnotations = "Annotations"
+	TemplateTargetLabels      = "Labels"
 )
 
 type TemplateRef struct {
@@ -179,6 +182,21 @@ type TemplateRefItem struct {
 
 	// +kubebuilder:default="Values"
 	TemplateAs TemplateScope `json:"templateAs,omitempty"`
+}
+
+// ManifestTarget defines a custom Kubernetes resource type to be created
+// instead of a Secret. This allows ExternalSecret to create ConfigMaps,
+// Custom Resources, or any other Kubernetes resource type.
+type ManifestTarget struct {
+	// APIVersion of the target resource (e.g., "v1" for ConfigMap, "argoproj.io/v1alpha1" for ArgoCD Application)
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	APIVersion string `json:"apiVersion"`
+
+	// Kind of the target resource (e.g., "ConfigMap", "Application")
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	Kind string `json:"kind"`
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created
@@ -207,6 +225,13 @@ type ExternalSecretTarget struct {
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
 	Template *ExternalSecretTemplate `json:"template,omitempty"`
+
+	// Manifest defines a custom Kubernetes resource to create instead of a Secret.
+	// When specified, ExternalSecret will create the resource type defined here
+	// (e.g., ConfigMap, Custom Resource) instead of a Secret.
+	// WARNING: Non-Secret resources are not encrypted at rest. Use with caution.
+	// +optional
+	Manifest *ManifestTarget `json:"manifest,omitempty"`
 
 	// Immutable defines if the final secret will be immutable
 	// +optional
@@ -545,6 +570,15 @@ const (
 	ConditionReasonSecretDeleted = "SecretDeleted"
 	// ConditionReasonSecretMissing indicates that the secret is missing.
 	ConditionReasonSecretMissing = "SecretMissing"
+
+	// ConditionReasonResourceSynced indicates that the secrets was synced.
+	ConditionReasonResourceSynced = "ResourceSynced"
+	// ConditionReasonResourceSyncedError indicates that there was an error syncing the secret.
+	ConditionReasonResourceSyncedError = "ResourceSyncedError"
+	// ConditionReasonResourceDeleted indicates that the secret has been deleted.
+	ConditionReasonResourceDeleted = "ResourceDeleted"
+	// ConditionReasonResourceMissing indicates that the secret is missing.
+	ConditionReasonResourceMissing = "ResourceMissing"
 
 	ReasonUpdateFailed          = "UpdateFailed"
 	ReasonDeprecated            = "ParameterDeprecated"
