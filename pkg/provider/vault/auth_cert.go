@@ -32,7 +32,8 @@ import (
 )
 
 const (
-	errVaultRequest = "error from Vault request: %w"
+	errVaultRequest          = "error from Vault request: %w"
+	errUnusupportedTransport = "unsupported http client transport: %T"
 )
 
 func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, error) {
@@ -63,8 +64,13 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 		return fmt.Errorf(errClientTLSAuth, err)
 	}
 
-	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
-		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+	switch transport := cfg.HttpClient.Transport.(type) {
+	case *http.Transport:
+		transport.TLSClientConfig.GetClientCertificate = func(_ *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			return &cert, nil
+		}
+	default:
+		return fmt.Errorf(errUnusupportedTransport, transport)
 	}
 
 	path := certAuth.Path
@@ -73,7 +79,7 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 	}
 	url := strings.Join([]string{"auth", path, "login"}, "/")
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, nil)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return fmt.Errorf(errVaultRequest, err)
 	}
