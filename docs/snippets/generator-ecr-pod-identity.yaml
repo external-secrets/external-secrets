@@ -1,0 +1,14 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ECRAuthorizationToken
+metadata:
+  name: ecr-gen-pod-identity
+spec:
+  # specify aws region (mandatory)
+  region: eu-west-1
+
+  # optional: assume role with the given authentication credentials
+  # role: "my-role"
+
+  # No auth section needed - uses AWS Pod Identity or other default credential chain
+  # The controller will automatically use the credentials from the environment
+  # which includes support for AWS Pod Identity, IRSA, and other credential sources
