@@ -130,6 +130,7 @@ spec:
     passwordSpec:
       allowRepeat: false
       digits: 1
+      encoding: "raw"
       length: 24
       noUpper: false
       symbolCharacters: string

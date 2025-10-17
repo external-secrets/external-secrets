@@ -48,7 +48,8 @@ type WebhookProvider struct {
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
 	// Result formatting
-	Result WebhookResult `json:"result"`
+	// +optional
+	Result WebhookResult `json:"result,omitempty"`
 
 	// Secrets to fill in templates
 	// These secrets will be passed to the templating function as key value pairs under the given name

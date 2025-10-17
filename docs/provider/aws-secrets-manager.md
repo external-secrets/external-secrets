@@ -62,13 +62,18 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
     "secretsmanager:CreateSecret",
     "secretsmanager:PutSecretValue",
     "secretsmanager:TagResource",
-    "secretsmanager:DeleteSecret"
+    "secretsmanager:DeleteSecret",
+    "secretsmanager:GetResourcePolicy",
+    "secretsmanager:PutResourcePolicy",
+    "secretsmanager:DeleteResourcePolicy"
   ],
   "Resource": [
     "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
   ]
 }
 ```
+
+**Note:** The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are only required if you're using the `resourcePolicy` metadata option to manage resource-based policies on secrets.
 
 Here's a more restrictive version of the IAM policy:
 
@@ -81,7 +86,10 @@ Here's a more restrictive version of the IAM policy:
       "Action": [
         "secretsmanager:CreateSecret",
         "secretsmanager:PutSecretValue",
-        "secretsmanager:TagResource"
+        "secretsmanager:TagResource",
+        "secretsmanager:GetResourcePolicy",
+        "secretsmanager:PutResourcePolicy",
+        "secretsmanager:DeleteResourcePolicy"
       ],
       "Resource": [
         "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
@@ -122,6 +130,7 @@ Optionally, it is possible to configure additional options for the parameter. Th
 - secretPushFormat
 - description
 - tags
+- resourcePolicy
 
 To control this behavior set the following provider metadata:
 
@@ -133,6 +142,77 @@ To control this behavior set the following provider metadata:
 - `kmsKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/secretsmanager` is the _default_.
 - `description` Description of the secret.
 - `tags` Key-value map of user-defined tags that are attached to the secret.
+- `resourcePolicy` Attach a resource-based policy to the secret for cross-account access or advanced access control.
+  - `blockPublicPolicy` (optional) - Set to `true` to validate that the policy doesn't grant public access before applying. Defaults to AWS behavior.
+  - `policySourceRef` (required) - Reference to a ConfigMap or Secret containing the policy JSON.
+    - `kind` - Either `ConfigMap` or `Secret`.
+    - `name` - Name of the ConfigMap or Secret.
+    - `key` - Key within the ConfigMap/Secret data that contains the policy JSON.
+
+##### Resource Policy Example
+
+To attach a resource policy to a secret for cross-account access:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-example
+  namespace: default
+spec:
+  refreshInterval: 10s
+  secretStoreRefs:
+    - name: aws-secretsmanager
+      kind: SecretStore
+  selector:
+    secret:
+      name: pokedex-credentials
+  data:
+    - match:
+        secretKey: my-secret-key
+        remoteRef:
+          remoteKey: my-remote-secret
+          property: password
+  metadata:
+    resourcePolicy:
+      blockPublicPolicy: true
+      policySourceRef:
+        kind: ConfigMap
+        name: my-secret-resource-policy
+        key: policy.json
+    kmsKeyID: bb123123-b2b0-4f60-ac3a-44a13f0e6b6c
+    secretPushFormat: string
+    description: "Cross-account accessible secret"
+    tags:
+      team: platform-engineering
+```
+
+The ConfigMap should contain the policy JSON:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-secret-resource-policy
+  namespace: default
+data:
+  policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::123456789012:root"
+          },
+          "Action": "secretsmanager:GetSecretValue",
+          "Resource": "*"
+        }
+      ]
+    }
+```
+
+**Note:** The resource policy is applied after the secret is created or updated. If the `resourcePolicy` field is removed from metadata, the existing policy will be deleted from the secret.
 
 ### JSON Secret Values
 
