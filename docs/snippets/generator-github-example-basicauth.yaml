@@ -10,7 +10,7 @@ spec:
         apiVersion: generators.external-secrets.io/v1alpha1
         kind: GithubAccessToken
         name: github-auth-token
-  refreshInterval: "15m" # Be sure to set this value lower than 60m since that is the expiration time from github
+  refreshInterval: "15m0s" # Be sure to set this value lower than 60m since that is the expiration time from github
   target:
     template:
       metadata:

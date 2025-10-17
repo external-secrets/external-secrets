@@ -29,7 +29,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (
@@ -63,12 +63,12 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		return errors.New("remote key must be defined")
 	}
 
-	value, err := utils.ExtractSecretData(data, secret)
+	value, err := esutils.ExtractSecretData(data, secret)
 	if err != nil {
 		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
 
-	note, err := utils.FetchValueFromMetadata(NoteMetadataKey, data.GetMetadata(), "")
+	note, err := esutils.FetchValueFromMetadata(NoteMetadataKey, data.GetMetadata(), "")
 	if err != nil {
 		return fmt.Errorf("failed to fetch note from metadata: %w", err)
 	}
@@ -100,7 +100,7 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 				Key:            data.GetRemoteKey(),
 				Note:           note,
 				OrganizationID: spec.Provider.BitwardenSecretsManager.OrganizationID,
-				ProjectIDS:     []string{spec.Provider.BitwardenSecretsManager.ProjectID},
+				ProjectIDs:     []string{spec.Provider.BitwardenSecretsManager.ProjectID},
 				Value:          string(value),
 			})
 
@@ -113,7 +113,7 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		Key:            data.GetRemoteKey(),
 		Note:           note,
 		OrganizationID: spec.Provider.BitwardenSecretsManager.OrganizationID,
-		ProjectIDS:     []string{spec.Provider.BitwardenSecretsManager.ProjectID},
+		ProjectIDs:     []string{spec.Provider.BitwardenSecretsManager.ProjectID},
 		Value:          string(value),
 	})
 
@@ -163,6 +163,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 	return []byte(secret.Value), nil
 }
 
+// DeleteSecret deletes a secret from Bitwarden.
 func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
 	if strfmt.IsUUID(ref.GetRemoteKey()) {
 		return p.deleteSecret(ctx, ref.GetRemoteKey())
@@ -204,6 +205,7 @@ func (p *Provider) deleteSecret(ctx context.Context, id string) error {
 	return nil
 }
 
+// SecretExists checks if a secret exists in Bitwarden.
 func (p *Provider) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	if strfmt.IsUUID(ref.GetRemoteKey()) {
 		_, err := p.bitwardenSdkClient.GetSecret(ctx, ref.GetRemoteKey())

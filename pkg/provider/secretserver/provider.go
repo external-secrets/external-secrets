@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 var (
@@ -43,6 +43,7 @@ var (
 	errMissingSecretKey = errors.New("must specify a secret key")
 )
 
+// Provider struct that implements the ESO esv1.Provider.
 type Provider struct{}
 
 var _ esv1.Provider = &Provider{}
@@ -52,6 +53,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
+// NewClient creates a new secrets client based on provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kubeClient.Client, namespace string) (esv1.SecretsClient, error) {
 	cfg, err := getConfig(store)
 	if err != nil {
@@ -104,7 +106,7 @@ func loadConfigSecret(
 
 func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProviderRef) error {
 	if ref.SecretRef != nil {
-		if err := utils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
 			return err
 		}
 	}
@@ -170,6 +172,7 @@ func getConfig(store esv1.GenericStore) (*esv1.SecretServerProvider, error) {
 	return cfg, nil
 }
 
+// ValidateStore validates the store's configuration and returns warnings or error.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	_, err := getConfig(store)
 	return nil, err

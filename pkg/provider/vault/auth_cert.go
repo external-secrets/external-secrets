@@ -27,8 +27,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -67,7 +67,11 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
 	}
 
-	url := strings.Join([]string{"auth", "cert", "login"}, "/")
+	path := certAuth.Path
+	if path == "" {
+		path = "cert"
+	}
+	url := strings.Join([]string{"auth", path, "login"}, "/")
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, nil)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
 	if err != nil {

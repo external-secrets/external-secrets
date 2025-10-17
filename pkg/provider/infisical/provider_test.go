@@ -35,7 +35,7 @@ import (
 
 type storeModifier func(*esv1.SecretStore) *esv1.SecretStore
 
-var apiScope = InfisicalClientScope{
+var apiScope = ClientScope{
 	SecretPath:      "/",
 	ProjectSlug:     "first-project",
 	EnvironmentSlug: "dev",

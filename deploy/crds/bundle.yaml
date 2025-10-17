@@ -151,6 +151,7 @@ spec:
                                     enum:
                                       - ACRAccessToken
                                       - ClusterGenerator
+                                      - CloudsmithAccessToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -298,6 +299,9 @@ spec:
                                     conflictPolicy:
                                       default: Error
                                       description: Used to define the policy to use in conflict resolution.
+                                      enum:
+                                        - Ignore
+                                        - Error
                                       type: string
                                     into:
                                       default: ""
@@ -310,9 +314,19 @@ spec:
                                       items:
                                         type: string
                                       type: array
+                                    priorityPolicy:
+                                      default: Strict
+                                      description: Used to define the policy when a key in the priority list does not exist in the input.
+                                      enum:
+                                        - IgnoreNotFound
+                                        - Strict
+                                      type: string
                                     strategy:
                                       default: Extract
                                       description: Used to define the strategy to use in the merge operation.
+                                      enum:
+                                        - Extract
+                                        - JSON
                                       type: string
                                   type: object
                                 regexp:
@@ -368,6 +382,7 @@ spec:
                                     enum:
                                       - ACRAccessToken
                                       - ClusterGenerator
+                                      - CloudsmithAccessToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -1745,6 +1760,7 @@ spec:
                               enum:
                                 - ACRAccessToken
                                 - ClusterGenerator
+                                - CloudsmithAccessToken
                                 - ECRAuthorizationToken
                                 - Fake
                                 - GCRAccessToken
@@ -3946,9 +3962,20 @@ spec:
                         projectID:
                           description: ProjectID project where secret is located
                           type: string
+                        secretVersionSelectionPolicy:
+                          default: LatestOrFail
+                          description: |-
+                            SecretVersionSelectionPolicy specifies how the provider selects a secret version
+                            when "latest" is disabled or destroyed.
+                            Possible values are:
+                            - LatestOrFail: the provider always uses "latest", or fails if that version is disabled/destroyed.
+                            - LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED
+                          type: string
                       type: object
                     github:
-                      description: Github configures this store to push Github Action secrets using Github API provider
+                      description: |-
+                        Github configures this store to push GitHub Action secrets using GitHub API provider.
+                        Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
                       properties:
                         appID:
                           description: appID specifies the Github APP that will be used to authenticate the client
@@ -5158,6 +5185,62 @@ spec:
                               type: string
                           type: object
                       type: object
+                    ngrok:
+                      description: Ngrok configures this store to sync secrets using the ngrok provider.
+                      properties:
+                        apiUrl:
+                          default: https://api.ngrok.com
+                          description: APIURL is the URL of the ngrok API.
+                          type: string
+                        auth:
+                          description: Auth configures how the ngrok provider authenticates with the ngrok API.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            apiKey:
+                              description: APIKey is the API Key used to authenticate with ngrok. See https://ngrok.com/docs/api/#authentication
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the ngrok API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                        vault:
+                          description: Vault configures the ngrok vault to sync secrets with.
+                          properties:
+                            name:
+                              description: Name is the name of the ngrok vault to sync secrets with.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      required:
+                        - auth
+                        - vault
+                      type: object
                     onboardbase:
                       description: Onboardbase configures this store to sync secrets using the Onboardbase provider
                       properties:
@@ -6054,6 +6137,12 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                path:
+                                  default: cert
+                                  description: |-
+                                    Path where the Certificate authentication backend is mounted
+                                    in Vault, e.g: "cert"
+                                  type: string
                                 secretRef:
                                   description: |-
                                     SecretRef to a key in a Secret resource containing client private key to
@@ -6706,6 +6795,108 @@ spec:
                           type: string
                       required:
                         - server
+                      type: object
+                    volcengine:
+                      description: Volcengine configures this store to sync secrets using the Volcengine provider
+                      properties:
+                        auth:
+                          description: |-
+                            Auth defines the authentication method to use.
+                            If not specified, the provider will try to use IRSA (IAM Role for Service Account).
+                          properties:
+                            secretRef:
+                              description: |-
+                                SecretRef defines the static credentials to use for authentication.
+                                If not set, IRSA is used.
+                              properties:
+                                accessKeyID:
+                                  description: AccessKeyID is the reference to the secret containing the Access Key ID.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretAccessKey:
+                                  description: SecretAccessKey is the reference to the secret containing the Secret Access Key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                token:
+                                  description: Token is the reference to the secret containing the STS(Security Token Service) Token.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - accessKeyID
+                                - secretAccessKey
+                              type: object
+                          type: object
+                        region:
+                          description: Region specifies the Volcengine region to connect to.
+                          type: string
+                      required:
+                        - region
                       type: object
                     webhook:
                       description: Webhook configures this store to sync secrets using a generic templated webhook
@@ -11429,6 +11620,7 @@ spec:
                                 enum:
                                   - ACRAccessToken
                                   - ClusterGenerator
+                                  - CloudsmithAccessToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
@@ -11576,6 +11768,9 @@ spec:
                                 conflictPolicy:
                                   default: Error
                                   description: Used to define the policy to use in conflict resolution.
+                                  enum:
+                                    - Ignore
+                                    - Error
                                   type: string
                                 into:
                                   default: ""
@@ -11588,9 +11783,19 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                priorityPolicy:
+                                  default: Strict
+                                  description: Used to define the policy when a key in the priority list does not exist in the input.
+                                  enum:
+                                    - IgnoreNotFound
+                                    - Strict
+                                  type: string
                                 strategy:
                                   default: Extract
                                   description: Used to define the strategy to use in the merge operation.
+                                  enum:
+                                    - Extract
+                                    - JSON
                                   type: string
                               type: object
                             regexp:
@@ -11646,6 +11851,7 @@ spec:
                                 enum:
                                   - ACRAccessToken
                                   - ClusterGenerator
+                                  - CloudsmithAccessToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
@@ -11920,6 +12126,9 @@ spec:
                       status:
                         type: string
                       type:
+                        enum:
+                          - Ready
+                          - Deleted
                         type: string
                     required:
                       - status
@@ -12729,6 +12938,7 @@ spec:
                           enum:
                             - ACRAccessToken
                             - ClusterGenerator
+                            - CloudsmithAccessToken
                             - ECRAuthorizationToken
                             - Fake
                             - GCRAccessToken
@@ -14958,9 +15168,20 @@ spec:
                         projectID:
                           description: ProjectID project where secret is located
                           type: string
+                        secretVersionSelectionPolicy:
+                          default: LatestOrFail
+                          description: |-
+                            SecretVersionSelectionPolicy specifies how the provider selects a secret version
+                            when "latest" is disabled or destroyed.
+                            Possible values are:
+                            - LatestOrFail: the provider always uses "latest", or fails if that version is disabled/destroyed.
+                            - LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED
+                          type: string
                       type: object
                     github:
-                      description: Github configures this store to push Github Action secrets using Github API provider
+                      description: |-
+                        Github configures this store to push GitHub Action secrets using GitHub API provider.
+                        Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
                       properties:
                         appID:
                           description: appID specifies the Github APP that will be used to authenticate the client
@@ -16170,6 +16391,62 @@ spec:
                               type: string
                           type: object
                       type: object
+                    ngrok:
+                      description: Ngrok configures this store to sync secrets using the ngrok provider.
+                      properties:
+                        apiUrl:
+                          default: https://api.ngrok.com
+                          description: APIURL is the URL of the ngrok API.
+                          type: string
+                        auth:
+                          description: Auth configures how the ngrok provider authenticates with the ngrok API.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            apiKey:
+                              description: APIKey is the API Key used to authenticate with ngrok. See https://ngrok.com/docs/api/#authentication
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the ngrok API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                        vault:
+                          description: Vault configures the ngrok vault to sync secrets with.
+                          properties:
+                            name:
+                              description: Name is the name of the ngrok vault to sync secrets with.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      required:
+                        - auth
+                        - vault
+                      type: object
                     onboardbase:
                       description: Onboardbase configures this store to sync secrets using the Onboardbase provider
                       properties:
@@ -17066,6 +17343,12 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                path:
+                                  default: cert
+                                  description: |-
+                                    Path where the Certificate authentication backend is mounted
+                                    in Vault, e.g: "cert"
+                                  type: string
                                 secretRef:
                                   description: |-
                                     SecretRef to a key in a Secret resource containing client private key to
@@ -17718,6 +18001,108 @@ spec:
                           type: string
                       required:
                         - server
+                      type: object
+                    volcengine:
+                      description: Volcengine configures this store to sync secrets using the Volcengine provider
+                      properties:
+                        auth:
+                          description: |-
+                            Auth defines the authentication method to use.
+                            If not specified, the provider will try to use IRSA (IAM Role for Service Account).
+                          properties:
+                            secretRef:
+                              description: |-
+                                SecretRef defines the static credentials to use for authentication.
+                                If not set, IRSA is used.
+                              properties:
+                                accessKeyID:
+                                  description: AccessKeyID is the reference to the secret containing the Access Key ID.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretAccessKey:
+                                  description: SecretAccessKey is the reference to the secret containing the Secret Access Key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                token:
+                                  description: Token is the reference to the secret containing the STS(Security Token Service) Token.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - accessKeyID
+                                - secretAccessKey
+                              type: object
+                          type: object
+                        region:
+                          description: Region specifies the Volcengine region to connect to.
+                          type: string
+                      required:
+                        - region
                       type: object
                     webhook:
                       description: Webhook configures this store to sync secrets using a generic templated webhook
@@ -22520,6 +22905,98 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
+  name: cloudsmithaccesstokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: CloudsmithAccessToken
+    listKind: CloudsmithAccessTokenList
+    plural: cloudsmithaccesstokens
+    singular: cloudsmithaccesstoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: CloudsmithAccessToken generates Cloudsmith access token using OIDC authentication
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                apiUrl:
+                  description: APIURL configures the Cloudsmith API URL. Defaults to https://api.cloudsmith.io.
+                  type: string
+                orgSlug:
+                  description: OrgSlug is the organization slug in Cloudsmith
+                  type: string
+                serviceAccountRef:
+                  description: Name of the service account you are federating with
+                  properties:
+                    audiences:
+                      description: |-
+                        Audience specifies the `aud` claim for the service account token
+                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                        then this audiences will be appended to the list
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      description: The name of the ServiceAccount resource being referred to.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: |-
+                        Namespace of the resource being referred to.
+                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - name
+                  type: object
+                serviceSlug:
+                  description: ServiceSlug is the service slug in Cloudsmith for OIDC authentication
+                  type: string
+              required:
+                - orgSlug
+                - serviceAccountRef
+                - serviceSlug
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    external-secrets.io/component: controller
   name: clustergenerators.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -22713,6 +23190,50 @@ spec:
                       required:
                         - auth
                         - registry
+                      type: object
+                    cloudsmithAccessTokenSpec:
+                      properties:
+                        apiUrl:
+                          description: APIURL configures the Cloudsmith API URL. Defaults to https://api.cloudsmith.io.
+                          type: string
+                        orgSlug:
+                          description: OrgSlug is the organization slug in Cloudsmith
+                          type: string
+                        serviceAccountRef:
+                          description: Name of the service account you are federating with
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                        serviceSlug:
+                          description: ServiceSlug is the service slug in Cloudsmith for OIDC authentication
+                          type: string
+                      required:
+                        - orgSlug
+                        - serviceAccountRef
+                        - serviceSlug
                       type: object
                     ecrAuthorizationTokenSpec:
                       properties:
@@ -23673,6 +24194,12 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
+                                    path:
+                                      default: cert
+                                      description: |-
+                                        Path where the Certificate authentication backend is mounted
+                                        in Vault, e.g: "cert"
+                                      type: string
                                     secretRef:
                                       description: |-
                                         SecretRef to a key in a Secret resource containing client private key to
@@ -24527,6 +25054,7 @@ spec:
                   description: Kind the kind of this generator.
                   enum:
                     - ACRAccessToken
+                    - CloudsmithAccessToken
                     - ECRAuthorizationToken
                     - Fake
                     - GCRAccessToken
@@ -26197,6 +26725,12 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            path:
+                              default: cert
+                              description: |-
+                                Path where the Certificate authentication backend is mounted
+                                in Vault, e.g: "cert"
+                              type: string
                             secretRef:
                               description: |-
                                 SecretRef to a key in a Secret resource containing client private key to

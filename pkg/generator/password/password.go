@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package password provides functionality for generating secure random passwords.
 package password
 
 import (
@@ -32,6 +33,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
+// Generator implements secure random password generation functionality.
 type Generator struct{}
 
 const (
@@ -46,7 +48,7 @@ const (
 )
 
 type generateFunc func(
-	len int,
+	length int,
 	symbols int,
 	symbolCharacters string,
 	digits int,
@@ -54,6 +56,7 @@ type generateFunc func(
 	allowRepeat bool,
 ) (string, error)
 
+// Generate creates a secure random password based on the provided configuration.
 func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		jsonSpec,
@@ -61,7 +64,8 @@ func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ 
 	)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+// Cleanup performs any necessary cleanup after password generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

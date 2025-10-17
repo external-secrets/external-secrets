@@ -28,9 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -52,18 +52,21 @@ type Client struct {
 	client    SecretsClient
 }
 
+// GetConjurClient returns an authenticated Conjur client.
+// If a client is already initialized, it returns the existing client.
+// Otherwise, it creates a new client based on the authentication method specified.
 func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	// if the client is initialized already, return it
 	if c.client != nil {
 		return c.client, nil
 	}
 
-	prov, err := util.GetConjurProvider(c.store)
+	prov, err := conjurutil.GetConjurProvider(c.store)
 	if err != nil {
 		return nil, err
 	}
 
-	cert, getCertErr := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+	cert, getCertErr := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 		CABundle:   []byte(prov.CABundle),
 		CAProvider: prov.CAProvider,
 		StoreKind:  c.store.GetKind(),
@@ -77,16 +80,20 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	config := conjurapi.Config{
 		ApplianceURL: prov.URL,
 		SSLCert:      string(cert),
+		// disable credential storage, as it depends on a writable
+		// file system, which we can't rely on - it would fail.
+		// see: https://github.com/cyberark/conjur-api-go/issues/183
+		NetRCPath: "/dev/null",
 	}
 
 	if prov.Auth.APIKey != nil {
 		return c.conjurClientFromAPIKey(ctx, config, prov)
-	} else if prov.Auth.Jwt != nil {
-		return c.conjurClientFromJWT(ctx, config, prov)
-	} else {
-		// Should not happen because validate func should catch this
-		return nil, errors.New("no authentication method provided")
 	}
+	if prov.Auth.Jwt != nil {
+		return c.conjurClientFromJWT(ctx, config, prov)
+	}
+	// Should not happen because validate func should catch this
+	return nil, errors.New("no authentication method provided")
 }
 
 // PushSecret will write a single secret into the provider.
@@ -95,16 +102,18 @@ func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecr
 	return nil
 }
 
+// DeleteSecret removes a secret from the provider.
 func (c *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
 }
 
+// SecretExists checks if a secret exists in the provider.
 func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
-// Validate validates the provider.
+// Validate validates the provider configuration.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
@@ -114,6 +123,7 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
+// conjurClientFromAPIKey creates a new Conjur client using API key authentication.
 func (c *Client) conjurClientFromAPIKey(ctx context.Context, config conjurapi.Config, prov *esv1.ConjurProvider) (SecretsClient, error) {
 	config.Account = prov.Auth.APIKey.Account
 	conjUser, secErr := resolvers.SecretKeyRef(

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ssmetrics provides metrics for SecretStore controllers.
 package ssmetrics
 
 import (
@@ -25,7 +26,10 @@ import (
 )
 
 const (
-	SecretStoreSubsystem            = "secretstore"
+	// SecretStoreSubsystem is the subsystem name for SecretStore metrics.
+	SecretStoreSubsystem = "secretstore"
+
+	// SecretStoreReconcileDurationKey is the key for the reconcile duration metric.
 	SecretStoreReconcileDurationKey = "reconcile_duration"
 )
 
@@ -54,6 +58,7 @@ func SetUpMetrics() {
 	}
 }
 
+// GetGaugeVec returns the GaugeVec for the given key.
 func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
 }

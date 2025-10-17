@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package kubernetes implements a provider for Kubernetes secrets, allowing
+// External Secrets to read from and write to Kubernetes Secrets.
 package kubernetes
 
 import (
@@ -36,6 +38,7 @@ import (
 var _ esv1.SecretsClient = &Client{}
 var _ esv1.Provider = &Provider{}
 
+// KClient defines the interface for interacting with Kubernetes Secrets.
 type KClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Secret, error)
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.SecretList, error)
@@ -44,16 +47,17 @@ type KClient interface {
 	Update(ctx context.Context, secret *v1.Secret, opts metav1.UpdateOptions) (*v1.Secret, error)
 }
 
+// RClient defines the interface for performing self subject rules reviews.
 type RClient interface {
 	Create(ctx context.Context, selfSubjectRulesReview *authv1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*authv1.SelfSubjectRulesReview, error)
 }
 
+// AClient defines the interface for performing self subject access reviews.
 type AClient interface {
 	Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error)
 }
 
-// Provider implements Secret Provider interface
-// for Kubernetes.
+// Provider implements the SecretStore Provider interface for Kubernetes.
 type Provider struct{}
 
 // Client implements Secret Client interface
@@ -91,6 +95,7 @@ func init() {
 	}, esv1.MaintenanceStatusMaintained)
 }
 
+// Capabilities returns the provider's supported capabilities (ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
@@ -169,6 +174,7 @@ func isReferentSpec(prov *esv1.KubernetesProvider) bool {
 	return false
 }
 
+// Close cleans up any resources used by the Kubernetes provider.
 func (p *Provider) Close(_ context.Context) error {
 	return nil
 }

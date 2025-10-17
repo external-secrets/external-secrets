@@ -41,7 +41,7 @@ const (
 func TestDeleteSecret(t *testing.T) {
 	type args struct {
 		store    *esv1.VaultProvider
-		vLogical util.Logical
+		vLogical vaultutil.Logical
 	}
 
 	type want struct {
@@ -352,7 +352,7 @@ func TestPushSecret(t *testing.T) {
 	noPermission := errors.New("no permission")
 	type args struct {
 		store    *esv1.VaultProvider
-		vLogical util.Logical
+		vLogical vaultutil.Logical
 	}
 
 	type want struct {
