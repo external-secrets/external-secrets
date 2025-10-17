@@ -37,7 +37,6 @@ jobs:
         TOKEN: ${{ steps.generate_token.outputs.token }}
       with:
         token: ${{ env.TOKEN }} # GitHub App installation access token
-        # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # PAT or OAuth token will also work
         reaction-token: ${{ secrets.GITHUB_TOKEN }}
         issue-type: pull-request
         commands: ok-to-test-managed
