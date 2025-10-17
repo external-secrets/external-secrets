@@ -201,9 +201,13 @@ func (r *Reconciler) gatherProvisionedNamespaces(
 ) []string {
 	var provisionedNamespaces []string //nolint:prealloc // we don't know the size
 	for _, namespace := range namespaces {
-		// Skip namespace if it's being deleted
+		// If namespace is being deleted, remove our finalizer to allow deletion to proceed
 		if namespace.DeletionTimestamp != nil {
-			log.Info("skipping namespace as it is being deleted", "namespace", namespace.Name)
+			log.Info("namespace is being deleted, removing finalizer", "namespace", namespace.Name)
+			if err := r.removeNamespaceFinalizer(ctx, log, &namespace, clusterExternalSecret.Name); err != nil {
+				log.Error(err, "failed to remove finalizer from terminating namespace", "namespace", namespace.Name)
+				// Don't add to failedNamespaces - this is cleanup, not provisioning
+			}
 			continue
 		}
 		var existingES esv1.ExternalSecret
@@ -350,13 +354,14 @@ func (r *Reconciler) updateNamespaceRemoveFinalizer(ctx context.Context, log log
 	// Only update if the finalizer was actually removed
 	if updated := controllerutil.RemoveFinalizer(namespace, finalizer); updated {
 		if err := r.Update(ctx, namespace); err != nil {
-			// Ignore NotFound (namespace deleted) and Conflict (will retry)
-			if apierrors.IsNotFound(err) || apierrors.IsConflict(err) {
+			// Ignore NotFound (namespace deleted)
+			if apierrors.IsNotFound(err) {
 				log.V(1).Info("ignoring expected error during finalizer removal",
 					"namespace", namespaceName,
 					"error", err.Error())
 				return nil
 			}
+
 			return fmt.Errorf("failed to remove finalizer from namespace %s: %w", namespaceName, err)
 		}
 	}
