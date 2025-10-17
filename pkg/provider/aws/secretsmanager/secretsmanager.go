@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -880,14 +881,25 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		return fmt.Errorf("failed to get current resource policy: %w", err)
 	}
 
-	// Only update it if the policy is different
 	currentPolicy := ""
 	if currentPolicyOutput != nil && currentPolicyOutput.ResourcePolicy != nil {
 		currentPolicy = *currentPolicyOutput.ResourcePolicy
 	}
 
-	if currentPolicy == policyJSON {
-		// nothing to do
+	// convert to maps so we can do a stable comparison.
+	var (
+		currentPolicyMap map[string]any
+		policyJSONMaps   map[string]any
+	)
+
+	if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
+		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
+	}
+	if err := json.Unmarshal([]byte(policyJSON), &policyJSONMaps); err != nil {
+		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
+	}
+
+	if maps.Equal(currentPolicyMap, policyJSONMaps) {
 		return nil
 	}
 
