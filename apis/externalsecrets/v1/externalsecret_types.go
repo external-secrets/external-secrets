@@ -41,17 +41,17 @@ type SecretStoreRef struct {
 type ExternalSecretCreationPolicy string
 
 const (
-	// Owner creates the Secret and sets .metadata.ownerReferences to the ExternalSecret resource.
+	// CreatePolicyOwner creates the Secret and sets .metadata.ownerReferences to the ExternalSecret resource.
 	CreatePolicyOwner ExternalSecretCreationPolicy = "Owner"
 
-	// Orphan creates the Secret and does not set the ownerReference.
+	// CreatePolicyOrphan creates the Secret and does not set the ownerReference.
 	// I.e. it will be orphaned after the deletion of the ExternalSecret.
 	CreatePolicyOrphan ExternalSecretCreationPolicy = "Orphan"
 
-	// Merge does not create the Secret, but merges the data fields to the Secret.
+	// CreatePolicyMerge does not create the Secret, but merges the data fields to the Secret.
 	CreatePolicyMerge ExternalSecretCreationPolicy = "Merge"
 
-	// None does not create a Secret (future use with injector).
+	// CreatePolicyNone does not create a Secret (future use with injector).
 	CreatePolicyNone ExternalSecretCreationPolicy = "None"
 )
 
@@ -60,19 +60,19 @@ const (
 type ExternalSecretDeletionPolicy string
 
 const (
-	// Delete deletes the secret if all provider secrets are deleted.
+	// DeletionPolicyDelete deletes the secret if all provider secrets are deleted.
 	// If a secret gets deleted on the provider side and is not accessible
 	// anymore this is not considered an error and the ExternalSecret
 	// does not go into SecretSyncedError status.
 	DeletionPolicyDelete ExternalSecretDeletionPolicy = "Delete"
 
-	// Merge removes keys in the secret, but not the secret itself.
+	// DeletionPolicyMerge removes keys in the secret, but not the secret itself.
 	// If a secret gets deleted on the provider side and is not accessible
 	// anymore this is not considered an error and the ExternalSecret
 	// does not go into SecretSyncedError status.
 	DeletionPolicyMerge ExternalSecretDeletionPolicy = "Merge"
 
-	// Retain will retain the secret if all provider secrets have been deleted.
+	// DeletionPolicyRetain will retain the secret if all provider secrets have been deleted.
 	// If a provider secret does not exist the ExternalSecret gets into the
 	// SecretSyncedError status.
 	DeletionPolicyRetain ExternalSecretDeletionPolicy = "Retain"
@@ -115,21 +115,28 @@ type ExternalSecretTemplate struct {
 	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
 }
 
+// TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
 // +kubebuilder:validation:Enum=Replace;Merge
 type TemplateMergePolicy string
 
+// These constants are used to define the merge policy for templates.
 const (
 	MergePolicyReplace TemplateMergePolicy = "Replace"
 	MergePolicyMerge   TemplateMergePolicy = "Merge"
 )
 
+// TemplateEngineVersion specifies the template engine version that should be used to
+// compile/execute the template.
 // +kubebuilder:validation:Enum=v2
 type TemplateEngineVersion string
 
 const (
+	// TemplateEngineV2 is the currently supported template engine version.
 	TemplateEngineV2 TemplateEngineVersion = "v2"
 )
 
+// TemplateFrom specifies a source for templates.
+// Each item in the list can either reference a ConfigMap or a Secret resource.
 type TemplateFrom struct {
 	ConfigMap *TemplateRef `json:"configMap,omitempty"`
 	Secret    *TemplateRef `json:"secret,omitempty"`
@@ -142,23 +149,28 @@ type TemplateFrom struct {
 	Literal *string `json:"literal,omitempty"`
 }
 
+// TemplateScope specifies how the template keys should be interpreted.
 // +kubebuilder:validation:Enum=Values;KeysAndValues
 type TemplateScope string
 
+// These are used to define the scope of templates.
 const (
 	TemplateScopeValues        TemplateScope = "Values"
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
+// TemplateTarget specifies where the rendered templates should be applied.
 // +kubebuilder:validation:Enum=Data;Annotations;Labels
 type TemplateTarget string
 
+// These are used to define the target of templates.
 const (
 	TemplateTargetData        TemplateTarget = "Data"
 	TemplateTargetAnnotations TemplateTarget = "Annotations"
 	TemplateTargetLabels      TemplateTarget = "Labels"
 )
 
+// TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
 type TemplateRef struct {
 	// The name of the ConfigMap/Secret resource
 	// +kubebuilder:validation:MinLength:=1
@@ -170,6 +182,7 @@ type TemplateRef struct {
 	Items []TemplateRefItem `json:"items"`
 }
 
+// TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
 type TemplateRefItem struct {
 	// A key in the ConfigMap/Secret
 	// +kubebuilder:validation:MinLength:=1
@@ -181,8 +194,8 @@ type TemplateRefItem struct {
 	TemplateAs TemplateScope `json:"templateAs,omitempty"`
 }
 
-// ExternalSecretTarget defines the Kubernetes Secret to be created
-// There can be only one target per ExternalSecret.
+// ExternalSecretTarget defines the Kubernetes Secret to be created,
+// there can be only one target per ExternalSecret.
 type ExternalSecretTarget struct {
 	// The name of the Secret resource to be managed.
 	// Defaults to the .metadata.name of the ExternalSecret resource
@@ -259,32 +272,45 @@ type ExternalSecretDataRemoteRef struct {
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 }
 
+// ExternalSecretMetadataPolicy defines policies for fetching metadata from provider secrets.
 // +kubebuilder:validation:Enum=None;Fetch
 type ExternalSecretMetadataPolicy string
 
 const (
-	ExternalSecretMetadataPolicyNone  ExternalSecretMetadataPolicy = "None"
+	// ExternalSecretMetadataPolicyNone specifies that no metadata should be fetched from the provider.
+	ExternalSecretMetadataPolicyNone ExternalSecretMetadataPolicy = "None"
+	// ExternalSecretMetadataPolicyFetch specifies that metadata should be fetched from the provider.
 	ExternalSecretMetadataPolicyFetch ExternalSecretMetadataPolicy = "Fetch"
 )
 
+// ExternalSecretConversionStrategy defines strategies for converting secret values.
 // +kubebuilder:validation:Enum=Default;Unicode
 type ExternalSecretConversionStrategy string
 
 const (
+	// ExternalSecretConversionDefault specifies the default conversion strategy.
 	ExternalSecretConversionDefault ExternalSecretConversionStrategy = "Default"
+	// ExternalSecretConversionUnicode specifies that values should be treated as Unicode.
 	ExternalSecretConversionUnicode ExternalSecretConversionStrategy = "Unicode"
 )
 
+// ExternalSecretDecodingStrategy defines strategies for decoding secret values.
 // +kubebuilder:validation:Enum=Auto;Base64;Base64URL;None
 type ExternalSecretDecodingStrategy string
 
 const (
-	ExternalSecretDecodeAuto      ExternalSecretDecodingStrategy = "Auto"
-	ExternalSecretDecodeBase64    ExternalSecretDecodingStrategy = "Base64"
+	// ExternalSecretDecodeAuto specifies automatic detection of the decoding method.
+	ExternalSecretDecodeAuto ExternalSecretDecodingStrategy = "Auto"
+	// ExternalSecretDecodeBase64 specifies that values should be decoded using Base64.
+	ExternalSecretDecodeBase64 ExternalSecretDecodingStrategy = "Base64"
+	// ExternalSecretDecodeBase64URL specifies that values should be decoded using Base64URL.
 	ExternalSecretDecodeBase64URL ExternalSecretDecodingStrategy = "Base64URL"
-	ExternalSecretDecodeNone      ExternalSecretDecodingStrategy = "None"
+	// ExternalSecretDecodeNone specifies that no decoding should be performed.
+	ExternalSecretDecodeNone ExternalSecretDecodingStrategy = "None"
 )
 
+// ExternalSecretDataFromRemoteRef defines the connection between the Kubernetes Secret keys and the Provider data
+// when using DataFrom to fetch multiple values from a Provider.
 type ExternalSecretDataFromRemoteRef struct {
 	// Used to extract multiple key/value pairs from one secret
 	// Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
@@ -309,6 +335,7 @@ type ExternalSecretDataFromRemoteRef struct {
 	SourceRef *StoreGeneratorSourceRef `json:"sourceRef,omitempty"`
 }
 
+// ExternalSecretRewrite defines how to rewrite secret data values before they are written to the Secret.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type ExternalSecretRewrite struct {
@@ -329,6 +356,7 @@ type ExternalSecretRewrite struct {
 	Transform *ExternalSecretRewriteTransform `json:"transform,omitempty"`
 }
 
+// ExternalSecretRewriteMerge defines configuration for merging secret values.
 type ExternalSecretRewriteMerge struct {
 	// Used to define the target key of the merge operation.
 	// Required if strategy is JSON. Ignored otherwise.
@@ -356,30 +384,40 @@ type ExternalSecretRewriteMerge struct {
 	Strategy ExternalSecretRewriteMergeStrategy `json:"strategy,omitempty"`
 }
 
+// ExternalSecretRewriteMergeConflictPolicy defines the policy for resolving conflicts when merging secrets.
 // +kubebuilder:validation:Enum=Ignore;Error
 type ExternalSecretRewriteMergeConflictPolicy string
 
 const (
+	// ExternalSecretRewriteMergeConflictPolicyIgnore ignores conflicts when merging secret values.
 	ExternalSecretRewriteMergeConflictPolicyIgnore ExternalSecretRewriteMergeConflictPolicy = "Ignore"
-	ExternalSecretRewriteMergeConflictPolicyError  ExternalSecretRewriteMergeConflictPolicy = "Error"
+	// ExternalSecretRewriteMergeConflictPolicyError returns an error when conflicts occur during merge.
+	ExternalSecretRewriteMergeConflictPolicyError ExternalSecretRewriteMergeConflictPolicy = "Error"
 )
 
+// ExternalSecretRewriteMergePriorityPolicy defines the policy for handling missing keys in the priority
+// list during merge operations.
 // +kubebuilder:validation:Enum=IgnoreNotFound;Strict
 type ExternalSecretRewriteMergePriorityPolicy string
 
+// These constants define the priority policies for merging secrets.
 const (
 	ExternalSecretRewriteMergePriorityPolicyIgnoreNotFound ExternalSecretRewriteMergePriorityPolicy = "IgnoreNotFound"
 	ExternalSecretRewriteMergePriorityPolicyStrict         ExternalSecretRewriteMergePriorityPolicy = "Strict"
 )
 
+// ExternalSecretRewriteMergeStrategy defines the strategy for merging secrets.
 // +kubebuilder:validation:Enum=Extract;JSON
 type ExternalSecretRewriteMergeStrategy string
 
 const (
+	// ExternalSecretRewriteMergeStrategyExtract merges secrets by extracting values.
 	ExternalSecretRewriteMergeStrategyExtract ExternalSecretRewriteMergeStrategy = "Extract"
-	ExternalSecretRewriteMergeStrategyJSON    ExternalSecretRewriteMergeStrategy = "JSON"
+	// ExternalSecretRewriteMergeStrategyJSON merges secrets using JSON merge strategy.
+	ExternalSecretRewriteMergeStrategyJSON ExternalSecretRewriteMergeStrategy = "JSON"
 )
 
+// ExternalSecretRewriteRegexp defines configuration for rewriting secrets using regular expressions.
 type ExternalSecretRewriteRegexp struct {
 	// Used to define the regular expression of a re.Compiler.
 	Source string `json:"source"`
@@ -387,12 +425,14 @@ type ExternalSecretRewriteRegexp struct {
 	Target string `json:"target"`
 }
 
+// ExternalSecretRewriteTransform defines configuration for transforming secrets using templates.
 type ExternalSecretRewriteTransform struct {
 	// Used to define the template to apply on the secret name.
 	// `.value ` will specify the secret name in the template.
 	Template string `json:"template"`
 }
 
+// ExternalSecretFind defines configuration for finding secrets in the provider.
 type ExternalSecretFind struct {
 	// A root path to start the find operations.
 	// +optional
@@ -417,19 +457,24 @@ type ExternalSecretFind struct {
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 }
 
+// FindName defines criteria for finding secrets by name patterns.
 type FindName struct {
 	// Finds secrets base
 	// +optional
 	RegExp string `json:"regexp,omitempty"`
 }
 
+// ExternalSecretRefreshPolicy defines how and when the ExternalSecret should be refreshed.
 // +kubebuilder:validation:Enum=CreatedOnce;Periodic;OnChange
 type ExternalSecretRefreshPolicy string
 
 const (
+	// RefreshPolicyCreatedOnce creates the Secret once and does not update it thereafter.
 	RefreshPolicyCreatedOnce ExternalSecretRefreshPolicy = "CreatedOnce"
-	RefreshPolicyPeriodic    ExternalSecretRefreshPolicy = "Periodic"
-	RefreshPolicyOnChange    ExternalSecretRefreshPolicy = "OnChange"
+	// RefreshPolicyPeriodic synchronizes the Secret from the provider at regular intervals.
+	RefreshPolicyPeriodic ExternalSecretRefreshPolicy = "Periodic"
+	// RefreshPolicyOnChange only synchronizes when the ExternalSecret's metadata or spec changes.
+	RefreshPolicyOnChange ExternalSecretRefreshPolicy = "OnChange"
 )
 
 // ExternalSecretSpec defines the desired state of ExternalSecret.
@@ -514,14 +559,18 @@ type GeneratorRef struct {
 	Name string `json:"name"`
 }
 
+// ExternalSecretConditionType defines a value type for ExternalSecret conditions.
 // +kubebuilder:validation:Enum=Ready;Deleted
 type ExternalSecretConditionType string
 
 const (
-	ExternalSecretReady   ExternalSecretConditionType = "Ready"
+	// ExternalSecretReady indicates that the external secret is ready and synced.
+	ExternalSecretReady ExternalSecretConditionType = "Ready"
+	// ExternalSecretDeleted indicates that the external secret has been deleted.
 	ExternalSecretDeleted ExternalSecretConditionType = "Deleted"
 )
 
+// ExternalSecretStatusCondition defines a status condition of an ExternalSecret resource.
 type ExternalSecretStatusCondition struct {
 	Type   ExternalSecretConditionType `json:"type"`
 	Status corev1.ConditionStatus      `json:"status"`
@@ -546,14 +595,21 @@ const (
 	// ConditionReasonSecretMissing indicates that the secret is missing.
 	ConditionReasonSecretMissing = "SecretMissing"
 
-	ReasonUpdateFailed          = "UpdateFailed"
-	ReasonDeprecated            = "ParameterDeprecated"
-	ReasonCreated               = "Created"
-	ReasonUpdated               = "Updated"
-	ReasonDeleted               = "Deleted"
+	// ReasonUpdateFailed indicates that the update operation failed.
+	ReasonUpdateFailed = "UpdateFailed"
+	// ReasonDeprecated indicates that a parameter is deprecated.
+	ReasonDeprecated = "ParameterDeprecated"
+	// ReasonCreated indicates that a resource has been created.
+	ReasonCreated = "Created"
+	// ReasonUpdated indicates that a resource has been updated.
+	ReasonUpdated = "Updated"
+	// ReasonDeleted indicates that a resource has been deleted.
+	ReasonDeleted = "Deleted"
+	// ReasonMissingProviderSecret indicates that the provider secret is missing.
 	ReasonMissingProviderSecret = "MissingProviderSecret"
 )
 
+// ExternalSecretStatus defines the observed state of ExternalSecret.
 type ExternalSecretStatus struct {
 	// +nullable
 	// refreshTime is the time and date the external secret was fetched and
@@ -570,9 +626,10 @@ type ExternalSecretStatus struct {
 	Binding corev1.LocalObjectReference `json:"binding,omitempty"`
 }
 
+// ExternalSecret is the Schema for the external-secrets API.
+// It defines how to fetch data from external APIs and make it available as Kubernetes Secrets.
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
-// ExternalSecret is the Schema for the external-secrets API.
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=es
@@ -600,7 +657,9 @@ const (
 	AnnotationForceSync = "external-secrets.io/force-sync"
 
 	// LabelManaged all secrets managed by an ExternalSecret will have this label equal to "true".
-	LabelManaged      = "reconcile.external-secrets.io/managed"
+	LabelManaged = "reconcile.external-secrets.io/managed"
+
+	// LabelManagedValue is the value for the LabelManaged key, always set to "true".
 	LabelManagedValue = "true"
 
 	// LabelOwner points to the owning ExternalSecret resource when CreationPolicy=Owner.

@@ -20,6 +20,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+// SetupWebhookWithManager registers the ExternalSecret webhook with the controller manager.
 func (es *ExternalSecret) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(es).

@@ -23,6 +23,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
+// StatefulResource represents a Kubernetes resource that has state which can be tracked.
 // +kubebuilder:object:root=false
 // +kubebuilder:object:generate:false
 // +k8s:deepcopy-gen:interfaces=nil
@@ -33,12 +34,13 @@ type StatefulResource interface {
 }
 
 const (
-	// The owner key points to the resource which created the generator state.
+	// GeneratorStateLabelOwnerKey points to the resource which created the generator state.
 	// It is used in the garbage collection process to identify all states
 	// that belong to a specific resource.
 	GeneratorStateLabelOwnerKey = "generators.external-secrets.io/owner-key"
 )
 
+// GeneratorStateSpec defines the desired state of a generator state resource.
 type GeneratorStateSpec struct {
 	// GarbageCollectionDeadline is the time after which the generator state
 	// will be deleted.
@@ -57,12 +59,15 @@ type GeneratorStateSpec struct {
 	State *apiextensions.JSON `json:"state"`
 }
 
+// GeneratorStateConditionType represents the type of condition for a generator state.
 type GeneratorStateConditionType string
 
 const (
+	// GeneratorStateReady indicates the generator state is ready and available.
 	GeneratorStateReady GeneratorStateConditionType = "Ready"
 )
 
+// GeneratorStateStatusCondition represents the observed condition of a generator state.
 type GeneratorStateStatusCondition struct {
 	Type   GeneratorStateConditionType `json:"type"`
 	Status corev1.ConditionStatus      `json:"status"`
@@ -78,14 +83,18 @@ type GeneratorStateStatusCondition struct {
 }
 
 const (
+	// ConditionReasonCreated indicates the generator state was successfully created.
 	ConditionReasonCreated = "Created"
-	ConditionReasonError   = "Error"
+	// ConditionReasonError indicates an error occurred with the generator state.
+	ConditionReasonError = "Error"
 )
 
+// GeneratorStateStatus defines the observed state of a generator state resource.
 type GeneratorStateStatus struct {
 	Conditions []GeneratorStateStatusCondition `json:"conditions,omitempty"`
 }
 
+// GeneratorState represents the state created and managed by a generator resource.
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"

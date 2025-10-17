@@ -20,8 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Configures an store to sync secrets using a IBM Cloud Secrets Manager
-// backend.
+// IBMProvider configures a store to sync secrets using a IBM Cloud Secrets Manager backend.
 type IBMProvider struct {
 	// Auth configures how secret-manager authenticates with the IBM secrets manager.
 	Auth IBMAuth `json:"auth"`
@@ -30,6 +29,7 @@ type IBMProvider struct {
 	ServiceURL *string `json:"serviceUrl,omitempty"`
 }
 
+// IBMAuth defines the authentication methods for the IBM Cloud Secrets Manager provider.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type IBMAuth struct {
@@ -37,12 +37,13 @@ type IBMAuth struct {
 	ContainerAuth *IBMAuthContainerAuth `json:"containerAuth,omitempty"`
 }
 
+// IBMAuthSecretRef defines a reference to a secret containing credentials for the IBM provider.
 type IBMAuthSecretRef struct {
 	// The SecretAccessKey is used for authentication
 	SecretAPIKey esmeta.SecretKeySelector `json:"secretApiKeySecretRef,omitempty"`
 }
 
-// IBM Container-based auth with IAM Trusted Profile.
+// IBMAuthContainerAuth defines authentication using IBM Container-based auth with IAM Trusted Profile.
 type IBMAuthContainerAuth struct {
 	// the IBM Trusted Profile
 	Profile string `json:"profile"`

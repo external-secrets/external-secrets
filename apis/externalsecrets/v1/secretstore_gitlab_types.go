@@ -20,7 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Configures a store to sync secrets with a GitLab instance.
+// GitlabProvider configures a store to sync secrets with a GitLab instance.
 type GitlabProvider struct {
 	// URL configures the GitLab instance URL. Defaults to https://gitlab.com/.
 	URL string `json:"url,omitempty"`
@@ -49,10 +49,12 @@ type GitlabProvider struct {
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
+// GitlabAuth defines the authentication method for accessing GitLab API.
 type GitlabAuth struct {
 	SecretRef GitlabSecretRef `json:"SecretRef"`
 }
 
+// GitlabSecretRef contains the secret reference for GitLab authentication credentials.
 type GitlabSecretRef struct {
 	// AccessToken is used for authentication.
 	AccessToken esmeta.SecretKeySelector `json:"accessToken,omitempty"`

@@ -20,17 +20,19 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// YandexCertificateManagerAuth defines authentication configuration for the Yandex Certificate Manager provider.
 type YandexCertificateManagerAuth struct {
 	// The authorized key used for authentication
 	// +optional
 	AuthorizedKey esmeta.SecretKeySelector `json:"authorizedKeySecretRef,omitempty"`
 }
 
+// YandexCertificateManagerCAProvider defines CA certificate configuration for Yandex Certificate Manager.
 type YandexCertificateManagerCAProvider struct {
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 }
 
-// YandexCertificateManagerProvider Configures a store to sync secrets using the Yandex Certificate Manager provider.
+// YandexCertificateManagerProvider configures a store to sync secrets using the Yandex Certificate Manager provider.
 type YandexCertificateManagerProvider struct {
 	// Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
 	// +optional

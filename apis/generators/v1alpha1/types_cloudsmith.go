@@ -22,6 +22,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// CloudsmithAccessTokenSpec defines the configuration for generating a Cloudsmith access token using OIDC authentication.
 type CloudsmithAccessTokenSpec struct {
 	// APIURL configures the Cloudsmith API URL. Defaults to https://api.cloudsmith.io.
 	// +kubebuilder:validation:Optional

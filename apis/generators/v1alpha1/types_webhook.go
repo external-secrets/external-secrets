@@ -84,14 +84,17 @@ type NTLMProtocol struct {
 	Password esmeta.SecretKeySelector `json:"passwordSecret"`
 }
 
+// WebhookCAProviderType defines the type of provider for webhook CA certificates.
 type WebhookCAProviderType string
 
 const (
-	WebhookCAProviderTypeSecret    WebhookCAProviderType = "Secret"
+	// WebhookCAProviderTypeSecret indicates the CA provider is a Secret resource.
+	WebhookCAProviderTypeSecret WebhookCAProviderType = "Secret"
+	// WebhookCAProviderTypeConfigMap indicates the CA provider is a ConfigMap resource.
 	WebhookCAProviderTypeConfigMap WebhookCAProviderType = "ConfigMap"
 )
 
-// Defines a location to fetch the cert for the webhook provider from.
+// WebhookCAProvider defines a location to fetch the cert for the webhook provider from.
 type WebhookCAProvider struct {
 	// The type of provider to use such as "Secret", or "ConfigMap".
 	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
@@ -118,12 +121,14 @@ type WebhookCAProvider struct {
 	Namespace *string `json:"namespace,omitempty"`
 }
 
+// WebhookResult defines how to format and extract results from the webhook response.
 type WebhookResult struct {
 	// Json path of return value
 	// +optional
 	JSONPath string `json:"jsonPath,omitempty"`
 }
 
+// WebhookSecret defines a secret reference that will be used in webhook templates.
 type WebhookSecret struct {
 	// Name of this secret in templates
 	Name string `json:"name"`
@@ -132,6 +137,7 @@ type WebhookSecret struct {
 	SecretRef SecretKeySelector `json:"secretRef"`
 }
 
+// SecretKeySelector defines a reference to a specific key within a Kubernetes Secret.
 type SecretKeySelector struct {
 	// The name of the Secret resource being referred to.
 	// +kubebuilder:validation:MinLength:=1
@@ -164,7 +170,7 @@ type Webhook struct {
 
 // +kubebuilder:object:root=true
 
-// ExternalList contains a list of Webhook Generator resources.
+// WebhookList contains a list of Webhook Generator resources.
 type WebhookList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

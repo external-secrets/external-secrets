@@ -53,4 +53,5 @@ type Generator interface {
 	) error
 }
 
+// GeneratorProviderState represents the state of a generator provider that can be stored and retrieved.
 type GeneratorProviderState *apiextensions.JSON

@@ -21,6 +21,7 @@ type FakeProvider struct {
 	Data []FakeProviderData `json:"data"`
 }
 
+// FakeProviderData defines a key-value pair for the fake provider used in testing.
 type FakeProviderData struct {
 	Key     string `json:"key"`
 	Value   string `json:"value"`

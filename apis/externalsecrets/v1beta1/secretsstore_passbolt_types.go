@@ -20,12 +20,15 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Passbolt contains a secretRef for the passbolt credentials.
+// PassboltAuth contains credentials and configuration for authenticating with the Passbolt server.
 type PassboltAuth struct {
-	PasswordSecretRef   *esmeta.SecretKeySelector `json:"passwordSecretRef"`
+	// PasswordSecretRef is a reference to the secret containing the Passbolt password
+	PasswordSecretRef *esmeta.SecretKeySelector `json:"passwordSecretRef"`
+	// PrivateKeySecretRef is a reference to the secret containing the Passbolt private key
 	PrivateKeySecretRef *esmeta.SecretKeySelector `json:"privateKeySecretRef"`
 }
 
+// PassboltProvider defines configuration for the Passbolt provider.
 type PassboltProvider struct {
 	// Auth defines the information necessary to authenticate against Passbolt Server
 	Auth *PassboltAuth `json:"auth"`

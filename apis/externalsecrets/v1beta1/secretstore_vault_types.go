@@ -20,15 +20,17 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// VaultKVStoreVersion defines the version of the KV store in Vault.
 type VaultKVStoreVersion string
 
 const (
+	// VaultKVStoreV1 represents version 1 of the Vault KV store.
 	VaultKVStoreV1 VaultKVStoreVersion = "v1"
+	// VaultKVStoreV2 represents version 2 of the Vault KV store.
 	VaultKVStoreV2 VaultKVStoreVersion = "v2"
 )
 
-// Configures an store to sync secrets using a HashiCorp Vault
-// KV backend.
+// VaultProvider configures a store to sync secrets using a HashiCorp Vault KV backend.
 type VaultProvider struct {
 	// Auth configures how secret-manager authenticates with the Vault server.
 	Auth *VaultAuth `json:"auth,omitempty"`
@@ -188,8 +190,7 @@ type VaultAppRole struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }
 
-// Authenticate against Vault using a Kubernetes ServiceAccount token stored in
-// a Secret.
+// VaultKubernetesAuth authenticates against Vault using a Kubernetes ServiceAccount token stored in a Secret.
 type VaultKubernetesAuth struct {
 	// Path where the Kubernetes authentication backend is mounted in Vault, e.g:
 	// "kubernetes"
@@ -244,7 +245,7 @@ type VaultAwsAuth struct {
 	JWTAuth *VaultAwsJWTAuth `json:"jwt,omitempty"`
 }
 
-// VaultAWSAuthSecretRef holds secret references for AWS credentials
+// VaultAwsAuthSecretRef holds secret references for AWS credentials
 // both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
 type VaultAwsAuthSecretRef struct {
 	// The AccessKeyID is used for authentication

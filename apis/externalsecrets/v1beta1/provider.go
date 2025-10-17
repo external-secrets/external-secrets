@@ -25,18 +25,17 @@ import (
 )
 
 const (
-	// Ready indicates that the client is configured correctly
-	// and can be used.
+	// ValidationResultReady indicates that the client is configured correctly and can be used.
 	ValidationResultReady ValidationResult = iota
 
-	// Unknown indicates that the client can be used
-	// but information is missing and it can not be validated.
+	// ValidationResultUnknown indicates that the client can be used but information is missing and it can not be validated.
 	ValidationResultUnknown
 
-	// Error indicates that there is a misconfiguration.
+	// ValidationResultError indicates that there is a misconfiguration.
 	ValidationResultError
 )
 
+// ValidationResult represents the result of validating a provider client configuration.
 type ValidationResult uint8
 
 func (v ValidationResult) String() string {
@@ -98,6 +97,7 @@ type SecretsClient interface {
 	Close(ctx context.Context) error
 }
 
+// NoSecretErr is an instance of NoSecretError used to indicate that a secret doesn't exist.
 var NoSecretErr = NoSecretError{}
 
 // NoSecretError shall be returned when a GetSecret can not find the
@@ -108,6 +108,7 @@ func (NoSecretError) Error() string {
 	return "Secret does not exist"
 }
 
+// NotModifiedErr is an instance of NotModifiedError used to signal that no changes were made.
 var NotModifiedErr = NotModifiedError{}
 
 // NotModifiedError to signal that the webhook received no changes,

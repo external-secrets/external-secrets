@@ -16,6 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
+// ControllerClassResource defines a resource that can be assigned to a specific controller class.
 type ControllerClassResource struct {
 	Spec struct {
 		ControllerClass string `json:"controller"`

@@ -36,7 +36,7 @@ type AlibabaAuthSecretRef struct {
 	AccessKeySecret esmeta.SecretKeySelector `json:"accessKeySecretSecretRef"`
 }
 
-// Authenticate against Alibaba using RRSA.
+// AlibabaRRSAAuth authenticates against Alibaba using RRSA.
 type AlibabaRRSAAuth struct {
 	OIDCProviderARN   string `json:"oidcProviderArn"`
 	OIDCTokenFilePath string `json:"oidcTokenFilePath"`
