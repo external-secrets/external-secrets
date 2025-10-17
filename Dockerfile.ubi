@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi@sha256:2f698e145dd30ac9f611b8984b910640bc210fae476dc36aa9ba200fad2a30ed AS minimal-ubi
+FROM registry.access.redhat.com/ubi9/ubi@sha256:dec374e05cc13ebbc0975c9f521f3db6942d27f8ccdf06b180160490eef8bdbc AS minimal-ubi
 
 # Add metadata
 LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
@@ -20,7 +20,7 @@ COPY ubi-build-files-${TARGETARCH}.txt /tmp
 # Copy all the required files from the base UBI image into the image directory
 # As the go binary is not statically compiled this includes everything needed for CGO to work, cacerts, tzdata and RH release files
 RUN tar cf /tmp/files.tar -T /tmp/ubi-build-files-${TARGETARCH}.txt && tar xf /tmp/files.tar -C /image/ \
-  && strip --strip-unneeded /image/usr/lib64/*[0-9].so && rpm --root /image --initdb \
+  && rpm --root /image --initdb \
   && PACKAGES=$(rpm -qf $(cat /tmp/ubi-build-files-${TARGETARCH}.txt) | grep -v "is not owned by any package" | sort -u) \
   && echo dnf install -y 'dnf-command(download)' \
   && dnf download --destdir / ${PACKAGES} \
