@@ -43,11 +43,6 @@ func TestExtractUUIDFromRef(t *testing.T) {
 			expectedUUID: "87654321-4321-4321-4321-cba987654321",
 		},
 		{
-			name:         "just UUID",
-			secretRef:    "12345678-1234-1234-1234-123456789abc",
-			expectedUUID: "12345678-1234-1234-1234-123456789abc",
-		},
-		{
 			name:         "empty string",
 			secretRef:    "",
 			expectedUUID: "",

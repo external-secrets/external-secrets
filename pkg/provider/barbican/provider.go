@@ -90,7 +90,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		Password:         password,
 	}
 
-	auth, err := openstack.AuthenticatedClient(context.TODO(), authopts)
+	auth, err := openstack.AuthenticatedClient(ctx, authopts)
 	if err != nil {
 		return nil, fmt.Errorf(errGeneric, errors.New("failed to authenticate to OpenStack"))
 	}

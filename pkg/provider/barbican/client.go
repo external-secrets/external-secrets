@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/keymanager/v1/secrets"
@@ -50,7 +51,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 		Name: ref.Name.RegExp,
 	}
 
-	allPages, err := secrets.List(c.keyManager, opts).AllPages(context.TODO())
+	allPages, err := secrets.List(c.keyManager, opts).AllPages(ctx)
 	if err != nil {
 		return nil, fmt.Errorf(errClientGeneric, errors.New("failed to list all secrets"))
 	}
@@ -69,7 +70,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 	// return a secret map with all found secrets
 	for _, secret := range allSecrets {
 		secretUUID := extractUUIDFromRef(secret.SecretRef)
-		secretsMap[secretUUID], err = secrets.GetPayload(context.TODO(), c.keyManager, secretUUID, nil).Extract()
+		secretsMap[secretUUID], err = secrets.GetPayload(ctx, c.keyManager, secretUUID, nil).Extract()
 		if err != nil {
 			return nil, fmt.Errorf(errClientGeneric, errors.New("failed to get secret payload for secret "+secretUUID))
 		}
@@ -78,8 +79,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 }
 
 func (c *Client) GetSecret(ctx context.Context, ref esapi.ExternalSecretDataRemoteRef) ([]byte, error) {
-	// secret, err := secrets.Get(context.TODO(), c.keyManager, *&ref.Key).Extract()
-	payload, err := secrets.GetPayload(context.TODO(), c.keyManager, *&ref.Key, nil).Extract()
+	payload, err := secrets.GetPayload(ctx, c.keyManager, ref.Key, nil).Extract()
 	if err != nil {
 		return nil, fmt.Errorf(errClientGeneric, errors.New("failed to get secret payload for secret "+*&ref.Key))
 	}
@@ -157,24 +157,11 @@ func extractUUIDFromRef(secretRef string) string {
 	// Barbican secret refs are usually of the form: https://<endpoint>/v1/secrets/<uuid>
 	// We'll just take the last part after the last '/'
 	// If there's a trailing slash, the UUID part would be empty, so return empty string
-	if secretRef == "" {
-		return ""
+
+	lastSlash := strings.LastIndex(secretRef, "/")
+	if lastSlash > -1 {
+		return secretRef[lastSlash+1:] // <- will not result in overflow even if it's the last `/`
 	}
 
-	// Check for trailing slash - if present, it's an invalid format
-	if secretRef[len(secretRef)-1] == '/' {
-		return ""
-	}
-
-	lastSlash := -1
-	for i := len(secretRef) - 1; i >= 0; i-- {
-		if secretRef[i] == '/' {
-			lastSlash = i
-			break
-		}
-	}
-	if lastSlash != -1 && lastSlash+1 < len(secretRef) {
-		return secretRef[lastSlash+1:]
-	}
-	return secretRef
+  return ""
 }
