@@ -2518,6 +2518,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Additional Metadata for PushSecret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resource-policy-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Resource Policy Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -4202,6 +4217,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Additional Metadata for PushSecret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resource-policy-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Resource Policy Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -4383,13 +4413,17 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <span class="w">    </span><span class="s2">&quot;secretsmanager:CreateSecret&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="s2">&quot;secretsmanager:PutSecretValue&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="s2">&quot;secretsmanager:TagResource&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;secretsmanager:DeleteSecret&quot;</span>
+<span class="w">    </span><span class="s2">&quot;secretsmanager:DeleteSecret&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;secretsmanager:GetResourcePolicy&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;secretsmanager:PutResourcePolicy&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;secretsmanager:DeleteResourcePolicy&quot;</span>
 <span class="w">  </span><span class="p">],</span>
 <span class="w">  </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">    </span><span class="s2">&quot;arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*&quot;</span>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div>
+<p><strong>Note:</strong> The resource policy permissions (<code>GetResourcePolicy</code>, <code>PutResourcePolicy</code>, <code>DeleteResourcePolicy</code>) are only required if you're using the <code>resourcePolicy</code> metadata option to manage resource-based policies on secrets.</p>
 <p>Here's a more restrictive version of the IAM policy:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
@@ -4399,7 +4433,10 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <span class="w">      </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;secretsmanager:CreateSecret&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;secretsmanager:PutSecretValue&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="s2">&quot;secretsmanager:TagResource&quot;</span>
+<span class="w">        </span><span class="s2">&quot;secretsmanager:TagResource&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;secretsmanager:GetResourcePolicy&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;secretsmanager:PutResourcePolicy&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;secretsmanager:DeleteResourcePolicy&quot;</span>
 <span class="w">      </span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*&quot;</span>
@@ -4447,7 +4484,8 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 - kmsKeyID
 - secretPushFormat
 - description
-- tags</p>
+- tags
+- resourcePolicy</p>
 <p>To control this behavior set the following provider metadata:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
@@ -4484,7 +4522,72 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <li><code>kmsKeyID</code> takes a KMS Key <code>$ID</code> or <code>$ARN</code> (in case a key source is created in another account) as a string, where <code>alias/aws/secretsmanager</code> is the <em>default</em>.</li>
 <li><code>description</code> Description of the secret.</li>
 <li><code>tags</code> Key-value map of user-defined tags that are attached to the secret.</li>
+<li><code>resourcePolicy</code> Attach a resource-based policy to the secret for cross-account access or advanced access control.</li>
+<li><code>blockPublicPolicy</code> (optional) - Set to <code>true</code> to validate that the policy doesn't grant public access before applying. Defaults to AWS behavior.</li>
+<li><code>policySourceRef</code> (required) - Reference to a ConfigMap or Secret containing the policy JSON.<ul>
+<li><code>kind</code> - Either <code>ConfigMap</code> or <code>Secret</code>.</li>
+<li><code>name</code> - Name of the ConfigMap or Secret.</li>
+<li><code>key</code> - Key within the ConfigMap/Secret data that contains the policy JSON.</li>
 </ul>
+</li>
+</ul>
+<h5 id="resource-policy-example">Resource Policy Example</h5>
+<p>To attach a resource policy to a secret for cross-account access:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-secretsmanager</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pokedex-credentials</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret-key</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-remote-secret</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">  </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">resourcePolicy</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">blockPublicPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">      </span><span class="nt">policySourceRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret-resource-policy</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">policy.json</span>
+<span class="w">    </span><span class="nt">kmsKeyID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bb123123-b2b0-4f60-ac3a-44a13f0e6b6c</span>
+<span class="w">    </span><span class="nt">secretPushFormat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Cross-account</span><span class="nv"> </span><span class="s">accessible</span><span class="nv"> </span><span class="s">secret&quot;</span>
+<span class="w">    </span><span class="nt">tags</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">platform-engineering</span>
+</code></pre></div>
+<p>The ConfigMap should contain the policy JSON:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret-resource-policy</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">policy.json</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">    </span><span class="no">{</span>
+<span class="w">      </span><span class="no">&quot;Version&quot;: &quot;2012-10-17&quot;,</span>
+<span class="w">      </span><span class="no">&quot;Statement&quot;: [</span>
+<span class="w">        </span><span class="no">{</span>
+<span class="w">          </span><span class="no">&quot;Effect&quot;: &quot;Allow&quot;,</span>
+<span class="w">          </span><span class="no">&quot;Principal&quot;: {</span>
+<span class="w">            </span><span class="no">&quot;AWS&quot;: &quot;arn:aws:iam::123456789012:root&quot;</span>
+<span class="w">          </span><span class="no">},</span>
+<span class="w">          </span><span class="no">&quot;Action&quot;: &quot;secretsmanager:GetSecretValue&quot;,</span>
+<span class="w">          </span><span class="no">&quot;Resource&quot;: &quot;*&quot;</span>
+<span class="w">        </span><span class="no">}</span>
+<span class="w">      </span><span class="no">]</span>
+<span class="w">    </span><span class="no">}</span>
+</code></pre></div>
+<p><strong>Note:</strong> The resource policy is applied after the secret is created or updated. If the <code>resourcePolicy</code> field is removed from metadata, the existing policy will be deleted from the secret.</p>
 <h3 id="json-secret-values">JSON Secret Values</h3>
 <p>SecretsManager supports <em>simple</em> key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
 <p>Consider the following JSON object that is stored in the SecretsManager key <code>friendslist</code>:
