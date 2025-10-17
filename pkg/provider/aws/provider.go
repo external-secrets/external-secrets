@@ -158,7 +158,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		}
 		switch prov.Service {
 		case esv1.AWSServiceSecretsManager:
-			return secretsmanager.New(ctx, &cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, true)
+			return secretsmanager.New(ctx, &cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, true, kube, namespace)
 		case esv1.AWSServiceParameterStore:
 			return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
@@ -213,7 +213,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 
 	switch prov.Service {
 	case esv1.AWSServiceSecretsManager:
-		return secretsmanager.New(ctx, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false)
+		return secretsmanager.New(ctx, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false, kube, namespace)
 	case esv1.AWSServiceParameterStore:
 		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
