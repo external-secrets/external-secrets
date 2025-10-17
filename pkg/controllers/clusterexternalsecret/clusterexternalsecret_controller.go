@@ -354,13 +354,14 @@ func (r *Reconciler) updateNamespaceRemoveFinalizer(ctx context.Context, log log
 	// Only update if the finalizer was actually removed
 	if updated := controllerutil.RemoveFinalizer(namespace, finalizer); updated {
 		if err := r.Update(ctx, namespace); err != nil {
-			// Ignore NotFound (namespace deleted) and Conflict (will retry)
-			if apierrors.IsNotFound(err) || apierrors.IsConflict(err) {
+			// Ignore NotFound (namespace deleted)
+			if apierrors.IsNotFound(err) {
 				log.V(1).Info("ignoring expected error during finalizer removal",
 					"namespace", namespaceName,
 					"error", err.Error())
 				return nil
 			}
+
 			return fmt.Errorf("failed to remove finalizer from namespace %s: %w", namespaceName, err)
 		}
 	}
