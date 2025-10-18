@@ -32,8 +32,10 @@ import (
 )
 
 const (
-	errGeneric      = "barbican provider error: %w"
+	errGeneric      = "barbican provider error: %s"
 	errMissingField = "barbican provider missing required field: %s"
+	errAuthFailed   = "barbican provider authentication failed: %s"
+	errClientInit   = "barbican provider client initialization failed: %s"
 )
 
 var _ esv1.Provider = &Provider{}
@@ -46,7 +48,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errMissingField, errors.New("store is nil"))
+		return nil, fmt.Errorf(errGeneric, errors.New("store is nil"))
 	}
 	return nil, nil
 }
@@ -74,12 +76,12 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 
 	username, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Username.SecretRef)
 	if err != nil {
-		return nil, fmt.Errorf(errMissingField, errors.New("username is required"))
+		return nil, fmt.Errorf(errMissingField, err)
 	}
 
 	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Password.SecretRef)
 	if err != nil {
-		return nil, fmt.Errorf(errMissingField, errors.New("password is required"))
+		return nil, fmt.Errorf(errMissingField, err)
 	}
 
 	authopts := gophercloud.AuthOptions{
@@ -92,14 +94,14 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 
 	auth, err := openstack.AuthenticatedClient(ctx, authopts)
 	if err != nil {
-		return nil, fmt.Errorf(errGeneric, errors.New("failed to authenticate to OpenStack"))
+		return nil, fmt.Errorf(errAuthFailed, err)
 	}
 
 	barbicanClient, err := openstack.NewKeyManagerV1(auth, gophercloud.EndpointOpts{
 		Region: provider.Region,
 	})
 	if err != nil {
-		return nil, fmt.Errorf(errGeneric, errors.New("failed to create Barbican client"))
+		return nil, fmt.Errorf(errClientInit, err)
 	}
 
 	c := &Client{
