@@ -62,7 +62,7 @@ func TestValidateStore(t *testing.T) {
 			name:        "nil store should return error",
 			store:       nil,
 			expectError: true,
-			errorMsg:    "missing required field",
+			errorMsg:    "store is nil",
 		},
 		{
 			name:        "valid store should pass validation",

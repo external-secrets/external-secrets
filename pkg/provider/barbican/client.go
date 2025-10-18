@@ -32,8 +32,13 @@ import (
 )
 
 const (
-	errClientGeneric      = "barbican client: %w"
+	errClientGeneric      = "barbican client: %s"
 	errClientMissingField = "barbican client: missing field %s"
+	errClientListAllSecrets = "barbican client: failed to list all secrets: %s"
+	errClientExtractSecrets = "barbican client: failed to extract secrets: %s"
+	errClientGetSecretPayload = "barbican client: failed to get secret payload: %s"
+	errClientGetSecretPayloadProperty = "barbican client: failed to get secret payload property: %s"
+	errClientJSONUnmarshal = "barbican client: failed to unmarshal json: %s"
 )
 
 var _ esapi.SecretsClient = &Client{}
@@ -53,12 +58,12 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 
 	allPages, err := secrets.List(c.keyManager, opts).AllPages(ctx)
 	if err != nil {
-		return nil, fmt.Errorf(errClientGeneric, errors.New("failed to list all secrets"))
+		return nil, fmt.Errorf(errClientListAllSecrets, err)
 	}
 
 	allSecrets, err := secrets.ExtractSecrets(allPages)
 	if err != nil {
-		return nil, fmt.Errorf(errClientGeneric, errors.New("failed to extract secrets from all pages"))
+		return nil, fmt.Errorf(errClientExtractSecrets, err)
 	}
 
 	if len(allSecrets) == 0 {
@@ -72,7 +77,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 		secretUUID := extractUUIDFromRef(secret.SecretRef)
 		secretsMap[secretUUID], err = secrets.GetPayload(ctx, c.keyManager, secretUUID, nil).Extract()
 		if err != nil {
-			return nil, fmt.Errorf(errClientGeneric, errors.New("failed to get secret payload for secret "+secretUUID))
+			return nil, fmt.Errorf(errClientGetSecretPayload, errors.New("failed to get secret payload for secret: "+secretUUID+" : "+err.Error()))
 		}
 	}
 	return secretsMap, nil
@@ -81,7 +86,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 func (c *Client) GetSecret(ctx context.Context, ref esapi.ExternalSecretDataRemoteRef) ([]byte, error) {
 	payload, err := secrets.GetPayload(ctx, c.keyManager, ref.Key, nil).Extract()
 	if err != nil {
-		return nil, fmt.Errorf(errClientGeneric, errors.New("failed to get secret payload for secret "+*&ref.Key))
+		return nil, fmt.Errorf(errClientGetSecretPayload, err)
 	}
 
 	if ref.Property == "" {
@@ -90,7 +95,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esapi.ExternalSecretDataRemo
 
 	propertyValue, err := getSecretPayloadProperty(payload, ref.Property)
 	if err != nil {
-		return nil, fmt.Errorf(errClientGeneric, errors.New("failed to get property "+ref.Property+" from secret payload for secret "+*&ref.Key))
+		return nil, fmt.Errorf(errClientGetSecretPayloadProperty, errors.New("failed to get property '"+ref.Property+"' from secret payload: "+err.Error()))
 	}
 
 	return propertyValue, nil
@@ -102,13 +107,13 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataR
 		return nil, fmt.Errorf(errClientGeneric, err)
 	}
 
-	var rawJson map[string]json.RawMessage
-	if err := json.Unmarshal(payload, &rawJson); err != nil {
-		return nil, fmt.Errorf(errClientGeneric, errors.New("failed to unmarshal secret payload into JSON"))
+	var rawJSON map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &rawJSON); err != nil {
+		return nil, fmt.Errorf(errClientJSONUnmarshal, err)
 	}
 
-	secretMap := make(map[string][]byte, len(rawJson))
-	for k, v := range rawJson {
+	secretMap := make(map[string][]byte, len(rawJSON))
+	for k, v := range rawJSON {
 		secretMap[k] = []byte(v)
 	}
 
@@ -140,12 +145,12 @@ func getSecretPayloadProperty(payload []byte, property string) ([]byte, error) {
 		return payload, nil
 	}
 
-	var rawJson map[string]json.RawMessage
-	if err := json.Unmarshal(payload, &rawJson); err != nil {
-		return nil, fmt.Errorf(errClientGeneric, errors.New("failed to unmarshal secret payload property into JSON"))
+	var rawJSON map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &rawJSON); err != nil {
+		return nil, fmt.Errorf(errClientJSONUnmarshal, err)
 	}
 
-	value, ok := rawJson[property]
+	value, ok := rawJSON[property]
 	if !ok {
 		return nil, fmt.Errorf(errClientGeneric, errors.New("property "+property+" not found in secret payload"))
 	}
