@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package infisical implements a provider for retrieving secrets from Infisical.
 package infisical
 
 import (
@@ -75,9 +76,10 @@ func getSecretAddress(defaultPath, key string) (string, string, error) {
 	return key[:lastIndex], key[lastIndex+1:], nil
 }
 
-// GetSecret if this returns an error with type NoSecretError then the secret entry will be deleted depending on the
+// GetSecret retrieves a secret value from Infisical.
+// If this returns an error with type NoSecretError then the secret entry will be deleted depending on the
 // deletionPolicy.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	path, key, err := getSecretAddress(p.apiScope.SecretPath, ref.Key)
 	if err != nil {
 		return nil, err
@@ -134,8 +136,8 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 	return secretData, nil
 }
 
-// GetAllSecrets returns multiple k/v pairs from the provider.
-func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+// GetAllSecrets retrieves all secrets matching the given criteria from Infisical.
+func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return nil, errTagsNotImplemented
 	}
@@ -202,16 +204,19 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 }
 
 // PushSecret will write a single secret into the provider.
-func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+// This is not implemented for this provider.
+func (p *Provider) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errNotImplemented
 }
 
 // DeleteSecret will delete the secret from a provider.
-func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
+// This is not implemented for this provider.
+func (p *Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errNotImplemented
 }
 
 // SecretExists checks if a secret is already present in the provider at the given location.
-func (p *Provider) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
+// This is not implemented for this provider.
+func (p *Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errNotImplemented
 }

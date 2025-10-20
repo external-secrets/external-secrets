@@ -27,6 +27,7 @@ import (
 )
 
 const (
+	// STSEndpointEnv is the environment variable name for the AWS STS endpoint URL.
 	STSEndpointEnv = "AWS_STS_ENDPOINT"
 )
 

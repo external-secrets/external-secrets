@@ -14,8 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package constants holds constant values for the project.
 package constants
 
+// These constants are used for identifying providers and calls to them.
 const (
 	ProviderAWSSM                = "AWS/SecretsManager"
 	CallAWSSMGetSecretValue      = "GetSecretValue"
@@ -28,6 +30,9 @@ const (
 	CallAWSSMBatchGetSecretValue = "BatchGetSecretValue"
 	CallAWSSMUntagResource       = "UntagResource"
 	CallAWSSMTagResource         = "TagResource"
+	CallAWSSMPutResourcePolicy   = "PutResourcePolicy"
+	CallAWSSMGetResourcePolicy   = "GetResourcePolicy"
+	CallAWSSMDeleteResourcePolicy = "DeleteResourcePolicy"
 
 	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"

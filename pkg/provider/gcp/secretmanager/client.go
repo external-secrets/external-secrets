@@ -42,15 +42,17 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
-	CloudPlatformRole               = "https://www.googleapis.com/auth/cloud-platform"
+	// CloudPlatformRole is the OAuth2 scope required for GCP Cloud Platform access.
+	CloudPlatformRole = "https://www.googleapis.com/auth/cloud-platform"
+
 	defaultVersion                  = "latest"
 	errGCPSMStore                   = "received invalid GCPSM SecretStore resource"
 	errUnableGetCredentials         = "unable to get credentials: %w"
@@ -82,6 +84,7 @@ const (
 	regionalSecretVersionsPath = "projects/%s/locations/%s/secrets/%s/versions/%s"
 )
 
+// Client represents a Google Cloud Platform Secret Manager client.
 type Client struct {
 	smClient  GoogleSecretManagerClient
 	kube      kclient.Client
@@ -93,6 +96,7 @@ type Client struct {
 	workloadIdentity *workloadIdentity
 }
 
+// GoogleSecretManagerClient defines the interface for interacting with Google Secret Manager.
 type GoogleSecretManagerClient interface {
 	DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
@@ -107,6 +111,7 @@ type GoogleSecretManagerClient interface {
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
 
+// DeleteSecret deletes a secret from Google Cloud Secret Manager.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	name := getName(c.store.ProjectID, c.store.Location, remoteRef.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
@@ -141,6 +146,7 @@ func parseError(err error) error {
 	return err
 }
 
+// SecretExists checks if a secret exists in Google Cloud Secret Manager.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
@@ -169,7 +175,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		for k, v := range secret.Data {
 			secretStringVal[k] = string(v)
 		}
-		payload, err = utils.JSONMarshal(secretStringVal)
+		payload, err = esutils.JSONMarshal(secretStringVal)
 		if err != nil {
 			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
 		}
@@ -229,7 +235,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 			scrt.Replication = replication
 		}
 
-		topics, err := utils.FetchValueFromMetadata(topicsKey, pushSecretData.GetMetadata(), []any{})
+		topics, err := esutils.FetchValueFromMetadata(topicsKey, pushSecretData.GetMetadata(), []any{})
 		if err != nil {
 			return fmt.Errorf("failed to fetch topics from metadata: %w", err)
 		}
@@ -407,7 +413,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (m
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+	return esutils.ConvertKeys(ref.ConversionStrategy, secretMap)
 }
 
 func (c *Client) getData(ctx context.Context, key string) ([]byte, error) {
@@ -460,7 +466,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1.ExternalSecretFind) (m
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+	return esutils.ConvertKeys(ref.ConversionStrategy, secretMap)
 }
 
 func (c *Client) trimName(name string) string {
@@ -481,7 +487,7 @@ func (c *Client) extractProjectIDNumber(secretFullName string) string {
 
 // GetSecret returns a single secret from the provider.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(c.smClient) || c.store.ProjectID == "" {
+	if esutils.IsNil(c.smClient) || c.store.ProjectID == "" {
 		return nil, errors.New(errUninitalizedGCPProvider)
 	}
 
@@ -525,7 +531,10 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
-	val := getDataByProperty(result.Payload.Data, ref.Property)
+	val, err := getDataByProperty(result.Payload.Data, ref.Property)
+	if err != nil {
+		return nil, err
+	}
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
@@ -638,6 +647,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return secretData, nil
 }
 
+// Close closes the Google Cloud Secret Manager client connection.
 func (c *Client) Close(_ context.Context) error {
 	var err error
 	if c.smClient != nil {
@@ -653,6 +663,7 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate performs validation of the Google Cloud Secret Manager client configuration.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
 		return esv1.ValidationResultUnknown, nil
@@ -660,7 +671,10 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-func getDataByProperty(data []byte, property string) gjson.Result {
+func getDataByProperty(data []byte, property string) (gjson.Result, error) {
+	if !json.Valid(data) {
+		return gjson.Result{}, errors.New(errJSONSecretUnmarshal)
+	}
 	var payload string
 	if data != nil {
 		payload = string(data)
@@ -671,10 +685,10 @@ func getDataByProperty(data []byte, property string) gjson.Result {
 		refProperty = strings.ReplaceAll(refProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if val.Exists() {
-			return val
+			return val, nil
 		}
 	}
-	return gjson.Get(payload, property)
+	return gjson.Get(payload, property), nil
 }
 
 func getName(projectID, location, key string) string {

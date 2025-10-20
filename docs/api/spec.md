@@ -6815,6 +6815,156 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.NgrokAuth">NgrokAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokProvider">NgrokProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiKey</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokProviderSecretRef">
+NgrokProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIKey is the API Key used to authenticate with ngrok. See <a href="https://ngrok.com/docs/api/#authentication">https://ngrok.com/docs/api/#authentication</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokProvider">NgrokProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>NgrokProvider configures a store to sync secrets with a ngrok vault to use in traffic policies.
+See: <a href="https://ngrok.com/blog-post/secrets-for-traffic-policy">https://ngrok.com/blog-post/secrets-for-traffic-policy</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIURL is the URL of the ngrok API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokAuth">
+NgrokAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the ngrok provider authenticates with the ngrok API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vault</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokVault">
+NgrokVault
+</a>
+</em>
+</td>
+<td>
+<p>Vault configures the ngrok vault to sync secrets with.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokProviderSecretRef">NgrokProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokAuth">NgrokAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef is a reference to a secret containing the ngrok API key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokVault">NgrokVault
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokProvider">NgrokProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the ngrok vault to sync secrets with.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.NoSecretError">NoSecretError
 </h3>
 <p>
@@ -8896,6 +9046,20 @@ VolcengineProvider
 <p>Volcengine configures this store to sync secrets using the Volcengine provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>ngrok</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokProvider">
+NgrokProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ngrok configures this store to sync secrets using the ngrok provider.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.SecretStoreRef">SecretStoreRef
@@ -10291,6 +10455,19 @@ method, with the role name and token stored in a Kubernetes Secret resource.</p>
 <tbody>
 <tr>
 <td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path where the Certificate authentication backend is mounted
+in Vault, e.g: &ldquo;cert&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clientCert</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
@@ -11402,6 +11579,7 @@ WebhookResult
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Result formatting</p>
 </td>
 </tr>

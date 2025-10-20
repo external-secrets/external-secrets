@@ -43,9 +43,6 @@
                 "extraVolumes": {
                     "type": "array"
                 },
-                "fullnameOverride": {
-                    "type": "string"
-                },
                 "hostNetwork": {
                     "type": "boolean"
                 },
@@ -106,9 +103,6 @@
                             }
                         }
                     }
-                },
-                "nameOverride": {
-                    "type": "string"
                 },
                 "nodeSelector": {
                     "type": "object"
@@ -234,6 +228,20 @@
                         },
                         "name": {
                             "type": "string"
+                        }
+                    }
+                },
+                "startupProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "port": {
+                            "type": "string"
+                        },
+                        "useReadinessProbePort": {
+                            "type": "boolean"
                         }
                     }
                 },
@@ -431,7 +439,10 @@
                                     "type": "string"
                                 },
                                 "port": {
-                                    "type": "string"
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
                                 }
                             }
                         },
@@ -810,9 +821,6 @@
                 "failurePolicy": {
                     "type": "string"
                 },
-                "fullnameOverride": {
-                    "type": "string"
-                },
                 "hostNetwork": {
                     "type": "boolean"
                 },
@@ -877,9 +885,6 @@
                         }
                     }
                 },
-                "nameOverride": {
-                    "type": "string"
-                },
                 "nodeSelector": {
                     "type": "object"
                 },
@@ -919,14 +924,6 @@
                 },
                 "priorityClassName": {
                     "type": "string"
-                },
-                "rbac": {
-                    "type": "object",
-                    "properties": {
-                        "create": {
-                            "type": "boolean"
-                        }
-                    }
                 },
                 "readinessProbe": {
                     "type": "object",

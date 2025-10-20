@@ -27,18 +27,18 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
 )
 
-// Implementation of common.SecretGetter.
+// Implementation of ydxcommon.SecretGetter.
 type lockboxSecretGetter struct {
 	lockboxClient client.LockboxClient
 }
 
-func newLockboxSecretGetter(lockboxClient client.LockboxClient) (common.SecretGetter, error) {
+func newLockboxSecretGetter(lockboxClient client.LockboxClient) (ydxcommon.SecretGetter, error) {
 	return &lockboxSecretGetter{
 		lockboxClient: lockboxClient,
 	}, nil
 }
 
-func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceKey string, resourceKeyType common.ResourceKeyType, folderID, versionID, property string) ([]byte, error) {
+func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceKey string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID, property string) ([]byte, error) {
 	entries, err := g.fetchPayloadEntries(ctx, iamToken, resourceKey, resourceKeyType, folderID, versionID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret: %w", err)
@@ -65,7 +65,7 @@ func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceK
 	return getValueAsBinary(entry)
 }
 
-func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceKey string, resourceKeyType common.ResourceKeyType, folderID, versionID string) (map[string][]byte, error) {
+func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceKey string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID string) (map[string][]byte, error) {
 	entries, err := g.fetchPayloadEntries(ctx, iamToken, resourceKey, resourceKeyType, folderID, versionID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
@@ -81,11 +81,11 @@ func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resour
 	return secretMap, nil
 }
 
-func (g *lockboxSecretGetter) fetchPayloadEntries(ctx context.Context, iamToken, resourceKey string, resourceKeyType common.ResourceKeyType, folderID, versionID string) ([]*lockbox.Payload_Entry, error) {
+func (g *lockboxSecretGetter) fetchPayloadEntries(ctx context.Context, iamToken, resourceKey string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID string) ([]*lockbox.Payload_Entry, error) {
 	switch resourceKeyType {
-	case common.ResourceKeyTypeId:
+	case ydxcommon.ResourceKeyTypeID:
 		return g.lockboxClient.GetPayloadEntries(ctx, iamToken, resourceKey, versionID)
-	case common.ResourceKeyTypeName:
+	case ydxcommon.ResourceKeyTypeName:
 		entriesMap, err := g.lockboxClient.GetExPayload(ctx, iamToken, folderID, resourceKey, versionID)
 		if err != nil {
 			return nil, err

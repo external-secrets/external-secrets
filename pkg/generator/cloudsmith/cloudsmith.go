@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cloudsmith implements a generator for Cloudsmith access tokens using OIDC.
 package cloudsmith
 
 import (
@@ -34,18 +35,21 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
+// Generator implements the Cloudsmith access token generator.
 type Generator struct {
 	httpClient *http.Client
 }
 
+// OIDCRequest represents the payload sent to Cloudsmith for OIDC token exchange.
 type OIDCRequest struct {
 	OIDCToken   string `json:"oidc_token"`
 	ServiceSlug string `json:"service_slug"`
 }
 
+// OIDCResponse represents the response from Cloudsmith containing the access token.
 type OIDCResponse struct {
 	Token string `json:"token"`
 }
@@ -66,6 +70,7 @@ const (
 	httpClientTimeout = 30 * time.Second
 )
 
+// Generate generates a Cloudsmith access token using the provided cloudsmith JSON spec.
 func (g *Generator) Generate(ctx context.Context, cloudsmithSpec *apiextensions.JSON, kubeClient client.Client, targetNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
@@ -75,15 +80,13 @@ func (g *Generator) Generate(ctx context.Context, cloudsmithSpec *apiextensions.
 	)
 }
 
-func (g *Generator) Cleanup(_ context.Context, cloudsmithSpec *apiextensions.JSON, providerState genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+// Cleanup is a no-op for the Cloudsmith generator.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 
-func (g *Generator) generate(
-	ctx context.Context,
-	cloudsmithSpec *apiextensions.JSON,
-	_ client.Client,
-	targetNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+// generate performs the main logic of the Cloudsmith generator.
+func (g *Generator) generate(ctx context.Context, cloudsmithSpec *apiextensions.JSON, _ client.Client, targetNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if cloudsmithSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}
@@ -93,7 +96,7 @@ func (g *Generator) generate(
 	}
 
 	// Fetch the service account token
-	oidcToken, err := utils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, targetNamespace)
+	oidcToken, err := esutils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, targetNamespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
@@ -108,7 +111,7 @@ func (g *Generator) generate(
 		return nil, nil, fmt.Errorf(errExchangeToken, err)
 	}
 
-	exp, err := utils.ExtractJWTExpiration(accessToken)
+	exp, err := esutils.ExtractJWTExpiration(accessToken)
 	if err != nil {
 		return nil, nil, err
 	}

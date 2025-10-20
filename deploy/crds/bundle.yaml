@@ -5185,6 +5185,62 @@ spec:
                               type: string
                           type: object
                       type: object
+                    ngrok:
+                      description: Ngrok configures this store to sync secrets using the ngrok provider.
+                      properties:
+                        apiUrl:
+                          default: https://api.ngrok.com
+                          description: APIURL is the URL of the ngrok API.
+                          type: string
+                        auth:
+                          description: Auth configures how the ngrok provider authenticates with the ngrok API.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            apiKey:
+                              description: APIKey is the API Key used to authenticate with ngrok. See https://ngrok.com/docs/api/#authentication
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the ngrok API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                        vault:
+                          description: Vault configures the ngrok vault to sync secrets with.
+                          properties:
+                            name:
+                              description: Name is the name of the ngrok vault to sync secrets with.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      required:
+                        - auth
+                        - vault
+                      type: object
                     onboardbase:
                       description: Onboardbase configures this store to sync secrets using the Onboardbase provider
                       properties:
@@ -6081,6 +6137,12 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                path:
+                                  default: cert
+                                  description: |-
+                                    Path where the Certificate authentication backend is mounted
+                                    in Vault, e.g: "cert"
+                                  type: string
                                 secretRef:
                                   description: |-
                                     SecretRef to a key in a Secret resource containing client private key to
@@ -7012,7 +7074,6 @@ spec:
                           description: Webhook url to call
                           type: string
                       required:
-                        - result
                         - url
                       type: object
                     yandexcertificatemanager:
@@ -16329,6 +16390,62 @@ spec:
                               type: string
                           type: object
                       type: object
+                    ngrok:
+                      description: Ngrok configures this store to sync secrets using the ngrok provider.
+                      properties:
+                        apiUrl:
+                          default: https://api.ngrok.com
+                          description: APIURL is the URL of the ngrok API.
+                          type: string
+                        auth:
+                          description: Auth configures how the ngrok provider authenticates with the ngrok API.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            apiKey:
+                              description: APIKey is the API Key used to authenticate with ngrok. See https://ngrok.com/docs/api/#authentication
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the ngrok API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                        vault:
+                          description: Vault configures the ngrok vault to sync secrets with.
+                          properties:
+                            name:
+                              description: Name is the name of the ngrok vault to sync secrets with.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      required:
+                        - auth
+                        - vault
+                      type: object
                     onboardbase:
                       description: Onboardbase configures this store to sync secrets using the Onboardbase provider
                       properties:
@@ -17225,6 +17342,12 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                path:
+                                  default: cert
+                                  description: |-
+                                    Path where the Certificate authentication backend is mounted
+                                    in Vault, e.g: "cert"
+                                  type: string
                                 secretRef:
                                   description: |-
                                     SecretRef to a key in a Secret resource containing client private key to
@@ -18156,7 +18279,6 @@ spec:
                           description: Webhook url to call
                           type: string
                       required:
-                        - result
                         - url
                       type: object
                     yandexcertificatemanager:
@@ -23671,6 +23793,23 @@ spec:
                             Digits specifies the number of digits in the generated
                             password. If omitted it defaults to 25% of the length of the password
                           type: integer
+                        encoding:
+                          default: raw
+                          description: |-
+                            Encoding specifies the encoding of the generated password.
+                            Valid values are:
+                            - "raw" (default): no encoding
+                            - "base64": standard base64 encoding
+                            - "base64url": base64url encoding
+                            - "base32": base32 encoding
+                            - "hex": hexadecimal encoding
+                          enum:
+                            - base64
+                            - base64url
+                            - base32
+                            - hex
+                            - raw
+                          type: string
                         length:
                           default: 24
                           description: |-
@@ -24053,6 +24192,12 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
+                                    path:
+                                      default: cert
+                                      description: |-
+                                        Path where the Certificate authentication backend is mounted
+                                        in Vault, e.g: "cert"
+                                      type: string
                                     secretRef:
                                       description: |-
                                         SecretRef to a key in a Secret resource containing client private key to
@@ -25936,6 +26081,23 @@ spec:
                     Digits specifies the number of digits in the generated
                     password. If omitted it defaults to 25% of the length of the password
                   type: integer
+                encoding:
+                  default: raw
+                  description: |-
+                    Encoding specifies the encoding of the generated password.
+                    Valid values are:
+                    - "raw" (default): no encoding
+                    - "base64": standard base64 encoding
+                    - "base64url": base64url encoding
+                    - "base32": base32 encoding
+                    - "hex": hexadecimal encoding
+                  enum:
+                    - base64
+                    - base64url
+                    - base32
+                    - hex
+                    - raw
+                  type: string
                 length:
                   default: 24
                   description: |-
@@ -26561,6 +26723,12 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            path:
+                              default: cert
+                              description: |-
+                                Path where the Certificate authentication backend is mounted
+                                in Vault, e.g: "cert"
+                              type: string
                             secretRef:
                               description: |-
                                 SecretRef to a key in a Secret resource containing client private key to

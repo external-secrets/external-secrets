@@ -315,7 +315,9 @@ livenessProbe:
     # -- Handler for liveness probe.
     httpGet:
       # -- Set this value to 8082 to active liveness probes.
-      port: "8082"
+      # @schema type: [string, integer]
+      port: 8082
+      # -- Path for liveness probe.
       path: /healthz
 
 nodeSelector: {}
@@ -369,13 +371,8 @@ webhook:
     # -- The flavour of tag you want to use
     flavour: ""
   imagePullSecrets: []
-  nameOverride: ""
-  fullnameOverride: ""
   # -- The port the webhook will listen to
   port: 10250
-  rbac:
-  # -- Specifies whether role and rolebinding resources should be created.
-    create: true
   serviceAccount:
     # -- Specifies whether a service account should be created.
     create: true
@@ -550,8 +547,6 @@ certController:
     tag: ""
     flavour: ""
   imagePullSecrets: []
-  nameOverride: ""
-  fullnameOverride: ""
   rbac:
   # -- Specifies whether role and rolebinding resources should be created.
     create: true
@@ -611,6 +606,14 @@ certController:
     address: ""
     # -- ReadinessProbe port for kubelet
     port: 8081
+
+  startupProbe:
+    # -- Enabled determines if the startup probe should be used or not. By default it's enabled
+    enabled: false
+    # -- whether to use the readiness probe port for startup probe.
+    useReadinessProbePort: true
+    # -- Port for startup probe.
+    port: ""
 
     ## -- Extra environment variables to add to container.
   extraEnv: []

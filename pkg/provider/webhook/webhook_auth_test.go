@@ -93,7 +93,7 @@ func TestWebhookAuth(t *testing.T) {
 	}
 }
 
-func ntlmRequestEcho(creds mockCreds, t *testing.T) *httptest.Server {
+func ntlmRequestEcho(mockCreds, *testing.T) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqAuthString := r.Header.Get("Authorization")
 		if reqAuthString == "" {
@@ -107,7 +107,7 @@ func ntlmRequestEcho(creds mockCreds, t *testing.T) *httptest.Server {
 	return server
 }
 
-func negotiateRequestEcho(creds mockCreds, t *testing.T) *httptest.Server {
+func negotiateRequestEcho(mockCreds, *testing.T) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqAuthString := r.Header.Get("Authorization")
 		if reqAuthString == "" {
@@ -177,7 +177,7 @@ func ntlmRequest(url string, creds mockCreds, t *testing.T) string {
 	return result
 }
 
-func basicAuthRequestEcho(creds mockCreds, t *testing.T) *httptest.Server {
+func basicAuthRequestEcho(mockCreds, *testing.T) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqAuthString := r.Header.Get("Authorization")
 		if reqAuthString == "" {

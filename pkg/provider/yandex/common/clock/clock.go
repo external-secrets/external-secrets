@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package clock provides time utilities for Yandex Cloud providers.
 package clock
 
 import (
 	"time"
 )
 
+// Clock provides an interface for time operations.
 type Clock interface {
 	CurrentTime() time.Time
 }

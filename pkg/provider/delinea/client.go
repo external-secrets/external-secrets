@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package delinea implements a provider for Delinea DevOps Secrets Vault.
+// It provides functionality to interact with secrets stored in Delinea DSV,
+// supporting operations like fetching secrets and managing secret lifecycles.
 package delinea
 
 import (
@@ -26,7 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 type client struct {
@@ -81,7 +84,7 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-// GetSecret gets the full secret as json-encoded value.
+// GetSecretMap retrieves all key-value pairs from the secret referenced by ref.
 func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
@@ -89,7 +92,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	}
 	byteMap := make(map[string][]byte, len(secret.Data))
 	for k := range secret.Data {
-		byteMap[k], err = utils.GetByteValueFromMap(secret.Data, k)
+		byteMap[k], err = esutils.GetByteValueFromMap(secret.Data, k)
 		if err != nil {
 			return nil, err
 		}
