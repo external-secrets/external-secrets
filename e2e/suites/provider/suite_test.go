@@ -28,6 +28,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases"
+	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
@@ -45,6 +46,7 @@ var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	cfg := &addon.Config{}
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
+
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
 	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
@@ -53,6 +55,16 @@ var _ = SynchronizedAfterSuite(func() {
 		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
 		Expect(err).ToNot(HaveOccurred())
 	}
+
+	By("Deleting all ClusterExternalSecrets")
+	externalSecretsList := &v1.ClusterExternalSecretList{}
+	err = cfg.CRClient.List(GinkgoT().Context(), externalSecretsList)
+	Expect(err).ToNot(HaveOccurred())
+	for _, externalSecret := range externalSecretsList.Items {
+		err = cfg.CRClient.Delete(GinkgoT().Context(), &externalSecret)
+		Expect(err).ToNot(HaveOccurred())
+	}
+
 	By("Cleaning up global addons")
 	addon.UninstallGlobalAddons()
 	if CurrentSpecReport().Failed() {
