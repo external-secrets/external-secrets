@@ -615,16 +615,15 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.Generi
 		vms.authConfigurationsCache = make(map[string]auth.ConfigurationProviderWithClaimAccess)
 	}
 
-	// Caching by store name as a key is sufficient, as each VaultManagementService instance is tied to a single store.
-	_, ok := vms.authConfigurationsCache[store.GetName()]
+	_, ok := vms.authConfigurationsCache[string(store.GetUID())]
 	if !ok {
-		vms.authConfigurationsCache[store.GetName()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+		vms.authConfigurationsCache[string(store.GetUID())], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return vms.authConfigurationsCache[store.GetName()], nil
+	return vms.authConfigurationsCache[string(store.GetUID())], nil
 }
 
 func (vms *VaultManagementService) constructProvider(ctx context.Context, store esv1.GenericStore, oracleSpec *esv1.OracleProvider, kube kclient.Client, namespace string) (common.ConfigurationProvider, error) {
