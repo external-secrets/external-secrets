@@ -71,14 +71,14 @@ var _ esv1.Provider = &VaultManagementService{}
 
 // VaultManagementService implements the External Secrets provider interface for Oracle Cloud Infrastructure Vault.
 type VaultManagementService struct {
-	Client                VMInterface
-	KmsVaultClient        KmsVCInterface
-	VaultClient           VaultInterface
-	vault                 string
-	compartment           string
-	encryptionKey         string
-	workloadIdentityMutex sync.Mutex
-	tokenProviders        map[string]auth.ConfigurationProviderWithClaimAccess
+	Client                  VMInterface
+	KmsVaultClient          KmsVCInterface
+	VaultClient             VaultInterface
+	vault                   string
+	compartment             string
+	encryptionKey           string
+	workloadIdentityMutex   sync.Mutex
+	authConfigurationsCache map[string]auth.ConfigurationProviderWithClaimAccess
 }
 
 // VMInterface defines the interface for OCI Secrets Management Client operations.
@@ -611,20 +611,20 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.Generi
 	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
 
 	// Cache OKE token providers per SecretStore to avoid creating multiple providers for the same store.
-	if vms.tokenProviders == nil {
-		vms.tokenProviders = make(map[string]auth.ConfigurationProviderWithClaimAccess)
+	if vms.authConfigurationsCache == nil {
+		vms.authConfigurationsCache = make(map[string]auth.ConfigurationProviderWithClaimAccess)
 	}
 
 	// Caching by store name as a key is sufficient, as each VaultManagementService instance is tied to a single store.
-	_, ok := vms.tokenProviders[store.GetName()]
+	_, ok := vms.authConfigurationsCache[store.GetName()]
 	if !ok {
-		vms.tokenProviders[store.GetName()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+		vms.authConfigurationsCache[store.GetName()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return vms.tokenProviders[store.GetName()], nil
+	return vms.authConfigurationsCache[store.GetName()], nil
 }
 
 func (vms *VaultManagementService) constructProvider(ctx context.Context, store esv1.GenericStore, oracleSpec *esv1.OracleProvider, kube kclient.Client, namespace string) (common.ConfigurationProvider, error) {
