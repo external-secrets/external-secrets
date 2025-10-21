@@ -20,6 +20,8 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type BarbicanProviderRef struct {
 	Value     string                    `json:"value,omitempty"`
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`

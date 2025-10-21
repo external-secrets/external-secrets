@@ -2955,6 +2955,8 @@ spec:
                         domainName:
                           type: string
                         password:
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             secretRef:
                               description: |-
@@ -2992,6 +2994,8 @@ spec:
                         tenantName:
                           type: string
                         username:
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             secretRef:
                               description: |-
@@ -14520,6 +14524,8 @@ spec:
                         domainName:
                           type: string
                         password:
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             secretRef:
                               description: |-
@@ -14557,6 +14563,8 @@ spec:
                         tenantName:
                           type: string
                         username:
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             secretRef:
                               description: |-
