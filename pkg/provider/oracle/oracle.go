@@ -78,6 +78,7 @@ type VaultManagementService struct {
 	compartment           string
 	encryptionKey         string
 	workloadIdentityMutex sync.Mutex
+	OKETokenProvider      map[string]auth.ConfigurationProviderWithClaimAccess
 }
 
 // VMInterface defines the interface for OCI Secrets Management Client operations.
@@ -608,7 +609,22 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.Generi
 		return nil, err
 	}
 	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
-	return auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+
+	// Cache OKE token providers per SecretStore to avoid creating multiple providers for the same store.
+	if vms.OKETokenProvider == nil {
+		vms.OKETokenProvider = make(map[string]auth.ConfigurationProviderWithClaimAccess)
+	}
+
+	// Caching by store name as a key is sufficient, as each VaultManagementService instance is tied to a single store.
+	_, ok := vms.OKETokenProvider[store.GetName()]
+	if !ok {
+		vms.OKETokenProvider[store.GetName()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return vms.OKETokenProvider[store.GetName()], nil
 }
 
 func (vms *VaultManagementService) constructProvider(ctx context.Context, store esv1.GenericStore, oracleSpec *esv1.OracleProvider, kube kclient.Client, namespace string) (common.ConfigurationProvider, error) {
