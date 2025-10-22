@@ -7,7 +7,7 @@ External Secrets Operator integrates with GitHub to sync Kubernetes secrets with
 The GitHub provider is **write-only**, designed specifically to **create and update** GitHub Actions secrets using the
 [GitHub REST API](https://docs.github.com/en/rest/actions/secrets), and does not support **fetching the secret values**.
 
-### Configuring Github provider
+### Configuring GitHub provider
 
 The GitHub API requires to install the ESO app to your GitHub organisation in order to use the GitHub provider features.
 
