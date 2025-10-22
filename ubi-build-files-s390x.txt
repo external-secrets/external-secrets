@@ -1,4 +1,4 @@
-etc/ssl/certs
+
 etc/redhat-release
 usr/share/zoneinfo
 usr/lib/ld64.so.1
