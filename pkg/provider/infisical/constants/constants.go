@@ -13,9 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package constants holds constant values used across the Infisical provider.
 package constants
 
 const (
+	// UniversalAuth is the authentication type for universal auth in Infisical.
 	UniversalAuth = "universal-auth"
-	ProviderName  = "infisical"
+
+	// ProviderName is the name of the Infisical provider.
+	ProviderName = "infisical"
 )

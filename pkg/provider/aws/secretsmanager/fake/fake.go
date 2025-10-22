@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package fake provides mock implementations of AWS Secrets Manager interfaces for testing.
+// It allows simulating AWS API responses without making actual API calls.
 package fake
 
 import (
@@ -42,6 +44,9 @@ type Client struct {
 	BatchGetSecretValueFn BatchGetSecretValueFn
 	TagResourceFn         TagResourceFn
 	UntagResourceFn       UntagResourceFn
+	PutResourcePolicyFn   PutResourcePolicyFn
+	GetResourcePolicyFn   GetResourcePolicyFn
+	DeleteResourcePolicyFn DeleteResourcePolicyFn
 }
 type CreateSecretFn func(context.Context, *awssm.CreateSecretInput, ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
 type GetSecretValueFn func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
@@ -53,6 +58,9 @@ type BatchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput
 
 type TagResourceFn func(context.Context, *awssm.TagResourceInput, ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
 type UntagResourceFn func(context.Context, *awssm.UntagResourceInput, ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
+type PutResourcePolicyFn func(context.Context, *awssm.PutResourcePolicyInput, ...func(*awssm.Options)) (*awssm.PutResourcePolicyOutput, error)
+type GetResourcePolicyFn func(context.Context, *awssm.GetResourcePolicyInput, ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error)
+type DeleteResourcePolicyFn func(context.Context, *awssm.DeleteResourcePolicyInput, ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error)
 
 func (sm *Client) CreateSecret(ctx context.Context, input *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretFn(ctx, input, options...)
@@ -77,8 +85,9 @@ func (sm *Client) DeleteSecret(ctx context.Context, input *awssm.DeleteSecretInp
 	return sm.DeleteSecretFn(ctx, input, opts...)
 }
 
+// NewDeleteSecretFn returns a DeleteSecretFn that simulates AWS DeleteSecret API behavior.
 func NewDeleteSecretFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretFn {
-	return func(ctx context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
+	return func(_ context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
 		if input.ForceDeleteWithoutRecovery != nil && *input.ForceDeleteWithoutRecovery {
 			output.DeletionDate = ptr.To(time.Now())
 		}
@@ -86,8 +95,9 @@ func NewDeleteSecretFn(output *awssm.DeleteSecretOutput, err error) DeleteSecret
 	}
 }
 
+// NewGetSecretValueFn returns a GetSecretValueFn that returns the provided output and error.
 func NewGetSecretValueFn(output *awssm.GetSecretValueOutput, err error) GetSecretValueFn {
-	return func(ctx context.Context, input *awssm.GetSecretValueInput, options ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
+	return func(_ context.Context, input *awssm.GetSecretValueInput, options ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
 		return output, err
 	}
 }
@@ -216,6 +226,45 @@ func (sm *Client) UntagResource(ctx context.Context, params *awssm.UntagResource
 
 func NewUntagResourceFn(output *awssm.UntagResourceOutput, err error, aFunc ...func(input *awssm.UntagResourceInput)) UntagResourceFn {
 	return func(ctx context.Context, params *awssm.UntagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error) {
+		for _, f := range aFunc {
+			f(params)
+		}
+		return output, err
+	}
+}
+
+func (sm *Client) PutResourcePolicy(ctx context.Context, params *awssm.PutResourcePolicyInput, optFns ...func(*awssm.Options)) (*awssm.PutResourcePolicyOutput, error) {
+	return sm.PutResourcePolicyFn(ctx, params, optFns...)
+}
+
+func NewPutResourcePolicyFn(output *awssm.PutResourcePolicyOutput, err error, aFunc ...func(input *awssm.PutResourcePolicyInput)) PutResourcePolicyFn {
+	return func(ctx context.Context, params *awssm.PutResourcePolicyInput, optFns ...func(*awssm.Options)) (*awssm.PutResourcePolicyOutput, error) {
+		for _, f := range aFunc {
+			f(params)
+		}
+		return output, err
+	}
+}
+
+func (sm *Client) GetResourcePolicy(ctx context.Context, params *awssm.GetResourcePolicyInput, optFns ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error) {
+	return sm.GetResourcePolicyFn(ctx, params, optFns...)
+}
+
+func NewGetResourcePolicyFn(output *awssm.GetResourcePolicyOutput, err error, aFunc ...func(input *awssm.GetResourcePolicyInput)) GetResourcePolicyFn {
+	return func(ctx context.Context, params *awssm.GetResourcePolicyInput, optFns ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error) {
+		for _, f := range aFunc {
+			f(params)
+		}
+		return output, err
+	}
+}
+
+func (sm *Client) DeleteResourcePolicy(ctx context.Context, params *awssm.DeleteResourcePolicyInput, optFns ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error) {
+	return sm.DeleteResourcePolicyFn(ctx, params, optFns...)
+}
+
+func NewDeleteResourcePolicyFn(output *awssm.DeleteResourcePolicyOutput, err error, aFunc ...func(input *awssm.DeleteResourcePolicyInput)) DeleteResourcePolicyFn {
+	return func(ctx context.Context, params *awssm.DeleteResourcePolicyInput, optFns ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error) {
 		for _, f := range aFunc {
 			f(params)
 		}

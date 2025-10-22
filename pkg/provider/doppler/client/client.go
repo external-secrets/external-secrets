@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package client provides the client implementation for interacting with Doppler's API.
 package client
 
 import (
@@ -28,6 +29,7 @@ import (
 	"time"
 )
 
+// DopplerClient represents a client for interacting with Doppler's API.
 type DopplerClient struct {
 	baseURL      *url.URL
 	DopplerToken string
@@ -41,8 +43,10 @@ type headers map[string]string
 
 type httpRequestBody []byte
 
+// Secrets represents a map of secret names to their values.
 type Secrets map[string]string
 
+// Change represents a request to modify a secret in Doppler.
 type Change struct {
 	Name         string  `json:"name"`
 	OriginalName string  `json:"originalName"`
@@ -50,6 +54,7 @@ type Change struct {
 	ShouldDelete bool    `json:"shouldDelete,omitempty"`
 }
 
+// APIError represents an error returned by the Doppler API.
 type APIError struct {
 	Err     error
 	Message string
@@ -66,12 +71,14 @@ type apiErrorResponse struct {
 	Success  bool
 }
 
+// SecretRequest represents a request to retrieve a single secret.
 type SecretRequest struct {
 	Name    string
 	Project string
 	Config  string
 }
 
+// SecretsRequest represents a request to retrieve multiple secrets.
 type SecretsRequest struct {
 	Project         string
 	Config          string
@@ -80,6 +87,7 @@ type SecretsRequest struct {
 	ETag            string // Specifying an ETag implies that the caller has implemented response caching
 }
 
+// UpdateSecretsRequest represents a request to update secrets in Doppler.
 type UpdateSecretsRequest struct {
 	Secrets        Secrets  `json:"secrets,omitempty"`
 	ChangeRequests []Change `json:"change_requests,omitempty"`
@@ -97,11 +105,13 @@ type secretResponseBody struct {
 	Success  bool      `json:"success"`
 }
 
+// SecretResponse represents the response from retrieving a secret.
 type SecretResponse struct {
 	Name  string
 	Value string
 }
 
+// SecretsResponse represents the response from retrieving multiple secrets.
 type SecretsResponse struct {
 	Secrets  Secrets
 	Body     []byte
@@ -109,6 +119,7 @@ type SecretsResponse struct {
 	ETag     string
 }
 
+// NewDopplerClient creates a new Doppler API client.
 func NewDopplerClient(dopplerToken string) (*DopplerClient, error) {
 	client := &DopplerClient{
 		DopplerToken: dopplerToken,
@@ -123,11 +134,13 @@ func NewDopplerClient(dopplerToken string) (*DopplerClient, error) {
 	return client, nil
 }
 
+// BaseURL returns the base URL of the Doppler API.
 func (c *DopplerClient) BaseURL() *url.URL {
 	u := *c.baseURL
 	return &u
 }
 
+// SetBaseURL sets the base URL for the Doppler API.
 func (c *DopplerClient) SetBaseURL(urlStr string) error {
 	baseURL, err := url.Parse(strings.TrimSuffix(urlStr, "/"))
 
@@ -143,6 +156,7 @@ func (c *DopplerClient) SetBaseURL(urlStr string) error {
 	return nil
 }
 
+// Authenticate validates the authentication credentials.
 func (c *DopplerClient) Authenticate() error {
 	//  Choose projects as a lightweight endpoint for testing authentication
 	if _, err := c.performRequest("/v3/projects", "GET", headers{}, queryParams{}, httpRequestBody{}); err != nil {
@@ -152,6 +166,7 @@ func (c *DopplerClient) Authenticate() error {
 	return nil
 }
 
+// GetSecret retrieves a secret from Doppler.
 func (c *DopplerClient) GetSecret(request SecretRequest) (*SecretResponse, error) {
 	params := request.buildQueryParams(request.Name)
 	response, err := c.performRequest("/v3/configs/config/secret", "GET", headers{}, params, httpRequestBody{})
@@ -205,6 +220,7 @@ func (c *DopplerClient) GetSecrets(request SecretsRequest) (*SecretsResponse, er
 	return &SecretsResponse{Modified: true, Secrets: secrets, Body: response.Body, ETag: eTag}, nil
 }
 
+// UpdateSecrets updates secrets in Doppler.
 func (c *DopplerClient) UpdateSecrets(request UpdateSecretsRequest) error {
 	body, jsonErr := json.Marshal(request)
 	if jsonErr != nil {

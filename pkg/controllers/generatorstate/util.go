@@ -23,7 +23,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
-// NewgeneratorstateCondition a set of default options for creating an GeneratorState Condition.
+// NewGeneratorStateCondition a set of default options for creating an GeneratorState Condition.
 func NewGeneratorStateCondition(condType genv1alpha1.GeneratorStateConditionType, status v1.ConditionStatus, reason, message string) *genv1alpha1.GeneratorStateStatusCondition {
 	return &genv1alpha1.GeneratorStateStatusCondition{
 		Type:               condType,
@@ -34,7 +34,7 @@ func NewGeneratorStateCondition(condType genv1alpha1.GeneratorStateConditionType
 	}
 }
 
-// GetgeneratorstateCondition returns the condition with the provided type.
+// GetGeneratorStateCondition returns the condition with the provided type.
 func GetGeneratorStateCondition(status genv1alpha1.GeneratorStateStatus, condType genv1alpha1.GeneratorStateConditionType) *genv1alpha1.GeneratorStateStatusCondition {
 	for _, c := range status.Conditions {
 		if c.Type == condType {
@@ -44,8 +44,7 @@ func GetGeneratorStateCondition(status genv1alpha1.GeneratorStateStatus, condTyp
 	return nil
 }
 
-// SetGeneratorStateCondition updates the GeneratorState to include the provided
-// condition.
+// SetGeneratorStateCondition updates the GeneratorState to include the provided condition.
 func SetGeneratorStateCondition(gs *genv1alpha1.GeneratorState, condition genv1alpha1.GeneratorStateStatusCondition) {
 	currentCond := GetGeneratorStateCondition(gs.Status, condition.Type)
 

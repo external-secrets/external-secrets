@@ -32,18 +32,18 @@ const (
 	chainAndPrivateKeyProperty = "chainAndPrivateKey"
 )
 
-// Implementation of common.SecretGetter.
+// Implementation of ydxcommon.SecretGetter.
 type certificateManagerSecretGetter struct {
 	certificateManagerClient client.CertificateManagerClient
 }
 
-func newCertificateManagerSecretGetter(certificateManagerClient client.CertificateManagerClient) (common.SecretGetter, error) {
+func newCertificateManagerSecretGetter(certificateManagerClient client.CertificateManagerClient) (ydxcommon.SecretGetter, error) {
 	return &certificateManagerSecretGetter{
 		certificateManagerClient: certificateManagerClient,
 	}, nil
 }
 
-func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken, resourceID string, resourceKeyType common.ResourceKeyType, folderID, versionID, property string) ([]byte, error) {
+func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken, resourceID string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID, property string) ([]byte, error) {
 	response, err := g.fetchCertificateContentResponse(ctx, iamToken, resourceID, resourceKeyType, folderID, versionID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request certificate content to get secret: %w", err)
@@ -63,7 +63,7 @@ func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken
 	}
 }
 
-func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceID string, resourceKeyType common.ResourceKeyType, folderID, versionID string) (map[string][]byte, error) {
+func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceID string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID string) (map[string][]byte, error) {
 	response, err := g.fetchCertificateContentResponse(ctx, iamToken, resourceID, resourceKeyType, folderID, versionID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request certificate content to get secret map: %w", err)
@@ -77,11 +77,11 @@ func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamTo
 	}, nil
 }
 
-func (g *certificateManagerSecretGetter) fetchCertificateContentResponse(ctx context.Context, iamToken, resourceID string, resourceKeyType common.ResourceKeyType, folderID, versionID string) (*api.GetCertificateContentResponse, error) {
+func (g *certificateManagerSecretGetter) fetchCertificateContentResponse(ctx context.Context, iamToken, resourceID string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID string) (*api.GetCertificateContentResponse, error) {
 	switch resourceKeyType {
-	case common.ResourceKeyTypeId:
+	case ydxcommon.ResourceKeyTypeID:
 		return g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)
-	case common.ResourceKeyTypeName:
+	case ydxcommon.ResourceKeyTypeName:
 		responseEx, err := g.certificateManagerClient.GetExCertificateContent(ctx, iamToken, folderID, resourceID, versionID)
 		if err != nil {
 			return nil, err

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package passbolt implements a provider for Passbolt password manager.
+// It allows fetching secrets stored in Passbolt using their REST API.
 package passbolt
 
 import (
@@ -30,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (
@@ -46,14 +48,17 @@ const (
 	errNotImplemented                              = "not implemented"
 )
 
+// ProviderPassbolt implements the External Secrets provider interface for Passbolt.
 type ProviderPassbolt struct {
 	client Client
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (provider *ProviderPassbolt) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
+// Client defines the interface for interacting with the Passbolt API.
 type Client interface {
 	CheckSession(ctx context.Context) bool
 	Login(ctx context.Context) error
@@ -65,6 +70,7 @@ type Client interface {
 	GetSecret(ctx context.Context, resourceID string) (*api.Secret, error)
 }
 
+// NewClient constructs a new secrets client based on the provided store.
 func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Passbolt
 
@@ -99,10 +105,12 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1.Gene
 	return provider, nil
 }
 
+// SecretExists checks if a secret exists in Passbolt.
 func (provider *ProviderPassbolt) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
+// GetSecret retrieves a secret from Passbolt.
 func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if err := assureLoggedIn(ctx, provider.client); err != nil {
 		return nil, err
@@ -114,28 +122,33 @@ func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1.Extern
 	}
 
 	if ref.Property == "" {
-		return utils.JSONMarshal(secret)
+		return esutils.JSONMarshal(secret)
 	}
 
 	return secret.GetProp(ref.Property)
 }
 
+// PushSecret is not implemented for Passbolt as it is read-only.
 func (provider *ProviderPassbolt) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
+// DeleteSecret is not implemented for Passbolt as it is read-only.
 func (provider *ProviderPassbolt) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
+// Validate performs validation of the Passbolt provider configuration.
 func (provider *ProviderPassbolt) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultUnknown, nil
 }
 
+// GetSecretMap retrieves a secret and returns it as a map of key/value pairs.
 func (provider *ProviderPassbolt) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
+// GetAllSecrets retrieves all secrets from Passbolt that match the given criteria.
 func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	res := make(map[string][]byte)
 
@@ -166,7 +179,7 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 		if err != nil {
 			return nil, err
 		}
-		marshaled, err := utils.JSONMarshal(secret)
+		marshaled, err := esutils.JSONMarshal(secret)
 		if err != nil {
 			return nil, err
 		}
@@ -176,10 +189,12 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 	return res, nil
 }
 
+// Close implements cleanup operations for the Passbolt provider.
 func (provider *ProviderPassbolt) Close(ctx context.Context) error {
 	return provider.client.Logout(ctx)
 }
 
+// ValidateStore validates the Passbolt SecretStore resource configuration.
 func (provider *ProviderPassbolt) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	config := store.GetSpec().Provider.Passbolt
 	if config == nil {
@@ -219,6 +234,7 @@ func init() {
 	}, esv1.MaintenanceStatusNotMaintained)
 }
 
+// Secret represents a Passbolt secret with its properties.
 type Secret struct {
 	Name        string `json:"name"`
 	Username    string `json:"username"`
@@ -227,6 +243,7 @@ type Secret struct {
 	Description string `json:"description"`
 }
 
+// GetProp retrieves a specific property from the Passbolt secret.
 func (ps Secret) GetProp(key string) ([]byte, error) {
 	switch key {
 	case "name":

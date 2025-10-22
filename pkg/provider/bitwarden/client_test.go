@@ -482,7 +482,7 @@ func TestProviderPushSecret(t *testing.T) {
 						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
-						ProjectIDS:     []string{projectID},
+						ProjectIDs:     []string{projectID},
 						Value:          "value",
 					})
 				},
@@ -546,7 +546,7 @@ func TestProviderPushSecret(t *testing.T) {
 						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
-						ProjectIDS:     []string{projectID},
+						ProjectIDs:     []string{projectID},
 						Value:          `{"key":"value"}`,
 					}, cargs)
 				},
@@ -612,7 +612,7 @@ func TestProviderPushSecret(t *testing.T) {
 						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
-						ProjectIDS:     []string{projectID},
+						ProjectIDs:     []string{projectID},
 						Value:          "new-value",
 					})
 				},

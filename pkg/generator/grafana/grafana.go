@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package grafana provides functionality for generating Grafana service account tokens.
 package grafana
 
 import (
@@ -33,11 +34,13 @@ import (
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
+// Grafana implements token generation for Grafana service accounts.
 type Grafana struct{}
 
+// Generate creates a new Grafana service account token using the provided configuration.
 func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	gen, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
@@ -68,6 +71,7 @@ func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	return tokenResponse(state, res.Payload.Key)
 }
 
+// Cleanup handles any necessary cleanup after token generation.
 func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, previousStatus genv1alpha1.GeneratorProviderState, kclient client.Client, ns string) error {
 	if previousStatus == nil {
 		return fmt.Errorf("missing previous status")

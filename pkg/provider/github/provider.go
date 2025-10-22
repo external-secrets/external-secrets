@@ -14,19 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// /*
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//	https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// */
+// Package github implements a provider for GitHub secrets, allowing
+// External Secrets to write secrets to GitHub Actions.
 package github
 
 import (
@@ -46,9 +35,9 @@ const (
 	errInvalidStoreProv    = "invalid store provider"
 	errInvalidGithubProv   = "invalid github provider"
 	errInvalidStore        = "invalid store"
-	errInvalidProvider     = "invalid provider"
 )
 
+// Provider implements the GitHub provider for managing secrets through GitHub Actions.
 type Provider struct {
 }
 
@@ -87,11 +76,11 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	g.createOrUpdateFn = g.orgCreateOrUpdateSecret
 	g.listSecretsFn = g.orgListSecretsFn
 	g.deleteSecretFn = g.orgDeleteSecretsFn
-	client, err := g.AuthWithPrivateKey(ctx)
+	ghClient, err := g.AuthWithPrivateKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not get private key: %w", err)
 	}
-	g.baseClient = *client.Actions
+	g.baseClient = *ghClient.Actions
 	if provider.Repository != "" {
 		g.getSecretFn = g.repoGetSecretFn
 		g.getPublicKeyFn = g.repoGetPublicKeyFn
@@ -100,11 +89,11 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		g.deleteSecretFn = g.repoDeleteSecretsFn
 		if provider.Environment != "" {
 			// For environment to work, we need the repository ID instead of its name.
-			repository, _, err := client.Repositories.Get(ctx, g.provider.Organization, g.provider.Repository)
+			repo, _, err := ghClient.Repositories.Get(ctx, g.provider.Organization, g.provider.Repository)
 			if err != nil {
 				return nil, fmt.Errorf("error fetching repository: %w", err)
 			}
-			g.repoID = repository.GetID()
+			g.repoID = repo.GetID()
 			g.getSecretFn = g.envGetSecretFn
 			g.getPublicKeyFn = g.envGetPublicKeyFn
 			g.createOrUpdateFn = g.envCreateOrUpdateSecret
@@ -125,6 +114,7 @@ func getProvider(store esv1.GenericStore) (*esv1.GithubProvider, error) {
 	return spc.Provider.Github, nil
 }
 
+// ValidateStore validates the configuration of a GitHub secret store.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errInvalidStore)

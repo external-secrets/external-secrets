@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package secretstore implements the controllers for managing SecretStore resources
 package secretstore
 
 import (
@@ -77,6 +78,9 @@ func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgat
 	}
 }
 
+// GetFromStore returns a provider client from the given store.
+// Do not close the client returned from this func, instead close
+// the manager once you're done with reconciling the external secret.
 func (m *Manager) GetFromStore(ctx context.Context, store esv1.GenericStore, namespace string) (esv1.SecretsClient, error) {
 	storeProvider, err := esv1.GetProvider(store)
 	if err != nil {

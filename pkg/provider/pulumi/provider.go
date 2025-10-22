@@ -26,10 +26,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
+// Provider implements the esv1.Provider interface for Pulumi ESC.
 type Provider struct{}
 
 var _ esv1.Provider = &Provider{}
@@ -46,6 +47,7 @@ const (
 	errSecretRefKeyIsRequired        = "secretRef.key is required"
 )
 
+// NewClient creates a new Pulumi ESC client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	cfg, err := getConfig(store)
 	if err != nil {
@@ -124,7 +126,7 @@ func getConfig(store esv1.GenericStore) (*esv1.PulumiProvider, error) {
 
 func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.PulumiProviderSecretRef) error {
 	if ref != nil {
-		if err := utils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
 			return err
 		}
 	}
@@ -143,11 +145,13 @@ func validateSecretRef(ref *esv1.PulumiProviderSecretRef) error {
 	return nil
 }
 
+// ValidateStore validates the store's configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	_, err := getConfig(store)
 	return nil, err
 }
 
+// Capabilities returns the provider's esv1.SecretStoreCapabilities.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }

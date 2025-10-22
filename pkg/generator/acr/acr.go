@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package acr provides functionality for generating authentication tokens for Azure Container Registry.
 package acr
 
 import (
@@ -47,12 +48,14 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
 )
 
+// Generator implements ACR token generation functionality.
 type Generator struct {
 	clientSecretCreds clientSecretCredentialFunc
 }
 
 type clientSecretCredentialFunc func(tenantID string, clientID string, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error)
 
+// TokenGetter defines an interface for obtaining Azure access tokens.
 type TokenGetter interface {
 	GetToken(ctx context.Context, opts policy.TokenRequestOptions) (azcore.AccessToken, error)
 }
@@ -96,7 +99,8 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		fetchACRRefreshToken)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+// Cleanup performs any necessary cleanup after token generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

@@ -28,10 +28,11 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+// ValidateStore validates the Kubernetes SecretStore configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
@@ -55,7 +56,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
 			return nil, errors.New("ClientCert.Key cannot be empty")
 		}
-		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
+		if err := esutils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
 			return nil, err
 		}
 	}
@@ -66,18 +67,19 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		if k8sSpec.Auth.Token.BearerToken.Key == "" {
 			return nil, errors.New("BearerToken.Key cannot be empty")
 		}
-		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
+		if err := esutils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
 			return nil, err
 		}
 	}
 	if k8sSpec.Auth != nil && k8sSpec.Auth.ServiceAccount != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, *k8sSpec.Auth.ServiceAccount); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *k8sSpec.Auth.ServiceAccount); err != nil {
 			return nil, err
 		}
 	}
 	return nil, nil
 }
 
+// Validate checks if the client has the necessary permissions to access secrets in the target namespace.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called

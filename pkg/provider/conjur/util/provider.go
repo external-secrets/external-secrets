@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+// Package conjurutil provides utility functions for working with Conjur providers.
+// It contains helper functions for validating and extracting Conjur provider configurations.
+package conjurutil
 
 import (
 	"errors"

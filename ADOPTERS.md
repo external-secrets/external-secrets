@@ -6,6 +6,7 @@
 - [Cisco](https://www.cisco.com/)
 - [Codefresh](https://codefresh.io/)
 - [Container Solutions](http://container-solutions.com/)
+- [Criteo](https://www.criteo.com)
 - [DaangnPay](https://www.daangnpay.com/)
 - [Epidemic Sound](https://www.epidemicsound.com/)
 - [Elastic](https://www.elastic.co/)

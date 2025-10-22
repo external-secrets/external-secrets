@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/ngrok/ngrok-api-go/v7"
 	"github.com/ngrok/ngrok-api-go/v7/secrets"
 	"github.com/ngrok/ngrok-api-go/v7/vaults"
@@ -57,6 +57,7 @@ var getSecretsClient secretsClientFactory = func(cfg *ngrok.ClientConfig) Secret
 	return secrets.NewClient(cfg)
 }
 
+// Provider implements the ngrok provider for External Secrets Operator.
 type Provider struct{}
 
 // Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite). Currently,

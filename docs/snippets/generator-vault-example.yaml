@@ -3,7 +3,7 @@ kind: ExternalSecret
 metadata:
   name: "pki-example-com"
 spec:
-  refreshInterval: "768h"
+  refreshInterval: "768h0m0s"
   target:
     name: pki-example-com
   dataFrom:

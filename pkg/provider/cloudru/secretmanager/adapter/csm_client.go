@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package adapter provides the adapter implementation for CloudRU Secret Manager.
 package adapter
 
 import (
@@ -83,6 +84,7 @@ func NewAPIClient(cr CredentialsResolver, iamClient iamAuthV1.AuthServiceClient,
 	}
 }
 
+// ListSecrets retrieves a list of secrets from CloudRU Secret Manager.
 func (c *APIClient) ListSecrets(ctx context.Context, req *ListSecretsRequest) ([]*smsV2.Secret, error) {
 	searchReq := &smsV2.SearchSecretRequest{
 		ProjectId: req.ProjectID,
@@ -110,6 +112,7 @@ func (c *APIClient) ListSecrets(ctx context.Context, req *ListSecretsRequest) ([
 	return resp.Secrets, nil
 }
 
+// AccessSecretVersionByPath retrieves a secret version by its path from CloudRU Secret Manager.
 func (c *APIClient) AccessSecretVersionByPath(ctx context.Context, projectID, path string, version *int32) ([]byte, error) {
 	var err error
 	ctx, err = c.authCtx(ctx)
@@ -135,6 +138,7 @@ func (c *APIClient) AccessSecretVersionByPath(ctx context.Context, projectID, pa
 	return secret.GetPayload().GetValue(), nil
 }
 
+// AccessSecretVersion retrieves a specific version of a secret from CloudRU Secret Manager.
 func (c *APIClient) AccessSecretVersion(ctx context.Context, id, version string) ([]byte, error) {
 	var err error
 	ctx, err = c.authCtx(ctx)

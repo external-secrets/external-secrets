@@ -28,11 +28,14 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
+// Provider implements the External Secrets provider interface for Conjur.
+// It facilitates creation of Conjur clients and manages their lifecycle.
 type Provider struct {
 	NewConjurProvider func(context context.Context, store esv1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientApi SecretsClientFactory) (esv1.SecretsClient, error)
 }
 
-// NewClient creates a new Conjur client.
+// NewClient creates a new Conjur client using the provided store configuration.
+// It sets up necessary Kubernetes clients and creates a new Conjur provider instance.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to create a TokenRequest
@@ -48,11 +51,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return p.NewConjurProvider(ctx, store, kube, namespace, clientset.CoreV1(), &ClientAPIImpl{})
 }
 
-// Capabilities returns the provider Capabilities (Read, Write, ReadWrite).
+// Capabilities returns the provider's supported capabilities.
+// Conjur provider supports read-only access to secrets.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
+// newConjurProvider creates and returns a new Conjur client with the specified configuration.
 func newConjurProvider(_ context.Context, store esv1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientAPI SecretsClientFactory) (esv1.SecretsClient, error) {
 	return &Client{
 		StoreKind: store.GetObjectKind().GroupVersionKind().Kind,

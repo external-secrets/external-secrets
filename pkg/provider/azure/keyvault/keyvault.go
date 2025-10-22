@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package keyvault implements a provider for Azure Key Vault secrets, allowing
+// External Secrets to read from and write to Azure Key Vault.
 package keyvault
 
 import (
@@ -59,21 +61,28 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
-	defaultObjType       = "secret"
-	objectTypeCert       = "cert"
-	objectTypeKey        = "key"
+	defaultObjType = "secret"
+	objectTypeCert = "cert"
+	objectTypeKey  = "key"
+
+	// AzureDefaultAudience is the default audience used for Azure AD token exchange.
 	AzureDefaultAudience = "api://AzureADTokenExchange"
-	AnnotationClientID   = "azure.workload.identity/client-id"
-	AnnotationTenantID   = "azure.workload.identity/tenant-id"
-	managerLabel         = "external-secrets"
-	managedBy            = "managed-by"
+
+	// AnnotationClientID is the annotation key for Azure Workload Identity client ID.
+	AnnotationClientID = "azure.workload.identity/client-id"
+
+	// AnnotationTenantID is the annotation key for Azure Workload Identity tenant ID.
+	AnnotationTenantID = "azure.workload.identity/tenant-id"
+
+	managerLabel = "external-secrets"
+	managedBy    = "managed-by"
 
 	errUnexpectedStoreSpec      = "unexpected store spec"
 	errMissingAuthType          = "cannot initialize Azure Client: no valid authType was specified"
@@ -107,7 +116,7 @@ const (
 var _ esv1.SecretsClient = &Azure{}
 var _ esv1.Provider = &Azure{}
 
-// interface to keyvault.BaseClient.
+// SecretClient is an interface to keyvault.BaseClient.
 type SecretClient interface {
 	GetKey(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string) (result keyvault.KeyBundle, err error)
 	GetSecret(ctx context.Context, vaultBaseURL string, secretName string, secretVersion string) (result keyvault.SecretBundle, err error)
@@ -121,6 +130,7 @@ type SecretClient interface {
 	DeleteSecret(ctx context.Context, vaultBaseURL string, secretName string) (result keyvault.DeletedSecretBundle, err error)
 }
 
+// Azure implements the External Secrets provider for Azure Key Vault.
 type Azure struct {
 	crClient   client.Client
 	kubeClient kcorev1.CoreV1Interface
@@ -137,6 +147,8 @@ type Azure struct {
 	certsClient   *azcertificates.Client
 }
 
+// PushSecretMetadataSpec defines metadata for pushing secrets to Azure Key Vault,
+// including expiration date and tags.
 type PushSecretMetadataSpec struct {
 	ExpirationDate string            `json:"expirationDate,omitempty"`
 	Tags           map[string]string `json:"tags,omitempty"`
@@ -289,6 +301,7 @@ func getProvider(store esv1.GenericStore) (*esv1.AzureKVProvider, error) {
 	return spc.Provider.AzureKV, nil
 }
 
+// ValidateStore validates the Azure Key Vault provider configuration.
 func (a *Azure) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errInvalidStore)
@@ -306,18 +319,18 @@ func (a *Azure) ValidateStore(store esv1.GenericStore) (admission.Warnings, erro
 	}
 	if p.AuthSecretRef != nil {
 		if p.AuthSecretRef.ClientID != nil {
-			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
 				return nil, fmt.Errorf(errInvalidSecRefClientID, err)
 			}
 		}
 		if p.AuthSecretRef.ClientSecret != nil {
-			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
 				return nil, fmt.Errorf(errInvalidSecRefClientSecret, err)
 			}
 		}
 	}
 	if p.ServiceAccountRef != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
 			return nil, fmt.Errorf(errInvalidSARef, err)
 		}
 	}
@@ -414,6 +427,7 @@ func (a *Azure) deleteKeyVaultCertificate(ctx context.Context, certName string) 
 	return nil
 }
 
+// DeleteSecret deletes a secret from Azure Key Vault.
 func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	objectType, secretName := getObjType(esv1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
 	switch objectType {
@@ -437,6 +451,7 @@ func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemot
 	}
 }
 
+// SecretExists checks if a secret exists in Azure Key Vault.
 func (a *Azure) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
 	if a.useNewSDK() {
 		return a.secretExistsWithNewSDK(ctx, remoteRef)
@@ -695,7 +710,7 @@ func getSecretKey(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, erro
 	for k, v := range secret.Data {
 		secretStringVal[k] = string(v)
 	}
-	value, err := utils.JSONMarshal(secretStringVal)
+	value, err := esutils.JSONMarshal(secretStringVal)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize secret content as JSON: %w", err)
 	}
@@ -758,7 +773,7 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 	}
 }
 
-// Implements store.Client.GetAllSecrets Interface.
+// GetAllSecrets implements store.Client.GetAllSecrets Interface.
 // Retrieves a map[string][]byte with the secret names as key and the secret itself as the calue.
 func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if a.useNewSDK() {
@@ -912,8 +927,9 @@ func (a *Azure) getSecretTagsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	return secretTagsData, nil
 }
 
-// Implements store.Client.GetSecretMap Interface.
-// New version of GetSecretMap.
+// GetSecretMap returns a map of secret values from Azure KeyVault by fetching the secret with
+// the given name and parsing it as a JSON object. If MetadataPolicy is set to Fetch, it will
+// return the secret tags instead.
 func (a *Azure) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	objectType, secretName := getObjType(ref)
 
@@ -1087,10 +1103,12 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	if len(a.provider.ServiceAccountRef.Audiences) > 0 {
 		audiences = append(audiences, a.provider.ServiceAccountRef.Audiences...)
 	}
+
 	token, err := FetchSAToken(ctx, ns, a.provider.ServiceAccountRef.Name, audiences, a.kubeClient)
 	if err != nil {
 		return nil, err
 	}
+
 	tp, err := tokenProvider(ctx, token, clientID, tenantID, aadEndpoint, kvResource)
 	if err != nil {
 		return nil, err
@@ -1098,6 +1116,9 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	return autorest.NewBearerAuthorizer(tp), nil
 }
 
+// FetchSAToken retrieves a service account token from Kubernetes with the specified audiences.
+// It takes the service account namespace, name, audience list, and Kubernetes client interface.
+// Returns the token string or an error if the token creation fails.
 func FetchSAToken(ctx context.Context, ns, name string, audiences []string, kubeClient kcorev1.CoreV1Interface) (string, error) {
 	token, err := kubeClient.ServiceAccounts(ns).CreateToken(ctx, name, &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
@@ -1117,11 +1138,12 @@ type tokenProvider struct {
 
 type tokenProviderFunc func(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error)
 
+// NewTokenProvider creates a new Azure OAuth token provider for authentication.
 func NewTokenProvider(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error) {
-	// exchange token with Azure AccessToken
-	cred := confidential.NewCredFromAssertionCallback(func(ctx context.Context, aro confidential.AssertionRequestOptions) (string, error) {
+	cred := confidential.NewCredFromAssertionCallback(func(_ context.Context, _ confidential.AssertionRequestOptions) (string, error) {
 		return token, nil
 	})
+
 	cClient, err := confidential.New(fmt.Sprintf("%s%s", aadEndpoint, tenantID), clientID, cred)
 	if err != nil {
 		return nil, err
@@ -1202,25 +1224,25 @@ func (a *Azure) getAuthorizerFromCredentials(ctx context.Context) (autorest.Auth
 			*a.provider.TenantID,
 			a.provider.EnvironmentType,
 		)
-	} else {
-		clientCertificate, err := resolvers.SecretKeyRef(
-			ctx,
-			a.crClient,
-			a.store.GetKind(),
-			a.namespace, a.provider.AuthSecretRef.ClientCertificate,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return getAuthorizerForClientCertificate(
-			clientID,
-			[]byte(clientCertificate),
-			*a.provider.TenantID,
-			a.provider.EnvironmentType,
-		)
 	}
+
+	clientCertificate, err := resolvers.SecretKeyRef(
+		ctx,
+		a.crClient,
+		a.store.GetKind(),
+		a.namespace, a.provider.AuthSecretRef.ClientCertificate,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getAuthorizerForClientCertificate(
+		clientID,
+		[]byte(clientCertificate),
+		*a.provider.TenantID,
+		a.provider.EnvironmentType,
+	)
 }
 
 func getAuthorizerForClientSecret(clientID, clientSecret, tenantID string, environmentType esv1.AzureEnvironmentType) (autorest.Authorizer, error) {
@@ -1237,10 +1259,12 @@ func getAuthorizerForClientCertificate(clientID string, certificateBytes []byte,
 	return clientCertificateConfig.Authorizer()
 }
 
+// Close closes the Azure Key Vault provider.
 func (a *Azure) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate validates the Azure Key Vault provider configuration.
 func (a *Azure) Validate() (esv1.ValidationResult, error) {
 	if a.store.GetKind() == esv1.ClusterSecretStoreKind && isReferentSpec(a.provider) {
 		return esv1.ValidationResultUnknown, nil
@@ -1263,6 +1287,7 @@ func isReferentSpec(prov *esv1.AzureKVProvider) bool {
 	return false
 }
 
+// AadEndpointForType returns the Azure Active Directory endpoint for the specified Azure environment type.
 func AadEndpointForType(t esv1.AzureEnvironmentType) string {
 	switch t {
 	case esv1.AzureEnvironmentPublicCloud:
@@ -1282,6 +1307,7 @@ func AadEndpointForType(t esv1.AzureEnvironmentType) string {
 	}
 }
 
+// ServiceManagementEndpointForType returns the service management endpoint for the specified Azure environment type.
 func ServiceManagementEndpointForType(t esv1.AzureEnvironmentType) string {
 	switch t {
 	case esv1.AzureEnvironmentPublicCloud:

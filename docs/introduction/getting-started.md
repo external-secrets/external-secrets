@@ -17,7 +17,7 @@ The default install options will automatically install and manage the CRDs as pa
 
 You can install those CRDs outside of `helm` using:
 ```bash
-kubectl apply -k "https://raw.githubusercontent.com/external-secrets/external-secrets/<replace_with_your_version>/deploy/crds/bundle.yaml" --server-side
+kubectl apply -f "https://raw.githubusercontent.com/external-secrets/external-secrets/<replace_with_your_version>/deploy/crds/bundle.yaml" --server-side
 ```
 
 Uncomment the relevant line in the next steps to disable the automatic install of CRDs.

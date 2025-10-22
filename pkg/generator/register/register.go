@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package register provides registration functionality for generators.
 package register
 
-// packages imported here are registered to the controller schema.
-
 import (
+	// Import all generators for their side effects (registration).
 	_ "github.com/external-secrets/external-secrets/pkg/generator/acr"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/cloudsmith"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/ecr"

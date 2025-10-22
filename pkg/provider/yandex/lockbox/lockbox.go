@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package lockbox implements a Yandex Lockbox provider for External Secrets.
 package lockbox
 
 import (
@@ -33,7 +34,7 @@ import (
 
 var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox")
 
-func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
+func adaptInput(store esv1.GenericStore) (*ydxcommon.SecretsClientInput, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexLockbox == nil {
 		return nil, errors.New("received invalid Yandex Lockbox SecretStore resource")
@@ -50,7 +51,7 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 		caCertificate = &storeSpecYandexLockbox.CAProvider.Certificate
 	}
 
-	var resourceKeyType common.ResourceKeyType
+	var resourceKeyType ydxcommon.ResourceKeyType
 	var folderID string
 	policy := storeSpecYandexLockbox.FetchingPolicy
 	if policy != nil {
@@ -59,18 +60,18 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 			if policy.ByName.FolderID == "" {
 				return nil, errors.New("folderID is required when fetching policy is 'byName'")
 			}
-			resourceKeyType = common.ResourceKeyTypeName
+			resourceKeyType = ydxcommon.ResourceKeyTypeName
 			folderID = policy.ByName.FolderID
 
 		case policy.ByID != nil:
-			resourceKeyType = common.ResourceKeyTypeId
+			resourceKeyType = ydxcommon.ResourceKeyTypeID
 
 		default:
 			return nil, errors.New("invalid Yandex Lockbox SecretStore: requires either 'byName' or 'byID' policy")
 		}
 	}
 
-	return &common.SecretsClientInput{
+	return &ydxcommon.SecretsClientInput{
 		APIEndpoint:     storeSpecYandexLockbox.APIEndpoint,
 		AuthorizedKey:   authorizedKey,
 		CACertificate:   caCertificate,
@@ -79,7 +80,7 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 	}, nil
 }
 
-func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (common.SecretGetter, error) {
+func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (ydxcommon.SecretGetter, error) {
 	lockboxClient, err := client.NewGrpcLockboxClient(ctx, apiEndpoint, authorizedKey, caCertificate)
 	if err != nil {
 		return nil, err
@@ -88,12 +89,12 @@ func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iam
 }
 
 func init() {
-	provider := common.InitYandexCloudProvider(
+	provider := ydxcommon.InitYandexCloudProvider(
 		log,
 		clock.NewRealClock(),
 		adaptInput,
 		newSecretGetter,
-		common.NewIamToken,
+		ydxcommon.NewIamToken,
 		time.Hour,
 	)
 

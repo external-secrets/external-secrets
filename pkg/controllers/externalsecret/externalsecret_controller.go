@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package externalsecret implements the controller for managing ExternalSecret resources
 package externalsecret
 
 import (
@@ -54,8 +55,8 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
@@ -472,7 +473,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// we also use a label to keep track of the owner of the secret
 		// this lets us remove secrets that are no longer needed if the target secret name changes
 		if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
-			lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
+			lblValue := esutils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
 			secret.Labels[esv1.LabelOwner] = lblValue
 		} else {
 			// the label should not be set if the creation policy is not Owner
@@ -480,7 +481,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		}
 
 		secret.Labels[esv1.LabelManaged] = esv1.LabelManagedValue
-		secret.Annotations[esv1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
+		secret.Annotations[esv1.AnnotationDataHash] = esutils.ObjectHash(secret.Data)
 
 		return nil
 	}
@@ -605,7 +606,7 @@ func (r *Reconciler) markAsDone(externalSecret *esv1.ExternalSecret, start time.
 	SetExternalSecretCondition(externalSecret, *newReadyCondition)
 
 	externalSecret.Status.RefreshTime = metav1.NewTime(start)
-	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersion(externalSecret.ObjectMeta)
+	externalSecret.Status.SyncedResourceVersion = ctrlutil.GetResourceVersion(externalSecret.ObjectMeta)
 
 	// if the status or reason has changed, log at the appropriate verbosity level
 	if oldReadyCondition == nil || oldReadyCondition.Status != newReadyCondition.Status || oldReadyCondition.Reason != newReadyCondition.Reason {
@@ -659,7 +660,7 @@ func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger,
 }
 
 func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *esv1.ExternalSecret, secretName string) error {
-	ownerLabel := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
+	ownerLabel := esutils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
 
 	// we use a PartialObjectMetadataList to avoid loading the full secret objects
 	// and because the Secrets partials are always cached due to WatchesMetadata() in SetupWithManager()
@@ -930,7 +931,7 @@ func shouldRefresh(es *esv1.ExternalSecret) bool {
 			return true
 		}
 
-		return es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta)
+		return es.Status.SyncedResourceVersion != ctrlutil.GetResourceVersion(es.ObjectMeta)
 
 	case esv1.RefreshPolicyPeriodic:
 		return shouldRefreshPeriodic(es)
@@ -947,7 +948,7 @@ func shouldRefreshPeriodic(es *esv1.ExternalSecret) bool {
 	}
 
 	// if the ExternalSecret has been updated, we should refresh
-	if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
+	if es.Status.SyncedResourceVersion != ctrlutil.GetResourceVersion(es.ObjectMeta) {
 		return true
 	}
 
@@ -983,7 +984,7 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 
 	// if the data-hash annotation is missing or incorrect, then it's invalid
 	// this is how we know if the data has chanced since we last updated the secret
-	if existingSecret.Annotations[esv1.AnnotationDataHash] != utils.ObjectHash(existingSecret.Data) {
+	if existingSecret.Annotations[esv1.AnnotationDataHash] != esutils.ObjectHash(existingSecret.Data) {
 		return false
 	}
 

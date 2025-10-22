@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ngrok provides integration with the ngrok API for secret management
 package ngrok
 
 import (
@@ -32,7 +33,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 )
 
 const (
@@ -46,6 +47,7 @@ var (
 	errVaultSecretDoesNotExist = errors.New("vault secret does not exist")
 )
 
+// PushSecretMetadataSpec defines the structure for metadata used when pushing secrets to ngrok.
 type PushSecretMetadataSpec struct {
 	// The description of the secret in the ngrok API.
 	Description string `json:"description,omitempty"`
@@ -54,6 +56,7 @@ type PushSecretMetadataSpec struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
+// VaultClient defines interface for interactions with ngrok vault API.
 type VaultClient interface {
 	Create(context.Context, *ngrok.VaultCreate) (*ngrok.Vault, error)
 	Get(context.Context, string) (*ngrok.Vault, error)
@@ -61,6 +64,7 @@ type VaultClient interface {
 	List(*ngrok.Paging) ngrok.Iter[*ngrok.Vault]
 }
 
+// SecretsClient defines interface for interactions with ngrok secrets API.
 type SecretsClient interface {
 	Create(context.Context, *ngrok.SecretCreate) (*ngrok.Secret, error)
 	Delete(context.Context, string) error
@@ -209,17 +213,17 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-func (c *client) GetSecret(ctx context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *client) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	// Implementation for getting a secret from ngrok
 	return nil, errWriteOnlyOperations
 }
 
-func (c *client) GetSecretMap(ctx context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *client) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	// Implementation for getting a map of secrets from ngrok
 	return nil, errWriteOnlyOperations
 }
 
-func (c *client) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	// Implementation for getting all secrets from ngrok
 	return nil, errWriteOnlyOperations
 }

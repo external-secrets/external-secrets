@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package esmetrics provides metrics functionality for the ExternalSecret controller
 package esmetrics
 
 import (
@@ -26,10 +27,15 @@ import (
 )
 
 const (
-	ExternalSecretSubsystem            = "externalsecret"
-	SyncCallsKey                       = "sync_calls_total"
-	SyncCallsErrorKey                  = "sync_calls_error"
-	ExternalSecretStatusConditionKey   = "status_condition"
+	// ExternalSecretSubsystem is the subsystem for the external-secret controller.
+	ExternalSecretSubsystem = "externalsecret"
+	// SyncCallsKey is the metric key for sync calls.
+	SyncCallsKey = "sync_calls_total"
+	// SyncCallsErrorKey is the metric key for sync call errors.
+	SyncCallsErrorKey = "sync_calls_error"
+	// ExternalSecretStatusConditionKey is the metric key for the external secret status condition.
+	ExternalSecretStatusConditionKey = "status_condition"
+	// ExternalSecretReconcileDurationKey is the metric key for the external secret reconcile duration.
 	ExternalSecretReconcileDurationKey = "reconcile_duration"
 )
 
@@ -37,7 +43,7 @@ var counterVecMetrics = map[string]*prometheus.CounterVec{}
 
 var gaugeVecMetrics = map[string]*prometheus.GaugeVec{}
 
-// Called at the root to set-up the metric logic using the
+// SetUpMetrics is called at the root to set-up the metric logic using the
 // config flags provided.
 func SetUpMetrics() {
 	// Obtain the prometheus metrics and register
@@ -78,6 +84,7 @@ func SetUpMetrics() {
 	}
 }
 
+// UpdateExternalSecretCondition is a function that updates the condition of an external secret.
 func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.ExternalSecretStatusCondition, value float64) {
 	esInfo := make(map[string]string)
 	esInfo["name"] = es.Name
@@ -148,10 +155,12 @@ func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.Exte
 		})).Set(value)
 }
 
+// GetCounterVec returns the counter vec for the given key.
 func GetCounterVec(key string) *prometheus.CounterVec {
 	return counterVecMetrics[key]
 }
 
+// GetGaugeVec returns the gauge vec for the given key.
 func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
 }

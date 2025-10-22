@@ -33,10 +33,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -44,6 +44,7 @@ const (
 	metaAnnotations = "annotations"
 )
 
+// GetSecret retrieves a secret from the Kubernetes API server by its key.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.userSecretClient.Get(ctx, ref.Key, metav1.GetOptions{})
 	if err != nil {
@@ -57,7 +58,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 			m[metaLabels] = secret.Labels
 			m[metaAnnotations] = secret.Annotations
 
-			j, err := utils.JSONMarshal(m)
+			j, err := esutils.JSONMarshal(m)
 			if err != nil {
 				return nil, err
 			}
@@ -68,7 +69,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		for key, val := range secret.Data {
 			m[key] = string(val)
 		}
-		j, err := utils.JSONMarshal(m)
+		j, err := esutils.JSONMarshal(m)
 		if err != nil {
 			return nil, err
 		}
@@ -78,6 +79,8 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return getSecret(secret, ref)
 }
 
+// DeleteSecret removes a secret value from Kubernetes.
+// It requires a property to be specified in the RemoteRef.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	if remoteRef.GetProperty() == "" {
 		return errors.New("requires property in RemoteRef to delete secret value")
@@ -103,10 +106,13 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
+// SecretExists checks if a secret exists in Kubernetes.
+// This method is not implemented and always returns an error.
 func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
+// PushSecret creates or updates a secret in Kubernetes.
 func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.PushSecretData) error {
 	if data.GetProperty() == "" && data.GetSecretKey() != "" {
 		return errors.New("requires property in RemoteRef to push secret value if secret key is defined")
@@ -224,7 +230,7 @@ func (c *Client) marshalData(secret *v1.Secret) ([]byte, error) {
 	}
 
 	// marshal
-	value, err := utils.JSONMarshal(values)
+	value, err := esutils.JSONMarshal(values)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal secrets into a single property: %w", err)
 	}
@@ -232,6 +238,8 @@ func (c *Client) marshalData(secret *v1.Secret) ([]byte, error) {
 	return value, nil
 }
 
+// GetSecretMap retrieves a secret from Kubernetes and returns it as a map.
+// The secret data is converted to a map of key/value pairs.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.userSecretClient.Get(ctx, ref.Key, metav1.GetOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
@@ -263,7 +271,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 }
 
 func getPropertyMap(key, property string, tmpMap map[string][]byte) (map[string][]byte, error) {
-	byteArr, err := utils.JSONMarshal(tmpMap)
+	byteArr, err := esutils.JSONMarshal(tmpMap)
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +313,7 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 			return nil, err
 		}
 		for k, v := range tmpMap {
-			b, err := utils.JSONMarshal(v)
+			b, err := esutils.JSONMarshal(v)
 			if err != nil {
 				return nil, err
 			}
@@ -319,11 +327,11 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 func getSecretMetadata(secret *v1.Secret) (map[string][]byte, error) {
 	var err error
 	tmpMap := make(map[string][]byte)
-	tmpMap[metaLabels], err = utils.JSONMarshal(secret.ObjectMeta.Labels)
+	tmpMap[metaLabels], err = esutils.JSONMarshal(secret.ObjectMeta.Labels)
 	if err != nil {
 		return nil, err
 	}
-	tmpMap[metaAnnotations], err = utils.JSONMarshal(secret.ObjectMeta.Annotations)
+	tmpMap[metaAnnotations], err = esutils.JSONMarshal(secret.ObjectMeta.Annotations)
 	if err != nil {
 		return nil, err
 	}
@@ -331,6 +339,7 @@ func getSecretMetadata(secret *v1.Secret) (map[string][]byte, error) {
 	return tmpMap, nil
 }
 
+// GetAllSecrets retrieves multiple secrets from Kubernetes based on the search criteria.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return c.findByTags(ctx, ref)
@@ -354,13 +363,13 @@ func (c *Client) findByTags(ctx context.Context, ref esv1.ExternalSecretFind) (m
 	}
 	data := make(map[string][]byte)
 	for _, secret := range secrets.Items {
-		jsonStr, err := utils.JSONMarshal(convertMap(secret.Data))
+		jsonStr, err := esutils.JSONMarshal(convertMap(secret.Data))
 		if err != nil {
 			return nil, err
 		}
 		data[secret.Name] = jsonStr
 	}
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	return esutils.ConvertKeys(ref.ConversionStrategy, data)
 }
 
 func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
@@ -378,15 +387,16 @@ func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (m
 		if !matcher.MatchName(secret.Name) {
 			continue
 		}
-		jsonStr, err := utils.JSONMarshal(convertMap(secret.Data))
+		jsonStr, err := esutils.JSONMarshal(convertMap(secret.Data))
 		if err != nil {
 			return nil, err
 		}
 		data[secret.Name] = jsonStr
 	}
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	return esutils.ConvertKeys(ref.ConversionStrategy, data)
 }
 
+// Close implements cleanup operations for the Kubernetes client.
 func (c *Client) Close(_ context.Context) error {
 	return nil
 }
@@ -480,7 +490,7 @@ func getFromSecretMetadata(secret *v1.Secret, ref esv1.ExternalSecretDataRemoteR
 	}
 
 	if len(path) == 1 {
-		j, err := utils.JSONMarshal(metadata)
+		j, err := esutils.JSONMarshal(metadata)
 		if err != nil {
 			return nil, false, err
 		}

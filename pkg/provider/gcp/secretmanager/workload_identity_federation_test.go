@@ -281,7 +281,7 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 						Namespace: testNamespace,
 					},
 					Data: map[string][]byte{
-						awsAccessKeyIdKeyName:     []byte(testAwsAccessKey),
+						awsAccessKeyIDKeyName:     []byte(testAwsAccessKey),
 						awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
 						awsSessionTokenKeyName:    []byte(testAwsSessionToken),
 					},
@@ -403,7 +403,7 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 						Namespace: testNamespace,
 					},
 					Data: map[string][]byte{
-						awsAccessKeyIdKeyName:     []byte(testAwsAccessKey),
+						awsAccessKeyIDKeyName:     []byte(testAwsAccessKey),
 						awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
 					},
 				},
@@ -507,7 +507,7 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 						Namespace: testNamespace,
 					},
 					Data: map[string][]byte{
-						awsAccessKeyIdKeyName:     []byte(testAwsAccessKey),
+						awsAccessKeyIDKeyName:     []byte(testAwsAccessKey),
 						awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
 						awsSessionTokenKeyName:    []byte(testAwsSessionToken),
 					},
@@ -867,7 +867,7 @@ func TestGenerateExternalAccountConfig(t *testing.T) {
 				Namespace: testNamespace,
 			},
 			Data: map[string][]byte{
-				awsAccessKeyIdKeyName:     []byte(testAwsAccessKey),
+				awsAccessKeyIDKeyName:     []byte(testAwsAccessKey),
 				awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
 				awsSessionTokenKeyName:    []byte(testAwsSessionToken),
 			},

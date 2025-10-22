@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cssmetrics provides metrics for ClusterSecretStore controllers.
 package cssmetrics
 
 import (
@@ -25,7 +26,10 @@ import (
 )
 
 const (
-	ClusterSecretStoreSubsystem            = "clustersecretstore"
+	// ClusterSecretStoreSubsystem is the subsystem name for ClusterSecretStore metrics.
+	ClusterSecretStoreSubsystem = "clustersecretstore"
+
+	// ClusterSecretStoreReconcileDurationKey is the key for the reconcile duration metric.
 	ClusterSecretStoreReconcileDurationKey = "reconcile_duration"
 )
 
@@ -54,6 +58,7 @@ func SetUpMetrics() {
 	}
 }
 
+// GetGaugeVec retrieves a Prometheus GaugeVec based on the provided key.
 func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
 }

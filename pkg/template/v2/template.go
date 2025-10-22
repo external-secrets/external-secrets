@@ -58,7 +58,7 @@ var tplFuncs = tpl.FuncMap{
 
 var leftDelim, rightDelim string
 
-// So other templating calls can use the same extra functions.
+// FuncMap returns the template function map so other templating calls can use the same extra functions.
 func FuncMap() tpl.FuncMap {
 	return tplFuncs
 }

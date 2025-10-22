@@ -37,6 +37,7 @@ type SecretsClientFactory interface {
 // ClientAPIImpl is an implementation of the ClientAPI interface.
 type ClientAPIImpl struct{}
 
+// NewClientFromKey creates a new Conjur client using API key authentication.
 func (c *ClientAPIImpl) NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (SecretsClient, error) {
 	return conjurapi.NewClientFromKey(config, loginPair)
 }

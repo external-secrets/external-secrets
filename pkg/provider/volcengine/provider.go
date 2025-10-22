@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/volcengine/volcengine-go-sdk/service/kms"
 )
 
@@ -79,14 +79,14 @@ func validateAuthSecretRef(store esv1.GenericStore, ref *esv1.VolcengineAuthSecr
 	if ref == nil {
 		return errors.New("SecretRef is required when using static credentials")
 	}
-	if err := utils.ValidateReferentSecretSelector(store, ref.AccessKeyID); err != nil {
+	if err := esutils.ValidateReferentSecretSelector(store, ref.AccessKeyID); err != nil {
 		return fmt.Errorf("invalid AccessKeyID: %w", err)
 	}
-	if err := utils.ValidateReferentSecretSelector(store, ref.SecretAccessKey); err != nil {
+	if err := esutils.ValidateReferentSecretSelector(store, ref.SecretAccessKey); err != nil {
 		return fmt.Errorf("invalid SecretAccessKey: %w", err)
 	}
 	if ref.Token != nil {
-		if err := utils.ValidateReferentSecretSelector(store, *ref.Token); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, *ref.Token); err != nil {
 			return fmt.Errorf("invalid Token: %w", err)
 		}
 	}

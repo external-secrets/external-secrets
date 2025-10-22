@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -31,7 +32,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/common/webhook"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (
@@ -46,6 +47,7 @@ var _ esv1.Provider = &Provider{}
 // Provider satisfies the provider interface.
 type Provider struct{}
 
+// WebHook implements the External Secrets webhook provider.
 type WebHook struct {
 	wh        webhook.Webhook
 	store     esv1.GenericStore
@@ -59,11 +61,12 @@ func init() {
 	}, esv1.MaintenanceStatusMaintained)
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+// Capabilities return the provider-supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
+// NewClient creates a new WebHook client for accessing secrets.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	wh := webhook.Webhook{
 		Kube:      kube,
@@ -92,6 +95,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return whClient, nil
 }
 
+// ValidateStore validates the provider-specific store configuration.
 func (p *Provider) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) {
 	return nil, nil
 }
@@ -110,14 +114,92 @@ func getProvider(store esv1.GenericStore) (*webhook.Spec, error) {
 	return &out, err
 }
 
-func (w *WebHook) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return errors.New(errNotImplemented)
+// DeleteSecret deletes a secret from a remote store.
+func (w *WebHook) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
+	provider, err := getProvider(w.store)
+	if err != nil {
+		return fmt.Errorf(errFailedToGetStore, err)
+	}
+
+	escapedData := map[string]map[string]string{
+		"remoteRef": {
+			"remoteKey": remoteRef.GetRemoteKey(),
+		},
+	}
+
+	url, err := webhook.ExecuteTemplateString(provider.URL, escapedData)
+	if err != nil {
+		return fmt.Errorf("failed to parse url: %w", err)
+	}
+
+	method := http.MethodDelete
+	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
+	if err != nil {
+		return fmt.Errorf("failed to create delete request: %w", err)
+	}
+
+	rawData := map[string]map[string]string{
+		"remoteRef": {
+			"remoteKey": remoteRef.GetRemoteKey(),
+		},
+	}
+	if provider.Headers != nil {
+		req, err = w.wh.ReqAddHeaders(req, provider, rawData)
+		if err != nil {
+			return err
+		}
+	}
+
+	if provider.Auth != nil {
+		req, err = w.wh.ReqAddAuth(ctx, req, provider)
+		if err != nil {
+			return err
+		}
+	}
+
+	resp, err := w.wh.HTTP.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode == 404 {
+		// Secret doesn't exist, that's OK for delete
+		return nil
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("delete endpoint gave error %s", resp.Status)
+	}
+
+	return nil
 }
 
-func (w *WebHook) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New(errNotImplemented)
+// SecretExists checks if a secret exists in the remote store.
+func (w *WebHook) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
+	provider, err := getProvider(w.store)
+	if err != nil {
+		return false, fmt.Errorf(errFailedToGetStore, err)
+	}
+
+	_, err = w.wh.GetWebhookData(ctx, provider, &esv1.ExternalSecretDataRemoteRef{
+		Key: remoteRef.GetRemoteKey(),
+	})
+	if err != nil {
+		var noSecretErr esv1.NoSecretError
+		if errors.As(err, &noSecretErr) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
 
+// PushSecret pushes a secret to a remote store.
 func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if data.GetRemoteKey() == "" {
 		return errors.New("remote key must be defined")
@@ -128,7 +210,7 @@ func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data es
 		return fmt.Errorf(errFailedToGetStore, err)
 	}
 
-	value, err := utils.ExtractSecretData(data, secret)
+	value, err := esutils.ExtractSecretData(data, secret)
 	if err != nil {
 		return err
 	}
@@ -146,6 +228,7 @@ func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (m
 	return nil, errors.New(errNotImplemented)
 }
 
+// GetSecret gets a secret from the remote store.
 func (w *WebHook) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
@@ -214,6 +297,7 @@ func extractSecretData(jsondata any) ([]byte, error) {
 	}
 }
 
+// GetSecretMap gets a map of secrets from the remote store.
 func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
@@ -231,15 +315,17 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataR
 	return w.wh.GetSecretMap(ctx, provider, &ref)
 }
 
+// Close closes the connection to the webhook provider.
 func (w *WebHook) Close(_ context.Context) error {
 	return nil
 }
 
+// Validate checks if the webhook provider is configured correctly.
 func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	url := w.url
 
-	if err := utils.NetworkValidate(url, timeout); err != nil {
+	if err := esutils.NetworkValidate(url, timeout); err != nil {
 		return esv1.ValidationResultError, err
 	}
 	return esv1.ValidationResultReady, nil

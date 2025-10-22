@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
+// Package ydxcommon contains shared functionality for Yandex.Cloud providers.
+package ydxcommon
 
 import (
 	"context"
@@ -32,8 +33,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	clock2 "github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
@@ -41,10 +42,10 @@ const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifet
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.Provider = &YandexCloudProvider{}
 
-// Implementation of v1beta1.Provider.
+// YandexCloudProvider implements the Provider interface for Yandex.Cloud services.
 type YandexCloudProvider struct {
 	logger              logr.Logger
-	clock               clock2.Clock
+	clock               clock.Clock
 	adaptInputFunc      AdaptInputFunc
 	newSecretGetterFunc NewSecretGetterFunc
 	newIamTokenFunc     NewIamTokenFunc
@@ -61,9 +62,10 @@ type iamTokenKey struct {
 	privateKeyHash   string
 }
 
+// InitYandexCloudProvider creates and initializes a new YandexCloudProvider instance.
 func InitYandexCloudProvider(
 	logger logr.Logger,
-	clock clock2.Clock,
+	clock clock.Clock,
 	adaptInputFunc AdaptInputFunc,
 	newSecretGetterFunc NewSecretGetterFunc,
 	newIamTokenFunc NewIamTokenFunc,
@@ -91,16 +93,25 @@ func InitYandexCloudProvider(
 	return provider
 }
 
+// NewSecretSetterFunc defines a function type to create a new secret setter.
 type NewSecretSetterFunc func()
+
+// AdaptInputFunc defines a function type to adapt generic store to client input.
 type AdaptInputFunc func(store esv1.GenericStore) (*SecretsClientInput, error)
+
+// NewSecretGetterFunc defines a function type to create a new secret getter.
 type NewSecretGetterFunc func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (SecretGetter, error)
+
+// NewIamTokenFunc defines a function type to create a new IAM token.
 type NewIamTokenFunc func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (*IamToken, error)
 
+// IamToken represents an authentication token for Yandex Cloud API.
 type IamToken struct {
 	Token     string
 	ExpiresAt time.Time
 }
 
+// SecretsClientInput contains the input parameters for creating a Yandex Cloud secrets client.
 type SecretsClientInput struct {
 	APIEndpoint     string
 	AuthorizedKey   *esmeta.SecretKeySelector
@@ -109,13 +120,17 @@ type SecretsClientInput struct {
 	FolderID        string
 }
 
+// ResourceKeyType defines how the resource key should be interpreted.
 type ResourceKeyType int
 
 const (
-	ResourceKeyTypeId   ResourceKeyType = iota
+	// ResourceKeyTypeID indicates the resource key is an ID.
+	ResourceKeyTypeID ResourceKeyType = iota
+	// ResourceKeyTypeName indicates the resource key is a name.
 	ResourceKeyTypeName ResourceKeyType = iota
 )
 
+// Capabilities returns the esv1.SecretStoreCapabilities of the Yandex.Cloud provider.
 func (p *YandexCloudProvider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
@@ -236,7 +251,8 @@ func buildIamTokenKey(authorizedKey *iamkey.Key) iamTokenKey {
 	}
 }
 
-// Used for testing.
+// IsIamTokenCached checks if the IAM token for the given authorized key is cached.
+// Used for testing purposes.
 func (p *YandexCloudProvider) IsIamTokenCached(authorizedKey *iamkey.Key) bool {
 	p.iamTokenMapMutex.Lock()
 	defer p.iamTokenMapMutex.Unlock()
@@ -245,6 +261,7 @@ func (p *YandexCloudProvider) IsIamTokenCached(authorizedKey *iamkey.Key) bool {
 	return ok
 }
 
+// CleanUpIamTokenMap removes expired IAM tokens from the cache.
 func (p *YandexCloudProvider) CleanUpIamTokenMap() {
 	p.iamTokenMapMutex.Lock()
 	defer p.iamTokenMapMutex.Unlock()
@@ -257,6 +274,7 @@ func (p *YandexCloudProvider) CleanUpIamTokenMap() {
 	}
 }
 
+// ValidateStore validates the provider-specific configuration in the SecretStore resource.
 func (p *YandexCloudProvider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	_, err := p.adaptInputFunc(store) // adaptInputFunc validates the input store
 	if err != nil {

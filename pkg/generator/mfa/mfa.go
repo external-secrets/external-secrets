@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package mfa provides functionality for generating multi-factor authentication tokens.
 package mfa
 
 import (
@@ -29,6 +30,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
+// Generator implements MFA token generation functionality.
 type Generator struct{}
 
 const (
@@ -36,6 +38,8 @@ const (
 	errParseSpec = "unable to parse spec: %w"
 )
 
+// Generate creates an MFA token based on the provided configuration.
+// It retrieves the seed from a Kubernetes secret and generates a time-based one-time password.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, c client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
@@ -79,7 +83,8 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	}, nil, nil
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+// Cleanup performs any necessary cleanup after token generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package onepassword implements a 1Password provider for External Secrets.
 package onepassword
 
 import (
@@ -35,10 +36,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -95,6 +96,7 @@ type ProviderOnePassword struct {
 	mu     sync.Mutex
 }
 
+// PushSecretMetadataSpec defines metadata for pushing secrets to 1Password.
 type PushSecretMetadataSpec struct {
 	Tags  []string `json:"tags,omitempty"`
 	Vault string   `json:"vault,omitempty"`
@@ -159,7 +161,7 @@ func validateStore(store esv1.GenericStore) error {
 	}
 
 	// check namespace compared to kind
-	if err := utils.ValidateSecretSelector(store, config.Auth.SecretRef.ConnectToken); err != nil {
+	if err := esutils.ValidateSecretSelector(store, config.Auth.SecretRef.ConnectToken); err != nil {
 		return fmt.Errorf(errOnePasswordStore, err)
 	}
 
@@ -202,6 +204,7 @@ func deleteField(fields []*onepassword.ItemField, label string) ([]*onepassword.
 	return fieldsF, nil
 }
 
+// DeleteSecret removes a secret from 1Password.
 func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1.PushSecretRemoteRef) error {
 	provider.mu.Lock()
 	defer provider.mu.Unlock()
@@ -229,6 +232,7 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1.Pu
 	return nil
 }
 
+// SecretExists checks if a secret exists in 1Password.
 func (provider *ProviderOnePassword) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
@@ -333,6 +337,7 @@ func generateNewItemField(label, newVal string) *onepassword.ItemField {
 	return field
 }
 
+// PushSecret creates or updates a secret in 1Password.
 func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1.PushSecretData) error {
 	provider.mu.Lock()
 	defer provider.mu.Unlock()

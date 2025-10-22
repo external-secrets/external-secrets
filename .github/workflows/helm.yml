@@ -4,13 +4,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'deploy/charts/**'
-      - 'deploy/crds/**'
   pull_request:
-    paths:
-      - 'deploy/charts/**'
-      - 'deploy/crds/**'
   workflow_dispatch: {}
 
 permissions:
@@ -127,14 +121,14 @@ jobs:
           version: v3.17.3 # remember to also update for the first job (lint-and-test)
 
       - name: Login to GHCR
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
         with:
           cosign-release: 'v2.4.1'
 
