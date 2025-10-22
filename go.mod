@@ -25,6 +25,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/alibaba => ./providers/v1/alibaba
 	github.com/external-secrets/external-secrets/providers/v1/aws => ./providers/v1/aws
 	github.com/external-secrets/external-secrets/providers/v1/azure => ./providers/v1/azure
+	github.com/external-secrets/external-secrets/providers/v1/barbican => ./providers/v1/barbican
 	github.com/external-secrets/external-secrets/providers/v1/beyondtrust => ./providers/v1/beyondtrust
 	github.com/external-secrets/external-secrets/providers/v1/bitwarden => ./providers/v1/bitwarden
 	github.com/external-secrets/external-secrets/providers/v1/chef => ./providers/v1/chef
@@ -137,6 +138,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/alibaba v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/aws v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-20251103072335-a9b233b6936f
+	github.com/external-secrets/external-secrets/providers/v1/barbican v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/beyondtrust v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/bitwarden v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/chef v0.0.0-00010101000000-000000000000
@@ -304,6 +306,7 @@ require (
 	github.com/google/go-github/v56 v56.0.0 // indirect
 	github.com/google/go-github/v75 v75.0.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
+	github.com/gophercloud/gophercloud/v2 v2.8.0 // indirect
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250925215610-d92957c70d5c // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.3.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
