@@ -616,15 +616,15 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.Generi
 	}
 
 	// Caching by resource version to ensure that updates to the SecretStore are reflected in the cached provider.
-	_, ok := vms.authConfigurationsCache[string(store.GetResourceVersion())]
+	_, ok := vms.authConfigurationsCache[store.GetResourceVersion()]
 	if !ok {
-		vms.authConfigurationsCache[string(store.GetResourceVersion())], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+		vms.authConfigurationsCache[store.GetResourceVersion()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return vms.authConfigurationsCache[string(store.GetResourceVersion())], nil
+	return vms.authConfigurationsCache[store.GetResourceVersion()], nil
 }
 
 func (vms *VaultManagementService) constructProvider(ctx context.Context, store esv1.GenericStore, oracleSpec *esv1.OracleProvider, kube kclient.Client, namespace string) (common.ConfigurationProvider, error) {
