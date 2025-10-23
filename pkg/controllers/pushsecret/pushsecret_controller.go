@@ -45,13 +45,13 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/util"
-	"github.com/external-secrets/external-secrets/pkg/esutils"
-	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
-	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/statemanager"
+	"github.com/external-secrets/external-secrets/runtime/util/locks"
 
 	// Load registered generators.
-	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
+	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
 const (

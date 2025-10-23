@@ -55,7 +55,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.7
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.0
 	github.com/cyberark/conjur-api-go v0.13.7
-	github.com/external-secrets/external-secrets v0.0.0
+	github.com/external-secrets/external-secrets/apis v0.0.0
+	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/fluxcd/helm-controller/api v1.3.0
 	github.com/fluxcd/pkg/apis/meta v1.21.0
 	github.com/fluxcd/source-controller/api v1.7.0
@@ -64,11 +67,11 @@ require (
 	github.com/hashicorp/vault/api v1.22.0
 	github.com/onsi/ginkgo/v2 v2.26.0
 	github.com/onsi/gomega v1.38.2
-	github.com/oracle/oci-go-sdk/v65 v65.102.0
+	github.com/oracle/oci-go-sdk/v65 v65.102.1
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.35
 	gitlab.com/gitlab-org/api/client-go v0.157.0
 	golang.org/x/oauth2 v0.32.0
-	google.golang.org/api v0.252.0
+	google.golang.org/api v0.253.0
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.34.1
@@ -125,6 +128,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
+	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fluxcd/pkg/apis/acl v0.9.0 // indirect
@@ -230,6 +234,7 @@ require (
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
@@ -246,7 +251,7 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/genproto v0.0.0-20251014184007-4626949a642f // indirect
+	google.golang.org/genproto v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251014184007-4626949a642f // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251014184007-4626949a642f // indirect
 	google.golang.org/grpc v1.76.0 // indirect
@@ -262,3 +267,11 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 )
+
+replace github.com/external-secrets/external-secrets/apis => ../apis
+
+replace github.com/external-secrets/external-secrets/runtime => ../runtime
+
+replace github.com/external-secrets/external-secrets/providers/v1/azure => ../providers/v1/azure
+
+replace github.com/external-secrets/external-secrets/providers/v1/gcp => ../providers/v1/gcp
