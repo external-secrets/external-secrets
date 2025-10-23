@@ -75,9 +75,11 @@ type GrafanaServiceAccountTokenState struct {
 
 // GrafanaStateServiceAccount contains the service account ID, login and token ID.
 type GrafanaStateServiceAccount struct {
-	ServiceAccountID      *int64  `json:"id"`
-	ServiceAccountLogin   *string `json:"login"`
-	ServiceAccountTokenID *int64  `json:"tokenID"`
+	// +kubebuilder:validation:Format=""
+	ServiceAccountID    *int64  `json:"id"`
+	ServiceAccountLogin *string `json:"login"`
+	// +kubebuilder:validation:Format=""
+	ServiceAccountTokenID *int64 `json:"tokenID"`
 }
 
 // Grafana represents a generator for Grafana service account tokens.
