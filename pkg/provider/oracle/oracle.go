@@ -65,19 +65,24 @@ const (
 	errSettingOCIEnvVariables     = "unable to set OCI SDK environment variable %s: %w"
 )
 
+const (
+	authConfigurationsCachePoolSize = 50
+)
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &VaultManagementService{}
 var _ esv1.Provider = &VaultManagementService{}
 
 // VaultManagementService implements the External Secrets provider interface for Oracle Cloud Infrastructure Vault.
 type VaultManagementService struct {
-	Client                VMInterface
-	KmsVaultClient        KmsVCInterface
-	VaultClient           VaultInterface
-	vault                 string
-	compartment           string
-	encryptionKey         string
-	workloadIdentityMutex sync.Mutex
+	Client                  VMInterface
+	KmsVaultClient          KmsVCInterface
+	VaultClient             VaultInterface
+	vault                   string
+	compartment             string
+	encryptionKey           string
+	workloadIdentityMutex   sync.Mutex
+	authConfigurationsCache map[string]auth.ConfigurationProviderWithClaimAccess
 }
 
 // VMInterface defines the interface for OCI Secrets Management Client operations.
@@ -608,7 +613,23 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.Generi
 		return nil, err
 	}
 	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
-	return auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+
+	// Cache OKE token providers per SecretStore to avoid creating multiple providers for the same store.
+	// We also reset the cache if it exceeds a certain size to avoid unbounded memory growth.
+	if vms.authConfigurationsCache == nil || len(vms.authConfigurationsCache) >= authConfigurationsCachePoolSize {
+		vms.authConfigurationsCache = make(map[string]auth.ConfigurationProviderWithClaimAccess)
+	}
+
+	// Caching by resource version to ensure that updates to the SecretStore are reflected in the cached provider.
+	_, ok := vms.authConfigurationsCache[store.GetResourceVersion()]
+	if !ok {
+		vms.authConfigurationsCache[store.GetResourceVersion()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return vms.authConfigurationsCache[store.GetResourceVersion()], nil
 }
 
 func (vms *VaultManagementService) constructProvider(ctx context.Context, store esv1.GenericStore, oracleSpec *esv1.OracleProvider, kube kclient.Client, namespace string) (common.ConfigurationProvider, error) {
