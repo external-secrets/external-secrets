@@ -31,7 +31,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
-	"github.com/external-secrets/external-secrets/pkg/template"
+	"github.com/external-secrets/external-secrets/runtime/template"
 )
 
 // version is filled during build time.
