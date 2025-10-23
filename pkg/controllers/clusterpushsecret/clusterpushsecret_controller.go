@@ -44,7 +44,7 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
-	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 // Reconciler reconciles a ClusterPushSecret object.

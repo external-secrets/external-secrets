@@ -37,10 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/external-secrets/external-secrets/pkg/constants"
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 	"github.com/external-secrets/external-secrets/pkg/controllers/webhookconfig"
+	"github.com/external-secrets/external-secrets/runtime/constants"
 )
 
 var certcontrollerCmd = &cobra.Command{
