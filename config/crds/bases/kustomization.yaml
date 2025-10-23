@@ -3,9 +3,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - external-secrets.io_clusterexternalsecrets.yaml
+  - external-secrets.io_clusterproviders.yaml
   - external-secrets.io_clusterpushsecrets.yaml
   - external-secrets.io_clustersecretstores.yaml
   - external-secrets.io_externalsecrets.yaml
+  - external-secrets.io_providers.yaml
   - external-secrets.io_pushsecrets.yaml
   - external-secrets.io_secretstores.yaml
   - generators.external-secrets.io_acraccesstokens.yaml
@@ -25,3 +27,6 @@ resources:
   - generators.external-secrets.io_uuids.yaml
   - generators.external-secrets.io_vaultdynamicsecrets.yaml
   - generators.external-secrets.io_webhooks.yaml
+  - provider.external-secrets.io_fakes.yaml
+  - provider.external-secrets.io_kubernetes.yaml
+  - provider.external-secrets.io_secretsmanagers.yaml

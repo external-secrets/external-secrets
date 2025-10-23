@@ -42,12 +42,12 @@ const (
 	errDopplerStore = "missing or invalid Doppler SecretStore"
 )
 
-// Provider is a Doppler secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
+// Provider is a Doppler secrets provider implementing NewClient and ValidateStore for the esv1.ProviderInterface interface.
 type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 var (
 	enableCache      bool
@@ -237,7 +237,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 
