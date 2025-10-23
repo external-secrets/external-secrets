@@ -23,16 +23,16 @@ import (
 	"sync"
 )
 
-var builder map[string]Provider
+var builder map[string]ProviderInterface
 var buildlock sync.RWMutex
 
 func init() {
-	builder = make(map[string]Provider)
+	builder = make(map[string]ProviderInterface)
 }
 
 // Register a store backend type. Register panics if a
 // backend with the same store is already registered.
-func Register(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus MaintenanceStatus) {
+func Register(s ProviderInterface, storeSpec *SecretStoreProvider, maintenanceStatus MaintenanceStatus) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
@@ -51,7 +51,7 @@ func Register(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus Main
 
 // ForceRegister adds to store schema, overwriting a store if
 // already registered. Should only be used for testing.
-func ForceRegister(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus MaintenanceStatus) {
+func ForceRegister(s ProviderInterface, storeSpec *SecretStoreProvider, maintenanceStatus MaintenanceStatus) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
@@ -64,7 +64,7 @@ func ForceRegister(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus
 }
 
 // GetProviderByName returns the provider implementation by name.
-func GetProviderByName(name string) (Provider, bool) {
+func GetProviderByName(name string) (ProviderInterface, bool) {
 	buildlock.RLock()
 	f, ok := builder[name]
 	buildlock.RUnlock()
@@ -72,7 +72,7 @@ func GetProviderByName(name string) (Provider, bool) {
 }
 
 // GetProvider returns the provider from the generic store.
-func GetProvider(s GenericStore) (Provider, error) {
+func GetProvider(s GenericStore) (ProviderInterface, error) {
 	if s == nil {
 		return nil, nil
 	}

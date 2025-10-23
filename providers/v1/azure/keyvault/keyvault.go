@@ -114,7 +114,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Azure{}
-var _ esv1.Provider = &Azure{}
+var _ esv1.ProviderInterface = &Azure{}
 
 // SecretClient is an interface to keyvault.BaseClient.
 type SecretClient interface {
@@ -1445,7 +1445,7 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Azure{}
 }
 

@@ -38,7 +38,7 @@ import (
 )
 
 var (
-	_           esv1.Provider = &Provider{}
+	_           esv1.ProviderInterface = &Provider{}
 	enableCache bool
 	logger      = ctrl.Log.WithName("provider").WithName("vault")
 	clientCache *cache.Cache[vaultutil.Client]
@@ -318,10 +318,11 @@ func init() {
 		Flags:      fs,
 		Initialize: func() { initCache(vaultTokenCacheSize) },
 	})
+
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{
 		NewVaultClient: NewVaultClient,
 	}

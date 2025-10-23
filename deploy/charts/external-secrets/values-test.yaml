@@ -1,0 +1,85 @@
+# Minimal test configuration for provider deployment
+replicaCount: 1
+
+image:
+  repository: oci.external-secrets.io/external-secrets/external-secrets
+  pullPolicy: IfNotPresent
+
+installCRDs: true
+
+providers:
+  enabled: true
+  list:
+    - name: aws-test
+      type: aws
+      enabled: true
+      replicaCount: 1
+      
+      image:
+        repository: oci.external-secrets.io/external-secrets/provider-aws
+        pullPolicy: IfNotPresent
+      
+      serviceAccount:
+        create: true
+        automount: true
+      
+      podSecurityContext:
+        enabled: true
+        runAsNonRoot: true
+        runAsUser: 65532
+      
+      securityContext:
+        enabled: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 65532
+        capabilities:
+          drop:
+          - ALL
+      
+      service:
+        type: ClusterIP
+        port: 8080
+      
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 25m
+          memory: 32Mi
+      
+      tls:
+        enabled: false
+      
+      config:
+        region: us-east-1
+      
+      logging:
+        level: info
+        format: json
+      
+      metrics:
+        enabled: true
+        port: 8081
+      
+      health:
+        port: 8082
+      
+      podDisruptionBudget:
+        enabled: false
+      
+      autoscaling:
+        enabled: false
+
+serviceAccount:
+  create: true
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 25m
+    memory: 32Mi

@@ -45,11 +45,16 @@ type PushSecretStoreRef struct {
 	// +optional
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 
-	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+	// Kind of the SecretStore resource (SecretStore, ClusterSecretStore, or Provider)
 	// +optional
 	// +kubebuilder:default="SecretStore"
-	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore
+	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore;Provider
 	Kind string `json:"kind,omitempty"`
+
+	// APIVersion of the SecretStore resource (external-secrets.io/v1 or secretstore.external-secrets.io/v2alpha1)
+	// +optional
+	// +kubebuilder:default="external-secrets.io/v1"
+	APIVersion string `json:"apiVersion,omitempty"`
 }
 
 // PushSecretUpdatePolicy defines how push secrets are updated in the provider.

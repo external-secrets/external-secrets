@@ -3,7 +3,9 @@ module github.com/external-secrets/external-secrets/runtime
 go 1.25.1
 
 require (
+	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
 	github.com/Masterminds/sprig/v3 v3.3.0
+	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/aws/aws-sdk-go-v2 v1.39.3
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/go-logr/logr v1.4.3
@@ -28,6 +30,7 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
+	github.com/PaesslerAG/gval v1.0.0 // indirect
 	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

@@ -140,6 +140,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.readyStatusMap[req.NamespacedName.Name] = true
 		r.readyStatusMapMu.Unlock()
 	}
+
 	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 }
 

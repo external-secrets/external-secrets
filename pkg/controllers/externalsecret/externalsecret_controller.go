@@ -1057,6 +1057,9 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 		case esv1.ClusterSecretStoreKind:
 			store = &esv1.ClusterSecretStore{}
 			namespace = ""
+		case esv1.ProviderKindStr, esv1.ClusterProviderKindStr:
+			// V2 providers (both Provider and ClusterProvider) don't have controller class, always allow
+			return false, nil
 		default:
 			return false, fmt.Errorf("unsupported secret store kind: %s", ref.Kind)
 		}

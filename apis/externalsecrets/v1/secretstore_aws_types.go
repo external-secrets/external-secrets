@@ -82,6 +82,7 @@ type SecretsManager struct {
 	// then by default Secrets Manager uses a 30-day recovery window.
 	// see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
 	// +optional
+	// +kubebuilder:validation:Format=""
 	RecoveryWindowInDays int64 `json:"recoveryWindowInDays,omitempty"`
 }
 

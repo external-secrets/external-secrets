@@ -177,7 +177,7 @@ func getConfig(store esv1.GenericStore) (*esv1.NgrokProvider, error) {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

@@ -1,0 +1,232 @@
+# Example values.yaml demonstrating provider deployment
+# This shows how to deploy External Secrets with multiple providers
+
+# Deploy the External Secrets controller
+replicaCount: 1
+
+image:
+  repository: oci.external-secrets.io/external-secrets/external-secrets
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# Install CRDs
+installCRDs: true
+
+# Enable provider deployments
+providers:
+  enabled: true
+  
+  list:
+    # AWS Provider Example
+    - name: aws-primary
+      type: aws
+      enabled: true
+      replicaCount: 2
+      
+      image:
+        repository: oci.external-secrets.io/external-secrets/provider-aws
+        pullPolicy: IfNotPresent
+        tag: ""
+      
+      serviceAccount:
+        create: true
+        annotations:
+          # Example: Use IRSA for AWS authentication
+          eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/eso-provider-aws
+        automount: true
+      
+      podSecurityContext:
+        enabled: true
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      
+      securityContext:
+        enabled: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 65532
+        capabilities:
+          drop:
+          - ALL
+      
+      service:
+        type: ClusterIP
+        port: 8080
+      
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: provider
+                  external-secrets.io/provider: aws
+              topologyKey: kubernetes.io/hostname
+      
+      podDisruptionBudget:
+        enabled: true
+        minAvailable: 1
+      
+      tls:
+        enabled: true
+        certPath: /etc/provider/certs
+        caSecretName: external-secrets-v2-ca
+        mountCA: true
+      
+      config:
+        region: us-east-1
+        authMethod: irsa
+      
+      logging:
+        level: info
+        format: json
+      
+      metrics:
+        enabled: true
+        port: 8081
+        serviceMonitor:
+          enabled: true
+          interval: 30s
+          scrapeTimeout: 10s
+      
+      health:
+        port: 8082
+        livenessProbe:
+          enabled: true
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        readinessProbe:
+          enabled: true
+          initialDelaySeconds: 5
+          periodSeconds: 10
+    
+    # GCP Provider Example (disabled by default)
+    - name: gcp
+      type: gcp
+      enabled: false
+      replicaCount: 2
+      
+      image:
+        repository: oci.external-secrets.io/external-secrets/provider-gcp
+        pullPolicy: IfNotPresent
+      
+      serviceAccount:
+        create: true
+        annotations:
+          # Example: Use Workload Identity for GCP authentication
+          iam.gke.io/gcp-service-account: eso-provider@project-id.iam.gserviceaccount.com
+      
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+      
+      config:
+        projectID: my-project-id
+      
+      logging:
+        level: info
+      
+      metrics:
+        enabled: true
+    
+    # Azure Provider Example (disabled by default)
+    - name: azure
+      type: azure
+      enabled: false
+      replicaCount: 2
+      
+      image:
+        repository: oci.external-secrets.io/external-secrets/provider-azure
+        pullPolicy: IfNotPresent
+      
+      serviceAccount:
+        create: true
+        annotations:
+          # Example: Use Azure Workload Identity
+          azure.workload.identity/client-id: "00000000-0000-0000-0000-000000000000"
+      
+      podLabels:
+        azure.workload.identity/use: "true"
+      
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+      
+      config:
+        vaultURL: https://my-keyvault.vault.azure.net
+        tenantID: "00000000-0000-0000-0000-000000000000"
+      
+      logging:
+        level: info
+      
+      metrics:
+        enabled: true
+    
+    # Vault Provider Example (disabled by default)
+    - name: vault
+      type: vault
+      enabled: false
+      replicaCount: 2
+      
+      image:
+        repository: oci.external-secrets.io/external-secrets/provider-vault
+        pullPolicy: IfNotPresent
+      
+      serviceAccount:
+        create: true
+      
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+      
+      config:
+        vaultAddr: https://vault.example.com
+        authMethod: kubernetes
+      
+      extraEnv:
+      - name: VAULT_SKIP_VERIFY
+        value: "false"
+      
+      logging:
+        level: info
+      
+      metrics:
+        enabled: true
+
+# Standard controller configuration continues...
+serviceAccount:
+  create: true
+  annotations: {}
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

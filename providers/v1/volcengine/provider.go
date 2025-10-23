@@ -29,7 +29,7 @@ import (
 	"github.com/volcengine/volcengine-go-sdk/service/kms"
 )
 
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 // Provider implements the actual SecretsClient interface.
 type Provider struct{}
@@ -103,7 +103,7 @@ func getVolcengineProvider(store esv1.GenericStore) (*esv1.VolcengineProvider, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

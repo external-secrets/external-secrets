@@ -39,6 +39,9 @@ const (
 )
 
 func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
+	fmt.Printf("getAuth: %+v\n", c.store)
+	fmt.Printf("auth: %+v\n", c.store.Auth)
+
 	if c.store.AuthRef != nil {
 		cfg, err := c.fetchSecretKey(ctx, *c.store.AuthRef)
 		if err != nil {
@@ -70,6 +73,7 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("ca: %s\n", string(ca))
 
 	cfg.TLSClientConfig = rest.TLSClientConfig{
 		Insecure: false,
@@ -87,7 +91,7 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 	case c.store.Auth.ServiceAccount != nil:
 		token, err := c.serviceAccountToken(ctx, c.store.Auth.ServiceAccount)
 		if err != nil {
-			return nil, fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
+			return nil, fmt.Errorf("could not fetch Auth.ServiceAccount with %v: %w", c.store.Auth.ServiceAccount, err)
 		}
 
 		cfg.BearerToken = string(token)

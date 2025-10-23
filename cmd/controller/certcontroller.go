@@ -39,6 +39,7 @@ import (
 
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
+	"github.com/external-secrets/external-secrets/pkg/controllers/providercerts"
 	"github.com/external-secrets/external-secrets/pkg/controllers/webhookconfig"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 )
@@ -126,6 +127,21 @@ var certcontrollerCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		// Setup provider certificate reconciler if configured
+		if providerConfig := buildProviderConfig(); providerConfig != nil {
+			providerCertReconciler := providercerts.New(
+				mgr.GetClient(),
+				ctrl.Log.WithName("provider-certs"),
+				providerConfig,
+				crdRequeueInterval,
+				mgr.Elected(),
+			)
+			if err := mgr.Add(providerCertReconciler); err != nil {
+				setupLog.Error(err, "unable to add provider cert reconciler")
+				os.Exit(1)
+			}
+		}
+
 		whc := webhookconfig.New(mgr.GetClient(), mgr.GetScheme(), mgr.Elected(),
 			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
 			webhookconfig.Opts{
@@ -162,6 +178,25 @@ var certcontrollerCmd = &cobra.Command{
 	},
 }
 
+func buildProviderConfig() *providercerts.ProviderCertConfig {
+	if providerNamespace == "" {
+		return nil
+	}
+	if len(providerServiceNames) == 0 {
+		return nil
+	}
+	serviceNames := make([]string, 0, len(providerServiceNames))
+	for _, serviceName := range providerServiceNames {
+		if serviceName == "" {
+			continue
+		}
+		serviceNames = append(serviceNames, serviceName)
+	}
+	return &providercerts.ProviderCertConfig{
+		Namespace:    providerNamespace,
+		ServiceNames: serviceNames,
+	}
+}
 func setupLogger() {
 	var lvl zapcore.Level
 	var enc zapcore.TimeEncoder
@@ -204,4 +239,6 @@ func init() {
 	certcontrollerCmd.Flags().DurationVar(&crdRequeueInterval, "crd-requeue-interval", time.Minute*5, "Time duration between reconciling CRDs for new certs")
 	certcontrollerCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
+	certcontrollerCmd.Flags().StringVar(&providerNamespace, "provider-namespace", "", "Provider namespace")
+	certcontrollerCmd.Flags().StringSliceVar(&providerServiceNames, "provider-service-names", []string{}, "Provider service names for DNS SANs")
 }

@@ -22,7 +22,6 @@ import (
 
 	akeyless "github.com/external-secrets/external-secrets/providers/v1/akeyless"
 	alibaba "github.com/external-secrets/external-secrets/providers/v1/alibaba"
-	aws "github.com/external-secrets/external-secrets/providers/v1/aws"
 	azure "github.com/external-secrets/external-secrets/providers/v1/azure/keyvault"
 	beyondtrust "github.com/external-secrets/external-secrets/providers/v1/beyondtrust"
 	bitwarden "github.com/external-secrets/external-secrets/providers/v1/bitwarden"
@@ -32,7 +31,6 @@ import (
 	delinea "github.com/external-secrets/external-secrets/providers/v1/delinea"
 	device42 "github.com/external-secrets/external-secrets/providers/v1/device42"
 	doppler "github.com/external-secrets/external-secrets/providers/v1/doppler"
-	fake "github.com/external-secrets/external-secrets/providers/v1/fake"
 	fortanix "github.com/external-secrets/external-secrets/providers/v1/fortanix"
 	gcp "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
 	github "github.com/external-secrets/external-secrets/providers/v1/github"
@@ -58,6 +56,8 @@ import (
 	webhook "github.com/external-secrets/external-secrets/providers/v1/webhook"
 	yandexcert "github.com/external-secrets/external-secrets/providers/v1/yandex/certificatemanager"
 	yandexlock "github.com/external-secrets/external-secrets/providers/v1/yandex/lockbox"
+	aws "github.com/external-secrets/external-secrets/providers/v2/aws/store"
+	fake "github.com/external-secrets/external-secrets/providers/v2/fake/store"
 )
 
 func init() {

@@ -683,3 +683,210 @@ dnsConfig: {}
 
 # -- Any extra pod spec on the deployment
 podSpecExtra: {}
+
+# -- Provider defaults configuration
+# Common configuration that is automatically merged with each provider's configuration
+# Individual providers can override any of these defaults by specifying the same keys
+providerDefaults:
+  # Default replica count
+  replicaCount: 2
+
+  # Default service account configuration
+  serviceAccount:
+    create: true
+    automount: true
+    annotations: {}
+    name: ""
+
+  # Default pod annotations and labels
+  podAnnotations: {}
+  podLabels: {}
+
+  # Default pod security context
+  podSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 65532
+    fsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Default container security context
+  securityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 65532
+    capabilities:
+      drop:
+      - ALL
+
+  # Default service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+
+  # Default resource limits and requests
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  # Default node selector, tolerations, and affinity
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+
+  # Default pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  # Default TLS configuration
+  tls:
+    enabled: true
+    certPath: /etc/provider/certs
+    caSecretName: external-secrets-v2-ca
+    mountCA: true
+
+  # Default metrics configuration
+  metrics:
+    enabled: true
+    port: 8081
+    serviceMonitor:
+      enabled: false
+      namespace: ""
+      interval: 30s
+      scrapeTimeout: 10s
+      labels: {}
+
+  # Default health check configuration
+  health:
+    port: 8082
+    livenessProbe:
+      enabled: false
+      initialDelaySeconds: 10
+      periodSeconds: 20
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      enabled: false
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+
+  # Default extra volumes and volume mounts
+  # Note: it is intentionally not defined here to allow per-provider overrides
+  # extraVolumes: []
+  # extraVolumeMounts: []
+
+  # Default autoscaling configuration (disabled by default)
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+# -- Provider deployment configuration
+# Deploy one or more external secret providers alongside the controller
+# Each provider runs as a separate deployment with its own configuration
+providers:
+  # -- Enable provider deployments
+  enabled: false
+
+  # -- List of providers to deploy
+  # Each provider automatically inherits defaults from providerDefaults above
+  # You only need to specify what you want to override
+  list: []
+  # Example configurations:
+  #
+  # Simple provider configuration - uses all defaults from providerDefaults:
+  # - name: fake
+  #   type: fake
+  #   enabled: true
+  #   image:
+  #     repository: ghcr.io/external-secrets/provider-fake
+  #     tag: latest
+  #     pullPolicy: IfNotPresent
+  #   # All other settings (serviceAccount, podSecurityContext, resources, etc.)
+  #   # are automatically inherited from providerDefaults
+  #
+  # Advanced provider configuration - overrides specific defaults:
+  # - name: aws
+  #   type: aws
+  #   enabled: true
+  #   replicaCount: 3  # Override default replica count (default is 2)
+  #
+  #   image:
+  #     repository: oci.external-secrets.io/external-secrets/provider-aws
+  #     pullPolicy: IfNotPresent
+  #     tag: ""
+  #
+  #   imagePullSecrets: []
+  #
+  #   # Override service account to add AWS IAM role annotation
+  #   serviceAccount:
+  #     create: true
+  #     annotations:
+  #       eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/eso-provider-aws
+  #     name: ""
+  #     automount: true
+  #
+  #   # Add custom pod labels
+  #   podLabels:
+  #     custom-label: custom-value
+  #
+  #   # Override resources for higher limits
+  #   resources:
+  #     limits:
+  #       cpu: 500m
+  #       memory: 512Mi
+  #     requests:
+  #       cpu: 100m
+  #       memory: 128Mi
+  #
+  #   # Add custom affinity for better distribution
+  #   affinity:
+  #     podAntiAffinity:
+  #       preferredDuringSchedulingIgnoredDuringExecution:
+  #       - weight: 100
+  #         podAffinityTerm:
+  #           labelSelector:
+  #             matchLabels:
+  #               app.kubernetes.io/component: provider
+  #               external-secrets.io/provider: aws
+  #           topologyKey: kubernetes.io/hostname
+  #
+  #   # Provider-specific configuration
+  #   config: {}
+  #     # For AWS provider:
+  #     # region: us-east-1
+  #     # authMethod: irsa  # irsa, credentials, none
+  #     # credentials:
+  #     #   existingSecret: ""
+  #     #   accessKeyId: ""
+  #     #   secretAccessKey: ""
+  #     # assumeRoleARN: ""
+  #     # sessionTags: {}
+  #     # externalID: ""
+  #     # connectionPool:
+  #     #   maxConnections: 50
+  #     #   idleTimeout: 5m
+  #     #   maxLifetime: 30m
+  #
+  #   # Enable autoscaling
+  #   autoscaling:
+  #     enabled: true
+  #     minReplicas: 3
+  #     maxReplicas: 10
+  #     targetCPUUtilizationPercentage: 80
+  #     targetMemoryUtilizationPercentage: 80

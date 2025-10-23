@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	oClient "github.com/external-secrets/external-secrets/providers/v1/onboardbase/client"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (
@@ -35,12 +35,12 @@ const (
 	errOnboardbaseStore = "missing or invalid Onboardbase SecretStore"
 )
 
-// Provider is a Onboardbase secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
+// Provider is a Onboardbase secrets provider implementing NewClient and ValidateStore for the esv1.ProviderInterface interface.
 type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 // Capabilities returns the provider's supported capabilities.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
@@ -106,7 +106,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

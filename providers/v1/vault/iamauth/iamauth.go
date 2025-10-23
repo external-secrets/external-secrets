@@ -44,7 +44,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	"github.com/external-secrets/external-secrets/providers/v2/aws/store/util"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
 )
 

@@ -104,7 +104,7 @@ func (c *HelmChart) Install() error {
 // Uninstall removes the chart aswell as the repo.
 func (c *HelmChart) Uninstall() error {
 	var sout, serr bytes.Buffer
-	args := []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--wait"}
+	args := []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--wait", "--timeout", "600s"}
 	cmd := exec.Command("helm", args...)
 	cmd.Stdout = &sout
 	cmd.Stderr = &serr

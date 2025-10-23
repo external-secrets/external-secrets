@@ -47,7 +47,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &KeyManagementService{}
-var _ esv1.Provider = &KeyManagementService{}
+var _ esv1.ProviderInterface = &KeyManagementService{}
 
 // KeyManagementService implements the Alibaba KMS provider for External Secrets.
 type KeyManagementService struct {
@@ -362,7 +362,7 @@ func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1.GenericSt
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &KeyManagementService{}
 }
 

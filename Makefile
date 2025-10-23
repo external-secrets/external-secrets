@@ -6,6 +6,21 @@ MAKEFLAGS     += --warn-undefined-variables
 .SHELLFLAGS   := -euo pipefail -c
 
 ARCH ?= amd64 arm64 ppc64le
+
+# Detect local architecture for e2e testing
+LOCAL_ARCH := $(shell uname -m)
+ifeq ($(LOCAL_ARCH),x86_64)
+	LOCAL_GOARCH := amd64
+else ifeq ($(LOCAL_ARCH),aarch64)
+	LOCAL_GOARCH := arm64
+else ifeq ($(LOCAL_ARCH),arm64)
+	LOCAL_GOARCH := arm64
+else ifeq ($(LOCAL_ARCH),ppc64le)
+	LOCAL_GOARCH := ppc64le
+else
+	LOCAL_GOARCH := amd64
+endif
+
 BUILD_ARGS ?= CGO_ENABLED=0
 DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
@@ -70,9 +85,25 @@ OK		= echo ${TIME} ${GREEN}[ OK ]${CNone}
 FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 
 # ====================================================================================
+# Protobuf
+
+.PHONY: proto
+proto: ## Generate protobuf code
+	@$(INFO) generating protobuf code
+	@protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		-I. \
+		providers/v2/common/proto/provider/secretstore.proto
+	@protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		-I. \
+		providers/v2/common/proto/generator/generator.proto
+	@$(OK) protobuf code generated
+
+# ====================================================================================
 # Conformance
 
-reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
+reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt generate-providers verify-providers ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
@@ -122,6 +153,16 @@ test.e2e.managed: generate ## Run e2e tests managed
 	@$(INFO) go test e2e-tests-managed
 	$(MAKE) -C ./e2e test.managed
 	@$(OK) go test e2e-tests-managed
+
+.PHONY: test.e2e.v2
+test.e2e.v2: generate manifests docker.build.e2e docker.build.providers ## Run V2 E2E tests
+	@$(INFO) Installing ESO V2 for E2E tests
+	./hack/install-eso-v2-e2e.sh
+#@$(INFO) Running V2 E2E tests
+#cd e2e && ginkgo -v --label-filter="v2" ./suites/v2/...
+#@$(INFO) Cleaning up ESO V2
+#./hack/uninstall-eso-v2-e2e.sh
+	#@$(OK) V2 E2E tests complete
 
 .PHONY: test.crds
 test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
@@ -192,6 +233,21 @@ generate: ## Generate code and crds
 	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
+generate-providers: ## Generate provider main.go and Dockerfile files from provider.yaml configs
+	@$(INFO) Generating provider files
+	@cd providers/v2/hack && go run generate-provider-main.go -providers-dir=..
+	@$(OK) Generated provider files
+
+verify-providers: ## Verify that provider files are up to date
+	@$(INFO) Verifying provider files are up to date
+	@cd providers/v2/hack && go run generate-provider-main.go -providers-dir=.. -dry-run
+	@if ! git diff --quiet providers/v2/*/main.go providers/v2/*/Dockerfile 2>/dev/null; then \
+		echo "Provider files are out of date. Run 'make generate-providers' to update them."; \
+		git diff providers/v2/*/main.go providers/v2/*/Dockerfile; \
+		exit 1; \
+	fi
+	@$(OK) Provider files are up to date
+
 # ====================================================================================
 # Local Utility
 
@@ -206,7 +262,7 @@ manifests: helm.generate ## Generate manifests from helm chart
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience
-	kubectl apply -f $(BUNDLE_DIR) --server-side
+	kubectl apply -f $(BUNDLE_DIR) --server-side --force-conflicts
 
 crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
 	kubectl delete -f $(BUNDLE_DIR)
@@ -332,17 +388,87 @@ docker.tag:  ## Emit IMAGE_TAG
 	@echo $(IMAGE_TAG)
 
 .PHONY: docker.build
-docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
-	@$(INFO) $(DOCKER) build
-	echo $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	DOCKER_BUILDKIT=1 $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	@$(OK) $(DOCKER) build
+docker.build: docker.build.controller docker.build.providers ## Build all docker images (controller + providers)
+
+.PHONY: docker.build.e2e
+docker.build.e2e: docker.build.controller.e2e ## Build docker images for local e2e testing (local arch only)
+
+.PHONY: docker.build.controller
+docker.build.controller: $(addprefix build-,$(ARCH)) ## Build the controller docker image
+	@$(INFO) $(DOCKER) build controller
+	@echo $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@DOCKER_BUILDKIT=1 $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build controller
+
+.PHONY: docker.build.controller.e2e
+docker.build.controller.e2e: build-$(LOCAL_GOARCH) ## Build the controller docker image for local arch only
+	@$(INFO) $(DOCKER) build controller for $(LOCAL_GOARCH)
+	@echo $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@DOCKER_BUILDKIT=1 $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build controller for $(LOCAL_GOARCH)
+
+.PHONY: docker.build.providers
+docker.build.providers: docker.build.provider.kubernetes docker.build.provider.aws docker.build.provider.fake ## Build all provider images
+
+.PHONY: docker.build.provider.kubernetes
+docker.build.provider.kubernetes: ## Build Kubernetes provider image
+	@$(INFO) $(DOCKER) build kubernetes provider
+	@DOCKER_BUILDKIT=1 $(DOCKER) build \
+		-f providers/v2/kubernetes/Dockerfile \
+		. \
+		$(DOCKER_BUILD_ARGS) \
+		-t $(IMAGE_REGISTRY)/external-secrets/provider-kubernetes:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build kubernetes provider
+
+.PHONY: docker.build.provider.aws
+docker.build.provider.aws: ## Build AWS provider image
+	@$(INFO) $(DOCKER) build AWS provider
+	@DOCKER_BUILDKIT=1 $(DOCKER) build \
+		-f providers/v2/aws/Dockerfile \
+		. \
+		$(DOCKER_BUILD_ARGS) \
+		-t $(IMAGE_REGISTRY)/external-secrets/provider-aws:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build AWS provider
+
+.PHONY: docker.build.provider.fake
+docker.build.provider.fake: ## Build Fake provider image
+	@$(INFO) $(DOCKER) build Fake provider
+	@DOCKER_BUILDKIT=1 $(DOCKER) build \
+		-f providers/v2/fake/Dockerfile \
+		. \
+		$(DOCKER_BUILD_ARGS) \
+		-t $(IMAGE_REGISTRY)/external-secrets/provider-fake:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build Fake provider
 
 .PHONY: docker.push
-docker.push: ## Push the docker image to the registry
-	@$(INFO) $(DOCKER) push
+docker.push: docker.push.controller docker.push.providers ## Push all docker images to the registry
+
+.PHONY: docker.push.controller
+docker.push.controller: ## Push the controller docker image to the registry
+	@$(INFO) $(DOCKER) push controller
 	@$(DOCKER) push $(IMAGE_NAME):$(IMAGE_TAG)
-	@$(OK) $(DOCKER) push
+	@$(OK) $(DOCKER) push controller
+
+.PHONY: docker.push.providers
+docker.push.providers: docker.push.provider.kubernetes docker.push.provider.aws docker.push.provider.fake ## Push all provider images
+
+.PHONY: docker.push.provider.kubernetes
+docker.push.provider.kubernetes: ## Push Kubernetes provider image
+	@$(INFO) $(DOCKER) push kubernetes provider
+	@$(DOCKER) push $(IMAGE_REGISTRY)/external-secrets/provider-kubernetes:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) push kubernetes provider
+
+.PHONY: docker.push.provider.aws
+docker.push.provider.aws: ## Push AWS provider image
+	@$(INFO) $(DOCKER) push AWS provider
+	@$(DOCKER) push $(IMAGE_REGISTRY)/external-secrets/provider-aws:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) push AWS provider
+
+.PHONY: docker.push.provider.fake
+docker.push.provider.fake: ## Push Fake provider image
+	@$(INFO) $(DOCKER) push Fake provider
+	@$(DOCKER) push $(IMAGE_REGISTRY)/external-secrets/provider-fake:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) push Fake provider
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.
@@ -409,6 +535,7 @@ clean:  ## Clean bins
 # ====================================================================================
 # Build Dependencies
 
+OS ?=
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
     detected_OS := windows
     real_OS := windows
