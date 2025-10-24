@@ -48,13 +48,14 @@ type ACRAccessTokenSpec struct {
 	Scope string `json:"scope,omitempty"`
 
 	// EnvironmentType specifies the Azure cloud environment endpoints to use for
-	// connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+	// connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
 	// The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
 	// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
 	// +kubebuilder:default=PublicCloud
 	EnvironmentType esv1.AzureEnvironmentType `json:"environmentType,omitempty"`
 }
 
+// ACRAuth defines the authentication methods for Azure Container Registry.
 type ACRAuth struct {
 	// ServicePrincipal uses Azure Service Principal credentials to authenticate with Azure.
 	// +optional
@@ -69,15 +70,18 @@ type ACRAuth struct {
 	WorkloadIdentity *AzureACRWorkloadIdentityAuth `json:"workloadIdentity,omitempty"`
 }
 
+// AzureACRServicePrincipalAuth defines the configuration for using Azure Service Principal authentication.
 type AzureACRServicePrincipalAuth struct {
 	SecretRef AzureACRServicePrincipalAuthSecretRef `json:"secretRef"`
 }
 
+// AzureACRManagedIdentityAuth defines the configuration for using Azure Managed Identity authentication.
 type AzureACRManagedIdentityAuth struct {
 	// If multiple Managed Identity is assigned to the pod, you can select the one to be used
 	IdentityID string `json:"identityId,omitempty"`
 }
 
+// AzureACRWorkloadIdentityAuth defines the configuration for using Azure Workload Identity authentication.
 type AzureACRWorkloadIdentityAuth struct {
 	// ServiceAccountRef specified the service account
 	// that should be used when authenticating with WorkloadIdentity.
@@ -85,8 +89,8 @@ type AzureACRWorkloadIdentityAuth struct {
 	ServiceAccountRef *smmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
-// Configuration used to authenticate with Azure using static
-// credentials stored in a Kind=Secret.
+// AzureACRServicePrincipalAuthSecretRef defines the secret references for Azure Service Principal authentication.
+// It uses static credentials stored in a Kind=Secret.
 type AzureACRServicePrincipalAuthSecretRef struct {
 	// The Azure clientId of the service principle used for authentication.
 	ClientID smmeta.SecretKeySelector `json:"clientId,omitempty"`

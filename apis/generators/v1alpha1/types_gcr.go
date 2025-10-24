@@ -23,6 +23,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// GCRAccessTokenSpec defines the desired state to generate a Google Container Registry access token.
 type GCRAccessTokenSpec struct {
 	// Auth defines the means for authenticating with GCP
 	Auth GCPSMAuth `json:"auth"`
@@ -30,6 +31,7 @@ type GCRAccessTokenSpec struct {
 	ProjectID string `json:"projectID"`
 }
 
+// GCPSMAuth defines the authentication methods for Google Cloud Platform.
 type GCPSMAuth struct {
 	// +optional
 	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
@@ -39,12 +41,14 @@ type GCPSMAuth struct {
 	WorkloadIdentityFederation *esv1.GCPWorkloadIdentityFederation `json:"workloadIdentityFederation,omitempty"`
 }
 
+// GCPSMAuthSecretRef defines the reference to a secret containing Google Cloud Platform credentials.
 type GCPSMAuthSecretRef struct {
 	// The SecretAccessKey is used for authentication
 	// +optional
 	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
 }
 
+// GCPWorkloadIdentity defines the configuration for using GCP Workload Identity authentication.
 type GCPWorkloadIdentity struct {
 	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
 	ClusterLocation   string                        `json:"clusterLocation"`

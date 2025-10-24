@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controller implements the various controllers for external-secrets
 package controller
 
 import (
@@ -47,7 +48,7 @@ var certcontrollerCmd = &cobra.Command{
 	Short: "Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs",
 	Long: `Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs.
 	For more information visit https://external-secrets.io`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		setupLogger()
 
 		// completely disable caching of Secrets and ConfigMaps to save memory

@@ -22,8 +22,9 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
 type GithubAccessTokenSpec struct {
-	// URL configures the Github instance URL. Defaults to https://github.com/.
+	// URL configures the GitHub instance URL. Defaults to https://github.com/.
 	URL       string `json:"url,omitempty"`
 	AppID     string `json:"appID"`
 	InstallID string `json:"installID"`
@@ -36,10 +37,12 @@ type GithubAccessTokenSpec struct {
 	Auth GithubAuth `json:"auth"`
 }
 
+// GithubAuth defines the authentication configuration for GitHub access.
 type GithubAuth struct {
 	PrivateKey GithubSecretRef `json:"privateKey"`
 }
 
+// GithubSecretRef references a secret containing GitHub credentials.
 type GithubSecretRef struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }
@@ -59,7 +62,7 @@ type GithubAccessToken struct {
 
 // +kubebuilder:object:root=true
 
-// GithubAccessToken contains a list of ExternalSecret resources.
+// GithubAccessTokenList contains a list of GithubAccessToken resources.
 type GithubAccessTokenList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

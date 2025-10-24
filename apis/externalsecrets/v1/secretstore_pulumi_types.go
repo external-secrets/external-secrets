@@ -20,6 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// PulumiProvider defines configuration for accessing secrets from Pulumi ESC.
 type PulumiProvider struct {
 	// APIURL is the URL of the Pulumi API.
 	// +kubebuilder:default="https://api.pulumi.com/api/esc"
@@ -41,6 +42,7 @@ type PulumiProvider struct {
 	Environment string `json:"environment"`
 }
 
+// PulumiProviderSecretRef contains the secret reference for Pulumi authentication.
 type PulumiProviderSecretRef struct {
 	// SecretRef is a reference to a secret containing the Pulumi API token.
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`

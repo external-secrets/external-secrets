@@ -20,7 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Configures a store to push secrets to Github Actions.
+// GithubProvider provides access and authentication to a GitHub instance .
 type GithubProvider struct {
 	// URL configures the Github instance URL. Defaults to https://github.com/.
 	//+kubebuilder:default="https://github.com/"
@@ -49,6 +49,7 @@ type GithubProvider struct {
 	Environment string `json:"environment,omitempty"`
 }
 
+// GithubAppAuth defines authentication configuration using a GitHub App for accessing GitHub API.
 type GithubAppAuth struct {
 	PrivateKey esmeta.SecretKeySelector `json:"privateKey"`
 }

@@ -22,6 +22,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// QuayAccessTokenSpec defines the desired state to generate a Quay access token.
 type QuayAccessTokenSpec struct {
 	// URL configures the Quay instance URL. Defaults to quay.io.
 	URL string `json:"url,omitempty"`
