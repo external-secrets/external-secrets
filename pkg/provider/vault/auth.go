@@ -157,7 +157,7 @@ func createServiceAccountToken(
 }
 
 // checkToken does a lookup and checks if the provided token exists.
-func checkToken(ctx context.Context, token util.Token) (bool, error) {
+func checkToken(ctx context.Context, token vaultutil.Token) (bool, error) {
 	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
 	resp, err := token.LookupSelfWithContext(ctx)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLookupSelf, err)
@@ -198,7 +198,7 @@ func checkToken(ctx context.Context, token util.Token) (bool, error) {
 	return true, nil
 }
 
-func revokeTokenIfValid(ctx context.Context, client util.Client) error {
+func revokeTokenIfValid(ctx context.Context, client vaultutil.Client) error {
 	valid, err := checkToken(ctx, client.AuthToken())
 	if err != nil {
 		return fmt.Errorf(errVaultRevokeToken, err)

@@ -20,8 +20,8 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// KubernetesServer defines configuration for connecting to a Kubernetes API server.
 type KubernetesServer struct {
-
 	// configures the Kubernetes server Address.
 	// +kubebuilder:default=kubernetes.default
 	// +optional
@@ -36,7 +36,7 @@ type KubernetesServer struct {
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
-// Configures a store to sync secrets with a Kubernetes instance.
+// KubernetesProvider configures a store to sync secrets with a Kubernetes instance.
 type KubernetesProvider struct {
 	// configures the Kubernetes server Address.
 	// +optional
@@ -59,6 +59,7 @@ type KubernetesProvider struct {
 	RemoteNamespace string `json:"remoteNamespace,omitempty"`
 }
 
+// KubernetesAuth defines authentication options for connecting to a Kubernetes cluster.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type KubernetesAuth struct {
@@ -75,11 +76,13 @@ type KubernetesAuth struct {
 	ServiceAccount *esmeta.ServiceAccountSelector `json:"serviceAccount,omitempty"`
 }
 
+// CertAuth defines certificate-based authentication configuration for Kubernetes.
 type CertAuth struct {
 	ClientCert esmeta.SecretKeySelector `json:"clientCert,omitempty"`
 	ClientKey  esmeta.SecretKeySelector `json:"clientKey,omitempty"`
 }
 
+// TokenAuth defines token-based authentication configuration for Kubernetes.
 type TokenAuth struct {
 	BearerToken esmeta.SecretKeySelector `json:"bearerToken,omitempty"`
 }

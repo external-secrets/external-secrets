@@ -130,6 +130,7 @@ spec:
     passwordSpec:
       allowRepeat: false
       digits: 1
+      encoding: "raw"
       length: 24
       noUpper: false
       symbolCharacters: string
@@ -196,6 +197,7 @@ spec:
               key: string
               name: string
               namespace: string
+            path: "cert"
             secretRef:
               key: string
               name: string

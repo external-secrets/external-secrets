@@ -14,12 +14,17 @@ jobs:
     name: Analyze project
     runs-on: ubuntu-latest
     permissions:
-      # required for all workflows
       security-events: write
       packages: read
-      actions: read 
+      actions: read
     strategy:
       fail-fast: false
+      matrix:
+        include:
+          - language: go
+            build-mode: autobuild
+          - language: actions
+            build-mode: none
     steps:
     - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:
@@ -29,9 +34,10 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@192325c86100d080feab897ff886c34abd4c83a3 # v3.29.5
+      uses: github/codeql-action/init@16140ae1a102900babc80a33c44059580f687047 # v3.29.5
       with:
-        languages: go
-        build-mode: autobuild
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        config-file: ./.github/config/codeql-config.yaml
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@192325c86100d080feab897ff886c34abd4c83a3 # v3.29.5
+      uses: github/codeql-action/analyze@16140ae1a102900babc80a33c44059580f687047 # v3.29.5

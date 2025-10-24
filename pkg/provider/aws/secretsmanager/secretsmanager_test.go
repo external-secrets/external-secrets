@@ -30,7 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -225,7 +225,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 			Tags: getTagSlice(),
 		}
 		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
-		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
+		jsonTags, _ := awsutil.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectedSecret = jsonTags
 	}
@@ -237,7 +237,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		}
 		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = tagname2
-		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
+		jsonTags, _ := awsutil.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectedSecret = tagvalue2
 	}
@@ -249,7 +249,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		}
 		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = "fail"
-		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
+		jsonTags, _ := awsutil.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectError = "key fail does not exist in secret /baz"
 	}
@@ -548,11 +548,12 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
-					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
-					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
-					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					GetSecretValueFn:       fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:       fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:       fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:          fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:        fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -572,6 +573,7 @@ func TestSetSecret(t *testing.T) {
 					}),
 					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -591,6 +593,7 @@ func TestSetSecret(t *testing.T) {
 					}),
 					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -608,6 +611,7 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutSecretKey,
 			},
@@ -625,6 +629,7 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithMetadata,
 			},
@@ -665,6 +670,7 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
 					Raw: []byte(`{
@@ -686,6 +692,7 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
 					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
+					PutResourcePolicyFn: fakesm.NewPutResourcePolicyFn(&awssm.PutResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -721,6 +728,7 @@ func TestSetSecret(t *testing.T) {
 					}),
 					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -745,6 +753,7 @@ func TestSetSecret(t *testing.T) {
 					}),
 					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -769,6 +778,7 @@ func TestSetSecret(t *testing.T) {
 					}),
 					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -793,6 +803,7 @@ func TestSetSecret(t *testing.T) {
 					}),
 					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -814,6 +825,7 @@ func TestSetSecret(t *testing.T) {
 					}),
 					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -835,6 +847,7 @@ func TestSetSecret(t *testing.T) {
 					}),
 					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "fake-property.other-fake-property"},
 			},
@@ -907,6 +920,7 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -982,6 +996,7 @@ func TestSetSecret(t *testing.T) {
 						assert.Equal(t, []string{"team"}, input.TagKeys)
 						assert.NotContains(t, input.TagKeys, managedBy)
 					}),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
 					Raw: []byte(`{

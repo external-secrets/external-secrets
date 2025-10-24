@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package auth provides authentication functionality for the AWS provider, handling
+// various authentication methods including static credentials, IAM roles,
+// and web identity tokens.
 package auth
 
 import (
@@ -34,9 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -85,7 +88,7 @@ type Opts struct {
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
 func New(ctx context.Context, opts Opts) (*aws.Config, error) {
-	prov, err := util.GetAWSProvider(opts.Store)
+	prov, err := awsutil.GetAWSProvider(opts.Store)
 	if err != nil {
 		return nil, err
 	}
@@ -325,6 +328,8 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 		}), nil
 }
 
+// STSprovider defines the interface for interacting with AWS STS API operations.
+// This allows for mocking STS operations during testing.
 type STSprovider interface {
 	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
 	AssumeRoleWithSAML(ctx context.Context, params *sts.AssumeRoleWithSAMLInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleWithSAMLOutput, error)
@@ -333,8 +338,11 @@ type STSprovider interface {
 	DecodeAuthorizationMessage(ctx context.Context, params *sts.DecodeAuthorizationMessageInput, optFns ...func(*sts.Options)) (*sts.DecodeAuthorizationMessageOutput, error)
 }
 
+// STSProvider is a function type that returns an STSprovider implementation.
+// Used to inject custom or mock STS clients.
 type STSProvider func(*aws.Config) STSprovider
 
+// DefaultSTSProvider creates and returns a new STS client from the provided AWS config.
 func DefaultSTSProvider(cfg *aws.Config) STSprovider {
 	stsClient := sts.NewFromConfig(*cfg, func(o *sts.Options) {
 		o.EndpointResolverV2 = customEndpointResolver{}

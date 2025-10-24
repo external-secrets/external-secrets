@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ecr provides functionality for generating authentication tokens for AWS Elastic Container Registry.
 package ecr
 
 import (
@@ -44,6 +45,7 @@ type ecrPublicAPI interface {
 	GetAuthorizationToken(ctx context.Context, params *ecrpublic.GetAuthorizationTokenInput, optFuncs ...func(*ecrpublic.Options)) (*ecrpublic.GetAuthorizationTokenOutput, error)
 }
 
+// Generator implements ECR token generation functionality.
 type Generator struct{}
 
 const (
@@ -54,11 +56,13 @@ const (
 	errGetPublicToken  = "unable to get public authorization token: %w"
 )
 
+// Generate creates an authentication token for AWS ECR.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(ctx, jsonSpec, kube, namespace, ecrPrivateFactory, ecrPublicFactory)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+// Cleanup performs any necessary cleanup after token generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

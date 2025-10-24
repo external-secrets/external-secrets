@@ -36,8 +36,10 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
       - name: check-docs
+        env:
+          DOCS_VERSION: ${{ github.event.inputs.version }}
         run: |
-          DOCS_VERSION=${{ github.event.inputs.version }} make docs.check
+          make docs.check
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -56,7 +58,7 @@ jobs:
           ref: ${{ github.event.inputs.source_ref }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
         with:
           tag_name: ${{ github.event.inputs.version }}
           target_commitish: ${{ github.event.inputs.source_ref }}
@@ -75,9 +77,10 @@ jobs:
 
       - name: Update Docs
         if: github.ref == 'refs/heads/main'
-        run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
         env:
+          DOCS_VERSION: ${{ github.event.inputs.version }}
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: make docs.publish DOCS_ALIAS=latest
 
   promote:
     name: Promote Container Image
@@ -118,7 +121,7 @@ jobs:
         run: go mod download
 
       - name: Login to Docker
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -128,10 +131,12 @@ jobs:
         run: make docker.promote
 
       - name: Build release manifests
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
         run: |
           # temporarily patch the version so we generate manifests with the new version
-          yq e -i '.version = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
-          yq e -i '.appVersion = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i ".version = \"$RELEASE_VERSION\"" ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i ".appVersion = \"$RELEASE_VERSION\"" ./deploy/charts/external-secrets/Chart.yaml
           make manifests
 
       - name: Sign promoted image
@@ -142,7 +147,7 @@ jobs:
           image-tag: ${{ env.RELEASE_TAG }}
 
       - name: Update Release
-        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
         with:
           tag_name: ${{ github.event.inputs.version }}
           files: |

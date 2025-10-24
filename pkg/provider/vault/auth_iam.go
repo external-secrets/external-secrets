@@ -47,7 +47,7 @@ const (
 	errIrsaTokenNotValidClaims    = "could not find pod identity info on token %s"
 )
 
-func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
+func setIamAuthToken(ctx context.Context, v *client, jwtProvider vaultutil.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
 	iamAuth := v.store.Auth.Iam
 	isClusterKind := v.storeKind == esv1.ClusterSecretStoreKind
 	if iamAuth != nil {
@@ -60,7 +60,7 @@ func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProvide
 	return false, nil
 }
 
-func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
+func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider vaultutil.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
 	jwtAuth := iamAuth.JWTAuth
 	secretRefAuth := iamAuth.SecretRef
 	regionAWS := c.getRegionOrDefault(iamAuth.Region)
@@ -160,7 +160,7 @@ func (c *client) getAuthMountPathOrDefault(path string) string {
 	return defaultAWSAuthMountPath
 }
 
-func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
+func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (*credentials.Credentials, error) {
 	// First try IRSA (Web Identity Token) - checking if controller pod's service account is IRSA enabled
 	tokenFile := os.Getenv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
 	if tokenFile != "" {
@@ -181,7 +181,7 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 	return nil, errors.New(errNoAWSAuthMethodFound)
 }
 
-func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region string, k kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
+func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (*credentials.Credentials, error) {
 	// IRSA enabled service account, let's check that the jwt token filemount and file exists
 	if _, err := os.Stat(filepath.Clean(tokenFile)); err != nil {
 		return nil, fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tokenFile, err)
@@ -193,7 +193,10 @@ func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region st
 		return nil, fmt.Errorf(errIrsaTokenFileNotReadable, tokenFile, err)
 	}
 
-	// let's parse the jwt token
+	// Parse the JWT token to extract metadata (namespace and service account).
+	// Note: Signature verification is intentionally skipped here as we only need to extract
+	// claims from the IRSA token that comes from a trusted source (AWS-mounted file).
+	// The token itself will be validated by AWS STS when used for authentication.
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 
 	token, _, err := parser.ParseUnverified(string(jwtByte), jwt.MapClaims{})

@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
+package ydxcommon
 
+// SecretSetter is an interface that defines methods for setting secrets.
 type SecretSetter interface {
 	SetSecret() error
 }

@@ -22,10 +22,12 @@ import (
 
 // Set DOPPLER_BASE_URL and DOPPLER_VERIFY_TLS environment variables to override defaults
 
+// DopplerAuth defines the authentication method for the Doppler provider.
 type DopplerAuth struct {
 	SecretRef DopplerAuthSecretRef `json:"secretRef"`
 }
 
+// DopplerAuthSecretRef contains the secret reference for accessing the Doppler API.
 type DopplerAuthSecretRef struct {
 	// The DopplerToken is used for authentication.
 	// See https://docs.doppler.com/reference/api#authentication for auth token types.

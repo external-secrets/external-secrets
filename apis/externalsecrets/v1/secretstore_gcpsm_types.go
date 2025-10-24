@@ -20,6 +20,18 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// SecretVersionSelectionPolicy defines the policy for selecting secret versions in GCP Secret Manager.
+type SecretVersionSelectionPolicy string
+
+const (
+	// SecretVersionSelectionPolicyLatestOrFail means the provider always uses "latest", or fails if that version is disabled/destroyed.
+	SecretVersionSelectionPolicyLatestOrFail SecretVersionSelectionPolicy = "LatestOrFail"
+
+	// SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED.
+	SecretVersionSelectionPolicyLatestOrFetch SecretVersionSelectionPolicy = "LatestOrFetch"
+)
+
+// GCPSMAuth defines the authentication methods for Google Cloud Platform Secret Manager.
 type GCPSMAuth struct {
 	// +optional
 	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
@@ -29,12 +41,14 @@ type GCPSMAuth struct {
 	WorkloadIdentityFederation *GCPWorkloadIdentityFederation `json:"workloadIdentityFederation,omitempty"`
 }
 
+// GCPSMAuthSecretRef contains the secret references for GCP Secret Manager authentication.
 type GCPSMAuthSecretRef struct {
 	// The SecretAccessKey is used for authentication
 	// +optional
 	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
 }
 
+// GCPWorkloadIdentity defines configuration for workload identity authentication to GCP.
 type GCPWorkloadIdentity struct {
 	// +kubebuilder:validation:Required
 	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
@@ -63,6 +77,15 @@ type GCPSMProvider struct {
 
 	// Location optionally defines a location for a secret
 	Location string `json:"location,omitempty"`
+
+	// SecretVersionSelectionPolicy specifies how the provider selects a secret version
+	// when "latest" is disabled or destroyed.
+	// Possible values are:
+	// - LatestOrFail: the provider always uses "latest", or fails if that version is disabled/destroyed.
+	// - LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED
+	// +optional
+	// +kubebuilder:default=LatestOrFail
+	SecretVersionSelectionPolicy SecretVersionSelectionPolicy `json:"secretVersionSelectionPolicy,omitempty"`
 }
 
 // GCPWorkloadIdentityFederation holds the configurations required for generating federated access tokens.

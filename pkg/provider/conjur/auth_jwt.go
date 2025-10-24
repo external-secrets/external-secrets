@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package conjur implements a provider for Conjur.
 package conjur
 
 import (
@@ -26,12 +27,14 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
+// JwtLifespan is the duration in seconds for which the JWT token is valid (10 minutes).
 const JwtLifespan = 600 // 10 minutes
 
-// getJWTToken retrieves a JWT token either using the TokenRequest API for a specified service account, or from a jwt stored in a k8s secret.
+// getJWTToken retrieves a JWT token either using the TokenRequest API for a specified service account,
+// or from a JWT stored in a k8s secret.
 func (c *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1.ConjurJWT) (string, error) {
 	if conjurJWTConfig.ServiceAccountRef != nil {
 		// Should work for Kubernetes >=v1.22: fetch token via TokenRequest API
@@ -46,14 +49,10 @@ func (c *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1.ConjurJW
 			tokenRef = conjurJWTConfig.SecretRef.DeepCopy()
 			tokenRef.Key = "token"
 		}
-		jwtToken, err := resolvers.SecretKeyRef(
-			ctx,
-			c.kube,
-			c.StoreKind,
-			c.namespace,
-			tokenRef)
+
+		jwtToken, err := resolvers.SecretKeyRef(ctx, c.kube, c.StoreKind, c.namespace, tokenRef)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("could not get JWT token from secret: %w", err)
 		}
 		return jwtToken, nil
 	}

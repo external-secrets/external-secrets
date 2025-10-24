@@ -5,7 +5,7 @@ hide:
 
 # Controller Options
 
-The external-secrets binary includes three components: `core controller`, `certcontroller` and `webook`.
+The external-secrets binary includes three components: `core controller`, `certcontroller` and `webhook`.
 
 ## Core Controller Flags
 
