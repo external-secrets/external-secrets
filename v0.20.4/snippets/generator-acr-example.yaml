@@ -1,0 +1,29 @@
+{% raw %}
+
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: azurecr-credentials
+spec:
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: ACRAccessToken
+          name: my-azurecr
+  refreshInterval: 3h
+  target:
+    name: azurecr-credentials
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: |
+          {
+            "auths": {
+              "myregistry.azurecr.io": {
+                "username": "{{ .username }}",
+                "password": "{{ .password }}"
+              }
+            }
+          }
+{% endraw %}
