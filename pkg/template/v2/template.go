@@ -181,6 +181,8 @@ func mapScopeApply(tpl string, data map[string][]byte, target string, secret cli
 	if err != nil {
 		return fmt.Errorf(errExecute, tpl, err)
 	}
+	// TODO: need to figure out larger values?
+	fmt.Println("motherfucking value:", string(val))
 	src := make(map[string]string)
 	err = yaml.Unmarshal(val, &src)
 	if err != nil {

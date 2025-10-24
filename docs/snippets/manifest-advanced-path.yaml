@@ -22,11 +22,11 @@ spec:
           credentials:
             username: {{ .dbUser }}
             password: {{ .dbPassword }}
-        manifestTarget: spec.database
+        target: spec.database
       - literal: |
           level: info
           format: json
-        manifestTarget: spec.logging
+        target: spec.logging
   data:
   - secretKey: dbHost
     remoteRef:
