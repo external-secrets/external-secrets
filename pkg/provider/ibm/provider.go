@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -613,8 +614,10 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 		if containerRef.TokenLocation == "" {
 			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
 		}
-		if _, err := os.Open(containerRef.TokenLocation); err != nil {
-			return nil, fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
+		// Clean the path to prevent path traversal attacks
+		cleanedPath := filepath.Clean(containerRef.TokenLocation)
+		if _, err := os.Open(cleanedPath); err != nil {
+			return nil, fmt.Errorf("cannot read container auth token %s. %w", cleanedPath, err)
 		}
 		return nil, nil
 	}
@@ -664,6 +667,8 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 			// API default path
 			containerAuthToken = "/var/run/secrets/tokens/vault-token"
 		}
+		// Clean the path to prevent path traversal attacks
+		containerAuthToken = filepath.Clean(containerAuthToken)
 		if containerAuthEndpoint == "" {
 			// API default path
 			containerAuthEndpoint = "https://iam.cloud.ibm.com"
