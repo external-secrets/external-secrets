@@ -136,16 +136,19 @@ func TestSetupDefaultGCPAuth(t *testing.T) {
 	}
 
 	err := c.setupDefaultGCPAuth()
-	// In test environments, ADC might not be available, so we expect this to potentially fail
-	// This is expected behavior - the function should fail gracefully if ADC is not configured
+	// In test environments, ADC might not be available, so we expect this to potentially fail.
+	// This is expected behavior - the function should fail gracefully if ADC is not configured.
+	// The test verifies that the function behaves correctly in both scenarios:
+	// 1. ADC available: function succeeds
+	// 2. ADC unavailable: function fails with meaningful error message
 	if err != nil {
-		t.Logf("setupDefaultGCPAuth() failed as expected in test environment: %v", err)
+		t.Logf("setupDefaultGCPAuth() failed as expected in test environment without ADC: %v", err)
 		// Verify the error message indicates ADC unavailability
 		if err.Error() == "" {
-			t.Errorf("setupDefaultGCPAuth() should provide meaningful error message")
+			t.Errorf("setupDefaultGCPAuth() should provide meaningful error message when ADC is unavailable")
 		}
 	} else {
-		t.Logf("setupDefaultGCPAuth() succeeded - ADC is available in test environment")
+		t.Logf("setupDefaultGCPAuth() succeeded - ADC is configured and available in test environment")
 	}
 }
 
@@ -216,8 +219,8 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 			gcpAuth: &esv1.VaultGCPAuth{
 				Role: "test-role",
 			},
-			expectError: false, // ADC might or might not be available depending on environment
-			description: "Should use default ADC when no other auth is specified",
+			expectError: false, // Test handles both ADC available and unavailable scenarios
+			description: "Should attempt default ADC when no other auth method is specified",
 		},
 	}
 
@@ -225,13 +228,14 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := c.setupGCPAuth(context.Background(), tt.gcpAuth)
 
-			// For default auth test, ADC availability depends on environment
-			// So we accept both success and ADC-related failures
+			// For default auth test, ADC availability depends on the test environment.
+			// We accept both success (ADC configured) and failure (ADC not available)
+			// as valid outcomes, since this test should pass in any environment.
 			if tt.name == "Default auth last resort" {
 				if err != nil {
-					t.Logf("setupGCPAuth() with default ADC: %v (expected in environments without ADC)", err)
+					t.Logf("setupGCPAuth() with default ADC: %v (expected behavior in environments without ADC configured)", err)
 				} else {
-					t.Logf("setupGCPAuth() with default ADC succeeded (ADC available in environment)")
+					t.Logf("setupGCPAuth() with default ADC succeeded (ADC is properly configured in this environment)")
 				}
 				return
 			}
@@ -323,8 +327,8 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 			gcpAuth: &esv1.VaultGCPAuth{
 				Role: "test-role",
 			},
-			expectError: false, // ADC availability depends on environment
-			description: "Should use default ADC method",
+			expectError: false, // Test handles both ADC available and unavailable scenarios
+			description: "Should attempt to use default ADC method when no explicit auth is configured",
 		},
 	}
 
@@ -333,15 +337,16 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 			c := tt.setupClient()
 			err := c.setupGCPAuth(context.Background(), tt.gcpAuth)
 
-			// For default ADC test, availability depends on environment
-			// Accept both success and ADC-related failures
+			// For default ADC test, availability depends on the test environment.
+			// We accept both success (ADC configured) and failure (ADC not available)
+			// as valid outcomes to ensure tests pass in all environments.
 			if tt.name == "Default ADC method selected" {
 				if err != nil {
-					t.Logf("%s: %v (expected in environments without ADC)", tt.description, err)
+					t.Logf("%s: %v (expected behavior in environments without ADC configured)", tt.description, err)
 				} else {
-					t.Logf("%s: succeeded (ADC available in environment)", tt.description)
+					t.Logf("%s: succeeded (ADC is properly configured in this environment)", tt.description)
 				}
-				t.Logf("%s: completed as expected", tt.description)
+				t.Logf("%s: test completed successfully", tt.description)
 				return
 			}
 
@@ -353,7 +358,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 			}
 
 			// All tests should at least not panic and follow the correct code path
-			t.Logf("%s: completed as expected", tt.description)
+			t.Logf("%s: test completed successfully", tt.description)
 		})
 	}
 }
