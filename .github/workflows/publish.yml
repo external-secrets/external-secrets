@@ -100,13 +100,15 @@ jobs:
         shell: bash
         env:
           GITHUB_REF: ${{ github.ref }}
+          INPUT_IMAGE_TAG: ${{ inputs.image-tag }}
+          INPUT_TAG_SUFFIX: ${{ inputs.tag-suffix }}
         run: |
           # rebuild-image
-          if [ "${{ inputs.image-tag }}" != "" ]; then
-            TAG="${{ inputs.image-tag }}${{ inputs.tag-suffix }}"
+          if [ "$INPUT_IMAGE_TAG" != "" ]; then
+            TAG="${INPUT_IMAGE_TAG}${INPUT_TAG_SUFFIX}"
           # main
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
-            TAG=${GITHUB_REF#refs/heads/}${{ inputs.tag-suffix }}
+            TAG=${GITHUB_REF#refs/heads/}${INPUT_TAG_SUFFIX}
           # Pull Request
           else
             TAG=$(make docker.tag)

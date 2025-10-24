@@ -39,6 +39,11 @@ type Endpoint struct {
 
 // GetEndpoints returns the actual Cloud.ru API endpoints.
 func GetEndpoints(url string) (*EndpointsResponse, error) {
+	// Validate that the URL is the expected Cloud.ru endpoints URL to prevent SSRF
+	if url != EndpointsURI {
+		return nil, fmt.Errorf("invalid endpoints URL: expected %s, got %s", EndpointsURI, url)
+	}
+	
 	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("construct HTTP request for cloud.ru endpoints: %w", err)
