@@ -83,6 +83,7 @@ func getTargetName(es *esv1.ExternalSecret) string {
 // getNonSecretResource retrieves a non-Secret resource using the dynamic client.
 func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) (*unstructured.Unstructured, error) {
 	gvk := getTargetGVK(es)
+	// TODO: Do pluralization on the discovery API instead. Mapper on the controller runtime.
 	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
 
 	resource, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Get(ctx, getTargetName(es), metav1.GetOptions{})
@@ -231,8 +232,10 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 
 		if tplFrom.Literal != nil {
 			// Execute template directly against the unstructured object
-			tplMap := map[string][]byte{"template": []byte(*tplFrom.Literal)}
-			if err := execute(tplMap, dataMap, esv1.TemplateScopeKeysAndValues, targetPath, obj); err != nil {
+			out := make(map[string][]byte)
+			out[*tplFrom.Literal] = []byte(*tplFrom.Literal)
+			//tplMap := map[string][]byte{"template": []byte(*tplFrom.Literal)}
+			if err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, targetPath, obj); err != nil {
 				return nil, fmt.Errorf("failed to execute literal template: %w", err)
 			}
 		}

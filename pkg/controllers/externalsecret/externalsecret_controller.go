@@ -1163,7 +1163,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 	}
 
 	// Initialize dynamic client for non-Secret target support
+	// TODO: Do this with controller runtime. Not rate limited. NewForConfigAndClient.
 	if r.DynamicClient == nil && r.RestConfig != nil {
+		// Explore setting up the client with a GVK instead of a dynamic client to get
 		dynClient, err := dynamic.NewForConfig(r.RestConfig)
 		if err != nil {
 			return fmt.Errorf("failed to create dynamic client: %w", err)
@@ -1265,6 +1267,9 @@ func (r *Reconciler) ensureWatchForGVK(gvk schema.GroupVersionKind) error {
 		return fmt.Errorf("controller not initialized, cannot register dynamic watch")
 	}
 
+	// TODO: Separate informer for watches.
+	// TODO: Change to metadata watchers potentially to not store the entire state.
+
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(gvk)
 
@@ -1286,6 +1291,7 @@ func (r *Reconciler) ensureWatchForGVK(gvk schema.GroupVersionKind) error {
 
 	// Create a Kind source for watching this type
 	// source.Kind creates a source that watches the specified kind
+	// TODO: Ward against overloading the informer cache.
 	src := source.Kind(
 		r.cache,
 		u,
