@@ -35,7 +35,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
-	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
+	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

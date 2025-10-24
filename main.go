@@ -19,6 +19,7 @@ package main
 
 import (
 	"github.com/external-secrets/external-secrets/cmd/controller"
+	_ "github.com/external-secrets/external-secrets/pkg/register" // Register all providers and generators
 )
 
 func main() {

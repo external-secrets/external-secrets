@@ -20,6 +20,6 @@ header:
   paths:
     - "**/*.go"
   paths-ignore:
-    - "pkg/template/v2/pem_chain.go"
+    - "runtime/template/v2/pem_chain.go"
 
   comment: on-failure
