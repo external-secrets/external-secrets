@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -68,6 +69,24 @@ const (
 	errCreateSess = "unable to create aws session: %w"
 	errGetToken   = "unable to get authorization token: %w"
 )
+
+var (
+	// acrRegistryPattern validates Azure Container Registry domain names.
+	// Valid formats: <name>.azurecr.io, <name>.azurecr.cn, <name>.azurecr.de, <name>.azurecr.us.
+	acrRegistryPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\.azurecr\.(io|cn|de|us)$`)
+)
+
+// validateACRRegistry validates that the registry URL is a valid Azure Container Registry domain
+// to prevent SSRF attacks.
+func validateACRRegistry(registry string) error {
+	if registry == "" {
+		return errors.New("registry URL cannot be empty")
+	}
+	if !acrRegistryPattern.MatchString(registry) {
+		return fmt.Errorf("invalid ACR registry format: %s (expected format: <name>.azurecr.{io|cn|de|us})", registry)
+	}
+	return nil
+}
 
 // Generate generates a token that can be used to authenticate against Azure Container Registry.
 // First, a Microsoft Entra ID access token is obtained with the desired authentication method.
@@ -150,6 +169,10 @@ func (g *Generator) generate(
 		return nil, nil, errors.New("unexpeted configuration")
 	}
 	if err != nil {
+		return nil, nil, err
+	}
+	// Validate registry URL to prevent SSRF
+	if err := validateACRRegistry(res.Spec.ACRRegistry); err != nil {
 		return nil, nil, err
 	}
 	var acrToken string
