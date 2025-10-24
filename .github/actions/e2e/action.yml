@@ -38,7 +38,8 @@ runs:
         restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
     - name: Setup kind
-      uses: engineerd/setup-kind@aa272fe2a7309878ffc2a81c56cfe3ef108e7d49 # v0.5.0
+      # https://github.com/engineerd/setup-kind/releases/tag/v0.5.0
+      uses: engineerd/setup-kind@aa272fe2a7309878ffc2a81c56cfe3ef108ae7d0 # v0.5.0
       with:
         version: ${{ env.KIND_VERSION }}
         wait: 10m
@@ -46,7 +47,8 @@ runs:
         name: external-secrets
 
     - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232e5 # v2
+      # https://github.com/docker/setup-buildx-action/releases/tag/v2.10.0
+      uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
       with:
         version: ${{ env.DOCKER_BUILDX_VERSION }}
         install: true
