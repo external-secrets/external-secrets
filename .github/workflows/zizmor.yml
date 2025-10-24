@@ -12,6 +12,9 @@ on:
     paths:
       - '.github/workflows/**'
 
+permissions:
+  contents: read
+
 jobs:
   detect-noop:
     permissions:

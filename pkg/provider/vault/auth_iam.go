@@ -193,7 +193,10 @@ func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region st
 		return nil, fmt.Errorf(errIrsaTokenFileNotReadable, tokenFile, err)
 	}
 
-	// let's parse the jwt token
+	// Parse the JWT token to extract metadata (namespace and service account).
+	// Note: Signature verification is intentionally skipped here as we only need to extract
+	// claims from the IRSA token that comes from a trusted source (AWS-mounted file).
+	// The token itself will be validated by AWS STS when used for authentication.
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 
 	token, _, err := parser.ParseUnverified(string(jwtByte), jwt.MapClaims{})

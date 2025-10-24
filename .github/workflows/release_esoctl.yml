@@ -55,16 +55,19 @@ jobs:
 
       - name: Check if Tag Exists
         id: check_tag
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
-          if git rev-parse "${{ github.event.inputs.version }}" >/dev/null 2>&1; then
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
             echo "Tag exists."
             exit 1
           fi
 
       - name: Create Tag if Not Exists
         if: success()
+        env:
+          TAG: ${{ github.event.inputs.version }}
         run: |
-          TAG="${{ github.event.inputs.version }}"
           git tag $TAG
           git push origin $TAG
 
