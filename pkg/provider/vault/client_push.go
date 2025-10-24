@@ -142,9 +142,6 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			}
 		}
 	}
-	if err != nil {
-		return fmt.Errorf("failed to convert value to a valid JSON: %w", err)
-	}
 	// Secret metadata should be pushed separately only for KV2
 	if c.store.Version == esv1.VaultKVStoreV2 {
 		_, err = c.logical.WriteWithContext(ctx, metaPath, label)
