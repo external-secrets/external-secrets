@@ -152,8 +152,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | nameOverride | string | `""` |  |
 | namespaceOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
-| nonSecretTargets | object | `{"enabled":false,"resources":[]}` | Enable support for non-Secret targets (ConfigMaps, Custom Resources). Warning: Using non-Secret target. Make sure access policies and encryption are properly configured. When enabled, this grants the controller permissions to create/update/delete ConfigMaps and optionally other resource types specified in nonSecretTargets.resources. |
-| nonSecretTargets.enabled | bool | `false` | Enable non-Secret target support |
+| nonSecretTargets | object | `{"enabled":true,"resources":[]}` | Enable support for non-Secret targets (ConfigMaps, Custom Resources). Warning: Using non-Secret target. Make sure access policies and encryption are properly configured. When enabled, this grants the controller permissions to create/update/delete ConfigMaps and optionally other resource types specified in nonSecretTargets.resources. |
+| nonSecretTargets.enabled | bool | `true` | Enable non-Secret target support |
 | nonSecretTargets.resources | list | `[]` | List of additional resource types to grant permissions for. Each entry should specify apiGroup, resources, and verbs. Example: resources:   - apiGroup: "argoproj.io"     resources: ["applications"]     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"] |
 | openshiftFinalizers | bool | `true` | If true the OpenShift finalizer permissions will be added to RBAC |
 | podAnnotations | object | `{}` | Annotations to add to Pod |
