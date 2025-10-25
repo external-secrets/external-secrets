@@ -24,6 +24,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -143,8 +144,9 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 		}
 
 		// Set the value at the final key
+		// Convert []byte to string to avoid base64 encoding when serializing
 		lastPart := parts[len(parts)-1]
-		current[lastPart] = tryParseYAML(val)
+		current[lastPart] = tryParseYAML(string(val))
 
 		// Convert back to the original object type
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
@@ -181,17 +183,35 @@ func mapScopeApply(tpl string, data map[string][]byte, target string, secret cli
 	if err != nil {
 		return fmt.Errorf(errExecute, tpl, err)
 	}
-	src := make(map[string]string)
-	err = yaml.Unmarshal(val, &src)
-	if err != nil {
-		return fmt.Errorf("could not unmarshal template to 'map[string][]byte': %w", err)
-	}
-	for k, val := range src {
-		if err := applyToTarget(k, []byte(val), target, secret); err != nil {
-			return fmt.Errorf("failed to apply to target: %w", err)
+
+	target = strings.ToLower(target)
+	switch target {
+	case "annotations", "labels", "data":
+		// normal route
+		src := make(map[string]string)
+		err = yaml.Unmarshal(val, &src)
+		if err != nil {
+			return fmt.Errorf("could not unmarshal template to 'map[string][]byte': %w", err)
 		}
+		for k, val := range src {
+			if err := applyToTarget(k, []byte(val), target, secret); err != nil {
+				return fmt.Errorf("failed to apply to target: %w", err)
+			}
+		}
+
+		// we are done
+		return nil
 	}
-	return nil
+
+	// for more complex path, we need to navigate to the last element of the path
+	// creating objects in that path if they don't exist and then apply the parsed
+	// structure at that location to the entire object.
+	var parsed any
+	if err := yaml.Unmarshal(val, &parsed); err != nil {
+		return fmt.Errorf("could not unmarshal template YAML: %w", err)
+	}
+
+	return applyParsedToPath(parsed, target, secret)
 }
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
@@ -255,7 +275,16 @@ func setField(obj client.Object, field, k string, val []byte) error {
 		return fmt.Errorf("failed to convert data to map[string][]byte")
 	}
 
-	specMap[k] = tryParseYAML(val)
+	// Secrets require base64-encoded []byte values in the data field
+	// Other resources (ConfigMaps, custom resources) need plain string values
+	_, isSecret := obj.(*corev1.Secret)
+	if isSecret {
+		// For Secrets, keep as []byte (will be base64-encoded during serialization)
+		specMap[k] = val
+	} else {
+		// For non-Secrets (ConfigMaps, custom resources), use plain strings
+		specMap[k] = string(val)
+	}
 	m[field] = specMap
 
 	// Convert back to the original object type
@@ -278,4 +307,46 @@ func tryParseYAML(value any) any {
 	}
 
 	return value
+}
+
+// applyParsedToPath applies a parsed YAML structure to a specific path in the object.
+func applyParsedToPath(parsed any, target string, obj client.Object) error {
+	unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return fmt.Errorf("failed to convert object to unstructured: %w", err)
+	}
+
+	parts := strings.Split(target, ".")
+	if len(parts) == 0 {
+		return fmt.Errorf("invalid path: %s", target)
+	}
+
+	// single value, aka "spec"
+	if len(parts) == 1 {
+		unstructured[parts[0]] = parsed
+	} else {
+		// navigate to the last element of the path and apply the entire struct at that location.
+		// build up the entire map structure that we are eventually going to apply.
+		current := unstructured
+		for _, part := range parts {
+			if current[part] == nil {
+				current[part] = make(map[string]any)
+			}
+			next, ok := current[part].(map[string]any)
+			if !ok {
+				return fmt.Errorf("path %s is not a map at segment %s", target, part)
+			}
+			current = next
+		}
+
+		// once we constructed the entire segment, we finally apply our parsed object
+		current[parts[len(parts)-1]] = parsed
+	}
+
+	// convert back to original object
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
+		return fmt.Errorf("failed to convert unstructured to object: %w", err)
+	}
+
+	return nil
 }
