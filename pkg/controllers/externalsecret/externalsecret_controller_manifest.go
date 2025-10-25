@@ -23,10 +23,9 @@ import (
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
@@ -80,13 +79,18 @@ func getTargetName(es *esv1.ExternalSecret) string {
 	return es.Name
 }
 
-// getNonSecretResource retrieves a non-Secret resource using the dynamic client.
+// getNonSecretResource retrieves a non-Secret resource using the controller-runtime client.
 func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) (*unstructured.Unstructured, error) {
 	gvk := getTargetGVK(es)
-	// TODO: Do pluralization on the discovery API instead. Mapper on the controller runtime.
-	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
 
-	resource, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Get(ctx, getTargetName(es), metav1.GetOptions{})
+	resource := &unstructured.Unstructured{}
+	resource.SetGroupVersionKind(gvk)
+
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: es.Namespace,
+		Name:      getTargetName(es),
+	}, resource)
+
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			log.V(1).Info("target resource does not exist", "gvk", gvk.String(), "name", getTargetName(es))
@@ -100,20 +104,25 @@ func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, 
 
 func (r *Reconciler) createNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
 	gvk := getTargetGVK(es)
-	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
-	existing, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Get(ctx, getTargetName(es), metav1.GetOptions{})
+
+	// Check if resource already exists
+	existing := &unstructured.Unstructured{}
+	existing.SetGroupVersionKind(gvk)
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: es.Namespace,
+		Name:      getTargetName(es),
+	}, existing)
+
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to check if target resource exists: %w", err)
 		}
-	}
-
-	if existing != nil {
+	} else {
 		return fmt.Errorf("target resource with name %s already exists", getTargetName(es))
 	}
 
 	log.Info("creating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	_, err = r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Create(ctx, obj, metav1.CreateOptions{})
+	err = r.Client.Create(ctx, obj)
 	if err != nil {
 		return fmt.Errorf("failed to create target resource: %w", err)
 	}
@@ -124,11 +133,9 @@ func (r *Reconciler) createNonSecretResource(ctx context.Context, log logr.Logge
 
 func (r *Reconciler) updateNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, existing *unstructured.Unstructured) error {
 	gvk := getTargetGVK(es)
-	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
 
-	// Update existing resource
 	log.Info("updating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	_, err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Update(ctx, existing, metav1.UpdateOptions{})
+	err := r.Client.Update(ctx, existing)
 	if err != nil {
 		return fmt.Errorf("failed to update target resource: %w", err)
 	}
@@ -144,10 +151,14 @@ func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logge
 	}
 
 	gvk := getTargetGVK(es)
-	gvr, _ := meta.UnsafeGuessKindToResource(schema.GroupVersionKind{Kind: gvk.Kind, Group: gvk.Group, Version: gvk.Version})
+
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	obj.SetNamespace(es.Namespace)
+	obj.SetName(getTargetName(es))
 
 	log.Info("deleting target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err := r.DynamicClient.Resource(gvr).Namespace(es.Namespace).Delete(ctx, getTargetName(es), metav1.DeleteOptions{})
+	err := r.Client.Delete(ctx, obj)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete target resource: %w", err)
 	}
@@ -156,8 +167,8 @@ func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logge
 	return nil
 }
 
-// ApplyTemplateToManifest renders templates for non-Secret resources and returns an unstructured object.
-func (r *Reconciler) ApplyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+// applyTemplateToManifest renders templates for non-Secret resources and returns an unstructured object.
+func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
 	gvk := getTargetGVK(es)
 
 	obj := &unstructured.Unstructured{}

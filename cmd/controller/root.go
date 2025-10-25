@@ -253,7 +253,7 @@ var rootCmd = &cobra.Command{
 			EnableFloodGate:           enableFloodGate,
 			EnableGeneratorState:      enableGeneratorState,
 			AllowNonSecretTargets:     allowNonSecretTargets,
-		}).SetupWithManager(mgr, controller.Options{
+		}).SetupWithManager(cmd.Context(), mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
