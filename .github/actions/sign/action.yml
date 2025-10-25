@@ -18,12 +18,14 @@ runs:
   steps:
 
     - name: Install cosign
-      uses: sigstore/cosign-installer@42ab207638e63e893c6ead51f15e19ac3e46e6cc # v2
+      # https://github.com/sigstore/cosign-installer/releases/tag/v2.8.1
+      uses: sigstore/cosign-installer@c85d0e205a72a294fe064f618a87dbac13084086 # v2.8.1
       with:
         cosign-release: v1.13.6
 
     - name: Install Syft
-      uses: anchore/sbom-action/download-syft@f86d330ae046b4a16d86ccc1d9c92e16fefcf304 # v0.7.0
+      # https://github.com/anchore/sbom-action/releases/tag/v0.7.0
+      uses: anchore/sbom-action/download-syft@ce4a7cf05d7b684693d7b6bba97bfbee56806edb # v0.7.0
 
     - name: Check Cosign install
       shell: bash
@@ -83,7 +85,8 @@ runs:
         cosign verify-attestation --type spdx ${IMAGE_NAME}@${CONTAINER_DIGEST} | jq '.payload |= @base64d | .payload | fromjson'
 
     - name: Generate provenance
-      uses: philips-labs/slsa-provenance-action@c6e428e3b9ea5ab10fa23efc10d6cbf5f0fe62b1 # v0.7.2
+      # https://github.com/philips-labs/slsa-provenance-action/releases/tag/v0.7.2
+      uses: philips-labs/slsa-provenance-action@dddb40e199ae28d4cd2f17bad7f31545556fdd3d # v0.7.2
       with:
         command: generate
         subcommand: container
