@@ -847,13 +847,13 @@ func TestComplexYAMLFieldsWithSpec(t *testing.T) {
 	// we test by inspecting what would be set in an unstructured representation.
 
 	type testCase struct {
-		name        string
-		tpl         map[string][]byte
-		target      string
-		scope       esapi.TemplateScope
-		data        map[string][]byte
-		verify      func(t *testing.T, obj *corev1.Secret)
-		expErr      string
+		name   string
+		tpl    map[string][]byte
+		target string
+		scope  esapi.TemplateScope
+		data   map[string][]byte
+		verify func(t *testing.T, obj *corev1.Secret)
+		expErr string
 	}
 
 	tests := []testCase{
@@ -1160,4 +1160,32 @@ func TestPkcs12certPass(t *testing.T) {
 			testFunc(t, tt)
 		})
 	}
+}
+
+func TestConfigMapDataNotBase64Encoded(t *testing.T) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "test-cm",
+			Namespace: "default",
+		},
+	}
+
+	data := map[string][]byte{
+		"host":     []byte("localhost"),
+		"port":     []byte("5432"),
+		"database": []byte("mydb"),
+	}
+
+	tplMap := map[string][]byte{
+		"host":     []byte("{{ .host }}"),
+		"port":     []byte("{{ .port }}"),
+		"database": []byte("{{ .database }}"),
+	}
+
+	err := Execute(tplMap, data, esapi.TemplateScopeValues, "Data", configMap)
+	require.NoError(t, err)
+
+	assert.Equal(t, "localhost", configMap.Data["host"], "host should be plain text, not base64")
+	assert.Equal(t, "5432", configMap.Data["port"], "port should be plain text, not base64")
+	assert.Equal(t, "mydb", configMap.Data["database"], "database should be plain text, not base64")
 }

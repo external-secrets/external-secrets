@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -543,4 +544,86 @@ func init() {
 	// Initialize scheme for tests
 	_ = esv1.AddToScheme(scheme.Scheme)
 	_ = v1.AddToScheme(scheme.Scheme)
+}
+
+func TestApplyTemplateToManifest_LiteralWithDeployment(t *testing.T) {
+	// Test that literal templates work with complex objects like Deployments
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+
+	r := &Reconciler{
+		Client: fakeClient,
+	}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-deployment",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
+				},
+				Template: &esv1.ExternalSecretTemplate{
+					EngineVersion: esv1.TemplateEngineV2,
+					TemplateFrom: []esv1.TemplateFrom{
+						{
+							Target: "spec",
+							Literal: ptr.To(`
+replicas: {{ .replicas }}
+selector:
+  matchLabels:
+    app: myapp
+template:
+  metadata:
+    labels:
+      app: myapp
+  spec:
+    containers:
+    - name: nginx
+      image: nginx:{{ .version }}
+      ports:
+      - containerPort: 80
+`),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dataMap := map[string][]byte{
+		"replicas": []byte("3"),
+		"version":  []byte("1.21"),
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
+
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "Deployment", result.GetKind())
+	assert.Equal(t, "test-deployment", result.GetName())
+
+	spec, found, err := unstructured.NestedMap(result.Object, "spec")
+	require.NoError(t, err)
+	require.True(t, found, "spec should exist")
+
+	replicas, found, err := unstructured.NestedInt64(result.Object, "spec", "replicas")
+	require.NoError(t, err)
+	require.True(t, found, "spec.replicas should exist")
+	assert.Equal(t, int64(3), replicas)
+
+	containers, found, err := unstructured.NestedSlice(result.Object, "spec", "template", "spec", "containers")
+	require.NoError(t, err)
+	require.True(t, found, "containers should exist")
+	require.Len(t, containers, 1, "should have 1 container")
+
+	container, ok := containers[0].(map[string]any)
+	require.True(t, ok, "container should be a map")
+	assert.Equal(t, "nginx:1.21", container["image"])
+
+	t.Logf("Result spec: %+v", spec)
 }
