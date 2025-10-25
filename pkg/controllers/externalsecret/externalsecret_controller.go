@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1258,22 +1257,22 @@ func (r *Reconciler) ensureWatchForGVK(gvk schema.GroupVersionKind) error {
 	}
 
 	// TODO: Separate informer for watches.
-	// TODO: Change to metadata watchers potentially to not store the entire state.
-
-	u := &unstructured.Unstructured{}
-	u.SetGroupVersionKind(gvk)
+	// Use PartialObjectMetadata to only cache metadata (name, labels, annotations, resourceVersion)
+	// instead of full objects. This reduces memory usage since we refetch full objects during reconciliation anyway.
+	partial := &metav1.PartialObjectMetadata{}
+	partial.SetGroupVersionKind(gvk)
 
 	// predicates for dynamic watches
-	hasManagedLabel := predicate.TypedFuncs[*unstructured.Unstructured]{
-		CreateFunc: func(e event.TypedCreateEvent[*unstructured.Unstructured]) bool {
+	hasManagedLabel := predicate.TypedFuncs[*metav1.PartialObjectMetadata]{
+		CreateFunc: func(e event.TypedCreateEvent[*metav1.PartialObjectMetadata]) bool {
 			value, hasLabel := e.Object.GetLabels()[esv1.LabelManaged]
 			return hasLabel && value == esv1.LabelManagedValue
 		},
-		UpdateFunc: func(e event.TypedUpdateEvent[*unstructured.Unstructured]) bool {
+		UpdateFunc: func(e event.TypedUpdateEvent[*metav1.PartialObjectMetadata]) bool {
 			value, hasLabel := e.ObjectNew.GetLabels()[esv1.LabelManaged]
 			return hasLabel && value == esv1.LabelManagedValue
 		},
-		DeleteFunc: func(e event.TypedDeleteEvent[*unstructured.Unstructured]) bool {
+		DeleteFunc: func(e event.TypedDeleteEvent[*metav1.PartialObjectMetadata]) bool {
 			value, hasLabel := e.Object.GetLabels()[esv1.LabelManaged]
 			return hasLabel && value == esv1.LabelManagedValue
 		},
@@ -1284,9 +1283,9 @@ func (r *Reconciler) ensureWatchForGVK(gvk schema.GroupVersionKind) error {
 	// TODO: Ward against overloading the informer cache.
 	src := source.Kind(
 		r.cache,
-		u,
+		partial,
 		handler.TypedEnqueueRequestsFromMapFunc(r.findObjectsForNonSecretResource(gvk)),
-		predicate.TypedResourceVersionChangedPredicate[*unstructured.Unstructured]{},
+		predicate.TypedResourceVersionChangedPredicate[*metav1.PartialObjectMetadata]{},
 		hasManagedLabel,
 	)
 
@@ -1306,8 +1305,8 @@ func (r *Reconciler) ensureWatchForGVK(gvk schema.GroupVersionKind) error {
 
 // findObjectsForNonSecretResource returns a typed mapper function that finds ExternalSecrets
 // targeting a specific non-Secret resource.
-func (r *Reconciler) findObjectsForNonSecretResource(gvk schema.GroupVersionKind) handler.TypedMapFunc[*unstructured.Unstructured, reconcile.Request] {
-	return func(ctx context.Context, obj *unstructured.Unstructured) []reconcile.Request {
+func (r *Reconciler) findObjectsForNonSecretResource(gvk schema.GroupVersionKind) handler.TypedMapFunc[*metav1.PartialObjectMetadata, reconcile.Request] {
+	return func(ctx context.Context, obj *metav1.PartialObjectMetadata) []reconcile.Request {
 		externalSecretsList := &esv1.ExternalSecretList{}
 
 		// Query ExternalSecrets by the indexed field
