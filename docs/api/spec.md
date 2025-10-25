@@ -4796,7 +4796,7 @@ ManifestReference
 <p>Manifest defines a custom Kubernetes resource to create instead of a Secret.
 When specified, ExternalSecret will create the resource type defined here
 (e.g., ConfigMap, Custom Resource) instead of a Secret.
-WARNING: Non-Secret resources are not encrypted at rest. Use with caution.</p>
+Warning: Using non-Secret target. Make sure access policies and encryption are properly configured.</p>
 </td>
 </tr>
 <tr>
