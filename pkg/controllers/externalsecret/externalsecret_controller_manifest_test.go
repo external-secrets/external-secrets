@@ -58,7 +58,7 @@ func TestIsNonSecretTarget(t *testing.T) {
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 						},
@@ -72,7 +72,7 @@ func TestIsNonSecretTarget(t *testing.T) {
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "argoproj.io/v1alpha1",
 							Kind:       "Application",
 						},
@@ -104,7 +104,7 @@ func TestValidateNonSecretTarget(t *testing.T) {
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 						},
@@ -119,7 +119,7 @@ func TestValidateNonSecretTarget(t *testing.T) {
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 						},
@@ -135,7 +135,7 @@ func TestValidateNonSecretTarget(t *testing.T) {
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "",
 							Kind:       "ConfigMap",
 						},
@@ -151,7 +151,7 @@ func TestValidateNonSecretTarget(t *testing.T) {
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "v1",
 							Kind:       "",
 						},
@@ -196,7 +196,7 @@ func TestGetTargetGVK(t *testing.T) {
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 						},
@@ -214,7 +214,7 @@ func TestGetTargetGVK(t *testing.T) {
 			es: &esv1.ExternalSecret{
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "argoproj.io/v1alpha1",
 							Kind:       "Application",
 						},
@@ -357,7 +357,7 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-configmap",
-				Manifest: &esv1.ManifestTarget{
+				Manifest: &esv1.ManifestReference{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
 				},
@@ -410,7 +410,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-configmap",
-				Manifest: &esv1.ManifestTarget{
+				Manifest: &esv1.ManifestReference{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
 				},
@@ -485,7 +485,7 @@ func TestGetNonSecretResource(t *testing.T) {
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-cm",
-				Manifest: &esv1.ManifestTarget{
+				Manifest: &esv1.ManifestReference{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
 				},
@@ -526,7 +526,7 @@ func TestGetNonSecretResource_NotFound(t *testing.T) {
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "nonexistent-cm",
-				Manifest: &esv1.ManifestTarget{
+				Manifest: &esv1.ManifestReference{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
 				},
