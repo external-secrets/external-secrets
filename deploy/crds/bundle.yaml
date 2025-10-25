@@ -6338,7 +6338,7 @@ spec:
                                         If not specified, it fetches information from the metadata server
                                       type: string
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -17760,7 +17760,7 @@ spec:
                                         If not specified, it fetches information from the metadata server
                                       type: string
                                     serviceAccountRef:
-                                      description: A reference to a ServiceAccount resource.
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                       properties:
                                         audiences:
                                           description: |-
@@ -24767,7 +24767,7 @@ spec:
                                             If not specified, it fetches information from the metadata server
                                           type: string
                                         serviceAccountRef:
-                                          description: A reference to a ServiceAccount resource.
+                                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                           properties:
                                             audiences:
                                               description: |-
@@ -27442,7 +27442,7 @@ spec:
                                     If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
-                                  description: A reference to a ServiceAccount resource.
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
                                   properties:
                                     audiences:
                                       description: |-
