@@ -163,10 +163,6 @@ const (
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
-// TemplateTarget defines common target locations for Secret resources.
-// +kubebuilder:validation:Enum=Data;Annotations;Labels
-type TemplateTarget string
-
 // These constants are provided for convenience but Target accepts any string.
 const (
 	TemplateTargetData        = "Data"
@@ -198,10 +194,10 @@ type TemplateRefItem struct {
 	TemplateAs TemplateScope `json:"templateAs,omitempty"`
 }
 
-// ManifestTarget defines a custom Kubernetes resource type to be created
+// ManifestReference defines a custom Kubernetes resource type to be created
 // instead of a Secret. This allows ExternalSecret to create ConfigMaps,
 // Custom Resources, or any other Kubernetes resource type.
-type ManifestTarget struct {
+type ManifestReference struct {
 	// APIVersion of the target resource (e.g., "v1" for ConfigMap, "argoproj.io/v1alpha1" for ArgoCD Application)
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength:=1
@@ -245,7 +241,7 @@ type ExternalSecretTarget struct {
 	// (e.g., ConfigMap, Custom Resource) instead of a Secret.
 	// WARNING: Non-Secret resources are not encrypted at rest. Use with caution.
 	// +optional
-	Manifest *ManifestTarget `json:"manifest,omitempty"`
+	Manifest *ManifestReference `json:"manifest,omitempty"`
 
 	// Immutable defines if the final secret will be immutable
 	// +optional

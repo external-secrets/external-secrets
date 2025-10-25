@@ -234,7 +234,6 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 			// Execute template directly against the unstructured object
 			out := make(map[string][]byte)
 			out[*tplFrom.Literal] = []byte(*tplFrom.Literal)
-			//tplMap := map[string][]byte{"template": []byte(*tplFrom.Literal)}
 			if err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, targetPath, obj); err != nil {
 				return nil, fmt.Errorf("failed to execute literal template: %w", err)
 			}

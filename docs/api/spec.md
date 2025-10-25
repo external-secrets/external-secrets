@@ -4786,8 +4786,8 @@ ExternalSecretTemplate
 <td>
 <code>manifest</code></br>
 <em>
-<a href="#external-secrets.io/v1.ManifestTarget">
-ManifestTarget
+<a href="#external-secrets.io/v1.ManifestReference">
+ManifestReference
 </a>
 </em>
 </td>
@@ -6875,14 +6875,14 @@ bool
 <td></td>
 </tr></tbody>
 </table>
-<h3 id="external-secrets.io/v1.ManifestTarget">ManifestTarget
+<h3 id="external-secrets.io/v1.ManifestReference">ManifestReference
 </h3>
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.ExternalSecretTarget">ExternalSecretTarget</a>)
 </p>
 <p>
-<p>ManifestTarget defines a custom Kubernetes resource type to be created
+<p>ManifestReference defines a custom Kubernetes resource type to be created
 instead of a Secret. This allows ExternalSecret to create ConfigMaps,
 Custom Resources, or any other Kubernetes resource type.</p>
 </p>
@@ -10093,33 +10093,6 @@ TemplateScope
 <td></td>
 </tr></tbody>
 </table>
-<<<<<<< HEAD
-<h3 id="external-secrets.io/v1.TemplateTarget">TemplateTarget
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.TemplateFrom">TemplateFrom</a>)
-</p>
-<p>
-<p>TemplateTarget specifies where the rendered templates should be applied.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr><td><p>&#34;Annotations&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Data&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Labels&#34;</p></td>
-<td></td>
-</tr></tbody>
-</table>
-=======
->>>>>>> a470ac688 (further refined and tried to generalize the templating)
 <h3 id="external-secrets.io/v1.TokenAuth">TokenAuth
 </h3>
 <p>

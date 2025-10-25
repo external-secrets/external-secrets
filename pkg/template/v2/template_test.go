@@ -845,7 +845,7 @@ func TestComplexYAMLFieldsWithSpec(t *testing.T) {
 	// These tests verify that the template engine can handle complex YAML values
 	// for spec fields. Since ConfigMap doesn't have a spec field in its typed definition,
 	// we test by inspecting what would be set in an unstructured representation.
-	
+
 	type testCase struct {
 		name        string
 		tpl         map[string][]byte

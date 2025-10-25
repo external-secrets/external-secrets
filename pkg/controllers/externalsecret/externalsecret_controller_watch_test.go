@@ -84,7 +84,7 @@ func TestGetTargetResourceIndex(t *testing.T) {
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
 						Name: "my-configmap",
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 						},
@@ -99,7 +99,7 @@ func TestGetTargetResourceIndex(t *testing.T) {
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
 						Name: "my-app",
-						Manifest: &esv1.ManifestTarget{
+						Manifest: &esv1.ManifestReference{
 							APIVersion: "argoproj.io/v1alpha1",
 							Kind:       "Application",
 						},
@@ -164,12 +164,12 @@ func TestWatchedGVKTracking(t *testing.T) {
 func TestGVKFromManifestTarget(t *testing.T) {
 	tests := []struct {
 		name        string
-		manifest    *esv1.ManifestTarget
+		manifest    *esv1.ManifestReference
 		expectedGVK schema.GroupVersionKind
 	}{
 		{
 			name: "Core v1 ConfigMap",
-			manifest: &esv1.ManifestTarget{
+			manifest: &esv1.ManifestReference{
 				APIVersion: "v1",
 				Kind:       "ConfigMap",
 			},
@@ -181,7 +181,7 @@ func TestGVKFromManifestTarget(t *testing.T) {
 		},
 		{
 			name: "ArgoCD Application",
-			manifest: &esv1.ManifestTarget{
+			manifest: &esv1.ManifestReference{
 				APIVersion: "argoproj.io/v1alpha1",
 				Kind:       "Application",
 			},
@@ -193,7 +193,7 @@ func TestGVKFromManifestTarget(t *testing.T) {
 		},
 		{
 			name: "Networking v1 Ingress",
-			manifest: &esv1.ManifestTarget{
+			manifest: &esv1.ManifestReference{
 				APIVersion: "networking.k8s.io/v1",
 				Kind:       "Ingress",
 			},
