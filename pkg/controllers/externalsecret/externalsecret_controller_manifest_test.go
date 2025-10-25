@@ -28,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -342,11 +341,9 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 	// Setup
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-	fakeDynamic := fake.NewSimpleDynamicClient(scheme.Scheme)
 
 	r := &Reconciler{
-		Client:        fakeClient,
-		DynamicClient: fakeDynamic,
+		Client: fakeClient,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -371,7 +368,7 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.ApplyTemplateToManifest(context.Background(), es, dataMap)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
 
 	// Verify
 	require.NoError(t, err)
@@ -395,11 +392,9 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	// Setup
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-	fakeDynamic := fake.NewSimpleDynamicClient(scheme.Scheme)
 
 	r := &Reconciler{
-		Client:        fakeClient,
-		DynamicClient: fakeDynamic,
+		Client: fakeClient,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -435,7 +430,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.ApplyTemplateToManifest(context.Background(), es, dataMap)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
 
 	// Verify
 	require.NoError(t, err)
@@ -471,10 +466,11 @@ func TestGetNonSecretResource(t *testing.T) {
 		},
 	}
 
-	fakeDynamic := fake.NewSimpleDynamicClient(scheme.Scheme, existingConfigMap)
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(existingConfigMap).Build()
 
 	r := &Reconciler{
-		DynamicClient: fakeDynamic,
+		Client: fakeClient,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -512,10 +508,10 @@ func TestGetNonSecretResource(t *testing.T) {
 func TestGetNonSecretResource_NotFound(t *testing.T) {
 	// Setup
 	_ = esv1.AddToScheme(scheme.Scheme)
-	fakeDynamic := fake.NewSimpleDynamicClient(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 
 	r := &Reconciler{
-		DynamicClient: fakeDynamic,
+		Client: fakeClient,
 	}
 
 	es := &esv1.ExternalSecret{

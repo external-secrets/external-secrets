@@ -39,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -142,7 +141,6 @@ const (
 type Reconciler struct {
 	client.Client
 	SecretClient              client.Client
-	DynamicClient             dynamic.Interface
 	Log                       logr.Logger
 	Scheme                    *runtime.Scheme
 	RestConfig                *rest.Config
@@ -644,7 +642,7 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecre
 	}
 
 	// render the template for the manifest
-	obj, err := r.ApplyTemplateToManifest(ctx, externalSecret, dataMap)
+	obj, err := r.applyTemplateToManifest(ctx, externalSecret, dataMap)
 	if err != nil {
 		r.markAsFailed("could not apply template to manifest", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 		return ctrl.Result{}, err
@@ -1153,7 +1151,7 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
 	r.cache = mgr.GetCache()
 
@@ -1162,22 +1160,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		r.watchTracker = NewInMemoryWatchTracker()
 	}
 
-	// Initialize dynamic client for non-Secret target support
-	// TODO: Do this with controller runtime. Not rate limited. NewForConfigAndClient.
-	if r.DynamicClient == nil && r.RestConfig != nil {
-		// Explore setting up the client with a GVK instead of a dynamic client to get
-		dynClient, err := dynamic.NewForConfig(r.RestConfig)
-		if err != nil {
-			return fmt.Errorf("failed to create dynamic client: %w", err)
-		}
-
-		r.DynamicClient = dynClient
-	}
 
 	// index ExternalSecrets based on the target secret name,
 	// this lets us quickly find all ExternalSecrets which target a specific Secret
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &esv1.ExternalSecret{}, indexESTargetSecretNameField, func(obj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(ctx, &esv1.ExternalSecret{}, indexESTargetSecretNameField, func(obj client.Object) []string {
 		es := obj.(*esv1.ExternalSecret)
+		if !r.AllowNonSecretTargets || !isNonSecretTarget(es) {
+			return nil
+		}
 		// if the target name is set, use that as the index
 		if es.Spec.Target.Name != "" {
 			return []string{es.Spec.Target.Name}
@@ -1190,7 +1180,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 
 	// index ExternalSecrets based on the target resource (GVK + name)
 	// this lets us quickly find all ExternalSecrets which target a specific non-Secret resource
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &esv1.ExternalSecret{}, indexESTargetResourceField, func(obj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(ctx, &esv1.ExternalSecret{}, indexESTargetResourceField, func(obj client.Object) []string {
 		es := obj.(*esv1.ExternalSecret)
 		if !r.AllowNonSecretTargets || !isNonSecretTarget(es) {
 			return nil
