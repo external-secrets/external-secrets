@@ -1164,7 +1164,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	// this lets us quickly find all ExternalSecrets which target a specific Secret
 	if err := mgr.GetFieldIndexer().IndexField(ctx, &esv1.ExternalSecret{}, indexESTargetSecretNameField, func(obj client.Object) []string {
 		es := obj.(*esv1.ExternalSecret)
-		if !r.AllowNonSecretTargets || !isNonSecretTarget(es) {
+		// Don't index non-Secret targets here (they use indexESTargetResourceField)
+		if isNonSecretTarget(es) {
 			return nil
 		}
 		// if the target name is set, use that as the index
