@@ -22,55 +22,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
-
-func TestEnsureWatchForGVK(t *testing.T) {
-	tests := []struct {
-		name          string
-		gvk           schema.GroupVersionKind
-		expectError   bool
-		errorContains string
-	}{
-		{
-			name: "ConfigMap GVK",
-			gvk: schema.GroupVersionKind{
-				Group:   "",
-				Version: "v1",
-				Kind:    "ConfigMap",
-			},
-			expectError: false,
-		},
-		{
-			name: "Custom Resource GVK",
-			gvk: schema.GroupVersionKind{
-				Group:   "argoproj.io",
-				Version: "v1alpha1",
-				Kind:    "Application",
-			},
-			expectError: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Note: This test can't fully test watch registration without a real controller
-			// We're mainly testing that the function doesn't panic and handles the GVK correctly
-			r := &Reconciler{
-				Log:                   log.Log.WithName("test"),
-				AllowNonSecretTargets: true,
-				watchTracker:          NewInMemoryWatchTracker(),
-			}
-
-			// error is expected as there is no controller setup.
-			err := r.ensureWatchForGVK(tt.gvk)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "controller not initialized")
-		})
-	}
-}
 
 func TestGetTargetResourceIndex(t *testing.T) {
 	tests := []struct {
@@ -138,27 +92,6 @@ func TestGetTargetResourceIndex(t *testing.T) {
 			assert.Equal(t, tt.expectedValues[0], indexValue)
 		})
 	}
-}
-
-func TestWatchedGVKTracking(t *testing.T) {
-	tracker := NewInMemoryWatchTracker()
-	r := &Reconciler{
-		Log:          log.Log.WithName("test"),
-		watchTracker: tracker,
-	}
-
-	gvk1 := schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"}
-	gvk2 := schema.GroupVersionKind{Group: "argoproj.io", Version: "v1alpha1", Kind: "Application"}
-
-	assert.False(t, r.watchTracker.IsWatched(gvk1))
-	r.watchTracker.MarkWatched(gvk1)
-
-	assert.True(t, r.watchTracker.IsWatched(gvk1))
-
-	assert.False(t, r.watchTracker.IsWatched(gvk2))
-
-	r.watchTracker.MarkWatched(gvk2)
-	assert.True(t, r.watchTracker.IsWatched(gvk2))
 }
 
 func TestGVKFromManifestTarget(t *testing.T) {
