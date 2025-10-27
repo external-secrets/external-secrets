@@ -218,6 +218,8 @@ type SecretStoreProvider struct {
 	// Ngrok configures this store to sync secrets using the ngrok provider.
 	// +optional
 	Ngrok *NgrokProvider `json:"ngrok,omitempty"`
+
+	Smop *SmopProvider `json:"smop,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

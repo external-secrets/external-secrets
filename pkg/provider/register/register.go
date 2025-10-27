@@ -52,6 +52,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/scaleway"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/secretserver"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/senhasegura"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/smop"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/volcengine"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/webhook"

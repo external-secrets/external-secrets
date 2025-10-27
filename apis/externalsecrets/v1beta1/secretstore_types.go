@@ -206,6 +206,8 @@ type SecretStoreProvider struct {
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
+
+	Smop *SmopProvider `json:"smop,omitempty"`
 }
 
 // CAProviderType defines the type of provider to use for CA certificates.
