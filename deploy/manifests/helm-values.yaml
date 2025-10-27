@@ -8,3 +8,6 @@ resources:
 nonSecretTargets:
   # -- Enable non-Secret target support
   enabled: true
+
+log:
+  level: debug
