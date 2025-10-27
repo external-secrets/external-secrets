@@ -44,7 +44,7 @@ jobs:
         run: go mod download
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@aa0e114b2e19480f157109b9922bda359bd98b90 # v0.20.8
+        uses: anchore/sbom-action/download-syft@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
 
       - name: Import GPG key
         id: import_gpg
