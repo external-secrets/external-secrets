@@ -4,3 +4,7 @@ resources:
   requests:
     cpu: 10m
     memory: 32Mi
+
+nonSecretTargets:
+  # -- Enable non-Secret target support
+  enabled: true
