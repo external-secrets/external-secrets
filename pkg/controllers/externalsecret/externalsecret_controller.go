@@ -703,14 +703,12 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecre
 	// Ensure an informer exists for this GVK to enable drift detection (only if not already managed)
 	gvk := getTargetGVK(externalSecret)
 	esName := types.NamespacedName{Name: externalSecret.Name, Namespace: externalSecret.Namespace}
-	if !r.informerManager.IsManaged(gvk) {
-		if _, err := r.informerManager.EnsureInformer(ctx, gvk, esName); err != nil {
-			// Log the error but don't fail reconciliation - the resource was successfully created/updated
-			log.Error(err, "failed to register informer for non-Secret target, drift detection may not work",
-				"group", gvk.Group,
-				"version", gvk.Version,
-				"kind", gvk.Kind)
-		}
+	if _, err := r.informerManager.EnsureInformer(ctx, gvk, esName); err != nil {
+		// Log the error but don't fail reconciliation - the resource was successfully created/updated
+		log.Error(err, "failed to register informer for non-Secret target, drift detection may not work",
+			"group", gvk.Group,
+			"version", gvk.Version,
+			"kind", gvk.Kind)
 	}
 
 	r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceSynced, msgSynced)

@@ -62,8 +62,11 @@ type InformerManager interface {
 
 // informerEntry tracks an informer and the ExternalSecrets using it.
 type informerEntry struct {
-	informer        runtimecache.Informer
-	externalSecrets map[types.NamespacedName]struct{} // set of ExternalSecrets using this GVK
+	informer runtimecache.Informer
+	// externalSecrets tracks the external secrets using a GVK. Once this list is empty, we
+	// stop the informer and deregister it to free up resources. It is a map instead of just a number to prevent
+	// duplicated reconcile ensures to increase the number on each reconcile.
+	externalSecrets map[types.NamespacedName]struct{}
 }
 
 // DefaultInformerManager implements InformerManager using controller-runtime's cache.
@@ -93,11 +96,11 @@ func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.
 
 	key := gvk.String()
 
-	// Check if we already have an informer for this GVK
+	// check if we have this gvk in the list of informers already
 	if entry, exists := m.informers[key]; exists {
-		// Register this ExternalSecret as using this informer (idempotent)
+		// register this ExternalSecret as using this informer (deduplicate);
 		entry.externalSecrets[es] = struct{}{}
-		m.log.V(1).Info("registered ExternalSecret with existing informer",
+		m.log.Info("registered ExternalSecret with existing informer",
 			"gvk", key,
 			"externalSecret", es,
 			"totalUsers", len(entry.externalSecrets))
@@ -225,23 +228,23 @@ func (m *DefaultInformerManager) ReleaseInformer(ctx context.Context, gvk schema
 
 	entry, exists := m.informers[key]
 	if !exists {
-		// Already removed or never existed
-		m.log.V(1).Info("informer not found for release",
+		// Already removed or never existed; can happen if we had a bad start, failed to watch, or during other errors.
+		// In that case, there is nothing else to do really.
+		m.log.Info("informer not found for release",
 			"gvk", key,
 			"externalSecret", es)
 		return nil
 	}
 
-	// Remove this ExternalSecret from the set
+	// remove the ES from the list of ESs using this GVK
 	delete(entry.externalSecrets, es)
-	m.log.V(1).Info("unregistered ExternalSecret from informer",
+	m.log.Info("unregistered ExternalSecret from informer",
 		"gvk", key,
 		"externalSecret", es,
 		"remainingUsers", len(entry.externalSecrets))
 
-	// If no more ExternalSecrets are using this informer, remove it
+	// if no more ExternalSecrets are using this informer, remove it
 	if len(entry.externalSecrets) == 0 {
-		// Create a PartialObjectMetadata instance to pass to RemoveInformer
 		partial := &metav1.PartialObjectMetadata{}
 		partial.SetGroupVersionKind(gvk)
 
