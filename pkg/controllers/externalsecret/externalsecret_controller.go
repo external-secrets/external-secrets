@@ -203,7 +203,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// Release informer for non-Secret targets
 		if isNonSecretTarget(externalSecret) {
 			gvk := getTargetGVK(externalSecret)
-			if err := r.informerManager.ReleaseInformer(ctx, gvk); err != nil {
+			esName := types.NamespacedName{Name: externalSecret.Name, Namespace: externalSecret.Namespace}
+			if err := r.informerManager.ReleaseInformer(ctx, gvk, esName); err != nil {
 				log.Error(err, "failed to release informer for non-Secret target",
 					"group", gvk.Group,
 					"version", gvk.Version,
@@ -699,14 +700,17 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecre
 		return ctrl.Result{}, err
 	}
 
-	// Ensure an informer exists for this GVK to enable drift detection
+	// Ensure an informer exists for this GVK to enable drift detection (only if not already managed)
 	gvk := getTargetGVK(externalSecret)
-	if _, err := r.informerManager.EnsureInformer(ctx, gvk); err != nil {
-		// Log the error but don't fail reconciliation - the resource was successfully created/updated
-		log.Error(err, "failed to register informer for non-Secret target, drift detection may not work",
-			"group", gvk.Group,
-			"version", gvk.Version,
-			"kind", gvk.Kind)
+	esName := types.NamespacedName{Name: externalSecret.Name, Namespace: externalSecret.Namespace}
+	if !r.informerManager.IsManaged(gvk) {
+		if _, err := r.informerManager.EnsureInformer(ctx, gvk, esName); err != nil {
+			// Log the error but don't fail reconciliation - the resource was successfully created/updated
+			log.Error(err, "failed to register informer for non-Secret target, drift detection may not work",
+				"group", gvk.Group,
+				"version", gvk.Version,
+				"kind", gvk.Kind)
+		}
 	}
 
 	r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceSynced, msgSynced)
@@ -1154,10 +1158,9 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
-
-	// Initialize informer manager if not already set (allows injection of custom implementations)
+	// Initialize informer manager before indexing
 	if r.informerManager == nil {
-		r.informerManager = NewInformerManager(mgr.GetCache(), r.Log.WithName("informer-manager"))
+		r.informerManager = NewInformerManager(mgr.GetCache(), r.Client, r.Log.WithName("informer-manager"))
 	}
 
 	// index ExternalSecrets based on the target secret name,
@@ -1211,6 +1214,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSecret),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, secretHasESLabel),
 		).
+		// Watch non-Secret targets dynamically via the informer manager
+		WatchesRawSource(r.informerManager.Source()).
 		Complete(r)
 }
 

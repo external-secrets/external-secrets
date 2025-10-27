@@ -23,53 +23,71 @@ import (
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/workqueue"
+	ctrl "sigs.k8s.io/controller-runtime"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // InformerManager manages the lifecycle of informers for non-Secret target resources.
-// It handles dynamic registration, reference counting, and cleanup of informers.
+// It handles dynamic registration, tracking, and cleanup of informers.
 type InformerManager interface {
-	// EnsureInformer ensures an informer exists for the given GVK.
+	// EnsureInformer ensures an informer exists for the given GVK and registers the ExternalSecret as using it.
 	// Returns true if a new informer was created, false if it already existed.
-	EnsureInformer(ctx context.Context, gvk schema.GroupVersionKind) (bool, error)
+	EnsureInformer(ctx context.Context, gvk schema.GroupVersionKind, es types.NamespacedName) (bool, error)
 
-	// ReleaseInformer decrements the reference count for a GVK.
-	// If the count reaches zero, the informer is stopped and removed.
-	ReleaseInformer(ctx context.Context, gvk schema.GroupVersionKind) error
+	// ReleaseInformer unregisters the ExternalSecret from using this GVK.
+	// If no more ExternalSecrets use this GVK, the informer is stopped and removed.
+	ReleaseInformer(ctx context.Context, gvk schema.GroupVersionKind, es types.NamespacedName) error
 
 	// IsManaged returns true if the manager is currently managing an informer for the GVK.
 	IsManaged(gvk schema.GroupVersionKind) bool
 
 	// GetInformer returns the informer for a GVK if it exists.
 	GetInformer(gvk schema.GroupVersionKind) (runtimecache.Informer, bool)
+
+	// Source returns a source.TypedSource that can be used with WatchesRawSource
+	Source() source.TypedSource[reconcile.Request]
+
+	// SetQueue binds the reconcile queue to the informer manager
+	SetQueue(queue workqueue.TypedRateLimitingInterface[ctrl.Request]) error
 }
 
-// informerEntry tracks an informer and its reference count.
+// informerEntry tracks an informer and the ExternalSecrets using it.
 type informerEntry struct {
-	informer runtimecache.Informer
-	refCount int
+	informer        runtimecache.Informer
+	externalSecrets map[types.NamespacedName]struct{} // set of ExternalSecrets using this GVK
 }
 
 // DefaultInformerManager implements InformerManager using controller-runtime's cache.
 type DefaultInformerManager struct {
 	cache     runtimecache.Cache
+	client    client.Client
 	log       logr.Logger
 	mu        sync.RWMutex
 	informers map[string]*informerEntry // key: GVK string
+	queue     workqueue.TypedRateLimitingInterface[ctrl.Request]
 }
 
 // NewInformerManager creates a new InformerManager.
-func NewInformerManager(cache runtimecache.Cache, log logr.Logger) InformerManager {
+func NewInformerManager(cache runtimecache.Cache, client client.Client, log logr.Logger) InformerManager {
 	return &DefaultInformerManager{
 		cache:     cache,
+		client:    client,
 		log:       log,
 		informers: make(map[string]*informerEntry),
 	}
 }
 
-// EnsureInformer ensures an informer exists for the given GVK.
-func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.GroupVersionKind) (bool, error) {
+// EnsureInformer ensures an informer exists for the given GVK and registers the ExternalSecret.
+func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.GroupVersionKind, es types.NamespacedName) (bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -77,36 +95,129 @@ func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.
 
 	// Check if we already have an informer for this GVK
 	if entry, exists := m.informers[key]; exists {
-		entry.refCount++
-		m.log.V(1).Info("incremented informer reference count",
+		// Register this ExternalSecret as using this informer (idempotent)
+		entry.externalSecrets[es] = struct{}{}
+		m.log.V(1).Info("registered ExternalSecret with existing informer",
 			"gvk", key,
-			"refCount", entry.refCount)
+			"externalSecret", es,
+			"totalUsers", len(entry.externalSecrets))
 		return false, nil
 	}
 
-	// Get or create an informer for this GVK using PartialObjectMetadata to minimize memory usage
-	// The cache will automatically start the informer if it doesn't exist
+	if m.queue == nil {
+		return false, fmt.Errorf("queue not initialized, call SetQueue first")
+	}
+
+	// Get or create informer for this GVK
 	informer, err := m.cache.GetInformerForKind(ctx, gvk)
 	if err != nil {
 		return false, fmt.Errorf("failed to get informer for %s: %w", key, err)
 	}
 
-	// Store the informer with initial reference count of 1
-	m.informers[key] = &informerEntry{
-		informer: informer,
-		refCount: 1,
+	// Add event handler to the informer that enqueues reconcile requests
+	_, err = informer.AddEventHandler(&enqueueHandler{
+		gvk:    gvk,
+		client: m.client,
+		queue:  m.queue,
+		log:    m.log,
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to add event handler for %s: %w", key, err)
 	}
 
-	m.log.Info("registered dynamic informer for non-Secret target",
+	// Store the informer with this ExternalSecret as the first user
+	m.informers[key] = &informerEntry{
+		informer:        informer,
+		externalSecrets: map[types.NamespacedName]struct{}{es: {}},
+	}
+
+	m.log.Info("registered informer for non-Secret target",
 		"group", gvk.Group,
 		"version", gvk.Version,
-		"kind", gvk.Kind)
+		"kind", gvk.Kind,
+		"externalSecret", es)
 
 	return true, nil
 }
 
-// ReleaseInformer decrements the reference count for a GVK.
-func (m *DefaultInformerManager) ReleaseInformer(ctx context.Context, gvk schema.GroupVersionKind) error {
+// enqueueHandler is an event handler that enqueues reconcile requests for ExternalSecrets
+// that target the changed resource.
+type enqueueHandler struct {
+	gvk    schema.GroupVersionKind
+	client client.Client
+	queue  workqueue.TypedRateLimitingInterface[ctrl.Request]
+	log    logr.Logger
+}
+
+func (h *enqueueHandler) OnAdd(obj interface{}, _ bool) {
+	h.enqueue(obj)
+}
+
+func (h *enqueueHandler) OnUpdate(_, newObj interface{}) {
+	h.enqueue(newObj)
+}
+
+func (h *enqueueHandler) OnDelete(obj interface{}) {
+	h.enqueue(obj)
+}
+
+func (h *enqueueHandler) enqueue(obj interface{}) {
+	// Extract metadata
+	meta, ok := obj.(metav1.Object)
+	if !ok {
+		h.log.Error(nil, "unexpected object type", "type", fmt.Sprintf("%T", obj))
+		return
+	}
+
+	// Only process resources with the managed label
+	labels := meta.GetLabels()
+	if labels == nil {
+		return
+	}
+
+	value, hasLabel := labels[esv1.LabelManaged]
+	if !hasLabel || value != esv1.LabelManagedValue {
+		return
+	}
+
+	// TODO: Figure out the context here.
+	ctx := context.Background()
+
+	// Find ExternalSecrets that target this resource
+	externalSecretsList := &esv1.ExternalSecretList{}
+	indexValue := fmt.Sprintf("%s/%s/%s/%s", h.gvk.Group, h.gvk.Version, h.gvk.Kind, meta.GetName())
+	listOps := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(indexESTargetResourceField, indexValue),
+		Namespace:     meta.GetNamespace(),
+	}
+
+	if err := h.client.List(ctx, externalSecretsList, listOps); err != nil {
+		h.log.Error(err, "failed to list ExternalSecrets for resource",
+			"gvk", h.gvk.String(),
+			"name", meta.GetName(),
+			"namespace", meta.GetNamespace())
+		return
+	}
+
+	// Enqueue reconcile requests for each ExternalSecret
+	for i := range externalSecretsList.Items {
+		req := ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      externalSecretsList.Items[i].GetName(),
+				Namespace: externalSecretsList.Items[i].GetNamespace(),
+			},
+		}
+		h.queue.Add(req)
+
+		h.log.V(1).Info("enqueued reconcile request due to resource change",
+			"externalSecret", req.NamespacedName,
+			"targetGVK", h.gvk.String(),
+			"targetResource", meta.GetName())
+	}
+}
+
+// ReleaseInformer unregisters the ExternalSecret from using this GVK.
+func (m *DefaultInformerManager) ReleaseInformer(ctx context.Context, gvk schema.GroupVersionKind, es types.NamespacedName) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -115,16 +226,21 @@ func (m *DefaultInformerManager) ReleaseInformer(ctx context.Context, gvk schema
 	entry, exists := m.informers[key]
 	if !exists {
 		// Already removed or never existed
+		m.log.V(1).Info("informer not found for release",
+			"gvk", key,
+			"externalSecret", es)
 		return nil
 	}
 
-	entry.refCount--
-	m.log.V(1).Info("decremented informer reference count",
+	// Remove this ExternalSecret from the set
+	delete(entry.externalSecrets, es)
+	m.log.V(1).Info("unregistered ExternalSecret from informer",
 		"gvk", key,
-		"refCount", entry.refCount)
+		"externalSecret", es,
+		"remainingUsers", len(entry.externalSecrets))
 
-	// If no more references, remove the informer
-	if entry.refCount <= 0 {
+	// If no more ExternalSecrets are using this informer, remove it
+	if len(entry.externalSecrets) == 0 {
 		// Create a PartialObjectMetadata instance to pass to RemoveInformer
 		partial := &metav1.PartialObjectMetadata{}
 		partial.SetGroupVersionKind(gvk)
@@ -136,7 +252,7 @@ func (m *DefaultInformerManager) ReleaseInformer(ctx context.Context, gvk schema
 
 		delete(m.informers, key)
 
-		m.log.Info("removed informer for non-Secret target",
+		m.log.Info("removed informer for non-Secret target (no more users)",
 			"group", gvk.Group,
 			"version", gvk.Version,
 			"kind", gvk.Kind)
@@ -164,4 +280,27 @@ func (m *DefaultInformerManager) GetInformer(gvk schema.GroupVersionKind) (runti
 		return nil, false
 	}
 	return entry.informer, true
+}
+
+// Source returns a source.TypedSource that binds the reconcile queue to this manager.
+func (m *DefaultInformerManager) Source() source.TypedSource[reconcile.Request] {
+	return source.Func(func(_ context.Context, queue workqueue.TypedRateLimitingInterface[ctrl.Request]) error {
+		// This dynamically binds the given queue to the informer manager
+		// From this point on, the queue will receive events for all registered informers
+		return m.SetQueue(queue)
+	})
+}
+
+// SetQueue binds the reconcile queue to the informer manager.
+func (m *DefaultInformerManager) SetQueue(queue workqueue.TypedRateLimitingInterface[ctrl.Request]) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.queue != nil {
+		return fmt.Errorf("queue already set")
+	}
+
+	m.queue = queue
+	m.log.Info("reconcile queue bound to informer manager")
+	return nil
 }
