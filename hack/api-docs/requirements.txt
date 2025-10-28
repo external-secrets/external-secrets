@@ -34,7 +34,7 @@ pyyaml_env_tag==1.1
 regex==2025.10.23
 requests==2.32.5
 six==1.17.0
-termcolor==3.1.0
+termcolor==3.2.0
 tornado==6.5.2
 urllib3==2.5.0
 verspec==0.1.0
