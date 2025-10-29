@@ -174,6 +174,15 @@ func WithCRDs() MutationFunc {
 	}
 }
 
+func WithAllowNonSecretTargets() MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "extraArgs.allow-non-secret-targets",
+			Value: "true",
+		})
+	}
+}
+
 func (l *ESO) Install() error {
 	By("Installing eso\n")
 	err := l.HelmChart.Install()
