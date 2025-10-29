@@ -5572,6 +5572,11 @@ spec:
                         - region
                         - vault
                       type: object
+                    ovh:
+                      properties:
+                        test:
+                          type: string
+                      type: object
                     passbolt:
                       properties:
                         auth:
@@ -16777,6 +16782,11 @@ spec:
                       required:
                         - region
                         - vault
+                      type: object
+                    ovh:
+                      properties:
+                        test:
+                          type: string
                       type: object
                     passbolt:
                       properties:
