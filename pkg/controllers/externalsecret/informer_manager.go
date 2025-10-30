@@ -71,21 +71,23 @@ type informerEntry struct {
 
 // DefaultInformerManager implements InformerManager using controller-runtime's cache.
 type DefaultInformerManager struct {
-	cache     runtimecache.Cache
-	client    client.Client
-	log       logr.Logger
-	mu        sync.RWMutex
-	informers map[string]*informerEntry // key: GVK string
-	queue     workqueue.TypedRateLimitingInterface[ctrl.Request]
+	cache          runtimecache.Cache
+	client         client.Client
+	log            logr.Logger
+	mu             sync.RWMutex
+	informers      map[string]*informerEntry // key: GVK string
+	queue          workqueue.TypedRateLimitingInterface[ctrl.Request]
+	managerContext context.Context
 }
 
 // NewInformerManager creates a new InformerManager.
-func NewInformerManager(cache runtimecache.Cache, client client.Client, log logr.Logger) InformerManager {
+func NewInformerManager(ctx context.Context, cache runtimecache.Cache, client client.Client, log logr.Logger) InformerManager {
 	return &DefaultInformerManager{
-		cache:     cache,
-		client:    client,
-		log:       log,
-		informers: make(map[string]*informerEntry),
+		managerContext: ctx,
+		cache:          cache,
+		client:         client,
+		log:            log,
+		informers:      make(map[string]*informerEntry),
 	}
 }
 
@@ -119,10 +121,11 @@ func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.
 
 	// Add event handler to the informer that enqueues reconcile requests
 	_, err = informer.AddEventHandler(&enqueueHandler{
-		gvk:    gvk,
-		client: m.client,
-		queue:  m.queue,
-		log:    m.log,
+		managerContext: m.managerContext,
+		gvk:            gvk,
+		client:         m.client,
+		queue:          m.queue,
+		log:            m.log,
 	})
 	if err != nil {
 		return false, fmt.Errorf("failed to add event handler for %s: %w", key, err)
@@ -146,10 +149,11 @@ func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.
 // enqueueHandler is an event handler that enqueues reconcile requests for ExternalSecrets
 // that target the changed resource.
 type enqueueHandler struct {
-	gvk    schema.GroupVersionKind
-	client client.Client
-	queue  workqueue.TypedRateLimitingInterface[ctrl.Request]
-	log    logr.Logger
+	managerContext context.Context
+	gvk            schema.GroupVersionKind
+	client         client.Client
+	queue          workqueue.TypedRateLimitingInterface[ctrl.Request]
+	log            logr.Logger
 }
 
 func (h *enqueueHandler) OnAdd(obj interface{}, _ bool) {
@@ -183,9 +187,6 @@ func (h *enqueueHandler) enqueue(obj interface{}) {
 		return
 	}
 
-	// TODO: Figure out the context here.
-	ctx := context.Background()
-
 	// Find ExternalSecrets that target this resource
 	externalSecretsList := &esv1.ExternalSecretList{}
 	indexValue := fmt.Sprintf("%s/%s/%s/%s", h.gvk.Group, h.gvk.Version, h.gvk.Kind, meta.GetName())
@@ -194,7 +195,7 @@ func (h *enqueueHandler) enqueue(obj interface{}) {
 		Namespace:     meta.GetNamespace(),
 	}
 
-	if err := h.client.List(ctx, externalSecretsList, listOps); err != nil {
+	if err := h.client.List(h.managerContext, externalSecretsList, listOps); err != nil {
 		h.log.Error(err, "failed to list ExternalSecrets for resource",
 			"gvk", h.gvk.String(),
 			"name", meta.GetName(),

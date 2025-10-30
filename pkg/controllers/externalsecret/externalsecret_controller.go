@@ -1158,7 +1158,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
 	// Initialize informer manager only if non-Secret targets are allowed
 	if r.AllowNonSecretTargets && r.informerManager == nil {
-		r.informerManager = NewInformerManager(mgr.GetCache(), r.Client, r.Log.WithName("informer-manager"))
+		r.informerManager = NewInformerManager(ctx, mgr.GetCache(), r.Client, r.Log.WithName("informer-manager"))
 	}
 
 	// index ExternalSecrets based on the target secret name,
