@@ -146,7 +146,7 @@ func (r *Reconciler) updateNonSecretResource(ctx context.Context, log logr.Logge
 
 // deleteNonSecretResource deletes a non-Secret resource.
 func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) error {
-	if !isNonSecretTarget(es) {
+	if !r.AllowNonSecretTargets || !isNonSecretTarget(es) {
 		return nil
 	}
 
