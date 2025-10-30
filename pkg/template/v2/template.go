@@ -61,6 +61,11 @@ var tplFuncs = tpl.FuncMap{
 
 var leftDelim, rightDelim string
 
+var (
+	errConvertingToUnstructured = "failed to convert object to unstructured: %w"
+	errConvertingToObject       = "failed to convert unstructured to object: %w"
+)
+
 // FuncMap returns the template function map so other templating calls can use the same extra functions.
 func FuncMap() tpl.FuncMap {
 	return tplFuncs
@@ -126,7 +131,7 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 
 		unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 		if err != nil {
-			return fmt.Errorf("failed to convert object to unstructured: %w", err)
+			return fmt.Errorf(errConvertingToUnstructured, err)
 		}
 
 		// Navigate to the parent of the target field
@@ -150,7 +155,7 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 
 		// Convert back to the original object type
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
-			return fmt.Errorf("failed to convert unstructured to object: %w", err)
+			return fmt.Errorf(errConvertingToObject, err)
 		}
 	}
 
@@ -264,7 +269,7 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 func setField(obj client.Object, field, k string, val []byte) error {
 	m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
-		return fmt.Errorf("failed to convert object to unstructured: %w", err)
+		return fmt.Errorf(errConvertingToUnstructured, err)
 	}
 	_, ok := m[field]
 	if !ok {
@@ -289,7 +294,7 @@ func setField(obj client.Object, field, k string, val []byte) error {
 
 	// Convert back to the original object type
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(m, obj); err != nil {
-		return fmt.Errorf("failed to convert unstructured to object: %w", err)
+		return fmt.Errorf(errConvertingToObject, err)
 	}
 	return nil
 }
@@ -313,7 +318,7 @@ func tryParseYAML(value any) any {
 func applyParsedToPath(parsed any, target string, obj client.Object) error {
 	unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
-		return fmt.Errorf("failed to convert object to unstructured: %w", err)
+		return fmt.Errorf(errConvertingToUnstructured, err)
 	}
 
 	parts := strings.Split(target, ".")
@@ -345,7 +350,7 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 
 	// convert back to original object
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
-		return fmt.Errorf("failed to convert unstructured to object: %w", err)
+		return fmt.Errorf(errConvertingToObject, err)
 	}
 
 	return nil
