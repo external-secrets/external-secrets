@@ -98,7 +98,7 @@ jobs:
           egress-policy: audit
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - uses: hashicorp/setup-terraform@c529327889820530c60b4ce5bbc8d6099e166666 # v3
+      - uses: hashicorp/setup-terraform@982f6f017c89db9dccac8593265de0c382e4c050 # v3
       - name: Setup Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         id: setup-go
