@@ -201,7 +201,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		}
 
 		// Release informer for non-Secret targets
-		if isNonSecretTarget(externalSecret) {
+		if isNonSecretTarget(externalSecret) && r.informerManager != nil {
 			gvk := getTargetGVK(externalSecret)
 			esName := types.NamespacedName{Name: externalSecret.Name, Namespace: externalSecret.Namespace}
 			if err := r.informerManager.ReleaseInformer(ctx, gvk, esName); err != nil {
@@ -1156,8 +1156,8 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
-	// Initialize informer manager before indexing
-	if r.informerManager == nil {
+	// Initialize informer manager only if non-Secret targets are allowed
+	if r.AllowNonSecretTargets && r.informerManager == nil {
 		r.informerManager = NewInformerManager(mgr.GetCache(), r.Client, r.Log.WithName("informer-manager"))
 	}
 
@@ -1202,7 +1202,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	})
 
 	// Build the controller
-	return ctrl.NewControllerManagedBy(mgr).
+	builder := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1.ExternalSecret{}).
 		// we cant use Owns(), as we don't set ownerReferences when the creationPolicy is not Owner.
@@ -1211,10 +1211,15 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&v1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSecret),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, secretHasESLabel),
-		).
-		// Watch non-Secret targets dynamically via the informer manager
-		WatchesRawSource(r.informerManager.Source()).
-		Complete(r)
+		)
+
+	// Watch non-Secret targets dynamically via the informer manager
+	// Only add this watch source if the feature is enabled
+	if r.AllowNonSecretTargets {
+		builder = builder.WatchesRawSource(r.informerManager.Source())
+	}
+
+	return builder.Complete(r)
 }
 
 func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Object) []reconcile.Request {
