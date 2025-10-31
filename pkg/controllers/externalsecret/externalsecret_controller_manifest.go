@@ -32,15 +32,15 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/template"
 )
 
-// isNonSecretTarget checks if the ExternalSecret targets a non-Secret resource.
-func isNonSecretTarget(es *esv1.ExternalSecret) bool {
+// isGenericTarget checks if the ExternalSecret targets a generic resource.
+func isGenericTarget(es *esv1.ExternalSecret) bool {
 	return es.Spec.Target.Manifest != nil
 }
 
-// validateNonSecretTarget validates that non-Secret targets are properly configured.
-func (r *Reconciler) validateNonSecretTarget(log logr.Logger, es *esv1.ExternalSecret) error {
-	if !r.AllowNonSecretTargets {
-		return fmt.Errorf("non-Secret targets are disabled. Enable with --unsafe-allow-non-secret-targets flag")
+// validateGenericTarget validates that generic targets are properly configured.
+func (r *Reconciler) validateGenericTarget(log logr.Logger, es *esv1.ExternalSecret) error {
+	if !r.AllowGenericTargets {
+		return fmt.Errorf("generic targets are disabled. Enable with --unsafe-allow-generic-targets flag")
 	}
 
 	manifest := es.Spec.Target.Manifest
@@ -51,7 +51,7 @@ func (r *Reconciler) validateNonSecretTarget(log logr.Logger, es *esv1.ExternalS
 		return fmt.Errorf("target.manifest.kind is required")
 	}
 
-	log.Info("Warning: Using non-Secret target. Make sure access policies and encryption are properly configured.",
+	log.Info("Warning: Using generic target. Make sure access policies and encryption are properly configured.",
 		"apiVersion", manifest.APIVersion,
 		"kind", manifest.Kind,
 		"name", getTargetName(es))
@@ -79,8 +79,8 @@ func getTargetName(es *esv1.ExternalSecret) string {
 	return es.Name
 }
 
-// getNonSecretResource retrieves a non-Secret resource using the controller-runtime client.
-func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) (*unstructured.Unstructured, error) {
+// getGenericResource retrieves a generic resource using the controller-runtime client.
+func (r *Reconciler) getGenericResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) (*unstructured.Unstructured, error) {
 	gvk := getTargetGVK(es)
 
 	resource := &unstructured.Unstructured{}
@@ -102,7 +102,7 @@ func (r *Reconciler) getNonSecretResource(ctx context.Context, log logr.Logger, 
 	return resource, nil
 }
 
-func (r *Reconciler) createNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
+func (r *Reconciler) createGenericResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
 	gvk := getTargetGVK(es)
 
 	// Check if resource already exists
@@ -131,7 +131,7 @@ func (r *Reconciler) createNonSecretResource(ctx context.Context, log logr.Logge
 	return nil
 }
 
-func (r *Reconciler) updateNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, existing *unstructured.Unstructured) error {
+func (r *Reconciler) updateGenericResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, existing *unstructured.Unstructured) error {
 	gvk := getTargetGVK(es)
 
 	log.Info("updating target resource", "gvk", gvk.String(), "name", getTargetName(es))
@@ -144,9 +144,9 @@ func (r *Reconciler) updateNonSecretResource(ctx context.Context, log logr.Logge
 	return nil
 }
 
-// deleteNonSecretResource deletes a non-Secret resource.
-func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) error {
-	if !r.AllowNonSecretTargets || !isNonSecretTarget(es) {
+// deleteGenericResource deletes a generic resource.
+func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) error {
+	if !r.AllowGenericTargets || !isGenericTarget(es) {
 		return nil
 	}
 
@@ -167,7 +167,7 @@ func (r *Reconciler) deleteNonSecretResource(ctx context.Context, log logr.Logge
 	return nil
 }
 
-// applyTemplateToManifest renders templates for non-Secret resources and returns an unstructured object.
+// applyTemplateToManifest renders templates for generic resources and returns an unstructured object.
 func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
 	gvk := getTargetGVK(es)
 

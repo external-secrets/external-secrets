@@ -287,7 +287,7 @@ func setField(obj client.Object, field, k string, val []byte) error {
 		// For Secrets, keep as []byte (will be base64-encoded during serialization)
 		specMap[k] = val
 	} else {
-		// For non-Secrets (ConfigMaps, custom resources), use plain strings
+		// For generic (ConfigMaps, custom resources), use plain strings
 		specMap[k] = string(val)
 	}
 	m[field] = specMap

@@ -155,9 +155,8 @@ rules:
     - "update"
     - "delete"
     - "patch"
-  {{- if .Values.nonSecretTargets.enabled }}
-  # Non-Secret target permissions (ConfigMaps)
-  # WARNING: ConfigMaps are not encrypted at rest. Use with caution.
+  {{- if .Values.genericTargets.enabled }}
+  # Generic target permissions (ConfigMaps)
   - apiGroups:
     - ""
     resources:
@@ -167,7 +166,7 @@ rules:
     - "update"
     - "delete"
     - "patch"
-  {{- range .Values.nonSecretTargets.resources }}
+  {{- range .Values.genericTargets.resources }}
   # Custom resource permissions for non-Secret targets
   - apiGroups:
     - {{ .apiGroup | quote }}

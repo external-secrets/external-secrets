@@ -36,7 +36,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// InformerManager manages the lifecycle of informers for non-Secret target resources.
+// InformerManager manages the lifecycle of informers for generic target resources.
 // It handles dynamic registration, tracking, and cleanup of informers.
 type InformerManager interface {
 	// EnsureInformer ensures an informer exists for the given GVK and registers the ExternalSecret as using it.
@@ -137,7 +137,7 @@ func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.
 		externalSecrets: map[types.NamespacedName]struct{}{es: {}},
 	}
 
-	m.log.Info("registered informer for non-Secret target",
+	m.log.Info("registered informer for generic target",
 		"group", gvk.Group,
 		"version", gvk.Version,
 		"kind", gvk.Kind,
@@ -256,7 +256,7 @@ func (m *DefaultInformerManager) ReleaseInformer(ctx context.Context, gvk schema
 
 		delete(m.informers, key)
 
-		m.log.Info("removed informer for non-Secret target (no more users)",
+		m.log.Info("removed informer for generic target (no more users)",
 			"group", gvk.Group,
 			"version", gvk.Version,
 			"kind", gvk.Kind)

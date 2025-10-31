@@ -36,7 +36,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-func TestIsNonSecretTarget(t *testing.T) {
+func TestIsGenericTarget(t *testing.T) {
 	tests := []struct {
 		name     string
 		es       *esv1.ExternalSecret
@@ -85,19 +85,19 @@ func TestIsNonSecretTarget(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isNonSecretTarget(tt.es)
+			result := isGenericTarget(tt.es)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-func TestValidateNonSecretTarget(t *testing.T) {
+func TestValidateGenericTarget(t *testing.T) {
 	tests := []struct {
-		name                  string
-		es                    *esv1.ExternalSecret
-		allowNonSecretTargets bool
-		expectedError         bool
-		errorContains         string
+		name                string
+		es                  *esv1.ExternalSecret
+		allowGenericTargets bool
+		expectedError       bool
+		errorContains       string
 	}{
 		{
 			name: "ConfigMap target - flag enabled - valid",
@@ -111,8 +111,8 @@ func TestValidateNonSecretTarget(t *testing.T) {
 					},
 				},
 			},
-			allowNonSecretTargets: true,
-			expectedError:         false,
+			allowGenericTargets: true,
+			expectedError:       false,
 		},
 		{
 			name: "ConfigMap target - flag disabled",
@@ -126,9 +126,9 @@ func TestValidateNonSecretTarget(t *testing.T) {
 					},
 				},
 			},
-			allowNonSecretTargets: false,
-			expectedError:         true,
-			errorContains:         "non-Secret targets are disabled",
+			allowGenericTargets: false,
+			expectedError:       true,
+			errorContains:       "generic targets are disabled",
 		},
 		{
 			name: "Missing APIVersion",
@@ -142,9 +142,9 @@ func TestValidateNonSecretTarget(t *testing.T) {
 					},
 				},
 			},
-			allowNonSecretTargets: true,
-			expectedError:         true,
-			errorContains:         "apiVersion is required",
+			allowGenericTargets: true,
+			expectedError:       true,
+			errorContains:       "apiVersion is required",
 		},
 		{
 			name: "Missing Kind",
@@ -158,20 +158,20 @@ func TestValidateNonSecretTarget(t *testing.T) {
 					},
 				},
 			},
-			allowNonSecretTargets: true,
-			expectedError:         true,
-			errorContains:         "kind is required",
+			allowGenericTargets: true,
+			expectedError:       true,
+			errorContains:       "kind is required",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Reconciler{
-				AllowNonSecretTargets: tt.allowNonSecretTargets,
+				AllowGenericTargets: tt.allowGenericTargets,
 			}
 			log := ctrl.Log.WithName("test")
 
-			err := r.validateNonSecretTarget(log, tt.es)
+			err := r.validateGenericTarget(log, tt.es)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -448,7 +448,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	assert.Equal(t, "This is a test", annotations["description"])
 }
 
-func TestGetNonSecretResource(t *testing.T) {
+func TestGetGenericResource(t *testing.T) {
 	// Setup
 	_ = esv1.AddToScheme(scheme.Scheme)
 
@@ -491,7 +491,7 @@ func TestGetNonSecretResource(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.getNonSecretResource(context.Background(), logr.Discard(), es)
+	result, err := r.getGenericResource(context.Background(), logr.Discard(), es)
 
 	// Verify
 	require.NoError(t, err)
@@ -506,7 +506,7 @@ func TestGetNonSecretResource(t *testing.T) {
 	assert.Equal(t, "value", data["key"])
 }
 
-func TestGetNonSecretResource_NotFound(t *testing.T) {
+func TestGetGenericResource_NotFound(t *testing.T) {
 	// Setup
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
@@ -532,7 +532,7 @@ func TestGetNonSecretResource_NotFound(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.getNonSecretResource(context.Background(), logr.Discard(), es)
+	result, err := r.getGenericResource(context.Background(), logr.Discard(), es)
 
 	// Verify - should return an error and nil result when resource doesn't exist
 	assert.Error(t, err)

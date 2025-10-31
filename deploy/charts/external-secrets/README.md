@@ -111,6 +111,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `""` |  |
+| genericTargets | object | `{"enabled":false,"resources":[]}` | Enable support for generic targets (ConfigMaps, Custom Resources). Warning: Using generic target. Make sure access policies and encryption are properly configured. When enabled, this grants the controller permissions to create/update/delete ConfigMaps and optionally other resource types specified in generic.resources. |
+| genericTargets.enabled | bool | `false` | Enable generic target support |
+| genericTargets.resources | list | `[]` | List of additional resource types to grant permissions for. Each entry should specify apiGroup, resources, and verbs. Example: resources:   - apiGroup: "argoproj.io"     resources: ["applications"]     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"] |
 | global.affinity | object | `{}` |  |
 | global.compatibility.openshift.adaptSecurityContext | string | `"auto"` | Manages the securityContext properties to make them compatible with OpenShift. Possible values: auto - Apply configurations if it is detected that OpenShift is the target platform. force - Always apply configurations. disabled - No modification applied. |
 | global.nodeSelector | object | `{}` |  |
@@ -152,9 +155,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | nameOverride | string | `""` |  |
 | namespaceOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
-| nonSecretTargets | object | `{"enabled":false,"resources":[]}` | Enable support for non-Secret targets (ConfigMaps, Custom Resources). Warning: Using non-Secret target. Make sure access policies and encryption are properly configured. When enabled, this grants the controller permissions to create/update/delete ConfigMaps and optionally other resource types specified in nonSecretTargets.resources. |
-| nonSecretTargets.enabled | bool | `false` | Enable non-Secret target support |
-| nonSecretTargets.resources | list | `[]` | List of additional resource types to grant permissions for. Each entry should specify apiGroup, resources, and verbs. Example: resources:   - apiGroup: "argoproj.io"     resources: ["applications"]     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"] |
 | openshiftFinalizers | bool | `true` | If true the OpenShift finalizer permissions will be added to RBAC |
 | podAnnotations | object | `{}` | Annotations to add to Pod |
 | podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |

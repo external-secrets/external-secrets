@@ -100,7 +100,7 @@ var (
 	tlsCiphers                            string
 	tlsMinVersion                         string
 	enableHTTP2                           bool
-	allowNonSecretTargets                 bool
+	allowGenericTargets                   bool
 )
 
 const (
@@ -252,7 +252,7 @@ var rootCmd = &cobra.Command{
 			ClusterSecretStoreEnabled: enableClusterStoreReconciler,
 			EnableFloodGate:           enableFloodGate,
 			EnableGeneratorState:      enableGeneratorState,
-			AllowNonSecretTargets:     allowNonSecretTargets,
+			AllowGenericTargets:       allowGenericTargets,
 		}).SetupWithManager(cmd.Context(), mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 			RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -366,7 +366,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
-	rootCmd.Flags().BoolVar(&allowNonSecretTargets, "unsafe-allow-non-secret-targets", false, "Enable support for creating non-Secret resources (ConfigMaps, Custom Resources). WARNING: Non-Secret resources are not encrypted at rest.")
+	rootCmd.Flags().BoolVar(&allowGenericTargets, "unsafe-allow-generic-targets", false, "Enable support for creating generic resources (ConfigMaps, Custom Resources). WARNING: Using generic resources, please sure all policies are correctly configured.")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)
