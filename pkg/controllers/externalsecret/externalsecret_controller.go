@@ -145,10 +145,10 @@ type Reconciler struct {
 	ClusterSecretStoreEnabled bool
 	EnableFloodGate           bool
 	EnableGeneratorState      bool
-	AllowNonSecretTargets     bool
+	AllowGenericTargets       bool
 	recorder                  record.EventRecorder
 
-	// informerManager manages dynamic informers for non-Secret targets
+	// informerManager manages dynamic informers for generic targets
 	informerManager InformerManager
 }
 
@@ -200,12 +200,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return ctrl.Result{}, err
 		}
 
-		// Release informer for non-Secret targets
-		if isNonSecretTarget(externalSecret) && r.informerManager != nil {
+		// Release informer for generic targets
+		if isGenericTarget(externalSecret) && r.informerManager != nil {
 			gvk := getTargetGVK(externalSecret)
 			esName := types.NamespacedName{Name: externalSecret.Name, Namespace: externalSecret.Namespace}
 			if err := r.informerManager.ReleaseInformer(ctx, gvk, esName); err != nil {
-				log.Error(err, "failed to release informer for non-Secret target",
+				log.Error(err, "failed to release informer for generic target",
 					"group", gvk.Group,
 					"version", gvk.Version,
 					"kind", gvk.Kind)
@@ -249,15 +249,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, nil
 	}
 
-	// if this is a non-Secret target, use a different reconciliation path
-	if isNonSecretTarget(externalSecret) {
-		// validate non-Secret target configuration early
-		if err := r.validateNonSecretTarget(log, externalSecret); err != nil {
-			r.markAsFailed("invalid non-Secret target", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+	// if this is a generic target, use a different reconciliation path
+	if isGenericTarget(externalSecret) {
+		// validate generic target configuration early
+		if err := r.validateGenericTarget(log, externalSecret); err != nil {
+			r.markAsFailed("invalid generic target", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, nil // don't requeue as this is a configuration error that is not recoverable
 		}
 
-		return r.reconcileNonSecretTarget(ctx, externalSecret, log, start, resourceLabels, syncCallsError)
+		return r.reconcileGenericTarget(ctx, externalSecret, log, start, resourceLabels, syncCallsError)
 	}
 
 	// the target secret name defaults to the ExternalSecret name, if not explicitly set
@@ -589,8 +589,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	return r.getRequeueResult(externalSecret), nil
 }
 
-// reconcileNonSecretTarget handles reconciliation for non-Secret targets (ConfigMaps, Custom Resources).
-func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecret *esv1.ExternalSecret, log logr.Logger, start time.Time, resourceLabels map[string]string, syncCallsError *prometheus.CounterVec) (ctrl.Result, error) {
+// reconcileGenericTarget handles reconciliation for generic targets (ConfigMaps, Custom Resources).
+func (r *Reconciler) reconcileGenericTarget(ctx context.Context, externalSecret *esv1.ExternalSecret, log logr.Logger, start time.Time, resourceLabels map[string]string, syncCallsError *prometheus.CounterVec) (ctrl.Result, error) {
 	// update the status of the ExternalSecret when this function returns, if needed
 	currentStatus := *externalSecret.Status.DeepCopy()
 	defer func() {
@@ -624,7 +624,7 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecre
 			}
 
 			// delete the resource if it exists
-			err = r.deleteNonSecretResource(ctx, log, externalSecret)
+			err = r.deleteGenericResource(ctx, log, externalSecret)
 			if err != nil {
 				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 				return ctrl.Result{}, err
@@ -657,7 +657,7 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecre
 
 	case esv1.CreatePolicyMerge:
 		// for Merge policy, only update if resource exists
-		existing, getErr := r.getNonSecretResource(ctx, log, externalSecret)
+		existing, getErr := r.getGenericResource(ctx, log, externalSecret)
 		if getErr != nil && !apierrors.IsNotFound(getErr) {
 			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 			return ctrl.Result{}, getErr
@@ -672,9 +672,9 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecre
 		obj.SetUID(existing.GetUID())
 
 		// update the existing resource
-		err = r.updateNonSecretResource(ctx, log, externalSecret, obj)
+		err = r.updateGenericResource(ctx, log, externalSecret, obj)
 	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner:
-		existing, getErr := r.getNonSecretResource(ctx, log, externalSecret)
+		existing, getErr := r.getGenericResource(ctx, log, externalSecret)
 		if getErr != nil && !apierrors.IsNotFound(getErr) {
 			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 			return ctrl.Result{}, getErr
@@ -683,9 +683,9 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecre
 		if existing != nil {
 			obj.SetResourceVersion(existing.GetResourceVersion())
 			obj.SetUID(existing.GetUID())
-			err = r.updateNonSecretResource(ctx, log, externalSecret, obj)
+			err = r.updateGenericResource(ctx, log, externalSecret, obj)
 		} else {
-			err = r.createNonSecretResource(ctx, log, externalSecret, obj)
+			err = r.createGenericResource(ctx, log, externalSecret, obj)
 		}
 	}
 
@@ -705,7 +705,7 @@ func (r *Reconciler) reconcileNonSecretTarget(ctx context.Context, externalSecre
 	esName := types.NamespacedName{Name: externalSecret.Name, Namespace: externalSecret.Namespace}
 	if _, err := r.informerManager.EnsureInformer(ctx, gvk, esName); err != nil {
 		// Log the error but don't fail reconciliation - the resource was successfully created/updated
-		log.Error(err, "failed to register informer for non-Secret target, drift detection may not work",
+		log.Error(err, "failed to register informer for generic target, drift detection may not work",
 			"group", gvk.Group,
 			"version", gvk.Version,
 			"kind", gvk.Kind)
@@ -788,9 +788,9 @@ func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger,
 		return nil
 	}
 
-	// if this is a non-Secret target, use deleteNonSecretResource
-	if isNonSecretTarget(externalSecret) {
-		return r.deleteNonSecretResource(ctx, log, externalSecret)
+	// if this is a generic target, use deleteGenericResource
+	if isGenericTarget(externalSecret) {
+		return r.deleteGenericResource(ctx, log, externalSecret)
 	}
 
 	// handle Secret deletion
@@ -1156,8 +1156,8 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
-	// Initialize informer manager only if non-Secret targets are allowed
-	if r.AllowNonSecretTargets && r.informerManager == nil {
+	// Initialize informer manager only if generic targets are allowed
+	if r.AllowGenericTargets && r.informerManager == nil {
 		r.informerManager = NewInformerManager(ctx, mgr.GetCache(), r.Client, r.Log.WithName("informer-manager"))
 	}
 
@@ -1165,8 +1165,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	// this lets us quickly find all ExternalSecrets which target a specific Secret
 	if err := mgr.GetFieldIndexer().IndexField(ctx, &esv1.ExternalSecret{}, indexESTargetSecretNameField, func(obj client.Object) []string {
 		es := obj.(*esv1.ExternalSecret)
-		// Don't index non-Secret targets here (they use indexESTargetResourceField)
-		if isNonSecretTarget(es) {
+		// Don't index generic targets here (they use indexESTargetResourceField)
+		if isGenericTarget(es) {
 			return nil
 		}
 		// if the target name is set, use that as the index
@@ -1180,10 +1180,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	// index ExternalSecrets based on the target resource (GVK + name)
-	// this lets us quickly find all ExternalSecrets which target a specific non-Secret resource
+	// this lets us quickly find all ExternalSecrets which target a specific generic resource
 	if err := mgr.GetFieldIndexer().IndexField(ctx, &esv1.ExternalSecret{}, indexESTargetResourceField, func(obj client.Object) []string {
 		es := obj.(*esv1.ExternalSecret)
-		if !r.AllowNonSecretTargets || !isNonSecretTarget(es) {
+		if !r.AllowGenericTargets || !isGenericTarget(es) {
 			return nil
 		}
 
@@ -1213,9 +1213,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, secretHasESLabel),
 		)
 
-	// Watch non-Secret targets dynamically via the informer manager
+	// Watch generic targets dynamically via the informer manager
 	// Only add this watch source if the feature is enabled
-	if r.AllowNonSecretTargets {
+	if r.AllowGenericTargets {
 		builder = builder.WatchesRawSource(r.informerManager.Source())
 	}
 

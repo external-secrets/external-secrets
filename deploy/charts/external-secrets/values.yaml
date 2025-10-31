@@ -102,12 +102,12 @@ processClusterGenerator: true
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
 
-# -- Enable support for non-Secret targets (ConfigMaps, Custom Resources).
-# Warning: Using non-Secret target. Make sure access policies and encryption are properly configured.
+# -- Enable support for generic targets (ConfigMaps, Custom Resources).
+# Warning: Using generic target. Make sure access policies and encryption are properly configured.
 # When enabled, this grants the controller permissions to create/update/delete
-# ConfigMaps and optionally other resource types specified in nonSecretTargets.resources.
-nonSecretTargets:
-  # -- Enable non-Secret target support
+# ConfigMaps and optionally other resource types specified in generic.resources.
+genericTargets:
+  # -- Enable generic target support
   enabled: false
   # -- List of additional resource types to grant permissions for.
   # Each entry should specify apiGroup, resources, and verbs.

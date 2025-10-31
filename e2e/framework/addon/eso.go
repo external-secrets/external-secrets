@@ -174,34 +174,34 @@ func WithCRDs() MutationFunc {
 	}
 }
 
-func WithAllowNonSecretTargets() MutationFunc {
+func WithAllowGenericTargets() MutationFunc {
 	return func(eso *ESO) {
 		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
-			Key:   "nonSecretTargets.enabled",
+			Key:   "genericTargets.enabled",
 			Value: "true",
 		}, StringTuple{
-			Key:   "nonSecretTargets.resources[0].apiGroup",
+			Key:   "genericTargets.resources[0].apiGroup",
 			Value: "",
 		}, StringTuple{
-			Key:   "nonSecretTargets.resources[0].resources[0]",
+			Key:   "genericTargets.resources[0].resources[0]",
 			Value: "configmaps",
 		}, StringTuple{
-			Key:   "nonSecretTargets.resources[0].verbs[0]",
+			Key:   "genericTargets.resources[0].verbs[0]",
 			Value: "create",
 		}, StringTuple{
-			Key:   "nonSecretTargets.resources[0].verbs[1]",
+			Key:   "genericTargets.resources[0].verbs[1]",
 			Value: "delete",
 		}, StringTuple{
-			Key:   "nonSecretTargets.resources[0].verbs[2]",
+			Key:   "genericTargets.resources[0].verbs[2]",
 			Value: "list",
 		}, StringTuple{
-			Key:   "nonSecretTargets.resources[0].verbs[3]",
+			Key:   "genericTargets.resources[0].verbs[3]",
 			Value: "get",
 		}, StringTuple{
-			Key:   "nonSecretTargets.resources[0].verbs[4]",
+			Key:   "genericTargets.resources[0].verbs[4]",
 			Value: "patch",
 		}, StringTuple{
-			Key:   "nonSecretTargets.resources[0].verbs[5]",
+			Key:   "genericTargets.resources[0].verbs[5]",
 			Value: "watch",
 		})
 	}

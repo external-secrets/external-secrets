@@ -72,14 +72,13 @@ func TestGetTargetResourceIndex(t *testing.T) {
 					},
 				},
 			},
-			expectedValues: nil, // Secrets don't get indexed for non-Secret resources
+			expectedValues: nil, // Secrets don't get indexed for generic resources
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Test the indexer function used in SetupWithManager
-			if !isNonSecretTarget(tt.es) {
+			if !isGenericTarget(tt.es) {
 				assert.Nil(t, tt.expectedValues)
 				return
 			}
