@@ -33,19 +33,19 @@ import (
 
 // Client implements the aws secretsmanager interface.
 type Client struct {
-	ExecutionCounter      int
-	valFn                 map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-	CreateSecretFn        CreateSecretFn
-	GetSecretValueFn      GetSecretValueFn
-	PutSecretValueFn      PutSecretValueFn
-	DescribeSecretFn      DescribeSecretFn
-	DeleteSecretFn        DeleteSecretFn
-	ListSecretsFn         ListSecretsFn
-	BatchGetSecretValueFn BatchGetSecretValueFn
-	TagResourceFn         TagResourceFn
-	UntagResourceFn       UntagResourceFn
-	PutResourcePolicyFn   PutResourcePolicyFn
-	GetResourcePolicyFn   GetResourcePolicyFn
+	ExecutionCounter       int
+	valFn                  map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	CreateSecretFn         CreateSecretFn
+	GetSecretValueFn       GetSecretValueFn
+	PutSecretValueFn       PutSecretValueFn
+	DescribeSecretFn       DescribeSecretFn
+	DeleteSecretFn         DeleteSecretFn
+	ListSecretsFn          ListSecretsFn
+	BatchGetSecretValueFn  BatchGetSecretValueFn
+	TagResourceFn          TagResourceFn
+	UntagResourceFn        UntagResourceFn
+	PutResourcePolicyFn    PutResourcePolicyFn
+	GetResourcePolicyFn    GetResourcePolicyFn
 	DeleteResourcePolicyFn DeleteResourcePolicyFn
 }
 type CreateSecretFn func(context.Context, *awssm.CreateSecretInput, ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
