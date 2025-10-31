@@ -251,6 +251,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// if this is a generic target, use a different reconciliation path
 	if isGenericTarget(externalSecret) {
+		// update the status of the ExternalSecret when this function returns, if needed
+		currentStatus := *externalSecret.Status.DeepCopy()
+		defer func() {
+			if equality.Semantic.DeepEqual(currentStatus, externalSecret.Status) {
+				return
+			}
+
+			updateErr := r.Status().Update(ctx, externalSecret)
+			if updateErr != nil && !apierrors.IsConflict(updateErr) {
+				log.Error(updateErr, logErrorUpdateESStatus)
+			}
+		}()
+
 		// validate generic target configuration early
 		if err := r.validateGenericTarget(log, externalSecret); err != nil {
 			r.markAsFailed("invalid generic target", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
@@ -591,19 +604,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 // reconcileGenericTarget handles reconciliation for generic targets (ConfigMaps, Custom Resources).
 func (r *Reconciler) reconcileGenericTarget(ctx context.Context, externalSecret *esv1.ExternalSecret, log logr.Logger, start time.Time, resourceLabels map[string]string, syncCallsError *prometheus.CounterVec) (ctrl.Result, error) {
-	// update the status of the ExternalSecret when this function returns, if needed
-	currentStatus := *externalSecret.Status.DeepCopy()
-	defer func() {
-		if equality.Semantic.DeepEqual(currentStatus, externalSecret.Status) {
-			return
-		}
-
-		updateErr := r.Status().Update(ctx, externalSecret)
-		if updateErr != nil && !apierrors.IsConflict(updateErr) {
-			log.Error(updateErr, logErrorUpdateESStatus)
-		}
-	}()
-
 	// retrieve the provider secret data
 	dataMap, err := r.GetProviderSecretData(ctx, externalSecret)
 	if err != nil {
