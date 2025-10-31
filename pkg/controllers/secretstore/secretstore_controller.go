@@ -36,7 +36,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 
 	// Loading registered providers.
-	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
+	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
 // StoreReconciler reconciles a SecretStore object.

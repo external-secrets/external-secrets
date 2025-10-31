@@ -29,13 +29,13 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
-	"github.com/external-secrets/external-secrets/pkg/esutils"
-	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/statemanager"
 
 	// Loading registered generators.
-	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
+	_ "github.com/external-secrets/external-secrets/pkg/register"
+	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
 // GetProviderSecretData returns the provider's secret data with the provided ExternalSecret.

@@ -39,7 +39,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
+	gcpsm "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
 )
 
 // nolint // Better to keep names consistent even if it stutters;
