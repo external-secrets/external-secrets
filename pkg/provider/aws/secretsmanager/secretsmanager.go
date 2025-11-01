@@ -57,11 +57,13 @@ type PushSecretMetadataSpec struct {
 	ResourcePolicy   *ResourcePolicySpec `json:"resourcePolicy,omitempty"`
 }
 
+// ResourcePolicySpec defines the resource policy configuration using PolicySourceRef for AWS Secrets Manager.
 type ResourcePolicySpec struct {
 	BlockPublicPolicy *bool            `json:"blockPublicPolicy,omitempty"`
 	PolicySourceRef   *PolicySourceRef `json:"policySourceRef,omitempty"`
 }
 
+// PolicySourceRef defines the source reference for the resource policy.
 type PolicySourceRef struct {
 	Kind string `json:"kind"`
 	Name string `json:"name"`
@@ -842,7 +844,7 @@ func (sm *SecretsManager) resolveResourcePolicy(ctx context.Context, policyRef *
 }
 
 // manageResourcePolicy applies or removes the resource policy based on metadata.
-func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *apiextensionsv1.JSON, secretId *string) error {
+func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string) error {
 	meta, err := sm.constructMetadataWithDefaults(metadata)
 	if err != nil {
 		return err
@@ -851,7 +853,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 	// Delete policy if policyRef is nil and the policy exists.
 	if meta.Spec.ResourcePolicy == nil {
 		deletePolicyInput := &awssm.DeleteResourcePolicyInput{
-			SecretId: secretId,
+			SecretId: secretID,
 		}
 		_, err = sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
 		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
@@ -871,7 +873,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 	}
 
 	getCurrentPolicyInput := &awssm.GetResourcePolicyInput{
-		SecretId: secretId,
+		SecretId: secretID,
 	}
 	currentPolicyOutput, err := sm.client.GetResourcePolicy(ctx, getCurrentPolicyInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetResourcePolicy, err)
@@ -904,7 +906,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 	}
 
 	putPolicyInput := &awssm.PutResourcePolicyInput{
-		SecretId:       secretId,
+		SecretId:       secretID,
 		ResourcePolicy: aws.String(policyJSON),
 	}
 	if meta.Spec.ResourcePolicy.BlockPublicPolicy != nil {

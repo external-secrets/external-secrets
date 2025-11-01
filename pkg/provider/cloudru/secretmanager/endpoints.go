@@ -43,7 +43,7 @@ func GetEndpoints(url string) (*EndpointsResponse, error) {
 	if url != EndpointsURI {
 		return nil, fmt.Errorf("invalid endpoints URL: expected %s, got %s", EndpointsURI, url)
 	}
-	
+
 	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("construct HTTP request for cloud.ru endpoints: %w", err)
