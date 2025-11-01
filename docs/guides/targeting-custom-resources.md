@@ -1,5 +1,9 @@
 # Targeting Custom Resources
 
+!!! warning "Maturity"
+    At the time of this writing (1.11.2025) this feature is in heavy alpha status. Please consider the following documentation with the limitations and guardrails
+    described below.
+
 External Secrets Operator can create and manage resources beyond Kubernetes Secrets. When you need to populate ConfigMaps or Custom Resource Definitions with secret data from your external provider, you can use the manifest target feature.
 
 !!! warning "Security Consideration"
@@ -9,6 +13,10 @@ This feature must be explicitly enabled in your deployment using the `--unsafe-a
 
 !!! note "Namespaced Resources Only"
     With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.
+
+!!! note "Performance"
+    Using generic targets or custom resources at the moment of this writing is ~20% slower than handling secrets due to certain missing features yet to be implemented.
+    We recommend not overusing this feature without too many objects until further performance improvement are implemented.
 
 ## Basic ConfigMap Example
 
