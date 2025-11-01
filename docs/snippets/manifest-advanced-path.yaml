@@ -1,0 +1,43 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: custom-resource-config
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  target:
+    name: app-settings
+    manifest:
+      apiVersion: config.example.com/v1
+      kind: AppConfig
+    template:
+      engineVersion: v2
+      templateFrom:
+      - literal: |
+          host: {{ .dbHost }}
+          port: {{ .dbPort }}
+          credentials:
+            username: {{ .dbUser }}
+            password: {{ .dbPassword }}
+        target: spec.database
+      - literal: |
+          level: info
+          format: json
+        target: spec.logging
+  data:
+  - secretKey: dbHost
+    remoteRef:
+      key: database/host
+  - secretKey: dbPort
+    remoteRef:
+      key: database/port
+  - secretKey: dbUser
+    remoteRef:
+      key: database/username
+  - secretKey: dbPassword
+    remoteRef:
+      key: database/password
+{% endraw %}

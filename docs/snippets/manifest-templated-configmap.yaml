@@ -1,0 +1,34 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: templated-config
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  target:
+    name: database-config
+    manifest:
+      apiVersion: v1
+      kind: ConfigMap
+    template:
+      engineVersion: v2
+      data:
+        database.yaml: |
+          host: {{ .dbHost }}
+          port: 5432
+          database: {{ .dbName }}
+          connection_string: "postgresql://user:{{ .dbPassword }}@{{ .dbHost }}:5432/{{ .dbName }}"
+  data:
+  - secretKey: dbHost
+    remoteRef:
+      key: database/hostname
+  - secretKey: dbName
+    remoteRef:
+      key: database/name
+  - secretKey: dbPassword
+    remoteRef:
+      key: database/password
+{% endraw %}
