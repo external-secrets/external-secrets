@@ -33,6 +33,7 @@ const (
 )
 
 func filterPEM(pemType, input string) (string, error) {
+	input = trimJunk(input)
 	data := []byte(input)
 	var blocks []byte
 	var block *pem.Block
@@ -61,6 +62,17 @@ func filterPEM(pemType, input string) (string, error) {
 	}
 
 	return string(blocks), nil
+}
+
+// trimJunk performs the same operation pem.Decode did until:
+// https://github.com/golang/go/issues/76124
+func trimJunk(input string) string {
+	index := strings.Index(input, "-----BEGIN")
+	if index == -1 {
+		return input
+	}
+
+	return input[index:]
 }
 
 func filterCertChain(certType, input string) (string, error) {
