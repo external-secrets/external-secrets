@@ -5272,7 +5272,7 @@ GCPWorkloadIdentityFederation
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
-<a href="#external-secrets.io/v1.VaultGcpAuth">VaultGcpAuth</a>)
+<a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
 <p>GCPSMAuthSecretRef contains the secret references for GCP Secret Manager authentication.</p>
@@ -5379,7 +5379,7 @@ Possible values are:
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
-<a href="#external-secrets.io/v1.VaultGcpAuth">VaultGcpAuth</a>)
+<a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
 <p>GCPWorkloadIdentity defines configuration for workload identity authentication to GCP.</p>
@@ -10315,7 +10315,7 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code>, <code>cert</code>, <code>iam</code> or <code>gcp</code>
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
 can be specified. A namespace to authenticate against can optionally be specified.</p>
 </p>
 <table>
@@ -10464,8 +10464,8 @@ VaultUserPassAuth
 <td>
 <code>gcp</code></br>
 <em>
-<a href="#external-secrets.io/v1.VaultGcpAuth">
-VaultGcpAuth
+<a href="#external-secrets.io/v1.VaultGCPAuth">
+VaultGCPAuth
 </a>
 </em>
 </td>
@@ -10765,17 +10765,14 @@ If no key for the Secret is specified, external-secret will default to &lsquo;tl
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.VaultGcpAuth">VaultGcpAuth
+<h3 id="external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth
 </h3>
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.VaultAuth">VaultAuth</a>)
 </p>
 <p>
-<p>VaultGcpAuth authenticates with Vault using Google Cloud Platform authentication method.
-Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/gcp">https://developer.hashicorp.com/vault/docs/auth/gcp</a></p>
-<p>When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod&rsquo;s
-identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.</p>
+<p>VaultGCPAuth authenticates with Vault using the GCP auth method.</p>
 </p>
 <table>
 <thead>
@@ -10805,7 +10802,7 @@ string
 </em>
 </td>
 <td>
-<p>Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine</p>
+<p>Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.</p>
 </td>
 </tr>
 <tr>
