@@ -772,6 +772,8 @@ github.com/hashicorp/vault/api/auth/approle v0.11.0 h1:ViUvgqoSTqHkMi1L1Rr/LnQ+P
 github.com/hashicorp/vault/api/auth/approle v0.11.0/go.mod h1:v8ZqBRw+GP264ikIw2sEBKF0VT72MEhLWnZqWt3xEG8=
 github.com/hashicorp/vault/api/auth/aws v0.11.0 h1:lWdUxrzvPotg6idNr62al4w97BgI9xTDdzMCTViNH2s=
 github.com/hashicorp/vault/api/auth/aws v0.11.0/go.mod h1:PWqdH/xqaudapmnnGP9ip2xbxT/kRW2qEgpqiQff6Gc=
+github.com/hashicorp/vault/api/auth/gcp v0.11.0 h1:BSK+2Ji2OGSzM4pRVY7boa+2qPW8uiWZAYOrrt0XcJM=
+github.com/hashicorp/vault/api/auth/gcp v0.11.0/go.mod h1:EbW5XSmkdUiWsSAYV33TbDR2zVi8QTo29LAfPByFhag=
 github.com/hashicorp/vault/api/auth/kubernetes v0.10.0 h1:5rqWmUFxnu3S7XYq9dafURwBgabYDFzo2Wv+AMopPHs=
 github.com/hashicorp/vault/api/auth/kubernetes v0.10.0/go.mod h1:cZZmhF6xboMDmDbMY52oj2DKW6gS0cQ9g0pJ5XIXQ5U=
 github.com/hashicorp/vault/api/auth/ldap v0.11.0 h1:jd6gJXeFR4jyDbAh6R4RoW1uq6kmTt7M/vjW41jXczA=

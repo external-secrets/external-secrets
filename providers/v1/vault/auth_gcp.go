@@ -26,9 +26,9 @@ import (
 	"golang.org/x/oauth2/google"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/constants"
-	"github.com/external-secrets/external-secrets/pkg/metrics"
-	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
+	gcpsm "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
+	"github.com/external-secrets/external-secrets/runtime/constants"
+	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
 const (

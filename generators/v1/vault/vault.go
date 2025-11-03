@@ -32,9 +32,9 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	provider "github.com/external-secrets/external-secrets/providers/v1/vault"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 // Generator implements credential generation using HashiCorp Vault's dynamic secrets.
@@ -168,7 +168,6 @@ func parseSpec(data []byte) (*genv1alpha1.VaultDynamicSecret, error) {
 	err := yaml.Unmarshal(data, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

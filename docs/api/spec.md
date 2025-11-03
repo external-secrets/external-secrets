@@ -10315,7 +10315,7 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code>, <code>cert</code>, <code>iam</code> or <code>gcp</code>
 can be specified. A namespace to authenticate against can optionally be specified.</p>
 </p>
 <table>
@@ -10772,7 +10772,10 @@ If no key for the Secret is specified, external-secret will default to &lsquo;tl
 <a href="#external-secrets.io/v1.VaultAuth">VaultAuth</a>)
 </p>
 <p>
-<p>VaultGCPAuth authenticates with Vault using the GCP auth method.</p>
+<p>VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
+Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/gcp">https://developer.hashicorp.com/vault/docs/auth/gcp</a></p>
+<p>When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod&rsquo;s
+identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.</p>
 </p>
 <table>
 <thead>
@@ -11299,8 +11302,7 @@ method</p>
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>VaultProvider configures a store to sync secrets using a HashiCorp Vault
-KV backend.</p>
+<p>VaultProvider configures a store to sync secrets using a Hashicorp Vault KV backend.</p>
 </p>
 <table>
 <thead>

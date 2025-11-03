@@ -147,7 +147,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251103072335-a9b233b6936f
+	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251104073127-4d2c8fd13e10
 	github.com/external-secrets/external-secrets/providers/v1/github v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/gitlab v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/ibm v0.0.0-20251103072335-a9b233b6936f
@@ -311,6 +311,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/hashicorp/vault/api/auth/aws v0.11.0 // indirect
+	github.com/hashicorp/vault/api/auth/gcp v0.11.0 // indirect
 	github.com/hashicorp/vault/api/auth/userpass v0.11.0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/infisical/go-sdk v0.5.100 // indirect
