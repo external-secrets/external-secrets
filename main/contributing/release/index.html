@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#release-eso" class="md-skip">
+        <a href="#multi-module-versioning" class="md-skip">
           Skip to content
         </a>
       
@@ -3732,6 +3732,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#multi-module-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-Module Versioning
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#release-eso" class="md-nav__link">
     <span class="md-ellipsis">
       Release ESO
@@ -4043,6 +4052,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#multi-module-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-Module Versioning
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#release-eso" class="md-nav__link">
     <span class="md-ellipsis">
       Release ESO
@@ -4083,6 +4101,22 @@
 
 <p>ESO and the ESO Helm Chart have two distinct lifecycles and can be released independently. Helm Chart releases are named <code>external-secrets-x.y.z</code>.</p>
 <p>The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release.</p>
+<h2 id="multi-module-versioning">Multi-Module Versioning</h2>
+<p>External Secrets Operator uses a multi-module structure with the following modules:
+- <code>/apis</code> - CRD types and interfaces
+- <code>/runtime</code> - Shared utilities
+- <code>/providers/v1/*</code> - Individual provider modules
+- <code>/generators/v1/*</code> - Individual generator modules
+- <code>/</code> (root) - Main module with controllers and binary</p>
+<p><strong>All modules share the same version tag.</strong> When releasing version <code>v0.x.y</code>, a single git tag is created that applies to all modules in the repository. Go's module system automatically handles this, and consumers can reference any module using the same version tag.</p>
+<p>For example:
+<div class="highlight"><pre><span></span><code><span class="nx">require</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">github</span><span class="p">.</span><span class="nx">com</span><span class="o">/</span><span class="nx">external</span><span class="o">-</span><span class="nx">secrets</span><span class="o">/</span><span class="nx">external</span><span class="o">-</span><span class="nx">secrets</span><span class="o">/</span><span class="nx">apis</span><span class="w"> </span><span class="nx">v0</span><span class="mf">.10.0</span>
+<span class="w">    </span><span class="nx">github</span><span class="p">.</span><span class="nx">com</span><span class="o">/</span><span class="nx">external</span><span class="o">-</span><span class="nx">secrets</span><span class="o">/</span><span class="nx">external</span><span class="o">-</span><span class="nx">secrets</span><span class="o">/</span><span class="nx">runtime</span><span class="w"> </span><span class="nx">v0</span><span class="mf">.10.0</span>
+<span class="w">    </span><span class="nx">github</span><span class="p">.</span><span class="nx">com</span><span class="o">/</span><span class="nx">external</span><span class="o">-</span><span class="nx">secrets</span><span class="o">/</span><span class="nx">external</span><span class="o">-</span><span class="nx">secrets</span><span class="o">/</span><span class="nx">providers</span><span class="o">/</span><span class="nx">v1</span><span class="o">/</span><span class="nx">aws</span><span class="w"> </span><span class="nx">v0</span><span class="mf">.10.0</span>
+<span class="p">)</span>
+</code></pre></div></p>
+<p><strong>Important:</strong> When updating dependencies that consume ESO modules, ensure all module references use the same version to maintain compatibility.</p>
 <h2 id="release-eso">Release ESO</h2>
 <p>When doing a release it's best to start with  with the <a href="https://github.com/external-secrets/external-secrets/issues/new?assignees=&amp;labels=area%2Frelease&amp;projects=&amp;template=create_release.md&amp;title=Release+x.y">"Create Release" issue template</a>, it has a checklist to go over.</p>
 <p>⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
