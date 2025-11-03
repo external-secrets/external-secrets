@@ -1,0 +1,74 @@
+/*
+Copyright © 2025 ESO Maintainer Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package {{.PackageName}} provides functionality for {{.Description}}.
+package {{.PackageName}}
+
+import (
+	"context"
+	"fmt"
+
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+)
+
+// Generator implements {{.Description}} functionality.
+type Generator struct{}
+
+// Generate creates the output for this generator.
+func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	if jsonSpec == nil {
+		return nil, nil, fmt.Errorf("no spec provided")
+	}
+
+	spec, err := parseSpec(jsonSpec.Raw)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse spec: %w", err)
+	}
+
+	// TODO: Implement your generator logic here
+	_ = spec
+
+	// Example return - replace with your actual implementation
+	return map[string][]byte{
+		"result": []byte("TODO: implement {{.PackageName}} generator"),
+	}, nil, nil
+}
+
+// Cleanup performs any necessary cleanup after generation.
+func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+	// TODO: Implement cleanup if needed
+	return nil
+}
+
+func parseSpec(data []byte) (*genv1alpha1.{{.GeneratorName}}, error) {
+	var spec genv1alpha1.{{.GeneratorName}}
+	err := yaml.Unmarshal(data, &spec)
+	return &spec, err
+}
+
+// NewGenerator creates a new Generator instance.
+func NewGenerator() genv1alpha1.Generator {
+	return &Generator{}
+}
+
+// Kind returns the generator kind.
+func Kind() string {
+	return string(genv1alpha1.{{.GeneratorKind}})
+}
