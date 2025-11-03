@@ -108,7 +108,7 @@ func createGeneratorCRD(rootDir string, cfg Config) error {
 
 func createGeneratorImplementation(rootDir string, cfg Config) error {
 	genDir := filepath.Join(rootDir, "generators", "v1", cfg.PackageName)
-	if err := os.MkdirAll(genDir, 0750); err != nil {
+	if err := os.MkdirAll(genDir, 0o750); err != nil {
 		return err
 	}
 
@@ -139,7 +139,7 @@ func createGeneratorImplementation(rootDir string, cfg Config) error {
 
 	// Create empty go.sum
 	goSumFile := filepath.Join(genDir, "go.sum")
-	if err := os.WriteFile(goSumFile, []byte(""), 0600); err != nil {
+	if err := os.WriteFile(goSumFile, []byte(""), 0o600); err != nil {
 		return err
 	}
 	fmt.Printf("✓ Created go.sum: %s\n", goSumFile)
@@ -216,7 +216,7 @@ func updateRegisterFile(rootDir string, cfg Config) error {
 		return fmt.Errorf("failed to add import or register call to %s", registerFile)
 	}
 
-	if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0600); err != nil {
+	if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
 		return err
 	}
 
@@ -300,7 +300,7 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 				cfg.GeneratorName, cfg.GeneratorName, strings.ToLower(cfg.GeneratorName))
 		}
 	} else {
-		if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0600); err != nil {
+		if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
 			return err
 		}
 		fmt.Printf("✓ Updated types_cluster.go\n")
@@ -362,7 +362,7 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 		return fmt.Errorf("could not find appropriate position to insert replace directive")
 	}
 
-	if err := os.WriteFile(filepath.Clean(goModFile), []byte(strings.Join(newLines, "\n")), 0600); err != nil {
+	if err := os.WriteFile(filepath.Clean(goModFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
 		return err
 	}
 
@@ -437,7 +437,7 @@ func updateResolverFile(rootDir string, cfg Config) error {
 		return fmt.Errorf("could not find default case in resolver file")
 	}
 
-	if err := os.WriteFile(filepath.Clean(resolverFile), []byte(strings.Join(newLines, "\n")), 0600); err != nil {
+	if err := os.WriteFile(filepath.Clean(resolverFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
 		return err
 	}
 
@@ -503,7 +503,7 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 			fmt.Printf("   2. Add SchemeBuilder registration: SchemeBuilder.Register(&%s{}, &%sList{})\n", cfg.GeneratorName, cfg.GeneratorName)
 		}
 	} else {
-		if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0600); err != nil {
+		if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
 			return err
 		}
 		fmt.Printf("✓ Updated register.go\n")
