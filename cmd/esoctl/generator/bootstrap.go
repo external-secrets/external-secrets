@@ -69,6 +69,11 @@ func Bootstrap(rootDir string, cfg Config) error {
 		return fmt.Errorf("failed to update resolver file: %w", err)
 	}
 
+	// Update register kind file
+	if err := updateRegisterKindFile(rootDir, cfg); err != nil {
+		return fmt.Errorf("failed to update register kind file: %w", err)
+	}
+
 	return nil
 }
 
@@ -239,6 +244,7 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 	newLines := make([]string, 0, len(lines)+2)
 	enumAdded := false
 	constAdded := false
+	specAdded := false
 
 	for i, line := range lines {
 		// Update the enum validation annotation
@@ -266,12 +272,33 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 				constAdded = true
 			}
 		}
+
+		// Add spec field to GeneratorSpec struct
+		if !specAdded && strings.Contains(line, "Spec") && strings.Contains(line, "`json:") && strings.Contains(line, "omitempty") {
+			// Look ahead to check if next line is closing brace of the struct
+			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "}" {
+				// Add the new spec field
+				jsonTag := strings.ToLower(cfg.GeneratorName) + "Spec"
+				specLine := fmt.Sprintf("\t%sSpec             *%sSpec             `json:\"%s,omitempty\"`",
+					cfg.GeneratorName, cfg.GeneratorName, jsonTag)
+				newLines = append(newLines, specLine)
+				specAdded = true
+			}
+		}
 	}
 
-	if !enumAdded || !constAdded {
+	if !enumAdded || !constAdded || !specAdded {
 		fmt.Printf("⚠ Warning: Could not fully update types_cluster.go. Please manually add:\n")
-		fmt.Printf("   1. Add '%s' to the kubebuilder:validation:Enum annotation\n", cfg.GeneratorName)
-		fmt.Printf("   2. Add the const: %s GeneratorKind = \"%s\"\n", cfg.GeneratorKind, cfg.GeneratorName)
+		if !enumAdded {
+			fmt.Printf("   1. Add '%s' to the kubebuilder:validation:Enum annotation\n", cfg.GeneratorName)
+		}
+		if !constAdded {
+			fmt.Printf("   2. Add the const: %s GeneratorKind = \"%s\"\n", cfg.GeneratorKind, cfg.GeneratorName)
+		}
+		if !specAdded {
+			fmt.Printf("   3. Add to GeneratorSpec struct: %sSpec *%sSpec `json:\"%sSpec,omitempty\"`\n",
+				cfg.GeneratorName, cfg.GeneratorName, strings.ToLower(cfg.GeneratorName))
+		}
 	} else {
 		if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0600); err != nil {
 			return err
@@ -415,5 +442,72 @@ func updateResolverFile(rootDir string, cfg Config) error {
 	}
 
 	fmt.Printf("✓ Updated resolver file: %s\n", resolverFile)
+	return nil
+}
+
+func updateRegisterKindFile(rootDir string, cfg Config) error {
+	registerFile := filepath.Join(rootDir, "apis", "generators", "v1alpha1", "register.go")
+
+	data, err := os.ReadFile(filepath.Clean(registerFile))
+	if err != nil {
+		return err
+	}
+
+	content := string(data)
+
+	// Check if already exists
+	if strings.Contains(content, fmt.Sprintf("%sKind", cfg.GeneratorName)) {
+		fmt.Printf("⚠ Generator kind already exists in register.go\n")
+		return nil
+	}
+
+	lines := strings.Split(content, "\n")
+	newLines := make([]string, 0, len(lines)+4)
+	kindAdded := false
+	schemeAdded := false
+
+	for i, line := range lines {
+		newLines = append(newLines, line)
+
+		// Add Kind constant before closing paren of var block
+		if !kindAdded && strings.Contains(line, "Kind = reflect.TypeOf(") && strings.Contains(line, "{}).Name()") {
+			// Look ahead to see if next line is closing paren
+			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == ")" {
+				// Add blank line and then the new kind
+				newLines = append(newLines, "")
+				kindComment := fmt.Sprintf("\t// %sKind is the kind name for %s resource.", cfg.GeneratorName, cfg.GeneratorName)
+				newLines = append(newLines, kindComment)
+				kindLine := fmt.Sprintf("\t%sKind = reflect.TypeOf(%s{}).Name()", cfg.GeneratorName, cfg.GeneratorName)
+				newLines = append(newLines, kindLine)
+				kindAdded = true
+			}
+		}
+
+		// Add SchemeBuilder.Register call before closing brace of init function
+		if !schemeAdded && strings.Contains(line, "SchemeBuilder.Register(&") && strings.Contains(line, "List{})") {
+			// Look ahead to see if next line is closing brace
+			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "}" {
+				registerLine := fmt.Sprintf("\tSchemeBuilder.Register(&%s{}, &%sList{})", cfg.GeneratorName, cfg.GeneratorName)
+				newLines = append(newLines, registerLine)
+				schemeAdded = true
+			}
+		}
+	}
+
+	if !kindAdded || !schemeAdded {
+		fmt.Printf("⚠ Warning: Could not fully update register.go. Please manually add:\n")
+		if !kindAdded {
+			fmt.Printf("   1. Add Kind constant: %sKind = reflect.TypeOf(%s{}).Name()\n", cfg.GeneratorName, cfg.GeneratorName)
+		}
+		if !schemeAdded {
+			fmt.Printf("   2. Add SchemeBuilder registration: SchemeBuilder.Register(&%s{}, &%sList{})\n", cfg.GeneratorName, cfg.GeneratorName)
+		}
+	} else {
+		if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0600); err != nil {
+			return err
+		}
+		fmt.Printf("✓ Updated register.go\n")
+	}
+
 	return nil
 }
