@@ -1,5 +1,5 @@
 # set the shell to bash always
-SHELL         := /bin/bash
+SHELL         := /usr/bin/env bash
 
 # set make and shell flags to exit on errors
 MAKEFLAGS     += --warn-undefined-variables
