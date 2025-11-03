@@ -20,14 +20,14 @@ package template
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v2 "github.com/external-secrets/external-secrets/runtime/template/v2"
 )
 
 // ExecFunc is the function signature type for executing a template engine.
-type ExecFunc func(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error
+type ExecFunc func(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object) error
 
 // EngineForVersion returns the appropriate template engine for the given version.
 func EngineForVersion(version esapi.TemplateEngineVersion) (ExecFunc, error) {
