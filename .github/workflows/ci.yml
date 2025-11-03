@@ -61,7 +61,45 @@ jobs:
         env:
           BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'HEAD~1' }}
         run: |
-          MODULES=$(./hack/detect-changed-modules.sh)
+          # This script detects which Go modules have changed files
+          # and outputs them as a JSON array for GitHub Actions matrix
+
+          # Get the base ref for comparison (default to HEAD~1 if not provided)
+          BASE_REF="${BASE_REF:-HEAD~1}"
+
+          # Find all go.mod files (excluding e2e, vendor, node_modules)
+          ALL_MODULES=$(find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/node_modules/*" -exec dirname {} \;)
+
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only "$BASE_REF" HEAD)
+
+          # Determine which modules have changes
+          CHANGED_MODULES=""
+          for module in $ALL_MODULES; do
+            # Check if any changed file is in this module's directory
+            if echo "$CHANGED_FILES" | grep -q "^${module#./}"; then
+              if [ -z "$CHANGED_MODULES" ]; then
+                CHANGED_MODULES="\"$module\""
+              else
+                CHANGED_MODULES="$CHANGED_MODULES,\"$module\""
+              fi
+            fi
+          done
+
+          # If no specific modules changed, lint all modules
+          if [ -z "$CHANGED_MODULES" ]; then
+            for module in $ALL_MODULES; do
+              if [ -z "$CHANGED_MODULES" ]; then
+                CHANGED_MODULES="\"$module\""
+              else
+                CHANGED_MODULES="$CHANGED_MODULES,\"$module\""
+              fi
+            done
+          fi
+
+          # Output as JSON array for matrix
+          echo "[$CHANGED_MODULES]"
+
           echo "modules=$MODULES" >> $GITHUB_OUTPUT
           echo "has-changes=true" >> $GITHUB_OUTPUT
 
