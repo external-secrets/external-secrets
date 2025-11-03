@@ -85,11 +85,8 @@ check-diff: reviewable ## Ensure branch is clean.
 	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
 	@$(OK) branch is clean
 
-update-deps:
-	go get -u
-	cd e2e && go get -u
-	@go mod tidy
-	@cd e2e/ && go mod tidy
+update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e, providers, generators)
+	@./hack/update-deps.sh
 
 .PHONY: license.check
 license.check:
