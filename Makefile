@@ -75,6 +75,10 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
+	@cd apis/ && go mod tidy
+	@cd runtime/ && go mod tidy
+	@for provider in providers/v1/*/; do (cd $$provider && go mod tidy); done
+	@for generator in generators/v1/*/; do (cd $$generator && go mod tidy); done
 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean

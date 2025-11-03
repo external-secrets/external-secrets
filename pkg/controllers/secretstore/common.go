@@ -37,7 +37,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
 
 	// Load registered providers.
-	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
+	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
 const (
