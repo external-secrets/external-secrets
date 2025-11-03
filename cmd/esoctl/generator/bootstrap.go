@@ -64,6 +64,11 @@ func Bootstrap(rootDir string, cfg Config) error {
 		return fmt.Errorf("failed to update main go.mod: %w", err)
 	}
 
+	// Update resolver file
+	if err := updateResolverFile(rootDir, cfg); err != nil {
+		return fmt.Errorf("failed to update resolver file: %w", err)
+	}
+
 	return nil
 }
 
@@ -354,4 +359,61 @@ func extractGeneratorPackage(line string) string {
 		lastPart = lastPart[:idx]
 	}
 	return strings.TrimSpace(lastPart)
+}
+
+func updateResolverFile(rootDir string, cfg Config) error {
+	resolverFile := filepath.Join(rootDir, "runtime", "esutils", "resolvers", "generator.go")
+
+	data, err := os.ReadFile(filepath.Clean(resolverFile))
+	if err != nil {
+		return err
+	}
+
+	content := string(data)
+
+	// Check if already exists
+	if strings.Contains(content, fmt.Sprintf("GeneratorKind%s", cfg.GeneratorName)) {
+		fmt.Printf("⚠ Generator already exists in resolver file\n")
+		return nil
+	}
+
+	// Create the case statement to add
+	caseBlock := fmt.Sprintf(`	case genv1alpha1.GeneratorKind%s:
+		if gen.Spec.Generator.%sSpec == nil {
+			return nil, fmt.Errorf("when kind is %%s, %sSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.%s{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.%sKind,
+			},
+			Spec: *gen.Spec.Generator.%sSpec,
+		}, nil`,
+		cfg.GeneratorName, cfg.GeneratorName, cfg.GeneratorName,
+		cfg.GeneratorName, cfg.GeneratorName, cfg.GeneratorName)
+
+	lines := strings.Split(content, "\n")
+	newLines := make([]string, 0, len(lines)+10)
+	added := false
+
+	for _, line := range lines {
+		// Find the default case and add before it
+		if !added && strings.TrimSpace(line) == "default:" {
+			newLines = append(newLines, caseBlock)
+			added = true
+		}
+
+		newLines = append(newLines, line)
+	}
+
+	if !added {
+		return fmt.Errorf("could not find default case in resolver file")
+	}
+
+	if err := os.WriteFile(filepath.Clean(resolverFile), []byte(strings.Join(newLines, "\n")), 0600); err != nil {
+		return err
+	}
+
+	fmt.Printf("✓ Updated resolver file: %s\n", resolverFile)
+	return nil
 }
