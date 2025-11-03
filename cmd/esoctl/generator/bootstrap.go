@@ -311,12 +311,6 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 		}
 
 		newLines = append(newLines, line)
-
-		// If we haven't added yet and this is the last generator line before providers
-		if !added && strings.Contains(line, "github.com/external-secrets/external-secrets/generators/v1/") {
-			// Check if next would be a provider or end of replace block
-			// We'll add after the last generator
-		}
 	}
 
 	// If still not added, it means our package comes after all existing generators
