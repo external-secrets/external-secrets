@@ -36,7 +36,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/certificatemanager/client"
-	"github.com/external-secrets/external-secrets/providers/v1/yandex/common"
+	ydxcommon "github.com/external-secrets/external-secrets/providers/v1/yandex/common"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/common/clock"
 )
 
@@ -70,6 +70,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 	}
+	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
 	provider, err := esv1.GetProvider(store)
 	tassert.Nil(t, err)
 
