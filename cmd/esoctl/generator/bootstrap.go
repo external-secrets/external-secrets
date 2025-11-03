@@ -298,22 +298,33 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 	lines := strings.Split(content, "\n")
 	newLines := make([]string, 0, len(lines)+1)
 	added := false
+	lastGeneratorIdx := -1
 
-	for _, line := range lines {
-		// Find the correct position to insert (alphabetically after other generators)
-		if !added && strings.Contains(line, "github.com/external-secrets/external-secrets/generators/v1/") {
+	// First pass: find where to insert
+	for i, line := range lines {
+		if strings.Contains(line, "github.com/external-secrets/external-secrets/generators/v1/") {
+			lastGeneratorIdx = i
 			// Extract the package name from the current line
 			currentPkg := extractGeneratorPackage(line)
-			if currentPkg != "" && cfg.PackageName < currentPkg {
+			if currentPkg != "" && cfg.PackageName < currentPkg && !added {
+				// Insert before this line (alphabetically)
 				newLines = append(newLines, replaceLine)
 				added = true
 			}
 		}
 
 		newLines = append(newLines, line)
+
+		// If this was the last generator and we haven't added yet, add after it
+		if i == lastGeneratorIdx && !added && lastGeneratorIdx != -1 {
+			// Check if next line is NOT a generator (meaning this is the last one)
+			if i+1 >= len(lines) || !strings.Contains(lines[i+1], "github.com/external-secrets/external-secrets/generators/v1/") {
+				newLines = append(newLines, replaceLine)
+				added = true
+			}
+		}
 	}
 
-	// If still not added, it means our package comes after all existing generators
 	// This shouldn't happen in practice but handle it
 	if !added {
 		return fmt.Errorf("could not find appropriate position to insert replace directive")
