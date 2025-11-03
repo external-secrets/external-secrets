@@ -101,7 +101,7 @@ jobs:
           echo "[$CHANGED_MODULES]"
 
           echo "modules=$MODULES" >> $GITHUB_OUTPUT
-          echo "has-changes=true" >> $GITHUB_OUTPUT
+          echo "has-changes='true'" >> $GITHUB_OUTPUT
 
   lint:
     permissions:
