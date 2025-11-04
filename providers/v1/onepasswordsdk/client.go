@@ -380,14 +380,9 @@ func (p *Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (
 	return false, fmt.Errorf("not implemented")
 }
 
-// Validate checks if the client is configured correctly
-// currently only checks if it is possible to list vaults.
+// Validate does nothing here. It would be possible to ping the SDK to prove we're healthy, but
+// since the 1password SDK rate-limit is pretty aggressive, we prefer to do nothing.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
-	_, err := p.client.Vaults().List(context.Background())
-	if err != nil {
-		return esv1.ValidationResultError, fmt.Errorf("error listing vaults: %w", err)
-	}
-
 	return esv1.ValidationResultReady, nil
 }
 
