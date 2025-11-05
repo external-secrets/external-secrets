@@ -230,7 +230,7 @@ What needs protection:
 - ⚠️ Rate limiting on certificate generation (not yet implemented)
 - ⚠️ RBAC limits who can create services with eso-provider label
 - ⚠️ Monitoring and alerting on certificate generation rate
-- ⚠️ Resource quotas on ESO Core pod
+- ✅ Certificate creation is managed by a separate pod. Core ESO day-to-day operations will not be impacted.
 
 **Residual Risk:** Medium
 
