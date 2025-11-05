@@ -74,6 +74,11 @@ func Bootstrap(rootDir string, cfg Config) error {
 		return fmt.Errorf("failed to update register kind file: %w", err)
 	}
 
+	// Update ExternalSecret GeneratorRef validation
+	if err := updateExternalSecretGeneratorRef(rootDir, cfg); err != nil {
+		return fmt.Errorf("failed to update ExternalSecret GeneratorRef: %w", err)
+	}
+
 	return nil
 }
 
@@ -508,6 +513,58 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 		}
 		fmt.Printf("✓ Updated register.go\n")
 	}
+
+	return nil
+}
+
+func updateExternalSecretGeneratorRef(rootDir string, cfg Config) error {
+	// Update v1 ExternalSecret types
+	externalSecretFile := filepath.Join(rootDir, "apis", "externalsecrets", "v1", "externalsecret_types.go")
+
+	data, err := os.ReadFile(filepath.Clean(externalSecretFile))
+	if err != nil {
+		return fmt.Errorf("failed to read v1 externalsecret_types.go: %w", err)
+	}
+
+	content := string(data)
+
+	// Check if already exists
+	if strings.Contains(content, ";"+cfg.GeneratorName) {
+		fmt.Printf("⚠ Generator %s already exists in v1 GeneratorRef enum\n", cfg.GeneratorName)
+		return nil
+	}
+
+	lines := strings.Split(content, "\n")
+	newLines := make([]string, 0, len(lines))
+	updated := false
+
+	for _, line := range lines {
+		// Look for the GeneratorRef Kind enum validation line
+		// Pattern: // +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;...
+		if !updated && strings.Contains(line, "+kubebuilder:validation:Enum=") &&
+			strings.Contains(line, "ACRAccessToken") &&
+			strings.Contains(line, "ClusterGenerator") {
+			// This is the enum line we need to update
+			// Add the new generator to the end of the enum list
+			line = strings.TrimRight(line, "\n")
+			line = line + ";" + cfg.GeneratorName
+			updated = true
+		}
+
+		newLines = append(newLines, line)
+	}
+
+	if !updated {
+		fmt.Printf("⚠ Warning: Could not find GeneratorRef Kind enum in v1. Please manually add '%s' to the enum.\n",
+			cfg.GeneratorName)
+		return nil
+	}
+
+	if err := os.WriteFile(filepath.Clean(externalSecretFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
+		return fmt.Errorf("failed to write v1 externalsecret_types.go: %w", err)
+	}
+
+	fmt.Printf("✓ Updated v1 ExternalSecret GeneratorRef enum\n")
 
 	return nil
 }
