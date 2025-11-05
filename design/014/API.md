@@ -1,8 +1,10 @@
 # API Design for Out-of-Process Providers
 
-## Decision
+## Problem Description
 
-How should ExternalSecret and PushSecret resources reference out-of-process providers?
+How should `ExternalSecret` and `PushSecret` resources reference out-of-process providers?
+
+How would the equivalent of `ClusterSecretStore` look like?
 
 ## Context
 
@@ -119,13 +121,13 @@ ESO Core discovers services by:
 
 ## Trade-offs
 
-| Aspect | Option 1: Indirection | Option 2: Direct Reference |
-|--------|----------------------|----------------------------|
-| User Experience | More complex | Simpler |
-| Implementation | Less boilerplate | More boilerplate |
-| Extensibility | Centralized common fields | Duplicated fields |
-| Service Discovery | Explicit | Convention-based |
-| Maintenance | Single controller pattern | Multiple cluster-scoped controllers |
+| Aspect            | Option 1: Indirection     | Option 2: Direct Reference          |
+| ----------------- | ------------------------- | ----------------------------------- |
+| User Experience   | More complex              | Simpler                             |
+| Implementation    | Less boilerplate          | More boilerplate                    |
+| Extensibility     | Centralized common fields | Duplicated fields                   |
+| Service Discovery | Explicit                  | Convention-based                    |
+| Maintenance       | Single controller pattern | Multiple cluster-scoped controllers |
 
 ## Recommendation
 
