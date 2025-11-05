@@ -10,7 +10,7 @@ We are introducing a v2 provider architecture where providers run as separate gR
 - Reduced controller binary size and memory footprint
 - Runtime provider discovery and configuration
 
-This architectural shift introduces a network hop between the controller and secret providers. A critical requirement is maintaining a single codebase for provider implementations—we cannot fork provider implementations into separate "in-process" and "out-of-process" versions.
+This architectural shift introduces a network hop between the controller and secret providers. A critical requirement is maintaining a single codebase for provider implementations - we cannot fork provider implementations into separate "in-process" and "out-of-process" versions.
 
 ## Problem Description
 
@@ -21,6 +21,8 @@ Introducing out-of-process providers creates two challenges:
 1. **Interface Compatibility:** The controller expects all providers to implement `SecretsClient`, but out-of-process providers communicate via gRPC rather than direct method calls.
 
 2. **Code Reuse:** Provider implementations must work both as standalone gRPC servers and as libraries usable by in-process controllers without maintaining duplicate codebases.
+
+3. **New architecture and user impact:** We will have a new architecture which requires a thorough security review and a smooth migration path for our users. We might now have new errors (especially intrinsic to the design: network connectivity, securing the gRPC, ...), new features to deal with ("I want to run my gRPC outside kubernetes", "I want to run a single gRPC provider for my n clusters"), and expectations mismatches ("I expected this gRPC to work with version x of ESO, it's not working" or "I was able to reconcile x secrets with this operator, now I cannot anymore").  Anything related to version compatibility and how we'll manage those external components at scale are NOT part of this design document and will be worked on in another document.
 
 ## Decision
 
