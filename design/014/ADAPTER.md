@@ -121,6 +121,7 @@ The architecture employs a global connection pool (`grpc.ConnectionPool`) to ena
 ### Negative
 
 - **Performance Overhead:** Network hop adds latency compared to in-process calls (mitigated by connection pooling and client caching)
+- **Network Policies:** Users have to deal with network policies to make their system secure
 - **Serialization Cost:** Data must be serialized/deserialized at adapter boundaries
 - **Complexity:** Additional layer of indirection requires understanding adapter pattern for debugging
 - **Error Propagation:** gRPC errors must be properly mapped to provider errors for consistent behavior
