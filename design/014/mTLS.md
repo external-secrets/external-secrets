@@ -263,6 +263,8 @@ DNS SANs in server certificate:
 
 Covers all Kubernetes DNS resolution patterns. The `cluster.local` must be configurable, as some clusters have custom cluster domains.
 
+Note: We do NOT want to support custom SANs at this point. Certificates with custom SANs is out of scope and users should use other tooling for that.
+
 ## Certificate Lifecycle
 
 ### Controller: Rotation Triggers
