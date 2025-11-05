@@ -174,6 +174,39 @@ func WithCRDs() MutationFunc {
 	}
 }
 
+func WithAllowGenericTargets() MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "genericTargets.enabled",
+			Value: "true",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].apiGroup",
+			Value: "",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].resources[0]",
+			Value: "configmaps",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[0]",
+			Value: "create",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[1]",
+			Value: "delete",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[2]",
+			Value: "list",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[3]",
+			Value: "get",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[4]",
+			Value: "patch",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[5]",
+			Value: "watch",
+		})
+	}
+}
+
 func (l *ESO) Install() error {
 	By("Installing eso\n")
 	err := l.HelmChart.Install()

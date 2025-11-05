@@ -102,6 +102,7 @@ nav:
           - "Lifecycle: ownership & deletion": guides/ownership-deletion-policy.md
           - Decoding Strategies: guides/decoding-strategy.md
           - Controller Classes: guides/controller-class.md
+      - Targeting Custom Resources: guides/targeting-custom-resources.md
       - Generators: guides/generator.md
       - Push Secrets: guides/pushsecrets.md
       - Operations:
