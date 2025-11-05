@@ -50,7 +50,6 @@ spec:
 
 **Pros:**
 - Common fields and behaviors are defined once on `Provider`/`ClusterProvider`
-- ESO Core interprets shared fields (authentication scope, conditions)
 - Service discovery is explicit via `spec.address`
 - No need for cluster-scoped variants of provider-specific CRDs
 - Clear separation: `Provider` handles connectivity, provider-specific CR handles configuration
