@@ -115,6 +115,8 @@ The architecture employs a global connection pool (`grpc.ConnectionPool`) to ena
 - **Flexibility:** Providers can be deployed in-process (legacy), out-of-process (v2), or mixed
 - **Testability:** v1 provider implementations can be tested directly without gRPC infrastructure
 - **Gradual Migration:** Existing providers migrate individually without disrupting others
+- **New features**: This will open the door to provider implementations. Alternative deployments designs are possible, though they are not the goal of this design.
+
 
 ### Negative
 
