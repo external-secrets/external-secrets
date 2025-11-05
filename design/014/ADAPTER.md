@@ -129,3 +129,4 @@ The architecture employs a global connection pool (`grpc.ConnectionPool`) to ena
 
 - **Interface Constraints:** The adapter pattern requires protobuf definitions to match the `SecretsClient` interface capabilities
 - **Versioning:** Changes to `SecretsClient` interface require coordinated updates to protobuf definitions and both adapters
+- **User-Facing Documentation:** We need additional documentation around how mTLS credentials are managed by ESO and.
