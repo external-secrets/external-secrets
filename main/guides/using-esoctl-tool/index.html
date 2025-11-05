@@ -2297,6 +2297,19 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Using the esoctl tool
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -2308,6 +2321,100 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#debugging-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Debugging templates
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrapping-generator-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrapping generator code
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bootstrapping generator code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      flags
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="flags">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#name" class="md-nav__link">
+    <span class="md-ellipsis">
+      name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      description
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#package-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      package (optional)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -4015,6 +4122,89 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#debugging-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Debugging templates
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrapping-generator-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bootstrapping generator code
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bootstrapping generator code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      flags
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="flags">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#name" class="md-nav__link">
+    <span class="md-ellipsis">
+      name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      description
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#package-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      package (optional)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -4033,7 +4223,9 @@
 
 
 <h1 id="using-the-esoctl-tool">Using the esoctl tool</h1>
-<p>The tool can be found under <code>cmd/esoctl</code>. The <code>template</code> command can be used to test templates for <code>PushSecret</code> and <code>ExternalSecret</code>.</p>
+<p>The tool can be found under <code>cmd/esoctl</code>.</p>
+<h2 id="debugging-templates">Debugging templates</h2>
+<p>The <code>template</code> command can be used to test templates for <code>PushSecret</code> and <code>ExternalSecret</code>.</p>
 <p>To run render simply execute <code>make build</code> in the <code>cmd/esoctl</code> folder. This will result in a binary under <code>cmd/esoctl/bin</code>.</p>
 <p>Once the build succeeds, the command can be used as such:</p>
 <div class="highlight"><pre><span></span><code>bin/esoctl template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml
@@ -4091,6 +4283,153 @@ TOKEN was templated⏎
   --template-from-config-map template-test/template-config-map.yaml \
   --template-from-secret template-test/template-secret.yaml
 </code></pre></div></p>
+<h2 id="bootstrapping-generator-code">Bootstrapping generator code</h2>
+<p>The <code>bootstrap generator</code> command can be used to create a new generator.</p>
+<p>When running it, it will automatically:</p>
+<ul>
+<li>Bootstrap a new generator CRD</li>
+<li>Bootstrap a new generator implementation</li>
+<li>Update the register file with the new generator</li>
+<li>Update Cluster Generators to include the new generator</li>
+<li>Update needed dependencies  (go.mod, resolver file, etc)</li>
+</ul>
+<p>To run, simply execute:
+<div class="highlight"><pre><span></span><code>bin/esoctl bootstrap generator --name GeneratorName --description &quot;A description of this generator&quot; --package generatorname
+</code></pre></div></p>
+<h3 id="example">Example</h3>
+<div class="highlight"><pre><span></span><code>bin/esoctl bootstrap generator --name MyAwesomeGenerator --description &quot;An awesome generator I want to add to ESO :)&quot;
+
+✓ Created CRD: /home/gusfcarvalho/Documents/repos/external-secrets/apis/generators/v1alpha1/types_myawesomegenerator.go
+✓ Created implementation: /home/gusfcarvalho/Documents/repos/external-secrets/generators/v1/myawesomegenerator/myawesomegenerator.go
+✓ Created test file: /home/gusfcarvalho/Documents/repos/external-secrets/generators/v1/myawesomegenerator/myawesomegenerator_test.go
+✓ Created go.mod: /home/gusfcarvalho/Documents/repos/external-secrets/generators/v1/myawesomegenerator/go.mod
+✓ Created go.sum: /home/gusfcarvalho/Documents/repos/external-secrets/generators/v1/myawesomegenerator/go.sum
+✓ Updated register file: /home/gusfcarvalho/Documents/repos/external-secrets/pkg/register/generators.go
+✓ Updated types_cluster.go
+✓ Updated main go.mod
+✓ Updated resolver file: /home/gusfcarvalho/Documents/repos/external-secrets/runtime/esutils/resolvers/generator.go
+✓ Updated register.go
+✓ Successfully bootstrapped generator: MyAwesomeGenerator
+
+Next steps:
+1. Review and customize: apis/generators/v1alpha1/types_myawesomegenerator.go
+2. Implement the generator logic in: generators/v1/myawesomegenerator/myawesomegenerator.go
+3. Run: go mod tidy
+4. Run: make generate
+5. Run: make manifests
+6. Add tests for your generator
+</code></pre></div>
+<p>You should also expect the following <code>git diff</code> with specific changes:</p>
+<div class="highlight"><pre><span></span><code><span class="gh">diff --git a/apis/generators/v1alpha1/register.go b/apis/generators/v1alpha1/register.go</span>
+<span class="gh">index 16c05154b..9538bcc57 100644</span>
+<span class="gd">--- a/apis/generators/v1alpha1/register.go</span>
+<span class="gi">+++ b/apis/generators/v1alpha1/register.go</span>
+<span class="gu">@@ -73,6 +73,9 @@ var (</span>
+<span class="w"> </span>       ClusterGeneratorKind = reflect.TypeOf(ClusterGenerator{}).Name()
+<span class="w"> </span>       // CloudsmithAccessTokenKind is the kind name for CloudsmithAccessToken resource.
+<span class="w"> </span>       CloudsmithAccessTokenKind = reflect.TypeOf(CloudsmithAccessToken{}).Name()
+<span class="gi">+</span>
+<span class="gi">+       // MyAwesomeGeneratorKind is the kind name for MyAwesomeGenerator resource.</span>
+<span class="gi">+       MyAwesomeGeneratorKind = reflect.TypeOf(MyAwesomeGenerator{}).Name()</span>
+<span class="w"> </span>)
+
+<span class="w"> </span>func init() {
+<span class="gu">@@ -109,4 +112,5 @@ func init() {</span>
+<span class="w"> </span>       SchemeBuilder.Register(&amp;Webhook{}, &amp;WebhookList{})
+<span class="w"> </span>       SchemeBuilder.Register(&amp;Grafana{}, &amp;GrafanaList{})
+<span class="w"> </span>       SchemeBuilder.Register(&amp;MFA{}, &amp;MFAList{})
+<span class="gi">+       SchemeBuilder.Register(&amp;MyAwesomeGenerator{}, &amp;MyAwesomeGeneratorList{})</span>
+<span class="w"> </span>}
+<span class="gh">diff --git a/apis/generators/v1alpha1/types_cluster.go b/apis/generators/v1alpha1/types_cluster.go</span>
+<span class="gh">index e212dab76..0245e8f1c 100644</span>
+<span class="gd">--- a/apis/generators/v1alpha1/types_cluster.go</span>
+<span class="gi">+++ b/apis/generators/v1alpha1/types_cluster.go</span>
+<span class="gu">@@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {</span>
+<span class="w"> </span>}
+
+<span class="w"> </span>// GeneratorKind represents a kind of generator.
+<span class="gd">-// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana</span>
+<span class="gi">+// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MyAwesomeGenerator</span>
+<span class="w"> </span>type GeneratorKind string
+
+<span class="w"> </span>const (
+<span class="gu">@@ -64,6 +64,8 @@ const (</span>
+<span class="w"> </span>       GeneratorKindMFA GeneratorKind = &quot;MFA&quot;
+<span class="w"> </span>       // GeneratorKindCloudsmithAccessToken represents a Cloudsmith access token generator.
+<span class="w"> </span>       GeneratorKindCloudsmithAccessToken GeneratorKind = &quot;CloudsmithAccessToken&quot;
+<span class="gi">+       // GeneratorKindMyAwesomeGenerator represents a myawesomegenerator generator.</span>
+<span class="gi">+       GeneratorKindMyAwesomeGenerator GeneratorKind = &quot;MyAwesomeGenerator&quot;</span>
+<span class="w"> </span>)
+
+<span class="w"> </span>// GeneratorSpec defines the configuration for various supported generator types.
+<span class="gu">@@ -85,6 +87,7 @@ type GeneratorSpec struct {</span>
+<span class="w"> </span>       WebhookSpec               *WebhookSpec               `json:&quot;webhookSpec,omitempty&quot;`
+<span class="w"> </span>       GrafanaSpec               *GrafanaSpec               `json:&quot;grafanaSpec,omitempty&quot;`
+<span class="w"> </span>       MFASpec                   *MFASpec                   `json:&quot;mfaSpec,omitempty&quot;`
+<span class="gi">+       MyAwesomeGeneratorSpec             *MyAwesomeGeneratorSpec             `json:&quot;myawesomegeneratorSpec,omitempty&quot;`</span>
+<span class="w"> </span>}
+
+<span class="w"> </span>// ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.
+<span class="gh">diff --git a/go.mod b/go.mod</span>
+<span class="gh">index ff95a9558..c73ecb0c7 100644</span>
+<span class="gd">--- a/go.mod</span>
+<span class="gi">+++ b/go.mod</span>
+<span class="gu">@@ -14,6 +14,7 @@ replace (</span>
+<span class="w"> </span>       github.com/external-secrets/external-secrets/generators/v1/github =&gt; ./generators/v1/github
+<span class="w"> </span>       github.com/external-secrets/external-secrets/generators/v1/grafana =&gt; ./generators/v1/grafana
+<span class="w"> </span>       github.com/external-secrets/external-secrets/generators/v1/mfa =&gt; ./generators/v1/mfa
+<span class="gi">+       github.com/external-secrets/external-secrets/generators/v1/myawesomegenerator =&gt; ./generators/v1/myawesomegenerator</span>
+<span class="w"> </span>       github.com/external-secrets/external-secrets/generators/v1/password =&gt; ./generators/v1/password
+<span class="w"> </span>       github.com/external-secrets/external-secrets/generators/v1/quay =&gt; ./generators/v1/quay
+<span class="w"> </span>       github.com/external-secrets/external-secrets/generators/v1/sshkey =&gt; ./generators/v1/sshkey
+<span class="gh">diff --git a/pkg/register/generators.go b/pkg/register/generators.go</span>
+<span class="gh">index dd9ad55fb..6aafd4089 100644</span>
+<span class="gd">--- a/pkg/register/generators.go</span>
+<span class="gi">+++ b/pkg/register/generators.go</span>
+<span class="gu">@@ -34,6 +34,7 @@ import (</span>
+<span class="w"> </span>       uuid &quot;github.com/external-secrets/external-secrets/generators/v1/uuid&quot;
+<span class="w"> </span>       vaultgen &quot;github.com/external-secrets/external-secrets/generators/v1/vault&quot;
+<span class="w"> </span>       webhookgen &quot;github.com/external-secrets/external-secrets/generators/v1/webhook&quot;
+<span class="gi">+       myawesomegenerator &quot;github.com/external-secrets/external-secrets/generators/v1/myawesomegenerator&quot;</span>
+<span class="w"> </span>)
+
+<span class="w"> </span>func init() {
+<span class="gu">@@ -53,4 +54,5 @@ func init() {</span>
+<span class="w"> </span>       genv1alpha1.Register(uuid.Kind(), uuid.NewGenerator())
+<span class="w"> </span>       genv1alpha1.Register(vaultgen.Kind(), vaultgen.NewGenerator())
+<span class="w"> </span>       genv1alpha1.Register(webhookgen.Kind(), webhookgen.NewGenerator())
+<span class="gi">+       genv1alpha1.Register(myawesomegenerator.Kind(), myawesomegenerator.NewGenerator())</span>
+<span class="w"> </span>}
+<span class="gh">diff --git a/runtime/esutils/resolvers/generator.go b/runtime/esutils/resolvers/generator.go</span>
+<span class="gh">index 66f4b4037..938ccd6cd 100644</span>
+<span class="gd">--- a/runtime/esutils/resolvers/generator.go</span>
+<span class="gi">+++ b/runtime/esutils/resolvers/generator.go</span>
+<span class="gu">@@ -302,6 +302,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object</span>
+<span class="w"> </span>                       },
+<span class="w"> </span>                       Spec: *gen.Spec.Generator.MFASpec,
+<span class="w"> </span>               }, nil
+<span class="gi">+       case genv1alpha1.GeneratorKindMyAwesomeGenerator:</span>
+<span class="gi">+               if gen.Spec.Generator.MyAwesomeGeneratorSpec == nil {</span>
+<span class="gi">+                       return nil, fmt.Errorf(&quot;when kind is %s, MyAwesomeGeneratorSpec must be set&quot;, gen.Spec.Kind)</span>
+<span class="gi">+               }</span>
+<span class="gi">+               return &amp;genv1alpha1.MyAwesomeGenerator{</span>
+<span class="gi">+                       TypeMeta: metav1.TypeMeta{</span>
+<span class="gi">+                               APIVersion: genv1alpha1.SchemeGroupVersion.String(),</span>
+<span class="gi">+                               Kind:       genv1alpha1.MyAwesomeGeneratorKind,</span>
+<span class="gi">+                       },</span>
+<span class="gi">+                       Spec: *gen.Spec.Generator.MyAwesomeGeneratorSpec,</span>
+<span class="gi">+               }, nil</span>
+<span class="w"> </span>       default:
+<span class="w"> </span>               return nil, fmt.Errorf(&quot;unknown kind %s&quot;, gen.Spec.Kind)
+<span class="w"> </span>       }
+</code></pre></div>
+<h3 id="flags">flags</h3>
+<h4 id="name">name</h4>
+<p>Defines the generator name. Must be <code>PascalCase</code>.</p>
+<h4 id="description">description</h4>
+<p>Defines the generator description (added as a golang comment)</p>
+<h4 id="package-optional">package (optional)</h4>
+<p>Defines the package name for the generator. Must be <code>snake_case</code>. defaults to lowercase of <code>name</code></p>
 
 
 
