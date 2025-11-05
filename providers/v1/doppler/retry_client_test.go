@@ -22,8 +22,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
+	"github.com/external-secrets/external-secrets/providers/v1/doppler/client"
 )
+
+const testSecretValue = "value"
 
 // mockClient implements SecretsClientInterface for testing retry logic.
 type mockClient struct {
@@ -76,8 +78,8 @@ func (m *mockClient) UpdateSecrets(request client.UpdateSecretsRequest) error {
 func TestRetryClientSuccessOnFirstAttempt(t *testing.T) {
 	mock := &mockClient{
 		failUntilCall:   1, // succeed on first call
-		secretResponse:  &client.SecretResponse{Name: "test", Value: "value"},
-		secretsResponse: &client.SecretsResponse{Secrets: client.Secrets{"test": "value"}},
+		secretResponse:  &client.SecretResponse{Name: "test", Value: testSecretValue},
+		secretsResponse: &client.SecretsResponse{Secrets: client.Secrets{"test": testSecretValue}},
 	}
 
 	retryClient := newRetryableClient(mock, 3, 10*time.Millisecond)
@@ -95,7 +97,7 @@ func TestRetryClientSuccessOnFirstAttempt(t *testing.T) {
 	if err != nil {
 		t.Errorf("GetSecret should succeed on first attempt, got error: %v", err)
 	}
-	if resp == nil || resp.Value != "value" {
+	if resp == nil || resp.Value != testSecretValue {
 		t.Errorf("GetSecret returned unexpected response: %v", resp)
 	}
 	if mock.getSecretCalls != 1 {
@@ -107,7 +109,7 @@ func TestRetryClientSuccessOnFirstAttempt(t *testing.T) {
 	if err != nil {
 		t.Errorf("GetSecrets should succeed on first attempt, got error: %v", err)
 	}
-	if respSecrets == nil || respSecrets.Secrets["test"] != "value" {
+	if respSecrets == nil || respSecrets.Secrets["test"] != testSecretValue {
 		t.Errorf("GetSecrets returned unexpected response: %v", respSecrets)
 	}
 	if mock.getSecretsCalls != 1 {
@@ -128,8 +130,8 @@ func TestRetryClientSuccessAfterRetries(t *testing.T) {
 	mock := &mockClient{
 		failUntilCall:   3, // fail twice, succeed on third attempt
 		returnError:     testError,
-		secretResponse:  &client.SecretResponse{Name: "test", Value: "value"},
-		secretsResponse: &client.SecretsResponse{Secrets: client.Secrets{"test": "value"}},
+		secretResponse:  &client.SecretResponse{Name: "test", Value: testSecretValue},
+		secretsResponse: &client.SecretsResponse{Secrets: client.Secrets{"test": testSecretValue}},
 	}
 
 	retryClient := newRetryableClient(mock, 5, 1*time.Millisecond)
@@ -148,7 +150,7 @@ func TestRetryClientSuccessAfterRetries(t *testing.T) {
 	if err != nil {
 		t.Errorf("GetSecret should succeed after retries, got error: %v", err)
 	}
-	if resp == nil || resp.Value != "value" {
+	if resp == nil || resp.Value != testSecretValue {
 		t.Errorf("GetSecret returned unexpected response: %v", resp)
 	}
 	if mock.getSecretCalls != 3 {

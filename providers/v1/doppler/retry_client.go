@@ -22,7 +22,7 @@ import (
 
 	"k8s.io/client-go/util/retry"
 
-	dclient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
+	dclient "github.com/external-secrets/external-secrets/providers/v1/doppler/client"
 )
 
 // retryableClient wraps a Doppler client with retry logic.
