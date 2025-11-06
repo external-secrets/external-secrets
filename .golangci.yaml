@@ -61,7 +61,7 @@ linters:
     gocyclo:
       min-complexity: 16
     goheader:
-      template-path: ./hack/boilerplate.go.txt
+      template-path: ${config-path}/hack/boilerplate.go.txt
     dupl:
       threshold: 200
     govet:

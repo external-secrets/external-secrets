@@ -94,6 +94,9 @@ spec:
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
+          {{- if .Values.genericTargets.enabled }}
+          - --unsafe-allow-generic-targets=true
+          {{- end }}
           {{- range $key, $value := .Values.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}

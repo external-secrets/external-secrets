@@ -1,0 +1,1191 @@
+/*
+Copyright © 2025 ESO Maintainer Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package template
+
+import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+)
+
+const (
+	pkcs12ContentNoPass   = `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`
+	pkcs12ContentWithPass = `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`
+	pkcs12Cert            = `-----BEGIN CERTIFICATE-----
+MIIDHTCCAgWgAwIBAgIRAKC4yxy9QGocND+6avTf7BgwDQYJKoZIhvcNAQELBQAw
+EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0yMTAzMjAyMDA4MDhaFw0yMTAzMjAyMDM4
+MDhaMBIxEDAOBgNVBAoTB0FjbWUgQ28wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+ggEKAoIBAQC3o6/JdZEqNbqNRkopHhJtJG5c4qS5d0tQ/kZYpfD/v/izAYum4Nzj
+aG15owr92/11W0pxPUliRLti3y6iScTs+ofm2D7p4UXj/Fnho/2xoWSOoWAodgvW
+Y8jh8A0LQALZiV/9QsrJdXZdS47DYZLsQ3z9yFC/CdXkg1l7AQ3fIVGKdrQBr9kE
+1gEDqnKfRxXI8DEQKXr+CKPUwCAytegmy0SHp53zNAvY+kopHytzmJpXLoEhxq4e
+ugHe52vXHdh/HJ9VjNp0xOH1waAgAGxHlltCW0PVd5AJ0SXROBS/a3V9sZCbCrJa
+YOOonQSEswveSv6PcG9AHvpNPot2Xs6hAgMBAAGjbjBsMA4GA1UdDwEB/wQEAwIC
+pDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+BBR00805mrpoonp95RmC3B6oLl+cGTAVBgNVHREEDjAMggpnb29ibGUuY29tMA0G
+CSqGSIb3DQEBCwUAA4IBAQAipc1b6JrEDayPjpz5GM5krcI8dCWVd8re0a9bGjjN
+ioWGlu/eTr5El0ffwCNZ2WLmL9rewfHf/bMvYz3ioFZJ2OTxfazqYXNggQz6cMfa
+lbedDCdt5XLVX2TyerGvFram+9Uyvk3l0uM7rZnwAmdirG4Tv94QRaD3q4xTj/c0
+mv+AggtK0aRFb9o47z/BypLdk5mhbf3Mmr88C8XBzEnfdYyf4JpTlZrYLBmDCu5d
+9RLLsjXxhag8xqMtd1uLUM8XOTGzVWacw8iGY+CTtBKqyA+AE6/bDwZvEwVtsKtC
+QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
+-----END CERTIFICATE-----
+`
+	pkcs12Key = `-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC3o6/JdZEqNbqN
+RkopHhJtJG5c4qS5d0tQ/kZYpfD/v/izAYum4NzjaG15owr92/11W0pxPUliRLti
+3y6iScTs+ofm2D7p4UXj/Fnho/2xoWSOoWAodgvWY8jh8A0LQALZiV/9QsrJdXZd
+S47DYZLsQ3z9yFC/CdXkg1l7AQ3fIVGKdrQBr9kE1gEDqnKfRxXI8DEQKXr+CKPU
+wCAytegmy0SHp53zNAvY+kopHytzmJpXLoEhxq4eugHe52vXHdh/HJ9VjNp0xOH1
+waAgAGxHlltCW0PVd5AJ0SXROBS/a3V9sZCbCrJaYOOonQSEswveSv6PcG9AHvpN
+Pot2Xs6hAgMBAAECggEACTGPrmVNZDCWa1Y2hkJ0J7SoNcw+9O4M/jwMp4l/PD6P
+I98S78LYLCZhPLK17SmjUcnFO1AXKW1JeFS2D/fjfP256guvcqQNjLFoioxcOhVb
+ZGyd1Mi8JPqP5wfOj16gBeYDwTkjz9wqldcfiZaL9XoXetkZecbzR2JwC2FtIVuC
+0njTjMNYpaBKnoLb8OTR0EQz7lYEo2MkQiWryz8wseONnFmdfh18p+p10YgCbuCH
+qesrWfDLLxaxZelNtDhDngg9LoCLmarYy7BgShacmUEgJTZ/x3xFC75thK3ln0OY
++ktTgvVotYYaZi7qAjQiEsTvkTAPg5RMpQLd2UIWsQKBgQDCBp+1vURbwGzmTNUg
+HMipD6WDFdLc9DCacx6+ZqsEPTMWQbCpVZrDKiY0Rjt5F+xOCyMr00J5RDJXRC0G
++L7NcJdywOFutT7vB+cmETg7l/6PHweNYBnE66706eTL/KVYZMi4tEinarPWhHmL
+jasfdLANtpDjdWkRt299TkPRbQKBgQDyS8Rr7KZdv04Csqkf+ASmiJpT5R6Y72kc
+3XYpKETyB2FyPZkuh/zInMut9SkkSI9O/jA3zf956jj6sF1DHvp7T8KkIp5OAQeD
+J9AF65m2MnZfHFUeJ6ZQsggwMWqrD0ycIWP7YWtiBHH+D1wGkjYrssq+bvG/yNpA
+LtqdKq9lhQKBgQCZA2hIhy61vRckuEsLvCdzTGeW7UsR/XGnHEqOlaEhArKbRsrv
+gBdA+qiOaSTV5svw8E+YbE7sG6AnuhhYeyreEYEeeoZOLJmpIG5mUwYp2UBj1nC6
+SaOI7OVZOGu7g09SWokBQQxbG4cgEfFY4Sym7fs5lVTGTP3Dfwppo6NQMQKBgQCo
+J5NDP3Lafwk58BpV+H/pv8YzUUDh7M2rXbtCpxLqUdr8OOnVlEUISWFF8m5CIyVq
+MhjuscWLK9Wtjba7/YTjDaDM3sW05xv6lyfU5ATCoNTr/zLHgcb4HAZ4w+L+otiN
+RtMnxB2NYf5mzuwUF2cG/secUEzwyAlIH/xStSwTLQKBgQCRvqF+rqxnegoOgwVW
+qrWPv06wXD8dW2FlPpY5GXqA0l6erSK3YsQQToRmbem9ibPD7bd5P4gNbWfxwK4C
+Wt+1Rcb8OrDhDJbYz85bXBnPecKp4EN0b9SHO0/dsCqn2w30emc+9T/4m1ZDkpBd
+BixHvI/EJ8YK3ta5WdJWKC6hnA==
+-----END PRIVATE KEY-----
+`
+	jwkPubRSA     = `{"kid":"ex","kty":"RSA","key_ops":["sign","verify","wrapKey","unwrapKey","encrypt","decrypt"],"n":"p2VQo8qCfWAZmdWBVaYuYb-a-tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz-Ed8Cdlf8lkDg4Ex5tkB64jRdC1Uvn4CDpOH6cp-N2s8hTFLqy9_YaDmyQS7HiqthOi9oVjil1VMeWfaAbClGtFt6UnKD0Vb_DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlIIx7unibLehhDU6q3DCwNH_OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQP_WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9vyQ","e":"AQAB"}`
+	jwkPubRSAPKIX = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp2VQo8qCfWAZmdWBVaYu
+Yb+a+tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz+Ed8Cdlf8lkD
+g4Ex5tkB64jRdC1Uvn4CDpOH6cp+N2s8hTFLqy9/YaDmyQS7HiqthOi9oVjil1VM
+eWfaAbClGtFt6UnKD0Vb/DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlI
+Ix7unibLehhDU6q3DCwNH/OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQ
+P/WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9v
+yQIDAQAB
+-----END PUBLIC KEY-----
+`
+	jwkPrivRSA      = `{"kty" : "RSA","kid" : "cc34c0a0-bd5a-4a3c-a50d-a2a7db7643df","use" : "sig","n"   : "pjdss8ZaDfEH6K6U7GeW2nxDqR4IP049fk1fK0lndimbMMVBdPv_hSpm8T8EtBDxrUdi1OHZfMhUixGaut-3nQ4GG9nM249oxhCtxqqNvEXrmQRGqczyLxuh-fKn9Fg--hS9UpazHpfVAFnB5aCfXoNhPuI8oByyFKMKaOVgHNqP5NBEqabiLftZD3W_lsFCPGuzr4Vp0YS7zS2hDYScC2oOMu4rGU1LcMZf39p3153Cq7bS2Xh6Y-vw5pwzFYZdjQxDn8x8BG3fJ6j8TGLXQsbKH1218_HcUJRvMwdpbUQG5nvA2GXVqLqdwp054Lzk9_B_f1lVrmOKuHjTNHq48w","e"   : "AQAB","d"   : "ksDmucdMJXkFGZxiomNHnroOZxe8AmDLDGO1vhs-POa5PZM7mtUPonxwjVmthmpbZzla-kg55OFfO7YcXhg-Hm2OWTKwm73_rLh3JavaHjvBqsVKuorX3V3RYkSro6HyYIzFJ1Ek7sLxbjDRcDOj4ievSX0oN9l-JZhaDYlPlci5uJsoqro_YrE0PRRWVhtGynd-_aWgQv1YzkfZuMD-hJtDi1Im2humOWxA4eZrFs9eG-whXcOvaSwO4sSGbS99ecQZHM2TcdXeAs1PvjVgQ_dKnZlGN3lTWoWfQP55Z7Tgt8Nf1q4ZAKd-NlMe-7iqCFfsnFwXjSiaOa2CRGZn-Q","p"   : "4A5nU4ahEww7B65yuzmGeCUUi8ikWzv1C81pSyUKvKzu8CX41hp9J6oRaLGesKImYiuVQK47FhZ--wwfpRwHvSxtNU9qXb8ewo-BvadyO1eVrIk4tNV543QlSe7pQAoJGkxCia5rfznAE3InKF4JvIlchyqs0RQ8wx7lULqwnn0","q"   : "ven83GM6SfrmO-TBHbjTk6JhP_3CMsIvmSdo4KrbQNvp4vHO3w1_0zJ3URkmkYGhz2tgPlfd7v1l2I6QkIh4Bumdj6FyFZEBpxjE4MpfdNVcNINvVj87cLyTRmIcaGxmfylY7QErP8GFA-k4UoH_eQmGKGK44TRzYj5hZYGWIC8","dp"  : "lmmU_AG5SGxBhJqb8wxfNXDPJjf__i92BgJT2Vp4pskBbr5PGoyV0HbfUQVMnw977RONEurkR6O6gxZUeCclGt4kQlGZ-m0_XSWx13v9t9DIbheAtgVJ2mQyVDvK4m7aRYlEceFh0PsX8vYDS5o1txgPwb3oXkPTtrmbAGMUBpE","dq"  : "mxRTU3QDyR2EnCv0Nl0TCF90oliJGAHR9HJmBe__EjuCBbwHfcT8OG3hWOv8vpzokQPRl5cQt3NckzX3fs6xlJN4Ai2Hh2zduKFVQ2p-AF2p6Yfahscjtq-GY9cB85NxLy2IXCC0PF--Sq9LOrTE9QV988SJy_yUrAjcZ5MmECk","qi"  : "ldHXIrEmMZVaNwGzDF9WG8sHj2mOZmQpw9yrjLK9hAsmsNr5LTyqWAqJIYZSwPTYWhY4nu2O0EY9G9uYiqewXfCKw_UngrJt8Xwfq1Zruz0YY869zPN4GiE9-9rzdZB33RBw8kIOquY3MK74FMwCihYx_LiU2YTHkaoJ3ncvtvg"}`
+	jwkPrivRSAPKCS8 = `-----BEGIN PRIVATE KEY-----
+MIIEwAIBADANBgkqhkiG9w0BAQEFAASCBKowggSmAgEAAoIBAQCmN2yzxloN8Qfo
+rpTsZ5bafEOpHgg/Tj1+TV8rSWd2KZswxUF0+/+FKmbxPwS0EPGtR2LU4dl8yFSL
+EZq637edDgYb2czbj2jGEK3Gqo28ReuZBEapzPIvG6H58qf0WD76FL1SlrMel9UA
+WcHloJ9eg2E+4jygHLIUowpo5WAc2o/k0ESppuIt+1kPdb+WwUI8a7OvhWnRhLvN
+LaENhJwLag4y7isZTUtwxl/f2nfXncKrttLZeHpj6/DmnDMVhl2NDEOfzHwEbd8n
+qPxMYtdCxsofXbXz8dxQlG8zB2ltRAbme8DYZdWoup3CnTngvOT38H9/WVWuY4q4
+eNM0erjzAgMBAAECggEBAJLA5rnHTCV5BRmcYqJjR566DmcXvAJgywxjtb4bPjzm
+uT2TO5rVD6J8cI1ZrYZqW2c5WvpIOeThXzu2HF4YPh5tjlkysJu9/6y4dyWr2h47
+warFSrqK191d0WJEq6Oh8mCMxSdRJO7C8W4w0XAzo+Inr0l9KDfZfiWYWg2JT5XI
+ubibKKq6P2KxND0UVlYbRsp3fv2loEL9WM5H2bjA/oSbQ4tSJtobpjlsQOHmaxbP
+XhvsIV3Dr2ksDuLEhm0vfXnEGRzNk3HV3gLNT741YEP3Sp2ZRjd5U1qFn0D+eWe0
+4LfDX9auGQCnfjZTHvu4qghX7JxcF40omjmtgkRmZ/kCgYEA4A5nU4ahEww7B65y
+uzmGeCUUi8ikWzv1C81pSyUKvKzu8CX41hp9J6oRaLGesKImYiuVQK47FhZ++wwf
+pRwHvSxtNU9qXb8ewo+BvadyO1eVrIk4tNV543QlSe7pQAoJGkxCia5rfznAE3In
+KF4JvIlchyqs0RQ8wx7lULqwnn0CgYEAven83GM6SfrmO+TBHbjTk6JhP/3CMsIv
+mSdo4KrbQNvp4vHO3w1/0zJ3URkmkYGhz2tgPlfd7v1l2I6QkIh4Bumdj6FyFZEB
+pxjE4MpfdNVcNINvVj87cLyTRmIcaGxmfylY7QErP8GFA+k4UoH/eQmGKGK44TRz
+Yj5hZYGWIC8CgYEAlmmU/AG5SGxBhJqb8wxfNXDPJjf//i92BgJT2Vp4pskBbr5P
+GoyV0HbfUQVMnw977RONEurkR6O6gxZUeCclGt4kQlGZ+m0/XSWx13v9t9DIbheA
+tgVJ2mQyVDvK4m7aRYlEceFh0PsX8vYDS5o1txgPwb3oXkPTtrmbAGMUBpECgYEA
+mxRTU3QDyR2EnCv0Nl0TCF90oliJGAHR9HJmBe//EjuCBbwHfcT8OG3hWOv8vpzo
+kQPRl5cQt3NckzX3fs6xlJN4Ai2Hh2zduKFVQ2p+AF2p6Yfahscjtq+GY9cB85Nx
+Ly2IXCC0PF++Sq9LOrTE9QV988SJy/yUrAjcZ5MmECkCgYEAldHXIrEmMZVaNwGz
+DF9WG8sHj2mOZmQpw9yrjLK9hAsmsNr5LTyqWAqJIYZSwPTYWhY4nu2O0EY9G9uY
+iqewXfCKw/UngrJt8Xwfq1Zruz0YY869zPN4GiE9+9rzdZB33RBw8kIOquY3MK74
+FMwCihYx/LiU2YTHkaoJ3ncvtvg=
+-----END PRIVATE KEY-----
+`
+	jwkPubEC     = `{"kid":"https://kv-test-mj.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
+	jwkPubECPKIX = `-----BEGIN PUBLIC KEY-----
+MIGbMBAGByqGSM49AgEGBSuBBAAjA4GGAAQB504C1vsfs7PUL9w8oj9HgI395qLm
+e15jooVbTsU6hqqBB9UJKRAMrbZ8I6IxP/bxzwtlglGyIgXP8ghtBRbtteMA6dyE
+eeYGmEhZe9qeYwCZwIORoQPrJxbwawCX19DjcExVlOpxOQlifq8aeGfsw5uLOaQ1
+KaBlhPAb69mQiDTccew=
+-----END PUBLIC KEY-----
+`
+	jwkPrivEC      = `{"kty": "EC","kid": "rie3pHe8u8gjSa0IaJfqk7_iEfHeYfDYx-Bqi7vQc0s","crv": "P-256","x": "fDjg3Nq4jPf8IOZ0277aPVal_8iXySnzLUJAZghUzZM","y": "d863PeyBOK_Q4duiSmWwgIRzi1RPlFZTR-vACMlPg-Q","d": "jJs5xsoHUetdMabtt8H2KyX5T92nGul1chFeMT5hlr0"}`
+	jwkPrivECPKCS8 = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgjJs5xsoHUetdMabt
+t8H2KyX5T92nGul1chFeMT5hlr2hRANCAAR8OODc2riM9/wg5nTbvto9VqX/yJfJ
+KfMtQkBmCFTNk3fOtz3sgTiv0OHbokplsICEc4tUT5RWU0frwAjJT4Pk
+-----END PRIVATE KEY-----
+`
+	rsaDecryptPKRSAPKCS8 = `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQChzs1R+jA3Goqi
+ropPzF4Ehpbi6VklbeZWP+RoU3rJshONJO6w9tPhbp0YIXrPSM9P5a9xaaNxDR9e
+u84O05+vq3C4P9I0jb5GSjiuznrmsprFWGaGdd4Vr7Fir1oqfeVc+znQFUCvkq7B
+EWobOonl6ktQ2OHBK0bEzXB7qY7P4ETI6owDUL+pkAwHzdnwk4sXMDKBLT3WZVRn
+xPppIJ4VAEph1fJOCIIskxVBh8cAT4QRxsdu8oB7cAuYJLBBKiS/GGIA7vh9sQrb
++0BAgLqvy+kiQeQhYgF/Y/uVwkgAphFzSjSjoSFQ50nNE2VJA5J6o7QZ413DlIWr
+VJKNZJDbAgMBAAECggEAemklU5te1pExyJka8fu+NNZNWCUI2BQoaZ+0gGiHQAeE
+WwdRvHc/HBC+r/7EFgUTMXKmI7qzd1diIB0caoMXD6M3h2xg7nk9NZf5AeYbfGQq
+SpnyFk8dUHK2U94s7HCKEKnOtukdIrZplo5CI49Ju7JggC1TvPuscj6pliRUclYY
+Pc6pTVaG+bludDR8YkQ1mGi04wMQHpnisegRpMSjt9uZc1jKM7SSaHggu4/vuewo
+CFdra50/MjidIOXd5T5iVYY28J+gR8oCCKySTogNJ3JpNMNAW4FHfime5B+uS0IA
+YI/N8yjT/BPgRt4lQpR+6zi3fpguWNIM71xye1/R4QKBgQDNZNGFOntbFM2NTPYu
+4APRVu4a0gM+JEA/ozuxTigkgaj6dNeJvaNTxcKG0MmGxQLEcvgCDaWIoM6Qrj1K
+YVwdiv1MddRDdSHQjGjNM6n7jNfYVQ2gP+1wDwTMN+eyAW8KoZByaQimmjyBj/Ps
+C8VWPxyrw/UeHqzTazyEIZ2fHQKBgQDJrM2/xx7F63C6GaW+5gMeColxkdYb29Aw
+R3xb2rn5lVPLW0BORQQuepZuaI+ZLTb4Op7V4yAC/S9femFXpgkZa56aacwy1jxb
+R9WO0CWP3QCUCcIBF/4lbJDZ6gQLr51oahXhhjbgGMrlguC/j4R9n3i58EaeukeE
++Hsu/hMWVwKBgETsWALFJS/jQzbvZI1GTwGoki4d20i3EXhJZnaRK5dUi0fAfbOT
+F4O9ERH8biPzaIJTsjW+LpYyoB6c2aRkF20yft1xjNE2NSquc1yowZnQIX5OzEvC
+KAM6hvmgqPdq08BVhwtdg7GkgDlZ/Rhwur++XfilwVNiJ8yqZ5xPS31hAoGBALnu
+hB5MMPXd86bPoHyYSMV4h3DaOGCkzpLERUXWKOGOp5tzfJzsikdjo68U3VcmVWiT
+ev7MkCXRUMyg4n/RRtBV5PqNkcJIu4qYdq5c/lRdN3xEZsVlXl0Yc49EbghsFx49
+uACdIZiHov/oItbZNRgwXzhl6mXKbceM4tzXR7evAoGBALug2beVoVAl2nAB2RkQ
+Jy3viDKO+C6Z82gsS5x9Wif9cJTppIarZC+t7w33f4WHJiYT1VDxse08dohC5Nn7
+7WWKdtLMSyUaXE46s37Kl5tkTkROj3wBzSIzwLYAwsthcpQVubwDAMsig8EUAdr/
+0IwaauEPX9lBYMZDMYuSAR5n
+-----END PRIVATE KEY-----
+`
+	rsaDecryptDataPKCS8Base64 = `hAZJktRFdzSkGxxiiSE46T271veCgwvC0GrY+AwDYA/KeuFZFdPgZsJ74awu1WR6x4BrbMLTXNpQw4UqChdbaM7VoKUCkPTcCU1jsveqYNisM2MNF98QjNjvp+9jXHfAsClLA5AvJxe3GjfWIi18E4PieFpATn/BTrmoklx4rSkWmfifZol7Wcny0D2fhrj/JOdxEIqowUB/tNwYzNd+lXgm55wea+G3YnD3Fr4ARaCCaQMUcdW9Kgx7mmZGZE3xDAhs8WMfpe9xVZ17Ca7Sw2r1JKS0o0fYiZNHUmCXVsP9O+//+0sfEtETiVUF0jItrwlK4GL8+bVcXQ9N2TW7+g==`
+	rsaDecryptPKRSAPKCS1      = `-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQC8ronsBTX6GD5YhoE/v76+ZkWX0gODzAD+aCYIyTs4PiWruxlV
+SOtjwq2gRgUexE5Hsz8cxhFz5Db8qFXBsA+GgXjByQuVbBw04SCKHgc0zhbcWonV
+3Rk03pjVB1HfuxcDRja8JZontfMAJyPNJovPu3rIi8npSC+T5g7Fq9UCbQIDAQAB
+AoGAAo2+MiKT63GejmYro6g9taf+syJVh9gf/1F7ikzm70jwC5X5rszQ2sXMwcmQ
+0izH/nJvnT0VCWOCVwMUPg3a9+odoMNFyg2u3XCLBNr3vlgG3xeCTdjzaMnY61ct
+xU4JgpIuiAlwCqhNfKuHxeesM/cvh9eC11ELXh27gLsNCEECQQDng5klIGPLHfiN
+3wam6wxLnqHPuhXAyrOAKA1qBlZGKI6n6iBYpfN+Y70gt10f3SBlFfkSyF7uZsUy
+maofmjARAkEA0KM6Rj+p2CRMFMh4NpON4RKaQIYNGMTpe/akYBOx6wcZy0saON9l
+eHS3nq77TDT+mA3uDbu+6VD8j8eEcXUInQJAYJkfQEd4fBrAR+nj66etVKwW1gbN
+5shtBy8vEasdOl7XzyY4YuSzaWwSUOFRYOcyChuV9olWWuDUrR1Cx7bdEQJBALzY
+gg7D4UA62oKVUfpUZL+szuJIc+JPmecSwIYWTZymuLpCKGICEx6Mxwdi6yN3dFq9
+gRP9NDiLjY+20DLB9CECQB5IqCvT396rjJn3g6sRXHX5qApJwInofLByafcjGd34
+ejJKh20FmJegJhkImmNTokNbQZbYiLAP07Ykx9A8jLg=
+-----END RSA PRIVATE KEY-----
+
+`
+	rsaDecryptDataPKCS1Base64 = `Xd9Jij8+hTqM7ii1nnKbKZy7pHhn3BJwxrENwIlvf0iRysVKn7gmAaD6UV4EpNwYOHvLbo6yLWBme6msVAhIV9KOp22jDe9j837C48rcUiF93Jb7+plabbwTQt4iqi1EKxEfVvKi4tLsLBRhu0v583oQAfCf5aLwF3Vb5bPgGeY=`
+	rsaDecryptPubKeyRSAPKCS1  = `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8ronsBTX6GD5YhoE/v76+ZkWX
+0gODzAD+aCYIyTs4PiWruxlVSOtjwq2gRgUexE5Hsz8cxhFz5Db8qFXBsA+GgXjB
+yQuVbBw04SCKHgc0zhbcWonV3Rk03pjVB1HfuxcDRja8JZontfMAJyPNJovPu3rI
+i8npSC+T5g7Fq9UCbQIDAQAB
+-----END PUBLIC KEY-----
+
+`
+)
+
+func rsaEncryptOAEP(t testing.TB, publicKeyPEM []byte, hash, plaintext string) []byte {
+	t.Helper()
+	block, _ := pem.Decode(publicKeyPEM)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		t.Fatalf("failed to decode PEM block containing public key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse DER encoded public key: %v", err)
+	}
+
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		t.Fatalf("not RSA public key")
+	}
+	ciphertext, err := rsa.EncryptOAEP(getHash(hash), rand.Reader, rsaPub, []byte(plaintext), nil)
+	require.NoError(t, err)
+	return ciphertext
+}
+
+func TestExecute(t *testing.T) {
+	tbl := []struct {
+		name                string
+		tpl                 map[string][]byte
+		labelsTpl           map[string][]byte
+		annotationsTpl      map[string][]byte
+		stringDataTpl       map[string][]byte
+		data                map[string][]byte
+		expectedData        map[string][]byte
+		expectedStringData  map[string]string
+		expectedLabels      map[string]string
+		expectedAnnotations map[string]string
+		leftDelimiter       string
+		rightDelimiter      string
+		expErr              string
+		expLblErr           string
+		expAnnoErr          string
+		expStrErr           string
+	}{
+		{
+			name:           "test empty",
+			tpl:            nil,
+			labelsTpl:      nil,
+			annotationsTpl: nil,
+			data:           nil,
+		},
+		{
+			name: "b64dec func",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ .secret | b64dec }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("1234"),
+			},
+		},
+		{
+			name: "fromJson func",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ $var := .secret | fromJson }}{{ $var.foo }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte(`{"foo": "bar"}`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name: "from & toJson func",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ $var := .secret | fromJson }}{{ $var.foo | toJson }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte(`{"foo": {"baz":"bang"}}`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte(`{"baz":"bang"}`),
+			},
+		},
+		{
+			name: "fromJson & toYaml func",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ $var := .secret | fromJson | toYaml }}{{ $var }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte(`{"foo": "bar"}`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte(`foo: bar`),
+			},
+		},
+		{
+			name: "fromYaml & toJson func",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ $var := .secret | fromYaml | toJson }}{{ $var }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte(`foo: bar`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte(`{"foo":"bar"}`),
+			},
+		},
+		{
+			name: "use sprig functions",
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ .path | ext }}`),
+			},
+			data: map[string][]byte{
+				"path": []byte(`foo/bar/baz.exe`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte(`.exe`),
+			},
+		},
+		{
+			name: "use replace function",
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ .conn | replace "postgres://" "db+postgresql://"}}`),
+			},
+			data: map[string][]byte{
+				"conn": []byte(`postgres://user:pass@db.host:5432/dbname`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte(`db+postgresql://user:pass@db.host:5432/dbname`),
+			},
+		},
+		{
+			name: "use upper function",
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ .value | upper }}`),
+			},
+			data: map[string][]byte{
+				"value": []byte(`username`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte(`USERNAME`),
+			},
+		},
+		{
+			name: "multiline template",
+			tpl: map[string][]byte{
+				"cfg": []byte(`
+		datasources:
+		- name: Graphite
+			type: graphite
+			access: proxy
+			url: http://localhost:8080
+			password: "{{ .password }}"
+			user: "{{ .user }}"`),
+			},
+			data: map[string][]byte{
+				"user":     []byte(`foobert`),
+				"password": []byte("harharhar"),
+			},
+			expectedData: map[string][]byte{
+				"cfg": []byte(`
+		datasources:
+		- name: Graphite
+			type: graphite
+			access: proxy
+			url: http://localhost:8080
+			password: "harharhar"
+			user: "foobert"`),
+			},
+		},
+		{
+			name: "base64 pipeline",
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ "123412341234" | b64enc | b64dec }}`),
+			},
+			data: map[string][]byte{},
+			expectedData: map[string][]byte{
+				"foo": []byte("123412341234"),
+			},
+		},
+		{
+			name: "base64 pkcs12 extract",
+			tpl: map[string][]byte{
+				"key":  []byte(`{{ .secret | b64dec | pkcs12key }}`),
+				"cert": []byte(`{{ .secret | b64dec | pkcs12cert }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12ContentNoPass),
+			},
+			expectedData: map[string][]byte{
+				"key":  []byte(pkcs12Key),
+				"cert": []byte(pkcs12Cert),
+			},
+		},
+		{
+			name: "base64 pkcs12 extract with password",
+			tpl: map[string][]byte{
+				"key":  []byte(`{{ .secret | b64dec | pkcs12keyPass "123456" }}`),
+				"cert": []byte(`{{ .secret | b64dec | pkcs12certPass "123456" }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12ContentWithPass),
+			},
+			expectedData: map[string][]byte{
+				"key":  []byte(pkcs12Key),
+				"cert": []byte(pkcs12Cert),
+			},
+		},
+		{
+			name: "base64 decode error",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ .example | b64dec }}`),
+			},
+			data: map[string][]byte{
+				"example": []byte("iam_no_base64"),
+			},
+			expErr: "", // silent error
+		},
+		{
+			name: "pkcs12 key wrong password",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ .secret | b64dec | pkcs12keyPass "wrong" }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12ContentWithPass),
+			},
+			expErr: "unable to decode pkcs12",
+		},
+		{
+			name: "pkcs12 cert wrong password",
+			tpl: map[string][]byte{
+				"cert": []byte(`{{ .secret | b64dec | pkcs12certPass "wrong" }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12ContentWithPass),
+			},
+			expErr: "unable to decode pkcs12",
+		},
+		{
+			name: "fromJson error",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ "{ # no json # }" | fromJson }}`),
+			},
+			data:   map[string][]byte{},
+			expErr: "", // silent error
+		},
+		{
+			name: "template syntax error",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ #xx }}`),
+			},
+			data:   map[string][]byte{},
+			expErr: "unable to parse template",
+		},
+		{
+			name: "unknown key error",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ .unknown }}`),
+			},
+			data:   map[string][]byte{},
+			expErr: "unable to execute template at key key",
+		},
+		{
+			name: "jwk rsa pub pem",
+			tpl: map[string][]byte{
+				"fn": []byte(`{{ .secret | jwkPublicKeyPem }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(jwkPubRSA),
+			},
+			expectedData: map[string][]byte{
+				"fn": []byte(jwkPubRSAPKIX),
+			},
+		},
+		{
+			name: "jwk rsa priv pem",
+			tpl: map[string][]byte{
+				"fn": []byte(`{{ .secret | jwkPrivateKeyPem }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(jwkPrivRSA),
+			},
+			expectedData: map[string][]byte{
+				"fn": []byte(jwkPrivRSAPKCS8),
+			},
+		},
+		{
+			name: "jwk ecdsa pub pem",
+			tpl: map[string][]byte{
+				"fn": []byte(`{{ .secret | jwkPublicKeyPem }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(jwkPubEC),
+			},
+			expectedData: map[string][]byte{
+				"fn": []byte(jwkPubECPKIX),
+			},
+		},
+		{
+			name: "jwk ecdsa priv pem",
+			tpl: map[string][]byte{
+				"fn": []byte(`{{ .secret | jwkPrivateKeyPem }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(jwkPrivEC),
+			},
+			expectedData: map[string][]byte{
+				"fn": []byte(jwkPrivECPKCS8),
+			},
+		},
+		{
+			name: "filter pem certificate",
+			tpl: map[string][]byte{
+				"fn": []byte(`{{ .secret | filterPEM "CERTIFICATE" }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(jwkPrivRSAPKCS8 + pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"fn": []byte(pkcs12Cert),
+			},
+		},
+		{
+			name: "labels",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ .secret | b64dec }}"),
+			},
+			labelsTpl: map[string][]byte{
+				"bar": []byte("{{ .env | b64dec }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+				"env":    []byte("ZGV2"),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("1234"),
+			},
+			expectedLabels: map[string]string{
+				"bar": "dev",
+			},
+		},
+		{
+			name: "annotations",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ .secret | b64dec }}"),
+			},
+			annotationsTpl: map[string][]byte{
+				"bar": []byte("{{ .env | b64dec }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+				"env":    []byte("ZGV2"),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("1234"),
+			},
+			expectedAnnotations: map[string]string{
+				"bar": "dev",
+			},
+		},
+		{
+			name: "stringData",
+			stringDataTpl: map[string][]byte{
+				"foo": []byte("{{ .secret | b64dec }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+				"env":    []byte("ZGV2"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "1234",
+			},
+		},
+		{
+			name: "NonStandardDelimiters",
+			stringDataTpl: map[string][]byte{
+				"foo": []byte("<< .secret | b64dec >>"),
+			},
+			leftDelimiter:  "<<",
+			rightDelimiter: ">>",
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+				"env":    []byte("ZGV2"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "1234",
+			},
+		},
+		{
+			name: "rsa decrypt rsa-oaep sha1 pkcs8 data base64",
+			tpl: map[string][]byte{
+				"data_decrypted": []byte(`{{ .private_key | rsaDecrypt "RSA-OAEP" "SHA1" (.data_crypted_base64 | b64dec) }}`),
+			},
+			data: map[string][]byte{
+				"private_key":         []byte(rsaDecryptPKRSAPKCS8),
+				"data_crypted_base64": []byte(rsaDecryptDataPKCS8Base64),
+			},
+			expectedData: map[string][]byte{
+				"data_decrypted": []byte("a1b2c3d4"),
+			},
+		},
+		{
+			name: "rsa decrypt rsa-oaep sha256 pkcs1 data base64",
+			tpl: map[string][]byte{
+				"data_decrypted": []byte(`{{ .private_key | rsaDecrypt "RSA-OAEP" "SHA256" (.data_crypted_base64 | b64dec) }}`),
+			},
+			data: map[string][]byte{
+				"private_key":         []byte(rsaDecryptPKRSAPKCS1),
+				"data_crypted_base64": []byte(rsaDecryptDataPKCS1Base64),
+			},
+			expectedData: map[string][]byte{
+				"data_decrypted": []byte("hellopkcs1sha256"),
+			},
+		},
+		{
+			name: "rsa decrypt rsa-oaep sha256 pkcs1 data bin",
+			tpl: map[string][]byte{
+				"data_decrypted": []byte(`{{ .private_key | rsaDecrypt "RSA-OAEP" "SHA256" .data_crypted_bin }}`),
+			},
+			data: map[string][]byte{
+				"private_key":      []byte(rsaDecryptPKRSAPKCS1),
+				"data_crypted_bin": rsaEncryptOAEP(t, []byte(rsaDecryptPubKeyRSAPKCS1), "SHA256", "hellopkcs1sha256"),
+			},
+			expectedData: map[string][]byte{
+				"data_decrypted": []byte("hellopkcs1sha256"),
+			},
+		},
+	}
+
+	for _, tt := range tbl {
+		t.Run(tt.name, func(t *testing.T) {
+			sec := &corev1.Secret{
+				Data:       make(map[string][]byte),
+				StringData: make(map[string]string),
+				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
+			}
+			oldLeftDelim := leftDelim
+			oldRightDelim := rightDelim
+			if tt.leftDelimiter != "" {
+				leftDelim = tt.leftDelimiter
+			}
+			if tt.rightDelimiter != "" {
+				rightDelim = tt.rightDelimiter
+			}
+			defer func() {
+				leftDelim = oldLeftDelim
+				rightDelim = oldRightDelim
+			}()
+			err := Execute(tt.tpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec)
+			if !ErrorContains(err, tt.expErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
+			}
+			err = Execute(tt.labelsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetLabels, sec)
+			if !ErrorContains(err, tt.expLblErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
+			}
+			err = Execute(tt.annotationsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetAnnotations, sec)
+			if !ErrorContains(err, tt.expAnnoErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
+			}
+			if tt.expectedData != nil {
+				assert.EqualValues(t, tt.expectedData, sec.Data)
+			}
+			if tt.expectedLabels != nil {
+				assert.EqualValues(t, tt.expectedLabels, sec.ObjectMeta.Labels)
+			}
+			if tt.expectedAnnotations != nil {
+				assert.EqualValues(t, tt.expectedAnnotations, sec.ObjectMeta.Annotations)
+			}
+		})
+	}
+}
+
+func TestScopeValuesWithSecretFieldsNil(t *testing.T) {
+	tbl := []struct {
+		name               string
+		tpl                map[string][]byte
+		target             string
+		data               map[string][]byte
+		expectedData       map[string][]byte
+		expectedStringData map[string]string
+		expErr             string
+	}{
+		{
+			name:   "test empty",
+			tpl:    map[string][]byte{},
+			target: esapi.TemplateTargetData,
+			data:   nil,
+		},
+		{
+			name:   "test byte",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetData,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name:   "test Annotations",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetAnnotations,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "bar",
+			},
+		},
+		{
+			name:   "test Labels",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetLabels,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "bar",
+			},
+		},
+	}
+	for i := range tbl {
+		row := tbl[i]
+		t.Run(row.name, func(t *testing.T) {
+			sec := &corev1.Secret{}
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, row.target, sec)
+			if !ErrorContains(err, row.expErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
+			}
+			switch row.target {
+			case esapi.TemplateTargetData:
+				if row.expectedData != nil {
+					assert.EqualValues(t, row.expectedData, sec.Data)
+				}
+			case esapi.TemplateTargetLabels:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Labels)
+				}
+			case esapi.TemplateTargetAnnotations:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Annotations)
+				}
+			}
+		})
+	}
+}
+
+func TestExecuteInvalidTemplateScope(t *testing.T) {
+	sec := &corev1.Secret{}
+	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "expected 'Values' or 'KeysAndValues'")
+}
+
+func TestScopeKeysAndValues(t *testing.T) {
+	tbl := []struct {
+		name               string
+		tpl                map[string][]byte
+		target             string
+		data               map[string][]byte
+		expectedData       map[string][]byte
+		expectedStringData map[string]string
+		expErr             string
+	}{
+		{
+			name:   "test empty",
+			tpl:    map[string][]byte{"literal": []byte("")},
+			target: "Data",
+			data:   nil,
+		},
+		{
+			name:   "test base64",
+			tpl:    map[string][]byte{"literal": []byte("{{ .key }}: {{ .value }}")},
+			target: esapi.TemplateTargetData,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name:   "test Annotations",
+			tpl:    map[string][]byte{"literal": []byte("{{ .key }}: {{ .value }}")},
+			target: esapi.TemplateTargetAnnotations,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "bar",
+			},
+		},
+		{
+			name:   "test Labels",
+			tpl:    map[string][]byte{"literal": []byte("{{ .key }}: {{ .value }}")},
+			target: esapi.TemplateTargetLabels,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "bar",
+			},
+		},
+	}
+	for i := range tbl {
+		row := tbl[i]
+		t.Run(row.name, func(t *testing.T) {
+			sec := &corev1.Secret{
+				Data:       make(map[string][]byte),
+				StringData: make(map[string]string),
+				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
+			}
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeKeysAndValues, row.target, sec)
+			if !ErrorContains(err, row.expErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
+			}
+			switch row.target {
+			case esapi.TemplateTargetData:
+				if row.expectedData != nil {
+					assert.EqualValues(t, row.expectedData, sec.Data)
+				}
+			case esapi.TemplateTargetLabels:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Labels)
+				}
+			case esapi.TemplateTargetAnnotations:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Annotations)
+				}
+			}
+		})
+	}
+}
+func TestComplexYAMLFieldsWithSpec(t *testing.T) {
+	// These tests verify that the template engine can handle complex YAML values
+	// for spec fields. Since ConfigMap doesn't have a spec field in its typed definition,
+	// we test by inspecting what would be set in an unstructured representation.
+
+	type testCase struct {
+		name   string
+		tpl    map[string][]byte
+		target string
+		scope  esapi.TemplateScope
+		data   map[string][]byte
+		verify func(t *testing.T, obj *corev1.Secret)
+		expErr string
+	}
+
+	tests := []testCase{
+		{
+			name:   "data target with simple string in Secret",
+			target: "data",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"simple": []byte("{{ .value }}"),
+			},
+			data: map[string][]byte{
+				"value": []byte("test-value"),
+			},
+			verify: func(t *testing.T, obj *corev1.Secret) {
+				assert.Equal(t, []byte("test-value"), obj.Data["simple"])
+			},
+		},
+		{
+			name:   "data target with multiple keys",
+			target: "data",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"username": []byte("{{ .user }}"),
+				"password": []byte("{{ .pass }}"),
+			},
+			data: map[string][]byte{
+				"user": []byte("admin"),
+				"pass": []byte("secret123"),
+			},
+			verify: func(t *testing.T, obj *corev1.Secret) {
+				assert.Equal(t, []byte("admin"), obj.Data["username"])
+				assert.Equal(t, []byte("secret123"), obj.Data["password"])
+			},
+		},
+		{
+			name:   "labels target with templated values",
+			target: "labels",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"app":     []byte("{{ .app }}"),
+				"version": []byte("{{ .version }}"),
+			},
+			data: map[string][]byte{
+				"app":     []byte("my-app"),
+				"version": []byte("1.0.0"),
+			},
+			verify: func(t *testing.T, obj *corev1.Secret) {
+				assert.Equal(t, "my-app", obj.Labels["app"])
+				assert.Equal(t, "1.0.0", obj.Labels["version"])
+			},
+		},
+		{
+			name:   "annotations target with templated values",
+			target: "annotations",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"description": []byte("{{ .desc }}"),
+				"owner":       []byte("{{ .owner }}"),
+			},
+			data: map[string][]byte{
+				"desc":  []byte("Test secret"),
+				"owner": []byte("team-platform"),
+			},
+			verify: func(t *testing.T, obj *corev1.Secret) {
+				assert.Equal(t, "Test secret", obj.Annotations["description"])
+				assert.Equal(t, "team-platform", obj.Annotations["owner"])
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:        "test-secret",
+					Namespace:   "default",
+					Labels:      make(map[string]string),
+					Annotations: make(map[string]string),
+				},
+				Data: make(map[string][]byte),
+			}
+
+			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
+
+			if tt.expErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expErr)
+				return
+			}
+
+			require.NoError(t, err)
+			if tt.verify != nil {
+				tt.verify(t, obj)
+			}
+		})
+	}
+}
+
+func TestTryParseYAML(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected any
+	}{
+		{
+			name:     "parse YAML object",
+			input:    "key: value\nfoo: bar",
+			expected: map[string]any{"key": "value", "foo": "bar"},
+		},
+		{
+			name:     "parse YAML array",
+			input:    "- item1\n- item2\n- item3",
+			expected: []any{"item1", "item2", "item3"},
+		},
+		{
+			name:     "parse YAML number",
+			input:    "42",
+			expected: int64(42),
+		},
+		{
+			name:     "parse YAML boolean true",
+			input:    "true",
+			expected: true,
+		},
+		{
+			name:     "parse YAML boolean false",
+			input:    "false",
+			expected: false,
+		},
+		{
+			name:     "parse YAML float",
+			input:    "3.14",
+			expected: 3.14,
+		},
+		{
+			name:     "parse complex YAML",
+			input:    "database:\n  host: localhost\n  port: 5432\n  enabled: true",
+			expected: map[string]any{"database": map[string]any{"host": "localhost", "port": int64(5432), "enabled": true}},
+		},
+		{
+			name:     "plain string returns as-is",
+			input:    "just a string",
+			expected: "just a string",
+		},
+		{
+			name:     "invalid YAML returns original",
+			input:    "invalid: : yaml:",
+			expected: "invalid: : yaml:",
+		},
+		{
+			name:     "non-string input returns as-is",
+			input:    123,
+			expected: 123,
+		},
+		{
+			name:     "byte slice returns as-is",
+			input:    []byte("test"),
+			expected: []byte("test"),
+		},
+		{
+			name:     "null/empty string",
+			input:    "",
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tryParseYAML(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func ErrorContains(out error, want string) bool {
+	if out == nil {
+		return want == ""
+	}
+	if want == "" {
+		return false
+	}
+	return strings.Contains(out.Error(), want)
+}
+
+func TestPkcs12certPass(t *testing.T) {
+	const (
+		leafCertPath         = "_testdata/foo.crt"
+		intermediateCertPath = "_testdata/intermediate-ca.crt"
+		rootCertPath         = "_testdata/root-ca.crt"
+		disjunctCertPath     = "_testdata/disjunct-root-ca.crt"
+	)
+	type args struct {
+		pass     string
+		filename string
+	}
+	type testCase struct {
+		name    string
+		args    args
+		want    []string
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			// this case expects the whole chain to be stored
+			// in a single bag.
+			// bag(1): leaf/root/intermediate cert
+			// bag(2): private key
+			name: "read file without password",
+			args: args{
+				pass:     "",
+				filename: "_testdata/foo-nopass.pfx",
+			},
+			want: []string{
+				// this order is important
+				leafCertPath,
+				intermediateCertPath,
+				rootCertPath,
+			},
+		},
+		{
+			// same as above but with password
+			name: "read file with password",
+			args: args{
+				pass:     "1234",
+				filename: "_testdata/foo-withpass-1234.pfx",
+			},
+			want: []string{
+				// this order is important
+				leafCertPath,
+				intermediateCertPath,
+				rootCertPath,
+			},
+		},
+		{
+			// cert chain may be stored in different bags
+			// this test case uses a pfx that has the following structure:
+			// bag(1): leaf certificate
+			// bag(2): root + intermediate cert
+			// bag(3): private key
+			name: "read multibag cert chain",
+			args: args{
+				pass:     "",
+				filename: "_testdata/foo-multibag-nopass.pfx",
+			},
+			want: []string{
+				// this order is important
+				leafCertPath,
+				intermediateCertPath,
+				rootCertPath,
+			},
+		},
+		{
+			// cert chain may contain a disjunct cert
+			// bag(1): leaf/root/intermediate/disjunct
+			// bag(2): private key
+			name: "read disjunct cert chain",
+			args: args{
+				pass:     "",
+				filename: "_testdata/foo-disjunct-nopass.pfx",
+			},
+			want: []string{
+				// this order is important
+				leafCertPath,
+				rootCertPath,
+				intermediateCertPath,
+				disjunctCertPath,
+			},
+		},
+		{
+			name: "read file wrong password",
+			args: args{
+				pass:     "wrongpass",
+				filename: "_testdata/foo-withpass-1234.pfx",
+			},
+			wantErr: true,
+		},
+	}
+
+	testFunc := func(t *testing.T, tc testCase) {
+		archive, err := os.ReadFile(tc.args.filename)
+		if err != nil {
+			t.Error(err)
+		}
+		var expOut []byte
+		for _, w := range tc.want {
+			c, err := os.ReadFile(w)
+			if err != nil {
+				t.Error(err)
+			}
+			expOut = append(expOut, c...)
+		}
+		got, err := pkcs12certPass(tc.args.pass, string(archive))
+		if (err != nil) != tc.wantErr {
+			t.Errorf("pkcs12certPass() error = %v, wantErr %v", err, tc.wantErr)
+			return
+		}
+		if diff := cmp.Diff(string(expOut), got); diff != "" {
+			t.Errorf("pkcs12certPass() = diff:\n%s", diff)
+		}
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testFunc(t, tt)
+		})
+	}
+}
+
+func TestConfigMapDataNotBase64Encoded(t *testing.T) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "test-cm",
+			Namespace: "default",
+		},
+	}
+
+	data := map[string][]byte{
+		"host":     []byte("localhost"),
+		"port":     []byte("5432"),
+		"database": []byte("mydb"),
+	}
+
+	tplMap := map[string][]byte{
+		"host":     []byte("{{ .host }}"),
+		"port":     []byte("{{ .port }}"),
+		"database": []byte("{{ .database }}"),
+	}
+
+	err := Execute(tplMap, data, esapi.TemplateScopeValues, "Data", configMap)
+	require.NoError(t, err)
+
+	assert.Equal(t, "localhost", configMap.Data["host"], "host should be plain text, not base64")
+	assert.Equal(t, "5432", configMap.Data["port"], "port should be plain text, not base64")
+	assert.Equal(t, "mydb", configMap.Data["database"], "database should be plain text, not base64")
+}

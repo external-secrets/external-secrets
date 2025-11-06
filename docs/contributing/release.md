@@ -2,6 +2,28 @@ ESO and the ESO Helm Chart have two distinct lifecycles and can be released inde
 
 The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release.
 
+## Multi-Module Versioning
+
+External Secrets Operator uses a multi-module structure with the following modules:
+- `/apis` - CRD types and interfaces
+- `/runtime` - Shared utilities
+- `/providers/v1/*` - Individual provider modules
+- `/generators/v1/*` - Individual generator modules
+- `/` (root) - Main module with controllers and binary
+
+**All modules share the same version tag.** When releasing version `v0.x.y`, a single git tag is created that applies to all modules in the repository. Go's module system automatically handles this, and consumers can reference any module using the same version tag.
+
+For example:
+```go
+require (
+    github.com/external-secrets/external-secrets/apis v0.10.0
+    github.com/external-secrets/external-secrets/runtime v0.10.0
+    github.com/external-secrets/external-secrets/providers/v1/aws v0.10.0
+)
+```
+
+**Important:** When updating dependencies that consume ESO modules, ensure all module references use the same version to maintain compatibility.
+
 ## Release ESO
 
 When doing a release it's best to start with  with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.

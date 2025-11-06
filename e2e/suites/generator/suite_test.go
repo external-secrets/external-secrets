@@ -34,7 +34,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 
 	By("installing eso")
-	addon.InstallGlobalAddon(addon.NewESO(addon.WithCRDs()))
+	addon.InstallGlobalAddon(addon.NewESO(addon.WithCRDs(), addon.WithAllowGenericTargets()))
 
 	return nil
 }, func([]byte) {
