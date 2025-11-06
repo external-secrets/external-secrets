@@ -4209,7 +4209,7 @@ described below.</p>
 <p class="admonition-title">Security Consideration</p>
 <p>Custom resources are not encrypted at rest by Kubernetes. Only use this feature when you need to populate resources that do not contain sensitive credentials, or when the target resource is encrypted by other means.</p>
 </div>
-<p>This feature must be explicitly enabled in your deployment using the <code>--unsafe-allow-non-secret-targets</code> flag.</p>
+<p>This feature must be explicitly enabled in your deployment using the <code>--unsafe-allow-generic-targets</code> flag.</p>
 <div class="admonition note">
 <p class="admonition-title">Namespaced Resources Only</p>
 <p>With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.</p>
@@ -4346,8 +4346,8 @@ We recommend not overusing this feature without too many objects until further p
 </code></pre></div>
 <p>The <code>target</code> field accepts dot-notation paths like <code>spec.database</code> or <code>spec.logging</code> to place the rendered template output at specific locations in the resource structure. When <code>target</code> is not specified it defaults to <code>Data</code> for backward compatibility with Secrets.</p>
 <h2 id="drift-detection">Drift Detection</h2>
-<p>The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state during the next reconciliation cycle.</p>
-<p>This ensures that your configuration remains consistent with what is defined in your external secret provider, preventing configuration drift.</p>
+<p>The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state immediately.
+This is achieved with informers watching the relevant GVK of the Resource.</p>
 <h2 id="metadata-and-labels">Metadata and Labels</h2>
 <p>You can add labels and annotations to your target resources using the template metadata:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
