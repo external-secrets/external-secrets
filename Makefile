@@ -437,7 +437,7 @@ TILT ?= $(LOCALBIN)/tilt
 CTY ?= $(LOCALBIN)/cty
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
-
+LINT_TARGET ?= ""
 ## Tool Versions
 GOLANGCI_VERSION := 2.4.0
 KUBERNETES_VERSION := 1.33.x
