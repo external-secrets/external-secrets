@@ -6113,6 +6113,16 @@ External Secrets meta/v1.SecretKeySelector
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>iamEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.IBMProvider">IBMProvider
