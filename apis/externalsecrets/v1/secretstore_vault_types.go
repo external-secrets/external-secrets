@@ -29,8 +29,7 @@ const (
 	VaultKVStoreV2 VaultKVStoreVersion = "v2"
 )
 
-// VaultProvider configures a store to sync secrets using a HashiCorp Vault
-// KV backend.
+// VaultProvider configures a store to sync secrets using a Hashicorp Vault KV backend.
 type VaultProvider struct {
 	// Auth configures how secret-manager authenticates with the Vault server.
 	Auth *VaultAuth `json:"auth,omitempty"`
@@ -119,7 +118,7 @@ type VaultClientTLS struct {
 }
 
 // VaultAuth is the configuration used to authenticate with a Vault server.
-// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt` or `cert`
+// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt`, `cert`, `iam` or `gcp`
 // can be specified. A namespace to authenticate against can optionally be specified.
 type VaultAuth struct {
 	// Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
@@ -396,7 +395,11 @@ type VaultUserPassAuth struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// VaultGCPAuth authenticates with Vault using the GCP auth method.
+// VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
+// Refer: https://developer.hashicorp.com/vault/docs/auth/gcp
+//
+// When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod's
+// identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.
 type VaultGCPAuth struct {
 	// Path where the GCP auth method is enabled in Vault, e.g: "gcp"
 	// +kubebuilder:default=gcp

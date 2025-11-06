@@ -4784,6 +4784,23 @@ ExternalSecretTemplate
 </tr>
 <tr>
 <td>
+<code>manifest</code></br>
+<em>
+<a href="#external-secrets.io/v1.ManifestReference">
+ManifestReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Manifest defines a custom Kubernetes resource to create instead of a Secret.
+When specified, ExternalSecret will create the resource type defined here
+(e.g., ConfigMap, Custom Resource) instead of a Secret.
+Warning: Using Generic target. Make sure access policies and encryption are properly configured.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>immutable</code></br>
 <em>
 bool
@@ -6859,6 +6876,49 @@ bool
 </tr><tr><td><p>false</p></td>
 <td></td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ManifestReference">ManifestReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretTarget">ExternalSecretTarget</a>)
+</p>
+<p>
+<p>ManifestReference defines a custom Kubernetes resource type to be created
+instead of a Secret. This allows ExternalSecret to create ConfigMaps,
+Custom Resources, or any other Kubernetes resource type.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIVersion of the target resource (e.g., &ldquo;v1&rdquo; for ConfigMap, &ldquo;argoproj.io/v1alpha1&rdquo; for ArgoCD Application)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind of the target resource (e.g., &ldquo;ConfigMap&rdquo;, &ldquo;Application&rdquo;)</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1.NTLMProtocol">NTLMProtocol
 </h3>
@@ -9882,13 +9942,15 @@ TemplateRef
 <td>
 <code>target</code></br>
 <em>
-<a href="#external-secrets.io/v1.TemplateTarget">
-TemplateTarget
-</a>
+string
 </em>
 </td>
 <td>
 <em>(Optional)</em>
+<p>Target specifies where to place the template result.
+For Secret resources, common values are: &ldquo;Data&rdquo;, &ldquo;Annotations&rdquo;, &ldquo;Labels&rdquo;.
+For custom resources (when spec.target.manifest is set), this supports
+nested paths like &ldquo;spec.database.config&rdquo; or &ldquo;data&rdquo;.</p>
 </td>
 </tr>
 <tr>
@@ -10030,30 +10092,6 @@ TemplateScope
 <tbody><tr><td><p>&#34;KeysAndValues&#34;</p></td>
 <td></td>
 </tr><tr><td><p>&#34;Values&#34;</p></td>
-<td></td>
-</tr></tbody>
-</table>
-<h3 id="external-secrets.io/v1.TemplateTarget">TemplateTarget
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.TemplateFrom">TemplateFrom</a>)
-</p>
-<p>
-<p>TemplateTarget specifies where the rendered templates should be applied.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr><td><p>&#34;Annotations&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Data&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Labels&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -10277,7 +10315,7 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code>, <code>cert</code>, <code>iam</code> or <code>gcp</code>
 can be specified. A namespace to authenticate against can optionally be specified.</p>
 </p>
 <table>
@@ -10734,7 +10772,10 @@ If no key for the Secret is specified, external-secret will default to &lsquo;tl
 <a href="#external-secrets.io/v1.VaultAuth">VaultAuth</a>)
 </p>
 <p>
-<p>VaultGCPAuth authenticates with Vault using the GCP auth method.</p>
+<p>VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
+Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/gcp">https://developer.hashicorp.com/vault/docs/auth/gcp</a></p>
+<p>When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod&rsquo;s
+identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.</p>
 </p>
 <table>
 <thead>
@@ -11261,8 +11302,7 @@ method</p>
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>VaultProvider configures a store to sync secrets using a HashiCorp Vault
-KV backend.</p>
+<p>VaultProvider configures a store to sync secrets using a Hashicorp Vault KV backend.</p>
 </p>
 <table>
 <thead>
