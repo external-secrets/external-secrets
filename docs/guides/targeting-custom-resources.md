@@ -9,7 +9,7 @@ External Secrets Operator can create and manage resources beyond Kubernetes Secr
 !!! warning "Security Consideration"
     Custom resources are not encrypted at rest by Kubernetes. Only use this feature when you need to populate resources that do not contain sensitive credentials, or when the target resource is encrypted by other means.
 
-This feature must be explicitly enabled in your deployment using the `--unsafe-allow-non-secret-targets` flag.
+This feature must be explicitly enabled in your deployment using the `--unsafe-allow-generic-targets` flag.
 
 !!! note "Namespaced Resources Only"
     With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.
@@ -58,9 +58,8 @@ The `target` field accepts dot-notation paths like `spec.database` or `spec.logg
 
 ## Drift Detection
 
-The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state during the next reconciliation cycle.
-
-This ensures that your configuration remains consistent with what is defined in your external secret provider, preventing configuration drift.
+The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state immediately.
+This is achieved with informers watching the relevant GVK of the Resource.
 
 ## Metadata and Labels
 
