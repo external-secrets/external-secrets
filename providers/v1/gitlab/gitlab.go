@@ -335,7 +335,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 		}
 
 		groupVar, resp, err := g.getGroupVariables(groupID, ref, gopts)
-		if err != nil {
+		if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
 			return nil, err
 		}
 		if resp != nil && resp.StatusCode < 300 {
