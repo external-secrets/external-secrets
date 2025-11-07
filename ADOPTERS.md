@@ -31,6 +31,7 @@
 - [Red Hat OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift)
 - [SAP](https://www.sap.com/)
 - [Skeeled](https://www.skeeled.com/)
+- [Topicus.Education](https://topicus.nl/en/sectors/education)
 - [Made People](https://madepeople.se/)
 - [Voiceflow](https://www.voiceflow.com/)
 - [VMware Tanzu](https://tanzu.vmware.com/)
