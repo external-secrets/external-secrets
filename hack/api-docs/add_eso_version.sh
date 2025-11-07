@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script to add a new ESO version to the stability-support.md file
 # Usage: ./add_eso_version.sh <ESO_VERSION>
