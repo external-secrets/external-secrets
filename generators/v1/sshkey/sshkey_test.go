@@ -96,6 +96,39 @@ func TestGenerate(t *testing.T) {
 			},
 		},
 		{
+			name:     "ecdsa key",
+			jsonSpec: &apiextensions.JSON{Raw: []byte(`{"spec":{"keyType":"ecdsa"}}`)},
+			wantErr:  false,
+			validate: func(t *testing.T, result map[string][]byte) {
+				assert.Contains(t, result, "privateKey")
+				assert.Contains(t, result, "publicKey")
+				assert.True(t, strings.HasPrefix(string(result["publicKey"]), "ecdsa-sha2-"))
+			},
+		},
+		{
+			name:     "ecdsa key with comment",
+			jsonSpec: &apiextensions.JSON{Raw: []byte(`{"spec":{"keyType":"ecdsa","comment":"test@example.com"}}`)},
+			wantErr:  false,
+			validate: func(t *testing.T, result map[string][]byte) {
+				assert.Contains(t, result, "privateKey")
+				assert.Contains(t, result, "publicKey")
+				assert.True(t, strings.HasPrefix(string(result["publicKey"]), "ecdsa-sha2-"))
+				assert.Contains(t, string(result["publicKey"]), "test@example.com")
+			},
+		},
+		{
+			name:     "ecdsa key with bits specified",
+			jsonSpec: &apiextensions.JSON{Raw: []byte(`{"spec":{"keyType":"ecdsa","keySize":521}}`)},
+			wantErr:  false,
+			validate: func(t *testing.T, result map[string][]byte) {
+				assert.Contains(t, result, "privateKey")
+				assert.Contains(t, result, "publicKey")
+				assert.True(t, strings.HasPrefix(string(result["publicKey"]), "ecdsa-sha2-"))
+				assert.True(t, len(result["privateKey"]) > 0)
+				assert.True(t, len(result["publicKey"]) > 0)
+			},
+		},
+		{
 			name:     "key with comment",
 			jsonSpec: &apiextensions.JSON{Raw: []byte(`{"spec":{"keyType":"rsa","comment":"test@example.com"}}`)},
 			wantErr:  false,
