@@ -149,6 +149,18 @@ func TestNewClient(t *testing.T) {
 			errorMsg:    "missing required field",
 		},
 		{
+			name:        "username as value should pass",
+			store:       makeSecretStoreWithValueUsername(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeValidSecretWithNoUsername()),
+			expectError: false,
+		},
+		{
+			name:        "username as value and secret should pass",
+			store:       makeSecretStoreWithValueUsername(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeValidSecret()),
+			expectError: false,
+		},
+		{
 			name:        "missing username secret should return error",
 			store:       makeValidSecretStore(),
 			kube:        clientfake.NewClientBuilder(),
@@ -224,6 +236,14 @@ func makeValidSecretStore() *esv1.SecretStore {
 	}
 }
 
+func makeSecretStoreWithValueUsername() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Username = esv1.BarbicanProviderRef{
+		Value: testUsername,
+	}
+	return store
+}
+
 func makeSecretStoreWithNilProvider() *esv1.SecretStore {
 	store := makeValidSecretStore()
 	store.Spec.Provider = nil
@@ -250,6 +270,18 @@ func makeValidSecret() *corev1.Secret {
 		},
 		Data: map[string][]byte{
 			"username": []byte(testUsername),
+			"password": []byte(testPassword),
+		},
+	}
+}
+
+func makeValidSecretWithNoUsername() *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testSecretName,
+			Namespace: testNamespace,
+		},
+		Data: map[string][]byte{
 			"password": []byte(testPassword),
 		},
 	}

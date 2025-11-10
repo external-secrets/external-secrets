@@ -79,9 +79,13 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return nil, fmt.Errorf(errMissingField, errors.New("authURL is required"))
 	}
 
-	username, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Username.SecretRef)
-	if err != nil {
-		return nil, fmt.Errorf(errMissingField, err)
+	username := provider.Username.Value
+
+	if username == "" {
+		username, err = resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Username.SecretRef)
+		if err != nil {
+			return nil, fmt.Errorf(errMissingField, err)
+		}
 	}
 
 	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Password.SecretRef)
