@@ -40,12 +40,15 @@ const (
 
 var _ esv1.Provider = &Provider{}
 
+// Provider implements the Barbican provider.
 type Provider struct{}
 
+// Capabilities returns the capabilities of the Barbican provider.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
+// ValidateStore validates the Barbican store configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, fmt.Errorf(errGeneric, errors.New("store is nil"))
@@ -53,10 +56,12 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
+// NewClient creates a new Barbican client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace)
 }
 
+// getProvider retrieves the Barbican provider configuration from the store.
 func getProvider(store esv1.GenericStore) (*esv1.BarbicanProvider, error) {
 	spec := store.GetSpec()
 	if spec.Provider == nil || spec.Provider.Barbican == nil {
@@ -111,8 +116,19 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	return c, nil
 }
 
-func init() {
-	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
-		Barbican: &esv1.BarbicanProvider{},
-	}, esv1.MaintenanceStatusMaintained)
+// NewProvider constructs a new Barbican provider.
+func NewProvider() esv1.Provider {
+	return &Provider{}
+}
+
+// ProviderSpec returns a sample Barbican provider spec.
+func ProviderSpec() *esv1.SecretStoreProvider {
+	return &esv1.SecretStoreProvider{
+		SecretServer: &esv1.SecretServerProvider{},
+	}
+}
+
+// MaintenanceStatus returns the maintenance status of the Barbican provider.
+func MaintenanceStatus() esv1.MaintenanceStatus {
+	return esv1.MaintenanceStatusMaintained
 }

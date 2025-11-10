@@ -20,6 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// BarbicanProviderRef defines a reference to a secret containing credentials for the Barbican provider.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type BarbicanProviderRef struct {
@@ -27,6 +28,7 @@ type BarbicanProviderRef struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
+// BarbicanProvider setup a store to sync secrets with barbican.
 type BarbicanProvider struct {
 	AuthURL    string              `json:"authURL,omitempty"`
 	TenantName string              `json:"tenantName,omitempty"`

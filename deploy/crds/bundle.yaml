@@ -2955,12 +2955,13 @@ spec:
                         domainName:
                           type: string
                         password:
+                          description: BarbicanProviderRef defines a reference to a secret containing credentials for the Barbican provider.
                           maxProperties: 1
                           minProperties: 1
                           properties:
                             secretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -2994,12 +2995,13 @@ spec:
                         tenantName:
                           type: string
                         username:
+                          description: BarbicanProviderRef defines a reference to a secret containing credentials for the Barbican provider.
                           maxProperties: 1
                           minProperties: 1
                           properties:
                             secretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -14524,12 +14526,13 @@ spec:
                         domainName:
                           type: string
                         password:
+                          description: BarbicanProviderRef defines a reference to a secret containing credentials for the Barbican provider.
                           maxProperties: 1
                           minProperties: 1
                           properties:
                             secretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:
@@ -14563,12 +14566,13 @@ spec:
                         tenantName:
                           type: string
                         username:
+                          description: BarbicanProviderRef defines a reference to a secret containing credentials for the Barbican provider.
                           maxProperties: 1
                           minProperties: 1
                           properties:
                             secretRef:
                               description: |-
-                                A reference to a specific 'key' within a Secret resource.
+                                SecretKeySelector is a reference to a specific 'key' within a Secret resource.
                                 In some instances, `key` is a required field.
                               properties:
                                 key:

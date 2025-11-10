@@ -1280,6 +1280,7 @@ configuration is not supported with the legacy go-autorest SDK.</p>
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
+<p>BarbicanProvider setup a store to sync secrets with barbican.</p>
 </p>
 <table>
 <thead>
@@ -1362,6 +1363,7 @@ BarbicanProviderRef
 <a href="#external-secrets.io/v1.BarbicanProvider">BarbicanProvider</a>)
 </p>
 <p>
+<p>BarbicanProviderRef defines a reference to a secret containing credentials for the Barbican provider.</p>
 </p>
 <table>
 <thead>

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package barbican client implementation.
 package barbican
 
 import (
@@ -43,10 +44,12 @@ const (
 
 var _ esapi.SecretsClient = &Client{}
 
+// Client is a Barbican secrets client.
 type Client struct {
 	keyManager *gophercloud.ServiceClient
 }
 
+// GetAllSecrets retrieves all secrets matching the given name.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name == nil || ref.Name.RegExp == "" {
 		return nil, fmt.Errorf(errClientMissingField, errors.New("name and/or regexp"))
@@ -72,7 +75,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 
 	var secretsMap = make(map[string][]byte)
 
-	// return a secret map with all found secrets
+	// return a secret map with all found secrets.
 	for _, secret := range allSecrets {
 		secretUUID := extractUUIDFromRef(secret.SecretRef)
 		secretsMap[secretUUID], err = secrets.GetPayload(ctx, c.keyManager, secretUUID, nil).Extract()
@@ -83,6 +86,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 	return secretsMap, nil
 }
 
+// GetSecret retrieves a secret from Barbican.
 func (c *Client) GetSecret(ctx context.Context, ref esapi.ExternalSecretDataRemoteRef) ([]byte, error) {
 	payload, err := secrets.GetPayload(ctx, c.keyManager, ref.Key, nil).Extract()
 	if err != nil {
@@ -101,6 +105,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esapi.ExternalSecretDataRemo
 	return propertyValue, nil
 }
 
+// GetSecretMap retrieves a secret and parses it as a JSON object.
 func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	payload, err := c.GetSecret(ctx, ref)
 	if err != nil {
@@ -120,26 +125,32 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataR
 	return secretMap, nil
 }
 
-func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esapi.PushSecretData) error {
+// PushSecret is not implemented right now for Barbican.
+func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esapi.PushSecretData) error {
 	return fmt.Errorf("barbican provider does not support pushing secrets")
 }
 
-func (c *Client) SecretExists(ctx context.Context, ref esapi.PushSecretRemoteRef) (bool, error) {
+// SecretExists is not implemented right now for Barbican.
+func (c *Client) SecretExists(_ context.Context, _ esapi.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf("barbican provider does not support checking if a secret exists")
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, ref esapi.PushSecretRemoteRef) error {
+// DeleteSecret is not implemented right now for Barbican.
+func (c *Client) DeleteSecret(_ context.Context, _ esapi.PushSecretRemoteRef) error {
 	return fmt.Errorf("barbican provider does not support deleting secrets")
 }
 
+// Validate checks if the client is properly configured.
 func (c *Client) Validate() (esapi.ValidationResult, error) {
 	return esapi.ValidationResultReady, nil
 }
 
-func (c *Client) Close(ctx context.Context) error {
+// Close closes the client and any underlying connections.
+func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
+// getSecretPayloadProperty extracts a property from a JSON payload.
 func getSecretPayloadProperty(payload []byte, property string) ([]byte, error) {
 	if property == "" {
 		return payload, nil
@@ -158,6 +169,7 @@ func getSecretPayloadProperty(payload []byte, property string) ([]byte, error) {
 	return value, nil
 }
 
+// extractUUIDFromRef extracts the UUID from a Barbican secret reference URL.
 func extractUUIDFromRef(secretRef string) string {
 	// Barbican secret refs are usually of the form: https://<endpoint>/v1/secrets/<uuid>
 	// We'll just take the last part after the last '/'
