@@ -1459,6 +1459,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#ecdsa-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      ECDSA Keys
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ed25519-keys" class="md-nav__link">
     <span class="md-ellipsis">
       Ed25519 Keys
@@ -4169,6 +4178,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#ecdsa-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      ECDSA Keys
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ed25519-keys" class="md-nav__link">
     <span class="md-ellipsis">
       Ed25519 Keys
@@ -4244,14 +4262,14 @@
 <tbody>
 <tr>
 <td>keyType</td>
-<td>SSH key type (rsa, ed25519)</td>
+<td>SSH key type (rsa, ecdsa, ed25519)</td>
 <td>rsa</td>
 <td>No</td>
 </tr>
 <tr>
 <td>keySize</td>
-<td>Key size for RSA keys (2048, 3072, 4096); ignored for ed25519</td>
-<td>2048</td>
+<td>Key size for RSA keys (2048, 3072, 4096) and ECDSA (256, 384, 521); ignored for ed25519</td>
+<td>2048 / 256</td>
 <td>No</td>
 </tr>
 <tr>
@@ -4282,6 +4300,16 @@
 <span class="w">  </span><span class="nt">keySize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4096</span>
 <span class="w">  </span><span class="nt">comment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rsa@example.com&quot;</span>
 </code></pre></div>
+<p>ECDSA SSH key:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SSHKey</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-ecdsa-key</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">keyType</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ecdsa&quot;</span>
+<span class="w">  </span><span class="nt">keySize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">521</span>
+<span class="w">  </span><span class="nt">comment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ecdsa@example.com&quot;</span>
+</code></pre></div>
 <p>Example <code>ExternalSecret</code> that references the SSHKey generator:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -4306,6 +4334,12 @@
 <li>Default key size: 2048 bits</li>
 <li>Good compatibility with older systems</li>
 <li>Can specify custom keySize in the spec</li>
+</ul>
+<h3 id="ecdsa-keys">ECDSA Keys</h3>
+<ul>
+<li>Supports key sizes: 256, 384, 521 bits</li>
+<li>Default key size: 256 bits</li>
+<li>For use in regulated environments</li>
 </ul>
 <h3 id="ed25519-keys">Ed25519 Keys</h3>
 <ul>
