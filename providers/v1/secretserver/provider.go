@@ -83,7 +83,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		ServerURL: cfg.ServerURL,
 	}
 
-	if len(cfg.CABundle) != 0 && cfg.CAProvider != nil {
+	if len(cfg.CABundle) > 0 || cfg.CAProvider != nil {
 		cert, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 			StoreKind:  store.GetKind(),
 			Client:     kube,
