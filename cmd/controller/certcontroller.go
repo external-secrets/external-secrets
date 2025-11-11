@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -78,6 +79,14 @@ var certcontrollerCmd = &cobra.Command{
 		// Configure metrics server options
 		metricsServerOpts := server.Options{
 			BindAddress: metricsAddr,
+		}
+
+		if metricsSecure {
+			metricsServerOpts.SecureServing = true
+			metricsServerOpts.CertDir = metricsCertDir
+			metricsServerOpts.CertName = metricsCertName
+			metricsServerOpts.KeyName = metricsKeyName
+			metricsServerOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
 		}
 
 		// Disable HTTP/2 if not explicitly enabled

@@ -31,6 +31,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -125,6 +126,14 @@ var webhookCmd = &cobra.Command{
 		// Configure metrics server options
 		metricsServerOpts := server.Options{
 			BindAddress: metricsAddr,
+		}
+
+		if metricsSecure {
+			metricsServerOpts.SecureServing = true
+			metricsServerOpts.CertDir = metricsCertDir
+			metricsServerOpts.CertName = metricsCertName
+			metricsServerOpts.KeyName = metricsKeyName
+			metricsServerOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
 		}
 
 		// Configure TLS options for metrics server
