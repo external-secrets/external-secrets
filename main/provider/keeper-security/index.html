@@ -4398,7 +4398,7 @@
 </ul>
 <p>This base64 encoded jsong string will be required to create your secretStores</p>
 <h2 id="important-note-about-this-documentation">Important note about this documentation</h2>
-<p><em><strong>The KepeerSecurity calls the entries in vaults 'Records'. These docs use the same term.</strong></em></p>
+<p><em><strong>The KeeperSecurity calls the entries in vaults 'Records'. These docs use the same term.</strong></em></p>
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>keepersecurity</code> provider is listed in the <code>Kind=SecretStore</code></p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
@@ -4451,7 +4451,7 @@
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w">           </span><span class="c1"># rate SecretManager pulls KeeperSrucity</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w">           </span><span class="c1"># rate SecretManager pulls KeeperSecurity</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span>
@@ -4523,7 +4523,7 @@
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w">           </span><span class="c1"># rate SecretManager pulls KeeperSrucity</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w">           </span><span class="c1"># rate SecretManager pulls KeeperSecurity</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span>
@@ -4585,7 +4585,7 @@
 <h3 id="limitations_1">Limitations</h3>
 <ul>
 <li>Only possible to push one key per secret at the moment</li>
-<li>If the record with the selected name exists but the key does not exists the record can not be updated. See <a href="https://github.com/Keeper-Security/secrets-manager-go/issues/17">Ability to add custom fields to existing secret #17</a></li>
+<li>If the record with the selected name exists but the key does not exist, the record cannot be updated. See <a href="https://github.com/Keeper-Security/secrets-manager-go/issues/17">Ability to add custom fields to existing secret #17</a></li>
 </ul>
 
 
