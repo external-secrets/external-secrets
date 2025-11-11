@@ -30,13 +30,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	smithy "github.com/aws/smithy-go/endpoints"
+	"github.com/go-logr/logr"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	k8scorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
@@ -44,6 +44,7 @@ import (
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/logs"
 )
 
 var (
@@ -62,6 +63,10 @@ const (
 	// AWSContainerCredentialsFullURIEnvVar is the environment variable that points to the full credentials URI for ECS tasks.
 	AWSContainerCredentialsFullURIEnvVar = "AWS_CONTAINER_CREDENTIALS_FULL_URI"
 )
+
+func ctxLog(ctx context.Context) logr.Logger {
+	return logs.CtxLog(ctx, "provider", "vault")
+}
 
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
 // controller-runtime/client does not support TokenRequest or other subresource APIs

@@ -10,8 +10,8 @@ ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 WORKDIR /app
 # Avoid invalidating the `go mod download` cache when only code has changed.
 COPY go.mod go.sum /app/
-RUN go mod download
 COPY . /app/
+RUN go mod download
 RUN go build -o external-secrets main.go
 
 

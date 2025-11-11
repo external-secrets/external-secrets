@@ -31,21 +31,22 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/smithy-go"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
+	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	utilpointer "k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
+	"github.com/external-secrets/external-secrets/runtime/logs"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
 )
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to AWS Secret Manager.
@@ -118,7 +119,9 @@ const (
 	initialVersion            = "00000000-0000-0000-0000-000000000001"
 )
 
-var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
+func ctxLog(ctx context.Context) logr.Logger {
+	return logs.CtxLog(ctx, "provider", "aws", "secretsmanager")
+}
 
 // New creates a new SecretsManager client.
 func New(_ context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsManager, prefix string, referentAuth bool, kube client.Client, namespace string) (*SecretsManager, error) {
@@ -137,6 +140,7 @@ func New(_ context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsMana
 }
 
 func (sm *SecretsManager) fetch(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
+	log := ctxLog(ctx)
 	ver := "AWSCURRENT"
 	valueFrom := "SECRET"
 	if ref.Version != "" {
@@ -327,6 +331,7 @@ func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSe
 }
 
 func (sm *SecretsManager) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	log := ctxLog(ctx)
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
 		return nil, err
@@ -483,6 +488,8 @@ func (sm *SecretsManager) escapeDotsIfRequired(currentRefProperty, payload strin
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	log := ctxLog(ctx)
+
 	log.Info("fetching secret map", "key", ref.Key)
 	data, err := sm.GetSecret(ctx, ref)
 	if err != nil {
@@ -668,6 +675,8 @@ func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensions
 }
 
 func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Filter, matcher *find.Matcher) (map[string][]byte, error) {
+	log := ctxLog(ctx)
+
 	data := make(map[string][]byte)
 	var nextToken *string
 
@@ -708,6 +717,8 @@ func (sm *SecretsManager) setSecretValues(secret *types.SecretValueEntry, data m
 }
 
 func (sm *SecretsManager) constructSecretValue(ctx context.Context, key, ver string, metadataPolicy esv1.ExternalSecretMetadataPolicy) (*awssm.GetSecretValueOutput, error) {
+	log := ctxLog(ctx)
+
 	if metadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
 		describeSecretInput := &awssm.DescribeSecretInput{
 			SecretId: &key,

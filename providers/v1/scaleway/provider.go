@@ -21,22 +21,26 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/scaleway/scaleway-sdk-go/validation"
-	ctrl "sigs.k8s.io/controller-runtime"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/logs"
 )
 
 var (
 	defaultAPIURL = "https://api.scaleway.com"
-	log           = ctrl.Log.WithName("provider").WithName("scaleway")
 )
+
+func ctxLog(ctx context.Context) logr.Logger {
+	return logs.CtxLog(ctx, "provider", "scaleway")
+}
 
 var _ esv1.Provider = &Provider{}
 

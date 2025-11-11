@@ -35,7 +35,6 @@ import (
 
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/register"
-	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
 // GetProviderSecretData returns the provider's secret data with the provided ExternalSecret.
