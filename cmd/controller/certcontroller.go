@@ -86,6 +86,9 @@ var certcontrollerCmd = &cobra.Command{
 			metricsServerOpts.CertDir = metricsCertDir
 			metricsServerOpts.CertName = metricsCertName
 			metricsServerOpts.KeyName = metricsKeyName
+
+		}
+		if metricsAuth {
 			metricsServerOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
 		}
 
