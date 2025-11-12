@@ -81,13 +81,6 @@ var certcontrollerCmd = &cobra.Command{
 			BindAddress: metricsAddr,
 		}
 
-		if metricsSecure {
-			metricsServerOpts.SecureServing = true
-			metricsServerOpts.CertDir = metricsCertDir
-			metricsServerOpts.CertName = metricsCertName
-			metricsServerOpts.KeyName = metricsKeyName
-
-		}
 		if metricsAuth {
 			metricsServerOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
 		}
