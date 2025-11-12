@@ -183,51 +183,6 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name: "valid region secrets manager",
-			args: args{
-				store: &esv1.SecretStore{
-					Spec: esv1.SecretStoreSpec{
-						Provider: &esv1.SecretStoreProvider{
-							AWS: &esv1.AWSProvider{
-								Region:  validRegion,
-								Service: esv1.AWSServiceSecretsManager,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "valid fips region secrets manager",
-			args: args{
-				store: &esv1.SecretStore{
-					Spec: esv1.SecretStoreSpec{
-						Provider: &esv1.SecretStoreProvider{
-							AWS: &esv1.AWSProvider{
-								Region:  validFipsSecretManagerRegion,
-								Service: esv1.AWSServiceSecretsManager,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "valid fips region parameter store",
-			args: args{
-				store: &esv1.SecretStore{
-					Spec: esv1.SecretStoreSpec{
-						Provider: &esv1.SecretStoreProvider{
-							AWS: &esv1.AWSProvider{
-								Region:  validFipsSsmRegion,
-								Service: esv1.AWSServiceParameterStore,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
 			name: "valid secretsmanager config: force delete without recovery",
 			args: args{
 				store: &esv1.SecretStore{
@@ -477,6 +432,92 @@ func TestValidateStore(t *testing.T) {
 			p := &Provider{}
 			if _, err := p.ValidateStore(tt.args.store); (err != nil) != tt.wantErr {
 				t.Errorf("Provider.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestAllAWSRegions validates that all expected AWS regions are properly supported
+// by the endpoint resolver. This ensures new regions added to the AWS SDK are
+// automatically recognized without requiring individual test cases.
+func TestAllAWSRegions(t *testing.T) {
+	// List of AWS regions that should be supported
+	// Updated to match AWS SDK v2 v1.39.12+ endpoint definitions
+	regions := []struct {
+		region  string
+		service esv1.AWSServiceType
+	}{
+		// Standard AWS Partition Regions
+		{"us-east-1", esv1.AWSServiceSecretsManager},
+		{"us-east-2", esv1.AWSServiceSecretsManager},
+		{"us-west-1", esv1.AWSServiceSecretsManager},
+		{"us-west-2", esv1.AWSServiceSecretsManager},
+		{"af-south-1", esv1.AWSServiceSecretsManager},
+		{"ap-east-1", esv1.AWSServiceSecretsManager},
+		{"ap-east-2", esv1.AWSServiceSecretsManager}, // Added in v1.39.12
+		{"ap-south-1", esv1.AWSServiceSecretsManager},
+		{"ap-south-2", esv1.AWSServiceSecretsManager},
+		{"ap-northeast-1", esv1.AWSServiceSecretsManager},
+		{"ap-northeast-2", esv1.AWSServiceSecretsManager},
+		{"ap-northeast-3", esv1.AWSServiceSecretsManager},
+		{"ap-southeast-1", esv1.AWSServiceSecretsManager},
+		{"ap-southeast-2", esv1.AWSServiceSecretsManager},
+		{"ap-southeast-3", esv1.AWSServiceSecretsManager},
+		{"ap-southeast-4", esv1.AWSServiceSecretsManager},
+		{"ap-southeast-5", esv1.AWSServiceSecretsManager}, // Added in v1.39.12
+		{"ap-southeast-6", esv1.AWSServiceSecretsManager}, // Added in v1.39.12
+		{"ap-southeast-7", esv1.AWSServiceSecretsManager}, // Added in v1.39.12
+		{"ca-central-1", esv1.AWSServiceSecretsManager},
+		{"ca-west-1", esv1.AWSServiceSecretsManager},
+		{"eu-central-1", esv1.AWSServiceSecretsManager},
+		{"eu-central-2", esv1.AWSServiceSecretsManager},
+		{"eu-west-1", esv1.AWSServiceSecretsManager},
+		{"eu-west-2", esv1.AWSServiceSecretsManager},
+		{"eu-west-3", esv1.AWSServiceSecretsManager},
+		{"eu-south-1", esv1.AWSServiceSecretsManager},
+		{"eu-south-2", esv1.AWSServiceSecretsManager},
+		{"eu-north-1", esv1.AWSServiceSecretsManager},
+		{"il-central-1", esv1.AWSServiceSecretsManager},
+		{"me-south-1", esv1.AWSServiceSecretsManager},
+		{"me-central-1", esv1.AWSServiceSecretsManager},
+		{"mx-central-1", esv1.AWSServiceSecretsManager}, // Added in v1.39.12 - Mexico region launched Jan 2025
+		{"sa-east-1", esv1.AWSServiceSecretsManager},
+		// FIPS Endpoints
+		{"us-east-1-fips", esv1.AWSServiceSecretsManager},
+		{"ca-central-1-fips", esv1.AWSServiceSecretsManager},
+		{"fips-us-east-1", esv1.AWSServiceParameterStore},
+		// AWS China Partition
+		{"cn-north-1", esv1.AWSServiceSecretsManager},
+		{"cn-northwest-1", esv1.AWSServiceSecretsManager},
+		// AWS GovCloud Partition
+		{"us-gov-east-1", esv1.AWSServiceSecretsManager},
+		{"us-gov-west-1", esv1.AWSServiceSecretsManager},
+		// AWS ISO Partitions
+		{"us-iso-east-1", esv1.AWSServiceSecretsManager},
+		{"us-iso-west-1", esv1.AWSServiceSecretsManager},
+		{"us-isob-east-1", esv1.AWSServiceSecretsManager},
+		{"us-isob-west-1", esv1.AWSServiceSecretsManager}, // Added in v1.39.12
+		{"eu-isoe-west-1", esv1.AWSServiceSecretsManager}, // Added in v1.39.12
+		{"us-isof-east-1", esv1.AWSServiceSecretsManager}, // Added in v1.39.12
+		{"us-isof-south-1", esv1.AWSServiceSecretsManager}, // Added in v1.39.12
+	}
+
+	p := &Provider{}
+	for _, region := range regions {
+		t.Run(fmt.Sprintf("%s_%s", region.region, region.service), func(t *testing.T) {
+			store := &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{
+							Region:  region.region,
+							Service: region.service,
+						},
+					},
+				},
+			}
+			_, err := p.ValidateStore(store)
+			if err != nil {
+				t.Errorf("Region %s with service %s should be valid but got error: %v", region.region, region.service, err)
 			}
 		})
 	}
