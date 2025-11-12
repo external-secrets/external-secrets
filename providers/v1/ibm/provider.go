@@ -656,7 +656,6 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 	var err error
 	var secretsManager *sm.SecretsManagerV2
 	containerAuth := iStore.store.Auth.ContainerAuth
-	iamDefaultEndpoint := "https://iam.cloud.ibm.com"
 	if !esutils.IsNil(containerAuth) && containerAuth.Profile != "" {
 		// container-based auth
 		containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
