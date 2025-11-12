@@ -35,6 +35,8 @@ import (
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/storeutil"
+	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 
 	// Load registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/register"
@@ -66,7 +68,7 @@ type Opts struct {
 }
 
 func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, isPushSecretEnabled bool, log logr.Logger, opts Opts) (ctrl.Result, error) {
-	if !ShouldProcessStore(ss, opts.ControllerClass) {
+	if !storeutil.ShouldProcessStore(ss, opts.ControllerClass) {
 		log.V(1).Info("skip store")
 		return ctrl.Result{}, nil
 	}
@@ -149,7 +151,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 // if it fails sets a condition and writes events.
 func validateStore(ctx context.Context, namespace, controllerClass string, store esapi.GenericStore,
 	client client.Client, gaugeVecGetter metrics.GaugeVevGetter, recorder record.EventRecorder) error {
-	mgr := NewManager(client, controllerClass, false)
+	mgr := clientmanager.NewManager(client, controllerClass, false)
 	defer func() {
 		_ = mgr.Close(ctx)
 	}()
@@ -178,12 +180,15 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 }
 
 // ShouldProcessStore returns true if the store should be processed.
+// This is a wrapper around storeutil.ShouldProcessStore for backward compatibility.
 func ShouldProcessStore(store esapi.GenericStore, class string) bool {
-	if store == nil || store.GetSpec().Controller == "" || store.GetSpec().Controller == class {
-		return true
-	}
+	return storeutil.ShouldProcessStore(store, class)
+}
 
-	return false
+// AssertStoreIsUsable asserts that the store is ready to use.
+// This is a wrapper around storeutil.AssertStoreIsUsable for backward compatibility.
+func AssertStoreIsUsable(store esapi.GenericStore) error {
+	return storeutil.AssertStoreIsUsable(store)
 }
 
 // handleFinalizer manages the finalizer for ClusterSecretStores and SecretStores.

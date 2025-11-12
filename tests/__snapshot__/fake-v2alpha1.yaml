@@ -1,0 +1,9 @@
+apiVersion: provider.external-secrets.io/v2alpha1
+kind: Fake
+metadata: {}
+spec:
+  data:
+  - key: string
+    value: string
+    version: string
+  validationResult: 1

@@ -61,7 +61,7 @@ var (
 	maxFileSecretSizeBytes = 5000000
 )
 
-// Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
+// Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1.ProviderInterface interface.
 type Provider struct {
 	apiURL        string
 	retrievaltype string
@@ -399,7 +399,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

@@ -262,6 +262,7 @@ type CAProvider struct {
 
 // SecretStoreRetrySettings defines the retry settings for accessing external secrets manager stores.
 type SecretStoreRetrySettings struct {
+	// +kubebuilder:validation:Format=""
 	MaxRetries    *int32  `json:"maxRetries,omitempty"`
 	RetryInterval *string `json:"retryInterval,omitempty"`
 }

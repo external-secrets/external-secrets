@@ -47,8 +47,8 @@ func (v ValidationResult) String() string {
 // +k8s:deepcopy-gen:interfaces=nil
 // +k8s:deepcopy-gen=nil
 
-// Provider is a common interface for interacting with secret backends.
-type Provider interface {
+// ProviderInterface is a common interface for interacting with secret backends.
+type ProviderInterface interface {
 	// NewClient constructs a SecretsManager Provider
 	NewClient(ctx context.Context, store GenericStore, kube client.Client, namespace string) (SecretsClient, error)
 

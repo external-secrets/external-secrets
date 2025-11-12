@@ -766,6 +766,32 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.AuthenticationScope">AuthenticationScope
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>)
+</p>
+<p>
+<p>AuthenticationScope defines which namespace should be used for authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ManifestNamespace&#34;</p></td>
+<td><p>AuthenticationScopeManifestNamespace uses the namespace of the ExternalSecret/PushSecret
+for authentication.</p>
+</td>
+</tr><tr><td><p>&#34;ProviderNamespace&#34;</p></td>
+<td><p>AuthenticationScopeProviderNamespace uses the namespace from spec.config.providerRef.namespace
+for authentication. This is the default.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
 </h3>
 <p>
@@ -2572,6 +2598,171 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.ClusterProvider">ClusterProvider
+</h3>
+<p>
+<p>ClusterProvider is the cluster-scoped variant of Provider.
+It can be referenced from ExternalSecrets and PushSecrets in any namespace.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">
+ClusterProviderSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConfig">
+ProviderConfig
+</a>
+</em>
+</td>
+<td>
+<p>Config contains configuration for connecting to the provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authenticationScope</code></br>
+<em>
+<a href="#external-secrets.io/v1.AuthenticationScope">
+AuthenticationScope
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuthenticationScope defines which namespace should be used for authentication.
+ProviderNamespace (default): uses the namespace from spec.config.providerRef.namespace
+ManifestNamespace: uses the namespace of the ExternalSecret/PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions constrain where this ClusterProvider can be used from.
+Conditions are evaluated against the namespace of the ExternalSecret/PushSecret.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderStatus">
+ProviderStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProvider">ClusterProvider</a>)
+</p>
+<p>
+<p>ClusterProviderSpec defines the desired state of ClusterProvider</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConfig">
+ProviderConfig
+</a>
+</em>
+</td>
+<td>
+<p>Config contains configuration for connecting to the provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authenticationScope</code></br>
+<em>
+<a href="#external-secrets.io/v1.AuthenticationScope">
+AuthenticationScope
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuthenticationScope defines which namespace should be used for authentication.
+ProviderNamespace (default): uses the namespace from spec.config.providerRef.namespace
+ManifestNamespace: uses the namespace of the ExternalSecret/PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions constrain where this ClusterProvider can be used from.
+Conditions are evaluated against the namespace of the ExternalSecret/PushSecret.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore
 </h3>
 <p>
@@ -2699,6 +2890,7 @@ SecretStoreStatus
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>, 
 <a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>)
 </p>
 <p>
@@ -8103,8 +8295,398 @@ string
 <h3 id="external-secrets.io/v1.Provider">Provider
 </h3>
 <p>
-<p>Provider is a common interface for interacting with secret backends.</p>
+<p>Provider is the Schema for the providers API</p>
 </p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderSpec">
+ProviderSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConfig">
+ProviderConfig
+</a>
+</em>
+</td>
+<td>
+<p>Config contains configuration for connecting to the provider.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderStatus">
+ProviderStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderCapabilities">ProviderCapabilities
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProviderStatus">ProviderStatus</a>)
+</p>
+<p>
+<p>ProviderCapabilities defines the possible operations a Provider can do.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ReadOnly&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;ReadWrite&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;WriteOnly&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderCondition">ProviderCondition
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProviderStatus">ProviderStatus</a>)
+</p>
+<p>
+<p>ProviderCondition describes the state of a Provider at a certain point.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConditionType">
+ProviderConditionType
+</a>
+</em>
+</td>
+<td>
+<p>Type of the condition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#conditionstatus-v1-meta">
+Kubernetes meta/v1.ConditionStatus
+</a>
+</em>
+</td>
+<td>
+<p>Status of the condition, one of True, False, Unknown.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lastTransitionTime</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+Kubernetes meta/v1.Time
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>LastTransitionTime is the last time the condition transitioned.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>reason</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Reason contains a programmatic identifier indicating the reason for the condition&rsquo;s last transition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>message</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Message is a human-readable message indicating details about the transition.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderConditionType">ProviderConditionType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProviderCondition">ProviderCondition</a>)
+</p>
+<p>
+<p>ProviderConditionType defines the type of Provider condition.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Ready&#34;</p></td>
+<td><p>ProviderReady indicates that the Provider is ready to serve requests.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderConfig">ProviderConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>, 
+<a href="#external-secrets.io/v1.ProviderSpec">ProviderSpec</a>)
+</p>
+<p>
+<p>ProviderConfig defines how to connect to a provider service.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>address</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Address is the gRPC address of the provider service.
+Format: &ldquo;hostname:port&rdquo; (e.g., &ldquo;aws-provider:8080&rdquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderReference">
+ProviderReference
+</a>
+</em>
+</td>
+<td>
+<p>ProviderRef references the provider-specific configuration resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderInterface">ProviderInterface
+</h3>
+<p>
+<p>ProviderInterface is a common interface for interacting with secret backends.</p>
+</p>
+<h3 id="external-secrets.io/v1.ProviderReference">ProviderReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProviderConfig">ProviderConfig</a>)
+</p>
+<p>
+<p>ProviderReference references a provider-specific configuration resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIVersion of the referenced resource.
+Example: &ldquo;provider.aws.external-secrets.io/v2alpha1&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind of the referenced resource.
+Example: &ldquo;AWSSecretsManager&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the referenced resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Namespace of the referenced resource.
+If empty, assumes the same namespace as the Provider.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderSpec">ProviderSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.Provider">Provider</a>)
+</p>
+<p>
+<p>ProviderSpec defines the desired state of Provider</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConfig">
+ProviderConfig
+</a>
+</em>
+</td>
+<td>
+<p>Config contains configuration for connecting to the provider.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderStatus">ProviderStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProvider">ClusterProvider</a>, 
+<a href="#external-secrets.io/v1.Provider">Provider</a>)
+</p>
+<p>
+<p>ProviderStatus defines the observed state of Provider</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderCondition">
+[]ProviderCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions represent the latest available observations of the Provider&rsquo;s state.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capabilities</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderCapabilities">
+ProviderCapabilities
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Capabilities indicates what operations this Provider supports.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.PulumiProvider">PulumiProvider
 </h3>
 <p>

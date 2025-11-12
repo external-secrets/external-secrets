@@ -49,6 +49,9 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
+	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
+	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 )
 
 var scheme = runtime.NewScheme()
@@ -66,6 +69,11 @@ func init() {
 	// other schemes
 	utilruntime.Must(fluxhelm.AddToScheme(scheme))
 	utilruntime.Must(fluxsrc.AddToScheme(scheme))
+
+	// v2alpha1 provider schemes
+	utilruntime.Must(awsv2alpha1.AddToScheme(scheme))
+	utilruntime.Must(fakev2alpha1.AddToScheme(scheme))
+	utilruntime.Must(k8sv2alpha1.AddToScheme(scheme))
 }
 
 const (
@@ -281,24 +289,49 @@ func GetKubeSecret(client kubernetes.Interface, namespace, secretName string) (*
 }
 
 // NewConfig loads and returns the kubernetes credentials from the environment.
-// KUBECONFIG env var takes precedence, falls back to in-cluster config, then to default KUBECONFIG location.
+// KUBECONFIG env var takes precedence, then ~/.kube/config, then in-cluster config.
 func NewConfig() (*restclient.Config, *kubernetes.Clientset, crclient.Client) {
-	cfg, err := BuildKubeConfig()
+	var kubeConfig *restclient.Config
+	var err error
+	kcPath := os.Getenv("KUBECONFIG")
+	if kcPath != "" {
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kcPath)
+		if err != nil {
+			Fail(err.Error())
+		}
+	} else {
+		// Try ~/.kube/config
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			defaultKubeconfig := homeDir + "/.kube/config"
+			if _, err := os.Stat(defaultKubeconfig); err == nil {
+				kubeConfig, err = clientcmd.BuildConfigFromFlags("", defaultKubeconfig)
+				if err != nil {
+					Fail(err.Error())
+				}
+			}
+		}
+
+		// Fall back to in-cluster config if ~/.kube/config doesn't exist
+		if kubeConfig == nil {
+			kubeConfig, err = restclient.InClusterConfig()
+			if err != nil {
+				Fail(err.Error())
+			}
+		}
+	}
+
+	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		Fail(err.Error())
 	}
 
-	kubeClientSet, err := kubernetes.NewForConfig(cfg)
+	CRClient, err := crclient.New(kubeConfig, crclient.Options{Scheme: scheme})
 	if err != nil {
 		Fail(err.Error())
 	}
 
-	CRClient, err := crclient.New(cfg, crclient.Options{Scheme: scheme})
-	if err != nil {
-		Fail(err.Error())
-	}
-
-	return cfg, kubeClientSet, CRClient
+	return kubeConfig, kubeClientSet, CRClient
 }
 
 func BuildKubeConfig() (*rest.Config, error) {

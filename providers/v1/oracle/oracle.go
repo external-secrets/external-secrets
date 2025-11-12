@@ -71,7 +71,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &VaultManagementService{}
-var _ esv1.Provider = &VaultManagementService{}
+var _ esv1.ProviderInterface = &VaultManagementService{}
 
 // VaultManagementService implements the External Secrets provider interface for Oracle Cloud Infrastructure Vault.
 type VaultManagementService struct {
@@ -693,7 +693,7 @@ func sanitizeOCISDKErr(err error) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &VaultManagementService{}
 }
 

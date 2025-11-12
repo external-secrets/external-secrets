@@ -32,7 +32,7 @@ import (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 // Provider struct that satisfier ESO interface.
 type Provider struct{}
@@ -119,7 +119,7 @@ func validateStore(store esv1.GenericStore) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

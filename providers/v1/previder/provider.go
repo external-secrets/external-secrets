@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	previderclient "github.com/previder/vault-cli/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,9 +35,9 @@ const (
 	errNotImplemented = "not implemented"
 )
 
-var _ esv1.Provider = &SecretManager{}
+var _ esv1.ProviderInterface = &SecretManager{}
 
-// SecretManager implements the esv1.Provider interface for Previder Vault.
+// SecretManager implements the esv1.ProviderInterface interface for Previder Vault.
 type SecretManager struct {
 	VaultClient previderclient.PreviderVaultClient
 	TokenType   string
@@ -152,7 +153,7 @@ func (s *SecretManager) Close(context.Context) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &SecretManager{}
 }
 

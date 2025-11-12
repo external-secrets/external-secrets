@@ -101,7 +101,7 @@ type Providerchef struct {
 }
 
 var _ esv1.SecretsClient = &Providerchef{}
-var _ esv1.Provider = &Providerchef{}
+var _ esv1.ProviderInterface = &Providerchef{}
 
 // NewClient creates a new Chef Infra Server client.
 func (providerchef *Providerchef) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
@@ -359,7 +359,7 @@ func (providerchef *Providerchef) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Providerchef{}
 }
 

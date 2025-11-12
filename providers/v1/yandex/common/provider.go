@@ -33,14 +33,14 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/common/clock"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.Provider = &YandexCloudProvider{}
+var _ esv1.ProviderInterface = &YandexCloudProvider{}
 
 // YandexCloudProvider implements the Provider interface for Yandex.Cloud services.
 type YandexCloudProvider struct {

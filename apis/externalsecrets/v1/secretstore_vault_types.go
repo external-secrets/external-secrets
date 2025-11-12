@@ -295,6 +295,7 @@ type VaultKubernetesServiceAccountTokenAuth struct {
 	// Deprecated: this will be removed in the future.
 	// Defaults to 10 minutes.
 	// +optional
+	// +kubebuilder:validation:Format=""
 	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
 }
 

@@ -242,6 +242,7 @@ Create the name of the pod disruption budget to use in the webhook
 {{- define "external-secrets.webhookPdbName" -}}
 {{- .Values.webhook.podDisruptionBudget.nameOverride | default (printf "%s-webhook-pdb" (include "external-secrets.fullname" .)) }}
 {{- end }}
+{{/*
 Fail the install if a cluster scoped reconciler is enabled while its namespace scoped counterpart is disabled
 */}}
 {{- define "external-secrets.reconciler-sanity-test" -}}
@@ -271,4 +272,65 @@ Decide whether to render the ServiceMonitor resource.
   {{- else -}}
     {{- fail (printf "Invalid renderMode '%s'. Must be one of: skipIfMissing, failIfMissing, alwaysRender." $mode) -}}
   {{- end -}}
+{{- end -}}
+
+{{/*
+Provider helpers
+*/}}
+{{- define "external-secrets.provider.fullname" -}}
+{{- $providerName := .provider.name | default .provider.type -}}
+{{- printf "%s-provider-%s" (include "external-secrets.fullname" .root) $providerName | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "external-secrets.provider.servicename" -}}
+{{- $providerName := .provider.name | default .provider.type -}}
+{{- printf "provider-%s" $providerName | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "external-secrets.provider.labels" -}}
+helm.sh/chart: {{ include "external-secrets.chart" .root }}
+{{ include "external-secrets.provider.selectorLabels" . }}
+{{- if .root.Chart.AppVersion }}
+app.kubernetes.io/version: {{ .root.Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .root.Release.Service }}
+app.kubernetes.io/component: provider
+external-secrets.io/provider: {{ .provider.type }}
+{{- with .root.Values.commonLabels }}
+{{ toYaml . }}
+{{- end }}
+{{- with .provider.podLabels }}
+{{ toYaml . }}
+{{- end }}
+{{- end -}}
+
+{{- define "external-secrets.provider.selectorLabels" -}}
+{{- $providerName := .provider.name | default .provider.type -}}
+app.kubernetes.io/name: {{ include "external-secrets.name" .root }}-provider-{{ $providerName }}
+app.kubernetes.io/instance: {{ .root.Release.Name }}
+{{- end -}}
+
+{{- define "external-secrets.provider.serviceAccountName" -}}
+{{- if .provider.serviceAccount.create -}}
+{{- default (include "external-secrets.provider.fullname" .) .provider.serviceAccount.name -}}
+{{- else -}}
+{{- default "default" .provider.serviceAccount.name -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "external-secrets.provider.image" -}}
+{{- $tag := .provider.image.tag | default .root.Chart.AppVersion -}}
+{{- printf "%s:%s" .provider.image.repository $tag -}}
+{{- end -}}
+
+{{/*
+Merge provider defaults with provider-specific configuration.
+Provider-specific values take precedence over defaults.
+Usage: {{- $provider := include "external-secrets.provider.mergeDefaults" (dict "provider" $provider "root" $root) | fromYaml -}}
+*/}}
+{{- define "external-secrets.provider.mergeDefaults" -}}
+{{- $defaults := .root.Values.providerDefaults | default dict -}}
+{{- $provider := .provider -}}
+{{- $merged := deepCopy $defaults | mustMergeOverwrite (deepCopy $provider) -}}
+{{- $merged | toYaml -}}
 {{- end -}}

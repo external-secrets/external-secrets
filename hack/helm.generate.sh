@@ -13,7 +13,7 @@ fi
 cd "${SCRIPT_DIR}"/../
 
 # Split the generated bundle yaml file to inject control flags
-yq e -Ns "\"${HELM_DIR}/templates/crds/\" + .spec.names.singular" ${BUNDLE_DIR}/bundle.yaml
+yq e -Ns "\"${HELM_DIR}/templates/crds/\" + .spec.group + \"_\" + .spec.names.singular" ${BUNDLE_DIR}/bundle.yaml
 
 # Add helm if statement for controlling the install of CRDs
 for i in "${HELM_DIR}"/templates/crds/*.yml; do
@@ -37,7 +37,6 @@ for i in "${HELM_DIR}"/templates/crds/*.yml; do
   echo "{{- end }}" >> "$i"
   rm "$i.bkp"
 
-  $SEDPRG -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$i"
   $SEDPRG -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$i"
   $SEDPRG -i '0,/annotations/!b;//a\    {{- with .Values.crds.annotations }}\n    {{- toYaml . | nindent 4}}\n    {{- end }}\n    {{- if and .Values.crds.conversion.enabled .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}\n    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook\n    {{- end }}' "$i"
   mv "$i" "${i%.yml}.yaml"
