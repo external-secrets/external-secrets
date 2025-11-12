@@ -33,8 +33,9 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/common/clock"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/logs"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
@@ -44,7 +45,7 @@ var _ esv1.Provider = &YandexCloudProvider{}
 
 // YandexCloudProvider implements the Provider interface for Yandex.Cloud services.
 type YandexCloudProvider struct {
-	logger              logr.Logger
+	ctxLoggerNames      []string
 	clock               clock.Clock
 	adaptInputFunc      AdaptInputFunc
 	newSecretGetterFunc NewSecretGetterFunc
@@ -62,9 +63,13 @@ type iamTokenKey struct {
 	privateKeyHash   string
 }
 
+func ctxLog(ctx context.Context, names []string) logr.Logger {
+	return logs.CtxLog(ctx, names...)
+}
+
 // InitYandexCloudProvider creates and initializes a new YandexCloudProvider instance.
 func InitYandexCloudProvider(
-	logger logr.Logger,
+	ctxLoggerNames []string,
 	clock clock.Clock,
 	adaptInputFunc AdaptInputFunc,
 	newSecretGetterFunc NewSecretGetterFunc,
@@ -72,7 +77,7 @@ func InitYandexCloudProvider(
 	iamTokenCleanupDelay time.Duration,
 ) *YandexCloudProvider {
 	provider := &YandexCloudProvider{
-		logger:              logger,
+		ctxLoggerNames:      ctxLoggerNames,
 		clock:               clock,
 		adaptInputFunc:      adaptInputFunc,
 		newSecretGetterFunc: newSecretGetterFunc,
@@ -193,9 +198,9 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1.GenericS
 func (p *YandexCloudProvider) getOrCreateSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (SecretGetter, error) {
 	p.secretGetterMapMutex.Lock()
 	defer p.secretGetterMapMutex.Unlock()
-
+	log := ctxLog(ctx, p.ctxLoggerNames)
 	if _, ok := p.secretGetteMap[apiEndpoint]; !ok {
-		p.logger.Info("creating SecretGetter", "apiEndpoint", apiEndpoint)
+		log.Info("creating SecretGetter", "apiEndpoint", apiEndpoint)
 		secretGetter, err := p.newSecretGetterFunc(ctx, apiEndpoint, authorizedKey, caCertificate)
 		if err != nil {
 			return nil, err
@@ -209,12 +214,13 @@ func (p *YandexCloudProvider) getOrCreateIamToken(ctx context.Context, apiEndpoi
 	p.iamTokenMapMutex.Lock()
 	defer p.iamTokenMapMutex.Unlock()
 
+	log := ctxLog(ctx, p.ctxLoggerNames)
 	iamTokenKey := buildIamTokenKey(authorizedKey)
 	if iamToken, ok := p.iamTokenMap[iamTokenKey]; !ok || !p.isIamTokenUsable(iamToken) {
 		if authorizedKey != nil {
-			p.logger.Info("creating IAM token", "authorizedKeyId", authorizedKey.Id)
+			log.Info("creating IAM token", "authorizedKeyId", authorizedKey.Id)
 		} else {
-			p.logger.Info("creating instance SA IAM token")
+			log.Info("creating instance SA IAM token")
 		}
 
 		iamToken, err := p.newIamTokenFunc(ctx, apiEndpoint, authorizedKey, caCertificate)
@@ -223,9 +229,9 @@ func (p *YandexCloudProvider) getOrCreateIamToken(ctx context.Context, apiEndpoi
 		}
 
 		if authorizedKey != nil {
-			p.logger.Info("created IAM token", "authorizedKeyId", authorizedKey.Id, "expiresAt", iamToken.ExpiresAt)
+			log.Info("created IAM token", "authorizedKeyId", authorizedKey.Id, "expiresAt", iamToken.ExpiresAt)
 		} else {
-			p.logger.Info("created instance SA IAM token", "expiresAt", iamToken.ExpiresAt)
+			log.Info("created instance SA IAM token", "expiresAt", iamToken.ExpiresAt)
 		}
 
 		p.iamTokenMap[iamTokenKey] = iamToken
@@ -266,9 +272,10 @@ func (p *YandexCloudProvider) CleanUpIamTokenMap() {
 	p.iamTokenMapMutex.Lock()
 	defer p.iamTokenMapMutex.Unlock()
 
+	log := ctxLog(context.Background(), p.ctxLoggerNames)
 	for key, value := range p.iamTokenMap {
 		if p.clock.CurrentTime().After(value.ExpiresAt) {
-			p.logger.Info("deleting IAM token", "authorizedKeyId", key.authorizedKeyID)
+			log.Info("deleting IAM token", "authorizedKeyId", key.authorizedKeyID)
 			delete(p.iamTokenMap, key)
 		}
 	}
