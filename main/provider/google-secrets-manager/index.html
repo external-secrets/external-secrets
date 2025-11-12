@@ -4437,8 +4437,8 @@
 <p>External Secrets Operator integrates with the <a href="https://cloud.google.com/secret-manager">Google Cloud Secret Manager</a>.</p>
 <h2 id="authentication">Authentication</h2>
 <h3 id="workload-identity-federation">Workload Identity Federation</h3>
-<p>Through <a href="https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity">Workload Identity Federation</a> (WIF), <a href="https://cloud.google.com/kubernetes-engine">Google Kubernetes Engine</a> (GKE) workloads can authenticate with Google Cloud Platform (GCP) services like Secret Manager without using static, long-lived credentials.</p>
-<p>Authenticating through WIF is the recommended approach when using the External Secrets Operator (ESO) on GKE clusters. ESO supports three options:</p>
+<p>Through <a href="https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity">Workload Identity Federation</a> (WIF), platforms that support workload identity (GKE, non-GKE kubernetes clusters, on-premise clusters) can authenticate with Google Cloud Platform (GCP) services like Secret Manager without using static, long-lived credentials.</p>
+<p>Authenticating through WIF is the recommended approach when using the External Secrets Operator (ESO). ESO supports three options:</p>
 <ul>
 <li><strong>Using a Kubernetes service account as a GCP IAM principal</strong>: The <code>SecretStore</code> (or <code>ClusterSecretStore</code>) references a <a href="https://kubernetes.io/docs/concepts/security/service-accounts">Kubernetes service account</a> that is authorized to access Secret Manager secrets.</li>
 <li><strong>Linking a Kubernetes service account to a GCP service account:</strong> The <code>SecretStore</code> (or <code>ClusterSecretStore</code>) references a Kubernetes service account, which is linked to a <a href="https://cloud.google.com/iam/docs/service-accounts">GCP service account</a> that is authorized to access Secret Manager secrets. This requires that the Kubernetes service account is annotated correctly and granted the <code>iam.workloadIdentityUser</code> role on the GCP service account.</li>
@@ -4447,9 +4447,9 @@
 <p>In the following, we will describe each of these options in detail.</p>
 <h4 id="prerequisites">Prerequisites</h4>
 <ul>
-<li>Ensure that <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">Workload Identity Federation is enabled</a> for the GKE cluster.</li>
+<li>Ensure that <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">Workload Identity Federation is enabled</a> for the cluster.</li>
 </ul>
-<p><em>Note that while Google Cloud WIF <a href="https://cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes">is available for AKS, EKS, and self-hosted Kubernetes clusters</a>, ESO currently supports WIF authentication only for GKE (<a href="https://github.com/external-secrets/external-secrets/issues/1038">Issue #1038</a>).</em></p>
+<p><em>Note that Google Cloud WIF <a href="https://cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes">is available for AKS, EKS, and self-hosted Kubernetes clusters</a>. ESO previously only supported WIF authentication for GKE (<a href="https://github.com/external-secrets/external-secrets/issues/1038">Issue #1038</a>); however, support has been added for <a href="https://github.com/external-secrets/external-secrets/pull/4654">GCP Workload Identity Federation</a>.</em></p>
 <h4 id="using-a-kubernetes-service-account-as-a-gcp-iam-principal">Using a Kubernetes service account as a GCP IAM principal</h4>
 <p>The <code>SecretStore</code> (or <code>ClusterSecretStore</code>) references a Kubernetes service account that is authorized to access Secret Manager secrets.</p>
 <p>To demonstrate this approach, we'll create a <code>SecretStore</code> in the <code>demo</code> namespace.</p>
@@ -4518,6 +4518,25 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DEMO_SECRET</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo-secret</span>
+</code></pre></div>
+<p><em>Note the above secretStore example uses GCP native Workload Identity. The implementation for WorkloadIdentityFederation is defined in the <a href="https://external-secrets.io/latest/api/spec/#external-secrets.io/v1.GCPWorkloadIdentityFederation">WorkloadIdentityFederation API spec</a>. SecretStore example for a bare metal (on-premise) cluster:</em></p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo-store</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">PROJECT_ID</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">workloadIdentityFederation</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">audience</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">//iam.googleapis.com/projects/[PROJECT_ID]/locations/[CLUSTER_LOCATION]/workloadIdentityPools/[WORKLOAD_IDENTITY_POOL]/providers/[WORKLOAD_IDENTITY_PROVIDER]</span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo-secrets-sa</span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo</span>
+<span class="w">            </span><span class="nt">audiences</span><span class="p">:</span>
+<span class="w">              </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo-audience</span>
 </code></pre></div>
 <h4 id="linking-a-kubernetes-service-account-to-a-gcp-service-account">Linking a Kubernetes service account to a GCP service account</h4>
 <p>The <code>SecretStore</code> (or <code>ClusterSecretStore</code>) references a Kubernetes service account, which is linked to a GCP service account that is authorized to access Secret Manager secrets.</p>
