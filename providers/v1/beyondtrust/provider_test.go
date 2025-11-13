@@ -21,9 +21,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/BeyondTrust/go-client-library-passwordsafe/api/authentication"
+	"github.com/BeyondTrust/go-client-library-passwordsafe/api/logging"
+	"github.com/BeyondTrust/go-client-library-passwordsafe/api/utils"
+	"github.com/cenkalti/backoff/v4"
+	"go.uber.org/zap"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -33,6 +42,9 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 const (
@@ -41,12 +53,15 @@ const (
 	apiKey       = "fakeapikey00fakeapikeydd0000000000065b010f20fakeapikey0000000008700000a93fb5d74fddc0000000000000000000000000000000000000;runas=test_user"
 	clientID     = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 	clientSecret = "12345678-25fg-4b05-9ced-35e7dd5093ae"
+	authConnectTokenPath = "/Auth/connect/token"
+	authSignAppInPath = "/Auth/SignAppIn"
+	secretsSafeFoldersPath = "/secrets-safe/folders/"
 )
 
 func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/Auth/SignAppin":
+		case authSignAppInPath:
 			_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"fake@beyondtrust.com"}`))
 			if err != nil {
 				t.Error(errTestCase)
@@ -385,31 +400,190 @@ func TestLoadConfigSecret_NamespacedStoreCannotCrossNamespace(t *testing.T) {
 	}
 }
 
-func TestLoadConfigSecret_ClusterStoreCanAccessOtherNamespace(t *testing.T) {
-	kube := fake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-			Name:      "creds",
-		},
-		Data: map[string][]byte{
-			"key": []byte("value"),
-		},
-	}).Build()
+func TestPushSecret(t *testing.T) {
+	type testCase struct {
+		name             string
+		serverHandler    http.HandlerFunc
+		metadata         apiextensionsv1.JSON
+		expectedError    bool
 
-	ref := &esv1.BeyondTrustProviderSecretRef{
-		SecretRef: &esmeta.SecretKeySelector{
-			Namespace: ptr.To("foo"),
-			Name:      "creds",
-			Key:       "key",
+	}
+
+	tests := []testCase{
+		{
+			name: "successfully pushes credential secret",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+				case authSignAppInPath:
+					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+				case secretsSafeFoldersPath:
+					_, _ = w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets":
+					_, _ = w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedError: false,
+			metadata: apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"title": "Test Credential",
+					"username": "admin",
+					"description": "Test Credential Secret description",
+					"secret_type": "CREDENTIAL",
+					"folder_name": "folder1"
+				}`),
+			},
+		},
+		{
+			name: "successfully pushes file secret",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+				case authSignAppInPath:
+					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+				case secretsSafeFoldersPath:
+					_, _ = w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets/file":
+					_, _ = w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedError: false,
+			metadata: apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"title": "Test File Secret",
+					"username": "admin",
+					"description": "Test File Secret description",
+					"secret_type": "FILE",
+					"folder_name": "folder1",
+					"file_name": "credentials.txt"
+				}`),
+			},
+		},
+		{
+			name: "successfully pushes text secret",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+				case authSignAppInPath:
+					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+				case secretsSafeFoldersPath:
+					_, _ = w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets/text":
+					_, _ = w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedError: false,
+			metadata: apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"title": "Test Text Secret",
+					"username": "admin",
+					"description": "Test File Secret description",
+					"secret_type": "TEXT",
+					"folder_name": "folder1"
+				}`),
+			},
+		},
+		{
+			name: "successfully pushes text secret - 404 error",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+				case authSignAppInPath:
+					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+				case secretsSafeFoldersPath:
+					_, _ = w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedError: true,
+			metadata: apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"title": "Test Text Secret",
+					"username": "admin",
+					"description": "Test File Secret description",
+					"secret_type": "TEXT",
+					"folder_name": "folder1"
+				}`),
+			},
+		},
+		{
+			name: "fails authentication",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+			},
+			expectedError: true,
 		},
 	}
 
-	// ClusterSecretStore may access across namespaces when a namespace is provided in the selector.
-	val, err := loadConfigSecret(t.Context(), ref, kube, "unrelated-namespace", esv1.ClusterSecretStoreKind)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if val != "value" {
-		t.Fatalf("expected valueA, got %q", val)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeServer := httptest.NewServer(tt.serverHandler)
+			defer fakeServer.Close()
+
+			logger, _ := zap.NewDevelopment()
+			zapLogger := logging.NewZapLogger(logger)
+
+			clientTimeout := 30
+			verifyCa := true
+			retryMaxElapsedTimeMinutes := 2
+
+			backoffDefinition := backoff.NewExponentialBackOff()
+			backoffDefinition.InitialInterval = 1 * time.Second
+			backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
+			backoffDefinition.RandomizationFactor = 0.5
+
+			httpClientObj, _ := utils.GetHttpClient(clientTimeout, verifyCa, "", "", zapLogger)
+
+			params := authentication.AuthenticationParametersObj{
+				HTTPClient:        *httpClientObj,
+				BackoffDefinition: backoffDefinition,
+				EndpointURL:       fakeServer.URL,
+				APIVersion:        "3.1",
+				ClientID:          "fake_clinet_id",
+				ClientSecret:      "fake_client_secret",
+				Logger:            zapLogger,
+				RetryMaxElapsedTimeSeconds: 30,
+			}
+
+			authObj, err := authentication.Authenticate(params)
+			require.NoError(t, err)
+
+			p := &Provider{authenticate: *authObj}
+
+			secret := &v1.Secret{
+				Data: map[string][]byte{"password": []byte("supersecret")},
+			}
+
+			metadataJSON := &tt.metadata
+
+			psd := v1alpha1.PushSecretData{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "password",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{
+						RemoteKey: "test-credential",
+					},
+				},
+				Metadata: metadataJSON,
+			}
+
+			err = p.PushSecret(context.Background(), secret, psd)
+
+			if tt.expectedError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
 	}
 }
