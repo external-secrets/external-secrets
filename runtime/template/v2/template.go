@@ -333,7 +333,9 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 		// navigate to the last element of the path and apply the entire struct at that location.
 		// build up the entire map structure that we are eventually going to apply.
 		current := unstructured
-		for _, part := range parts {
+		// this STOPS at the last part! That is important. for _, part := range parts does _include_ the last part
+		for i := 0; i < len(parts)-1; i++ {
+			part := parts[i]
 			if current[part] == nil {
 				current[part] = make(map[string]any)
 			}
