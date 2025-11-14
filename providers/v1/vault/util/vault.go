@@ -25,7 +25,7 @@ import (
 )
 
 // JwtProviderFactory is a function type that creates a JWT credentials provider.
-type JwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error)
+type JwtProviderFactory func(ctx context.Context, name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error)
 
 // Auth defines the interface for Vault authentication.
 type Auth interface {

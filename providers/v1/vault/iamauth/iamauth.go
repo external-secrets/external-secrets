@@ -41,9 +41,9 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 var (
@@ -66,7 +66,7 @@ const (
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
 // controller-runtime/client does not support TokenRequest or other subresource APIs
 // so we need to construct our own client and use it to fetch tokens.
-func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
+func DefaultJWTProvider(ctx context.Context, name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -95,6 +95,7 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 		Namespace:      namespace,
 		Audiences:      aud,
 		ServiceAccount: name,
+		Context:        ctx,
 		k8sClient:      clientset.CoreV1(),
 	}
 
@@ -130,6 +131,7 @@ func (r customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.
 // https://github.com/aws/secrets-store-csi-driver-provider-aws/blob/main/auth/auth.go#L140-L145
 
 type authTokenFetcher struct {
+	Context   context.Context
 	Namespace string
 	// Audience is the token aud claim
 	// which is verified by the aws oidc provider
@@ -141,9 +143,9 @@ type authTokenFetcher struct {
 
 // GetIdentityToken satisfies the stscreds.IdentityTokenRetriever interface
 // it is used to generate service account tokens which are consumed by the aws sdk.
-func (p authTokenFetcher) GetIdentityToken() ([]byte, error) {
+func (p *authTokenFetcher) GetIdentityToken() ([]byte, error) {
 	logger.V(1).Info("fetching token", "ns", p.Namespace, "sa", p.ServiceAccount)
-	tokRsp, err := p.k8sClient.ServiceAccounts(p.Namespace).CreateToken(context.Background(), p.ServiceAccount, &authv1.TokenRequest{
+	tokRsp, err := p.k8sClient.ServiceAccounts(p.Namespace).CreateToken(p.Context, p.ServiceAccount, &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
 			Audiences: p.Audiences,
 		},
@@ -188,7 +190,7 @@ func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region
 		audiences = append(audiences, auth.JWTAuth.ServiceAccountRef.Audiences...)
 	}
 
-	jwtProv, err := jwtProvider(name, namespace, roleArn, audiences, region)
+	jwtProv, err := jwtProvider(ctx, name, namespace, roleArn, audiences, region)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +225,7 @@ func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region s
 	}
 	audiences := []string{tokenAud}
 
-	jwtProv, err := jwtProvider(saName, ns, roleArn, audiences, region)
+	jwtProv, err := jwtProvider(ctx, saName, ns, roleArn, audiences, region)
 	if err != nil {
 		return nil, err
 	}
