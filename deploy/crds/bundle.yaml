@@ -4238,6 +4238,9 @@ spec:
                             secretRef:
                               description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
+                                iamEndpoint:
+                                  description: The IAM endpoint used to obain a token
+                                  type: string
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
@@ -15551,6 +15554,9 @@ spec:
                             secretRef:
                               description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
+                                iamEndpoint:
+                                  description: The IAM endpoint used to obain a token
+                                  type: string
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
