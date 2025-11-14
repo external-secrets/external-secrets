@@ -26,9 +26,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
 const (

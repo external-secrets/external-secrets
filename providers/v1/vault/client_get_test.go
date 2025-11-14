@@ -29,9 +29,9 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
 func TestGetSecret(t *testing.T) {
