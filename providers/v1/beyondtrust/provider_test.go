@@ -48,13 +48,13 @@ import (
 )
 
 const (
-	errTestCase  = "Test case Failed"
-	fakeAPIURL   = "https://example.com:443/BeyondTrust/api/public/v3/"
-	apiKey       = "fakeapikey00fakeapikeydd0000000000065b010f20fakeapikey0000000008700000a93fb5d74fddc0000000000000000000000000000000000000;runas=test_user"
-	clientID     = "12345678-25fg-4b05-9ced-35e7dd5093ae"
-	clientSecret = "12345678-25fg-4b05-9ced-35e7dd5093ae"
-	authConnectTokenPath = "/Auth/connect/token"
-	authSignAppInPath = "/Auth/SignAppIn"
+	errTestCase            = "Test case Failed"
+	fakeAPIURL             = "https://example.com:443/BeyondTrust/api/public/v3/"
+	apiKey                 = "fakeapikey00fakeapikeydd0000000000065b010f20fakeapikey0000000008700000a93fb5d74fddc0000000000000000000000000000000000000;runas=test_user"
+	clientID               = "12345678-25fg-4b05-9ced-35e7dd5093ae"
+	clientSecret           = "12345678-25fg-4b05-9ced-35e7dd5093ae"
+	authConnectTokenPath   = "/Auth/connect/token"
+	authSignAppInPath      = "/Auth/SignAppIn"
 	secretsSafeFoldersPath = "/secrets-safe/folders/"
 )
 
@@ -402,11 +402,10 @@ func TestLoadConfigSecret_NamespacedStoreCannotCrossNamespace(t *testing.T) {
 
 func TestPushSecret(t *testing.T) {
 	type testCase struct {
-		name             string
-		serverHandler    http.HandlerFunc
-		metadata         apiextensionsv1.JSON
-		expectedError    bool
-
+		name          string
+		serverHandler http.HandlerFunc
+		metadata      apiextensionsv1.JSON
+		expectedError bool
 	}
 
 	tests := []testCase{
@@ -546,13 +545,13 @@ func TestPushSecret(t *testing.T) {
 			httpClientObj, _ := utils.GetHttpClient(clientTimeout, verifyCa, "", "", zapLogger)
 
 			params := authentication.AuthenticationParametersObj{
-				HTTPClient:        *httpClientObj,
-				BackoffDefinition: backoffDefinition,
-				EndpointURL:       fakeServer.URL,
-				APIVersion:        "3.1",
-				ClientID:          "fake_clinet_id",
-				ClientSecret:      "fake_client_secret",
-				Logger:            zapLogger,
+				HTTPClient:                 *httpClientObj,
+				BackoffDefinition:          backoffDefinition,
+				EndpointURL:                fakeServer.URL,
+				APIVersion:                 "3.1",
+				ClientID:                   "fake_clinet_id",
+				ClientSecret:               "fake_client_secret",
+				Logger:                     zapLogger,
 				RetryMaxElapsedTimeSeconds: 30,
 			}
 

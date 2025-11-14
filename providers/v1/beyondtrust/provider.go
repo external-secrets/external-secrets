@@ -107,7 +107,6 @@ func (*Provider) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemote
 	return make(map[string][]byte), errors.New(errNotImplemented)
 }
 
-
 // Validate implements v1beta1.SecretsClient.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
@@ -420,37 +419,37 @@ func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.Pus
 	value, err := esutils.ExtractSecretData(psd, secret)
 
 	if err != nil {
-    return fmt.Errorf("extract secret data failed: %w", err)
+		return fmt.Errorf("extract secret data failed: %w", err)
 	}
 
 	secretValue := string(value)
 
 	metadata := psd.GetMetadata()
-	data, _ := json.Marshal(metadata)
+	data, err := json.Marshal(metadata)
+
+	if err != nil {
+		return fmt.Errorf("Error getting metadata: %w", err)
+	}
 
 	var metaDataObject map[string]interface{}
 	err = json.Unmarshal(data, &metaDataObject)
 	if err != nil {
-		ESOLogger.Error(err, fmt.Sprintf("Error in parameters: %v", err))
-		return err
+		return fmt.Errorf("Error in parameters: %w", err)
 	}
 
 	signAppinResponse, err := p.authenticate.GetPasswordSafeAuthentication()
 	if err != nil {
-		ESOLogger.Error(err, fmt.Sprintf("Error in authentication: %v", err))
-		return err
+		return fmt.Errorf("Error in authentication: %w", err)
 	}
 
 	err = p.CreateSecret(secretValue, metaDataObject, signAppinResponse)
 
 	if err != nil {
-		ESOLogger.Error(err, fmt.Sprintf("Error creating the secret: %v", err))
-		return err
+		return fmt.Errorf("Error in creating the secret: %w", err)
 	}
 
 	return nil
 }
-
 
 // CreateSecret creates a secret in BeyondTrust Password Safe.
 func (p *Provider) CreateSecret(secret string, data map[string]interface{}, signAppinResponse entities.SignAppinResponse) error {
@@ -466,7 +465,6 @@ func (p *Provider) CreateSecret(secret string, data map[string]interface{}, sign
 	groupID := utils.GetIntField(data, "group_id", 0)
 	ownerType := utils.GetStringField(data, "owner_type", "")
 	secretType := utils.GetStringField(data, "secret_type", "CREDENTIAL")
-
 
 	var notes string
 	var urls []entities.UrlDetails
@@ -494,76 +492,76 @@ func (p *Provider) CreateSecret(secret string, data map[string]interface{}, sign
 	}
 
 	var configMap map[string]interface{}
-	switch  strings.ToUpper(secretType) {
-		case "CREDENTIAL":
-			
-			secretCredentialDetailsConfig30 := entities.SecretCredentialDetailsConfig30{
-				SecretDetailsBaseConfig: secretDetailsConfig,
-				Username:                username,
-				Password:                secret,
-				OwnerId:                 ownerID,
-				OwnerType:               ownerType,
-				Owners:                  ownerDetailsOwnerID,
-			}
+	switch strings.ToUpper(secretType) {
+	case "CREDENTIAL":
 
-			secretCredentialDetailsConfig31 := entities.SecretCredentialDetailsConfig31{
-				SecretDetailsBaseConfig: secretDetailsConfig,
-				Username:                username,
-				Password:                secret,
-				Owners:                  ownerDetailsGroupID,
-			}
+		secretCredentialDetailsConfig30 := entities.SecretCredentialDetailsConfig30{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			Username:                username,
+			Password:                secret,
+			OwnerId:                 ownerID,
+			OwnerType:               ownerType,
+			Owners:                  ownerDetailsOwnerID,
+		}
 
-			configMap = map[string]interface{}{
-				"3.0": secretCredentialDetailsConfig30,
-				"3.1": secretCredentialDetailsConfig31,
-			}
+		secretCredentialDetailsConfig31 := entities.SecretCredentialDetailsConfig31{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			Username:                username,
+			Password:                secret,
+			Owners:                  ownerDetailsGroupID,
+		}
 
-		case "FILE":
+		configMap = map[string]interface{}{
+			"3.0": secretCredentialDetailsConfig30,
+			"3.1": secretCredentialDetailsConfig31,
+		}
 
-			secretFileDetailsConfig30 := entities.SecretFileDetailsConfig30{
-				SecretDetailsBaseConfig: secretDetailsConfig,
-				FileContent:             secret,
-				FileName:                fileName,
-				OwnerId:                 ownerID,
-				OwnerType:               ownerType,
-				Owners:                  ownerDetailsOwnerID,
-			}
+	case "FILE":
 
-			secretFileDetailsConfig31 := entities.SecretFileDetailsConfig31{
-				SecretDetailsBaseConfig: secretDetailsConfig,
-				FileContent:             secret,
-				FileName:                fileName,
-				Owners:                  ownerDetailsGroupID,
-			}
+		secretFileDetailsConfig30 := entities.SecretFileDetailsConfig30{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			FileContent:             secret,
+			FileName:                fileName,
+			OwnerId:                 ownerID,
+			OwnerType:               ownerType,
+			Owners:                  ownerDetailsOwnerID,
+		}
 
-			configMap = map[string]interface{}{
-				"3.0": secretFileDetailsConfig30,
-				"3.1": secretFileDetailsConfig31,
-			}
+		secretFileDetailsConfig31 := entities.SecretFileDetailsConfig31{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			FileContent:             secret,
+			FileName:                fileName,
+			Owners:                  ownerDetailsGroupID,
+		}
 
-		case "TEXT":
+		configMap = map[string]interface{}{
+			"3.0": secretFileDetailsConfig30,
+			"3.1": secretFileDetailsConfig31,
+		}
 
-			secretTextDetailsConfig30 := entities.SecretTextDetailsConfig30{
-				SecretDetailsBaseConfig: secretDetailsConfig,
-				Text:                    secret,
-				OwnerId:                 ownerID,
-				OwnerType:               ownerType,
-				Owners:                  ownerDetailsOwnerID,
-			}
+	case "TEXT":
 
-			secretTextDetailsConfig31 := entities.SecretTextDetailsConfig31{
-				SecretDetailsBaseConfig: secretDetailsConfig,
-				Text:                    secret,
-				Owners:                  ownerDetailsGroupID,
-			}
+		secretTextDetailsConfig30 := entities.SecretTextDetailsConfig30{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			Text:                    secret,
+			OwnerId:                 ownerID,
+			OwnerType:               ownerType,
+			Owners:                  ownerDetailsOwnerID,
+		}
 
-			configMap = map[string]interface{}{
-				"3.0": secretTextDetailsConfig30,
-				"3.1": secretTextDetailsConfig31,
-			}
+		secretTextDetailsConfig31 := entities.SecretTextDetailsConfig31{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			Text:                    secret,
+			Owners:                  ownerDetailsGroupID,
+		}
 
-		default:
-			return fmt.Errorf("Unknown secret type")
+		configMap = map[string]interface{}{
+			"3.0": secretTextDetailsConfig30,
+			"3.1": secretTextDetailsConfig31,
+		}
+
+	default:
+		return fmt.Errorf("Unknown secret type")
 	}
 
 	secretDetails, exists := configMap[p.authenticate.ApiVersion]
