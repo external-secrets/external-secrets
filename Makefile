@@ -138,11 +138,12 @@ test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CR
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
 
+PROVIDER ?= all_providers
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
 	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
-		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
+		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
 lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module)
