@@ -4476,6 +4476,7 @@
 <span class="w">          </span><span class="nt">secretApiKeySecretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ibm-secret</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apiKey</span>
+<span class="w">          </span><span class="nt">iamEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://iam.cloud.ibm.com&quot;</span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretApiKeySecretRef</code> with the namespace where the secret resides.</p>
 <p><strong>NOTE:</strong> Only <code>secretApiKeySecretRef</code> or <code>containerAuth</code> should be specified, depending on authentication method being used.</p>
