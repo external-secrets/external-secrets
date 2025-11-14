@@ -4,9 +4,9 @@ External Secrets Operator integrates with the [Google Cloud Secret Manager](http
 
 ### Workload Identity Federation
 
-Through [Workload Identity Federation](https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity) (WIF), [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine) (GKE) workloads can authenticate with Google Cloud Platform (GCP) services like Secret Manager without using static, long-lived credentials.
+Through [Workload Identity Federation](https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity) (WIF), platforms that support workload identity (GKE, non-GKE kubernetes clusters, on-premise clusters) can authenticate with Google Cloud Platform (GCP) services like Secret Manager without using static, long-lived credentials.
 
-Authenticating through WIF is the recommended approach when using the External Secrets Operator (ESO) on GKE clusters. ESO supports three options:
+Authenticating through WIF is the recommended approach when using the External Secrets Operator (ESO). ESO supports three options:
 
 - **Using a Kubernetes service account as a GCP IAM principal**: The `SecretStore` (or `ClusterSecretStore`) references a [Kubernetes service account](https://kubernetes.io/docs/concepts/security/service-accounts) that is authorized to access Secret Manager secrets.
 - **Linking a Kubernetes service account to a GCP service account:** The `SecretStore` (or `ClusterSecretStore`) references a Kubernetes service account, which is linked to a [GCP service account](https://cloud.google.com/iam/docs/service-accounts) that is authorized to access Secret Manager secrets. This requires that the Kubernetes service account is annotated correctly and granted the `iam.workloadIdentityUser` role on the GCP service account.
@@ -16,9 +16,9 @@ In the following, we will describe each of these options in detail.
 
 #### Prerequisites
 
-* Ensure that [Workload Identity Federation is enabled](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for the GKE cluster.
+* Ensure that [Workload Identity Federation is enabled](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for the cluster.
 
-_Note that while Google Cloud WIF [is available for AKS, EKS, and self-hosted Kubernetes clusters](https://cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes), ESO currently supports WIF authentication only for GKE ([Issue #1038](https://github.com/external-secrets/external-secrets/issues/1038))._
+_Note that Google Cloud WIF [is available for AKS, EKS, and self-hosted Kubernetes clusters](https://cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes). ESO previously only supported WIF authentication for GKE ([Issue #1038](https://github.com/external-secrets/external-secrets/issues/1038)); however, support has been added for [GCP Workload Identity Federation](https://github.com/external-secrets/external-secrets/pull/4654)._
 
 #### Using a Kubernetes service account as a GCP IAM principal
 
@@ -79,6 +79,12 @@ Finally, you can create an `ExternalSecret` for the `demo-secret` that reference
 
 ```yaml
 {% include 'gcpsm-wif-externalsecret.yaml' %}
+```
+
+_Note the above secretStore example uses GCP native Workload Identity. The implementation for WorkloadIdentityFederation is defined in the [WorkloadIdentityFederation API spec](https://external-secrets.io/latest/api/spec/#external-secrets.io/v1.GCPWorkloadIdentityFederation). SecretStore example for a bare metal (on-premise) cluster:_
+
+```yaml
+{% include 'gcpsm-wif-non-native-iam-secret-store.yaml' %}
 ```
 
 #### Linking a Kubernetes service account to a GCP service account

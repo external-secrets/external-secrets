@@ -1,0 +1,68 @@
+/*
+Copyright © 2025 ESO Maintainer Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package {{.PackageName}}
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+)
+
+func TestGenerate(t *testing.T) {
+	g := &Generator{}
+
+	tests := []struct {
+		name      string
+		jsonSpec  *apiextensions.JSON
+		wantErr   bool
+		errString string
+	}{
+		{
+			name:      "nil spec",
+			jsonSpec:  nil,
+			wantErr:   true,
+			errString: "no spec provided",
+		},
+		// TODO: Add more test cases
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, state, err := g.Generate(context.Background(), tt.jsonSpec, nil, "default")
+			
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errString != "" {
+					assert.Contains(t, err.Error(), tt.errString)
+				}
+				assert.Nil(t, result)
+				assert.Nil(t, state)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+			}
+		})
+	}
+}
+
+func TestKind(t *testing.T) {
+	kind := Kind()
+	assert.NotEmpty(t, kind)
+	assert.Equal(t, "{{.GeneratorName}}", kind)
+}

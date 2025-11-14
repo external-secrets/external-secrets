@@ -338,6 +338,17 @@
         "fullnameOverride": {
             "type": "string"
         },
+        "genericTargets": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "resources": {
+                    "type": "array"
+                }
+            }
+        },
         "global": {
             "type": "object",
             "properties": {

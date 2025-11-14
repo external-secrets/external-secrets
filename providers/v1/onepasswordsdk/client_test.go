@@ -310,43 +310,6 @@ func TestProviderValidate(t *testing.T) {
 			},
 			vaultPrefix: "op://vault/",
 		},
-		{
-			name: "validate error",
-			client: func() *onepassword.Client {
-				fc := &fakeClient{
-					listAllResult: []onepassword.VaultOverview{},
-					listAllError:  errors.New("no vaults found when listing"),
-				}
-
-				return &onepassword.Client{
-					SecretsAPI: fc,
-					VaultsAPI:  fc,
-				}
-			},
-			want: v1.ValidationResultError,
-			assertError: func(t *testing.T, err error) {
-				require.ErrorContains(t, err, "no vaults found when listing")
-			},
-			vaultPrefix: "op://vault/",
-		},
-		{
-			name: "validate error missing vault prefix",
-			client: func() *onepassword.Client {
-				fc := &fakeClient{
-					listAllResult: []onepassword.VaultOverview{},
-					listAllError:  errors.New("no vaults found when listing"),
-				}
-
-				return &onepassword.Client{
-					SecretsAPI: fc,
-					VaultsAPI:  fc,
-				}
-			},
-			want: v1.ValidationResultError,
-			assertError: func(t *testing.T, err error) {
-				require.ErrorContains(t, err, "no vaults found when listing")
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

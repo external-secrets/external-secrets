@@ -1,5 +1,5 @@
 # set the shell to bash always
-SHELL         := /bin/bash
+SHELL         := /usr/bin/env bash
 
 # set make and shell flags to exit on errors
 MAKEFLAGS     += --warn-undefined-variables
@@ -95,10 +95,20 @@ license.check:
 # ====================================================================================
 # Golang
 
+.PHONY: go-work ## Creates go workspace and syncs it
+go-work:
+	@$(INFO) creating go workspace
+	@rm -rf go.work go.work.sum
+	@go work init
+	@go work use -r .
+	@go work edit -dropuse ./e2e
+	@go work sync
+	@$(OK) created go workspace
+
 .PHONY: test
-test: generate envtest ## Run tests
+test: generate envtest go-work ## Run tests
 	@$(INFO) go test unit-tests
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test -race -v $(shell go list ./... | grep -v e2e) -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test work -v -race -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: test.e2e
@@ -128,26 +138,56 @@ test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CR
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
 
+PROVIDER ?= all_providers
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
 	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
-		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
+		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-lint: golangci-lint ## Run golangci-lint
-	@if ! $(GOLANGCI_LINT) run; then \
-		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
-		exit 1; \
+lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module)
+	@if [ -n "$(LINT_TARGET)" ]; then \
+		$(INFO) Running golangci-lint on $(LINT_TARGET); \
+		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
+		$(OK) Finished linting $(LINT_TARGET); \
+	else \
+		$(INFO) Running golangci-lint on all modules; \
+		FAILED=0; \
+		MODULES=$$(find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/node_modules/*" -exec dirname {} \;); \
+		for module in $$MODULES; do \
+			echo "Linting $$module"; \
+			(cd $$module && $(GOLANGCI_LINT) run ./...) || FAILED=$$((FAILED + 1)); \
+		done; \
+		if [ $$FAILED -ne 0 ]; then \
+			$(ERR) Linting failed in $$FAILED module\(s\); \
+			exit 1; \
+		fi; \
+		$(OK) Finished linting; \
 	fi
-	@$(OK) Finished linting
 
-fmt: golangci-lint ## Ensure consistent code style
+fmt: golangci-lint ## Ensure consistent code style (set LINT_TARGET to run on specific module)
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@go fmt ./...
-	@$(GOLANGCI_LINT) run --fix
-	@$(OK) Ensured consistent code style
+	@if [ -n "$(LINT_TARGET)" ]; then \
+		$(INFO) Running golangci-lint --fix on $(LINT_TARGET); \
+		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run --fix ./...); \
+		$(OK) Finished fixing $(LINT_TARGET); \
+	else \
+		$(INFO) Running golangci-lint --fix on all modules; \
+		FAILED=0; \
+		MODULES=$$(find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/node_modules/*" -exec dirname {} \;); \
+		for module in $$MODULES; do \
+			echo "Fixing $$module"; \
+			(cd $$module && $(GOLANGCI_LINT) run --fix ./...) || FAILED=$$((FAILED + 1)); \
+		done; \
+		if [ $$FAILED -ne 0 ]; then \
+			$(ERR) Fixing failed in $$FAILED module\(s\); \
+			exit 1; \
+		fi; \
+		$(OK) Ensured consistent code style; \
+	fi
 
 generate: ## Generate code and crds
 	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
@@ -398,7 +438,7 @@ TILT ?= $(LOCALBIN)/tilt
 CTY ?= $(LOCALBIN)/cty
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
-
+LINT_TARGET ?= ""
 ## Tool Versions
 GOLANGCI_VERSION := 2.4.0
 KUBERNETES_VERSION := 1.33.x
