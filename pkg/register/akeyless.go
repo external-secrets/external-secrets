@@ -1,3 +1,5 @@
+//go:build akeyless || all_providers
+
 /*
 Copyright © 2025 ESO Maintainer Team
 
@@ -19,14 +21,10 @@ package register
 
 import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	fake "github.com/external-secrets/external-secrets/providers/v1/fake"
-	kubernetes "github.com/external-secrets/external-secrets/providers/v1/kubernetes"
-	webhook "github.com/external-secrets/external-secrets/providers/v1/webhook"
+	akeyless "github.com/external-secrets/external-secrets/providers/v1/akeyless"
 )
 
 func init() {
-	// Register Kuberntetes providers
-	esv1.Register(fake.NewProvider(), fake.ProviderSpec(), fake.MaintenanceStatus())
-	esv1.Register(kubernetes.NewProvider(), kubernetes.ProviderSpec(), kubernetes.MaintenanceStatus())
-	esv1.Register(webhook.NewProvider(), webhook.ProviderSpec(), webhook.MaintenanceStatus())
+	// Register akeyless provider
+	esv1.Register(akeyless.NewProvider(), akeyless.ProviderSpec(), akeyless.MaintenanceStatus())
 }
