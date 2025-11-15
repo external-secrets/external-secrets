@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"google.golang.org/api/certificatemanager/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -216,6 +217,8 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return secretsmanager.New(ctx, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false, kube, namespace)
 	case esv1.AWSServiceParameterStore:
 		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
+	case esv1.AWSServiceCertificateManager:
+		return certificatemanager.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
