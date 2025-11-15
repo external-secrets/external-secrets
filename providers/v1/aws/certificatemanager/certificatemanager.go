@@ -1,3 +1,19 @@
+/*
+Copyright © 2025 ESO Maintainer Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package certificatemanager
 
 import (
@@ -48,7 +64,6 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 		return nil, fmt.Errorf("certificate ARN must be specified in remoteRef.key")
 	}
 
-	// 1. Describe the certificate (optional: for validation/logging)
 	_, err := cm.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
 		CertificateArn: aws.String(certARN),
 	})
@@ -56,17 +71,13 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 		return nil, fmt.Errorf("failed to describe ACM certificate %s: %w", certARN, err)
 	}
 
-	// 2. Export the certificate (requires exportable cert)
 	exportOut, err := cm.client.ExportCertificate(ctx, &acm.ExportCertificateInput{
 		CertificateArn: aws.String(certARN),
-		// Optional: add Passphrase if you later include it in provider config
 	})
 	if err != nil {
 		return nil, awsutil.SanitizeErr(err)
 	}
 
-	// 3. Build the PEM payload
-	// Kubernetes ExternalSecret expects a single []byte blob, so we concatenate.
 	var result string
 	if exportOut.Certificate != nil {
 		result += *exportOut.Certificate + "\n"
@@ -86,11 +97,9 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 }
 
 func (cm *CertificateManager) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
-	// Deletion of ACM certificates is not supported in this provider implementation.
 	return fmt.Errorf("deletion of ACM certificates is not supported")
 }
 
-// Validate checks if the provider is configured correctly.
 func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 	if cm.referentAuth {
 		return esv1.ValidationResultUnknown, nil
@@ -112,7 +121,6 @@ func (cm *CertificateManager) GetSecretMap(ctx context.Context, ref esv1.Externa
 }
 
 func (cm *CertificateManager) SecretExists(ctx context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
-	// Existence check of ACM certificates is not supported in this provider implementation.
 	return false, fmt.Errorf("SecretExists is not supported for CertificateManager provider")
 }
 
