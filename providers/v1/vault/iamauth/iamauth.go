@@ -21,17 +21,15 @@ package iamauth
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/defaults"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	smithy "github.com/aws/smithy-go/endpoints"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,9 +41,9 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
 )
 
 var (
@@ -68,7 +66,7 @@ const (
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
 // controller-runtime/client does not support TokenRequest or other subresource APIs
 // so we need to construct our own client and use it to fetch tokens.
-func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
+func DefaultJWTProvider(ctx context.Context, name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -77,58 +75,63 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 	if err != nil {
 		return nil, err
 	}
-	handlers := defaults.Handlers()
-	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	awscfg := aws.NewConfig().WithEndpointResolver(ResolveEndpoint())
+
+	var loadCfgOpts []func(*config.LoadOptions) error
+	loadCfgOpts = append(loadCfgOpts,
+		config.WithAppID("external-secrets"),
+		config.WithSharedConfigFiles([]string{}),
+		config.WithSharedCredentialsFiles([]string{}),
+	)
 	if region != "" {
-		awscfg.WithRegion(region)
+		loadCfgOpts = append(loadCfgOpts, config.WithRegion(region))
 	}
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            *awscfg,
-		SharedConfigState: session.SharedConfigDisable,
-		Handlers:          handlers,
-	})
+
+	awscfg, err := config.LoadDefaultConfig(context.TODO(), loadCfgOpts...)
 	if err != nil {
 		return nil, awsutil.SanitizeErr(err)
 	}
+
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,
 		Audiences:      aud,
 		ServiceAccount: name,
+		Context:        ctx,
 		k8sClient:      clientset.CoreV1(),
 	}
 
-	return stscreds.NewWebIdentityRoleProviderWithOptions(
-		sts.New(sess), roleArn, "external-secrets-provider-vault", tokenFetcher), nil
+	stsClient := sts.NewFromConfig(awscfg, func(o *sts.Options) {
+		o.EndpointResolverV2 = customEndpointResolver{}
+	})
+
+	return stscreds.NewWebIdentityRoleProvider(
+		stsClient, roleArn, tokenFetcher, func(opts *stscreds.WebIdentityRoleOptions) {
+			opts.RoleSessionName = "external-secrets-provider-vault"
+		}), nil
 }
 
-// ResolveEndpoint returns a ResolverFunc with
-// customizable endpoints.
-func ResolveEndpoint() endpoints.ResolverFunc {
-	customEndpoints := make(map[string]string)
+// customEndpointResolver implements sts.EndpointResolverV2 for custom STS endpoint.
+type customEndpointResolver struct{}
+
+// ResolveEndpoint resolves the STS endpoint using custom configuration if available.
+func (r customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.EndpointParameters) (smithy.Endpoint, error) {
 	if v := os.Getenv(STSEndpointEnv); v != "" {
-		customEndpoints["sts"] = v
-	}
-	return ResolveEndpointWithServiceMap(customEndpoints)
-}
-
-// ResolveEndpointWithServiceMap returns a ResolverFunc with customizable endpoints for specific services.
-func ResolveEndpointWithServiceMap(customEndpoints map[string]string) endpoints.ResolverFunc {
-	defaultResolver := endpoints.DefaultResolver()
-	return func(service, region string, opts ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-		if ep, ok := customEndpoints[service]; ok {
-			return endpoints.ResolvedEndpoint{
-				URL: ep,
-			}, nil
+		uri, err := url.Parse(v)
+		if err != nil {
+			return smithy.Endpoint{}, err
 		}
-		return defaultResolver.EndpointFor(service, region, opts...)
+		return smithy.Endpoint{
+			URI: *uri,
+		}, nil
 	}
+	// Fall back to default resolver
+	return sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 }
 
 // mostly taken from:
 // https://github.com/aws/secrets-store-csi-driver-provider-aws/blob/main/auth/auth.go#L140-L145
 
 type authTokenFetcher struct {
+	Context   context.Context
 	Namespace string
 	// Audience is the token aud claim
 	// which is verified by the aws oidc provider
@@ -138,11 +141,11 @@ type authTokenFetcher struct {
 	k8sClient      k8scorev1.CoreV1Interface
 }
 
-// FetchToken satisfies the stscreds.TokenFetcher interface
+// GetIdentityToken satisfies the stscreds.IdentityTokenRetriever interface
 // it is used to generate service account tokens which are consumed by the aws sdk.
-func (p authTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
+func (p *authTokenFetcher) GetIdentityToken() ([]byte, error) {
 	logger.V(1).Info("fetching token", "ns", p.Namespace, "sa", p.ServiceAccount)
-	tokRsp, err := p.k8sClient.ServiceAccounts(p.Namespace).CreateToken(ctx, p.ServiceAccount, &authv1.TokenRequest{
+	tokRsp, err := p.k8sClient.ServiceAccounts(p.Namespace).CreateToken(p.Context, p.ServiceAccount, &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
 			Audiences: p.Audiences,
 		},
@@ -158,7 +161,7 @@ func (p authTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region string, isClusterKind bool, kube kclient.Client, namespace string, jwtProvider vaultutil.JwtProviderFactory) (*credentials.Credentials, error) {
+func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region string, isClusterKind bool, kube kclient.Client, namespace string, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
@@ -187,20 +190,20 @@ func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region
 		audiences = append(audiences, auth.JWTAuth.ServiceAccountRef.Audiences...)
 	}
 
-	jwtProv, err := jwtProvider(name, namespace, roleArn, audiences, region)
+	jwtProv, err := jwtProvider(ctx, name, namespace, roleArn, audiences, region)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.V(1).Info("using credentials via service account", "role", roleArn, "region", region)
-	return credentials.NewCredentials(jwtProv), nil
+	return jwtProv, nil
 }
 
 // CredsFromControllerServiceAccount uses a Kubernetes Service Account to acquire temporary
 // credentials using aws.AssumeRoleWithWebIdentity. It will assume the role defined
 // in the ServiceAccount annotation.
 // The namespace of the controller service account is used.
-func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region string, kube kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (*credentials.Credentials, error) {
+func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region string, kube kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
 	sa := v1.ServiceAccount{}
 	err := kube.Get(ctx, types.NamespacedName{
 		Name:      saName,
@@ -222,20 +225,20 @@ func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region s
 	}
 	audiences := []string{tokenAud}
 
-	jwtProv, err := jwtProvider(saName, ns, roleArn, audiences, region)
+	jwtProv, err := jwtProvider(ctx, saName, ns, roleArn, audiences, region)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.V(1).Info("using credentials via service account", "role", roleArn, "region", region)
-	return credentials.NewCredentials(jwtProv), nil
+	return jwtProv, nil
 }
 
 // CredsFromSecretRef pulls access-key / secret-access-key from a secretRef to
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func CredsFromSecretRef(ctx context.Context, auth esv1.VaultIamAuth, storeKind string, kube kclient.Client, namespace string) (*credentials.Credentials, error) {
+func CredsFromSecretRef(ctx context.Context, auth esv1.VaultIamAuth, storeKind string, kube kclient.Client, namespace string) (aws.CredentialsProvider, error) {
 	akid, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,
@@ -265,29 +268,20 @@ func CredsFromSecretRef(ctx context.Context, auth esv1.VaultIamAuth, storeKind s
 		namespace,
 		auth.SecretRef.SessionToken,
 	)
-	return credentials.NewStaticCredentials(akid, sak, sessionToken), err
+	return credentials.NewStaticCredentialsProvider(akid, sak, sessionToken), err
 }
 
-// STSProvider is a function type that returns an stsiface.STSAPI implementation.
-type STSProvider func(*session.Session) stsiface.STSAPI
+// STSProvider is a function type that returns an STS client.
+type STSProvider func(*aws.Config) *sts.Client
 
-// DefaultSTSProvider returns the default sts client which implements stsiface.STSAPI.
-func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
-	return sts.New(sess)
-}
-
-// GetAWSSession returns the aws session or an error.
-func GetAWSSession(config *aws.Config) (*session.Session, error) {
-	handlers := defaults.Handlers()
-	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            *config,
-		Handlers:          handlers,
-		SharedConfigState: session.SharedConfigDisable,
+// DefaultSTSProvider returns the default sts client.
+func DefaultSTSProvider(cfg *aws.Config) *sts.Client {
+	return sts.NewFromConfig(*cfg, func(o *sts.Options) {
+		o.EndpointResolverV2 = customEndpointResolver{}
 	})
-	if err != nil {
-		return nil, err
-	}
+}
 
-	return sess, nil
+// GetAWSConfig returns the aws config or an error.
+func GetAWSConfig(cfg *aws.Config) (*aws.Config, error) {
+	return cfg, nil
 }
