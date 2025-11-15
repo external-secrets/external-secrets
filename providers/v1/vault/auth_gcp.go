@@ -49,7 +49,7 @@ func setGcpAuthToken(ctx context.Context, v *client) (bool, error) {
 
 	err := v.requestTokenWithGcpAuth(ctx, gcpAuth)
 	if err != nil {
-		return false, err
+		return true, err
 	}
 	return true, nil
 }
