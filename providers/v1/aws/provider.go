@@ -28,12 +28,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"google.golang.org/api/certificatemanager/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsauth "github.com/external-secrets/external-secrets/providers/v1/aws/auth"
+	"github.com/external-secrets/external-secrets/providers/v1/aws/certificatemanager"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
