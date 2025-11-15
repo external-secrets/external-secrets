@@ -278,6 +278,8 @@ github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.12 h1:2lTWFvRcnWFFLzHWmt
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.12/go.mod h1:hI92pK+ho8HVcWMHKHrK3Uml4pfG7wvL86FzO0LVtQQ=
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 h1:WKuaxf++XKWlHWu9ECbMlha8WOEGm0OUEZqm4K/Gcfk=
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4/go.mod h1:ZWy7j6v1vWGmPReu0iSGvRiise4YI5SkR3OHKTZ6Wuc=
+github.com/aws/aws-sdk-go-v2/service/acm v1.37.13 h1:5AUX6KOEBF20wiIaiI4fKHvVkELEptyLtRTbWGpNQNY=
+github.com/aws/aws-sdk-go-v2/service/acm v1.37.13/go.mod h1:v8E4cAu0qIxpS7IokQilQb60A8IODPxo82VxVtJ+Dgo=
 github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.8.1/go.mod h1:CM+19rL1+4dFWnOQKwDc7H1KwXTz+h61oUSHyhV0b3o=
 github.com/aws/aws-sdk-go-v2/service/ecr v1.51.1 h1:1G4mc5St/5fsa+eKOY/zABuzSRqv0CeUL5Epk5/HYrE=
 github.com/aws/aws-sdk-go-v2/service/ecr v1.51.1/go.mod h1:2nWjy9RsAoNBrG9x+XddEg43nDd1q3fMeGlVYeYrW6M=
@@ -300,6 +302,8 @@ github.com/aws/aws-sdk-go-v2/service/sts v1.39.0/go.mod h1:4EjU+4mIx6+JqKQkruye+
 github.com/aws/smithy-go v1.8.0/go.mod h1:SObp3lf9smib00L/v3U2eAKG8FyQ7iLrJnQiAmR5n+E=
 github.com/aws/smithy-go v1.23.1 h1:sLvcH6dfAFwGkHLZ7dGiYF7aK6mg4CgKA/iDKjLDt9M=
 github.com/aws/smithy-go v1.23.1/go.mod h1:LEj2LM3rBRQJxPZTB4KuzZkaZYnZPnvgIhb4pu07mx0=
+github.com/aws/smithy-go v1.23.2 h1:Crv0eatJUQhaManss33hS5r40CG3ZFH+21XSkqMrIUM=
+github.com/aws/smithy-go v1.23.2/go.mod h1:LEj2LM3rBRQJxPZTB4KuzZkaZYnZPnvgIhb4pu07mx0=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
