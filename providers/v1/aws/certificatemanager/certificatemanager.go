@@ -10,8 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-
-	awsutil "github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 )
 
 type CertificateManager struct {
