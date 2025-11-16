@@ -36,7 +36,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 
 	// Loading registered providers.
-	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
+	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
 // ClusterStoreReconciler reconciles a SecretStore object.
@@ -50,6 +50,10 @@ type ClusterStoreReconciler struct {
 	PushSecretEnabled bool
 }
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/reconcile
 func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("clustersecretstore", req.NamespacedName)
 

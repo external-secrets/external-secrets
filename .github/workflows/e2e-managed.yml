@@ -1,3 +1,5 @@
+name: managed e2e tests
+
 on:
   repository_dispatch:
     types: [ok-to-test-managed-command]
@@ -6,26 +8,26 @@ permissions:
   contents: read
 
 env:
-  # Common versions
   DOCKER_BUILDX_VERSION: 'v0.4.2'
-
-  # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
-  # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
-  # credentials have been provided before trying to run steps that need them.
   GHCR_USERNAME: ${{ github.actor }}
-  GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
   USE_GKE_GCLOUD_AUTH_PLUGIN: true
-  TF_VAR_GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
-  GCP_SM_SA_GKE_JSON: ${{ secrets.GCP_SM_SA_GKE_JSON}}
-  GCP_GKE_CLUSTER: test-cluster
-  GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
-  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account
-  GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
-  TF_VAR_GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account for tf
-  TF_VAR_GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account for tf
-
-  AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN}}
+  
+  # GCP variables
+  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+  GCP_SM_SA_GKE_JSON: ${{ secrets.GCP_SM_SA_GKE_JSON }}
+  GCP_GKE_CLUSTER: e2e
+  TF_VAR_GCP_GKE_CLUSTER: e2e
+  GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
+  TF_VAR_GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
+  GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME }}
+  TF_VAR_GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME }}
+  GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
+  TF_VAR_GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
+  GCP_FED_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
+  GCP_FED_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
+  
+  # AWS variables
+  AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
   AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
   AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
   AWS_REGION: "eu-central-1"
@@ -34,71 +36,346 @@ env:
   TF_VAR_AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
   TF_VAR_AWS_REGION: "eu-central-1"
   TF_VAR_AWS_CLUSTER_NAME: "eso-e2e-managed"
-
-  TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID}}
+  
+  # Azure variables
+  TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID }}
   TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
-  TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID}}
+  TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID }}
   TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
-  TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL}}
-
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  GITHUB_PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
-  CLOUD_PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
-
-name: managed e2e tests
+  TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
 
 jobs:
-  run-e2e-managed:
+
+  setup:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write #for oidc auth with aws/gcp/azure
-      checks: write   #publish the commit status
-      contents: read  #for checkout
-    if: github.event_name == 'repository_dispatch'
-
+      checks: write
+      contents: read
+    outputs:
+      check_run_id: ${{ steps.create_check.outputs.check_run_id }}
     steps:
-    - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
-      with:
-        egress-policy: audit
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        with:
+          egress-policy: audit
 
-    # Check out merge commit
-    - name: Fork based /ok-to-test-managed checkout
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      with:
-        ref: 'refs/pull/${{ env.GITHUB_PR_NUMBER }}/merge'
+      - name: Create status check
+        id: create_check
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
+          HEAD_SHA: ${{ github.event.client_payload.pull_request.head.sha }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const job_name = "e2e-managed-" + process.env.PROVIDER
+            const ref = process.env.HEAD_SHA
+            const { data: checks } = await github.rest.checks.listForRef({
+              ...context.repo,
+              ref
+            });
+            const check = checks.check_runs.filter(c => c.name === job_name);
+            if(check && check.length > 0){
+              const { data: result } = await github.rest.checks.update({
+                ...context.repo,
+                check_run_id: check[0].id,
+                status: 'in_progress',
+              });
+              core.setOutput('check_run_id', check[0].id);
+              return result;
+            }
+            const { data: result } = await github.rest.checks.create({
+              ...context.repo,
+              name: job_name,
+              head_sha: ref,
+              status: 'in_progress',
+            });
+            core.setOutput('check_run_id', result.id);
+            return result;
 
-    - name: Fetch History
-      run: git fetch --prune --unshallow
+  # AWS-specific job
+  test-aws:
+    runs-on: ubuntu-latest
+    if: github.event.client_payload.slash_command.args.named.provider == 'aws'
+    needs: [setup]
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
+    steps:
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        with:
+          egress-policy: audit
 
-    - uses: ./.github/actions/e2e-managed
+      - name: Fork based /ok-to-test-managed checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 
-    # set status=completed
-    - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-      if: ${{ always() }}
-      env:
-        number: ${{ env.GITHUB_PR_NUMBER }}
-        provider: ${{ env.CLOUD_PROVIDER }}
-        job: ${{ github.job }}
-        # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
-        conclusion: ${{ job.status }}
-      with:
-        github-token: ${{ env.GITHUB_TOKEN }}
-        script: |
-          const { data: pull } = await github.rest.pulls.get({
-            ...context.repo,
-            pull_number: process.env.number
-          });
-          const ref = pull.head.sha;
-          const { data: checks } = await github.rest.checks.listForRef({
-            ...context.repo,
-            ref
-          });
-          const job_name = "e2e-managed-" + process.env.provider
-          const check = checks.check_runs.filter(c => c.name === job_name);
-          const { data: result } = await github.rest.checks.update({
-            ...context.repo,
-            check_run_id: check[0].id,
-            status: 'completed',
-            conclusion: process.env.conclusion
-          });
-          return result;
+      - name: Setup Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Find the Go Cache
+        id: go
+        run: |
+          echo "build-cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+
+      - name: Cache the Go Build Cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.go.outputs.build-cache }}
+          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.go.outputs.mod-cache }}
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+
+      - uses: hashicorp/setup-terraform@4c5fdabea201636fa7ea13d8babd1ed828687f5d # v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@2475ef7675c7f555fe065dad4cbebafc7f953779
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Apply Terraform
+        run: make tf.apply.aws
+
+      - name: Get AWS EKS credentials
+        run: aws --region $AWS_REGION eks update-kubeconfig --name $AWS_CLUSTER_NAME
+
+      - name: Login to Docker
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        if: env.GHCR_USERNAME != ''
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run AWS e2e Tests
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          make test.e2e.managed GINKGO_LABELS="aws && managed" TEST_SUITES="provider"
+
+      - name: Destroy Terraform
+        if: always()
+        run: make tf.destroy.aws
+
+  # GCP-specific job
+  test-gcp:
+    runs-on: ubuntu-latest
+    if: github.event.client_payload.slash_command.args.named.provider == 'gcp'
+    needs: [setup]
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
+    steps:
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        with:
+          egress-policy: audit
+
+      - name: Fork based /ok-to-test-managed checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+
+      - name: Setup Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Find the Go Cache
+        id: go
+        run: |
+          echo "build-cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+
+      - name: Cache the Go Build Cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.go.outputs.build-cache }}
+          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.go.outputs.mod-cache }}
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+
+      - uses: hashicorp/setup-terraform@4c5fdabea201636fa7ea13d8babd1ed828687f5d # v3
+
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@fc2174804b84f912b1f6d334e9463f484f1c552d' # v3
+        with:
+          project_id: ${{ secrets.GCP_FED_PROJECT_ID }}
+          service_account: ${{ secrets.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
+          workload_identity_provider: ${{ secrets.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
+          create_credentials_file: true
+
+      - name: Apply Terraform
+        run: make tf.apply.gcp
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+        with:
+          install_components: 'gke-gcloud-auth-plugin'
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@3e00d2f47c840b194fc2ccc712879146e87f98cb # v3
+        with:
+          cluster_name: '${{ env.GCP_GKE_CLUSTER }}'
+          location: 'europe-west1'
+          project_id: '${{ secrets.GCP_FED_PROJECT_ID }}'
+
+      - name: Login to Docker
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        if: env.GHCR_USERNAME != ''
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GCP e2e Tests
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          make test.e2e.managed GINKGO_LABELS="gcp && managed" TEST_SUITES="provider"
+
+      - name: Destroy Terraform
+        if: always()
+        run: make tf.destroy.gcp
+
+  # Azure-specific job
+  test-azure:
+    runs-on: ubuntu-latest
+    if: github.event.client_payload.slash_command.args.named.provider == 'azure'
+    needs: [setup]
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
+    steps:
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        with:
+          egress-policy: audit
+
+      - name: Fork based /ok-to-test-managed checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+
+      - name: Setup Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Find the Go Cache
+        id: go
+        run: |
+          echo "build-cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+
+      - name: Cache the Go Build Cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.go.outputs.build-cache }}
+          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.go.outputs.mod-cache }}
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+
+      - uses: hashicorp/setup-terraform@4c5fdabea201636fa7ea13d8babd1ed828687f5d # v3
+
+      - name: Azure CLI login
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        with:
+          client-id: ${{ secrets.TFC_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.TFC_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Apply Terraform
+        env:
+          ARM_CLIENT_ID: "${{ secrets.TFC_AZURE_CLIENT_ID }}"
+          ARM_SUBSCRIPTION_ID: "${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}"
+          ARM_TENANT_ID: "${{ secrets.TFC_AZURE_TENANT_ID }}"
+        run: make tf.apply.azure
+
+      - name: Get AKS credentials
+        run: az aks get-credentials --admin --name eso-cluster --resource-group external-secrets-e2e
+
+      - name: Login to Docker
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        if: env.GHCR_USERNAME != ''
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Azure e2e Tests
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          make test.e2e.managed GINKGO_LABELS="azure && managed" TEST_SUITES="provider"
+
+      - name: Destroy Terraform
+        if: always()
+        env:
+          ARM_CLIENT_ID: "${{ secrets.TFC_AZURE_CLIENT_ID }}"
+          ARM_SUBSCRIPTION_ID: "${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}"
+          ARM_TENANT_ID: "${{ secrets.TFC_AZURE_TENANT_ID }}"
+        run: make tf.destroy.azure
+
+  # Final status update job
+  update-status:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [setup, test-aws, test-gcp, test-azure]
+    permissions:
+      checks: write
+      contents: read
+    steps:
+      - name: Update status check
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          AWS_RESULT: ${{ needs.test-aws.result }}
+          GCP_RESULT: ${{ needs.test-gcp.result }}
+          AZURE_RESULT: ${{ needs.test-azure.result }}
+          CHECK_RUN_ID: ${{ needs.setup.outputs.check_run_id }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const conclusion = process.env.AWS_RESULT + process.env.GCP_RESULT + process.env.AZURE_RESULT;
+            const checkRunId = process.env.CHECK_RUN_ID;
+            
+            // Determine the overall conclusion
+            let finalConclusion = 'success';
+            if (conclusion.includes('failure')) {
+              finalConclusion = 'failure';
+            } else if (conclusion.includes('cancelled')) {
+              finalConclusion = 'cancelled';
+            } else if (conclusion === '') {
+              finalConclusion = 'skipped';
+            }
+            
+            if (checkRunId) {
+              await github.rest.checks.update({
+                ...context.repo,
+                check_run_id: checkRunId,
+                status: 'completed',
+                conclusion: finalConclusion
+              });
+            }

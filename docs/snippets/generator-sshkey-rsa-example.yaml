@@ -3,7 +3,7 @@ kind: ExternalSecret
 metadata:
   name: example-rsa-key
 spec:
-  refreshInterval: "30m"
+  refreshInterval: "30m0s"
   target:
     name: ssh-rsa-secret
   dataFrom:

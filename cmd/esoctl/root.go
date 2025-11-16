@@ -18,11 +18,15 @@ package main
 
 import "github.com/spf13/cobra"
 
+func init() {
+	rootCmd.AddCommand(bootstrapCmd)
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "esoctl",
 	Short: "operations for external-secrets-operator",
 	Long:  `For more information visit https://external-secrets.io`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		_ = cmd.Usage()
 	},
 }

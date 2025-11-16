@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 The Kubernetes Authors.
 #
@@ -47,11 +47,10 @@ kubectl run --rm \
   --labels="app=eso-e2e,azure.workload.identity/use=true" \
   --env="ACK_GINKGO_DEPRECATIONS=2.9.5" \
   --env="GINKGO_LABELS=${GINKGO_LABELS:-.*}" \
-  --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON:-}" \
-  --env="GCP_PROJECT_ID=${GCP_PROJECT_ID:-}" \
-  --env="GCP_GSA_NAME=${GCP_GSA_NAME:-}" \
+  --env="GCP_SERVICE_ACCOUNT_KEY=${GCP_SERVICE_ACCOUNT_KEY:-}" \
+  --env="GCP_FED_PROJECT_ID=${GCP_FED_PROJECT_ID:-}" \
   --env="GCP_KSA_NAME=${GCP_KSA_NAME:-}" \
-  --env="GCP_GKE_ZONE=${GCP_GKE_ZONE:-}" \
+  --env="GCP_FED_REGION=${GCP_FED_REGION:-}" \
   --env="GCP_GKE_CLUSTER=${GCP_GKE_CLUSTER:-}" \
   --env="AWS_REGION=${AWS_REGION:-}" \
   --env="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}" \

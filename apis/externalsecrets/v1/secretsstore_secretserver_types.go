@@ -18,6 +18,8 @@ package v1
 
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// SecretServerProviderRef references a value that can be specified directly or via a secret
+// for a SecretServerProvider.
 type SecretServerProviderRef struct {
 
 	// Value can be specified directly to set a value without using a secret.
@@ -29,9 +31,9 @@ type SecretServerProviderRef struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// See https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go.
+// SecretServerProvider provides access to authenticate to a secrets provider server.
+// See: https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go.
 type SecretServerProvider struct {
-
 	// Username is the secret server account username.
 	// +required
 	Username *SecretServerProviderRef `json:"username"`
@@ -48,4 +50,14 @@ type SecretServerProvider struct {
 	// URL to your secret server installation
 	// +required
 	ServerURL string `json:"serverURL"`
+
+	// PEM/base64 encoded CA bundle used to validate Secret ServerURL. Only used
+	// if the ServerURL URL is using HTTPS protocol. If not set the system root certificates
+	// are used to validate the TLS connection.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// The provider for the CA bundle to use to validate Secret ServerURL certificate.
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }

@@ -32,6 +32,7 @@ const (
 	errInvalidStore = "invalid store"
 )
 
+// GenericStoreValidator provides validation for SecretStore and ClusterSecretStore resources.
 type GenericStoreValidator struct{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.

@@ -26,7 +26,7 @@ jobs:
       contents: read
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
         with:
           egress-policy: audit
 
@@ -36,8 +36,10 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
       - name: check-docs
+        env:
+          DOCS_VERSION: ${{ github.event.inputs.version }}
         run: |
-          DOCS_VERSION=${{ github.event.inputs.version }} make docs.check
+          make docs.check
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -45,7 +47,7 @@ jobs:
       contents: write # to create a release and push new docs
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
         with:
           egress-policy: audit
 
@@ -56,7 +58,7 @@ jobs:
           ref: ${{ github.event.inputs.source_ref }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@62c96d0c4e8a889135c1f3a25910db8dbe0e85f7 # v2.3.4
+        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
         with:
           tag_name: ${{ github.event.inputs.version }}
           target_commitish: ${{ github.event.inputs.source_ref }}
@@ -75,9 +77,10 @@ jobs:
 
       - name: Update Docs
         if: github.ref == 'refs/heads/main'
-        run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
         env:
+          DOCS_VERSION: ${{ github.event.inputs.version }}
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: make docs.publish DOCS_ALIAS=latest
 
   promote:
     name: Promote Container Image
@@ -99,7 +102,7 @@ jobs:
       RELEASE_TAG: ${{ github.event.inputs.version }}${{ matrix.tag_suffix }}
 
     steps:
-      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
         with:
           egress-policy: audit
       - name: Checkout
@@ -128,10 +131,12 @@ jobs:
         run: make docker.promote
 
       - name: Build release manifests
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
         run: |
           # temporarily patch the version so we generate manifests with the new version
-          yq e -i '.version = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
-          yq e -i '.appVersion = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i ".version = \"$RELEASE_VERSION\"" ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i ".appVersion = \"$RELEASE_VERSION\"" ./deploy/charts/external-secrets/Chart.yaml
           make manifests
 
       - name: Sign promoted image
@@ -142,7 +147,7 @@ jobs:
           image-tag: ${{ env.RELEASE_TAG }}
 
       - name: Update Release
-        uses: softprops/action-gh-release@62c96d0c4e8a889135c1f3a25910db8dbe0e85f7 # v2.3.4
+        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
         with:
           tag_name: ${{ github.event.inputs.version }}
           files: |

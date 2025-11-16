@@ -24,7 +24,7 @@ jobs:
     permissions:
       contents: write # for publishing the release
     steps:
-      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
         with:
           egress-policy: audit
       - name: Checkout
@@ -44,7 +44,7 @@ jobs:
         run: go mod download
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        uses: anchore/sbom-action/download-syft@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
 
       - name: Import GPG key
         id: import_gpg
@@ -55,16 +55,19 @@ jobs:
 
       - name: Check if Tag Exists
         id: check_tag
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
-          if git rev-parse "${{ github.event.inputs.version }}" >/dev/null 2>&1; then
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
             echo "Tag exists."
             exit 1
           fi
 
       - name: Create Tag if Not Exists
         if: success()
+        env:
+          TAG: ${{ github.event.inputs.version }}
         run: |
-          TAG="${{ github.event.inputs.version }}"
           git tag $TAG
           git push origin $TAG
 

@@ -32,6 +32,7 @@ linters:
     - unparam
     - unused
     - whitespace
+    - revive
   settings:
     goconst:
       min-len: 3
@@ -60,7 +61,7 @@ linters:
     gocyclo:
       min-complexity: 16
     goheader:
-      template-path: ./hack/boilerplate.go.txt
+      template-path: ${config-path}/hack/boilerplate.go.txt
     dupl:
       threshold: 200
     govet:
@@ -68,9 +69,9 @@ linters:
         - shadow
     lll:
       line-length: 300
-#    staticcheck:
-#      checks:
-#        - QF1008
+    #    staticcheck:
+    #      checks:
+    #        - QF1008
     misspell:
       locale: US
   exclusions:
@@ -84,12 +85,24 @@ linters:
           - gosec
           - unparam
           - lll
+          - revive
+
+      # Allow dot imports for Ginkgo and Gomega in test files
+      - path: _test\.go
+        text: "dot-imports:"
+        linters:
+          - revive
 
       # Ease some gocritic warnings on test files.
       - path: _test\.go
         text: "(unnamedResult|exitAfterDefer)"
         linters:
           - gocritic
+
+      # Exclude fake or mock packages from revive linter
+      - path: /(fake|mock)/
+        linters:
+          - revive
 
       # This is a "potential hardcoded credentials" warning. It's triggered by
       # any variable with 'secret' in the same, and thus hits a lot of false

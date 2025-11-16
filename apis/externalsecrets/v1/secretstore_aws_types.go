@@ -46,7 +46,7 @@ type AWSAuthSecretRef struct {
 	SessionToken *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
 }
 
-// Authenticate against AWS using service account tokens.
+// AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.
 type AWSJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
@@ -79,12 +79,14 @@ type SecretsManager struct {
 	// The number of days from 7 to 30 that Secrets Manager waits before
 	// permanently deleting the secret. You can't use both this parameter and
 	// ForceDeleteWithoutRecovery in the same call. If you don't use either,
-	// then by default Secrets Manager uses a 30 day recovery window.
+	// then by default Secrets Manager uses a 30-day recovery window.
 	// see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
 	// +optional
 	RecoveryWindowInDays int64 `json:"recoveryWindowInDays,omitempty"`
 }
 
+// Tag is a key-value pair that can be attached to an AWS resource.
+// see: https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html
 type Tag struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`

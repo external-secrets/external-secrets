@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controller implements the various controllers for external-secrets
 package controller
 
 import (
@@ -36,10 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/external-secrets/external-secrets/pkg/constants"
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 	"github.com/external-secrets/external-secrets/pkg/controllers/webhookconfig"
+	"github.com/external-secrets/external-secrets/runtime/constants"
 )
 
 var certcontrollerCmd = &cobra.Command{
@@ -47,7 +48,7 @@ var certcontrollerCmd = &cobra.Command{
 	Short: "Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs",
 	Long: `Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs.
 	For more information visit https://external-secrets.io`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		setupLogger()
 
 		// completely disable caching of Secrets and ConfigMaps to save memory

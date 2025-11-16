@@ -6,6 +6,7 @@ the API. Please pick one of the following guides:
 * [Multi-Tenancy Design Considerations](multi-tenancy.md)
 * [Find multiple secrets & Extract Secret values](getallsecrets.md)
 * [Advanced Templating](templating.md)
+* [Targeting Custom Resources](targeting-custom-resources.md)
 * [Generating Passwords using generators](generator.md)
 * [Ownership and Deletion Policy](ownership-deletion-policy.md)
 * [Key Rewriting](datafrom-rewrite.md)

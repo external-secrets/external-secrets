@@ -52,7 +52,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
-	"github.com/external-secrets/external-secrets/pkg/feature"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 
 	// To allow using gcp auth.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -100,6 +100,7 @@ var (
 	tlsCiphers                            string
 	tlsMinVersion                         string
 	enableHTTP2                           bool
+	allowGenericTargets                   bool
 )
 
 const (
@@ -121,7 +122,7 @@ var rootCmd = &cobra.Command{
 	Use:   "external-secrets",
 	Short: "operator that reconciles ExternalSecrets and SecretStores",
 	Long:  `For more information visit https://external-secrets.io`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		setupLogger()
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
@@ -251,7 +252,8 @@ var rootCmd = &cobra.Command{
 			ClusterSecretStoreEnabled: enableClusterStoreReconciler,
 			EnableFloodGate:           enableFloodGate,
 			EnableGeneratorState:      enableGeneratorState,
-		}).SetupWithManager(mgr, controller.Options{
+			AllowGenericTargets:       allowGenericTargets,
+		}).SetupWithManager(cmd.Context(), mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
@@ -329,6 +331,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute starts the command execution process.
 func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
 }
@@ -363,6 +366,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
+	rootCmd.Flags().BoolVar(&allowGenericTargets, "unsafe-allow-generic-targets", false, "Enable support for creating generic resources (ConfigMaps, Custom Resources). WARNING: Using generic resources, please sure all policies are correctly configured.")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)

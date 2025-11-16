@@ -39,7 +39,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
+	gcpsm "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
 )
 
 // nolint // Better to keep names consistent even if it stutters;
@@ -83,11 +83,11 @@ func NewGCPProvider(f *framework.Framework, credentials, projectID string,
 }
 
 func NewFromEnv(f *framework.Framework, controllerClass string) *GcpProvider {
-	projectID := os.Getenv("GCP_PROJECT_ID")
-	credentials := os.Getenv("GCP_SM_SA_JSON")
+	projectID := os.Getenv("GCP_FED_PROJECT_ID")
+	credentials := os.Getenv("GCP_SERVICE_ACCOUNT_KEY")
 	serviceAccountName := os.Getenv("GCP_KSA_NAME")
 	serviceAccountNamespace := "default"
-	clusterLocation := os.Getenv("GCP_GKE_ZONE")
+	clusterLocation := os.Getenv("GCP_FED_REGION")
 	clusterName := os.Getenv("GCP_GKE_CLUSTER")
 	return NewGCPProvider(f, credentials, projectID, clusterLocation, clusterName, serviceAccountName, serviceAccountNamespace, controllerClass)
 }

@@ -1,5 +1,5 @@
 # set the shell to bash always
-SHELL         := /bin/bash
+SHELL         := /usr/bin/env bash
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))

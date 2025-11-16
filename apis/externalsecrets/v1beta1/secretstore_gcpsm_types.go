@@ -20,6 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// GCPSMAuth defines the authentication methods for the GCP Secret Manager provider.
 type GCPSMAuth struct {
 	// +optional
 	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
@@ -27,12 +28,14 @@ type GCPSMAuth struct {
 	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
 }
 
+// GCPSMAuthSecretRef defines a reference to a secret containing credentials for the GCP Secret Manager provider.
 type GCPSMAuthSecretRef struct {
 	// The SecretAccessKey is used for authentication
 	// +optional
 	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
 }
 
+// GCPWorkloadIdentity defines configuration for using GCP Workload Identity authentication.
 type GCPWorkloadIdentity struct {
 	// +kubebuilder:validation:Required
 	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`

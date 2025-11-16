@@ -46,12 +46,12 @@ type AWSAuthSecretRef struct {
 	SessionToken *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
 }
 
-// Authenticate against AWS using service account tokens.
+// AWSJWTAuth authenticates against AWS using service account tokens from the Kubernetes cluster.
 type AWSJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
-// AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.
+// AWSServiceType is an enum that defines the service/API that is used to fetch the secrets.
 // +kubebuilder:validation:Enum=SecretsManager;ParameterStore
 type AWSServiceType string
 
@@ -85,6 +85,7 @@ type SecretsManager struct {
 	RecoveryWindowInDays int64 `json:"recoveryWindowInDays,omitempty"`
 }
 
+// Tag defines a tag key and value for AWS resources.
 type Tag struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`

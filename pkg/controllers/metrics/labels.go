@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package metrics provides utilities for metrics used by controllers.
 package metrics
 
 import (
@@ -23,12 +24,16 @@ import (
 )
 
 var (
+	// NonConditionMetricLabelNames are the label names used for non-conditional metrics.
 	NonConditionMetricLabelNames = make([]string, 0)
 
+	// ConditionMetricLabelNames are the label names used for conditional metrics.
 	ConditionMetricLabelNames = make([]string, 0)
 
+	// NonConditionMetricLabels holds the actual label values for non-conditional metrics.
 	NonConditionMetricLabels = make(map[string]string)
 
+	// ConditionMetricLabels holds the actual label values for conditional metrics.
 	ConditionMetricLabels = make(map[string]string)
 )
 
@@ -94,10 +99,12 @@ func RefineLabels(promLabels prometheus.Labels, newLabels map[string]string) pro
 	return refinement
 }
 
+// RefineNonConditionMetricLabels refines the non-conditional metric labels with the given labels.
 func RefineNonConditionMetricLabels(labels map[string]string) prometheus.Labels {
 	return RefineLabels(NonConditionMetricLabels, labels)
 }
 
+// RefineConditionMetricLabels refines the conditional metric labels with the given labels.
 func RefineConditionMetricLabels(labels map[string]string) prometheus.Labels {
 	return RefineLabels(ConditionMetricLabels, labels)
 }

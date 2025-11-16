@@ -102,6 +102,22 @@ processClusterGenerator: true
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
 
+# -- Enable support for generic targets (ConfigMaps, Custom Resources).
+# Warning: Using generic target. Make sure access policies and encryption are properly configured.
+# When enabled, this grants the controller permissions to create/update/delete
+# ConfigMaps and optionally other resource types specified in generic.resources.
+genericTargets:
+  # -- Enable generic target support
+  enabled: false
+  # -- List of additional resource types to grant permissions for.
+  # Each entry should specify apiGroup, resources, and verbs.
+  # Example:
+  # resources:
+  #   - apiGroup: "argoproj.io"
+  #     resources: ["applications"]
+  #     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  resources: []
+
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
 
@@ -315,7 +331,9 @@ livenessProbe:
     # -- Handler for liveness probe.
     httpGet:
       # -- Set this value to 8082 to active liveness probes.
-      port: "8082"
+      # @schema type: [string, integer]
+      port: 8082
+      # -- Path for liveness probe.
       path: /healthz
 
 nodeSelector: {}
@@ -369,13 +387,8 @@ webhook:
     # -- The flavour of tag you want to use
     flavour: ""
   imagePullSecrets: []
-  nameOverride: ""
-  fullnameOverride: ""
   # -- The port the webhook will listen to
   port: 10250
-  rbac:
-  # -- Specifies whether role and rolebinding resources should be created.
-    create: true
   serviceAccount:
     # -- Specifies whether a service account should be created.
     create: true
@@ -414,7 +427,7 @@ webhook:
       # -- Set the requested duration (i.e. lifetime) of the Certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
       # One year by default.
-      duration: "8760h"
+      duration: "8760h0m0s"
       # -- Set the revisionHistoryLimit on the Certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
       # Defaults to 0 (ignored).
@@ -550,8 +563,6 @@ certController:
     tag: ""
     flavour: ""
   imagePullSecrets: []
-  nameOverride: ""
-  fullnameOverride: ""
   rbac:
   # -- Specifies whether role and rolebinding resources should be created.
     create: true
