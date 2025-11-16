@@ -291,6 +291,9 @@
                 "createClusterSecretStore": {
                     "type": "boolean"
                 },
+                "createGenerators": {
+                    "type": "boolean"
+                },
                 "createPushSecret": {
                     "type": "boolean"
                 }
