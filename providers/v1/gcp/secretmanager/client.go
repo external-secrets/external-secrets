@@ -147,6 +147,7 @@ func parseError(err error) error {
 }
 
 // SecretExists checks if a secret exists in Google Cloud Secret Manager.
+// It verifies the existence of a secret in Google Cloud Secret Manager AND that it has at least one version.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
@@ -160,7 +161,25 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 		return false, err
 	}
 
-	return gcpSecret != nil, nil
+	if gcpSecret == nil {
+		return false, nil
+	}
+	// Check if the secret has at least one version
+	versionName := fmt.Sprintf("%s/versions/latest", secretName)
+	_, err = c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
+		Name: versionName,
+	})
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
+
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			// Secret exists but has no versions
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
