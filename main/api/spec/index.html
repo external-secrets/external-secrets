@@ -9299,7 +9299,8 @@ GCPWorkloadIdentityFederation
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>)
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
+<a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
 <p>GCPSMAuthSecretRef contains the secret references for GCP Secret Manager authentication.</p>
@@ -9405,7 +9406,8 @@ Possible values are:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>)
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
+<a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
 <p>GCPWorkloadIdentity defines configuration for workload identity authentication to GCP.</p>
@@ -14380,7 +14382,7 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code>, <code>cert</code>, <code>iam</code> or <code>gcp</code>
 can be specified. A namespace to authenticate against can optionally be specified.</p>
 </p>
 <table>
@@ -14523,6 +14525,21 @@ VaultUserPassAuth
 <td>
 <em>(Optional)</em>
 <p>UserPass authenticates with Vault by passing username/password pair</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gcp</code></br>
+<em>
+<a href="#external-secrets.io/v1.VaultGCPAuth">
+VaultGCPAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Gcp authenticates with Vault using Google Cloud Platform authentication method
+GCP authentication method</p>
 </td>
 </tr>
 </tbody>
@@ -14811,6 +14828,117 @@ External Secrets meta/v1.SecretKeySelector
 <p>KeySecretRef to a key in a Secret resource containing client private key
 added to the transport layer when communicating with the Vault server.
 If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
+Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/gcp">https://developer.hashicorp.com/vault/docs/auth/gcp</a></p>
+<p>When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod&rsquo;s
+identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path where the GCP auth method is enabled in Vault, e.g: &ldquo;gcp&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Project ID of the Google Cloud Platform project</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>location</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Location optionally defines a location/region for the secret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.GCPSMAuthSecretRef">
+GCPSMAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify credentials in a Secret object</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#external-secrets.io/v1.GCPWorkloadIdentity">
+GCPWorkloadIdentity
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify a service account with Workload Identity</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef to a service account for impersonation</p>
 </td>
 </tr>
 </tbody>
@@ -15241,8 +15369,7 @@ method</p>
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>VaultProvider configures a store to sync secrets using a HashiCorp Vault
-KV backend.</p>
+<p>VaultProvider configures a store to sync secrets using a Hashicorp Vault KV backend.</p>
 </p>
 <table>
 <thead>
