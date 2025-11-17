@@ -23,18 +23,18 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/golang-jwt/jwt/v5"
 	authaws "github.com/hashicorp/vault/api/auth/aws"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
+	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
-	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
 )
 
 const (
@@ -66,16 +66,16 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.Vaul
 	regionAWS := c.getRegionOrDefault(iamAuth.Region)
 	awsAuthMountPath := c.getAuthMountPathOrDefault(iamAuth.Path)
 
-	var creds *credentials.Credentials
+	var credsProvider aws.CredentialsProvider
 	var err error
 	if jwtAuth != nil { // use credentials from a sa explicitly defined and referenced. Highest preference is given to this method/configuration.
-		creds, err = vaultiamauth.CredsFromServiceAccount(ctx, *iamAuth, regionAWS, isClusterKind, k, n, jwtProvider)
+		credsProvider, err = vaultiamauth.CredsFromServiceAccount(ctx, *iamAuth, regionAWS, isClusterKind, k, n, jwtProvider)
 		if err != nil {
 			return err
 		}
 	} else if secretRefAuth != nil { // if jwtAuth is not defined, check if secretRef is defined. Second preference.
 		logger.V(1).Info("using credentials from secretRef")
-		creds, err = vaultiamauth.CredsFromSecretRef(ctx, *iamAuth, c.storeKind, k, n)
+		credsProvider, err = vaultiamauth.CredsFromSecretRef(ctx, *iamAuth, c.storeKind, k, n)
 		if err != nil {
 			return err
 		}
@@ -84,38 +84,37 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.Vaul
 	// Neither of jwtAuth or secretRefAuth defined. Last preference.
 	// Default to controller pod's identity
 	if jwtAuth == nil && secretRefAuth == nil {
-		creds, err = c.getControllerPodCredentials(ctx, regionAWS, k, jwtProvider)
+		credsProvider, err = c.getControllerPodCredentials(ctx, regionAWS, k, jwtProvider)
 		if err != nil {
 			return err
 		}
 	}
 
-	config := aws.NewConfig().WithEndpointResolver(vaultiamauth.ResolveEndpoint())
-	if creds != nil {
-		config.WithCredentials(creds)
+	var loadCfgOpts []func(*config.LoadOptions) error
+	if credsProvider != nil {
+		loadCfgOpts = append(loadCfgOpts, config.WithCredentialsProvider(credsProvider))
 	}
-
 	if regionAWS != "" {
-		config.WithRegion(regionAWS)
+		loadCfgOpts = append(loadCfgOpts, config.WithRegion(regionAWS))
 	}
 
-	sess, err := vaultiamauth.GetAWSSession(config)
+	cfg, err := config.LoadDefaultConfig(ctx, loadCfgOpts...)
 	if err != nil {
 		return err
 	}
+
 	if iamAuth.AWSIAMRole != "" {
-		stsclient := assumeRoler(sess)
+		stsclient := assumeRoler(&cfg)
 		if iamAuth.ExternalID != "" {
-			var setExternalID = func(p *stscreds.AssumeRoleProvider) {
-				p.ExternalID = aws.String(iamAuth.ExternalID)
-			}
-			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, iamAuth.AWSIAMRole, setExternalID))
+			cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, iamAuth.AWSIAMRole, func(opts *stscreds.AssumeRoleOptions) {
+				opts.ExternalID = aws.String(iamAuth.ExternalID)
+			})
 		} else {
-			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, iamAuth.AWSIAMRole))
+			cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, iamAuth.AWSIAMRole)
 		}
 	}
 
-	getCreds, err := sess.Config.Credentials.Get()
+	getCreds, err := cfg.Credentials.Retrieve(ctx)
 	if err != nil {
 		return err
 	}
@@ -160,7 +159,7 @@ func (c *client) getAuthMountPathOrDefault(path string) string {
 	return defaultAWSAuthMountPath
 }
 
-func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (*credentials.Credentials, error) {
+func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
 	// First try IRSA (Web Identity Token) - checking if controller pod's service account is IRSA enabled
 	tokenFile := os.Getenv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
 	if tokenFile != "" {
@@ -173,7 +172,7 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 
 	if podIdentityURI != "" {
 		logger.V(1).Info("using Pod Identity for authentication")
-		// Return nil to let AWS SDK v1 container credential provider handle Pod Identity automatically
+		// Return nil to let AWS SDK v2 container credential provider handle Pod Identity automatically
 		return nil, nil
 	}
 
@@ -181,7 +180,7 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 	return nil, errors.New(errNoAWSAuthMethodFound)
 }
 
-func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (*credentials.Credentials, error) {
+func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
 	// IRSA enabled service account, let's check that the jwt token filemount and file exists
 	if _, err := os.Stat(filepath.Clean(tokenFile)); err != nil {
 		return nil, fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tokenFile, err)
