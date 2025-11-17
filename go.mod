@@ -118,58 +118,58 @@ require github.com/1Password/connect-sdk-go v1.5.3 // indirect
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
-	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/mfa v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/akeyless v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/alibaba v0.0.0-20251103072335-a9b233b6936f
+	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/mfa v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/akeyless v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/alibaba v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/aws v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/beyondtrust v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/bitwarden v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/chef v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/cloudru v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/conjur v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/device42 v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/github v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/gitlab v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/ibm v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/infisical v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/keepersecurity v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/kubernetes v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/ngrok v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-20251103072335-a9b233b6936f
-	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-20251103080423-08fa383f42e5
-	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-20251103080423-08fa383f42e5
-	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-20251103080423-08fa383f42e5
-	github.com/external-secrets/external-secrets/providers/v1/pulumi v0.0.0-20251103080423-08fa383f42e5
-	github.com/external-secrets/external-secrets/providers/v1/scaleway v0.0.0-20251103080423-08fa383f42e5
-	github.com/external-secrets/external-secrets/providers/v1/secretserver v0.0.0-20251103080423-08fa383f42e5
-	github.com/external-secrets/external-secrets/providers/v1/senhasegura v0.0.0-20251103080423-08fa383f42e5
+	github.com/external-secrets/external-secrets/providers/v1/beyondtrust v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/bitwarden v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/chef v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/cloudru v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/conjur v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/device42 v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251104073127-4d2c8fd13e10
+	github.com/external-secrets/external-secrets/providers/v1/github v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/gitlab v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/ibm v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/infisical v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/keepersecurity v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/kubernetes v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/ngrok v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/pulumi v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/scaleway v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/secretserver v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/senhasegura v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/vault v0.0.0-20251103080423-08fa383f42e5
-	github.com/external-secrets/external-secrets/providers/v1/volcengine v0.0.0-20251103080423-08fa383f42e5
+	github.com/external-secrets/external-secrets/providers/v1/volcengine v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/webhook v0.0.0-20251103080423-08fa383f42e5
-	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-20251103080423-08fa383f42e5
+	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
 	sigs.k8s.io/yaml v1.6.0
@@ -311,6 +311,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/hashicorp/vault/api/auth/aws v0.11.0 // indirect
+	github.com/hashicorp/vault/api/auth/gcp v0.11.0 // indirect
 	github.com/hashicorp/vault/api/auth/userpass v0.11.0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/infisical/go-sdk v0.5.100 // indirect
