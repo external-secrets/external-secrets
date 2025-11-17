@@ -33,6 +33,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsauth "github.com/external-secrets/external-secrets/providers/v1/aws/auth"
+	"github.com/external-secrets/external-secrets/providers/v1/aws/certificatemanager"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
@@ -216,6 +217,8 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return secretsmanager.New(ctx, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false, kube, namespace)
 	case esv1.AWSServiceParameterStore:
 		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
+	case esv1.AWSServiceCertificateManager:
+		return certificatemanager.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
