@@ -273,6 +273,8 @@ metrics:
 
   listen:
     port: 8080
+    auth:
+      enabled: false 
     secure:
       enabled: false
       # -- if those are not set or invalid, self-signed certs will be generated
