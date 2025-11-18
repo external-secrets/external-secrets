@@ -18,6 +18,8 @@ package secretserver
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 
 	"github.com/DelineaXPM/tss-sdk-go/v3/server"
@@ -72,14 +74,39 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	secretServer, err := server.New(server.Configuration{
+	ssConfig := server.Configuration{
 		Credentials: server.UserCredential{
 			Username: username,
 			Password: password,
 			Domain:   cfg.Domain,
 		},
 		ServerURL: cfg.ServerURL,
-	})
+	}
+
+	if len(cfg.CABundle) > 0 || cfg.CAProvider != nil {
+		cert, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+			StoreKind:  store.GetKind(),
+			Client:     kube,
+			Namespace:  namespace,
+			CABundle:   cfg.CABundle,
+			CAProvider: cfg.CAProvider,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(cert) {
+			return nil, errors.New("failed to append caBundle")
+		}
+
+		ssConfig.TLSClientConfig = &tls.Config{
+			RootCAs:    caCertPool,
+			MinVersion: tls.VersionTLS12,
+		}
+	}
+
+	secretServer, err := server.New(ssConfig)
 	if err != nil {
 		return nil, err
 	}

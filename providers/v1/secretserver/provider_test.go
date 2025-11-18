@@ -202,6 +202,45 @@ func TestNewClient(t *testing.T) {
 		ServerURL: "https://example.com",
 	}
 
+	// Valid test CA certificate
+	testCABundle := []byte(`-----BEGIN CERTIFICATE-----
+MIIDHTCCAgWgAwIBAgIRAKC4yxy9QGocND+6avTf7BgwDQYJKoZIhvcNAQELBQAw
+EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0yMTAzMjAyMDA4MDhaFw0yMTAzMjAyMDM4
+MDhaMBIxEDAOBgNVBAoTB0FjbWUgQ28wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+ggEKAoIBAQC3o6/JdZEqNbqNRkopHhJtJG5c4qS5d0tQ/kZYpfD/v/izAYum4Nzj
+aG15owr92/11W0pxPUliRLti3y6iScTs+ofm2D7p4UXj/Fnho/2xoWSOoWAodgvW
+Y8jh8A0LQALZiV/9QsrJdXZdS47DYZLsQ3z9yFC/CdXkg1l7AQ3fIVGKdrQBr9kE
+1gEDqnKfRxXI8DEQKXr+CKPUwCAytegmy0SHp53zNAvY+kopHytzmJpXLoEhxq4e
+ugHe52vXHdh/HJ9VjNp0xOH1waAgAGxHlltCW0PVd5AJ0SXROBS/a3V9sZCbCrJa
+YOOonQSEswveSv6PcG9AHvpNPot2Xs6hAgMBAAGjbjBsMA4GA1UdDwEB/wQEAwIC
+pDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+BBR00805mrpoonp95RmC3B6oLl+cGTAVBgNVHREEDjAMggpnb29ibGUuY29tMA0G
+CSqGSIb3DQEBCwUAA4IBAQAipc1b6JrEDayPjpz5GM5krcI8dCWVd8re0a9bGjjN
+ioWGlu/eTr5El0ffwCNZ2WLmL9rewfHf/bMvYz3ioFZJ2OTxfazqYXNggQz6cMfa
+lbedDCdt5XLVX2TyerGvFram+9Uyvk3l0uM7rZnwAmdirG4Tv94QRaD3q4xTj/c0
+mv+AggtK0aRFb9o47z/BypLdk5mhbf3Mmr88C8XBzEnfdYyf4JpTlZrYLBmDCu5d
+9RLLsjXxhag8xqMtd1uLUM8XOTGzVWacw8iGY+CTtBKqyA+AE6/bDwZvEwVtsKtC
+QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
+-----END CERTIFICATE-----`)
+
+	caSecretName := "ca-secret"
+	caSecretKey := "ca.crt"
+	caSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: caSecretName, Namespace: "default"},
+		Data: map[string][]byte{
+			caSecretKey: testCABundle,
+		},
+	}
+
+	caConfigMapName := "ca-configmap"
+	caConfigMapKey := "ca.crt"
+	caConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: caConfigMapName, Namespace: "default"},
+		Data: map[string]string{
+			caConfigMapKey: string(testCABundle),
+		},
+	}
+
 	tests := map[string]struct {
 		store    esv1.GenericStore          // leave nil for namespaced store
 		provider *esv1.SecretServerProvider // discarded when store is set
@@ -324,6 +363,125 @@ func TestNewClient(t *testing.T) {
 				},
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret, clientSecretWithDomain).Build(),
+		},
+		"valid with CABundle and CAProvider using Secret": {
+			provider: &esv1.SecretServerProvider{
+				Username:  validProvider.Username,
+				Password:  validProvider.Password,
+				ServerURL: validProvider.ServerURL,
+				CABundle:  testCABundle,
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeSecret,
+					Name: caSecretName,
+					Key:  caSecretKey,
+				},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret, caSecret).Build(),
+		},
+		"valid with CABundle and CAProvider using ConfigMap": {
+			provider: &esv1.SecretServerProvider{
+				Username:  validProvider.Username,
+				Password:  validProvider.Password,
+				ServerURL: validProvider.ServerURL,
+				CABundle:  testCABundle,
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeConfigMap,
+					Name: caConfigMapName,
+					Key:  caConfigMapKey,
+				},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret, caConfigMap).Build(),
+		},
+		"CABundle without CAProvider is ignored": {
+			provider: &esv1.SecretServerProvider{
+				Username:  validProvider.Username,
+				Password:  validProvider.Password,
+				ServerURL: validProvider.ServerURL,
+				CABundle:  testCABundle,
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
+		},
+		"CAProvider without CABundle is ignored": {
+			provider: &esv1.SecretServerProvider{
+				Username:  validProvider.Username,
+				Password:  validProvider.Password,
+				ServerURL: validProvider.ServerURL,
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeSecret,
+					Name: caSecretName,
+					Key:  caSecretKey,
+				},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret, caSecret).Build(),
+		},
+		"invalid CABundle format with CAProvider": {
+			provider: &esv1.SecretServerProvider{
+				Username:  validProvider.Username,
+				Password:  validProvider.Password,
+				ServerURL: validProvider.ServerURL,
+				CABundle:  []byte("invalid certificate data"),
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeSecret,
+					Name: caSecretName,
+					Key:  caSecretKey,
+				},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret, caSecret).Build(),
+			errCheck: func(t *testing.T, err error) {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to decode ca bundle")
+			},
+		},
+		"missing CAProvider Secret with valid CABundle": {
+			provider: &esv1.SecretServerProvider{
+				Username:  validProvider.Username,
+				Password:  validProvider.Password,
+				ServerURL: validProvider.ServerURL,
+				CABundle:  testCABundle,
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeSecret,
+					Name: "non-existent-secret",
+					Key:  caSecretKey,
+				},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
+			// CABundle takes precedence, so even if the secret doesn't exist, CABundle is used
+		},
+		"only CAProvider without CABundle is ignored": {
+			provider: &esv1.SecretServerProvider{
+				Username:  validProvider.Username,
+				Password:  validProvider.Password,
+				ServerURL: validProvider.ServerURL,
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeSecret,
+					Name: caSecretName,
+					Key:  caSecretKey,
+				},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret, caSecret).Build(),
+			// No error expected because both CABundle AND CAProvider must be set for TLS config
+		},
+		"cluster secret store with CABundle and CAProvider": {
+			store: &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						SecretServer: &esv1.SecretServerProvider{
+							Username:  makeSecretRefUsingNamespacedRef(clientSecret.Namespace, clientSecret.Name, userNameKey),
+							Password:  makeSecretRefUsingNamespacedRef(clientSecret.Namespace, clientSecret.Name, passwordKey),
+							ServerURL: validProvider.ServerURL,
+							CABundle:  testCABundle,
+							CAProvider: &esv1.CAProvider{
+								Type:      esv1.CAProviderTypeSecret,
+								Name:      caSecretName,
+								Key:       caSecretKey,
+								Namespace: esutils.Ptr("default"),
+							},
+						},
+					},
+				},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret, caSecret).Build(),
 		},
 	}
 	for name, tc := range tests {
