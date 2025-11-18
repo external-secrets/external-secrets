@@ -1,0 +1,57 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $isOpenShift := include "external-secrets.isOpenShift" . | trim }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-allow-dns
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - {{ include "external-secrets.name" . }}
+          - {{ include "external-secrets.name" . }}-webhook
+          - {{ include "external-secrets.name" . }}-cert-controller
+          {{- if index .Values "bitwarden-sdk-server" "enabled" }}
+          - bitwarden-sdk-server
+          {{- end }}
+  policyTypes:
+    - Egress
+  egress:
+    {{- if eq $isOpenShift "true" }}
+    # OpenShift DNS configuration
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - protocol: TCP
+          port: 5353
+        - protocol: UDP
+          port: 5353
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    {{- else }}
+    # Standard Kubernetes DNS configuration
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    {{- end }}
+{{- end }}
+

@@ -1,0 +1,69 @@
+{{- if and .Values.createOperator .Values.networkPolicy.enabled }}
+{{- $isOpenShift := include "external-secrets.isOpenShift" . | trim }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "external-secrets.fullname" . }}
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "external-secrets.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow Prometheus to scrape metrics
+    - ports:
+        - port: {{ .Values.metrics.listen.port }}
+          protocol: TCP
+      {{- with .Values.networkPolicy.controller.ingressFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  egress:
+    # Note: DNS access is configured in a separate NetworkPolicy resource:
+    # - {{ include "external-secrets.fullname" . }}-allow-dns
+    
+    # Allow access to Kubernetes API server
+    {{- if eq $isOpenShift "true" }}
+    # OpenShift API server configuration
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-apiserver
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-apiserver
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+    {{- else }}
+    # Standard Kubernetes API server configuration
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - namespaceSelector: {}
+    {{- end }}
+    
+    # Allow access to external secret providers (cloud APIs, vault, etc.)
+    # Note: Users must explicitly configure provider access via networkPolicy.controller.egressTo
+    {{- if .Values.networkPolicy.controller.egressTo }}
+    {{- toYaml .Values.networkPolicy.controller.egressTo | nindent 4 }}
+    {{- end }}
+{{- end }}
+

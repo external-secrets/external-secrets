@@ -1,0 +1,78 @@
+{{- if and .Values.certController.create .Values.networkPolicy.enabled (not .Values.webhook.certManager.enabled) }}
+{{- $isOpenShift := include "external-secrets.isOpenShift" . | trim }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow Prometheus to scrape metrics
+    - ports:
+        - port: {{ .Values.certController.metrics.listen.port }}
+          protocol: TCP
+      {{- if and .Values.networkPolicy.certController (hasKey .Values.networkPolicy.certController "ingressFrom") }}
+      {{- with .Values.networkPolicy.certController.ingressFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+    # Allow readiness probes from kubelet
+    - ports:
+        - port: {{ .Values.certController.readinessProbe.port }}
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+  egress:
+    # Note: DNS access is configured in a separate NetworkPolicy resource:
+    # - {{ include "external-secrets.fullname" . }}-allow-dns
+    
+    # Allow access to Kubernetes API server
+    {{- if eq $isOpenShift "true" }}
+    # OpenShift API server configuration
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-apiserver
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-kube-apiserver
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+    {{- else }}
+    # Standard Kubernetes API server configuration
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - namespaceSelector: {}
+    {{- end }}
+    {{- if and .Values.networkPolicy.certController (hasKey .Values.networkPolicy.certController "egressTo") }}
+    {{- with .Values.networkPolicy.certController.egressTo }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- end }}
+{{- end }}
+
