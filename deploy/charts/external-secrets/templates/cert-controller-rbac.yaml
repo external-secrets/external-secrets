@@ -76,6 +76,20 @@ rules:
     - "create"
     - "update"
     - "patch"
+  {{- if .Values.metrics.listen.auth.enabled }}
+  - apiGroups:
+    - "authentication.k8s.io"
+    resources: 
+    - "tokenreviews"
+    verbs:
+    - "create"
+  - apiGroups:
+    - "authentication.k8s.io"
+    resources: 
+    - "subjectaccessreviews"
+    verbs:
+    - "create"
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
