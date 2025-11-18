@@ -80,7 +80,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 		secretUUID := extractUUIDFromRef(secret.SecretRef)
 		secretsMap[secretUUID], err = secrets.GetPayload(ctx, c.keyManager, secretUUID, nil).Extract()
 		if err != nil {
-			return nil, fmt.Errorf(errClientGetSecretPayload, errors.New("failed to get secret payload for secret: "+secretUUID+" : "+err.Error()))
+			return nil, fmt.Errorf(errClientGetSecretPayload, fmt.Errorf("failed to get secret payload for secret %s: %w", secretUUID, err.Error())
 		}
 	}
 	return secretsMap, nil
