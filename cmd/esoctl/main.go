@@ -20,6 +20,9 @@ package main
 import (
 	"fmt"
 	"os"
+
+	// register all providers and generators
+	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
 func main() {
