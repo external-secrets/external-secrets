@@ -32,10 +32,10 @@ import (
 )
 
 const (
-	errGeneric      = "barbican provider error: %s"
-	errMissingField = "barbican provider missing required field: %s"
-	errAuthFailed   = "barbican provider authentication failed: %s"
-	errClientInit   = "barbican provider client initialization failed: %s"
+	errGeneric      = "barbican provider error: %w"
+	errMissingField = "barbican provider missing required field: %w"
+	errAuthFailed   = "barbican provider authentication failed: %w"
+	errClientInit   = "barbican provider client initialization failed: %w"
 )
 
 var _ esv1.Provider = &Provider{}

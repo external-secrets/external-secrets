@@ -33,13 +33,13 @@ import (
 )
 
 const (
-	errClientGeneric      = "barbican client: %s"
-	errClientMissingField = "barbican client: missing field %s"
-	errClientListAllSecrets = "barbican client: failed to list all secrets: %s"
-	errClientExtractSecrets = "barbican client: failed to extract secrets: %s"
-	errClientGetSecretPayload = "barbican client: failed to get secret payload: %s"
-	errClientGetSecretPayloadProperty = "barbican client: failed to get secret payload property: %s"
-	errClientJSONUnmarshal = "barbican client: failed to unmarshal json: %s"
+	errClientGeneric      = "barbican client: %w"
+	errClientMissingField = "barbican client: missing field %w"
+	errClientListAllSecrets = "barbican client: failed to list all secrets: %w"
+	errClientExtractSecrets = "barbican client: failed to extract secrets: %w"
+	errClientGetSecretPayload = "barbican client: failed to get secret payload: %w"
+	errClientGetSecretPayloadProperty = "barbican client: failed to get secret payload property: %w"
+	errClientJSONUnmarshal = "barbican client: failed to unmarshal json: %w"
 )
 
 var _ esapi.SecretsClient = &Client{}
@@ -80,7 +80,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 		secretUUID := extractUUIDFromRef(secret.SecretRef)
 		secretsMap[secretUUID], err = secrets.GetPayload(ctx, c.keyManager, secretUUID, nil).Extract()
 		if err != nil {
-			return nil, fmt.Errorf(errClientGetSecretPayload, fmt.Errorf("failed to get secret payload for secret %s: %w", secretUUID, err.Error())
+			return nil, fmt.Errorf(errClientGetSecretPayload, fmt.Errorf("failed to get secret payload for secret %s: %w", secretUUID, err))
 		}
 	}
 	return secretsMap, nil
@@ -99,7 +99,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esapi.ExternalSecretDataRemo
 
 	propertyValue, err := getSecretPayloadProperty(payload, ref.Property)
 	if err != nil {
-		return nil, fmt.Errorf(errClientGetSecretPayloadProperty, errors.New("failed to get property '"+ref.Property+"' from secret payload: "+err.Error()))
+		return nil, fmt.Errorf(errClientGetSecretPayloadProperty, fmt.Errorf("failed to get property %s from secret payload: %w", ref.Property, err))
 	}
 
 	return propertyValue, nil
@@ -163,7 +163,7 @@ func getSecretPayloadProperty(payload []byte, property string) ([]byte, error) {
 
 	value, ok := rawJSON[property]
 	if !ok {
-		return nil, fmt.Errorf(errClientGeneric, errors.New("property "+property+" not found in secret payload"))
+		return nil, fmt.Errorf(errClientGeneric, fmt.Errorf("property %s not found in secret payload", property))
 	}
 
 	return value, nil
