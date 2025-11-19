@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/external-secrets/external-secrets/runtime/logs"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/go-chef/chef"
 	"github.com/go-logr/logr"
@@ -38,6 +37,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -103,7 +103,7 @@ var _ esv1.SecretsClient = &Providerchef{}
 var _ esv1.Provider = &Providerchef{}
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "chef", "secretsmanager")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("chef").WithName("secretsmanager")
 }
 
 // NewClient creates a new Chef Infra Server client.

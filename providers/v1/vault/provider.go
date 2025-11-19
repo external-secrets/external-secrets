@@ -35,7 +35,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
-	"github.com/external-secrets/external-secrets/runtime/logs"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -57,7 +57,7 @@ const (
 )
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "vault")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("vault")
 }
 
 // Provider implements the ESO Provider interface for Hashicorp Vault.

@@ -40,8 +40,8 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
-	"github.com/external-secrets/external-secrets/runtime/logs"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // Tier defines policy details for PushSecret.
@@ -94,7 +94,7 @@ const (
 )
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "aws", "parameterstore")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("aws").WithName("parameterstore")
 }
 
 // New constructs a ParameterStore Provider that is specific to a store.

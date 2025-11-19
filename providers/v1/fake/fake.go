@@ -32,7 +32,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
-	"github.com/external-secrets/external-secrets/runtime/logs"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -62,7 +62,7 @@ type Provider struct {
 }
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "fake")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("fake")
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).

@@ -37,8 +37,8 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
-	"github.com/external-secrets/external-secrets/runtime/logs"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -83,7 +83,7 @@ func (a ProjectGroupPathSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ProjectGroupPathSorter) Less(i, j int) bool { return len(a[i].FullPath) < len(a[j].FullPath) }
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "gitlab")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("gitlab")
 }
 
 // Set gitlabBase credentials to Access Token.

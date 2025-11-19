@@ -39,7 +39,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esutils "github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/runtime/logs"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -84,7 +84,7 @@ type AuthenticatorInput struct {
 }
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "beyondtrust")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("beyondtrust")
 }
 
 // Capabilities implements v1beta1.Provider.

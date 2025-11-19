@@ -44,7 +44,7 @@ import (
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/runtime/logs"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -65,7 +65,7 @@ const (
 )
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "vault")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("vault")
 }
 
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity

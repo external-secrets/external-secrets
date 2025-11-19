@@ -35,7 +35,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/common/clock"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/runtime/logs"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
@@ -64,7 +64,11 @@ type iamTokenKey struct {
 }
 
 func ctxLog(ctx context.Context, names []string) logr.Logger {
-	return logs.CtxLog(ctx, names...)
+	log := ctrl.LoggerFrom(ctx)
+	for _, name := range names {
+		log = log.WithName(name)
+	}
+	return log
 }
 
 // InitYandexCloudProvider creates and initializes a new YandexCloudProvider instance.

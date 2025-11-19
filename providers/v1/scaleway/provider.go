@@ -31,7 +31,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/runtime/logs"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -39,7 +39,7 @@ var (
 )
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "scaleway")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("scaleway")
 }
 
 var _ esv1.Provider = &Provider{}

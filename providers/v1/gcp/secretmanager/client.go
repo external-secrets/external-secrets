@@ -45,9 +45,9 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
-	"github.com/external-secrets/external-secrets/runtime/logs"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/util/locks"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -111,7 +111,7 @@ type GoogleSecretManagerClient interface {
 }
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "gcp", "secretsmanager")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("gcp").WithName("secretsmanager")
 }
 
 // DeleteSecret deletes a secret from Google Cloud Secret Manager.

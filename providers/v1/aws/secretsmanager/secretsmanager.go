@@ -45,8 +45,8 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
-	"github.com/external-secrets/external-secrets/runtime/logs"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to AWS Secret Manager.
@@ -120,7 +120,7 @@ const (
 )
 
 func ctxLog(ctx context.Context) logr.Logger {
-	return logs.CtxLog(ctx, "provider", "aws", "secretsmanager")
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("aws").WithName("secretsmanager")
 }
 
 // New creates a new SecretsManager client.
