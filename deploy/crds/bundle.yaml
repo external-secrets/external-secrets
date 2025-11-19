@@ -4238,6 +4238,9 @@ spec:
                             secretRef:
                               description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
+                                iamEndpoint:
+                                  description: The IAM endpoint used to obain a token
+                                  type: string
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
@@ -5974,6 +5977,46 @@ spec:
                         SecretServer configures this store to sync secrets using SecretServer provider
                         https://docs.delinea.com/online-help/secret-server/start.htm
                       properties:
+                        caBundle:
+                          description: |-
+                            PEM/base64 encoded CA bundle used to validate Secret ServerURL. Only used
+                            if the ServerURL URL is using HTTPS protocol. If not set the system root certificates
+                            are used to validate the TLS connection.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: The provider for the CA bundle to use to validate Secret ServerURL certificate.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         domain:
                           description: Domain is the secret server domain.
                           type: string
@@ -6261,6 +6304,134 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              type: object
+                            gcp:
+                              description: |-
+                                Gcp authenticates with Vault using Google Cloud Platform authentication method
+                                GCP authentication method
+                              properties:
+                                location:
+                                  description: Location optionally defines a location/region for the secret
+                                  type: string
+                                path:
+                                  default: gcp
+                                  description: 'Path where the GCP auth method is enabled in Vault, e.g: "gcp"'
+                                  type: string
+                                projectID:
+                                  description: Project ID of the Google Cloud Platform project
+                                  type: string
+                                role:
+                                  description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
+                                  type: string
+                                secretRef:
+                                  description: Specify credentials in a Secret object
+                                  properties:
+                                    secretAccessKeySecretRef:
+                                      description: The SecretAccessKey is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  type: object
+                                serviceAccountRef:
+                                  description: ServiceAccountRef to a service account for impersonation
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                workloadIdentity:
+                                  description: Specify a service account with Workload Identity
+                                  properties:
+                                    clusterLocation:
+                                      description: |-
+                                        ClusterLocation is the location of the cluster
+                                        If not specified, it fetches information from the metadata server
+                                      type: string
+                                    clusterName:
+                                      description: |-
+                                        ClusterName is the name of the cluster
+                                        If not specified, it fetches information from the metadata server
+                                      type: string
+                                    clusterProjectID:
+                                      description: |-
+                                        ClusterProjectID is the project ID of the cluster
+                                        If not specified, it fetches information from the metadata server
+                                      type: string
+                                    serviceAccountRef:
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                                      properties:
+                                        audiences:
+                                          description: |-
+                                            Audience specifies the `aud` claim for the service account token
+                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                            then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
+                              required:
+                                - role
                               type: object
                             iam:
                               description: |-
@@ -15551,6 +15722,9 @@ spec:
                             secretRef:
                               description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
+                                iamEndpoint:
+                                  description: The IAM endpoint used to obain a token
+                                  type: string
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
@@ -17287,6 +17461,46 @@ spec:
                         SecretServer configures this store to sync secrets using SecretServer provider
                         https://docs.delinea.com/online-help/secret-server/start.htm
                       properties:
+                        caBundle:
+                          description: |-
+                            PEM/base64 encoded CA bundle used to validate Secret ServerURL. Only used
+                            if the ServerURL URL is using HTTPS protocol. If not set the system root certificates
+                            are used to validate the TLS connection.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: The provider for the CA bundle to use to validate Secret ServerURL certificate.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         domain:
                           description: Domain is the secret server domain.
                           type: string
@@ -17574,6 +17788,134 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              type: object
+                            gcp:
+                              description: |-
+                                Gcp authenticates with Vault using Google Cloud Platform authentication method
+                                GCP authentication method
+                              properties:
+                                location:
+                                  description: Location optionally defines a location/region for the secret
+                                  type: string
+                                path:
+                                  default: gcp
+                                  description: 'Path where the GCP auth method is enabled in Vault, e.g: "gcp"'
+                                  type: string
+                                projectID:
+                                  description: Project ID of the Google Cloud Platform project
+                                  type: string
+                                role:
+                                  description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
+                                  type: string
+                                secretRef:
+                                  description: Specify credentials in a Secret object
+                                  properties:
+                                    secretAccessKeySecretRef:
+                                      description: The SecretAccessKey is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  type: object
+                                serviceAccountRef:
+                                  description: ServiceAccountRef to a service account for impersonation
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                workloadIdentity:
+                                  description: Specify a service account with Workload Identity
+                                  properties:
+                                    clusterLocation:
+                                      description: |-
+                                        ClusterLocation is the location of the cluster
+                                        If not specified, it fetches information from the metadata server
+                                      type: string
+                                    clusterName:
+                                      description: |-
+                                        ClusterName is the name of the cluster
+                                        If not specified, it fetches information from the metadata server
+                                      type: string
+                                    clusterProjectID:
+                                      description: |-
+                                        ClusterProjectID is the project ID of the cluster
+                                        If not specified, it fetches information from the metadata server
+                                      type: string
+                                    serviceAccountRef:
+                                      description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                                      properties:
+                                        audiences:
+                                          description: |-
+                                            Audience specifies the `aud` claim for the service account token
+                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                            then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
+                              required:
+                                - role
                               type: object
                             iam:
                               description: |-
@@ -24108,17 +24450,19 @@ spec:
                           type: string
                         keySize:
                           description: |-
-                            KeySize specifies the key size for RSA keys (default: 2048)
+                            KeySize specifies the key size for RSA keys (default: 2048) and ECDSA keys (default: 256).
                             For RSA keys: 2048, 3072, 4096
+                            For ECDSA keys: 256, 384, 521
                             Ignored for ed25519 keys
                           maximum: 8192
                           minimum: 256
                           type: integer
                         keyType:
                           default: rsa
-                          description: KeyType specifies the SSH key type (rsa, ed25519)
+                          description: KeyType specifies the SSH key type (rsa, ecdsa, ed25519)
                           enum:
                             - rsa
+                            - ecdsa
                             - ed25519
                           type: string
                       type: object
@@ -24453,6 +24797,134 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
+                                  type: object
+                                gcp:
+                                  description: |-
+                                    Gcp authenticates with Vault using Google Cloud Platform authentication method
+                                    GCP authentication method
+                                  properties:
+                                    location:
+                                      description: Location optionally defines a location/region for the secret
+                                      type: string
+                                    path:
+                                      default: gcp
+                                      description: 'Path where the GCP auth method is enabled in Vault, e.g: "gcp"'
+                                      type: string
+                                    projectID:
+                                      description: Project ID of the Google Cloud Platform project
+                                      type: string
+                                    role:
+                                      description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
+                                      type: string
+                                    secretRef:
+                                      description: Specify credentials in a Secret object
+                                      properties:
+                                        secretAccessKeySecretRef:
+                                          description: The SecretAccessKey is used for authentication
+                                          properties:
+                                            key:
+                                              description: |-
+                                                A key in the referenced Secret.
+                                                Some instances of this field may be defaulted, in others it may be required.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[-._a-zA-Z0-9]+$
+                                              type: string
+                                            name:
+                                              description: The name of the Secret resource being referred to.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                              type: string
+                                            namespace:
+                                              description: |-
+                                                The namespace of the Secret resource being referred to.
+                                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                              maxLength: 63
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                              type: string
+                                          type: object
+                                      type: object
+                                    serviceAccountRef:
+                                      description: ServiceAccountRef to a service account for impersonation
+                                      properties:
+                                        audiences:
+                                          description: |-
+                                            Audience specifies the `aud` claim for the service account token
+                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                            then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                    workloadIdentity:
+                                      description: Specify a service account with Workload Identity
+                                      properties:
+                                        clusterLocation:
+                                          description: |-
+                                            ClusterLocation is the location of the cluster
+                                            If not specified, it fetches information from the metadata server
+                                          type: string
+                                        clusterName:
+                                          description: |-
+                                            ClusterName is the name of the cluster
+                                            If not specified, it fetches information from the metadata server
+                                          type: string
+                                        clusterProjectID:
+                                          description: |-
+                                            ClusterProjectID is the project ID of the cluster
+                                            If not specified, it fetches information from the metadata server
+                                          type: string
+                                        serviceAccountRef:
+                                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                                          properties:
+                                            audiences:
+                                              description: |-
+                                                Audience specifies the `aud` claim for the service account token
+                                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                                then this audiences will be appended to the list
+                                              items:
+                                                type: string
+                                              type: array
+                                            name:
+                                              description: The name of the ServiceAccount resource being referred to.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                              type: string
+                                            namespace:
+                                              description: |-
+                                                Namespace of the resource being referred to.
+                                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                              maxLength: 63
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                              type: string
+                                          required:
+                                            - name
+                                          type: object
+                                      required:
+                                        - serviceAccountRef
+                                      type: object
+                                  required:
+                                    - role
                                   type: object
                                 iam:
                                   description: |-
@@ -26507,17 +26979,19 @@ spec:
                   type: string
                 keySize:
                   description: |-
-                    KeySize specifies the key size for RSA keys (default: 2048)
+                    KeySize specifies the key size for RSA keys (default: 2048) and ECDSA keys (default: 256).
                     For RSA keys: 2048, 3072, 4096
+                    For ECDSA keys: 256, 384, 521
                     Ignored for ed25519 keys
                   maximum: 8192
                   minimum: 256
                   type: integer
                 keyType:
                   default: rsa
-                  description: KeyType specifies the SSH key type (rsa, ed25519)
+                  description: KeyType specifies the SSH key type (rsa, ecdsa, ed25519)
                   enum:
                     - rsa
+                    - ecdsa
                     - ed25519
                   type: string
               type: object
@@ -27000,6 +27474,134 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                          type: object
+                        gcp:
+                          description: |-
+                            Gcp authenticates with Vault using Google Cloud Platform authentication method
+                            GCP authentication method
+                          properties:
+                            location:
+                              description: Location optionally defines a location/region for the secret
+                              type: string
+                            path:
+                              default: gcp
+                              description: 'Path where the GCP auth method is enabled in Vault, e.g: "gcp"'
+                              type: string
+                            projectID:
+                              description: Project ID of the Google Cloud Platform project
+                              type: string
+                            role:
+                              description: Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
+                              type: string
+                            secretRef:
+                              description: Specify credentials in a Secret object
+                              properties:
+                                secretAccessKeySecretRef:
+                                  description: The SecretAccessKey is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                            serviceAccountRef:
+                              description: ServiceAccountRef to a service account for impersonation
+                              properties:
+                                audiences:
+                                  description: |-
+                                    Audience specifies the `aud` claim for the service account token
+                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                    then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              required:
+                                - name
+                              type: object
+                            workloadIdentity:
+                              description: Specify a service account with Workload Identity
+                              properties:
+                                clusterLocation:
+                                  description: |-
+                                    ClusterLocation is the location of the cluster
+                                    If not specified, it fetches information from the metadata server
+                                  type: string
+                                clusterName:
+                                  description: |-
+                                    ClusterName is the name of the cluster
+                                    If not specified, it fetches information from the metadata server
+                                  type: string
+                                clusterProjectID:
+                                  description: |-
+                                    ClusterProjectID is the project ID of the cluster
+                                    If not specified, it fetches information from the metadata server
+                                  type: string
+                                serviceAccountRef:
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - serviceAccountRef
+                              type: object
+                          required:
+                            - role
                           type: object
                         iam:
                           description: |-

@@ -25,7 +25,7 @@ Once you have created your SMC, you will get a config.json file or a base64 json
 This base64 encoded jsong string will be required to create your secretStores
 
 ## Important note about this documentation
-_**The KepeerSecurity calls the entries in vaults 'Records'. These docs use the same term.**_
+_**The KeeperSecurity calls the entries in vaults 'Records'. These docs use the same term.**_
 
 ### Update secret store
 Be sure the `keepersecurity` provider is listed in the `Kind=SecretStore`
@@ -99,4 +99,4 @@ To create a Keeper Security record from kubernetes a `Kind=PushSecret` is needed
 
 ### Limitations
 * Only possible to push one key per secret at the moment
-* If the record with the selected name exists but the key does not exists the record can not be updated. See [Ability to add custom fields to existing secret #17](https://github.com/Keeper-Security/secrets-manager-go/issues/17)
+* If the record with the selected name exists but the key does not exist, the record cannot be updated. See [Ability to add custom fields to existing secret #17](https://github.com/Keeper-Security/secrets-manager-go/issues/17)
