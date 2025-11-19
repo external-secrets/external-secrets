@@ -161,6 +161,7 @@ func (c *client) getAuthMountPathOrDefault(path string) string {
 }
 
 func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
+	log := ctxLog(ctx)
 	// First try IRSA (Web Identity Token) - checking if controller pod's service account is IRSA enabled
 	tokenFile := os.Getenv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
 	if tokenFile != "" {
@@ -172,7 +173,7 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 	podIdentityURI := os.Getenv(vaultiamauth.AWSContainerCredentialsFullURIEnvVar)
 
 	if podIdentityURI != "" {
-		logger.V(1).Info("using Pod Identity for authentication")
+		log.V(1).Info("using Pod Identity for authentication")
 		// Return nil to let AWS SDK v2 container credential provider handle Pod Identity automatically
 		return nil, nil
 	}
