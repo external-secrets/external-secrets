@@ -84,7 +84,7 @@ rules:
     verbs:
     - "create"
   - apiGroups:
-    - "authentication.k8s.io"
+    - "authorization.k8s.io"
     resources: 
     - "subjectaccessreviews"
     verbs:
