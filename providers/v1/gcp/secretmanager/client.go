@@ -206,7 +206,6 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		Name: secretName,
 	})
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGetSecret, err)
-
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
 			return err
@@ -218,12 +217,23 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 			},
 		}
 
+		// Lables and Annotations maps to be set from metadata and passed to GCP Secret creation.
+		scrtLabels := make(map[string]string)
+		scrtAnnots := make(map[string]string)
+
 		if pushSecretData.GetMetadata() != nil {
 			replica := &secretmanagerpb.Replication_UserManaged_Replica{}
 			var err error
 			meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
 			if err != nil {
 				return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
+			}
+
+			if meta != nil && meta.Spec.Labels != nil {
+				scrtLabels = meta.Spec.Labels
+			}
+			if meta != nil && meta.Spec.Annotations != nil {
+				scrtAnnots = meta.Spec.Annotations
 			}
 			if meta != nil && meta.Spec.ReplicationLocation != "" {
 				replica.Location = meta.Spec.ReplicationLocation
@@ -243,11 +253,15 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				},
 			}
 		}
+
+		// Ensure managed-by label is always set.
+		scrtLabels[managedByKey] = managedByValue
+		scrtAnnots[managedByKey] = managedByValue
+
 		parent := getParentName(c.store.ProjectID, c.store.Location)
 		scrt := &secretmanagerpb.Secret{
-			Labels: map[string]string{
-				managedByKey: managedByValue,
-			},
+			Labels:      scrtLabels,
+			Annotations: scrtAnnots,
 		}
 		// fix: cannot set Replication at all when using regional Secrets.
 		if c.store.Location == "" {
@@ -343,7 +357,6 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		Name: fmt.Sprintf("%s/versions/latest", secretName),
 	})
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
-
 	if err != nil && status.Code(err) != codes.NotFound {
 		return err
 	}
