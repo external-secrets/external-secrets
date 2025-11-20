@@ -89,7 +89,7 @@ type AuthenticatorInput struct {
 
 // Capabilities implements v1beta1.Provider.
 func (*Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // Close implements v1beta1.SecretsClient.
@@ -121,9 +121,17 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 }
 
 // SecretExists checks if a secret exists in the provider.
-// Currently not implemented for this provider.
-func (*Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New(errNotImplemented)
+func (p *Provider) SecretExists(_ context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
+	logger := logging.NewLogrLogger(&ESOLogger)
+	secretObj, _ := secrets.NewSecretObj(p.authenticate, logger, 5000000)
+
+	_, err := secretObj.SearchSecretByTitleFlow(pushSecretRef.GetRemoteKey())
+
+	if err == nil {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // NewClient this is where we initialize the SecretClient and return it for the controller to use.

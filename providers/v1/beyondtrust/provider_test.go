@@ -56,6 +56,7 @@ const (
 	authConnectTokenPath   = "/Auth/connect/token"
 	authSignAppInPath      = "/Auth/SignAppIn"
 	secretsSafeFoldersPath = "/secrets-safe/folders/"
+	secretsSafeSecretsPath = "/secrets-safe/secrets"
 )
 
 func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
@@ -73,7 +74,7 @@ func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 				t.Error(errTestCase)
 			}
 
-		case "/secrets-safe/secrets":
+		case secretsSafeSecretsPath:
 			_, err := w.Write([]byte(`[{"SecretType": "FILE", "Password": "credential_in_sub_3_password","Id": "12345678-07d6-4955-175a-08db047219ce","Title": "credential_in_sub_3"}]`))
 			if err != nil {
 				t.Error(errTestCase)
@@ -582,6 +583,98 @@ func TestPushSecret(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestSecretExists(t *testing.T) {
+	type testCase struct {
+		name             string
+		serverHandler    http.HandlerFunc
+		expectedExisting bool
+	}
+
+	tests := []testCase{
+		{
+			name: "Secret Exists",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+				case authSignAppInPath:
+					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+				case secretsSafeSecretsPath:
+					_, _ = w.Write([]byte(`[{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}]`))
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedExisting: true,
+		},
+		{
+			name: "Secret does not Exist",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+				case authSignAppInPath:
+					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+				case secretsSafeSecretsPath:
+					http.Error(w, "secret was not found", http.StatusNotFound)
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedExisting: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeServer := httptest.NewServer(tt.serverHandler)
+			defer fakeServer.Close()
+
+			logger, _ := zap.NewDevelopment()
+			zapLogger := logging.NewZapLogger(logger)
+
+			clientTimeout := 30
+			verifyCa := true
+			retryMaxElapsedTimeMinutes := 2
+
+			backoffDefinition := backoff.NewExponentialBackOff()
+			backoffDefinition.InitialInterval = 1 * time.Second
+			backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
+			backoffDefinition.RandomizationFactor = 0.5
+
+			httpClientObj, _ := utils.GetHttpClient(clientTimeout, verifyCa, "", "", zapLogger)
+
+			params := authentication.AuthenticationParametersObj{
+				HTTPClient:                 *httpClientObj,
+				BackoffDefinition:          backoffDefinition,
+				EndpointURL:                fakeServer.URL,
+				APIVersion:                 "3.1",
+				ClientID:                   "fake_clinet_id",
+				ClientSecret:               "fake_client_secret",
+				Logger:                     zapLogger,
+				RetryMaxElapsedTimeSeconds: 30,
+			}
+
+			authObj, err := authentication.Authenticate(params)
+			require.NoError(t, err)
+
+			p := &Provider{authenticate: *authObj}
+
+			remoteRef := v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-credential",
+			}
+
+			exists, _ := p.SecretExists(context.Background(), remoteRef)
+
+			if tt.expectedExisting {
+				assert.True(t, exists)
+			} else {
+				assert.False(t, exists)
 			}
 		})
 	}
