@@ -1,6 +1,6 @@
 # Delinea Secret-Server/Platform
 
-For detailed information about configuring  Kubernetes ESO with Secret Server and the Delinea Platform, see the [integration documentation](https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm).
+For detailed information about configuring  Kubernetes ESO with Secret Server and the Delinea Platform, see the https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm
 
 ### Creating a SecretStore
 
