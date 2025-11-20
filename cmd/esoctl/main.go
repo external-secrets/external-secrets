@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	// register all providers and generators
+	// register all providers and generators.
 	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 

@@ -43,6 +43,7 @@ const (
 	formatJSON   = "json"
 	formatEnv    = "env"
 	formatDotenv = "dotenv"
+	tenMB        = 10 * 1024 * 1024
 )
 
 // loadStore loads a SecretStore or ClusterSecretStore from a YAML file.
@@ -52,7 +53,19 @@ func loadStore(file string) (esv1.GenericStore, error) {
 		return nil, fmt.Errorf("failed to read store file: %w", err)
 	}
 
+	// basic sanity checks to avoid flagging
+	if len(content) == 0 {
+		return nil, fmt.Errorf("store file is empty")
+	}
+
+	if len(content) > tenMB {
+		return nil, fmt.Errorf("store file too large")
+	}
+
 	obj := &unstructured.Unstructured{}
+	// CodeQL flags this as untrusted input, but this is a CLI tool where
+	// users have direct filesystem access. The file path is user-provided
+	// by design, and YAML parsing is the intended functionality.
 	if err := yaml.Unmarshal(content, obj); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal store: %w", err)
 	}
@@ -95,7 +108,7 @@ func getKubeClient(standalone bool, authFile string) (client.Client, error) {
 
 	cfg, err := config.GetConfig()
 	if err != nil {
-		logInfo(fetchSilent, "No kubeconfig found, using standalone mode")
+		logInfof(fetchSilent, "No kubeconfig found, using standalone mode")
 		return createStandaloneFakeClient(authFile, scheme)
 	}
 
@@ -109,7 +122,7 @@ func getKubeClient(standalone bool, authFile string) (client.Client, error) {
 
 // createStandaloneFakeClient creates a fake client pre-populated with secrets from auth sources.
 func createStandaloneFakeClient(authFile string, scheme *runtime.Scheme) (client.Client, error) {
-	var objects []client.Object
+	var objects []client.Object //nolint:prealloc // no.
 
 	if authFile != "" {
 		secrets, err := loadSecretsFromFile(authFile)
@@ -195,8 +208,6 @@ func loadSecretsFromFile(file string) ([]corev1.Secret, error) {
 
 // createSecretsFromEnvironment creates virtual secrets from environment variables.
 func createSecretsFromEnvironment() []corev1.Secret {
-	var secrets []corev1.Secret
-
 	// absolute hackerman hackery.
 	envSecrets := map[string]map[string]string{
 		"vault-token": {
@@ -223,6 +234,7 @@ func createSecretsFromEnvironment() []corev1.Secret {
 		},
 	}
 
+	var secrets []corev1.Secret //nolint:prealloc // it's dynamic, it wouldn't be accurate to preallocate it.
 	for secretName, data := range envSecrets {
 		secretData := make(map[string][]byte)
 		hasData := false
@@ -251,33 +263,35 @@ func createSecretsFromEnvironment() []corev1.Secret {
 	// ESO_SECRET_<NAME>_<KEY> pattern
 	secretsMap := make(map[types.NamespacedName]map[string][]byte)
 	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, "ESO_SECRET_") {
-			parts := strings.SplitN(env, "=", 2)
-			if len(parts) != 2 {
-				continue
-			}
-			key := parts[0]
-			value := parts[1]
-
-			key = strings.TrimPrefix(key, "ESO_SECRET_")
-			keyParts := strings.Split(key, "_")
-			if len(keyParts) < 2 {
-				continue
-			}
-
-			secretName := strings.ToLower(strings.Join(keyParts[:len(keyParts)-1], "-"))
-			dataKey := strings.ToLower(keyParts[len(keyParts)-1])
-
-			nsName := types.NamespacedName{
-				Namespace: "default",
-				Name:      secretName,
-			}
-
-			if secretsMap[nsName] == nil {
-				secretsMap[nsName] = make(map[string][]byte)
-			}
-			secretsMap[nsName][dataKey] = []byte(value)
+		if !strings.HasPrefix(env, "ESO_SECRET_") {
+			continue
 		}
+
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := parts[0]
+		value := parts[1]
+
+		key = strings.TrimPrefix(key, "ESO_SECRET_")
+		keyParts := strings.Split(key, "_")
+		if len(keyParts) < 2 {
+			continue
+		}
+
+		secretName := strings.ToLower(strings.Join(keyParts[:len(keyParts)-1], "-"))
+		dataKey := strings.ToLower(keyParts[len(keyParts)-1])
+
+		nsName := types.NamespacedName{
+			Namespace: "default",
+			Name:      secretName,
+		}
+
+		if secretsMap[nsName] == nil {
+			secretsMap[nsName] = make(map[string][]byte)
+		}
+		secretsMap[nsName][dataKey] = []byte(value)
 	}
 
 	for nsName, data := range secretsMap {
@@ -374,7 +388,7 @@ func formatAsEnv(data map[string][]byte, useExport bool) string {
 		value = strings.ReplaceAll(value, "\"", "\\\"")
 
 		if useExport {
-			lines = append(lines, fmt.Sprintf("export %s=\"%s\"", key, value))
+			lines = append(lines, fmt.Sprintf("export %s=%q", key, value))
 		} else {
 			lines = append(lines, fmt.Sprintf("%s=%s", key, value))
 		}
@@ -385,8 +399,6 @@ func formatAsEnv(data map[string][]byte, useExport bool) string {
 
 // formatAsText formats secrets as key=value pairs (plain text).
 func formatAsText(data map[string][]byte) string {
-	var lines []string
-
 	// sorting for deterministic output
 	keys := make([]string, 0, len(data))
 	for k := range data {
@@ -394,6 +406,7 @@ func formatAsText(data map[string][]byte) string {
 	}
 	sort.Strings(keys)
 
+	lines := make([]string, 0, len(keys))
 	for _, k := range keys {
 		lines = append(lines, fmt.Sprintf("%s: %s", k, string(data[k])))
 	}
@@ -409,13 +422,14 @@ func writeOutput(output, outFile string) error {
 		}
 		_, _ = fmt.Fprintf(os.Stderr, "Output written to: %s\n", outFile)
 	} else {
+		// CodeQL flags this as clear text logging of sensitive information. Well. Yes. That's the purpose.
 		fmt.Println(output)
 	}
 	return nil
 }
 
-// logInfo prints info messages to stderr (so they don't interfere with output).
-func logInfo(silent bool, format string, args ...interface{}) {
+// logInfof prints info messages to stderr (so they don't interfere with output).
+func logInfof(silent bool, format string, args ...interface{}) {
 	if silent {
 		return
 	}

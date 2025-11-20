@@ -89,14 +89,14 @@ Examples:
 func fetchRun(_ *cobra.Command, _ []string) error {
 	ctx := context.Background()
 
-	logInfo(fetchSilent, "Loading store from: %s", fetchStoreFile)
+	logInfof(fetchSilent, "Loading store from: %s", fetchStoreFile)
 
 	store, err := loadStore(fetchStoreFile)
 	if err != nil {
 		return err
 	}
 
-	logInfo(fetchSilent, "Store loaded: %s/%s (kind: %s)", store.GetNamespace(), store.GetName(), store.GetObjectKind().GroupVersionKind().Kind)
+	logInfof(fetchSilent, "Store loaded: %s/%s (kind: %s)", store.GetNamespace(), store.GetName(), store.GetObjectKind().GroupVersionKind().Kind)
 
 	client, err := getSecretsClient(ctx, store, fetchNamespace, fetchStandalone, fetchAuthFile)
 	if err != nil {
@@ -106,7 +106,7 @@ func fetchRun(_ *cobra.Command, _ []string) error {
 		_ = client.Close(ctx)
 	}()
 
-	logInfo(fetchSilent, "Fetching secret with key: %s", fetchKey)
+	logInfof(fetchSilent, "Fetching secret with key: %s", fetchKey)
 
 	remoteRef := esv1.ExternalSecretDataRemoteRef{
 		Key:      fetchKey,
@@ -136,7 +136,7 @@ func fetchRun(_ *cobra.Command, _ []string) error {
 			return fmt.Errorf("failed to fetch secret map: %w", err)
 		}
 		if len(secretData) == 0 {
-			logInfo(fetchSilent, "No secrets found at key: %s", fetchKey)
+			logInfof(fetchSilent, "No secrets found at key: %s", fetchKey)
 
 			return nil
 		}
