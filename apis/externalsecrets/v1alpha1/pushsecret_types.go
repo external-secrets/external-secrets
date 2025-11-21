@@ -48,8 +48,11 @@ type PushSecretStoreRef struct {
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// +optional
 	// +kubebuilder:default="SecretStore"
-	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore
 	Kind string `json:"kind,omitempty"`
+
+	// Group of the SecretStore resource (SecretStore or ClusterSecretStore, or any Target)
+	// +optional
+	Group string `json:"group,omitempty"`
 }
 
 // PushSecretUpdatePolicy defines how push secrets are updated in the provider.

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -55,12 +56,28 @@ func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _
 	return nil
 }
 
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (g *Generator) GetCleanupPolicy(obj *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return nil, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (g *Generator) LastActivityTime(ctx context.Context, obj *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, kube client.Client, namespace string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+// GetKeys returns the keys for the generator.
+func (g *Generator) GetKeys() map[string]string {
+	return map[string]string{
+		"<key>": "User-defined key as configured in Spec.Data",
+	}
+}
+
 func parseSpec(data []byte) (*genv1alpha1.Fake, error) {
 	var spec genv1alpha1.Fake
 	err := json.Unmarshal(data, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

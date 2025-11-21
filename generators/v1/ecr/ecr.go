@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
@@ -64,6 +65,26 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 // Cleanup performs any necessary cleanup after token generation.
 func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
+}
+
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (g *Generator) GetCleanupPolicy(_ *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return nil, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (g *Generator) LastActivityTime(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+// GetKeys returns the keys for the generator.
+func (g *Generator) GetKeys() map[string]string {
+	return map[string]string{
+		"username":       "AWS ECR default username",
+		"password":       "AWS ECR authorization token (base64-encoded)",
+		"proxy_endpoint": "Authorization proxy endpoint for private scopes",
+		"expires_at":     "Expiration timestamp of the token (Unix epoch seconds)",
+	}
 }
 
 func (g *Generator) generate(

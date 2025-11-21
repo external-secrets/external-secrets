@@ -41,7 +41,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakesm "github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager/fake"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 

@@ -120,6 +120,8 @@ type VaultClientTLS struct {
 // VaultAuth is the configuration used to authenticate with a Vault server.
 // Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt`, `cert`, `iam` or `gcp`
 // can be specified. A namespace to authenticate against can optionally be specified.
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type VaultAuth struct {
 	// Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
 	// Namespaces is a set of features within Vault Enterprise that allows

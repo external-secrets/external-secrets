@@ -24,3 +24,5 @@ spec:
   registry: string
   scope: string
   tenantId: string
+status:
+  output: 

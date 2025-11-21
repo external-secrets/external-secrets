@@ -76,7 +76,7 @@ func newStaticStoreProvider(serviceType esv1.AWSServiceType, region, secretName,
 			Role:        role,
 			ExternalID:  externalID,
 			SessionTags: sessionTags,
-			Auth: esv1.AWSAuth{
+			Auth: &esv1.AWSAuth{
 				SecretRef: &esv1.AWSAuthSecretRef{
 					AccessKeyID: esmetav1.SecretKeySelector{
 						Name: secretName,

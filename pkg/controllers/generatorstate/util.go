@@ -61,6 +61,13 @@ func SetGeneratorStateCondition(gs *genv1alpha1.GeneratorState, condition genv1a
 	gs.Status.Conditions = append(filterOutCondition(gs.Status.Conditions, condition.Type), condition)
 }
 
+// SetLastGeneratorStateCondition updates the GeneratorState to include the provided condition.
+func SetLastGeneratorStateCondition(gs *genv1alpha1.GeneratorState, condition genv1alpha1.GeneratorStateStatusCondition) {
+	gs.Status.LastType = condition.Type
+	gs.Status.LastReason = condition.Reason
+	gs.Status.LastMessage = condition.Message
+}
+
 // filterOutCondition returns an empty set of conditions with the provided type.
 func filterOutCondition(conditions []genv1alpha1.GeneratorStateStatusCondition, condType genv1alpha1.GeneratorStateConditionType) []genv1alpha1.GeneratorStateStatusCondition {
 	newConditions := make([]genv1alpha1.GeneratorStateStatusCondition, 0, len(conditions))

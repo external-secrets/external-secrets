@@ -326,23 +326,26 @@ func TestGetSecret(t *testing.T) {
 }
 
 type setSecretTestCase struct {
-	name       string
-	input      []esv1.FakeProviderData
-	requestKey string
-	expValue   string
-	expErr     string
+	name         string
+	input        []esv1.FakeProviderData
+	secretKey    string
+	requestKey   string
+	expSecretKey string
+	expValue     string
+	expErr       string
 }
 
 func TestSetSecret(t *testing.T) {
 	gomega.RegisterTestingT(t)
 	p := &Provider{}
-	secretKey := "secret-key"
 	tbl := []setSecretTestCase{
 		{
-			name:       "return nil if no existing secret",
-			input:      []esv1.FakeProviderData{},
-			requestKey: "/foo",
-			expValue:   "my-secret-value",
+			name:         "return nil if no existing secret",
+			input:        []esv1.FakeProviderData{},
+			secretKey:    "secret-key",
+			requestKey:   "/foo",
+			expSecretKey: "secret-key",
+			expValue:     "my-secret-value",
 		},
 		{
 			name: "return err if existing secret",
@@ -352,8 +355,18 @@ func TestSetSecret(t *testing.T) {
 					Value: "bar2",
 				},
 			},
-			requestKey: "/foo",
-			expErr:     errors.New("key already exists").Error(),
+			secretKey:    "secret-key",
+			requestKey:   "/foo",
+			expSecretKey: "secret-key",
+			expErr:       errors.New("key already exists").Error(),
+		},
+		{
+			name:         "push with empty secret key",
+			input:        []esv1.FakeProviderData{},
+			secretKey:    "",
+			requestKey:   "/foo",
+			expSecretKey: "secret-key",
+			expValue:     "my-secret-value",
 		},
 	}
 
@@ -374,11 +387,11 @@ func TestSetSecret(t *testing.T) {
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			secret := &corev1.Secret{
 				Data: map[string][]byte{
-					secretKey: []byte(row.expValue),
+					row.expSecretKey: []byte(row.expValue),
 				},
 			}
 			err = cl.PushSecret(context.TODO(), secret, testingfake.PushSecretData{
-				SecretKey: secretKey,
+				SecretKey: row.secretKey,
 				RemoteKey: row.requestKey,
 			})
 			if row.expErr != "" {
@@ -388,8 +401,14 @@ func TestSetSecret(t *testing.T) {
 				out, err := cl.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
 					Key: row.requestKey,
 				})
+
+				expValue := row.expValue
+				if row.secretKey == "" {
+					expValue = fmt.Sprintf("{%q:%q}", row.expSecretKey, row.expValue)
+				}
+
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(string(out)).To(gomega.Equal(row.expValue))
+				gomega.Expect(string(out)).To(gomega.Equal(expValue))
 			}
 		})
 	}

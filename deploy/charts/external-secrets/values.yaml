@@ -14,6 +14,17 @@ global:
 
 replicaCount: 1
 
+# -- Experimental features available on ESO for early adopters to try
+experimental:
+  # -- Experimental Features for Workflows
+  workflows:
+    # -- Enable Workflows experimental feature
+    enabled: false
+  # -- Experimental Features for Scans
+  scan:
+    # -- Enable Scans experimental feature
+    enabled: false
+
 bitwarden-sdk-server:
   enabled: false
   namespaceOverride: ""
@@ -367,6 +378,20 @@ webhook:
   # -- Specifies the lookaheadInterval for certificate validity
   lookaheadInterval: ""
   replicaCount: 1
+  # -- specifies rbac for webhook
+
+  # -- Experimental features available on ESO webhooks for early adopters to try
+  experimental:
+    # -- Experimental Features for Workflows
+    workflows:
+      # -- Enable Workflows experimental feature
+      enabled: false
+    # -- Experimental Features for Scans
+    scan:
+      # -- Enable Scans experimental feature
+      enabled: false
+  rbac:
+    create: true
   # -- Specifies Log Params to the Webhook
   log:
     level: info

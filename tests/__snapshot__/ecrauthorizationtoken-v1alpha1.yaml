@@ -24,3 +24,5 @@ spec:
   region: string
   role: string
   scope: string
+status:
+  output: 

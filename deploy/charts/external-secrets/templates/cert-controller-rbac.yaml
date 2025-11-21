@@ -31,6 +31,10 @@ rules:
     resourceNames:
     - "secretstore-validate"
     - "externalsecret-validate"
+    {{- if .Values.webhook.experimental.workflows.enabled }}
+    - "workflowrun-validate"
+    - "workflowruntemplate-validate"
+    {{- end }}
     verbs:
     - "update"
     - "patch"

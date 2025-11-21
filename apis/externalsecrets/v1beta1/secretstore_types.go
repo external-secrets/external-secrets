@@ -83,6 +83,9 @@ type SecretStoreProvider struct {
 	// +optional
 	BitwardenSecretsManager *BitwardenSecretsManagerProvider `json:"bitwardensecretsmanager,omitempty"`
 
+	// ExternalSecrets configures the store to sync secrets using ExternalSecrets Enterprise Server
+	// +optional
+	ExternalSecrets *ExternalSecretsProvider `json:"externalsecrets,omitempty"`
 	// Vault configures this store to sync secrets using Hashi provider
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`

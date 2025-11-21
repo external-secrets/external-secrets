@@ -48,7 +48,8 @@ type CloudsmithAccessToken struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec CloudsmithAccessTokenSpec `json:"spec,omitempty"`
+	Spec   CloudsmithAccessTokenSpec `json:"spec,omitempty"`
+	Status GeneratorStatus           `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

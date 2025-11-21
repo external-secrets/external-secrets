@@ -64,6 +64,12 @@ spec:
           {{- if .Values.scopedNamespace }}
           - --namespace={{ .Values.scopedNamespace }}
           {{- end }}
+          {{- if .Values.experimental.scan.enabled }}
+          - --experimental-enable-scan-reconciler=true
+          {{- end }}
+          {{- if .Values.experimental.workflows.enabled }}
+          - --experimental-enable-workflows-reconciler=true
+          {{- end }}
           {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
           - --enable-cluster-store-reconciler=false
           - --enable-cluster-external-secret-reconciler=false

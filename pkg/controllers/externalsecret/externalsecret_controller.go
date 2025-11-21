@@ -58,7 +58,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 
-	// Loading registered generators.
+	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 

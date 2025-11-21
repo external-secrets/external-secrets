@@ -242,6 +242,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podSecurityContext.enabled | bool | `true` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
+| webhook.rbac | object | `{"create":true}` | specifies rbac for webhook |
 | webhook.readinessProbe.address | string | `""` | Address for readiness probe |
 | webhook.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
 | webhook.replicaCount | int | `1` |  |

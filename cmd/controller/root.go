@@ -38,6 +38,10 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	scanv1alpha1 "github.com/external-secrets/external-secrets/apis/scan/v1alpha1"
+	tgtv1alpha1 "github.com/external-secrets/external-secrets/apis/targets/v1alpha1"
+	wfv1alpha1 "github.com/external-secrets/external-secrets/apis/workflows/v1alpha1"
+	"github.com/external-secrets/external-secrets/generators/v1/postgresql"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret"
@@ -45,14 +49,23 @@ import (
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/generator"
 	"github.com/external-secrets/external-secrets/pkg/controllers/generatorstate"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
+	scanconsumer "github.com/external-secrets/external-secrets/pkg/controllers/scan/consumer"
+	scanjob "github.com/external-secrets/external-secrets/pkg/controllers/scan/jobs"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/target"
+	"github.com/external-secrets/external-secrets/pkg/controllers/target/tmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/workflow"
+	workflowapi "github.com/external-secrets/external-secrets/pkg/controllers/workflow/api"
+	workflowcommon "github.com/external-secrets/external-secrets/pkg/controllers/workflow/common"
 	"github.com/external-secrets/external-secrets/runtime/feature"
+	"github.com/external-secrets/external-secrets/runtime/scheduler"
 
 	// To allow using gcp auth.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -71,11 +84,13 @@ var (
 	metricsKeyName                        string
 	healthzAddr                           string
 	controllerClass                       string
+	workflowAPIPort                       string
 	enableLeaderElection                  bool
 	enableSecretsCache                    bool
 	enableConfigMapsCache                 bool
 	enableManagedSecretsCache             bool
 	enablePartialCache                    bool
+	enableWorkflowAPI                     bool
 	concurrent                            int
 	port                                  int
 	clientQPS                             float32
@@ -99,8 +114,11 @@ var (
 	certLookaheadInterval                 time.Duration
 	tlsCiphers                            string
 	tlsMinVersion                         string
+	sensitivePatterns                     []string
 	enableHTTP2                           bool
 	allowGenericTargets                   bool
+	experimentalScanEnabled               bool
+	experimentalWorkflowsEnabled          bool
 )
 
 const (
@@ -116,6 +134,11 @@ func init() {
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(genv1alpha1.AddToScheme(scheme))
+
+	// external-secrets-enterprise schemes
+	utilruntime.Must(scanv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(tgtv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(wfv1alpha1.AddToScheme(scheme))
 }
 
 var rootCmd = &cobra.Command{
@@ -124,6 +147,11 @@ var rootCmd = &cobra.Command{
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		setupLogger()
+
+		// Configure workflow sensitive patterns
+		if len(sensitivePatterns) > 0 {
+			workflowcommon.SetSensitivePatterns(sensitivePatterns)
+		}
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
@@ -229,6 +257,26 @@ var rootCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+		if experimentalScanEnabled {
+			tmetrics.SetUpMetrics()
+			allTargets := tgtv1alpha1.GetAllTargets()
+			for kind, genericStore := range allTargets {
+				if err = (&target.Reconciler{
+					Client:          mgr.GetClient(),
+					Log:             ctrl.Log.WithName("controllers").WithName("Target"),
+					Scheme:          mgr.GetScheme(),
+					ControllerClass: controllerClass,
+					RequeueInterval: storeRequeueInterval,
+					Kind:            kind,
+				}).SetupWithManager(mgr, genericStore, controller.Options{
+					MaxConcurrentReconciles: concurrent,
+					RateLimiter:             ctrlcommon.BuildRateLimiter(),
+				}); err != nil {
+					setupLog.Error(err, errCreateController, "controller", "Target")
+					os.Exit(1)
+				}
+			}
+		}
 		if err = (&generatorstate.Reconciler{
 			Client:     mgr.GetClient(),
 			Log:        ctrl.Log.WithName("controllers").WithName("GeneratorState"),
@@ -241,7 +289,25 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, errCreateController, "controller", "GeneratorState")
 			os.Exit(1)
 		}
-		if err = (&externalsecret.Reconciler{
+
+		allGenericGenerators := genv1alpha1.GetAllGeneric()
+
+		for kind, genericGenerator := range allGenericGenerators {
+			if err = (&generator.Reconciler{
+				Client:     mgr.GetClient(),
+				Log:        ctrl.Log.WithName("controllers").WithName("Generator"),
+				Scheme:     mgr.GetScheme(),
+				RestConfig: mgr.GetConfig(),
+				Kind:       kind,
+			}).SetupWithManager(mgr, genericGenerator, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
+			}); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "Generator")
+				os.Exit(1)
+			}
+		}
+		externalSecretReconciler := &externalsecret.Reconciler{
 			Client:                    mgr.GetClient(),
 			SecretClient:              secretClient,
 			Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
@@ -253,7 +319,8 @@ var rootCmd = &cobra.Command{
 			EnableFloodGate:           enableFloodGate,
 			EnableGeneratorState:      enableGeneratorState,
 			AllowGenericTargets:       allowGenericTargets,
-		}).SetupWithManager(cmd.Context(), mgr, controller.Options{
+		}
+		if err = externalSecretReconciler.SetupWithManager(cmd.Context(), mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
@@ -277,6 +344,65 @@ var rootCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+		if experimentalWorkflowsEnabled {
+			if err = (&workflow.Reconciler{
+				Client:   mgr.GetClient(),
+				Log:      ctrl.Log.WithName("controllers").WithName("Workflow"),
+				Scheme:   mgr.GetScheme(),
+				Recorder: mgr.GetEventRecorderFor("workflow-controller"),
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "Workflow")
+				os.Exit(1)
+			}
+
+			if err = (&workflow.TemplateReconciler{
+				Client:   mgr.GetClient(),
+				Log:      ctrl.Log.WithName("controllers").WithName("WorkflowTemplate"),
+				Scheme:   mgr.GetScheme(),
+				Recorder: mgr.GetEventRecorderFor("workflowtemplate-controller"),
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "WorkflowTemplate")
+				os.Exit(1)
+			}
+
+			if err = (&workflow.RunReconciler{
+				Client:   mgr.GetClient(),
+				Log:      ctrl.Log.WithName("controllers").WithName("WorkflowRun"),
+				Scheme:   mgr.GetScheme(),
+				Recorder: mgr.GetEventRecorderFor("workflowrun-controller"),
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "WorkflowRun")
+				os.Exit(1)
+			}
+			if err = (&workflow.RunTemplateReconciler{
+				Client:   mgr.GetClient(),
+				Log:      ctrl.Log.WithName("controllers").WithName("WorkflowRunTemplate"),
+				Scheme:   mgr.GetScheme(),
+				Recorder: mgr.GetEventRecorderFor("workflowruntemplate-controller"),
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "WorkflowRunTemplate")
+				os.Exit(1)
+			}
+
+		}
+		if experimentalScanEnabled {
+			if err = (&scanjob.JobController{
+				Client: mgr.GetClient(),
+				Log:    ctrl.Log.WithName("controllers").WithName("Job"),
+				Scheme: mgr.GetScheme(),
+			}).SetupWithManager(mgr, controller.Options{}); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "Job")
+				os.Exit(1)
+			}
+			if err = (&scanconsumer.Controller{
+				Client: mgr.GetClient(),
+				Log:    ctrl.Log.WithName("controllers").WithName("Consumer"),
+				Scheme: mgr.GetScheme(),
+			}).SetupWithManager(mgr, controller.Options{}); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "Consumer")
+				os.Exit(1)
+			}
+		}
 		if enableClusterExternalSecretReconciler {
 			cesmetrics.SetUpMetrics()
 
@@ -294,6 +420,29 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		sched := scheduler.New(mgr.GetClient(), ctrl.Log.WithName("scheduler"))
+		if err := mgr.Add(sched); err != nil {
+			setupLog.Error(err, "unable to add scheduler")
+			os.Exit(1)
+		}
+		scheduler.SetGlobal(sched)
+
+		pgBootstrap := postgresql.NewBootstrap(mgr.GetClient(), mgr)
+		if err := mgr.Add(pgBootstrap); err != nil {
+			setupLog.Error(err, "unable to add postgresql bootstrap")
+			os.Exit(1)
+		}
+		// Start the workflow API server if enabled
+		if enableWorkflowAPI {
+			apiServer := workflowapi.NewServer(mgr.GetClient(), ctrl.Log.WithName("api").WithName("Workflow"))
+			go func() {
+				setupLog.Info("starting workflow API server", "port", workflowAPIPort)
+				if err := apiServer.Start(workflowAPIPort); err != nil {
+					setupLog.Error(err, "unable to start workflow API server")
+					os.Exit(1)
+				}
+			}()
+		}
 		if enableClusterPushSecretReconciler {
 			cpsmetrics.SetUpMetrics()
 
@@ -351,6 +500,8 @@ func init() {
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")
 	rootCmd.Flags().StringVar(&liveAddr, "live-addr", ":8082", "The address the live endpoint binds to.")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
+	rootCmd.Flags().StringVar(&workflowAPIPort, "workflow-api-port", ":8080", "workflow API server port")
+	rootCmd.Flags().BoolVar(&enableWorkflowAPI, "enable-workflow-api", false, "Enable workflow API server")
 	rootCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
 	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
@@ -364,9 +515,12 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableGeneratorState, "enable-generator-state", true, "Whether the Controller should manage GeneratorState")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
+	rootCmd.Flags().StringSliceVar(&sensitivePatterns, "workflow-sensitive-patterns", []string{}, "Comma-separated list of regular expressions to match sensitive data in workflow outputs")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
 	rootCmd.Flags().BoolVar(&allowGenericTargets, "unsafe-allow-generic-targets", false, "Enable support for creating generic resources (ConfigMaps, Custom Resources). WARNING: Using generic resources, please sure all policies are correctly configured.")
+	rootCmd.Flags().BoolVar(&experimentalScanEnabled, "experimental-scan-enabled", false, "Enable experimental scan controller.")
+	rootCmd.Flags().BoolVar(&experimentalWorkflowsEnabled, "experimental-workflows-enabled", false, "Enable experimental workflows controller.")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)

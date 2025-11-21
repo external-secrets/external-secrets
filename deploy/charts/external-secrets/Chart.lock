@@ -3,4 +3,4 @@ dependencies:
   repository: oci://ghcr.io/external-secrets/charts
   version: v0.5.1
 digest: sha256:04be6ffa8a097670c52868f5fe98a11841116b7f484501cae98276215294ba50
-generated: "2025-07-18T07:31:51.336505+02:00"
+generated: "2025-11-20T12:53:25.345082916-03:00"

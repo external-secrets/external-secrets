@@ -143,6 +143,8 @@ should match snapshot of default values:
                               type: string
                             authSecretRef:
                               description: Auth configures how the operator authenticates with Akeyless.
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 kubernetesAuth:
                                   description: |-
@@ -346,9 +348,6 @@ should match snapshot of default values:
                                     - Secret
                                     - ConfigMap
                                   type: string
-                              required:
-                                - name
-                                - type
                               type: object
                           required:
                             - akeylessGWApiURL
@@ -359,6 +358,8 @@ should match snapshot of default values:
                           properties:
                             auth:
                               description: AlibabaAuth contains a secretRef for credentials.
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 rrsa:
                                   description: Authenticate against Alibaba using RRSA.
@@ -457,6 +458,8 @@ should match snapshot of default values:
                                 Auth defines the information necessary to authenticate against AWS
                                 if not set aws sdk will infer credentials from your environment
                                 see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 jwt:
                                   description: Authenticate against AWS using service account tokens.
@@ -1128,9 +1131,6 @@ should match snapshot of default values:
                                     - Secret
                                     - ConfigMap
                                   type: string
-                              required:
-                                - name
-                                - type
                               type: object
                             identityURL:
                               type: string
@@ -1274,6 +1274,8 @@ should match snapshot of default values:
                           properties:
                             auth:
                               description: Defines authentication settings for connecting to Conjur.
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 apikey:
                                   description: Authenticates with Conjur using an API key.
@@ -1454,9 +1456,6 @@ should match snapshot of default values:
                                     - Secret
                                     - ConfigMap
                                   type: string
-                              required:
-                                - name
-                                - type
                               type: object
                             url:
                               description: URL is the endpoint of the Conjur instance.
@@ -1670,6 +1669,190 @@ should match snapshot of default values:
                           required:
                             - auth
                           type: object
+                        externalsecrets:
+                          description: ExternalSecrets configures this store to sync secrets using the ExternalSecrets provider
+                          properties:
+                            auth:
+                              description: Authentication parameters for External Secrets Enterprise
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                kubernetes:
+                                  properties:
+                                    caCertRef:
+                                      properties:
+                                        bundle:
+                                          format: byte
+                                          type: string
+                                        configMapRef:
+                                          description: |-
+                                            A reference to a specific 'key' within a Secret resource.
+                                            In some instances, `key` is a required field.
+                                          properties:
+                                            key:
+                                              description: |-
+                                                A key in the referenced Secret.
+                                                Some instances of this field may be defaulted, in others it may be required.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[-._a-zA-Z0-9]+$
+                                              type: string
+                                            name:
+                                              description: The name of the Secret resource being referred to.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                              type: string
+                                            namespace:
+                                              description: |-
+                                                The namespace of the Secret resource being referred to.
+                                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                              maxLength: 63
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                              type: string
+                                          type: object
+                                        secretRef:
+                                          description: |-
+                                            A reference to a specific 'key' within a Secret resource.
+                                            In some instances, `key` is a required field.
+                                          properties:
+                                            key:
+                                              description: |-
+                                                A key in the referenced Secret.
+                                                Some instances of this field may be defaulted, in others it may be required.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[-._a-zA-Z0-9]+$
+                                              type: string
+                                            name:
+                                              description: The name of the Secret resource being referred to.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                              type: string
+                                            namespace:
+                                              description: |-
+                                                The namespace of the Secret resource being referred to.
+                                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                              maxLength: 63
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                              type: string
+                                          type: object
+                                      type: object
+                                    serviceAccountRef:
+                                      description: A reference to a ServiceAccount resource.
+                                      properties:
+                                        audiences:
+                                          description: |-
+                                            Audience specifies the `aud` claim for the service account token
+                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                            then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  type: object
+                              type: object
+                            server:
+                              description: URL For the External Secrets Enterprise Server.
+                              properties:
+                                caRef:
+                                  properties:
+                                    bundle:
+                                      format: byte
+                                      type: string
+                                    configMapRef:
+                                      description: |-
+                                        A reference to a specific 'key' within a Secret resource.
+                                        In some instances, `key` is a required field.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    secretRef:
+                                      description: |-
+                                        A reference to a specific 'key' within a Secret resource.
+                                        In some instances, `key` is a required field.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  type: object
+                                url:
+                                  description: URL For the External Secrets Enterprise Server.
+                                  type: string
+                              type: object
+                            target:
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                clusterSecretStoreName:
+                                  description: Remote clusterSecretStore to connect. Eventually, support more fields
+                                  type: string
+                              type: object
+                          required:
+                            - auth
+                            - server
+                            - target
+                          type: object
                         fake:
                           description: Fake configures a store with static key/value pairs
                           properties:
@@ -1734,6 +1917,8 @@ should match snapshot of default values:
                           properties:
                             auth:
                               description: Auth defines the information necessary to authenticate against GCP
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 secretRef:
                                   properties:
@@ -2084,9 +2269,6 @@ should match snapshot of default values:
                                     - Secret
                                     - ConfigMap
                                   type: string
-                              required:
-                                - name
-                                - type
                               type: object
                             environment:
                               description: Environment environment_scope of gitlab CI/CD variables (Please see https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment on how to create environments)
@@ -2171,6 +2353,8 @@ should match snapshot of default values:
                           properties:
                             auth:
                               description: Auth configures how the Operator authenticates with the Infisical API
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 awsAuthCredentials:
                                   properties:
@@ -3145,9 +3329,6 @@ should match snapshot of default values:
                                         - Secret
                                         - ConfigMap
                                       type: string
-                                  required:
-                                    - name
-                                    - type
                                   type: object
                                 url:
                                   default: kubernetes.default
@@ -3546,6 +3727,8 @@ should match snapshot of default values:
                           properties:
                             auth:
                               description: Auth defines the information necessary to authenticate against Passbolt Server
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 passwordSecretRef:
                                   description: |-
@@ -3993,6 +4176,8 @@ should match snapshot of default values:
                           properties:
                             auth:
                               description: Auth configures how secret-manager authenticates with the Vault server.
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 appRole:
                                   description: |-
@@ -4524,6 +4709,8 @@ should match snapshot of default values:
                                     Vault environments to support Secure Multi-tenancy. e.g: "ns1".
                                     More about namespaces can be found here https://www.vaultproject.io/docs/enterprise/namespaces
                                     This will default to Vault.Namespace field if set, or empty otherwise
+                                    Deprecated.
+                                    Set this on each auth block instead
                                   type: string
                                 tokenSecretRef:
                                   description: TokenSecretRef authenticates with Vault by presenting a token.
@@ -4636,9 +4823,30 @@ should match snapshot of default values:
                                     - Secret
                                     - ConfigMap
                                   type: string
-                              required:
-                                - name
-                                - type
+                              type: object
+                            checkAndSet:
+                              description: |-
+                                CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+                                Only applies to Vault KV v2 stores. When enabled, write operations must include
+                                the current version of the secret to prevent unintentional overwrites.
+                              properties:
+                                required:
+                                  description: |-
+                                    Required when true, all write operations must include a check-and-set parameter.
+                                    This helps prevent unintentional overwrites of secrets.
+                                  type: boolean
+                              type: object
+                            checkAndSet:
+                              description: |-
+                                CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+                                Only applies to Vault KV v2 stores. When enabled, write operations must include
+                                the current version of the secret to prevent unintentional overwrites.
+                              properties:
+                                required:
+                                  description: |-
+                                    Required when true, all write operations must include a check-and-set parameter.
+                                    This helps prevent unintentional overwrites of secrets.
+                                  type: boolean
                               type: object
                             checkAndSet:
                               description: |-
@@ -6889,6 +7097,190 @@ should match snapshot of default values:
                               type: string
                           required:
                             - auth
+                          type: object
+                        externalsecrets:
+                          description: ExternalSecrets configures the store to sync secrets using ExternalSecrets Enterprise Server
+                          properties:
+                            auth:
+                              description: Authentication parameters for External Secrets Enterprise
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                kubernetes:
+                                  properties:
+                                    caCertRef:
+                                      properties:
+                                        bundle:
+                                          format: byte
+                                          type: string
+                                        configMapRef:
+                                          description: |-
+                                            A reference to a specific 'key' within a Secret resource.
+                                            In some instances, `key` is a required field.
+                                          properties:
+                                            key:
+                                              description: |-
+                                                A key in the referenced Secret.
+                                                Some instances of this field may be defaulted, in others it may be required.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[-._a-zA-Z0-9]+$
+                                              type: string
+                                            name:
+                                              description: The name of the Secret resource being referred to.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                              type: string
+                                            namespace:
+                                              description: |-
+                                                The namespace of the Secret resource being referred to.
+                                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                              maxLength: 63
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                              type: string
+                                          type: object
+                                        secretRef:
+                                          description: |-
+                                            A reference to a specific 'key' within a Secret resource.
+                                            In some instances, `key` is a required field.
+                                          properties:
+                                            key:
+                                              description: |-
+                                                A key in the referenced Secret.
+                                                Some instances of this field may be defaulted, in others it may be required.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[-._a-zA-Z0-9]+$
+                                              type: string
+                                            name:
+                                              description: The name of the Secret resource being referred to.
+                                              maxLength: 253
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                              type: string
+                                            namespace:
+                                              description: |-
+                                                The namespace of the Secret resource being referred to.
+                                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                              maxLength: 63
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                              type: string
+                                          type: object
+                                      type: object
+                                    serviceAccountRef:
+                                      description: A reference to a ServiceAccount resource.
+                                      properties:
+                                        audiences:
+                                          description: |-
+                                            Audience specifies the `aud` claim for the service account token
+                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                            then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  type: object
+                              type: object
+                            server:
+                              description: URL For the External Secrets Enterprise Server.
+                              properties:
+                                caRef:
+                                  properties:
+                                    bundle:
+                                      format: byte
+                                      type: string
+                                    configMapRef:
+                                      description: |-
+                                        A reference to a specific 'key' within a Secret resource.
+                                        In some instances, `key` is a required field.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    secretRef:
+                                      description: |-
+                                        A reference to a specific 'key' within a Secret resource.
+                                        In some instances, `key` is a required field.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  type: object
+                                url:
+                                  description: URL For the External Secrets Enterprise Server.
+                                  type: string
+                              type: object
+                            target:
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                clusterSecretStoreName:
+                                  description: Remote clusterSecretStore to connect. Eventually, support more fields
+                                  type: string
+                              type: object
+                          required:
+                            - auth
+                            - server
+                            - target
                           type: object
                         fake:
                           description: Fake configures a store with static key/value pairs

@@ -40,11 +40,13 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+
+	tgtv1alpha1 "github.com/external-secrets/external-secrets/apis/targets/v1alpha1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
-	"github.com/external-secrets/external-secrets/pkg/controllers/util"
+	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
+
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/statemanager"
@@ -394,7 +396,7 @@ func (r *Reconciler) DeleteSecretFromStore(ctx context.Context, client esv1.Secr
 func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi.PushSecretStoreRef]esv1.GenericStore, ps esapi.PushSecret, secret *v1.Secret, mgr *secretstore.Manager) (esapi.SyncedPushSecretsMap, error) {
 	out := make(esapi.SyncedPushSecretsMap)
 	for ref, store := range stores {
-		out, err := r.handlePushSecretDataForStore(ctx, ps, secret, out, mgr, store.GetName(), ref.Kind)
+		out, err := r.handlePushSecretDataForStore(ctx, ps, secret, out, mgr, store.GetName(), ref.Kind, ref.Group)
 		if err != nil {
 			return out, err
 		}
@@ -402,12 +404,13 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 	return out, nil
 }
 
-func (r *Reconciler) handlePushSecretDataForStore(ctx context.Context, ps esapi.PushSecret, secret *v1.Secret, out esapi.SyncedPushSecretsMap, mgr *secretstore.Manager, storeName, refKind string) (esapi.SyncedPushSecretsMap, error) {
+func (r *Reconciler) handlePushSecretDataForStore(ctx context.Context, ps esapi.PushSecret, secret *v1.Secret, out esapi.SyncedPushSecretsMap, mgr *secretstore.Manager, storeName, refKind, refGroup string) (esapi.SyncedPushSecretsMap, error) {
 	storeKey := fmt.Sprintf("%v/%v", refKind, storeName)
 	out[storeKey] = make(map[string]esapi.PushSecretData)
 	storeRef := esv1.SecretStoreRef{
-		Name: storeName,
-		Kind: refKind,
+		Name:  storeName,
+		Kind:  refKind,
+		Group: refGroup,
 	}
 	originalSecretData := secret.Data
 	secretClient, err := mgr.Get(ctx, storeRef, ps.GetNamespace(), nil)
@@ -453,6 +456,7 @@ const defaultGeneratorStateKey = "__pushsecret"
 
 func (r *Reconciler) resolveSecrets(ctx context.Context, ps *esapi.PushSecret) ([]v1.Secret, error) {
 	var err error
+
 	generatorState := statemanager.New(ctx, r.Client, r.Scheme, ps.Namespace, ps)
 	defer func() {
 		if err != nil {
@@ -507,23 +511,19 @@ func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace s
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
-	var prevState *genv1alpha1.GeneratorState
-	if generatorState != nil {
-		prevState, err = generatorState.GetLatestState(defaultGeneratorStateKey)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get latest state: %w", err)
-		}
+	cleanupPolicy, err := gen.GetCleanupPolicy(genResource)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get cleanup policy: %w", err)
 	}
+
 	secretMap, newState, err := gen.Generate(ctx, genResource, r.Client, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate: %w", err)
 	}
-	if prevState != nil && generatorState != nil {
-		generatorState.EnqueueMoveStateToGC(defaultGeneratorStateKey)
-	}
-	if generatorState != nil {
-		generatorState.EnqueueSetLatest(ctx, defaultGeneratorStateKey, namespace, genResource, gen, newState)
-	}
+
+	generatorState.SetCleanupPolicy(cleanupPolicy)
+	generatorState.EnqueueCreateState(defaultGeneratorStateKey, namespace, genResource, gen, newState)
+
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "___generated-secret",
@@ -589,6 +589,16 @@ func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.
 	ref := types.NamespacedName{
 		Name: refStore.Name,
 	}
+	if refStore.Kind != esv1.SecretStoreKind && refStore.Kind != esv1.ClusterSecretStoreKind {
+		obj := tgtv1alpha1.GetObjFromKind(refStore.Kind)
+		ref.Namespace = ns
+		err := r.Get(ctx, ref, obj)
+		if err != nil {
+			return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
+		}
+		return obj, nil
+	}
+
 	if refStore.Kind == esv1.ClusterSecretStoreKind {
 		var store esv1.ClusterSecretStore
 		err := r.Get(ctx, ref, &store)
@@ -673,25 +683,18 @@ func statusRef(ref esv1.PushSecretData) string {
 // removeUnmanagedStores iterates over all SecretStore references and evaluates the controllerClass property.
 // Returns a map containing only managed stores.
 func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]esv1.GenericStore) (map[esapi.PushSecretStoreRef]esv1.GenericStore, error) {
-	for ref := range ss {
-		var store esv1.GenericStore
-		switch ref.Kind {
-		case esv1.SecretStoreKind:
-			store = &esv1.SecretStore{}
-		case esv1.ClusterSecretStoreKind:
-			store = &esv1.ClusterSecretStore{}
-			namespace = ""
-		}
+	for ref, store := range ss {
+		tmp := store.Copy()
 		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      ref.Name,
 			Namespace: namespace,
-		}, store)
+		}, tmp)
 
 		if err != nil {
 			return ss, err
 		}
 
-		class := store.GetSpec().Controller
+		class := tmp.GetSpec().Controller
 		if class != "" && class != r.ControllerClass {
 			delete(ss, ref)
 		}

@@ -37,9 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -160,6 +160,9 @@ func setAssumeRoleOptionFn(sessExtID string, sessTags []stsTypes.Tag, sessTransi
 }
 
 func constructCredsProvider(ctx context.Context, prov *esv1.AWSProvider, isClusterKind bool, opts Opts) (aws.CredentialsProvider, error) {
+	if prov.Auth == nil {
+		return nil, nil
+	}
 	switch {
 	case prov.Auth.JWTAuth != nil:
 		return credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, opts.Kube, opts.Namespace, opts.JWTProvider)
@@ -185,7 +188,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 	// use credentials via service account token
 	jwtAuth := auth.JWTAuth
 	if jwtAuth != nil {
-		credsProvider, err = credsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
+		credsProvider, err = credsFromServiceAccount(ctx, &auth, region, false, kube, namespace, jwtProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -195,7 +198,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 	secretRef := auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		credsProvider, err = credsFromSecretRef(ctx, auth, "", kube, namespace)
+		credsProvider, err = credsFromSecretRef(ctx, &auth, "", kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +226,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string, kube client.Client, namespace string) (aws.CredentialsProvider, error) {
+func credsFromSecretRef(ctx context.Context, auth *esv1.AWSAuth, storeKind string, kube client.Client, namespace string) (aws.CredentialsProvider, error) {
 	sak, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.SecretAccessKey)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchSAKSecret, err)
@@ -250,7 +253,7 @@ func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (aws.CredentialsProvider, error) {
+func credsFromServiceAccount(ctx context.Context, auth *esv1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (aws.CredentialsProvider, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
@@ -344,6 +347,9 @@ type STSProvider func(*aws.Config) STSprovider
 
 // DefaultSTSProvider creates and returns a new STS client from the provided AWS config.
 func DefaultSTSProvider(cfg *aws.Config) STSprovider {
+	if cfg == nil {
+		return nil
+	}
 	stsClient := sts.NewFromConfig(*cfg, func(o *sts.Options) {
 		o.EndpointResolverV2 = customEndpointResolver{}
 	})

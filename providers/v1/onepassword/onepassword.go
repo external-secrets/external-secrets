@@ -470,7 +470,6 @@ func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1.E
 		if err != nil {
 			return nil, fmt.Errorf(errGetVault, err)
 		}
-
 		if ref.Tags != nil {
 			err = provider.getAllByTags(vault.ID, ref, secretData)
 			if err != nil {

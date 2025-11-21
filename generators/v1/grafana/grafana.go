@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	grafanaclient "github.com/grafana/grafana-openapi-client-go/client"
@@ -93,6 +94,27 @@ func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, pre
 		return err
 	}
 	return nil
+}
+
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (w *Grafana) GetCleanupPolicy(_ *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return &genv1alpha1.CleanupPolicy{
+		// RetainLatestPolicy means we will not look for idle behavior
+		Type: genv1alpha1.RetainLatestPolicy,
+	}, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (w *Grafana) LastActivityTime(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+// GetKeys returns the keys for the generator.
+func (w *Grafana) GetKeys() map[string]string {
+	return map[string]string{
+		"login": "Grafana service account login username",
+		"token": "Grafana service account API token",
+	}
 }
 
 func newClient(ctx context.Context, gen *genv1alpha1.Grafana, kclient client.Client, ns string) (*grafanaclient.GrafanaHTTPAPI, error) {
@@ -210,7 +232,6 @@ func parseStatus(data []byte) (*genv1alpha1.GrafanaServiceAccountTokenState, err
 	}
 	return &state, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

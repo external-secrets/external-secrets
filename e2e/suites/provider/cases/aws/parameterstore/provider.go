@@ -141,7 +141,7 @@ func (s *Provider) SetupMountedIRSAStore() {
 				AWS: &esv1.AWSProvider{
 					Service: esv1.AWSServiceParameterStore,
 					Region:  s.region,
-					Auth:    esv1.AWSAuth{},
+					Auth:    &esv1.AWSAuth{},
 				},
 			},
 		},
@@ -172,7 +172,7 @@ func (s *Provider) SetupReferencedIRSAStore() {
 			AWS: &esv1.AWSProvider{
 				Service: esv1.AWSServiceParameterStore,
 				Region:  s.region,
-				Auth: esv1.AWSAuth{
+				Auth: &esv1.AWSAuth{
 					JWTAuth: &esv1.AWSJWTAuth{
 						ServiceAccountRef: &esmetav1.ServiceAccountSelector{
 							Name:      s.ServiceAccountName,

@@ -73,6 +73,24 @@ var (
 	ClusterGeneratorKind = reflect.TypeOf(ClusterGenerator{}).Name()
 	// CloudsmithAccessTokenKind is the kind name for CloudsmithAccessToken resource.
 	CloudsmithAccessTokenKind = reflect.TypeOf(CloudsmithAccessToken{}).Name()
+	// AWSIAMKeysKind is the type name of the AWS IAM keys generator.
+	AWSIAMKeysKind = reflect.TypeOf(AWSIAMKey{}).Name()
+	// SendgridKind is the type name of the Sendgrid generator.
+	SendgridKind = reflect.TypeOf(SendgridAuthorizationToken{}).Name()
+	// RabbitMQGeneratorKind is the type name of the RabbitMQ generator.
+	RabbitMQGeneratorKind = reflect.TypeOf(RabbitMQ{}).Name()
+	// BasicAuthKind is the type name of the Basic Auth generator.
+	BasicAuthKind = reflect.TypeOf(BasicAuth{}).Name()
+	// FederationKind is the type name of the Federation generator.
+	FederationKind = reflect.TypeOf(Federation{}).Name()
+	// Neo4jKind is the type name of the Neo4j generator.
+	Neo4jKind = reflect.TypeOf(Neo4j{}).Name()
+	// MongoDBKind is the type name of the MongoDB generator.
+	MongoDBKind = reflect.TypeOf(MongoDB{}).Name()
+	// PostgreSQLKind is the type name of the PostgreSQL generator.
+	PostgreSQLKind = reflect.TypeOf(PostgreSQL{}).Name()
+	// OpenAIKind is the type name of the OpenAI generator.
+	OpenAIKind = reflect.TypeOf(OpenAI{}).Name()
 )
 
 func init() {
@@ -109,4 +127,14 @@ func init() {
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
 	SchemeBuilder.Register(&MFA{}, &MFAList{})
+
+	SchemeBuilder.Register(&AWSIAMKey{}, &AWSIAMKeyList{})
+	SchemeBuilder.Register(&SendgridAuthorizationToken{}, &SendgridAuthorizationTokenList{})
+	SchemeBuilder.Register(&RabbitMQ{}, &RabbitMQList{})
+	SchemeBuilder.Register(&MongoDB{}, &MongoDBList{})
+	SchemeBuilder.Register(&BasicAuth{}, &BasicAuthList{})
+	SchemeBuilder.Register(&Neo4j{}, &Neo4jList{})
+	SchemeBuilder.Register(&PostgreSQL{}, &PostgreSQLList{})
+	SchemeBuilder.Register(&OpenAI{}, &OpenAIList{})
+	SchemeBuilder.Register(&Federation{}, &FederationList{})
 }

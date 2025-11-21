@@ -26,14 +26,15 @@ type SecretStoreRef struct {
 	// Name of the SecretStore resource
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	// Note: needs to remove validation pattern for workflows to properly work
 	Name string `json:"name,omitempty"`
 
-	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+	// Kind of the SecretStore resource (SecretStore, ClusterSecretStore or any Target kind)
 	// Defaults to `SecretStore`
 	// +optional
-	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore
 	Kind string `json:"kind,omitempty"`
+	// +optional
+	Group string `json:"group,omitempty"`
 }
 
 // ExternalSecretCreationPolicy defines rules on how to create the resulting Secret.
@@ -253,7 +254,7 @@ type ExternalSecretData struct {
 	// The key in the Kubernetes Secret to store the value.
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
+	// Note: Needs to remove validation pattern for workflows to properly work.
 	SecretKey string `json:"secretKey"`
 
 	// RemoteRef points to the remote secret and defines
@@ -577,7 +578,7 @@ type GeneratorRef struct {
 	// Specify the name of the generator resource
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	// Note: Needs to remove validation pattern for workflows to properly work.
 	Name string `json:"name"`
 }
 

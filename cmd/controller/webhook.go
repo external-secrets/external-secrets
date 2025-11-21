@@ -37,6 +37,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	wfv1alpha1 "github.com/external-secrets/external-secrets/apis/workflows/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 )
 
@@ -52,6 +53,7 @@ func init() {
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1beta1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(wfv1alpha1.AddToScheme(scheme))
 }
 
 var webhookCmd = &cobra.Command{
@@ -159,6 +161,23 @@ var webhookCmd = &cobra.Command{
 		if err = (&esv1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1")
 			os.Exit(1)
+		}
+		if experimentalWorkflowsEnabled {
+
+			// Set the validation client for WorkflowRun parameter validation
+			wfv1alpha1.SetValidationClient(mgr.GetClient())
+
+			// Register WorkflowRun webhook
+			if err = (&wfv1alpha1.WorkflowRun{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateWebhook, "webhook", "WorkflowRun")
+				os.Exit(1)
+			}
+
+			// Register WorkflowRunTemplate webhook
+			if err = (&wfv1alpha1.WorkflowRunTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateWebhook, "webhook", "WorkflowRunTemplate")
+				os.Exit(1)
+			}
 		}
 
 		err = mgr.AddReadyzCheck("certs", func(_ *http.Request) error {

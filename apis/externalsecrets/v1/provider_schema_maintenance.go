@@ -69,11 +69,41 @@ func ForceRegisterMaintenanceStatus(status MaintenanceStatus, storeSpec *SecretS
 	maintenance[storeName] = status
 }
 
+// RegisterMaintenanceStatusByKind registers the maintenance status for a provider by kind.
+func RegisterMaintenanceStatusByKind(status MaintenanceStatus, kind string) {
+	mlock.Lock()
+	defer mlock.Unlock()
+	_, exists := maintenance[kind]
+	if exists {
+		panic(fmt.Sprintf("store %q already registered", kind))
+	}
+
+	maintenance[kind] = status
+}
+
 // GetMaintenanceStatus returns the maintenance status of the provider from the generic store.
 func GetMaintenanceStatus(s GenericStore) (MaintenanceStatus, error) {
 	if s == nil {
 		return MaintenanceStatusNotMaintained, nil
 	}
+
+	kind := s.GetKind()
+	if kind != SecretStoreKind && kind != ClusterSecretStoreKind {
+		// This Store is of its own kind via a group
+		// Like providers.external-secrets.io or
+		// targets.external-secrets.io
+		// The kind is the identifying key here
+		mlock.RLock()
+		status, ok := maintenance[kind]
+		mlock.RUnlock()
+
+		if !ok {
+			return MaintenanceStatusNotMaintained, fmt.Errorf("failed to find registered store backend for type: %s, name: %s", kind, s.GetName())
+		}
+
+		return status, nil
+	}
+
 	spec := s.GetSpec()
 	if spec == nil {
 		// Note, this condition can never be reached, because

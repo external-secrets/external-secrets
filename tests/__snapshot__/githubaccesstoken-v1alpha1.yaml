@@ -13,3 +13,5 @@ spec:
   permissions: {}
   repositories: [] # minItems 0 of type string
   url: string
+status:
+  output: 
