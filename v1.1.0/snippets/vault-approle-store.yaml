@@ -1,0 +1,24 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+  namespace: example
+spec:
+  provider:
+    vault:
+      server: "https://vault.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        # VaultAppRole authenticates with Vault using the
+        # App Role auth mechanism
+        # https://www.vaultproject.io/docs/auth/approle
+        appRole:
+          # Path where the App Role authentication backend is mounted
+          path: "approle"
+          # RoleID configured in the App Role authentication backend
+          roleId: "db02de05-fa39-4855-059b-67221c5c2f63"
+          # Reference to a key in a K8 Secret that contains the App Role SecretId
+          secretRef:
+            name: "my-secret"
+            key: "secret-id"
