@@ -102,6 +102,11 @@ The command removes all the Kubernetes components associated with the chart and 
 | dnsConfig | object | `{}` | Specifies `dnsOptions` to deployment |
 | dnsPolicy | string | `"ClusterFirst"` | Specifies `dnsPolicy` to deployment |
 | enableHTTP2 | bool | `false` | if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook. |
+| experimental | object | `{"scan":{"enabled":false},"workflows":{"enabled":false}}` | Experimental features available on ESO for early adopters to try |
+| experimental.scan | object | `{"enabled":false}` | Experimental Features for Scans |
+| experimental.scan.enabled | bool | `false` | Enable Scans experimental feature |
+| experimental.workflows | object | `{"enabled":false}` | Experimental Features for Workflows |
+| experimental.workflows.enabled | bool | `false` | Enable Workflows experimental feature |
 | extendedMetricLabels | bool | `false` | If true external secrets will use recommended kubernetes annotations as prometheus metric labels. |
 | extraArgs | object | `{}` |  |
 | extraContainers | list | `[]` |  |
@@ -217,6 +222,11 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.certManager.enabled | bool | `false` | Enabling cert-manager support will disable the built in secret and switch to using cert-manager (installed separately) to automatically issue and renew the webhook certificate. This chart does not install cert-manager for you, See https://cert-manager.io/docs/ |
 | webhook.create | bool | `true` | Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint. |
 | webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
+| webhook.experimental | object | `{"scan":{"enabled":false},"workflows":{"enabled":false}}` | Experimental features available on ESO webhooks for early adopters to try |
+| webhook.experimental.scan | object | `{"enabled":false}` | Experimental Features for Scans |
+| webhook.experimental.scan.enabled | bool | `false` | Enable Scans experimental feature |
+| webhook.experimental.workflows | object | `{"enabled":false}` | Experimental Features for Workflows |
+| webhook.experimental.workflows.enabled | bool | `false` | Enable Workflows experimental feature |
 | webhook.extraArgs | object | `{}` |  |
 | webhook.extraEnv | list | `[]` |  |
 | webhook.extraInitContainers | list | `[]` |  |
@@ -242,7 +252,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podSecurityContext.enabled | bool | `true` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
-| webhook.rbac | object | `{"create":true}` | specifies rbac for webhook |
+| webhook.rbac.create | bool | `true` |  |
 | webhook.readinessProbe.address | string | `""` | Address for readiness probe |
 | webhook.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
 | webhook.replicaCount | int | `1` |  |
