@@ -268,22 +268,25 @@ func (g *gitlabBase) getGroupVariables(groupID string, ref esv1.ExternalSecretDa
 	groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
 	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound && !isEmptyOrWildcard(g.store.Environment) {
-			if gopts == nil {
-				gopts = &gitlab.GetGroupVariableOptions{}
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			if !isEmptyOrWildcard(g.store.Environment) {
+				if gopts == nil {
+					gopts = &gitlab.GetGroupVariableOptions{}
+				}
+				if gopts.Filter == nil {
+					gopts.Filter = &gitlab.VariableFilter{}
+				}
+				gopts.Filter.EnvironmentScope = "*"
+				groupVar, resp, err = g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
+				metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
+				if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
+					return nil, resp, fmt.Errorf("error getting group variable %s from GitLab: %w", ref.Key, err)
+				}
 			}
-			if gopts.Filter == nil {
-				gopts.Filter = &gitlab.VariableFilter{}
-			}
-			gopts.Filter.EnvironmentScope = "*"
-			groupVar, resp, err = g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
-			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
-			if err != nil || resp == nil {
-				return nil, resp, fmt.Errorf("error getting group variable %s from GitLab: %w", ref.Key, err)
-			}
-		} else {
-			return nil, resp, err
+			// 404 is not an error for group traversal - return nil error to allow checking parent groups
+			return nil, resp, nil
 		}
+		return nil, resp, err
 	}
 
 	return groupVar, resp, nil
@@ -335,7 +338,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 		}
 
 		groupVar, resp, err := g.getGroupVariables(groupID, ref, gopts)
-		if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
+		if err != nil {
 			return nil, err
 		}
 		if resp != nil && resp.StatusCode < 300 {
