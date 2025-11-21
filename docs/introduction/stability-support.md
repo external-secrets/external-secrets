@@ -94,6 +94,7 @@ The following table describes the stability level of each provider and who's res
 | [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            | alpha     | [@default23](https://github.com/default23)                                                          |
 | [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       | alpha     | [@kevinyancn](https://github.com/kevinyancn)                                                        |
 | [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 | alpha     | [@jonstacks](https://github.com/jonstacks)                                                          |
+| [Barbican](https://external-secrets.io/latest/provider/barbican)                                           | alpha     | [@rkferreira](https://github.com/rkferreira)                                                        |
 
 
 ## Provider Feature Support
@@ -134,6 +135,7 @@ The following table show the support for features across different providers.
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
 | Volcengine                |              |              |                      |                         |        x         |             |                             |
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
+| Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 
