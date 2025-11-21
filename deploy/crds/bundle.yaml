@@ -25788,8 +25788,6 @@ spec:
                 output:
                   x-kubernetes-preserve-unknown-fields: true
               type: object
-          required:
-            - status
           type: object
       served: true
       storage: true

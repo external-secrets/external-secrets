@@ -100,7 +100,7 @@ type ClusterGenerator struct {
 	Spec ClusterGeneratorSpec `json:"spec,omitempty"`
 
 	// Status the status of this generator.
-	Status GeneratorStatus `json:"status"`
+	Status GeneratorStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
