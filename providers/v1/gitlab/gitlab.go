@@ -267,29 +267,38 @@ func ExtractTag(tags map[string]string) (string, error) {
 func (g *gitlabBase) getGroupVariables(groupID string, ref esv1.ExternalSecretDataRemoteRef, gopts *gitlab.GetGroupVariableOptions) (*gitlab.GroupVariable, *gitlab.Response, error) {
 	groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
 	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
-	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			if !isEmptyOrWildcard(g.store.Environment) {
-				if gopts == nil {
-					gopts = &gitlab.GetGroupVariableOptions{}
-				}
-				if gopts.Filter == nil {
-					gopts.Filter = &gitlab.VariableFilter{}
-				}
-				gopts.Filter.EnvironmentScope = "*"
-				groupVar, resp, err = g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
-				metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
-				if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
-					return nil, resp, fmt.Errorf("error getting group variable %s from GitLab: %w", ref.Key, err)
-				}
-			}
-			// 404 is not an error for group traversal - return nil error to allow checking parent groups
-			return nil, resp, nil
-		}
+
+	if err == nil {
+		return groupVar, resp, nil
+	}
+
+	// Non-404 errors are actual failures
+	isNotFound := resp != nil && resp.StatusCode == http.StatusNotFound
+	if !isNotFound {
 		return nil, resp, err
 	}
 
-	return groupVar, resp, nil
+	// 404 with environment-scoped query: retry with wildcard
+	if !isEmptyOrWildcard(g.store.Environment) {
+		if gopts == nil {
+			gopts = &gitlab.GetGroupVariableOptions{}
+		}
+		if gopts.Filter == nil {
+			gopts.Filter = &gitlab.VariableFilter{}
+		}
+		gopts.Filter.EnvironmentScope = "*"
+
+		_, resp, err = g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
+
+		// Only fail on non-404 errors
+		if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
+			return nil, resp, fmt.Errorf("error getting group variable %s from GitLab: %w", ref.Key, err)
+		}
+	}
+
+	// 404 is not an error for group traversal - allows checking parent groups
+	return nil, resp, nil
 }
 
 func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
