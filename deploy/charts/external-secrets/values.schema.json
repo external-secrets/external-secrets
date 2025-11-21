@@ -311,27 +311,6 @@
         "enableHTTP2": {
             "type": "boolean"
         },
-        "experimental": {
-            "type": "object",
-            "properties": {
-                "scan": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        }
-                    }
-                },
-                "workflows": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        }
-                    }
-                }
-            }
-        },
         "extendedMetricLabels": {
             "type": "boolean"
         },
@@ -835,27 +814,6 @@
                 "deploymentAnnotations": {
                     "type": "object"
                 },
-                "experimental": {
-                    "type": "object",
-                    "properties": {
-                        "scan": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean"
-                                }
-                            }
-                        },
-                        "workflows": {
-                            "type": "object",
-                            "properties": {
-                                "enabled": {
-                                    "type": "boolean"
-                                }
-                            }
-                        }
-                    }
-                },
                 "extraArgs": {
                     "type": "object"
                 },
@@ -977,14 +935,6 @@
                 },
                 "priorityClassName": {
                     "type": "string"
-                },
-                "rbac": {
-                    "type": "object",
-                    "properties": {
-                        "create": {
-                            "type": "boolean"
-                        }
-                    }
                 },
                 "readinessProbe": {
                     "type": "object",

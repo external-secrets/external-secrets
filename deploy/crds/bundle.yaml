@@ -25777,24 +25777,19 @@ spec:
                     - VaultDynamicSecret
                     - Webhook
                     - Grafana
-                    - Federation
-                    - MFA
-                    - BasicAuth
-                    - SSH
-                    - Neo4j
-                    - PostgreSql
-                    - OpenAI
                   type: string
               required:
                 - generator
                 - kind
               type: object
             status:
-              description: GeneratorStatus represents the status of a generator.
+              description: Status the status of this generator.
               properties:
                 output:
                   x-kubernetes-preserve-unknown-fields: true
               type: object
+          required:
+            - status
           type: object
       served: true
       storage: true

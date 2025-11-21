@@ -41,11 +41,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
 )
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to AWS Secret Manager.

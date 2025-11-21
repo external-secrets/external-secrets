@@ -120,17 +120,6 @@ func (p *Provider) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef)
 
 func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
-	if data.GetSecretKey() == "" {
-		secretData := map[string]string{}
-		for k, v := range secret.Data {
-			secretData[k] = string(v)
-		}
-		jsonSecret, err := json.Marshal(secretData)
-		if err != nil {
-			return fmt.Errorf("unable to create json %v from value: %v", value, secretData)
-		}
-		value = jsonSecret
-	}
 	currentData, ok := p.config[data.GetRemoteKey()]
 	if !ok {
 		p.config[data.GetRemoteKey()] = &Data{

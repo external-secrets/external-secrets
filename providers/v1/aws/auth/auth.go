@@ -37,9 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
+	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -344,9 +344,6 @@ type STSProvider func(*aws.Config) STSprovider
 
 // DefaultSTSProvider creates and returns a new STS client from the provided AWS config.
 func DefaultSTSProvider(cfg *aws.Config) STSprovider {
-	if cfg == nil {
-		return nil
-	}
 	stsClient := sts.NewFromConfig(*cfg, func(o *sts.Options) {
 		o.EndpointResolverV2 = customEndpointResolver{}
 	})

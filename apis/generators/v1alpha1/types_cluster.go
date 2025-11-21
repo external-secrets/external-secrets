@@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;Federation;MFA;BasicAuth;SSH;Neo4j;PostgreSql;OpenAI
+// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 type GeneratorKind string
 
 const (
@@ -97,8 +97,10 @@ type ClusterGenerator struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterGeneratorSpec `json:"spec,omitempty"`
-	Status GeneratorStatus      `json:"status,omitempty"`
+	Spec ClusterGeneratorSpec `json:"spec,omitempty"`
+
+	// Status the status of this generator.
+	Status GeneratorStatus `json:"status"`
 }
 
 // +kubebuilder:object:root=true

@@ -77,6 +77,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if err != nil {
 		return nil, err
 	}
+
 	// case: static credentials
 	if prov.Auth.SecretRef != nil {
 		if err := esutils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
