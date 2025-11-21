@@ -27,14 +27,7 @@ for i in "${HELM_DIR}"/templates/crds/*.yml; do
     $SEDPRG -i 's/       additionalPrinterColumns:/    - additionalPrinterColumns:/' "$i.bkp"
   fi
 
-  if [[ "${CRDS_GROUP_NAME}" == "scan.external-secrets.io" ]]; then
-    echo "{{- if and (.Values.installCRDs) (.Values.experimental.scan.enabled) }}" > "$i"
-  elif [[ "${CRDS_GROUP_NAME}" == "target.external-secrets.io" ]]; then
-    echo "{{- if and (.Values.installCRDs) (.Values.experimental.scan.enabled) }}" > "$i"
-  elif [[ "${CRDS_GROUP_NAME}" == "workflows.external-secrets.io" ]]; then
-    echo "{{- if and (.Values.installCRDs) (.Values.experimental.workflows.enabled) }}" > "$i"
-  # generators or root groups
-  elif [[ "$CRDS_FLAG_NAME" == *"Cluster"* ]]; then
+  if [[ "$CRDS_FLAG_NAME" == *"Cluster"* ]]; then
     echo "{{- if and (.Values.installCRDs) (.Values.crds.$CRDS_FLAG_NAME) }}" > "$i"
   elif [[ "${CRDS_FLAG_NAME}" == *"PushSecret"* ]]; then
 			echo "{{- if and (.Values.installCRDs) (.Values.crds.$CRDS_FLAG_NAME) }}" > "$i"

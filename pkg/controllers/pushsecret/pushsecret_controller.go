@@ -41,7 +41,6 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 
-	tgtv1alpha1 "github.com/external-secrets/external-secrets/apis/targets/v1alpha1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
@@ -588,15 +587,6 @@ func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.
 	}
 	ref := types.NamespacedName{
 		Name: refStore.Name,
-	}
-	if refStore.Kind != esv1.SecretStoreKind && refStore.Kind != esv1.ClusterSecretStoreKind {
-		obj := tgtv1alpha1.GetObjFromKind(refStore.Kind)
-		ref.Namespace = ns
-		err := r.Get(ctx, ref, obj)
-		if err != nil {
-			return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
-		}
-		return obj, nil
 	}
 
 	if refStore.Kind == esv1.ClusterSecretStoreKind {

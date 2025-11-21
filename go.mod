@@ -69,9 +69,6 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/webhook => ./providers/v1/webhook
 	github.com/external-secrets/external-secrets/providers/v1/yandex => ./providers/v1/yandex
 	github.com/external-secrets/external-secrets/runtime => ./runtime
-	github.com/external-secrets/external-secrets/targets => ./targets
-	github.com/external-secrets/external-secrets/targets/github => ./targets/github
-	github.com/external-secrets/external-secrets/targets/kubernetes => ./targets/kubernetes
 )
 
 require (
