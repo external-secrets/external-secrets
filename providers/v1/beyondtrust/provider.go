@@ -53,6 +53,17 @@ const (
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 	errNotImplemented       = "not implemented"
+
+	usernameFieldName    = "username"
+	folderNameFieldName  = "folder_name"
+	fileNameFieldName    = "file_name"
+	titleFieldName       = "title"
+	descriptionFieldName = "description"
+	ownerIDFieldName     = "owner_id"
+	groupIDFieldName     = "group_id"
+	ownerTypeFieldName   = "owner_type"
+	secretTypeFieldName  = "secret_type"
+	secretTypeCredential = "CREDENTIAL"
 )
 
 var (
@@ -464,15 +475,15 @@ func (p *Provider) CreateSecret(secret string, data map[string]interface{}, sign
 	logger := logging.NewLogrLogger(&ESOLogger)
 	secretObj, _ := secrets.NewSecretObj(p.authenticate, logger, 5000000)
 
-	username := utils.GetStringField(data, "username", "")
-	folderName := utils.GetStringField(data, "folder_name", "")
-	fileName := utils.GetStringField(data, "file_name", "")
-	title := utils.GetStringField(data, "title", "")
-	description := utils.GetStringField(data, "description", "")
-	ownerID := utils.GetIntField(data, "owner_id", 0)
-	groupID := utils.GetIntField(data, "group_id", 0)
-	ownerType := utils.GetStringField(data, "owner_type", "")
-	secretType := utils.GetStringField(data, "secret_type", "CREDENTIAL")
+	username := utils.GetStringField(data, usernameFieldName, "")
+	folderName := utils.GetStringField(data, folderNameFieldName, "")
+	fileName := utils.GetStringField(data, fileNameFieldName, "")
+	title := utils.GetStringField(data, titleFieldName, "")
+	description := utils.GetStringField(data, descriptionFieldName, "")
+	ownerID := utils.GetIntField(data, ownerIDFieldName, 0)
+	groupID := utils.GetIntField(data, groupIDFieldName, 0)
+	ownerType := utils.GetStringField(data, ownerTypeFieldName, "")
+	secretType := utils.GetStringField(data, secretTypeFieldName, secretTypeCredential)
 
 	var notes string
 	var urls []entities.UrlDetails
