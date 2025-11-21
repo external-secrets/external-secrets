@@ -78,7 +78,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, err
 	}
 	// case: static credentials
-	if prov.Auth != nil && prov.Auth.SecretRef != nil {
+	if prov.Auth.SecretRef != nil {
 		if err := esutils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
 			return nil, fmt.Errorf("invalid Auth.SecretRef.AccessKeyID: %w", err)
 		}
@@ -93,7 +93,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	// case: jwt credentials
-	if prov.Auth != nil && prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.ServiceAccountRef != nil {
+	if prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.ServiceAccountRef != nil {
 		if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
 			return nil, fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
 		}

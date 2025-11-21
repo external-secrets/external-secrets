@@ -7,24 +7,15 @@ replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
 	github.com/external-secrets/external-secrets/generators/v1/acr => ./generators/v1/acr
-	github.com/external-secrets/external-secrets/generators/v1/awsiam => ./generators/v1/awsiam
-	github.com/external-secrets/external-secrets/generators/v1/basic_auth => ./generators/v1/basic_auth
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith => ./generators/v1/cloudsmith
 	github.com/external-secrets/external-secrets/generators/v1/ecr => ./generators/v1/ecr
 	github.com/external-secrets/external-secrets/generators/v1/fake => ./generators/v1/fake
-	github.com/external-secrets/external-secrets/generators/v1/federation => ./generators/v1/federation
 	github.com/external-secrets/external-secrets/generators/v1/gcr => ./generators/v1/gcr
 	github.com/external-secrets/external-secrets/generators/v1/github => ./generators/v1/github
 	github.com/external-secrets/external-secrets/generators/v1/grafana => ./generators/v1/grafana
 	github.com/external-secrets/external-secrets/generators/v1/mfa => ./generators/v1/mfa
-	github.com/external-secrets/external-secrets/generators/v1/mongodb => ./generators/v1/mongodb
-	github.com/external-secrets/external-secrets/generators/v1/neo4j => ./generators/v1/neo4j
-	github.com/external-secrets/external-secrets/generators/v1/openai => ./generators/v1/openai
 	github.com/external-secrets/external-secrets/generators/v1/password => ./generators/v1/password
-	github.com/external-secrets/external-secrets/generators/v1/postgresql => ./generators/v1/postgresql
 	github.com/external-secrets/external-secrets/generators/v1/quay => ./generators/v1/quay
-	github.com/external-secrets/external-secrets/generators/v1/rabbitmq => ./generators/v1/rabbitmq
-	github.com/external-secrets/external-secrets/generators/v1/sendgrid => ./generators/v1/sendgrid
 	github.com/external-secrets/external-secrets/generators/v1/sshkey => ./generators/v1/sshkey
 	github.com/external-secrets/external-secrets/generators/v1/sts => ./generators/v1/sts
 	github.com/external-secrets/external-secrets/generators/v1/uuid => ./generators/v1/uuid
@@ -42,7 +33,6 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/delinea => ./providers/v1/delinea
 	github.com/external-secrets/external-secrets/providers/v1/device42 => ./providers/v1/device42
 	github.com/external-secrets/external-secrets/providers/v1/doppler => ./providers/v1/doppler
-	github.com/external-secrets/external-secrets/providers/v1/externalsecrets => ./providers/v1/externalsecrets
 	github.com/external-secrets/external-secrets/providers/v1/fake => ./providers/v1/fake
 	github.com/external-secrets/external-secrets/providers/v1/fortanix => ./providers/v1/fortanix
 	github.com/external-secrets/external-secrets/providers/v1/gcp => ./providers/v1/gcp
@@ -75,24 +65,15 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/awsiam v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/basic_auth v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/federation v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/mfa v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/mongodb v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/neo4j v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/openai v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-20251118062813-5b49a903f879
-	github.com/external-secrets/external-secrets/generators/v1/postgresql v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/rabbitmq v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/sendgrid v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-00010101000000-000000000000
@@ -110,7 +91,6 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/device42 v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/providers/v1/externalsecrets v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251104073127-4d2c8fd13e10
@@ -238,7 +218,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.51.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.38.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/iam v1.52.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.14 // indirect
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.12 // indirect
@@ -333,7 +312,6 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-github/v56 v56.0.0 // indirect
@@ -371,18 +349,13 @@ require (
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/infisical/go-sdk v0.5.100 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.7.6 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/keeper-security/secrets-manager-go/core v1.6.4 // indirect
 	github.com/kevinburke/ssh_config v1.4.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
@@ -395,7 +368,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
-	github.com/michaelklishin/rabbit-hole/v3 v3.2.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
@@ -404,12 +376,10 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
-	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/neo4j/neo4j-go-driver/v5 v5.28.4 // indirect
 	github.com/ngrok/ngrok-api-go/v7 v7.6.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
@@ -436,8 +406,6 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.35 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
-	github.com/sendgrid/rest v2.6.9+incompatible // indirect
-	github.com/sendgrid/sendgrid-go v3.16.1+incompatible // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/sethvargo/go-password v0.3.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
@@ -456,15 +424,10 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/volcengine/volc-sdk-golang v1.0.225 // indirect
 	github.com/volcengine/volcengine-go-sdk v1.1.46 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
-	github.com/xdg-go/scram v1.1.2 // indirect
-	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yandex-cloud/go-genproto v0.33.0 // indirect
 	github.com/yandex-cloud/go-sdk v0.26.0 // indirect

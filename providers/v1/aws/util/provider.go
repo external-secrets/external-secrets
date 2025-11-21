@@ -53,10 +53,7 @@ func GetAWSProvider(store esv1.GenericStore) (*esv1.AWSProvider, error) {
 }
 
 // IsReferentSpec checks if the AWS authentication configuration refers to resources in a different namespace.
-func IsReferentSpec(prov *esv1.AWSAuth) bool {
-	if prov == nil {
-		return false
-	}
+func IsReferentSpec(prov esv1.AWSAuth) bool {
 	if prov.JWTAuth != nil && prov.JWTAuth.ServiceAccountRef != nil && prov.JWTAuth.ServiceAccountRef.Namespace == nil {
 		return true
 	}
