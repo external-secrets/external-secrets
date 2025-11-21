@@ -23,8 +23,6 @@ import (
 // AWSAuth tells the controller how to do authentication with aws.
 // Only one of secretRef or jwt can be specified.
 // if none is specified the controller will load credentials using the aws sdk defaults.
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type AWSAuth struct {
 	// +optional
 	SecretRef *AWSAuthSecretRef `json:"secretRef,omitempty"`
@@ -103,7 +101,7 @@ type AWSProvider struct {
 	// if not set aws sdk will infer credentials from your environment
 	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
 	// +optional
-	Auth *AWSAuth `json:"auth,omitempty"`
+	Auth AWSAuth `json:"auth,omitempty"`
 
 	// Role is a Role ARN which the provider will assume
 	// +optional

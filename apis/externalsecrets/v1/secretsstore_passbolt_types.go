@@ -21,8 +21,6 @@ import (
 )
 
 // PassboltAuth contains a secretRef for the passbolt credentials.
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type PassboltAuth struct {
 	PasswordSecretRef   *esmeta.SecretKeySelector `json:"passwordSecretRef"`
 	PrivateKeySecretRef *esmeta.SecretKeySelector `json:"privateKeySecretRef"`

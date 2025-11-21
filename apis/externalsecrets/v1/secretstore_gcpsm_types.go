@@ -32,8 +32,6 @@ const (
 )
 
 // GCPSMAuth defines the authentication methods for Google Cloud Platform Secret Manager.
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type GCPSMAuth struct {
 	// +optional
 	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`

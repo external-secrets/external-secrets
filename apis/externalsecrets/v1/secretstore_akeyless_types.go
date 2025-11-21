@@ -41,8 +41,6 @@ type AkeylessProvider struct {
 }
 
 // AkeylessAuth configures how the operator authenticates with Akeyless.
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type AkeylessAuth struct {
 
 	// Reference to a Secret that contains the details

@@ -21,8 +21,6 @@ import (
 )
 
 // AlibabaAuth contains a secretRef for credentials.
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type AlibabaAuth struct {
 	// +optional
 	SecretRef *AlibabaAuthSecretRef `json:"secretRef,omitempty"`

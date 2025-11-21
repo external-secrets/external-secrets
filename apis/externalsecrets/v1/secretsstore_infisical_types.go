@@ -107,8 +107,6 @@ type TokenAuthCredentials struct {
 }
 
 // InfisicalAuth specifies the authentication configuration for Infisical.
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type InfisicalAuth struct {
 	// +optional
 	UniversalAuthCredentials *UniversalAuthCredentials `json:"universalAuthCredentials,omitempty"`
