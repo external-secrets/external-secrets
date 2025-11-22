@@ -217,15 +217,10 @@ func make404ProjectAPIOutput(numResponses ...int) []*fakegitlab.APIResponse[[]*g
 	for i := 0; i < count; i++ {
 		responses[i] = &fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{
 			Response: make404GitlabAPIResponse(),
-			Error:    make404Error(),
+			Error:    gitlab.ErrNotFound,
 		}
 	}
 	return responses
-}
-
-// make404Error creates a 404 Not Found error.
-func make404Error() error {
-	return errors.New("404 Not Found")
 }
 
 func makeValidGroupAPIOutput() *gitlab.GroupVariable {
@@ -1024,7 +1019,7 @@ func setGroupWildcardVariableNotFoundThenFound(smtc *secretManagerTestCase) {
 	smtc.projectAPIOutputs = make404ProjectAPIOutput(2)
 	smtc.groupAPIOutput = nil
 	smtc.groupAPIOutputs = []*fakegitlab.APIResponse[[]*gitlab.GroupVariable]{
-		{Response: make404GitlabAPIResponse(), Error: make404Error()},
+		{Response: make404GitlabAPIResponse(), Error: gitlab.ErrNotFound},
 		{Output: []*gitlab.GroupVariable{
 			{
 				Key:              testKey,

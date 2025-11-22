@@ -101,7 +101,7 @@ func TestGetClientWithCABundle(t *testing.T) {
 
 	// Call getVariables to trigger a network request to the mock server.
 	// The request will only succeed if the custom CA is correctly configured.
-	_, _, err = gl.getVariables(esv1.ExternalSecretDataRemoteRef{Key: "test-secret"}, nil)
+	_, err = gl.getVariables(esv1.ExternalSecretDataRemoteRef{Key: "test-secret"}, nil)
 	assert.NoError(t, err, "getVariables should succeed with the correct CA")
 }
 
@@ -197,7 +197,7 @@ func TestGetClientWithCAProviderSecret(t *testing.T) {
 	gl.groupVariablesClient = client.GroupVariables
 
 	// Call getVariables to trigger a network request to the mock server.
-	_, _, err = gl.getVariables(esv1.ExternalSecretDataRemoteRef{Key: "test-secret"}, nil)
+	_, err = gl.getVariables(esv1.ExternalSecretDataRemoteRef{Key: "test-secret"}, nil)
 	assert.NoError(t, err, "getVariables should succeed with the correct CA from Secret")
 }
 
@@ -259,7 +259,7 @@ func TestGetClientWithCAProviderConfigMap(t *testing.T) {
 	gl.groupVariablesClient = client.GroupVariables
 
 	// Call getVariables to trigger a network request to the mock server.
-	_, _, err = gl.getVariables(esv1.ExternalSecretDataRemoteRef{Key: "test-secret"}, nil)
+	_, err = gl.getVariables(esv1.ExternalSecretDataRemoteRef{Key: "test-secret"}, nil)
 	assert.NoError(t, err, "getVariables should succeed with the correct CA from ConfigMap")
 }
 
