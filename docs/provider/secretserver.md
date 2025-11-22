@@ -1,15 +1,13 @@
-# Delinea Secret Server
+# Delinea Secret-Server/Platform
 
-External Secrets Operator integration with [Delinea Secret Server](https://docs.delinea.com/online-help/secret-server/start.htm).
+For detailed information about configuring  Kubernetes ESO with Secret Server and the Delinea Platform, see the https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm
 
 ### Creating a SecretStore
 
-You need a username, password and a fully qualified Secret Server tenant URL to authenticate
-i.e. `https://yourTenantName.secretservercloud.com`.
+You need a username, password and a fully qualified Secret-Server/Platform tenant URL to authenticate
+i.e. `https://yourTenantName.secretservercloud.com` or `https://yourtenantname.delinea.app`.
 
 Both username and password can be specified either directly in your `SecretStore` yaml config, or by referencing a kubernetes secret.
-
-To acquire a username and password, refer to the  Secret Server [user management](https://docs.delinea.com/online-help/secret-server/users/creating-users/index.htm) documentation.
 
 Both `username` and `password` can either be specified directly via the `value` field (example below)
 >spec.provider.secretserver.username.value: "yourusername"<br />
@@ -17,6 +15,7 @@ spec.provider.secretserver.password.value: "yourpassword" <br />
 
 Or you can reference a kubernetes secret (password example below).
 
+**Note:** Use `https://yourtenantname.secretservercloud.com` for Secret Server or `https://yourtenantname.delinea.app` for Platform.
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
@@ -25,7 +24,7 @@ metadata:
 spec:
   provider:
     secretserver:
-      serverURL: "https://yourtenantname.secretservercloud.com"
+      serverURL: "https://yourtenantname.secretservercloud.com"  # or "https://yourtenantname.delinea.app" for Platform
       username:
         value: "yourusername"
       password:
@@ -36,14 +35,18 @@ spec:
 
 ### Referencing Secrets
 
-Secrets may be referenced by secret ID or secret name.
->Please note if using the secret name
+Secrets may be referenced by:
+>Secret ID<br />
+Secret Name<br />
+Secret Path (/FolderName/SecretName)<br />
+
+Please note if using the secret name or path,
 the name field must not contain spaces or control characters.<br />
 If multiple secrets are found, *`only the first found secret will be returned`*.
 
 Please note: `Retrieving a specific version of a secret is not yet supported.`
 
-Note that because all Secret Server secrets are JSON objects, you must specify the `remoteRef.property`
+Note that because all Secret-Server/Platform secrets are JSON objects, you must specify the `remoteRef.property`
 in your ExternalSecret configuration.<br />
 You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
@@ -64,11 +67,13 @@ spec:
           property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
 
-### Support for Non-JSON Secret Templates
+### Working with Plain Text ItemValue Fields
 
-The Secret Server provider now supports secrets that are not formatted as JSON. This enhancement allows users to retrieve and utilize secrets stored in formats such as plain text, XML, or other non-JSON structures without requiring additional parsing or transformation.​
+While Secret-Server/Platform always returns secrets in JSON format with an `Items` array structure, individual field values (stored in `ItemValue`) may contain plain text, passwords, URLs, or other non-JSON content.
 
-When working with non-JSON secrets, you can omit the remoteRef.property field in your ExternalSecret configuration. The entire content of the secret will be retrieved and stored as-is in the corresponding Kubernetes Secret.​
+When retrieving fields that contain plain text values, you can reference them directly by their `FieldName` or `Slug` without needing additional JSON parsing within the `ItemValue`.
+
+#### Example with Plain Text Password Field
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -81,18 +86,19 @@ spec:
       kind: SecretStore
       name: secret-server-store
     data:
-      - secretKey: SecretServerValue
+      - secretKey: password
         remoteRef:
-          key: "52622"  # Secret ID
+          key: "52622"      # Secret ID
+          property: "password"  # FieldName or Slug of the password field
 ```
 
-In this example, the secret with ID 52622 is retrieved in its entirety and stored under the key SecretServerValue in the Kubernetes Secret.​
+In this example, if the secret contains an Item with `FieldName: "Password"` or `Slug: "password"`, the plain text value stored in `ItemValue` is retrieved directly and stored under the key `password` in the Kubernetes Secret.
 
-This feature simplifies the integration process for applications that require secrets in specific formats, eliminating the need for custom parsing logic within your applications.
+This approach works for any field type (text, password, URL, etc.) where the `ItemValue` contains simple content rather than nested JSON structures.
 
 ### Support for Fetching Secrets by Path
 
-In addition to retrieving secrets by ID or Name, the Secret Server provider now supports fetching secrets by **path**.  
+In addition to retrieving secrets by ID or Name, the Secret-Server/Platform provider now supports fetching secrets by **path**.
 This allows you to specify a secret’s folder hierarchy and name in the format:
 >/FolderName/SecretName
 
@@ -117,21 +123,9 @@ spec:
 
 #### Notes:
 
-The path must exactly match the folder and secret name in Secret Server.
+The path must exactly match the folder and secret name in Secret-Server/Platform.
 If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
-You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret (JSON or non-JSON).
-Updated Referencing Secrets Section
-
-Secrets may be referenced by:
->Secret ID<br />
-Secret Name<br />
-Secret Path (/FolderName/SecretName)<br />
-
-Please note if using the secret name or path,
-the field must not contain spaces or control characters.<br />
-If multiple secrets are found, only the first found secret will be returned.
-
-Please note: Retrieving a specific version of a secret is not yet supported.
+You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret.
 
 ### Preparing your secret
 You can either retrieve your entire secret or you can use a JSON formatted string
