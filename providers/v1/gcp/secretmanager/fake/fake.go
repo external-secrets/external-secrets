@@ -59,6 +59,10 @@ type AddSecretVersionMockReturn struct {
 	Err           error
 }
 
+type ListSecretVersionsMockReturn struct {
+	Res *secretmanager.SecretVersionIterator
+}
+
 type SecretMockReturn struct {
 	Secret *secretmanagerpb.Secret
 	Err    error
@@ -67,11 +71,13 @@ type SecretMockReturn struct {
 func (mc *MockSMClient) DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, _ ...gax.CallOption) error {
 	return mc.DeleteSecretFn(ctx, req)
 }
+
 func (mc *MockSMClient) NewDeleteSecretFn(err error) {
 	mc.DeleteSecretFn = func(_ context.Context, _ *secretmanagerpb.DeleteSecretRequest, _ ...gax.CallOption) error {
 		return err
 	}
 }
+
 func (mc *MockSMClient) GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 	return mc.GetSecretFn(ctx, req)
 }
@@ -95,6 +101,7 @@ func (mc *MockSMClient) NewAccessSecretVersionFn(mock AccessSecretVersionMockRet
 func (mc *MockSMClient) ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, _ ...gax.CallOption) *secretmanager.SecretIterator {
 	return mc.ListSecretsFn(ctx, req)
 }
+
 func (mc *MockSMClient) Close() error {
 	return mc.closeFn()
 }
@@ -205,6 +212,12 @@ func (mc *MockSMClient) NewUpdateSecretFn(mock SecretMockReturn) {
 
 func (mc *MockSMClient) ListSecretVersions(ctx context.Context, req *secretmanagerpb.ListSecretVersionsRequest, _ ...gax.CallOption) *secretmanager.SecretVersionIterator {
 	return mc.ListSecretVersionsFn(ctx, req)
+}
+
+func (mc *MockSMClient) NewListSecretVersionsFn(mock ListSecretVersionsMockReturn) {
+	mc.ListSecretVersionsFn = func(_ context.Context, _ *secretmanagerpb.ListSecretVersionsRequest, _ ...gax.CallOption) *secretmanager.SecretVersionIterator {
+		return mock.Res
+	}
 }
 
 func (mc *MockSMClient) WithValue(_ context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
