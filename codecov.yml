@@ -1,7 +1,7 @@
 # When modifying this file, please validate using
 # curl -X POST --data-binary @codecov.yml https://codecov.io/validate
 ignore:
-  - "**/zz_generated.deepcopy.go"
+  - "**/zz_generated**.go"
   - "assets"
   - "config"
   - "deploy"

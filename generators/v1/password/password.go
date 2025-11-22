@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/sethvargo/go-password/password"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -67,6 +68,23 @@ func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ 
 // Cleanup performs any necessary cleanup after password generation.
 func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
+}
+
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (g *Generator) GetCleanupPolicy(_ *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return nil, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (g *Generator) LastActivityTime(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+// GetKeys returns the keys for the generator.
+func (g *Generator) GetKeys() map[string]string {
+	return map[string]string{
+		"password": "The generated password",
+	}
 }
 
 func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
@@ -165,7 +183,6 @@ func parseSpec(data []byte) (*genv1alpha1.Password, error) {
 	err := yaml.Unmarshal(data, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

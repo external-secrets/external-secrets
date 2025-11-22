@@ -23446,6 +23446,12 @@ spec:
                 - auth
                 - registry
               type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -23538,6 +23544,12 @@ spec:
                 - orgSlug
                 - serviceAccountRef
                 - serviceSlug
+              type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
               type: object
           type: object
       served: true
@@ -25770,6 +25782,12 @@ spec:
                 - generator
                 - kind
               type: object
+            status:
+              description: Status the status of this generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -25965,6 +25983,12 @@ spec:
               required:
                 - region
               type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -26030,6 +26054,12 @@ spec:
                     Data defines the static data returned
                     by this generator.
                   type: object
+              type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
               type: object
           type: object
       served: true
@@ -26280,6 +26310,12 @@ spec:
                 - auth
                 - projectID
               type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -26388,11 +26424,19 @@ spec:
                       - type
                     type: object
                   type: array
+                lastMessage:
+                  type: string
+                lastReason:
+                  type: string
+                lastType:
+                  description: GeneratorStateConditionType represents the type of condition for a generator state.
+                  type: string
               type: object
           type: object
       served: true
       storage: true
-      subresources: {}
+      subresources:
+        status: {}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -26502,6 +26546,12 @@ spec:
                 - appID
                 - auth
                 - installID
+              type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
               type: object
           type: object
       served: true
@@ -26636,6 +26686,12 @@ spec:
                 - serviceAccount
                 - url
               type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -26728,6 +26784,12 @@ spec:
                   type: string
               required:
                 - secret
+              type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
               type: object
           type: object
       served: true
@@ -26834,6 +26896,12 @@ spec:
                 - length
                 - noUpper
               type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -26923,6 +26991,12 @@ spec:
                 - robotAccount
                 - serviceAccountRef
               type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -26994,6 +27068,12 @@ spec:
                     - ecdsa
                     - ed25519
                   type: string
+              type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
               type: object
           type: object
       served: true
@@ -27201,6 +27281,12 @@ spec:
               required:
                 - region
               type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -27251,6 +27337,12 @@ spec:
               type: object
             spec:
               description: UUIDSpec controls the behavior of the uuid generator.
+              type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
               type: object
           type: object
       served: true
@@ -28254,6 +28346,12 @@ spec:
                 - path
                 - provider
               type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
           type: object
       served: true
       storage: true
@@ -28475,6 +28573,12 @@ spec:
               required:
                 - result
                 - url
+              type: object
+            status:
+              description: GeneratorStatus represents the status of a generator.
+              properties:
+                output:
+                  x-kubernetes-preserve-unknown-fields: true
               type: object
           type: object
       served: true

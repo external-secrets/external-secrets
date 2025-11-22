@@ -27,3 +27,5 @@ spec:
     sessionDuration: 1
     tokenCode: string
   role: string
+status:
+  output: 

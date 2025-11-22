@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -114,6 +115,26 @@ func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alp
 	return nil
 }
 
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (g *Generator) GetCleanupPolicy(_ *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return nil, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (g *Generator) LastActivityTime(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+// GetKeys returns the keys for the generator.
+func (g *Generator) GetKeys() map[string]string {
+	return map[string]string{
+		"access_key_id":     "Temporary AWS access key ID",
+		"secret_access_key": "Temporary AWS secret access key",
+		"session_token":     "AWS session token for temporary credentials",
+		"expiration":        "Expiration timestamp of the credentials (Unix epoch seconds)",
+	}
+}
+
 type stsFactoryFunc func(cfg *aws.Config) stsAPI
 
 func stsFactory(cfg *aws.Config) stsAPI {
@@ -125,7 +146,6 @@ func parseSpec(data []byte) (*genv1alpha1.STSSessionToken, error) {
 	err := yaml.Unmarshal(data, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

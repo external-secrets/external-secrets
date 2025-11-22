@@ -49,8 +49,8 @@ func ForceRegister(kind string, g Generator) {
 	buildlock.Unlock()
 }
 
-// GetGeneratorByName returns the provider implementation by name.
-func GetGeneratorByName(kind string) (Generator, bool) {
+// GetGeneratorByKind returns the provider implementation by name.
+func GetGeneratorByKind(kind string) (Generator, bool) {
 	buildlock.RLock()
 	f, ok := builder[kind]
 	buildlock.RUnlock()

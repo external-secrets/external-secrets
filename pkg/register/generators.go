@@ -39,18 +39,47 @@ import (
 func init() {
 	// Register all generators
 	genv1alpha1.Register(acr.Kind(), acr.NewGenerator())
+	genv1alpha1.RegisterGeneric(acr.Kind(), &genv1alpha1.ACRAccessToken{})
+
 	genv1alpha1.Register(cloudsmith.Kind(), cloudsmith.NewGenerator())
+	genv1alpha1.RegisterGeneric(cloudsmith.Kind(), &genv1alpha1.CloudsmithAccessToken{})
+
 	genv1alpha1.Register(ecr.Kind(), ecr.NewGenerator())
+	genv1alpha1.RegisterGeneric(ecr.Kind(), &genv1alpha1.ECRAuthorizationToken{})
+
 	genv1alpha1.Register(fakegen.Kind(), fakegen.NewGenerator())
+	genv1alpha1.RegisterGeneric(fakegen.Kind(), &genv1alpha1.Fake{})
+
 	genv1alpha1.Register(gcr.Kind(), gcr.NewGenerator())
+	genv1alpha1.RegisterGeneric(gcr.Kind(), &genv1alpha1.GCRAccessToken{})
+
 	genv1alpha1.Register(githubgen.Kind(), githubgen.NewGenerator())
+	genv1alpha1.RegisterGeneric(githubgen.Kind(), &genv1alpha1.GithubAccessToken{})
+
 	genv1alpha1.Register(grafana.Kind(), grafana.NewGenerator())
+	genv1alpha1.RegisterGeneric(grafana.Kind(), &genv1alpha1.Grafana{})
+
 	genv1alpha1.Register(mfa.Kind(), mfa.NewGenerator())
+	genv1alpha1.RegisterGeneric(mfa.Kind(), &genv1alpha1.MFA{})
+
 	genv1alpha1.Register(password.Kind(), password.NewGenerator())
+	genv1alpha1.RegisterGeneric(password.Kind(), &genv1alpha1.Password{})
+
 	genv1alpha1.Register(quay.Kind(), quay.NewGenerator())
-	genv1alpha1.Register(sshkey.Kind(), sshkey.NewGenerator())
+	genv1alpha1.RegisterGeneric(quay.Kind(), &genv1alpha1.QuayAccessToken{})
+
 	genv1alpha1.Register(sts.Kind(), sts.NewGenerator())
-	genv1alpha1.Register(uuid.Kind(), uuid.NewGenerator())
+	genv1alpha1.RegisterGeneric(sts.Kind(), &genv1alpha1.STSSessionToken{})
+
 	genv1alpha1.Register(vaultgen.Kind(), vaultgen.NewGenerator())
+	genv1alpha1.RegisterGeneric(vaultgen.Kind(), &genv1alpha1.VaultDynamicSecret{})
+
+	genv1alpha1.Register(sshkey.Kind(), sshkey.NewGenerator())
+	genv1alpha1.RegisterGeneric(sshkey.Kind(), &genv1alpha1.SSHKey{})
+
+	genv1alpha1.Register(uuid.Kind(), uuid.NewGenerator())
+	genv1alpha1.RegisterGeneric(uuid.Kind(), &genv1alpha1.UUID{})
+
 	genv1alpha1.Register(webhookgen.Kind(), webhookgen.NewGenerator())
+	genv1alpha1.RegisterGeneric(webhookgen.Kind(), &genv1alpha1.Webhook{})
 }

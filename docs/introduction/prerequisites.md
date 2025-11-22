@@ -103,13 +103,11 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <summary>About Kubernetes</summary>
   <h3>What is Kubernetes?</h3>
   <p>Kubernetes is an open-source platform for automating the deployment, scaling, and management of containerized applications. It orchestrates containerized workloads across a cluster of machines, ensuring high availability and efficient resource utilization.</p>
-
   <h3>Why is Kubernetes needed?</h3>
   <p>In the <strong>External Secrets Operator</strong> project, Kubernetes provides the infrastructure to deploy and manage containerized applications. It allows integration with cloud-native services, enabling scalability, fault tolerance, and streamlined operations in dynamic environments.</p>
 
   <p>
   To work with Kubernetes, we need to install and configure some tools first. This will be explained in the sections below.
-
   For more details, check the [official documentation](https://kubernetes.io/docs/home/).
 </p>
 </details>
@@ -121,7 +119,6 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <summary>About Docker</summary>
   <h3>What is Docker?</h3>
   <p>Docker is a platform for building, deploying, and running applications in containers. Containers package an application with all its dependencies into a standard unit for development and deployment.</p>
-
   <h3>Why is Docker needed?</h3>
   <p>In the <strong>External Secrets Operator</strong> project, Docker is used to create container images and run services in isolated environments. It is essential for developing, testing, and deploying the application within a Kubernetes environment.</p>
 </details>
@@ -168,7 +165,6 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <h3>Required Version</h3>
   <p><strong>A version compatible with the installed Kubernetes version (usually the latest stable version).</strong></p>
   <h3>How to Install kubectl</h3>
-
   <p>Please consult the <a href="https://kubernetes.io/docs/tasks/tools/">official kubectl documentation</a>.</p>
 </details>
 
