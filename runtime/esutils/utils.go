@@ -916,3 +916,90 @@ func FetchServiceAccountToken(ctx context.Context, saRef esmeta.ServiceAccountSe
 	}
 	return tokenResponse.Status.Token, nil
 }
+
+// CanonicalJSONCompare compares two JSON documents for semantic equality.
+func CanonicalJSONCompare(json1, json2 string) (bool, error) {
+	normalizedJSON1, err := normalizeJSON(json1)
+	if err != nil {
+		return false, err
+	}
+
+	normalizedJSON2, err := normalizeJSON(json2)
+	if err != nil {
+		return false, err
+	}
+
+	return bytes.Equal(normalizedJSON1, normalizedJSON2), nil
+}
+
+func normalizeJSON(rawJSON string) ([]byte, error) {
+	var data any
+
+	if err := json.Unmarshal([]byte(rawJSON), &data); err != nil {
+		return nil, err
+	}
+
+	return marshalSorted(data)
+}
+
+func marshalSorted(data any) ([]byte, error) {
+	switch typedData := data.(type) {
+	// Handle JSON objects
+	case map[string]any:
+		sortedKeys := make([]string, 0, len(typedData))
+		for key := range typedData {
+			sortedKeys = append(sortedKeys, key)
+		}
+		sort.Strings(sortedKeys)
+
+		buffer := &bytes.Buffer{}
+		buffer.WriteByte('{')
+
+		for i, key := range sortedKeys {
+			if i > 0 {
+				buffer.WriteByte(',')
+			}
+
+			keyJSON, _ := json.Marshal(key)
+			buffer.Write(keyJSON)
+			buffer.WriteByte(':')
+
+			canonicalValue, err := marshalSorted(typedData[key])
+			if err != nil {
+				return nil, err
+			}
+
+			buffer.Write(canonicalValue)
+		}
+
+		buffer.WriteByte('}')
+		return buffer.Bytes(), nil
+
+	// Handle JSON arrays
+	// NOTE: arrays are index sensitive, so if the order of objects in an array
+	// change, it considers it as different.
+	case []any:
+		buffer := &bytes.Buffer{}
+		buffer.WriteByte('[')
+
+		for i, data := range typedData {
+			if i > 0 {
+				buffer.WriteByte(',')
+			}
+
+			canonicalElement, err := marshalSorted(data)
+			if err != nil {
+				return nil, err
+			}
+
+			buffer.Write(canonicalElement)
+		}
+
+		buffer.WriteByte(']')
+		return buffer.Bytes(), nil
+
+	// Handle JSON primitives (string, number, boolean and null)
+	default:
+		return json.Marshal(typedData)
+	}
+}
