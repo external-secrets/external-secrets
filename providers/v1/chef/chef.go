@@ -32,12 +32,12 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -97,11 +97,14 @@ type Providerchef struct {
 	clientName     string
 	databagService DatabagFetcher
 	userService    UserInterface
-	log            logr.Logger
 }
 
 var _ esv1.SecretsClient = &Providerchef{}
 var _ esv1.Provider = &Providerchef{}
+
+func ctxLog(ctx context.Context) logr.Logger {
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("chef").WithName("secretsmanager")
+}
 
 // NewClient creates a new Chef Infra Server client.
 func (providerchef *Providerchef) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
@@ -144,7 +147,6 @@ func (providerchef *Providerchef) NewClient(ctx context.Context, store esv1.Gene
 	providerchef.clientName = chefProvider.UserName
 	providerchef.databagService = client.DataBags
 	providerchef.userService = client.Users
-	providerchef.log = ctrl.Log.WithName("provider").WithName("chef").WithName("secretsmanager")
 	return providerchef, nil
 }
 
@@ -171,6 +173,7 @@ func (providerchef *Providerchef) GetAllSecrets(_ context.Context, _ esv1.Extern
 
 // GetSecret returns a databagItem present in the databag. format example: databagName/databagItemName.
 func (providerchef *Providerchef) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	log := ctxLog(ctx)
 	if esutils.IsNil(providerchef.databagService) {
 		return nil, errors.New(errUninitalizedChefProvider)
 	}
@@ -183,7 +186,7 @@ func (providerchef *Providerchef) GetSecret(ctx context.Context, ref esv1.Extern
 		databagName = nameSplitted[0]
 		databagItem = nameSplitted[1]
 	}
-	providerchef.log.Info("fetching secret value", "databag Name:", databagName, "databag Item:", databagItem)
+	log.Info("fetching secret value", "databag Name:", databagName, "databag Item:", databagItem)
 	if databagName != "" && databagItem != "" {
 		return getSingleDatabagItemWithContext(ctx, providerchef, databagName, databagItem, ref.Property)
 	}
@@ -262,13 +265,16 @@ func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref esv1.Ext
 	if esutils.IsNil(providerchef.databagService) {
 		return nil, errors.New(errUninitalizedChefProvider)
 	}
+
+	log := ctxLog(ctx)
+
 	databagName := ref.Key
 
 	if strings.Contains(databagName, "/") {
 		return nil, errors.New(errInvalidDataform)
 	}
 	getAllSecrets := make(map[string][]byte)
-	providerchef.log.Info("fetching all items from", "databag:", databagName)
+	log.Info("fetching all items from", "databag:", databagName)
 	dataItems, err := providerchef.databagService.ListItems(databagName)
 	metrics.ObserveAPICall(ProviderChef, CallChefListDataBagItems, err)
 	if err != nil {

@@ -29,7 +29,6 @@ import (
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -949,7 +948,7 @@ func TestGetSecretWithInvalidFetchingPolicy(t *testing.T) {
 
 func newLockboxProvider(clock clock.Clock, fakeLockboxServer *client.FakeLockboxServer) *ydxcommon.YandexCloudProvider {
 	return ydxcommon.InitYandexCloudProvider(
-		ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox"),
+		[]string{"provider", "yandex", "lockbox"},
 		clock,
 		adaptInput,
 		func(context.Context, string, *iamkey.Key, []byte) (ydxcommon.SecretGetter, error) {
