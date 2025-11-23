@@ -312,57 +312,55 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 		vopts = &gitlab.GetProjectVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: g.store.Environment}}
 	}
 
-	// _Note_: getVariables potentially alters vopts environment variable.
-	data, resp, err := g.getVariables(ref, vopts)
-	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
-		return nil, err
+	data, err := g.getVariables(ref, vopts)
+	if err == nil {
+		return extractVariable(ref, data.Value)
 	}
 
-	err = g.ResolveGroupIDs()
-	if err != nil {
-		return nil, err
+	// If project variable not found, try group variables
+	if errors.Is(err, gitlab.ErrNotFound) {
+		return g.tryGroupVariables(ref, gopts, err)
 	}
 
-	var result []byte
-	if resp.StatusCode < 300 {
-		result, err = extractVariable(ref, data.Value)
+	return nil, err
+}
+
+// tryGroupVariables attempts to retrieve the secret from group variables when project lookup fails.
+func (g *gitlabBase) tryGroupVariables(ref esv1.ExternalSecretDataRemoteRef, gopts *gitlab.GetGroupVariableOptions, originalErr error) ([]byte, error) {
+	// Load groupIds from the `InheritFromGroups` property
+	if err := g.ResolveGroupIDs(); err != nil {
+		return nil, err
 	}
 
 	for i := len(g.store.GroupIDs) - 1; i >= 0; i-- {
 		groupID := g.store.GroupIDs[i]
-		if result != nil {
-			return result, nil
+		groupVar, _, err := g.getGroupVariables(groupID, ref, gopts)
+		if err == nil {
+			return extractVariable(ref, groupVar.Value)
 		}
 
-		groupVar, resp, err := g.getGroupVariables(groupID, ref, gopts)
-		if err != nil {
-			return nil, err
+		// If a 404 error, continue to the next stage, otherwise exit early with error
+		if errors.Is(err, gitlab.ErrNotFound) {
+			continue
 		}
-		if resp != nil && resp.StatusCode < 300 {
-			result, _ = extractVariable(ref, groupVar.Value)
-		}
+		return nil, err
 	}
 
-	if result != nil {
-		return result, nil
-	}
-	return nil, err
+	// No group variables found, return the original project error
+	return nil, originalErr
 }
 
 func extractVariable(ref esv1.ExternalSecretDataRemoteRef, value string) ([]byte, error) {
+	// If no property specified, return the raw value
 	if ref.Property == "" {
-		if value != "" {
-			return []byte(value), nil
+		if value == "" {
+			return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
+		return []byte(value), nil
 	}
 
-	var payload string
-	if value != "" {
-		payload = value
-	}
-
-	val := gjson.Get(payload, ref.Property)
+	// Extract property from JSON value
+	val := gjson.Get(value, ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
