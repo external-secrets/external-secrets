@@ -2,8 +2,6 @@ module github.com/external-secrets/external-secrets
 
 go 1.25.3
 
-replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
-
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
 	github.com/external-secrets/external-secrets/generators/v1/acr => ./generators/v1/acr

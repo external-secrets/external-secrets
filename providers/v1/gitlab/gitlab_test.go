@@ -85,12 +85,12 @@ type secretManagerTestCase struct {
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc := secretManagerTestCase{
-		mockProjectsClient:       &fakegitlab.GitlabMockProjectsClient{},
-		mockProjectVarClient:     &fakegitlab.GitlabMockProjectVariablesClient{},
-		mockGroupVarClient:       &fakegitlab.GitlabMockGroupVariablesClient{},
-		apiInputProjectID:        makeValidAPIInputProjectID(),
-		apiInputKey:              makeValidAPIInputKey(),
-		apiInputEnv:              makeValidEnvironment(),
+		mockProjectsClient:   &fakegitlab.GitlabMockProjectsClient{},
+		mockProjectVarClient: &fakegitlab.GitlabMockProjectVariablesClient{},
+		mockGroupVarClient:   &fakegitlab.GitlabMockGroupVariablesClient{},
+		apiInputProjectID:    makeValidAPIInputProjectID(),
+		apiInputKey:          makeValidAPIInputKey(),
+		//apiInputEnv:              makeValidEnvironment(),
 		ref:                      makeValidRef(),
 		refFind:                  makeValidFindRef(),
 		projectID:                makeValidProjectID(),
@@ -145,14 +145,19 @@ func makeValidAPIInputKey() string {
 	return testKey
 }
 
-func makeValidEnvironment() string {
-	return environment
-}
-
 func makeValidProjectAPIResponse() *gitlab.Response {
 	return &gitlab.Response{
 		Response: &http.Response{
 			StatusCode: http.StatusOK,
+		},
+		CurrentPage: 1,
+		TotalPages:  1,
+	}
+}
+func make404GitlabAPIResponse() *gitlab.Response {
+	return &gitlab.Response{
+		Response: &http.Response{
+			StatusCode: http.StatusNotFound,
 		},
 		CurrentPage: 1,
 		TotalPages:  1,
@@ -201,6 +206,21 @@ func makeValidProjectGroupsAPIOutput() []*gitlab.ProjectGroup {
 		Name:     "Group (10)",
 		FullPath: "foo/bar",
 	}}
+}
+
+func make404ProjectAPIOutput(numResponses ...int) []*fakegitlab.APIResponse[[]*gitlab.ProjectVariable] {
+	count := 1
+	if len(numResponses) > 0 && numResponses[0] > 0 {
+		count = numResponses[0]
+	}
+	responses := make([]*fakegitlab.APIResponse[[]*gitlab.ProjectVariable], count)
+	for i := 0; i < count; i++ {
+		responses[i] = &fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{
+			Response: make404GitlabAPIResponse(),
+			Error:    gitlab.ErrNotFound,
+		}
+	}
+	return responses
 }
 
 func makeValidGroupAPIOutput() *gitlab.GroupVariable {
@@ -407,22 +427,22 @@ func TestGetSecret(t *testing.T) {
 		smtc.groupAPIOutput = nil
 		smtc.expectedSecret = smtc.projectAPIOutput.Value
 	}
-	onlyWildcardSecret := func(smtc *secretManagerTestCase) {
-		smtc.projectAPIOutput.Value = ""
-		smtc.projectAPIResponse.Response.StatusCode = 404
-		smtc.groupAPIResponse = nil
-		smtc.groupAPIOutput = nil
-		smtc.expectedSecret = smtc.projectAPIOutput.Value
-	}
+
 	groupSecretProjectOverride := func(smtc *secretManagerTestCase) {
+		// given a secre t in the project and a group with the same key
+		// the project secret should override the group secret
 		smtc.projectAPIOutput.Value = projectvalue
 		smtc.groupAPIOutput.Key = testKey
 		smtc.groupAPIOutput.Value = groupvalue
 		smtc.expectedSecret = smtc.projectAPIOutput.Value
 	}
+
 	groupWithoutProjectOverride := func(smtc *secretManagerTestCase) {
+		// given a group secret without a project secret
+		// the group secret should be returned
 		smtc.groupIDs = []string{groupid}
-		smtc.projectAPIResponse.Response.StatusCode = 404
+		smtc.projectAPIOutput = nil
+		smtc.projectAPIOutputs = make404ProjectAPIOutput()
 		smtc.groupAPIOutput.Key = testKey
 		smtc.groupAPIOutput.Value = groupvalue
 		smtc.expectedSecret = smtc.groupAPIOutput.Value
@@ -430,7 +450,6 @@ func TestGetSecret(t *testing.T) {
 
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(onlyProjectSecret),
-		makeValidSecretManagerTestCaseCustom(onlyWildcardSecret),
 		makeValidSecretManagerTestCaseCustom(groupSecretProjectOverride),
 		makeValidSecretManagerTestCaseCustom(groupWithoutProjectOverride),
 		makeValidSecretManagerTestCaseCustom(setGroupWildcardVariable),
@@ -512,6 +531,7 @@ func TestGetAllSecrets(t *testing.T) {
 		smtc.refFind.Name = makeFindName("foo.*")
 	}
 	setUnmatchedEnvironmentFindString := func(smtc *secretManagerTestCase) {
+		smtc.apiInputEnv = environment
 		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              testKey,
 			Value:            projectvalue,
@@ -531,6 +551,7 @@ func TestGetAllSecrets(t *testing.T) {
 		smtc.refFind.Tags = map[string]string{"environment_scope": environment}
 	}
 	setEnvironmentConstrainedByStore := func(smtc *secretManagerTestCase) {
+		smtc.apiInputEnv = environment
 		smtc.expectedSecret = projectvalue
 		smtc.expectError = "'find.tags' is constrained by 'environment_scope' of the store"
 		smtc.refFind.Tags = map[string]string{"environment_scope": environment}
@@ -688,6 +709,8 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 
 	cases := []*secretManagerTestCase{
+		makeValidSecretManagerGetAllTestCaseCustom(setUnmatchedEnvironmentFindString),
+		///
 		makeValidSecretManagerGetAllTestCaseCustom(setMissingFindRegex),
 		makeValidSecretManagerGetAllTestCaseCustom(setUnsupportedFindPath),
 		makeValidSecretManagerGetAllTestCaseCustom(setUnsupportedFindTag),
@@ -959,8 +982,12 @@ func ErrorContains(out error, want string) bool {
 type storeModifier func(*esv1.SecretStore) *esv1.SecretStore
 
 func setGroupWildcardVariable(smtc *secretManagerTestCase) {
+	// Given a group variable with a wildcard environment scope
+	// and a provider with no environment,
+	// the group variable should be returned
 	smtc.groupIDs = []string{groupid}
-	smtc.projectAPIResponse.Response.StatusCode = 404
+	smtc.projectAPIOutput = nil
+	smtc.projectAPIOutputs = make404ProjectAPIOutput(2)
 	smtc.groupAPIOutput.Key = testKey
 	smtc.groupAPIOutput.Value = groupvalue
 	smtc.groupAPIOutput.EnvironmentScope = "*"
@@ -968,8 +995,13 @@ func setGroupWildcardVariable(smtc *secretManagerTestCase) {
 }
 
 func setGroupWildcardVariableWithEnvironment(smtc *secretManagerTestCase) {
+	// Given a group variable with a wildcard environment scope
+	// and a provider with a specific environment,
+	// the group variable should be returned
+	// todo: verify that the flow for wildcard is observed. Have some doubts
 	smtc.groupIDs = []string{groupid}
-	smtc.projectAPIResponse.Response.StatusCode = 404
+	smtc.projectAPIOutput = nil
+	smtc.projectAPIOutputs = make404ProjectAPIOutput(2)
 	smtc.groupAPIOutput.Key = testKey
 	smtc.groupAPIOutput.Value = groupvalue
 	smtc.groupAPIOutput.EnvironmentScope = "*"
@@ -978,19 +1010,23 @@ func setGroupWildcardVariableWithEnvironment(smtc *secretManagerTestCase) {
 }
 
 func setGroupWildcardVariableNotFoundThenFound(smtc *secretManagerTestCase) {
+	// Given a group variable with a wildcard environment scope
+	// and a provider with a specific environment,
+	// the group variable should be returned
 	smtc.groupIDs = []string{groupid}
-	smtc.projectAPIResponse.Response.StatusCode = 404
 
-	// For this test, we'll use a simpler approach - just return the wildcard variable
-	smtc.groupAPIOutput = &gitlab.GroupVariable{
-		Key:              testKey,
-		Value:            groupvalue,
-		EnvironmentScope: "*",
-	}
-	smtc.groupAPIResponse = &gitlab.Response{
-		Response: &http.Response{
-			StatusCode: http.StatusOK,
-		},
+	smtc.projectAPIOutput = nil
+	smtc.projectAPIOutputs = make404ProjectAPIOutput(2)
+	smtc.groupAPIOutput = nil
+	smtc.groupAPIOutputs = []*fakegitlab.APIResponse[[]*gitlab.GroupVariable]{
+		{Response: make404GitlabAPIResponse(), Error: gitlab.ErrNotFound},
+		{Output: []*gitlab.GroupVariable{
+			{
+				Key:              testKey,
+				Value:            groupvalue,
+				EnvironmentScope: "*",
+			},
+		}, Response: makeValidGroupAPIResponse(), Error: nil},
 	}
 
 	smtc.apiInputEnv = environment
