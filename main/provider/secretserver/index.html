@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#delinea-secret-server" class="md-skip">
+        <a href="#delinea-secret-serverplatform" class="md-skip">
           Skip to content
         </a>
       
@@ -3741,13 +3741,30 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#support-for-non-json-secret-templates" class="md-nav__link">
+  <a href="#working-with-plain-text-itemvalue-fields" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Support for Non-JSON Secret Templates
+        Working with Plain Text ItemValue Fields
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Working with Plain Text ItemValue Fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-with-plain-text-password-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example with Plain Text Password Field
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -4891,13 +4908,30 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#support-for-non-json-secret-templates" class="md-nav__link">
+  <a href="#working-with-plain-text-itemvalue-fields" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Support for Non-JSON Secret Templates
+        Working with Plain Text ItemValue Fields
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Working with Plain Text ItemValue Fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-with-plain-text-password-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example with Plain Text Password Field
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -5016,19 +5050,19 @@
   
 
 
-<h1 id="delinea-secret-server">Delinea Secret Server</h1>
-<p>External Secrets Operator integration with <a href="https://docs.delinea.com/online-help/secret-server/start.htm">Delinea Secret Server</a>.</p>
+<h1 id="delinea-secret-serverplatform">Delinea Secret-Server/Platform</h1>
+<p>For detailed information about configuring  Kubernetes ESO with Secret Server and the Delinea Platform, see the https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm</p>
 <h3 id="creating-a-secretstore">Creating a SecretStore</h3>
-<p>You need a username, password and a fully qualified Secret Server tenant URL to authenticate
-i.e. <code>https://yourTenantName.secretservercloud.com</code>.</p>
+<p>You need a username, password and a fully qualified Secret-Server/Platform tenant URL to authenticate
+i.e. <code>https://yourTenantName.secretservercloud.com</code> or <code>https://yourtenantname.delinea.app</code>.</p>
 <p>Both username and password can be specified either directly in your <code>SecretStore</code> yaml config, or by referencing a kubernetes secret.</p>
-<p>To acquire a username and password, refer to the  Secret Server <a href="https://docs.delinea.com/online-help/secret-server/users/creating-users/index.htm">user management</a> documentation.</p>
 <p>Both <code>username</code> and <code>password</code> can either be specified directly via the <code>value</code> field (example below)</p>
 <blockquote>
 <p>spec.provider.secretserver.username.value: "yourusername"<br />
 spec.provider.secretserver.password.value: "yourpassword" <br /></p>
 </blockquote>
 <p>Or you can reference a kubernetes secret (password example below).</p>
+<p><strong>Note:</strong> Use <code>https://yourtenantname.secretservercloud.com</code> for Secret Server or <code>https://yourtenantname.delinea.app</code> for Platform.
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5036,23 +5070,26 @@ spec.provider.secretserver.password.value: "yourpassword" <br /></p>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">secretserver</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">serverURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://yourtenantname.secretservercloud.com&quot;</span>
+<span class="w">      </span><span class="nt">serverURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://yourtenantname.secretservercloud.com&quot;</span><span class="w">  </span><span class="c1"># or &quot;https://yourtenantname.delinea.app&quot; for Platform</span>
 <span class="w">      </span><span class="nt">username</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;yourusername&quot;</span>
 <span class="w">      </span><span class="nt">password</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_K8S_SECRET&gt;</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_K8S_SECRET&gt;</span>
-</code></pre></div>
+</code></pre></div></p>
 <h3 id="referencing-secrets">Referencing Secrets</h3>
-<p>Secrets may be referenced by secret ID or secret name.</p>
+<p>Secrets may be referenced by:</p>
 <blockquote>
-<p>Please note if using the secret name
+<p>Secret ID<br />
+Secret Name<br />
+Secret Path (/FolderName/SecretName)<br /></p>
+</blockquote>
+<p>Please note if using the secret name or path,
 the name field must not contain spaces or control characters.<br />
 If multiple secrets are found, <em><code>only the first found secret will be returned</code></em>.</p>
-</blockquote>
 <p>Please note: <code>Retrieving a specific version of a secret is not yet supported.</code></p>
-<p>Note that because all Secret Server secrets are JSON objects, you must specify the <code>remoteRef.property</code>
+<p>Note that because all Secret-Server/Platform secrets are JSON objects, you must specify the <code>remoteRef.property</code>
 in your ExternalSecret configuration.<br />
 You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5070,9 +5107,10 @@ You can access nested values or arrays using <a href="https://github.com/tidwall
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;52622&quot;</span><span class="w"> </span><span class="c1">#&lt;SECRET_ID&gt;</span>
 <span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;array.0.value&quot;</span><span class="w"> </span><span class="c1">#&lt;GJSON_PROPERTY&gt; * an empty property will return the entire secret</span>
 </code></pre></div>
-<h3 id="support-for-non-json-secret-templates">Support for Non-JSON Secret Templates</h3>
-<p>The Secret Server provider now supports secrets that are not formatted as JSON. This enhancement allows users to retrieve and utilize secrets stored in formats such as plain text, XML, or other non-JSON structures without requiring additional parsing or transformation.​</p>
-<p>When working with non-JSON secrets, you can omit the remoteRef.property field in your ExternalSecret configuration. The entire content of the secret will be retrieved and stored as-is in the corresponding Kubernetes Secret.​</p>
+<h3 id="working-with-plain-text-itemvalue-fields">Working with Plain Text ItemValue Fields</h3>
+<p>While Secret-Server/Platform always returns secrets in JSON format with an <code>Items</code> array structure, individual field values (stored in <code>ItemValue</code>) may contain plain text, passwords, URLs, or other non-JSON content.</p>
+<p>When retrieving fields that contain plain text values, you can reference them directly by their <code>FieldName</code> or <code>Slug</code> without needing additional JSON parsing within the <code>ItemValue</code>.</p>
+<h4 id="example-with-plain-text-password-field">Example with Plain Text Password Field</h4>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5083,14 +5121,15 @@ You can access nested values or arrays using <a href="https://github.com/tidwall
 <span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
 <span class="w">    </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretServerValue</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;52622&quot;</span><span class="w">  </span><span class="c1"># Secret ID</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;52622&quot;</span><span class="w">      </span><span class="c1"># Secret ID</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;password&quot;</span><span class="w">  </span><span class="c1"># FieldName or Slug of the password field</span>
 </code></pre></div>
-<p>In this example, the secret with ID 52622 is retrieved in its entirety and stored under the key SecretServerValue in the Kubernetes Secret.​</p>
-<p>This feature simplifies the integration process for applications that require secrets in specific formats, eliminating the need for custom parsing logic within your applications.</p>
+<p>In this example, if the secret contains an Item with <code>FieldName: "Password"</code> or <code>Slug: "password"</code>, the plain text value stored in <code>ItemValue</code> is retrieved directly and stored under the key <code>password</code> in the Kubernetes Secret.</p>
+<p>This approach works for any field type (text, password, URL, etc.) where the <code>ItemValue</code> contains simple content rather than nested JSON structures.</p>
 <h3 id="support-for-fetching-secrets-by-path">Support for Fetching Secrets by Path</h3>
-<p>In addition to retrieving secrets by ID or Name, the Secret Server provider now supports fetching secrets by <strong>path</strong>.<br />
+<p>In addition to retrieving secrets by ID or Name, the Secret-Server/Platform provider now supports fetching secrets by <strong>path</strong>.
 This allows you to specify a secret’s folder hierarchy and name in the format:</p>
 <blockquote>
 <p>/FolderName/SecretName</p>
@@ -5112,20 +5151,9 @@ This allows you to specify a secret’s folder hierarchy and name in the format:
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                    </span><span class="c1"># Optional: use gjson syntax to extract a specific field</span>
 </code></pre></div>
 <h4 id="notes">Notes:</h4>
-<p>The path must exactly match the folder and secret name in Secret Server.
+<p>The path must exactly match the folder and secret name in Secret-Server/Platform.
 If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
-You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret (JSON or non-JSON).
-Updated Referencing Secrets Section</p>
-<p>Secrets may be referenced by:</p>
-<blockquote>
-<p>Secret ID<br />
-Secret Name<br />
-Secret Path (/FolderName/SecretName)<br /></p>
-</blockquote>
-<p>Please note if using the secret name or path,
-the field must not contain spaces or control characters.<br />
-If multiple secrets are found, only the first found secret will be returned.</p>
-<p>Please note: Retrieving a specific version of a secret is not yet supported.</p>
+You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret.</p>
 <h3 id="preparing-your-secret">Preparing your secret</h3>
 <p>You can either retrieve your entire secret or you can use a JSON formatted string
 stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
