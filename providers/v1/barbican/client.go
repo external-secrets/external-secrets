@@ -137,7 +137,7 @@ func (c *Client) SecretExists(_ context.Context, _ esapi.PushSecretRemoteRef) (b
 
 // DeleteSecret is not implemented right now for Barbican.
 func (c *Client) DeleteSecret(_ context.Context, _ esapi.PushSecretRemoteRef) error {
-	return fmt.Errorf("barbican provider does not support deleting secrets")
+	return fmt.Errorf("barbican provider does not support deleting secrets (delete policy Delete)")
 }
 
 // Validate checks if the client is properly configured.
