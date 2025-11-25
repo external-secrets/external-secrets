@@ -218,6 +218,10 @@ type SecretStoreProvider struct {
 	// Ngrok configures this store to sync secrets using the ngrok provider.
 	// +optional
 	Ngrok *NgrokProvider `json:"ngrok,omitempty"`
+
+	// Etcd configures this store to sync secrets using etcd.
+	// +optional
+	Etcd *EtcdProvider `json:"etcd,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.
