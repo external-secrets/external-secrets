@@ -163,6 +163,10 @@ func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, remoteSecret
 
 	// case 1: push the whole secret
 	if remoteRef.GetProperty() == "" {
+		if remoteRef.GetReconciliationPolicy() == esv1.PushSecretReconciliationPolicyReplace { // if we want to replace the whole data, create new map
+			remoteSecret.Data = make(map[string][]byte)
+		}
+
 		for k, v := range localSecret.Data {
 			remoteSecret.Data[k] = v
 		}

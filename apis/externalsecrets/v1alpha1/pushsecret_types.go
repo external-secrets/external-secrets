@@ -183,6 +183,11 @@ type PushSecretData struct {
 	// Used to define a conversion Strategy for the secret keys
 	// +kubebuilder:default="None"
 	ConversionStrategy PushSecretConversionStrategy `json:"conversionStrategy,omitempty"`
+
+	// ReconciliationPolicy to handle whether the secret gets replaced or merged in the provider.
+	// +kubebuilder:default="Merge"
+	// +optional
+	ReconciliationPolicy esv1.PushSecretDataReconciliationPolicy `json:"reconciliationPolicy,omitempty"`
 }
 
 // GetMetadata returns the metadata of the PushSecretData.
@@ -203,6 +208,10 @@ func (d PushSecretData) GetRemoteKey() string {
 // GetProperty returns the property from the PushSecretData match.
 func (d PushSecretData) GetProperty() string {
 	return d.Match.RemoteRef.Property
+}
+
+func (d PushSecretData) GetReconciliationPolicy() esv1.PushSecretDataReconciliationPolicy {
+	return d.ReconciliationPolicy
 }
 
 // PushSecretConditionType indicates the condition of the PushSecret.

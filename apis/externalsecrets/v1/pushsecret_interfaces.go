@@ -18,6 +18,18 @@ package v1
 
 import apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+// PushSecretReconciliationPolicy defines how the target secret data is handled.
+// +kubebuilder:validation:Enum=Merge;Replace
+type PushSecretDataReconciliationPolicy string
+
+const (
+	// PushSecretReconciliationPolicyMerge merges existing secret data with new templated data, keeping old keys behind.
+	PushSecretReconciliationPolicyMerge PushSecretDataReconciliationPolicy = "Merge"
+
+	// PushSecretReconciliationPolicyReplace replaces existing secret data with new templated data.
+	PushSecretReconciliationPolicyReplace PushSecretDataReconciliationPolicy = "Replace"
+)
+
 // +kubebuilder:object:root=false
 // +kubebuilder:object:generate:false
 // +k8s:deepcopy-gen:interfaces=nil
@@ -29,6 +41,7 @@ type PushSecretData interface {
 	GetSecretKey() string
 	GetRemoteKey() string
 	GetProperty() string
+	GetReconciliationPolicy() PushSecretDataReconciliationPolicy
 }
 
 // +kubebuilder:object:root=false
