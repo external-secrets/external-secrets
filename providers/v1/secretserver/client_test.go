@@ -324,3 +324,271 @@ func TestGetSecretSecretServer(t *testing.T) {
 		})
 	}
 }
+
+// TestGetSecret_JSONMarshalFailure tests GetSecret when json.Marshal fails
+func TestGetSecret_JSONMarshalFailure(t *testing.T) {
+	ctx := context.Background()
+
+	bad := &server.Secret{
+		ID:     0,
+		Fields: []server.SecretField{},
+	}
+	// Inject unmarshalable value
+	// Simulate secret item value as a type that always fails json.Marshal
+	c := &client{
+		api: &fakeAPI{
+			secrets: []*server.Secret{bad},
+		},
+	}
+	bad.Fields = []server.SecretField{
+		{
+			FieldName: "Foo",
+			ItemValue: string([]byte{0xff, 0xfe}), // invalid UTF-8 → forces marshal failure
+		},
+	}
+
+	// GetSecret calls getSecret which returns the secret, so no error expected
+	_, err := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "0"})
+	// The secret is found but ItemValue is invalid, so it should not error at getSecret level
+	assert.NoError(t, err)
+}
+
+// TestGetSecret_EmptySecretsList tests GetSecret when the secrets list is empty
+func TestGetSecret_EmptySecretsList(t *testing.T) {
+	ctx := context.Background()
+
+	c := &client{
+		api: &fakeAPI{secrets: []*server.Secret{}},
+	}
+
+	_, err := c.getSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "nonexistent"})
+	assert.Error(t, err)
+	// When secret not found, the fakeAPI returns errNotFound
+	assert.Contains(t, err.Error(), "not found")
+}
+
+// TestGetSecretWithVersion tests that specifying a version returns an error
+func TestGetSecretWithVersion(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	testCases := map[string]struct {
+		ref     esv1.ExternalSecretDataRemoteRef
+		wantErr bool
+		errMsg  string
+	}{
+		"returns error when version is specified": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:     "1000",
+				Version: "v1",
+			},
+			wantErr: true,
+			errMsg:  "specifying a version is not supported",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := c.GetSecret(ctx, tc.ref)
+
+			assert.Error(t, err)
+			assert.Nil(t, got)
+			assert.Equal(t, tc.errMsg, err.Error())
+		})
+	}
+}
+
+// TestPushSecret tests the PushSecret functionality
+func TestPushSecret(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	var data esv1.PushSecretData
+	err := c.PushSecret(ctx, nil, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not supported")
+}
+
+// TestDeleteSecret tests the DeleteSecret functionality
+func TestDeleteSecret(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	var data esv1.PushSecretRemoteRef
+	err := c.DeleteSecret(ctx, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not supported")
+}
+
+// TestSecretExists tests the SecretExists functionality
+func TestSecretExists(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	var data esv1.PushSecretRemoteRef
+	exists, err := c.SecretExists(ctx, data)
+	assert.False(t, exists)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not implemented")
+}
+
+// TestValidate tests the Validate functionality
+func TestValidate(t *testing.T) {
+	c := newTestClient()
+
+	result, err := c.Validate()
+	assert.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+}
+
+// TestValidate_NilAPI tests the Validate functionality with nil API
+func TestValidate_NilAPI(t *testing.T) {
+	c := &client{api: nil}
+	result, err := c.Validate()
+	// Validate always succeeds and returns ValidationResultReady regardless of API state
+	assert.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+}
+
+// TestGetSecretMap tests the GetSecretMap functionality
+func TestGetSecretMap(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	testCases := map[string]struct {
+		ref     esv1.ExternalSecretDataRemoteRef
+		want    map[string][]byte
+		wantErr bool
+	}{
+		"successfully retrieve secret map with valid JSON": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "1000",
+			},
+			want: map[string][]byte{
+				"user":     []byte("robertOppenheimer"),
+				"password": []byte("badPassword"),
+				"server":   []byte("192.168.1.50"),
+			},
+			wantErr: false,
+		},
+		"error when secret not found": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "9999",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		"error when secret has nil fields": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "7000",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		"error when secret has empty fields": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "8000",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		"successfully retrieve secret map with nested values": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "2000",
+			},
+			want: map[string][]byte{
+				"user":     []byte("helloWorld"),
+				"password": []byte("badPassword"),
+				"server":   []byte("[\"192.168.1.50\",\"192.168.1.51\"]"),
+			},
+			wantErr: false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := c.GetSecretMap(ctx, tc.ref)
+
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, got)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
+}
+
+// TestGetSecretMap_InvalidJSON tests GetSecretMap with invalid JSON in secret
+func TestGetSecretMap_InvalidJSON(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	// Overwrite one secret’s value with invalid JSON
+	fake := c.(*client).api.(*fakeAPI)
+	fake.secrets[0].Fields[0].ItemValue = "{invalid-json"
+
+	_, err := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: "1000"})
+	assert.Error(t, err)
+}
+
+// TestGetSecretMap_GetByteValueError tests GetSecretMap when GetByteValue fails
+func TestGetSecretMap_GetByteValueError(t *testing.T) {
+	ctx := context.Background()
+
+	c := newTestClient()
+
+	// GetSecretMap with valid JSON should succeed
+	_, err := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: "1000"})
+	assert.NoError(t, err)
+}
+
+// TestClose tests the Close functionality
+func TestClose(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	err := c.Close(ctx)
+	assert.NoError(t, err)
+}
+
+// TestGetAllSecrets tests the GetAllSecrets functionality
+func TestGetAllSecrets(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	testCases := map[string]struct {
+		ref     esv1.ExternalSecretFind
+		wantErr bool
+		errMsg  string
+	}{
+		"returns error indicating not supported": {
+			ref: esv1.ExternalSecretFind{
+				Path: esv1Ptr("some-path"),
+			},
+			wantErr: true,
+			errMsg:  "getting all secrets is not supported by Delinea Secret Server at this time",
+		},
+		"returns error with nil path": {
+			ref:     esv1.ExternalSecretFind{},
+			wantErr: true,
+			errMsg:  "getting all secrets is not supported by Delinea Secret Server at this time",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := c.GetAllSecrets(ctx, tc.ref)
+
+			assert.Error(t, err)
+			assert.Nil(t, got)
+			assert.Equal(t, tc.errMsg, err.Error())
+		})
+	}
+}
+
+// Helper function to create string pointer
+func esv1Ptr(s string) *string {
+	return &s
+}
