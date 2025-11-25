@@ -142,7 +142,7 @@ func (c *Client) DeleteSecret(_ context.Context, _ esapi.PushSecretRemoteRef) er
 
 // Validate checks if the client is properly configured.
 func (c *Client) Validate() (esapi.ValidationResult, error) {
-	return esapi.ValidationResultReady, nil
+	return esapi.ValidationResultUnknown, nil
 }
 
 // Close closes the client and any underlying connections.
