@@ -1,0 +1,120 @@
+name: Publish to ECR
+
+on:
+  push:
+    branches:
+      - add-etcd-provider
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        description: 'Image tag (e.g., v1.1.0-etcd)'
+        required: true
+        default: 'latest'
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 728921286627.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY: external-secrets/external-secrets
+
+permissions:
+  contents: read
+  id-token: write  # Required for OIDC authentication with AWS
+
+jobs:
+  build-and-push:
+    name: Build and Push to ECR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Option 1: Use OIDC (recommended) - requires AWS IAM OIDC provider setup
+          # role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          # role-session-name: github-actions-ecr-push
+          
+          # Option 2: Use access keys (simpler setup)
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Determine image tag
+        id: get-tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.image-tag }}"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            TAG="latest"
+          else
+            # For branches, use branch name + short SHA
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            TAG="${BRANCH}-${SHORT_SHA}"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Image will be tagged as: ${TAG}"
+
+      - name: Build binaries
+        run: |
+          mkdir -p bin
+          echo "Building amd64 binary..."
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags=all_providers -ldflags="-s -w" -o bin/external-secrets-linux-amd64 .
+          echo "Building arm64 binary..."
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -tags=all_providers -ldflags="-s -w" -o bin/external-secrets-linux-arm64 .
+          ls -la bin/
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.get-tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output image info
+        run: |
+          echo "## Image Published Successfully! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.get-tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pull command:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.get-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
