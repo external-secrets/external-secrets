@@ -31,7 +31,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -368,7 +367,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestLoadConfigSecret_NamespacedStoreCannotCrossNamespace(t *testing.T) {
-	kube := fake.NewClientBuilder().WithObjects(&corev1.Secret{
+	kube := fake.NewClientBuilder().WithObjects(&v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "creds",
@@ -415,13 +414,25 @@ func TestPushSecret(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case authConnectTokenPath:
-					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case authSignAppInPath:
-					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case secretsSafeFoldersPath:
-					_, _ = w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					if err != nil {
+						t.Error(err)
+					}
 				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets":
-					_, _ = w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					_, err := w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				default:
 					http.Error(w, "not found", http.StatusNotFound)
 				}
@@ -442,13 +453,25 @@ func TestPushSecret(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case authConnectTokenPath:
-					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case authSignAppInPath:
-					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case secretsSafeFoldersPath:
-					_, _ = w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					if err != nil {
+						t.Error(err)
+					}
 				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets/file":
-					_, _ = w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					_, err := w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				default:
 					http.Error(w, "not found", http.StatusNotFound)
 				}
@@ -470,13 +493,25 @@ func TestPushSecret(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case authConnectTokenPath:
-					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case authSignAppInPath:
-					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case secretsSafeFoldersPath:
-					_, _ = w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					if err != nil {
+						t.Error(err)
+					}
 				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets/text":
-					_, _ = w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					_, err := w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				default:
 					http.Error(w, "not found", http.StatusNotFound)
 				}
@@ -497,11 +532,20 @@ func TestPushSecret(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case authConnectTokenPath:
-					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case authSignAppInPath:
-					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case secretsSafeFoldersPath:
-					_, _ = w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					if err != nil {
+						t.Error(err)
+					}
 				default:
 					http.Error(w, "not found", http.StatusNotFound)
 				}
@@ -531,7 +575,12 @@ func TestPushSecret(t *testing.T) {
 			fakeServer := httptest.NewServer(tt.serverHandler)
 			defer fakeServer.Close()
 
-			logger, _ := zap.NewDevelopment()
+			logger, err := zap.NewDevelopment()
+
+			if err != nil {
+				t.Error(err)
+			}
+
 			zapLogger := logging.NewZapLogger(logger)
 
 			clientTimeout := 30
@@ -543,7 +592,11 @@ func TestPushSecret(t *testing.T) {
 			backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
 			backoffDefinition.RandomizationFactor = 0.5
 
-			httpClientObj, _ := utils.GetHttpClient(clientTimeout, verifyCa, "", "", zapLogger)
+			httpClientObj, err := utils.GetHttpClient(clientTimeout, verifyCa, "", "", zapLogger)
+
+			if err != nil {
+				t.Error(err)
+			}
 
 			params := authentication.AuthenticationParametersObj{
 				HTTPClient:                 *httpClientObj,
@@ -601,11 +654,20 @@ func TestSecretExists(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case authConnectTokenPath:
-					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case authSignAppInPath:
-					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case secretsSafeSecretsPath:
-					_, _ = w.Write([]byte(`[{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}]`))
+					_, err := w.Write([]byte(`[{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}]`))
+					if err != nil {
+						t.Error(err)
+					}
 				default:
 					http.Error(w, "not found", http.StatusNotFound)
 				}
@@ -617,9 +679,15 @@ func TestSecretExists(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case authConnectTokenPath:
-					_, _ = w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case authSignAppInPath:
-					_, _ = w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
 				case secretsSafeSecretsPath:
 					http.Error(w, "secret was not found", http.StatusNotFound)
 				default:
@@ -635,7 +703,12 @@ func TestSecretExists(t *testing.T) {
 			fakeServer := httptest.NewServer(tt.serverHandler)
 			defer fakeServer.Close()
 
-			logger, _ := zap.NewDevelopment()
+			logger, err := zap.NewDevelopment()
+
+			if err != nil {
+				t.Error(err)
+			}
+
 			zapLogger := logging.NewZapLogger(logger)
 
 			clientTimeout := 30
@@ -647,7 +720,11 @@ func TestSecretExists(t *testing.T) {
 			backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
 			backoffDefinition.RandomizationFactor = 0.5
 
-			httpClientObj, _ := utils.GetHttpClient(clientTimeout, verifyCa, "", "", zapLogger)
+			httpClientObj, err := utils.GetHttpClient(clientTimeout, verifyCa, "", "", zapLogger)
+
+			if err != nil {
+				t.Error(err)
+			}
 
 			params := authentication.AuthenticationParametersObj{
 				HTTPClient:                 *httpClientObj,
@@ -669,7 +746,11 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "test-credential",
 			}
 
-			exists, _ := p.SecretExists(context.Background(), remoteRef)
+			exists, err := p.SecretExists(context.Background(), remoteRef)
+
+			if err != nil {
+				t.Error(err)
+			}
 
 			if tt.expectedExisting {
 				assert.True(t, exists)
