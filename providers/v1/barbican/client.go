@@ -132,7 +132,7 @@ func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esapi.PushSec
 
 // SecretExists is not implemented right now for Barbican.
 func (c *Client) SecretExists(_ context.Context, _ esapi.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("barbican provider does not support checking if a secret exists")
+	return false, fmt.Errorf("barbican provider does not pushing secrets with update policy IfNotExists")
 }
 
 // DeleteSecret is not implemented right now for Barbican.
