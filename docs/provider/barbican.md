@@ -147,7 +147,7 @@ spec:
 | `domainName` | string | No | OpenStack domain name |
 | `region` | string | No | OpenStack region |
 | `username` | BarbicanProviderRef | Yes | OpenStack username (from secret or literal value) |
-| `password` | BarbicanProviderRef | Yes | OpenStack password (from secret or literal value) |
+| `password` | BarbicanProviderRef | Yes | OpenStack password (from secret only) |
 
 ### BarbicanProviderRef
 
