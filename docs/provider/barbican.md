@@ -44,14 +44,15 @@ spec:
       tenantName: "my-project"
       domainName: "default"
       region: "RegionOne"
-      username:
-        secretRef:
-          name: "barbican-secret"
-          key: "username"
-      password:
-        secretRef:
-          name: "barbican-secret"
-          key: "password"
+      auth:
+        username:
+          secretRef:
+            name: "barbican-secret"
+            key: "username"
+        password:
+          secretRef:
+            name: "barbican-secret"
+            key: "password"
 ```
 
 **NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` for the `secretRef` with the namespace of the secret that contains the credentials.
@@ -126,16 +127,17 @@ spec:
       tenantName: "my-project"
       domainName: "default"
       region: "RegionOne"
-      username:
-        secretRef:
-          name: "barbican-secret"
-          key: "username"
-          namespace: "default"  # Required for ClusterSecretStore
-      password:
-        secretRef:
-          name: "barbican-secret"
-          key: "password"
-          namespace: "default"  # Required for ClusterSecretStore
+      auth:
+        username:
+          secretRef:
+            name: "barbican-secret"
+            key: "username"
+            namespace: "default"  # Required for ClusterSecretStore
+        password:
+          secretRef:
+            name: "barbican-secret"
+            key: "password"
+            namespace: "default"  # Required for ClusterSecretStore
 ```
 
 ## Configuration Reference
@@ -146,17 +148,33 @@ spec:
 | `tenantName` | string | Yes | OpenStack tenant/project name |
 | `domainName` | string | No | OpenStack domain name |
 | `region` | string | No | OpenStack region |
-| `username` | BarbicanProviderRef | Yes | OpenStack username (from secret or literal value) |
-| `password` | BarbicanProviderRef | Yes | OpenStack password (from secret only) |
+| `auth` | BarbicanAuth | Yes | Authentication credentials |
 
-### BarbicanProviderRef
+### BarbicanAuth
 
-The `BarbicanProviderRef` type allows you to specify values either as literals or references to Kubernetes secrets:
+The `BarbicanAuth` type contains the authentication information:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `username` | BarbicanProviderUsernameRef | Yes | OpenStack username (from secret or literal value) |
+| `password` | BarbicanProviderPasswordRef | Yes | OpenStack password (from secret only) |
+
+### BarbicanProviderUsernameRef
+
+The `BarbicanProviderUsernameRef` type allows you to specify username either as a literal or reference to a Kubernetes secret:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `value` | string | No | Literal value (not recommended for sensitive data) |
 | `secretRef` | SecretKeySelector | No | Reference to a Kubernetes secret |
+
+### BarbicanProviderPasswordRef
+
+The `BarbicanProviderPasswordRef` type requires a reference to a Kubernetes secret:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `secretRef` | SecretKeySelector | Yes | Reference to a Kubernetes secret |
 
 ## Limitations
 

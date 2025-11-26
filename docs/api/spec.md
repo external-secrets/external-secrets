@@ -1283,6 +1283,49 @@ configuration is not supported with the legacy go-autorest SDK.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.BarbicanAuth">BarbicanAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanProvider">BarbicanProvider</a>)
+</p>
+<p>
+<p>BarbicanAuth contains the authentication information for Barbican.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderUsernameRef">
+BarbicanProviderUsernameRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>password</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderPasswordRef">
+BarbicanProviderPasswordRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.BarbicanProvider">BarbicanProvider
 </h3>
 <p>
@@ -1342,22 +1385,10 @@ string
 </tr>
 <tr>
 <td>
-<code>username</code></br>
+<code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1.BarbicanProviderRef">
-BarbicanProviderRef
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>password</code></br>
-<em>
-<a href="#external-secrets.io/v1.BarbicanProviderRef">
-BarbicanProviderRef
+<a href="#external-secrets.io/v1.BarbicanAuth">
+BarbicanAuth
 </a>
 </em>
 </td>
@@ -1366,14 +1397,45 @@ BarbicanProviderRef
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.BarbicanProviderRef">BarbicanProviderRef
+<h3 id="external-secrets.io/v1.BarbicanProviderPasswordRef">BarbicanProviderPasswordRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.BarbicanProvider">BarbicanProvider</a>)
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
 </p>
 <p>
-<p>BarbicanProviderRef defines a reference to a secret containing credentials for the Barbican provider.</p>
+<p>BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderUsernameRef">BarbicanProviderUsernameRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.</p>
 </p>
 <table>
 <thead>

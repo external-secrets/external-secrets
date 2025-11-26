@@ -218,16 +218,18 @@ func makeValidSecretStore() *esv1.SecretStore {
 					TenantName: testTenantName,
 					DomainName: testDomainName,
 					Region:     testRegion,
-					Username: esv1.BarbicanProviderRef{
-						SecretRef: &esmeta.SecretKeySelector{
-							Name: testSecretName,
-							Key:  "username",
+					Auth: esv1.BarbicanAuth{
+						Username: esv1.BarbicanProviderUsernameRef{
+							SecretRef: &esmeta.SecretKeySelector{
+								Name: testSecretName,
+								Key:  "username",
+							},
 						},
-					},
-					Password: esv1.BarbicanProviderRef{
-						SecretRef: &esmeta.SecretKeySelector{
-							Name: testSecretName,
-							Key:  "password",
+						Password: esv1.BarbicanProviderPasswordRef{
+							SecretRef: &esmeta.SecretKeySelector{
+								Name: testSecretName,
+								Key:  "password",
+							},
 						},
 					},
 				},
@@ -238,7 +240,7 @@ func makeValidSecretStore() *esv1.SecretStore {
 
 func makeSecretStoreWithValueUsername() *esv1.SecretStore {
 	store := makeValidSecretStore()
-	store.Spec.Provider.Barbican.Username = esv1.BarbicanProviderRef{
+	store.Spec.Provider.Barbican.Auth.Username = esv1.BarbicanProviderUsernameRef{
 		Value: testUsername,
 	}
 	return store
