@@ -73,7 +73,7 @@ func (f *fakeAPI) SecretByPath(path string) (*server.Secret, error) {
 }
 
 func createSecret(id int, itemValue string) (*server.Secret, error) {
-	s, err := getJSONData()
+	s, err := jsonData()
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func createSecret(id int, itemValue string) (*server.Secret, error) {
 	return s, nil
 }
 
-func getJSONData() (*server.Secret, error) {
+func jsonData() (*server.Secret, error) {
 	var s = &server.Secret{}
 	jsonFile, err := os.Open("test_data.json")
 	if err != nil {
@@ -194,7 +194,7 @@ func newTestClient(t *testing.T) esv1.SecretsClient {
 func TestGetSecretSecretServer(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
-	s, err := getJSONData()
+	s, err := jsonData()
 	require.NoError(t, err)
 	jsonStr, err := json.Marshal(s)
 	require.NoError(t, err)
