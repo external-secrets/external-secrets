@@ -64,6 +64,26 @@ func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKi
 	return google.DefaultTokenSource(ctx, CloudPlatformRole)
 }
 
+// GenerateSignedJWTForVault generates a signed JWT specifically for Vault GCP IAM authentication.
+// It uses workload identity to generate a JWT with the required claims (sub, aud, exp)
+// signed by the GCP service account specified in the WorkloadIdentity configuration.
+func GenerateSignedJWTForVault(ctx context.Context, wi *esv1.GCPWorkloadIdentity, role, projectID, storeKind string, kube kclient.Client, namespace string) (string, error) {
+	if wi == nil {
+		return "", fmt.Errorf("workload identity configuration is required")
+	}
+
+	wIdentity, err := newWorkloadIdentity(ctx, projectID)
+	if err != nil {
+		return "", fmt.Errorf("unable to initialize workload identity: %w", err)
+	}
+	defer func() {
+		_ = wIdentity.Close()
+	}()
+
+	isClusterKind := storeKind == esv1.ClusterSecretStoreKind
+	return wIdentity.SignedJWTForVault(ctx, wi, role, isClusterKind, kube, namespace)
+}
+
 func serviceAccountTokenSource(ctx context.Context, auth esv1.GCPSMAuth, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	sr := auth.SecretRef
 	if sr == nil {

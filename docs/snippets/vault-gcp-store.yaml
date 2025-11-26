@@ -1,0 +1,28 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+  namespace: example
+spec:
+  provider:
+    vault:
+      server: "https://vault.example.com"
+      path: "secret"
+      version: "v2"
+      auth:
+        gcp:
+          # The Vault role to authenticate against
+          role: "my-vault-role"
+          # GCP project ID
+          projectID: "my-gcp-project"
+          # Path where the GCP auth method is mounted in Vault (default: "gcp")
+          path: "gcp"
+          # Workload Identity configuration for GKE
+          workloadIdentity:
+            clusterLocation: "us-central1"
+            clusterName: "my-gke-cluster"
+            serviceAccountRef:
+              name: "my-service-account"
+              # Optional: specify audiences for the service account token
+              audiences:
+                - "my-gcp-project.svc.id.goog"
