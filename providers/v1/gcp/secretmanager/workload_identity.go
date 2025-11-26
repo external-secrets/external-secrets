@@ -95,6 +95,7 @@ type workloadIdentity struct {
 // IamClient provides an interface to the GCP IAM API.
 type IamClient interface {
 	GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
+	SignJwt(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error)
 	Close() error
 }
 
@@ -227,6 +228,77 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 	return oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: gcpSAResp.GetAccessToken(),
 	}), nil
+}
+
+// SignedJWTForVault generates a signed JWT for Vault GCP IAM authentication.
+// This JWT contains the required claims (sub, aud, exp) and is signed using the
+// GCP service account's private key via the IAM SignJwt API.
+func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWorkloadIdentity, role string, isClusterKind bool, kube kclient.Client, namespace string) (string, error) {
+	saKey := types.NamespacedName{
+		Name:      wi.ServiceAccountRef.Name,
+		Namespace: namespace,
+	}
+
+	// only ClusterStore is allowed to set namespace (and then it's required)
+	if isClusterKind && wi.ServiceAccountRef.Namespace != nil {
+		saKey.Namespace = *wi.ServiceAccountRef.Namespace
+	}
+
+	sa := &v1.ServiceAccount{}
+	err := kube.Get(ctx, saKey, sa)
+	if err != nil {
+		return "", err
+	}
+
+	idPool, idProvider, err := w.gcpWorkloadIdentity(ctx, wi)
+	if err != nil {
+		return "", fmt.Errorf(errLookupIdentity, err)
+	}
+
+	audiences := []string{idPool}
+	if len(wi.ServiceAccountRef.Audiences) > 0 {
+		audiences = append(audiences, wi.ServiceAccountRef.Audiences...)
+	}
+	gcpSA := sa.Annotations[gcpSAAnnotation]
+	if gcpSA == "" {
+		return "", fmt.Errorf("service account %s/%s is missing required annotation %s", saKey.Namespace, saKey.Name, gcpSAAnnotation)
+	}
+
+	resp, err := w.saTokenGenerator.Generate(ctx, audiences, saKey.Name, saKey.Namespace)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateSAToken, err)
+	if err != nil {
+		return "", fmt.Errorf(errFetchPodToken, err)
+	}
+
+	idBindToken, err := w.idBindTokenGenerator.Generate(ctx, http.DefaultClient, resp.Status.Token, idPool, idProvider)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateIDBindToken, err)
+	if err != nil {
+		return "", fmt.Errorf(errFetchIBToken, err)
+	}
+
+	// Create JWT payload for Vault IAM auth
+	// The audience must be in the format "vault/{role}"
+	exp := time.Now().Add(15 * time.Minute).Unix()
+	payload := map[string]interface{}{
+		"sub": gcpSA,
+		"aud": fmt.Sprintf("vault/%s", role),
+		"exp": exp,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JWT payload: %w", err)
+	}
+
+	// Sign the JWT using the GCP service account
+	signResp, err := w.iamClient.SignJwt(ctx, &credentialspb.SignJwtRequest{
+		Name:    fmt.Sprintf("projects/-/serviceAccounts/%s", gcpSA),
+		Payload: string(payloadBytes),
+	}, gax.WithGRPCOptions(grpc.PerRPCCredentials(oauth.TokenSource{TokenSource: oauth2.StaticTokenSource(idBindToken)})))
+	if err != nil {
+		return "", fmt.Errorf("unable to sign JWT for authenticating to GCP: %w", err)
+	}
+
+	return signResp.GetSignedJwt(), nil
 }
 
 func (w *workloadIdentity) Close() error {
