@@ -73,7 +73,10 @@ func (f *fakeAPI) SecretByPath(path string) (*server.Secret, error) {
 }
 
 func createSecret(id int, itemValue string) *server.Secret {
-	s, _ := getJSONData()
+	s, err := getJSONData()
+	if err != nil {
+		panic(err)
+	}
 	s.ID = id
 	s.Fields[0].ItemValue = itemValue
 	return s
@@ -86,8 +89,11 @@ func getJSONData() (*server.Secret, error) {
 		return nil, err
 	}
 	defer jsonFile.Close()
+	byteValue, err := io.ReadAll(jsonFile)
+	if err != nil {
+		return nil, err
+	}
 
-	byteValue, _ := io.ReadAll(jsonFile)
 	err = json.Unmarshal(byteValue, &s)
 	if err != nil {
 		return nil, err
@@ -172,11 +178,16 @@ func newTestClient() esv1.SecretsClient {
 func TestGetSecretSecretServer(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
-	s, _ := getJSONData()
-	jsonStr, _ := json.Marshal(s)
-	jsonStr2, _ := json.Marshal(createTestSecretFromCode(4000))
-	jsonStr3, _ := json.Marshal(createPlainTextSecret(5000))
-	jsonStr4, _ := json.Marshal(createTestFolderSecret(9000, 4))
+	s, err := getJSONData()
+	require.NoError(t, err)
+	jsonStr, err := json.Marshal(s)
+	require.NoError(t, err)
+	jsonStr2, err := json.Marshal(createTestSecretFromCode(4000))
+	require.NoError(t, err)
+	jsonStr3, err := json.Marshal(createPlainTextSecret(5000))
+	require.NoError(t, err)
+	jsonStr4, err := json.Marshal(createTestFolderSecret(9000, 4))
+	require.NoError(t, err)
 
 	testCases := map[string]struct {
 		ref  esv1.ExternalSecretDataRemoteRef
