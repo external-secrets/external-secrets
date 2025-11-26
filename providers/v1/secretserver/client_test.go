@@ -72,14 +72,14 @@ func (f *fakeAPI) SecretByPath(path string) (*server.Secret, error) {
 	return nil, errNotFound
 }
 
-func createSecret(id int, itemValue string) *server.Secret {
+func createSecret(id int, itemValue string) (*server.Secret, error) {
 	s, err := getJSONData()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	s.ID = id
 	s.Fields[0].ItemValue = itemValue
-	return s
+	return s, nil
 }
 
 func getJSONData() (*server.Secret, error) {
@@ -157,27 +157,43 @@ func createEmptyFieldsSecret(id int) *server.Secret {
 	return s
 }
 
-func newTestClient() esv1.SecretsClient {
+func newTestClient(t *testing.T) esv1.SecretsClient {
+	// Build secrets list while handling any errors from createSecret
+	var secrets []*server.Secret
+
+	s, err := createSecret(1000, "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}")
+	require.NoError(t, err)
+	secrets = append(secrets, s)
+
+	s, err = createSecret(2000, "{ \"user\": \"helloWorld\", \"password\": \"badPassword\",\"server\":[ \"192.168.1.50\",\"192.168.1.51\"] }")
+	require.NoError(t, err)
+	secrets = append(secrets, s)
+
+	s, err = createSecret(3000, "{ \"user\": \"chuckTesta\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}")
+	require.NoError(t, err)
+	secrets = append(secrets, s)
+
+	secrets = append(secrets, createTestSecretFromCode(4000))
+	secrets = append(secrets, createPlainTextSecret(5000))
+
+	s, err = createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }")
+	require.NoError(t, err)
+	secrets = append(secrets, s)
+
+	secrets = append(secrets, createNilFieldsSecret(7000))
+	secrets = append(secrets, createEmptyFieldsSecret(8000))
+	secrets = append(secrets, createTestFolderSecret(9000, 4))
+
 	return &client{
 		api: &fakeAPI{
-			secrets: []*server.Secret{
-				createSecret(1000, "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}"),
-				createSecret(2000, "{ \"user\": \"helloWorld\", \"password\": \"badPassword\",\"server\":[ \"192.168.1.50\",\"192.168.1.51\"] }"),
-				createSecret(3000, "{ \"user\": \"chuckTesta\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}"),
-				createTestSecretFromCode(4000),
-				createPlainTextSecret(5000),
-				createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }"),
-				createNilFieldsSecret(7000),
-				createEmptyFieldsSecret(8000),
-				createTestFolderSecret(9000, 4),
-			},
+			secrets: secrets,
 		},
 	}
 }
 
 func TestGetSecretSecretServer(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 	s, err := getJSONData()
 	require.NoError(t, err)
 	jsonStr, err := json.Marshal(s)
@@ -382,7 +398,7 @@ func TestGetSecretEmptySecretsList(t *testing.T) {
 // TestGetSecretWithVersion tests that specifying a version returns an error
 func TestGetSecretWithVersion(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 
 	testCases := map[string]struct {
 		ref     esv1.ExternalSecretDataRemoteRef
@@ -413,7 +429,7 @@ func TestGetSecretWithVersion(t *testing.T) {
 // TestPushSecret tests the PushSecret functionality
 func TestPushSecret(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 
 	var data esv1.PushSecretData
 	err := c.PushSecret(ctx, nil, data)
@@ -424,7 +440,7 @@ func TestPushSecret(t *testing.T) {
 // TestDeleteSecret tests the DeleteSecret functionality
 func TestDeleteSecret(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 
 	var data esv1.PushSecretRemoteRef
 	err := c.DeleteSecret(ctx, data)
@@ -435,7 +451,7 @@ func TestDeleteSecret(t *testing.T) {
 // TestSecretExists tests the SecretExists functionality
 func TestSecretExists(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 
 	var data esv1.PushSecretRemoteRef
 	exists, err := c.SecretExists(ctx, data)
@@ -446,7 +462,7 @@ func TestSecretExists(t *testing.T) {
 
 // TestValidate tests the Validate functionality
 func TestValidate(t *testing.T) {
-	c := newTestClient()
+	c := newTestClient(t)
 
 	result, err := c.Validate()
 	assert.NoError(t, err)
@@ -465,7 +481,7 @@ func TestValidateNilAPI(t *testing.T) {
 // TestGetSecretMap tests the GetSecretMap functionality
 func TestGetSecretMap(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 
 	testCases := map[string]struct {
 		ref     esv1.ExternalSecretDataRemoteRef
@@ -535,7 +551,7 @@ func TestGetSecretMap(t *testing.T) {
 // TestGetSecretMapInvalidJSON tests GetSecretMap with invalid JSON in secret
 func TestGetSecretMapInvalidJSON(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 
 	// Overwrite one secret’s value with invalid JSON
 	fake := c.(*client).api.(*fakeAPI)
@@ -549,7 +565,7 @@ func TestGetSecretMapInvalidJSON(t *testing.T) {
 func TestGetSecretMapGetByteValueError(t *testing.T) {
 	ctx := context.Background()
 
-	c := newTestClient()
+	c := newTestClient(t)
 
 	// GetSecretMap with valid JSON should succeed
 	_, err := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: "1000"})
@@ -559,7 +575,7 @@ func TestGetSecretMapGetByteValueError(t *testing.T) {
 // TestClose tests the Close functionality
 func TestClose(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 
 	err := c.Close(ctx)
 	assert.NoError(t, err)
@@ -568,7 +584,7 @@ func TestClose(t *testing.T) {
 // TestGetAllSecrets tests the GetAllSecrets functionality
 func TestGetAllSecrets(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	c := newTestClient(t)
 
 	testCases := map[string]struct {
 		ref     esv1.ExternalSecretFind
