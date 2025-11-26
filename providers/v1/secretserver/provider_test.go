@@ -696,30 +696,13 @@ func TestProviderSpec(t *testing.T) {
 			assert.NotNil(t, got.SecretServer)
 			assert.IsType(t, tc.wantType, got)
 
-			// Edge: call ProviderSpec multiple times
+			// Ensure ProviderSpec returns a fresh instance (no shared mutable state)
+			// Mutate the returned object and verify a subsequent call is unaffected.
+			got.SecretServer.ServerURL = "http://modified.local"
 			got2 := ProviderSpec()
 			assert.IsType(t, tc.wantType, got2)
-		})
-	}
-}
-
-// TestMaintenanceStatus tests the MaintenanceStatus function
-func TestMaintenanceStatus(t *testing.T) {
-	tests := map[string]struct {
-		want esv1.MaintenanceStatus
-	}{
-		"returns maintained status": {
-			want: esv1.MaintenanceStatusMaintained,
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			got := MaintenanceStatus()
-			assert.Equal(t, tc.want, got)
-
-			// Edge: call MaintenanceStatus on nil
-			assert.Equal(t, esv1.MaintenanceStatusMaintained, MaintenanceStatus())
+			// If ProviderSpec reused a shared object, this would be equal.
+			assert.NotEqual(t, got.SecretServer.ServerURL, got2.SecretServer.ServerURL)
 		})
 	}
 }

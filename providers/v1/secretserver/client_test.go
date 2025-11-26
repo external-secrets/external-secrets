@@ -25,6 +25,7 @@ import (
 
 	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
@@ -325,9 +326,9 @@ func TestGetSecretSecretServer(t *testing.T) {
 	}
 }
 
-// TestGetSecret_JSONMarshalFailure tests GetSecret when json.Marshal fails
-func TestGetSecret_JSONMarshalFailure(t *testing.T) {
-	ctx := context.Background()
+// TestGetSecretJSONMarshalFailure tests GetSecret when json.Marshal fails
+func TestGetSecretJSONMarshalFailure(t *testing.T) {
+	ctx := t.Context()
 
 	bad := &server.Secret{
 		ID:     0,
@@ -349,12 +350,12 @@ func TestGetSecret_JSONMarshalFailure(t *testing.T) {
 
 	// GetSecret calls getSecret which returns the secret, so no error expected
 	_, err := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "0"})
-	// The secret is found but ItemValue is invalid, so it should not error at getSecret level
-	assert.NoError(t, err)
+	// The secret is found but ItemValue is invalid; fail-fast if error
+	require.NoError(t, err)
 }
 
-// TestGetSecret_EmptySecretsList tests GetSecret when the secrets list is empty
-func TestGetSecret_EmptySecretsList(t *testing.T) {
+// TestGetSecretEmptySecretsList tests GetSecret when the secrets list is empty
+func TestGetSecretEmptySecretsList(t *testing.T) {
 	ctx := context.Background()
 
 	c := &client{
@@ -441,8 +442,8 @@ func TestValidate(t *testing.T) {
 	assert.Equal(t, esv1.ValidationResultReady, result)
 }
 
-// TestValidate_NilAPI tests the Validate functionality with nil API
-func TestValidate_NilAPI(t *testing.T) {
+// TestValidateNilAPI tests the Validate functionality with nil API
+func TestValidateNilAPI(t *testing.T) {
 	c := &client{api: nil}
 	result, err := c.Validate()
 	// Validate always succeeds and returns ValidationResultReady regardless of API state
@@ -520,8 +521,8 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
-// TestGetSecretMap_InvalidJSON tests GetSecretMap with invalid JSON in secret
-func TestGetSecretMap_InvalidJSON(t *testing.T) {
+// TestGetSecretMapInvalidJSON tests GetSecretMap with invalid JSON in secret
+func TestGetSecretMapInvalidJSON(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
 
@@ -533,8 +534,8 @@ func TestGetSecretMap_InvalidJSON(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestGetSecretMap_GetByteValueError tests GetSecretMap when GetByteValue fails
-func TestGetSecretMap_GetByteValueError(t *testing.T) {
+// TestGetSecretMapGetByteValueError tests GetSecretMap when GetByteValue fails
+func TestGetSecretMapGetByteValueError(t *testing.T) {
 	ctx := context.Background()
 
 	c := newTestClient()
