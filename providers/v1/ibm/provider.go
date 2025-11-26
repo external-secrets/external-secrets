@@ -62,6 +62,8 @@ const (
 	errNotImplemented           = "not implemented"
 	errKeyDoesNotExist          = "key %s does not exist in secret %s"
 	errFieldIsEmpty             = "warn: %s is empty for secret %s\n"
+
+	iamDefaultEndpoint = "https://iam.cloud.ibm.com"
 )
 
 var contextTimeout = time.Minute * 2
@@ -666,7 +668,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 		}
 		if containerAuthEndpoint == "" {
 			// API default path
-			containerAuthEndpoint = "https://iam.cloud.ibm.com"
+			containerAuthEndpoint = iamDefaultEndpoint
 		}
 
 		authenticator, err := core.NewContainerAuthenticatorBuilder().
@@ -690,10 +692,16 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 			return nil, err
 		}
 
+		iamEndpoint := iStore.store.Auth.SecretRef.IAMEndpoint
+		if iamEndpoint == "" {
+			// API default path
+			iamEndpoint = iamDefaultEndpoint
+		}
 		secretsManager, err = sm.NewSecretsManagerV2(&sm.SecretsManagerV2Options{
 			URL: *storeSpec.Provider.IBM.ServiceURL,
 			Authenticator: &core.IamAuthenticator{
 				ApiKey: string(iStore.credentials),
+				URL:    iamEndpoint,
 			},
 		})
 	}

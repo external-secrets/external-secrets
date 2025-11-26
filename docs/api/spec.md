@@ -1753,6 +1753,7 @@ string
 <a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>, 
 <a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -6115,6 +6116,17 @@ External Secrets meta/v1.SecretKeySelector
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>iamEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The IAM endpoint used to obain a token</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.IBMProvider">IBMProvider
@@ -8460,6 +8472,34 @@ string
 <td>
 <p>ServerURL
 URL to your secret server installation</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM/base64 encoded CA bundle used to validate Secret ServerURL. Only used
+if the ServerURL URL is using HTTPS protocol. If not set the system root certificates
+are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Secret ServerURL certificate.</p>
 </td>
 </tr>
 </tbody>

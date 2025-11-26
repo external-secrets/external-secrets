@@ -4238,6 +4238,9 @@ spec:
                             secretRef:
                               description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
+                                iamEndpoint:
+                                  description: The IAM endpoint used to obain a token
+                                  type: string
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
@@ -5974,6 +5977,46 @@ spec:
                         SecretServer configures this store to sync secrets using SecretServer provider
                         https://docs.delinea.com/online-help/secret-server/start.htm
                       properties:
+                        caBundle:
+                          description: |-
+                            PEM/base64 encoded CA bundle used to validate Secret ServerURL. Only used
+                            if the ServerURL URL is using HTTPS protocol. If not set the system root certificates
+                            are used to validate the TLS connection.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: The provider for the CA bundle to use to validate Secret ServerURL certificate.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         domain:
                           description: Domain is the secret server domain.
                           type: string
@@ -15679,6 +15722,9 @@ spec:
                             secretRef:
                               description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
+                                iamEndpoint:
+                                  description: The IAM endpoint used to obain a token
+                                  type: string
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
@@ -17415,6 +17461,46 @@ spec:
                         SecretServer configures this store to sync secrets using SecretServer provider
                         https://docs.delinea.com/online-help/secret-server/start.htm
                       properties:
+                        caBundle:
+                          description: |-
+                            PEM/base64 encoded CA bundle used to validate Secret ServerURL. Only used
+                            if the ServerURL URL is using HTTPS protocol. If not set the system root certificates
+                            are used to validate the TLS connection.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: The provider for the CA bundle to use to validate Secret ServerURL certificate.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         domain:
                           description: Domain is the secret server domain.
                           type: string
@@ -24364,17 +24450,19 @@ spec:
                           type: string
                         keySize:
                           description: |-
-                            KeySize specifies the key size for RSA keys (default: 2048)
+                            KeySize specifies the key size for RSA keys (default: 2048) and ECDSA keys (default: 256).
                             For RSA keys: 2048, 3072, 4096
+                            For ECDSA keys: 256, 384, 521
                             Ignored for ed25519 keys
                           maximum: 8192
                           minimum: 256
                           type: integer
                         keyType:
                           default: rsa
-                          description: KeyType specifies the SSH key type (rsa, ed25519)
+                          description: KeyType specifies the SSH key type (rsa, ecdsa, ed25519)
                           enum:
                             - rsa
+                            - ecdsa
                             - ed25519
                           type: string
                       type: object
@@ -26891,17 +26979,19 @@ spec:
                   type: string
                 keySize:
                   description: |-
-                    KeySize specifies the key size for RSA keys (default: 2048)
+                    KeySize specifies the key size for RSA keys (default: 2048) and ECDSA keys (default: 256).
                     For RSA keys: 2048, 3072, 4096
+                    For ECDSA keys: 256, 384, 521
                     Ignored for ed25519 keys
                   maximum: 8192
                   minimum: 256
                   type: integer
                 keyType:
                   default: rsa
-                  description: KeyType specifies the SSH key type (rsa, ed25519)
+                  description: KeyType specifies the SSH key type (rsa, ecdsa, ed25519)
                   enum:
                     - rsa
+                    - ecdsa
                     - ed25519
                   type: string
               type: object
