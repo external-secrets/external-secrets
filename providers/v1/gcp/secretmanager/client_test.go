@@ -1026,10 +1026,18 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "bar",
 			},
 			setupMock: func(mc *fakesm.MockSMClient) {
-				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{Res: nil})
+				// Mock ListSecretVersions to return an iterator with enabled versions
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{
+						{
+							Name:  "projects/foo/secrets/bar/versions/1",
+							State: secretmanagerpb.SecretVersion_ENABLED,
+						},
+					}),
+				})
 				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
 					Res: &secretmanagerpb.AccessSecretVersionResponse{
-						Name: "projects/foo/secrets/bar/versions/latest",
+						Name: "projects/foo/secrets/bar/versions/1",
 						Payload: &secretmanagerpb.SecretPayload{
 							Data: []byte("test-data"),
 						},
@@ -1048,7 +1056,10 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "bar",
 			},
 			setupMock: func(mc *fakesm.MockSMClient) {
-				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{Res: nil})
+				// Mock ListSecretVersions to return an empty iterator (no enabled versions)
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
+				})
 				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
 					Res: nil,
 					Err: status.Error(codes.NotFound, "secret not found"),
@@ -1065,7 +1076,10 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "bar",
 			},
 			setupMock: func(mc *fakesm.MockSMClient) {
-				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{Res: nil})
+				// Mock ListSecretVersions to return an empty iterator
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
+				})
 				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
 					Res: nil,
 					Err: status.Error(codes.PermissionDenied, "permission denied"),
@@ -1083,10 +1097,18 @@ func TestSecretExists(t *testing.T) {
 			},
 			location: "us-east1",
 			setupMock: func(mc *fakesm.MockSMClient) {
-				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{Res: nil})
+				// Mock ListSecretVersions to return an iterator with enabled versions
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{
+						{
+							Name:  "projects/foo/locations/us-east1/secrets/bar/versions/1",
+							State: secretmanagerpb.SecretVersion_ENABLED,
+						},
+					}),
+				})
 				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
 					Res: &secretmanagerpb.AccessSecretVersionResponse{
-						Name: "projects/foo/locations/us-east1/secrets/bar/versions/latest",
+						Name: "projects/foo/locations/us-east1/secrets/bar/versions/1",
 						Payload: &secretmanagerpb.SecretPayload{
 							Data: []byte("test-data"),
 						},
@@ -1106,7 +1128,10 @@ func TestSecretExists(t *testing.T) {
 			},
 			location: "us-east1",
 			setupMock: func(mc *fakesm.MockSMClient) {
-				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{Res: nil})
+				// Mock ListSecretVersions to return an empty iterator
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
+				})
 				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
 					Res: nil,
 					Err: status.Error(codes.NotFound, "regional secret not found"),
@@ -1123,7 +1148,10 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "bar",
 			},
 			setupMock: func(mc *fakesm.MockSMClient) {
-				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{Res: nil})
+				// Mock ListSecretVersions to return an empty iterator (no enabled versions)
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
+				})
 				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
 					Res: nil,
 					Err: status.Error(codes.FailedPrecondition, "Secret version is in DESTROYED state"),

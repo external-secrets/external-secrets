@@ -20,12 +20,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"unsafe"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/googleapis/gax-go/v2"
+	"google.golang.org/api/iterator"
 )
 
 type MockSMClient struct {
@@ -61,6 +64,78 @@ type AddSecretVersionMockReturn struct {
 
 type ListSecretVersionsMockReturn struct {
 	Res *secretmanager.SecretVersionIterator
+}
+
+// NewSecretVersionIterator creates a mock iterator for testing.
+// This is simplified to only support what our tests actually need:
+// - Return 0 or 1 versions
+// - Immediately return iterator.Done when exhausted
+func NewSecretVersionIterator(versions []*secretmanagerpb.SecretVersion) *secretmanager.SecretVersionIterator {
+	it := &secretmanager.SecretVersionIterator{}
+
+	// Simple helper to set an unexported field using reflection
+	setField := func(name string, value interface{}) {
+		v := reflect.ValueOf(it).Elem()
+		field := v.FieldByName(name)
+		if field.IsValid() {
+			reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).
+				Elem().Set(reflect.ValueOf(value))
+		}
+	}
+
+	// Simple state: are we done?
+	done := false
+
+	// InternalFetch returns all versions on first call, then nothing
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*secretmanagerpb.SecretVersion, string, error) {
+		if done {
+			return nil, "", nil
+		}
+		done = true
+		return versions, "", nil
+	}
+
+	// Simple fetch: call InternalFetch and store results in items field
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		results, nextToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		setField("items", results)
+		return nextToken, nil
+	}
+
+	// bufLen: return length of items field
+	bufLen := func() int {
+		v := reflect.ValueOf(it).Elem()
+		itemsField := v.FieldByName("items")
+		if itemsField.IsValid() {
+			return itemsField.Len()
+		}
+		return 0
+	}
+
+	// takeBuf: return and clear items field
+	takeBuf := func() interface{} {
+		v := reflect.ValueOf(it).Elem()
+		itemsField := v.FieldByName("items")
+		if itemsField.IsValid() {
+			items := itemsField.Interface()
+			setField("items", ([]*secretmanagerpb.SecretVersion)(nil))
+			return items
+		}
+		return ([]*secretmanagerpb.SecretVersion)(nil)
+	}
+
+	// Create the PageInfo and nextFunc using the iterator package
+	pageInfo, nextFunc := iterator.NewPageInfo(fetch, bufLen, takeBuf)
+
+	// Set the required unexported fields
+	setField("pageInfo", pageInfo)
+	setField("nextFunc", nextFunc)
+	setField("items", ([]*secretmanagerpb.SecretVersion)(nil))
+
+	return it
 }
 
 type SecretMockReturn struct {

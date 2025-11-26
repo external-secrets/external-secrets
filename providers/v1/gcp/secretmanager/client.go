@@ -713,33 +713,26 @@ func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClie
 		Filter: "state:ENABLED",
 	})
 
-	// Handle test case where iterator might be nil
-	if iter == nil {
-		req := &secretmanagerpb.AccessSecretVersionRequest{
-			Name: fmt.Sprintf("%s/versions/latest", name),
-		}
-		version, err := client.AccessSecretVersion(ctx, req)
-		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
-		if err != nil {
-			return nil, err
-		}
-		return version, nil
-	}
-
 	latestCreateTime := time.Unix(0, 0)
-	latestVersion := &secretmanagerpb.SecretVersion{}
+	versionName := "latest"
 	for {
 		version, err := iter.Next()
-		if errors.Is(err, iterator.Done) {
-			break
+		if err != nil {
+			if errors.Is(err, iterator.Done) {
+				break
+			}
+			return nil, err
 		}
 		if version.CreateTime.AsTime().After(latestCreateTime) {
 			latestCreateTime = version.CreateTime.AsTime()
-			latestVersion = version
+			versionName = version.Name
 		}
 	}
+
+	// If no enabled versions found, versionName remains "latest"
+	// This will return the appropriate error (NotFound, FailedPrecondition, etc.)
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("%s/versions/%s", name, latestVersion.Name),
+		Name: fmt.Sprintf("%s/versions/%s", name, versionName),
 	}
 	version, err := client.AccessSecretVersion(ctx, req)
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
