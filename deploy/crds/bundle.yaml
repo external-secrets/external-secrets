@@ -1718,6 +1718,13 @@ spec:
                               Metadata is metadata attached to the secret.
                               The structure of metadata is provider specific, please look it up in the provider documentation.
                             x-kubernetes-preserve-unknown-fields: true
+                          reconciliationPolicy:
+                            default: Merge
+                            description: ReconciliationPolicy to handle whether the secret gets replaced or merged in the provider.
+                            enum:
+                              - Merge
+                              - Replace
+                            type: string
                         required:
                           - match
                         type: object
@@ -13174,6 +13181,13 @@ spec:
                           Metadata is metadata attached to the secret.
                           The structure of metadata is provider specific, please look it up in the provider documentation.
                         x-kubernetes-preserve-unknown-fields: true
+                      reconciliationPolicy:
+                        default: Merge
+                        description: ReconciliationPolicy to handle whether the secret gets replaced or merged in the provider.
+                        enum:
+                          - Merge
+                          - Replace
+                        type: string
                     required:
                       - match
                     type: object
@@ -13561,6 +13575,13 @@ spec:
                             Metadata is metadata attached to the secret.
                             The structure of metadata is provider specific, please look it up in the provider documentation.
                           x-kubernetes-preserve-unknown-fields: true
+                        reconciliationPolicy:
+                          default: Merge
+                          description: ReconciliationPolicy to handle whether the secret gets replaced or merged in the provider.
+                          enum:
+                            - Merge
+                            - Replace
+                          type: string
                       required:
                         - match
                       type: object
