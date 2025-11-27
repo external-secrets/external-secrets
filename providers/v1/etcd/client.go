@@ -253,6 +253,36 @@ func matchTags(metadata, tags map[string]string) bool {
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	key := c.buildKey(data.GetRemoteKey())
 
+	// Determine what to push
+	secretKey := data.GetSecretKey()
+
+	// Raw mode: push the value directly without any wrapper
+	if c.rawMode {
+		var value []byte
+		if secretKey == "" {
+			// Push the entire secret as JSON
+			secretMap := make(map[string]string)
+			for k, v := range secret.Data {
+				secretMap[k] = string(v)
+			}
+			var err error
+			value, err = json.Marshal(secretMap)
+			if err != nil {
+				return fmt.Errorf(errMarshalSecret, err)
+			}
+		} else {
+			// Push a specific key's value directly
+			value = secret.Data[secretKey]
+		}
+
+		_, err := c.kv.Put(ctx, key, string(value))
+		if err != nil {
+			return fmt.Errorf(errFailedToPutSecret, err)
+		}
+		return nil
+	}
+
+	// Standard mode: wrap with data/metadata structure
 	// Get existing secret if any
 	resp, err := c.kv.Get(ctx, key)
 	if err != nil {
@@ -286,8 +316,6 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 	existing.Metadata[managedByKey] = managedByValue
 
-	// Determine what to push
-	secretKey := data.GetSecretKey()
 	property := data.GetProperty()
 
 	if secretKey == "" {

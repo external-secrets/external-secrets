@@ -62,6 +62,7 @@ type Client struct {
 	client    *clientv3.Client
 	prefix    string
 	storeKind string
+	rawMode   bool
 }
 
 // Capabilities returns the capabilities of the etcd provider.
@@ -140,6 +141,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		client:    etcdClient,
 		prefix:    prefix,
 		storeKind: storeKind,
+		rawMode:   etcdSpec.RawMode,
 	}, nil
 }
 

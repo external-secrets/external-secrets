@@ -39,6 +39,13 @@ type EtcdProvider struct {
 	// verifying the etcd server's certificate.
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
+
+	// RawMode when enabled, pushes secrets as raw values without wrapping them
+	// in the standard external-secrets data/metadata structure.
+	// This is useful when you need the exact value stored in etcd without any wrapper.
+	// Note: When RawMode is enabled, the managed-by tracking is disabled.
+	// +optional
+	RawMode bool `json:"rawMode,omitempty"`
 }
 
 // EtcdAuth contains authentication configuration for etcd.
