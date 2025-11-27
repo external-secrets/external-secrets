@@ -163,26 +163,19 @@ func newTestClient(t *testing.T) esv1.SecretsClient {
 
 	s, err := createSecret(1000, "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}")
 	require.NoError(t, err)
-	secrets = append(secrets, s)
 
-	s, err = createSecret(2000, "{ \"user\": \"helloWorld\", \"password\": \"badPassword\",\"server\":[ \"192.168.1.50\",\"192.168.1.51\"] }")
+	s2, err := createSecret(2000, "{ \"user\": \"helloWorld\", \"password\": \"badPassword\",\"server\":[ \"192.168.1.50\",\"192.168.1.51\"] }")
 	require.NoError(t, err)
-	secrets = append(secrets, s)
 
-	s, err = createSecret(3000, "{ \"user\": \"chuckTesta\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}")
+	s3, err := createSecret(3000, "{ \"user\": \"chuckTesta\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}")
 	require.NoError(t, err)
-	secrets = append(secrets, s)
 
-	secrets = append(secrets, createTestSecretFromCode(4000))
-	secrets = append(secrets, createPlainTextSecret(5000))
+	secrets = append(secrets, s, s2, s3, createTestSecretFromCode(4000), createPlainTextSecret(5000))
 
-	s, err = createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }")
+	s6, err := createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }")
 	require.NoError(t, err)
-	secrets = append(secrets, s)
 
-	secrets = append(secrets, createNilFieldsSecret(7000))
-	secrets = append(secrets, createEmptyFieldsSecret(8000))
-	secrets = append(secrets, createTestFolderSecret(9000, 4))
+	secrets = append(secrets, s6, createNilFieldsSecret(7000), createEmptyFieldsSecret(8000), createTestFolderSecret(9000, 4))
 
 	return &client{
 		api: &fakeAPI{
@@ -353,7 +346,7 @@ func TestGetSecretSecretServer(t *testing.T) {
 	}
 }
 
-// TestGetSecretJSONMarshalFailure tests GetSecret when json.Marshal fails
+// TestGetSecretJSONMarshalFailure tests GetSecret when json.Marshal fails.
 func TestGetSecretJSONMarshalFailure(t *testing.T) {
 	ctx := t.Context()
 
@@ -381,7 +374,7 @@ func TestGetSecretJSONMarshalFailure(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestGetSecretEmptySecretsList tests GetSecret when the secrets list is empty
+// TestGetSecretEmptySecretsList tests GetSecret when the secrets list is empty.
 func TestGetSecretEmptySecretsList(t *testing.T) {
 	ctx := context.Background()
 
@@ -395,7 +388,7 @@ func TestGetSecretEmptySecretsList(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
-// TestGetSecretWithVersion tests that specifying a version returns an error
+// TestGetSecretWithVersion tests that specifying a version returns an error.
 func TestGetSecretWithVersion(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
@@ -426,7 +419,7 @@ func TestGetSecretWithVersion(t *testing.T) {
 	}
 }
 
-// TestPushSecret tests the PushSecret functionality
+// TestPushSecret tests the PushSecret functionality.
 func TestPushSecret(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
@@ -437,7 +430,7 @@ func TestPushSecret(t *testing.T) {
 	assert.Contains(t, err.Error(), "not supported")
 }
 
-// TestDeleteSecret tests the DeleteSecret functionality
+// TestDeleteSecret tests the DeleteSecret functionality.
 func TestDeleteSecret(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
@@ -448,7 +441,7 @@ func TestDeleteSecret(t *testing.T) {
 	assert.Contains(t, err.Error(), "not supported")
 }
 
-// TestSecretExists tests the SecretExists functionality
+// TestSecretExists tests the SecretExists functionality.
 func TestSecretExists(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
@@ -460,7 +453,7 @@ func TestSecretExists(t *testing.T) {
 	assert.Contains(t, err.Error(), "not implemented")
 }
 
-// TestValidate tests the Validate functionality
+// TestValidate tests the Validate functionality.
 func TestValidate(t *testing.T) {
 	c := newTestClient(t)
 
@@ -469,7 +462,7 @@ func TestValidate(t *testing.T) {
 	assert.Equal(t, esv1.ValidationResultReady, result)
 }
 
-// TestValidateNilAPI tests the Validate functionality with nil API
+// TestValidateNilAPI tests the Validate functionality with nil API.
 func TestValidateNilAPI(t *testing.T) {
 	c := &client{api: nil}
 	result, err := c.Validate()
@@ -478,7 +471,7 @@ func TestValidateNilAPI(t *testing.T) {
 	assert.Equal(t, esv1.ValidationResultReady, result)
 }
 
-// TestGetSecretMap tests the GetSecretMap functionality
+// TestGetSecretMap tests the GetSecretMap functionality.
 func TestGetSecretMap(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
@@ -548,12 +541,12 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
-// TestGetSecretMapInvalidJSON tests GetSecretMap with invalid JSON in secret
+// TestGetSecretMapInvalidJSON tests GetSecretMap with invalid JSON in secret.
 func TestGetSecretMapInvalidJSON(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
 
-	// Overwrite one secret’s value with invalid JSON
+	// Overwrite one secret's value with invalid JSON
 	fake := c.(*client).api.(*fakeAPI)
 	fake.secrets[0].Fields[0].ItemValue = "{invalid-json"
 
@@ -561,7 +554,7 @@ func TestGetSecretMapInvalidJSON(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestGetSecretMapGetByteValueError tests GetSecretMap when GetByteValue fails
+// TestGetSecretMapGetByteValueError tests GetSecretMap when GetByteValue fails.
 func TestGetSecretMapGetByteValueError(t *testing.T) {
 	ctx := context.Background()
 
@@ -572,7 +565,7 @@ func TestGetSecretMapGetByteValueError(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestClose tests the Close functionality
+// TestClose tests the Close functionality.
 func TestClose(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
@@ -581,7 +574,7 @@ func TestClose(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestGetAllSecrets tests the GetAllSecrets functionality
+// TestGetAllSecrets tests the GetAllSecrets functionality.
 func TestGetAllSecrets(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
@@ -616,7 +609,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 }
 
-// Helper function to create string pointer
+// Helper function to create string pointer.
 func esv1Ptr(s string) *string {
 	return &s
 }

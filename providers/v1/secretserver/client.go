@@ -47,9 +47,7 @@ var _ esv1.SecretsClient = &client{}
 //     by leaving the ref.Property empty.
 //  4. get a specific value by using a key from the json formatted secret in Items.0.ItemValue.
 //     Nested values are supported by specifying a gjson expression
-//
-//nolint:stylecheck // Implements esv1.SecretsClient interface
-func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) { // NOSONAR: implements esv1.SecretsClient
+func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -114,8 +112,9 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-//nolint:stylecheck // Implements esv1.SecretsClient interface
-func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) { // NOSONAR: implements esv1.SecretsClient
+// GetSecretMap retrieves the secret referenced by ref from the Secret Server API
+// and returns it as a map of byte slices.
+func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -143,9 +142,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 }
 
 // GetAllSecrets not supported at this time.
-//
-//nolint:stylecheck // Implements esv1.SecretsClient interface
-func (c *client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) { // NOSONAR: implements esv1.SecretsClient
+func (c *client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("getting all secrets is not supported by Delinea Secret Server at this time")
 }
 
@@ -154,8 +151,6 @@ func (c *client) Close(context.Context) error {
 }
 
 // getSecret retrieves the secret referenced by ref from the Vault API.
-//
-//nolint:stylecheck // Implements esv1.SecretsClient interface
 func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (*server.Secret, error) {
 	if ref.Version != "" {
 		return nil, errors.New("specifying a version is not supported")

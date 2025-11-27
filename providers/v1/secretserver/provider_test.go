@@ -547,7 +547,7 @@ func generateRandomString() string {
 	return string(b)
 }
 
-// TestValidateStoreSecretRef tests the validateStoreSecretRef function
+// TestValidateStoreSecretRef tests the validateStoreSecretRef function.
 func TestValidateStoreSecretRef(t *testing.T) {
 	tests := map[string]struct {
 		store   esv1.GenericStore
@@ -629,7 +629,7 @@ func TestValidateStoreSecretRef(t *testing.T) {
 	}
 }
 
-// TestCapabilities tests the Capabilities function
+// TestCapabilities tests the Capabilities function.
 func TestCapabilities(t *testing.T) {
 	tests := map[string]struct {
 		want esv1.SecretStoreCapabilities
@@ -654,7 +654,7 @@ func TestCapabilities(t *testing.T) {
 	}
 }
 
-// TestNewProvider tests the NewProvider function
+// TestNewProvider tests the NewProvider function.
 func TestNewProvider(t *testing.T) {
 	tests := map[string]struct {
 		want esv1.Provider
@@ -677,7 +677,7 @@ func TestNewProvider(t *testing.T) {
 	}
 }
 
-// TestProviderSpec tests the ProviderSpec function
+// TestProviderSpec tests the ProviderSpec function.
 func TestProviderSpec(t *testing.T) {
 	tests := map[string]struct {
 		wantType *esv1.SecretStoreProvider
