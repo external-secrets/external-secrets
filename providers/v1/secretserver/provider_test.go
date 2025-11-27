@@ -18,11 +18,11 @@ package secretserver
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 
 	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -169,7 +169,8 @@ func TestNewClient(t *testing.T) {
 	userNameKey := "username"
 	userNameValue := "foo"
 	passwordKey := "password"
-	passwordValue := generateRandomString()
+	passwordValue, err := esutils.GenerateRandomString(10)
+	require.Nil(t, err)
 	domain := "domain1"
 
 	clientSecret := &corev1.Secret{
@@ -535,14 +536,4 @@ func makeSecretRefUsingRef(name, key string) *esv1.SecretServerProviderRef {
 	return &esv1.SecretServerProviderRef{
 		SecretRef: &v1.SecretKeySelector{Name: name, Key: key},
 	}
-}
-
-func generateRandomString() string {
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	b := make([]rune, 10)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-
-	return string(b)
 }

@@ -1,0 +1,30 @@
+
+var _ GenericGenerator = &{{ .TypeName }}{}
+
+func (g *{{ .TypeName }}) GetObjectMeta() *metav1.ObjectMeta {
+	return &g.ObjectMeta
+}
+
+func (g *{{ .TypeName }}) GetTypeMeta() *metav1.TypeMeta {
+	return &g.TypeMeta
+}
+
+func (g *{{ .TypeName }}) GetKind() string {
+	return reflect.TypeOf({{ .TypeName }}{}).Name()
+}
+
+func (g *{{ .TypeName }}) SetOutputs(expectedOutput map[string]string) error {
+	bytes, err := json.Marshal(expectedOutput)
+	if err != nil {
+		return err
+	}
+
+	g.Status.Output = &apiextensions.JSON{
+		Raw: bytes,
+	}
+	return nil
+}
+
+func (g *{{ .TypeName }}) Copy() GenericGenerator {
+	return g.DeepCopy()
+}

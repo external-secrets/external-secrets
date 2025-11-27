@@ -30,3 +30,5 @@ spec:
       name: string
   timeout: string
   url: string
+status:
+  output: 

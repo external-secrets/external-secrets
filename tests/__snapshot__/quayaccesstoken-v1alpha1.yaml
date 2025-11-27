@@ -8,3 +8,5 @@ spec:
     name: string
     namespace: string
   url: string
+status:
+  output: 

@@ -73,7 +73,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &ss, r.Client, r.PushSecretEnabled, log, Opts{
+	return Reconcile(ctx, req, &ss, r.Client, r.PushSecretEnabled, log, Opts{
 		ControllerClass: r.ControllerClass,
 		GaugeVecGetter:  ssmetrics.GetGaugeVec,
 		Recorder:        r.recorder,

@@ -85,6 +85,25 @@ func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alp
 	return nil
 }
 
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (g *Generator) GetCleanupPolicy(_ *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return nil, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (g *Generator) LastActivityTime(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+// GetKeys returns the keys for the generator.
+func (g *Generator) GetKeys() map[string]string {
+	return map[string]string{
+		"url":                     "Cloudsmith API URL",
+		"cloudsmith.org/slug":     "orgSlug",
+		"cloudsmith.service/slug": "serviceSlug",
+	}
+}
+
 // generate performs the main logic of the Cloudsmith generator.
 func (g *Generator) generate(ctx context.Context, cloudsmithSpec *apiextensions.JSON, _ client.Client, targetNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if cloudsmithSpec == nil {
@@ -192,7 +211,6 @@ func parseSpec(specData []byte) (*genv1alpha1.CloudsmithAccessToken, error) {
 	err := yaml.Unmarshal(specData, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

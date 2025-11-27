@@ -15,3 +15,5 @@ spec:
     name: string
     role: string
   url: string
+status:
+  output: 

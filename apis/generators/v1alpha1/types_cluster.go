@@ -98,6 +98,9 @@ type ClusterGenerator struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec ClusterGeneratorSpec `json:"spec,omitempty"`
+
+	// Status the status of this generator.
+	Status GeneratorStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
