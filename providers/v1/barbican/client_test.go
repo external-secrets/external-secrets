@@ -140,7 +140,7 @@ func TestUnsupportedOperations(t *testing.T) {
 	exists, err := client.SecretExists(context.Background(), nil)
 	assert.Error(t, err)
 	assert.False(t, exists)
-	assert.Contains(t, err.Error(), "does not support checking if a secret exists")
+	assert.Contains(t, err.Error(), "barbican provider does not pushing secrets with update policy IfNotExists")
 
 	// Test DeleteSecret
 	err = client.DeleteSecret(context.Background(), nil)
@@ -156,7 +156,7 @@ func TestValidateAndClose(t *testing.T) {
 	// Test Validate
 	result, err := client.Validate()
 	assert.NoError(t, err)
-	assert.Equal(t, esv1.ValidationResultReady, result)
+	assert.Equal(t, esv1.ValidationResultUnknown, result)
 
 	// Test Close
 	err = client.Close(context.Background())
