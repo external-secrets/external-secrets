@@ -69,6 +69,7 @@ build: image generate $(SOURCES)
 		--rm \
 		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
 		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
+		--env "GITHUB_TOKEN=$(GITHUB_TOKEN)" \
 		$(MKDOCS_IMAGE) \
 		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish
@@ -79,6 +80,9 @@ build.publish: image generate $(SOURCES)
 		--sig-proxy=true \
 		--rm \
 		--user $(UID):$(GID) \
+		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
+		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
+		--env "GITHUB_TOKEN=$(GITHUB_TOKEN)" \
 		$(MKDOCS_IMAGE) \
 		$(SHELL) -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: generate
