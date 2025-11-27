@@ -64,10 +64,15 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 		return fmt.Errorf("failed to set up GCP authentication: %w", err)
 	}
 
+	// If we have a signed JWT from Workload Identity, use it directly
+	if c.gcpSignedJWT != "" {
+		return c.loginWithSignedJWT(ctx, authMountPath, role, c.gcpSignedJWT)
+	}
+
 	// Determine which GCP auth method to use based on available authentication
 	var gcpAuthClient *authgcp.GCPAuth
-	if gcpAuth.SecretRef != nil || gcpAuth.WorkloadIdentity != nil {
-		// Use IAM auth method when we have explicit credentials (service account key or workload identity)
+	if gcpAuth.SecretRef != nil {
+		// Use IAM auth method when we have explicit credentials (service account key)
 		gcpAuthClient, err = authgcp.NewGCPAuth(role,
 			authgcp.WithMountPath(authMountPath),
 			authgcp.WithIAMAuth(""), // Service account email will be determined automatically from credentials
@@ -138,20 +143,26 @@ func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.V
 }
 
 func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
-	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
-		WorkloadIdentity: gcpAuth.WorkloadIdentity,
-	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
+	// Generate a signed JWT for Vault GCP IAM authentication
+	// This JWT will contain sub (service account email), aud (vault/role), and exp claims
+	signedJWT, err := gcpsm.GenerateSignedJWTForVault(
+		ctx,
+		gcpAuth.WorkloadIdentity,
+		gcpAuth.Role,
+		gcpAuth.ProjectID,
+		c.storeKind,
+		c.kube,
+		c.namespace,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to create token source from workload identity: %w", err)
+		return fmt.Errorf("failed to generate signed JWT from workload identity: %w", err)
 	}
 
-	token, err := tokenSource.Token()
-	if err != nil {
-		return fmt.Errorf("failed to retrieve token from workload identity: %w", err)
-	}
+	c.log.V(1).Info("Setting up GCP authentication using workload identity with signed JWT")
 
-	c.log.V(1).Info("Setting up GCP authentication using workload identity")
-	return c.setGCPEnvironment(token.AccessToken)
+	// Store the signed JWT so it can be used during the Vault login
+	c.gcpSignedJWT = signedJWT
+	return nil
 }
 
 func (c *client) setupServiceAccountRefAuth(_ context.Context, _ *esv1.VaultGCPAuth) error {
@@ -197,6 +208,35 @@ func (c *client) setEnvVar(key, value string) error {
 		return fmt.Errorf("failed to set environment variable %s: %w", key, err)
 	}
 	c.log.V(1).Info("Set environment variable for GCP authentication", "key", key)
+	return nil
+}
+
+func (c *client) loginWithSignedJWT(ctx context.Context, mountPath, role, jwt string) error {
+	// Login to Vault using the signed JWT
+	// The Vault GCP IAM auth endpoint expects: POST /v1/auth/{mountPath}/login
+	// with body: {"role": "role-name", "jwt": "signed-jwt-token"}
+	loginData := map[string]interface{}{
+		"role": role,
+		"jwt":  jwt,
+	}
+
+	loginPath := fmt.Sprintf("auth/%s/login", mountPath)
+	c.log.V(1).Info("Logging in to Vault using signed JWT", "path", loginPath, "role", role)
+
+	secret, err := c.logical.WriteWithContext(ctx, loginPath, loginData)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	if err != nil {
+		return fmt.Errorf("unable to log in with GCP auth: %w", err)
+	}
+
+	if secret == nil || secret.Auth == nil || secret.Auth.ClientToken == "" {
+		return fmt.Errorf("login response did not return client token")
+	}
+
+	// Set the client token for subsequent requests
+	c.client.SetToken(secret.Auth.ClientToken)
+	c.log.V(1).Info("Successfully authenticated with Vault using GCP Workload Identity")
+
 	return nil
 }
 
