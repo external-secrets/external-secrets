@@ -1,7 +1,7 @@
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
 dario.cat/mergo v1.0.2/go.mod h1:E/hbnu0NxMFBjpMIE34DRGLWqDy0g5FuKDhCb31ngxA=
-github.com/BeyondTrust/go-client-library-passwordsafe v0.23.0 h1:2r+qMuDU92jnFJ61RqaJw812+oTrUH7IVFKG4vV7s8c=
-github.com/BeyondTrust/go-client-library-passwordsafe v0.23.0/go.mod h1:ntgg5j8QRG0XyF8WUTa57T1TwYJOJjerLMCc1XvJO0M=
+github.com/BeyondTrust/go-client-library-passwordsafe v0.25.0 h1:A+ZyF5sigY51kep48CnZezZY4WLzPCk2UnwMrUUTvu4=
+github.com/BeyondTrust/go-client-library-passwordsafe v0.25.0/go.mod h1:ntgg5j8QRG0XyF8WUTa57T1TwYJOJjerLMCc1XvJO0M=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1Xbatp0=

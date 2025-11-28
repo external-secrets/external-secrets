@@ -19,6 +19,7 @@ package beyondtrust
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -26,12 +27,14 @@ import (
 	"time"
 
 	auth "github.com/BeyondTrust/go-client-library-passwordsafe/api/authentication"
+	"github.com/BeyondTrust/go-client-library-passwordsafe/api/entities"
+	v1 "k8s.io/api/core/v1"
+
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/logging"
 	managedaccount "github.com/BeyondTrust/go-client-library-passwordsafe/api/managed_account"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/secrets"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/utils"
 	"github.com/cenkalti/backoff/v4"
-	v1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -50,6 +53,17 @@ const (
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 	errNotImplemented       = "not implemented"
+
+	usernameFieldName    = "username"
+	folderNameFieldName  = "folder_name"
+	fileNameFieldName    = "file_name"
+	titleFieldName       = "title"
+	descriptionFieldName = "description"
+	ownerIDFieldName     = "owner_id"
+	groupIDFieldName     = "group_id"
+	ownerTypeFieldName   = "owner_type"
+	secretTypeFieldName  = "secret_type"
+	secretTypeCredential = "CREDENTIAL"
 )
 
 var (
@@ -86,7 +100,7 @@ type AuthenticatorInput struct {
 
 // Capabilities implements v1beta1.Provider.
 func (*Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // Close implements v1beta1.SecretsClient.
@@ -104,11 +118,6 @@ func (*Provider) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemote
 	return make(map[string][]byte), errors.New(errNotImplemented)
 }
 
-// PushSecret implements v1beta1.SecretsClient.
-func (*Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1.PushSecretData) error {
-	return errors.New(errNotImplemented)
-}
-
 // Validate implements v1beta1.SecretsClient.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
@@ -123,9 +132,21 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 }
 
 // SecretExists checks if a secret exists in the provider.
-// Currently not implemented for this provider.
-func (*Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New(errNotImplemented)
+func (p *Provider) SecretExists(_ context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
+	logger := logging.NewLogrLogger(&ESOLogger)
+	secretObj, err := secrets.NewSecretObj(p.authenticate, logger, maxFileSecretSizeBytes)
+
+	if err != nil {
+		return false, err
+	}
+
+	_, err = secretObj.SearchSecretByTitleFlow(pushSecretRef.GetRemoteKey())
+
+	if err == nil {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // NewClient this is where we initialize the SecretClient and return it for the controller to use.
@@ -413,4 +434,176 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 // MaintenanceStatus returns the maintenance status of the provider.
 func MaintenanceStatus() esv1.MaintenanceStatus {
 	return esv1.MaintenanceStatusMaintained
+}
+
+// PushSecret implements v1beta1.SecretsClient.
+func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.PushSecretData) error {
+	ESOLogger.Info("Pushing secret to BeyondTrust Password Safe")
+	value, err := esutils.ExtractSecretData(psd, secret)
+
+	if err != nil {
+		return fmt.Errorf("extract secret data failed: %w", err)
+	}
+
+	secretValue := string(value)
+
+	metadata := psd.GetMetadata()
+	data, err := json.Marshal(metadata)
+
+	if err != nil {
+		return fmt.Errorf("Error getting metadata: %w", err)
+	}
+
+	var metaDataObject map[string]interface{}
+	err = json.Unmarshal(data, &metaDataObject)
+	if err != nil {
+		return fmt.Errorf("Error in parameters: %w", err)
+	}
+
+	signAppinResponse, err := p.authenticate.GetPasswordSafeAuthentication()
+	if err != nil {
+		return fmt.Errorf("Error in authentication: %w", err)
+	}
+
+	err = p.CreateSecret(secretValue, metaDataObject, signAppinResponse)
+
+	if err != nil {
+		return fmt.Errorf("Error in creating the secret: %w", err)
+	}
+
+	return nil
+}
+
+// CreateSecret creates a secret in BeyondTrust Password Safe.
+func (p *Provider) CreateSecret(secret string, data map[string]interface{}, signAppinResponse entities.SignAppinResponse) error {
+	logger := logging.NewLogrLogger(&ESOLogger)
+	secretObj, err := secrets.NewSecretObj(p.authenticate, logger, maxFileSecretSizeBytes)
+
+	if err != nil {
+		return err
+	}
+
+	username := utils.GetStringField(data, usernameFieldName, "")
+	folderName := utils.GetStringField(data, folderNameFieldName, "")
+	fileName := utils.GetStringField(data, fileNameFieldName, "")
+	title := utils.GetStringField(data, titleFieldName, "")
+	description := utils.GetStringField(data, descriptionFieldName, "")
+	ownerID := utils.GetIntField(data, ownerIDFieldName, 0)
+	groupID := utils.GetIntField(data, groupIDFieldName, 0)
+	ownerType := utils.GetStringField(data, ownerTypeFieldName, "")
+	secretType := utils.GetStringField(data, secretTypeFieldName, secretTypeCredential)
+
+	var notes string
+	var urls []entities.UrlDetails
+	var ownerDetailsOwnerID []entities.OwnerDetailsOwnerId
+	var ownerDetailsGroupID []entities.OwnerDetailsGroupId
+
+	_, ok := data["notes"]
+	if ok {
+		notes = data["notes"].(string)
+	}
+
+	_, ok = data["urls"]
+	if ok {
+		urls = utils.GetUrlsDetailsList(data)
+	}
+
+	ownerDetailsOwnerID = utils.GetOwnerDetailsOwnerIdList(data, signAppinResponse)
+	ownerDetailsGroupID = utils.GetOwnerDetailsGroupIdList(data, groupID, signAppinResponse)
+
+	secretDetailsConfig := entities.SecretDetailsBaseConfig{
+		Title:       title,
+		Description: description,
+		Urls:        urls,
+		Notes:       notes,
+	}
+
+	var configMap map[string]interface{}
+	switch strings.ToUpper(secretType) {
+	case "CREDENTIAL":
+
+		secretCredentialDetailsConfig30 := entities.SecretCredentialDetailsConfig30{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			Username:                username,
+			Password:                secret,
+			OwnerId:                 ownerID,
+			OwnerType:               ownerType,
+			Owners:                  ownerDetailsOwnerID,
+		}
+
+		secretCredentialDetailsConfig31 := entities.SecretCredentialDetailsConfig31{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			Username:                username,
+			Password:                secret,
+			Owners:                  ownerDetailsGroupID,
+		}
+
+		configMap = map[string]interface{}{
+			"3.0": secretCredentialDetailsConfig30,
+			"3.1": secretCredentialDetailsConfig31,
+		}
+
+	case "FILE":
+
+		secretFileDetailsConfig30 := entities.SecretFileDetailsConfig30{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			FileContent:             secret,
+			FileName:                fileName,
+			OwnerId:                 ownerID,
+			OwnerType:               ownerType,
+			Owners:                  ownerDetailsOwnerID,
+		}
+
+		secretFileDetailsConfig31 := entities.SecretFileDetailsConfig31{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			FileContent:             secret,
+			FileName:                fileName,
+			Owners:                  ownerDetailsGroupID,
+		}
+
+		configMap = map[string]interface{}{
+			"3.0": secretFileDetailsConfig30,
+			"3.1": secretFileDetailsConfig31,
+		}
+
+	case "TEXT":
+
+		secretTextDetailsConfig30 := entities.SecretTextDetailsConfig30{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			Text:                    secret,
+			OwnerId:                 ownerID,
+			OwnerType:               ownerType,
+			Owners:                  ownerDetailsOwnerID,
+		}
+
+		secretTextDetailsConfig31 := entities.SecretTextDetailsConfig31{
+			SecretDetailsBaseConfig: secretDetailsConfig,
+			Text:                    secret,
+			Owners:                  ownerDetailsGroupID,
+		}
+
+		configMap = map[string]interface{}{
+			"3.0": secretTextDetailsConfig30,
+			"3.1": secretTextDetailsConfig31,
+		}
+
+	default:
+		return fmt.Errorf("Unknown secret type")
+	}
+
+	secretDetails, exists := configMap[p.authenticate.ApiVersion]
+
+	if !exists {
+		return fmt.Errorf("unsupported API version: %v", &p.authenticate.ApiVersion)
+	}
+
+	_, err = secretObj.CreateSecretFlow(folderName, secretDetails)
+
+	if err != nil {
+		return err
+	}
+
+	ESOLogger.Info("Secret pushed to BeyondTrust Password Safe")
+
+	return nil
 }
