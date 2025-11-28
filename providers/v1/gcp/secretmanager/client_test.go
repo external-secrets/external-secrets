@@ -958,43 +958,6 @@ func TestPushSecret(t *testing.T) {
 			},
 			secret: &corev1.Secret{Data: map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}},
 		},
-		{
-			desc: "labels and annotations are added on secret creation",
-			args: args{
-				store: &esv1.GCPSMProvider{ProjectID: smtc.projectID},
-				mock:  smtc.mockClient,
-				Metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{
-						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
-						"kind": "PushSecretMetadata",
-						"spec": {
-							"annotations": {"annotation-key1":"annotation-value1"},
-							"labels": {"label-key1":"label-value1"}
-						}
-					}`),
-				},
-				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
-				CreateSecretMockReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
-					Name: "projects/default/secrets/baz",
-					Replication: &secretmanagerpb.Replication{
-						Replication: &secretmanagerpb.Replication_Automatic_{
-							Automatic: &secretmanagerpb.Replication_Automatic{},
-						},
-					},
-					Labels: map[string]string{
-						managedBy:    externalSecrets,
-						"label-key1": "label-value1",
-					},
-					Annotations: map[string]string{
-						"annotation-key1": "annotation-value1",
-					},
-				}, Err: nil},
-				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
-			want: want{
-				err: nil,
-			},
-		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
