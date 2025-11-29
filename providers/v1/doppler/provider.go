@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -93,7 +94,28 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		}
 	}
 
-	client.doppler = doppler
+	// Wrap the Doppler client with retry logic if retrySettings are configured
+	var wrappedClient SecretsClientInterface = doppler
+	if storeSpec.RetrySettings != nil {
+		maxRetries := 3 // default value
+		retryInterval := time.Duration(0)
+
+		if storeSpec.RetrySettings.MaxRetries != nil {
+			maxRetries = int(*storeSpec.RetrySettings.MaxRetries)
+		}
+
+		if storeSpec.RetrySettings.RetryInterval != nil {
+			var err error
+			retryInterval, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+			if err != nil {
+				return nil, fmt.Errorf(errNewClient, fmt.Errorf("invalid retry interval: %w", err))
+			}
+		}
+
+		wrappedClient = newRetryableClient(doppler, maxRetries, retryInterval)
+	}
+
+	client.doppler = wrappedClient
 	client.project = client.store.Project
 	client.config = client.store.Config
 	client.nameTransformer = client.store.NameTransformer
