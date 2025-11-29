@@ -24,7 +24,7 @@ $(LOCALBIN):
 
 .PHONY: build
 build: ## Build binary for the specified arch
-	go build -o '$(LOCALBIN)/esoctl' -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" .
+	go build -tags all_providers -o '$(LOCALBIN)/esoctl' -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" .
 
 .PHONY: binaries
 binaries: ## Build release binaries for all major OSs.
