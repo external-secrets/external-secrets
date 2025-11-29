@@ -357,6 +357,32 @@ podDisruptionBudget:
 # -- Run the controller on the host network
 hostNetwork: false
 
+# -- Network policy configuration for all components
+networkPolicy:
+  # -- Specifies whether network policies should be created
+  enabled: false
+
+  # -- Controller network policy settings
+  controller:
+    # -- Egress rules for external secret providers (AWS, GCP, Azure, Vault, etc.)
+    # REQUIRED: You must configure access to your secret providers
+    # Examples:
+
+    # egressTo:
+    #   - to:
+    #       - namespaceSelector:
+    #           matchLabels:
+    #             name: vault
+    #         podSelector:
+    #           matchLabels:
+    #             app: vault
+    #     ports:
+    #       - port: 8200
+    #         protocol: TCP
+    #
+    # Note: DNS and API server access are handled automatically
+    egressTo: []
+
 webhook:
   # -- Annotations to place on validating webhook configuration.
   annotations: {}
