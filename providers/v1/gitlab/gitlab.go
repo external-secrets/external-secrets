@@ -27,10 +27,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/tidwall/gjson"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 	corev1 "k8s.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -81,7 +82,9 @@ func (a ProjectGroupPathSorter) Len() int           { return len(a) }
 func (a ProjectGroupPathSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ProjectGroupPathSorter) Less(i, j int) bool { return len(a[i].FullPath) < len(a[j].FullPath) }
 
-var log = ctrl.Log.WithName("provider").WithName("gitlab")
+func ctxLog(ctx context.Context) logr.Logger {
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("gitlab")
+}
 
 // Set gitlabBase credentials to Access Token.
 func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
@@ -432,6 +435,7 @@ func (g *gitlabBase) ResolveGroupIDs() error {
 
 // Validate will use the gitlab projectVariablesClient/groupVariablesClient to validate the gitlab provider using the ListVariable call to ensure get permissions without needing a specific key.
 func (g *gitlabBase) Validate() (esv1.ValidationResult, error) {
+	log := ctxLog(context.Background())
 	if g.store.ProjectID != "" {
 		_, resp, err := g.projectVariablesClient.ListVariables(g.store.ProjectID, nil)
 		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectListVariables, err)

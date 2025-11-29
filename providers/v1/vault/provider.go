@@ -22,11 +22,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
@@ -35,12 +35,12 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
 	_           esv1.Provider = &Provider{}
 	enableCache bool
-	logger      = ctrl.Log.WithName("provider").WithName("vault")
 	clientCache *cache.Cache[vaultutil.Client]
 )
 
@@ -55,6 +55,10 @@ const (
 const (
 	defaultCacheSize = 2 << 17
 )
+
+func ctxLog(ctx context.Context) logr.Logger {
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("vault")
+}
 
 // Provider implements the ESO Provider interface for Hashicorp Vault.
 type Provider struct {
@@ -187,7 +191,7 @@ func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev
 		kube:      kube,
 		corev1:    corev1,
 		store:     vaultSpec,
-		log:       logger,
+		log:       ctxLog(ctx),
 		namespace: namespace,
 		storeKind: storeKind,
 	}
@@ -299,11 +303,12 @@ func isReferentSpec(prov *esv1.VaultProvider) bool {
 }
 
 func initCache(size int) {
-	logger.Info("initializing vault cache", "size", size)
+	log := ctxLog(context.TODO())
+	log.Info("initializing vault cache", "size", size)
 	clientCache = cache.Must(size, func(client vaultutil.Client) {
 		err := revokeTokenIfValid(context.Background(), client)
 		if err != nil {
-			logger.Error(err, "unable to revoke cached token on eviction")
+			log.Error(err, "unable to revoke cached token on eviction")
 		}
 	})
 }

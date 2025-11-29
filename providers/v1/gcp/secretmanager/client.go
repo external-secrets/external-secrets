@@ -29,6 +29,7 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	"github.com/go-logr/logr"
 	"github.com/googleapis/gax-go/v2"
 	"github.com/googleapis/gax-go/v2/apierror"
 	"github.com/tidwall/gjson"
@@ -37,7 +38,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -47,6 +47,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/util/locks"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -109,7 +110,9 @@ type GoogleSecretManagerClient interface {
 	ListSecretVersions(ctx context.Context, req *secretmanagerpb.ListSecretVersionsRequest, opts ...gax.CallOption) *secretmanager.SecretVersionIterator
 }
 
-var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
+func ctxLog(ctx context.Context) logr.Logger {
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("gcp").WithName("secretsmanager")
+}
 
 // DeleteSecret deletes a secret from Google Cloud Secret Manager.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
@@ -389,6 +392,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 }
 
 func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	log := ctxLog(ctx)
 	// regex matcher
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
@@ -447,6 +451,7 @@ func (c *Client) getData(ctx context.Context, key string) ([]byte, error) {
 }
 
 func (c *Client) findByTags(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	log := ctxLog(ctx)
 	var tagFilter string
 	for k, v := range ref.Tags {
 		tagFilter = fmt.Sprintf("%slabels.%s=%s ", tagFilter, k, v)
