@@ -316,6 +316,10 @@ func (m mockCredentialsProviderError) Retrieve(ctx context.Context) (aws.Credent
 	return aws.Credentials{}, errors.New("credentials not available")
 }
 
+func (m mockCredentialsProviderError) Error() string {
+	return "credentials not available"
+}
+
 type fakePushSecretRemoteRef struct{}
 
 func (f *fakePushSecretRemoteRef) GetRemoteKey() string {
