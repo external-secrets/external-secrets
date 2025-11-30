@@ -97,7 +97,7 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 }
 
 func (cm *CertificateManager) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
-	return fmt.Errorf("deletion of ACM certificates is not supported")
+	return fmt.Errorf("DeleteSecret is not supported for CertificateManager provider")
 }
 
 func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
@@ -125,7 +125,7 @@ func (cm *CertificateManager) SecretExists(ctx context.Context, pushSecretRef es
 }
 
 func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	return fmt.Errorf("pushing secrets to ACM is not supported")
+	return fmt.Errorf("PushSecret is not supported for CertificateManager provider")
 }
 
 func (cm *CertificateManager) Close(_ context.Context) error {
