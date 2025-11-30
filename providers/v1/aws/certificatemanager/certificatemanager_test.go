@@ -18,72 +18,338 @@ package certificatemanager
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
+	acmtypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	fakecm "github.com/external-secrets/external-secrets/providers/v1/aws/certificatemanager/fake"
 )
 
-// --- inline fake ACM client implementation ---
-type fakeACM struct {
-	descErr   error
-	exportErr error
+const (
+	testCertificateARN = "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+)
+
+var (
+	testCertificate = "-----BEGIN CERTIFICATE-----\nMIICljCCAX4CCQDhsYy..."
+	testPrivateKey  = "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG..."
+	testChain       = "-----BEGIN CERTIFICATE-----\nMIICljCCAX4CCQDhsYy...\n-----END CERTIFICATE-----"
+	testCertWithAll = testCertificate + "\n" + testChain + "\n" + testPrivateKey + "\n"
+)
+
+type certificateManagerTestCase struct {
+	fakeClient      *fakecm.Client
+	apiInput        *acm.ExportCertificateInput
+	apiOutput       *acm.ExportCertificateOutput
+	describeCertOut *acm.DescribeCertificateOutput
+	describeCertErr error
+	remoteRef       *esv1.ExternalSecretDataRemoteRef
+	apiErr          error
+	expectError     string
+	expectedSecret  string
 }
 
-func (f *fakeACM) DescribeCertificate(ctx context.Context, in *acm.DescribeCertificateInput, _ ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
-	return &acm.DescribeCertificateOutput{}, f.descErr
-}
-
-func (f *fakeACM) ExportCertificate(ctx context.Context, in *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
-	if f.exportErr != nil {
-		return nil, f.exportErr
+func makeValidCertificateManagerTestCase() *certificateManagerTestCase {
+	return &certificateManagerTestCase{
+		fakeClient:      &fakecm.Client{},
+		apiInput:        makeValidACMInput(),
+		apiOutput:       makeValidACMOutput(),
+		describeCertOut: makeValidDescribeCertOutput(),
+		describeCertErr: nil,
+		remoteRef:       makeValidCMRemoteRef(),
+		apiErr:          nil,
+		expectError:     "",
+		expectedSecret:  "",
 	}
+}
+
+func makeValidACMInput() *acm.ExportCertificateInput {
+	return &acm.ExportCertificateInput{
+		CertificateArn: aws.String(testCertificateARN),
+	}
+}
+
+func makeValidACMOutput() *acm.ExportCertificateOutput {
 	return &acm.ExportCertificateOutput{
-		Certificate:      aws.String("-----BEGIN CERTIFICATE-----\nCERT\n-----END CERTIFICATE-----"),
-		CertificateChain: aws.String("-----BEGIN CERTIFICATE-----\nCHAIN\n-----END CERTIFICATE-----"),
-		PrivateKey:       aws.String("-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----"),
+		Certificate:      aws.String(testCertificate),
+		CertificateChain: aws.String(testChain),
+		PrivateKey:       aws.String(testPrivateKey),
+	}
+}
+
+func makeValidDescribeCertOutput() *acm.DescribeCertificateOutput {
+	return &acm.DescribeCertificateOutput{
+		Certificate: &acmtypes.CertificateDetail{
+			CertificateArn: aws.String(testCertificateARN),
+		},
+	}
+}
+
+func makeValidCMRemoteRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
+		Key: testCertificateARN,
+	}
+}
+
+func makeValidCertificateManagerTestCaseCustom(tweaks ...func(tc *certificateManagerTestCase)) *certificateManagerTestCase {
+	tc := makeValidCertificateManagerTestCase()
+	for _, fn := range tweaks {
+		fn(tc)
+	}
+	tc.fakeClient.WithValue(tc.apiInput, tc.apiOutput, tc.apiErr)
+	return tc
+}
+
+func TestACMResolver(t *testing.T) {
+	endpointEnvKey := ACMEndpointEnv
+	endpointURL := "http://acm.foo"
+
+	t.Setenv(endpointEnvKey, endpointURL)
+
+	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), acm.EndpointParameters{})
+
+	assert.Nil(t, err)
+	assert.Equal(t, endpointURL, f.URI.String())
+}
+
+func TestGetSecret(t *testing.T) {
+	// good case: certificate is passed in, output is sent back
+	setValidCertificate := func(tc *certificateManagerTestCase) {
+		tc.apiOutput.Certificate = aws.String(testCertificate)
+		tc.apiOutput.CertificateChain = aws.String(testChain)
+		tc.apiOutput.PrivateKey = aws.String(testPrivateKey)
+		tc.expectedSecret = testCertWithAll
+	}
+
+	// good case: certificate only
+	setCertificateOnly := func(tc *certificateManagerTestCase) {
+		tc.apiOutput.Certificate = aws.String(testCertificate)
+		tc.apiOutput.CertificateChain = nil
+		tc.apiOutput.PrivateKey = nil
+		tc.expectedSecret = testCertificate + "\n"
+	}
+
+	// good case: certificate and chain
+	setCertificateAndChain := func(tc *certificateManagerTestCase) {
+		tc.apiOutput.Certificate = aws.String(testCertificate)
+		tc.apiOutput.CertificateChain = aws.String(testChain)
+		tc.apiOutput.PrivateKey = nil
+		tc.expectedSecret = testCertificate + "\n" + testChain + "\n"
+	}
+
+	// bad case: no data returned
+	setNoDataReturned := func(tc *certificateManagerTestCase) {
+		tc.apiOutput.Certificate = nil
+		tc.apiOutput.CertificateChain = nil
+		tc.apiOutput.PrivateKey = nil
+		tc.expectError = "no data returned"
+	}
+
+	// bad case: export certificate fails
+	setExportCertFail := func(tc *certificateManagerTestCase) {
+		tc.apiErr = errors.New("certificate not exportable")
+		tc.expectError = "certificate not exportable"
+	}
+
+	// bad case: describe certificate fails
+	setDescribeCertFail := func(tc *certificateManagerTestCase) {
+		tc.describeCertErr = errors.New("certificate not found")
+		tc.expectError = "certificate not found"
+	} // bad case: empty certificate ARN
+	setEmptyARN := func(tc *certificateManagerTestCase) {
+		tc.remoteRef.Key = ""
+		tc.expectError = "certificate ARN must be specified in remoteRef.key"
+	}
+
+	successCases := []*certificateManagerTestCase{
+		makeValidCertificateManagerTestCaseCustom(setValidCertificate),
+		makeValidCertificateManagerTestCaseCustom(setCertificateOnly),
+		makeValidCertificateManagerTestCaseCustom(setCertificateAndChain),
+		makeValidCertificateManagerTestCaseCustom(setNoDataReturned),
+		makeValidCertificateManagerTestCaseCustom(setExportCertFail),
+		makeValidCertificateManagerTestCaseCustom(setDescribeCertFail),
+		makeValidCertificateManagerTestCaseCustom(setEmptyARN),
+	}
+
+	for k, tc := range successCases {
+		cm := CertificateManager{
+			client: tc.fakeClient,
+		}
+		tc.fakeClient.DescribeCertificateFn = fakecm.NewDescribeCertificateFn(tc.describeCertOut, tc.describeCertErr)
+		out, err := cm.GetSecret(context.Background(), *tc.remoteRef)
+
+		if !errorContains(err, tc.expectError) {
+			t.Errorf("[%d] unexpected error: %v, expected: '%s'", k, err, tc.expectError)
+		}
+		if !cmp.Equal(string(out), tc.expectedSecret) {
+			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, tc.expectedSecret, string(out))
+		}
+	}
+}
+
+func TestGetSecretMap(t *testing.T) {
+	cm := CertificateManager{
+		client: &fakecm.Client{},
+	}
+
+	_, err := cm.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "GetSecretMap is not supported")
+}
+
+func TestGetAllSecrets(t *testing.T) {
+	cm := CertificateManager{
+		client: &fakecm.Client{},
+	}
+
+	_, err := cm.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "GetAllSecrets is not supported")
+}
+
+func TestSecretExists(t *testing.T) {
+	cm := CertificateManager{
+		client: &fakecm.Client{},
+	}
+
+	_, err := cm.SecretExists(context.Background(), &fakePushSecretRemoteRef{})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "SecretExists is not supported")
+}
+
+func TestPushSecret(t *testing.T) {
+	cm := CertificateManager{
+		client: &fakecm.Client{},
+	}
+
+	err := cm.PushSecret(context.Background(), nil, &fakePushSecretData{})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "PushSecret is not supported")
+}
+
+func TestDeleteSecret(t *testing.T) {
+	cm := CertificateManager{
+		client: &fakecm.Client{},
+	}
+
+	err := cm.DeleteSecret(context.Background(), &fakePushSecretRemoteRef{})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "DeleteSecret is not supported")
+}
+
+func TestValidate(t *testing.T) {
+	// good case: referent auth enabled
+	cm := CertificateManager{
+		referentAuth: true,
+	}
+	result, err := cm.Validate()
+	assert.Nil(t, err)
+	assert.Equal(t, esv1.ValidationResultUnknown, result)
+
+	// good case: credentials available
+	cfg := &aws.Config{
+		Credentials: mockCredentialsProvider{},
+	}
+	cm = CertificateManager{
+		cfg:          cfg,
+		referentAuth: false,
+	}
+	result, err = cm.Validate()
+	assert.Nil(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+
+	// bad case: credentials not available
+	cfg = &aws.Config{
+		Credentials: mockCredentialsProviderError{},
+	}
+	cm = CertificateManager{
+		cfg:          cfg,
+		referentAuth: false,
+	}
+	result, err = cm.Validate()
+	assert.NotNil(t, err)
+	assert.Equal(t, esv1.ValidationResultError, result)
+}
+
+func TestClose(t *testing.T) {
+	cm := CertificateManager{
+		client: &fakecm.Client{},
+	}
+
+	err := cm.Close(context.Background())
+	assert.Nil(t, err)
+}
+
+func TestNew(t *testing.T) {
+	cfg := &aws.Config{}
+	cm, err := New(context.Background(), cfg, "test-prefix", false)
+
+	require.NoError(t, err)
+	assert.NotNil(t, cm)
+	assert.Equal(t, "test-prefix", cm.prefix)
+	assert.False(t, cm.referentAuth)
+	assert.NotNil(t, cm.client)
+}
+
+func errorContains(out error, want string) bool {
+	if out == nil {
+		return want == ""
+	}
+	if want == "" {
+		return false
+	}
+	return strings.Contains(out.Error(), want)
+} // mockCredentialsProvider is a mock implementation of aws.CredentialsProvider
+type mockCredentialsProvider struct{}
+
+func (m mockCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	return aws.Credentials{
+		AccessKeyID:     "mock-access-key",
+		SecretAccessKey: "mock-secret-key",
 	}, nil
 }
 
-func (f *fakeACM) ListCertificates(ctx context.Context, in *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
-	return &acm.ListCertificatesOutput{}, nil
+// mockCredentialsProviderError is a mock implementation that returns an error
+type mockCredentialsProviderError struct{}
+
+func (m mockCredentialsProviderError) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	return aws.Credentials{}, errors.New("credentials not available")
 }
 
-func (f *fakeACM) GetCertificate(ctx context.Context, in *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
-	return &acm.GetCertificateOutput{}, nil
+// fakePushSecretRemoteRef is a fake implementation of PushSecretRemoteRef interface
+type fakePushSecretRemoteRef struct{}
+
+func (f *fakePushSecretRemoteRef) GetRemoteKey() string {
+	return "fake-remote-key"
 }
 
-func (f *fakeACM) AddTagsToCertificate(ctx context.Context, in *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
-	return &acm.AddTagsToCertificateOutput{}, nil
+func (f *fakePushSecretRemoteRef) GetProperty() string {
+	return "fake-property"
 }
 
-func (f *fakeACM) RemoveTagsFromCertificate(ctx context.Context, in *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
-	return &acm.RemoveTagsFromCertificateOutput{}, nil
+// fakePushSecretData is a fake implementation of PushSecretData interface
+type fakePushSecretData struct{}
+
+func (f *fakePushSecretData) GetRemoteKey() string {
+	return "fake-remote-key"
 }
 
-func newTestProvider() *CertificateManager {
-	return &CertificateManager{
-		client: &fakeACM{},
-	}
+func (f *fakePushSecretData) GetSecretKey() string {
+	return "fake-secret-key"
 }
 
-func TestGetSecret_Success(t *testing.T) {
-	ctx := context.Background()
-	cm := newTestProvider()
+func (f *fakePushSecretData) GetProperty() string {
+	return "fake-property"
+}
 
-	out, err := cm.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{
-		Key: "arn:aws:acm:eu-central-1:123456789012:certificate/abc",
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	got := string(out)
-	for _, want := range []string{"CERT", "CHAIN", "KEY"} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("output missing %q: %s", want, got)
-		}
-	}
+func (f *fakePushSecretData) GetMetadata() *apiextensionsv1.JSON {
+	return nil
 }
