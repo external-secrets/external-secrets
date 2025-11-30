@@ -1,10 +1,11 @@
 /*
-Copyright 2020 The cert-manager Authors.
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,10 +17,10 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"time"
 
 	//nolint
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	// nolint
@@ -64,15 +65,15 @@ func generatorTableFunc(f *framework.Framework, tweaks ...func(*testCase)) {
 		t(tc)
 	}
 
-	err := f.CRClient.Create(context.Background(), tc.Generator)
+	err := f.CRClient.Create(GinkgoT().Context(), tc.Generator)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = f.CRClient.Create(context.Background(), tc.ExternalSecret)
+	err = f.CRClient.Create(GinkgoT().Context(), tc.ExternalSecret)
 	Expect(err).ToNot(HaveOccurred())
 
 	Eventually(func() bool {
 		var es esv1.ExternalSecret
-		err = f.CRClient.Get(context.Background(), types.NamespacedName{
+		err = f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 			Namespace: tc.ExternalSecret.Namespace,
 			Name:      tc.ExternalSecret.Name,
 		}, &es)
@@ -88,7 +89,7 @@ func generatorTableFunc(f *framework.Framework, tweaks ...func(*testCase)) {
 	}).WithTimeout(time.Second * 30).Should(BeTrue())
 
 	var secret v1.Secret
-	err = f.CRClient.Get(context.Background(), types.NamespacedName{
+	err = f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 		Namespace: tc.ExternalSecret.Namespace,
 		Name:      tc.ExternalSecret.Spec.Target.Name,
 	}, &secret)

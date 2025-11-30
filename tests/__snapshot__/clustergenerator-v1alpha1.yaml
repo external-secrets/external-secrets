@@ -26,6 +26,14 @@ spec:
       registry: string
       scope: string
       tenantId: string
+    cloudsmithAccessTokenSpec:
+      apiUrl: string
+      orgSlug: string
+      serviceAccountRef:
+        audiences: [] # minItems 0 of type string
+        name: string
+        namespace: string
+      serviceSlug: string
     ecrAuthorizationTokenSpec:
       auth:
         jwt:
@@ -63,6 +71,22 @@ spec:
           clusterLocation: string
           clusterName: string
           clusterProjectID: string
+          serviceAccountRef:
+            audiences: [] # minItems 0 of type string
+            name: string
+            namespace: string
+        workloadIdentityFederation:
+          audience: string
+          awsSecurityCredentials:
+            awsCredentialsSecretRef:
+              name: string
+              namespace: string
+            region: "ap-south-1"
+          credConfig:
+            key: string
+            name: string
+            namespace: string
+          externalTokenEndpoint: string
           serviceAccountRef:
             audiences: [] # minItems 0 of type string
             name: string
@@ -106,6 +130,7 @@ spec:
     passwordSpec:
       allowRepeat: false
       digits: 1
+      encoding: "raw"
       length: 24
       noUpper: false
       symbolCharacters: string
@@ -117,6 +142,10 @@ spec:
         name: string
         namespace: string
       url: string
+    sshKeySpec:
+      comment: string
+      keySize: 256
+      keyType: "rsa"
     stsSessionTokenSpec:
       auth:
         jwt:
@@ -168,10 +197,33 @@ spec:
               key: string
               name: string
               namespace: string
+            path: "cert"
             secretRef:
               key: string
               name: string
               namespace: string
+          gcp:
+            location: string
+            path: "gcp"
+            projectID: string
+            role: string
+            secretRef:
+              secretAccessKeySecretRef:
+                key: string
+                name: string
+                namespace: string
+            serviceAccountRef:
+              audiences: [] # minItems 0 of type string
+              name: string
+              namespace: string
+            workloadIdentity:
+              clusterLocation: string
+              clusterName: string
+              clusterProjectID: string
+              serviceAccountRef:
+                audiences: [] # minItems 0 of type string
+                name: string
+                namespace: string
           iam:
             externalID: string
             jwt:
@@ -247,6 +299,8 @@ spec:
           name: string
           namespace: string
           type: "Secret" # "Secret", "ConfigMap"
+        checkAndSet:
+          required: true
         forwardInconsistent: true
         headers: {}
         namespace: string
@@ -296,4 +350,4 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"
+  kind: "ACRAccessToken" # "ACRAccessToken", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"

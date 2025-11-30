@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,22 +22,23 @@ import (
 	"maps"
 
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
-	"github.com/external-secrets/external-secrets/pkg/template"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/template"
 
-	_ "github.com/external-secrets/external-secrets/pkg/provider/register" // Loading registered providers.
+	_ "github.com/external-secrets/external-secrets/pkg/register" // Loading registered providers.
 )
 
-// merge template in the following order:
+// ApplyTemplate merges templates in the following order:
 // * template.Data (highest precedence)
 // * template.TemplateFrom
 // * secret via es.data or es.dataFrom (if template.MergePolicy is Merge, or there is no template)
 // * existing secret keys (if CreationPolicy is Merge).
 func (r *Reconciler) ApplyTemplate(ctx context.Context, es *esv1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
-	// update metadata (labels, annotations) of the secret
+	// update metadata (labels, annotations, finalizers) of the secret
 	if err := setMetadata(secret, es); err != nil {
 		return err
 	}
@@ -134,13 +137,23 @@ func setMetadata(secret *v1.Secret, es *esv1.ExternalSecret) error {
 
 	// if no template is defined, copy labels and annotations from the ExternalSecret
 	if es.Spec.Target.Template == nil {
-		utils.MergeStringMap(secret.ObjectMeta.Labels, es.ObjectMeta.Labels)
-		utils.MergeStringMap(secret.ObjectMeta.Annotations, es.ObjectMeta.Annotations)
+		esutils.MergeStringMap(secret.ObjectMeta.Labels, es.ObjectMeta.Labels)
+		esutils.MergeStringMap(secret.ObjectMeta.Annotations, es.ObjectMeta.Annotations)
 		return nil
 	}
 
 	// copy labels and annotations from the template
-	utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
+	esutils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
+	esutils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
+
+	// add finalizers from the template
+	if secret.ObjectMeta.DeletionTimestamp.IsZero() {
+		for _, finalizer := range es.Spec.Target.Template.Metadata.Finalizers {
+			if !controllerutil.ContainsFinalizer(secret, finalizer) {
+				controllerutil.AddFinalizer(secret, finalizer)
+			}
+		}
+	}
+
 	return nil
 }

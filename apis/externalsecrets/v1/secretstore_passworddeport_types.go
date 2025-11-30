@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Configures a store to sync secrets with a Password Depot instance.
+// PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
 type PasswordDepotProvider struct {
 	// URL configures the Password Depot instance URL.
 	Host string `json:"host"`
@@ -30,10 +32,12 @@ type PasswordDepotProvider struct {
 	Auth PasswordDepotAuth `json:"auth"`
 }
 
+// PasswordDepotAuth defines the authentication method for the Password Depot provider.
 type PasswordDepotAuth struct {
 	SecretRef PasswordDepotSecretRef `json:"secretRef"`
 }
 
+// PasswordDepotSecretRef contains the secret reference for Password Depot authentication.
 type PasswordDepotSecretRef struct {
 	// Username / Password is used for authentication.
 	// +optional

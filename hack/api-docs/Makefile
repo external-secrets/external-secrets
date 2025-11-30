@@ -23,6 +23,7 @@ MINOR_VERSION ?= $(shell echo $(VERSION_NO_V) | cut -d'.' -f2)
 VERSION_TO_CHECK ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION))
 DOCS_ALIAS ?= unstable
 SERVE_BIND_ADDRESS ?= 127.0.0.1
+SHELL := /usr/bin/env bash
 
 # TOP is the current directory where this Makefile lives.
 TOP := $(dir $(firstword $(MAKEFILE_LIST)))
@@ -52,7 +53,7 @@ VERSION_TO_UPDATE ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION).x)
 
 .PHONY: stability-support.update
 stability-support.update:
-	./add_eso_version.sh $(VERSION_TO_UPDATE)
+	ROOT=$(ROOT) ./add_eso_version.sh $(VERSION_TO_UPDATE)
 
 .PHONY: check
 check:
@@ -66,11 +67,10 @@ build: image generate $(SOURCES)
 	    --mount type=bind,source=$(ROOT),target=/repo \
 		--sig-proxy=true \
 		--rm \
-		--user $(UID):$(GID) \
 		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
 		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
 		$(MKDOCS_IMAGE) \
-		/bin/bash -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
+		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish
 build.publish: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
@@ -80,7 +80,7 @@ build.publish: image generate $(SOURCES)
 		--rm \
 		--user $(UID):$(GID) \
 		$(MKDOCS_IMAGE) \
-		/bin/bash -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
+		$(SHELL) -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: generate
 generate:
 	./generate.sh $(SRCDIR)/api/spec.md
@@ -101,4 +101,4 @@ serve: build
 		-p $(SERVE_BIND_ADDRESS):8000:8000 \
 		--rm \
 		$(MKDOCS_IMAGE) \
-		/bin/bash -c "cd /repo && mkdocs serve -f hack/api-docs/mkdocs.yml -a 0.0.0.0:8000"
+		$(SHELL) -c "cd /repo && mkdocs serve -f hack/api-docs/mkdocs.yml -a 0.0.0.0:8000"

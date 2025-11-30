@@ -7,11 +7,11 @@ describes governance guidelines and maintainer responsibilities.
 
 | Maintainer | GitHub ID                                       | Affiliation |
 | --------------- |-------------------------------------------------| ----------- |
-| RealName Here | [knelasevero](https://github.com/knelasevero)   | [Company](https://www.github.com/Company/) |
-| RealName Here | [gusfcarvalho](https://github.com/gusfcarvalho) | [Company](https://www.github.com/Company/) |
-| RealName Here | [moolen](https://github.com/moolen)             | [Company](https://www.github.com/Company/) |
-| RealName Here | [IdanAdar](https://github.com/IdanAdar)         | [Company](https://www.github.com/Company/) |
-| RealName Here | [Skarlso](https://github.com/Skarlso)           | [Company](https://www.github.com/Company/) |
+| Lucas Severo Alves | [knelasevero](https://github.com/knelasevero)   | No Affiliation |
+| Gustavo Fernandes de Carvalho | [gusfcarvalho](https://github.com/gusfcarvalho) | [External Secrets Inc](https://externalsecrets.com) |
+| Moritz Johner | [moolen](https://github.com/moolen)             | [Form3Tech](https://github.com/form3tech) |
+| Idan Adar | [IdanAdar](https://github.com/IdanAdar)         | [IBM](https://www.github.com/IBM/) |
+| Gergely Brautigam | [Skarlso](https://github.com/Skarlso)           | [Kubermatic](https://www.github.com/kubermatic/) |
 
 
 ## External Secrets Operator Core Contributors & Stakeholders
@@ -25,7 +25,7 @@ describes governance guidelines and maintainer responsibilities.
 | Helm Chart & HA |  |
 | Operator & Day 2 Operations |  |
 | Security | TBD |
-| User Interface/Usability/User Experience | Meina Zhou (zhoumeina) |
+| User Interface/Usability/User Experience | |
 | Scale & Performance | |
 | Documentation |  |
 | Releases |  |
@@ -35,10 +35,10 @@ describes governance guidelines and maintainer responsibilities.
 
 ## Emeritus Maintainers
 
-* RealName Here, [Flydiverny](https://github.com/Flydiverny)
-* RealName Here, [silasbw](https://github.com/silasbw)
-* RealName Here, [mcavoyk](https://github.com/mcavoyk)
-* RealName Here, [riccardomc](https://github.com/riccardomc)
-* RealName Here, [jonatasbaldin](https://github.com/jonatasbaldin)
-* RealName Here, [sebagomez](https://github.com/sebagomez)
-* RealName Here, [rodrmartinez](https://github.com/rodrmartinez)
+* Markus Maga, [Flydiverny](https://github.com/Flydiverny)
+* Silas Boyd-Wickizer, [silasbw](https://github.com/silasbw)
+* Kellin, [mcavoyk](https://github.com/mcavoyk)
+* Riccardo M. Cefala, [riccardomc](https://github.com/riccardomc)
+* Jojo, [jonatasbaldin](https://github.com/jonatasbaldin)
+* Sebastián Gómez, [sebagomez](https://github.com/sebagomez)
+* Rodrigo Martinez, [rodrmartinez](https://github.com/rodrmartinez)

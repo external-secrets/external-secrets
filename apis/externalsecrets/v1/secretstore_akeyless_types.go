@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,6 +40,7 @@ type AkeylessProvider struct {
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
+// AkeylessAuth configures how the operator authenticates with Akeyless.
 type AkeylessAuth struct {
 
 	// Reference to a Secret that contains the details
@@ -51,7 +54,8 @@ type AkeylessAuth struct {
 	KubernetesAuth *AkeylessKubernetesAuth `json:"kubernetesAuth,omitempty"`
 }
 
-// AkeylessAuthSecretRef
+// AkeylessAuthSecretRef references a Secret that contains the details
+// to authenticate with Akeyless.
 // AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.
 type AkeylessAuthSecretRef struct {
 	// The SecretAccessID is used for authentication
@@ -60,7 +64,8 @@ type AkeylessAuthSecretRef struct {
 	AccessTypeParam esmeta.SecretKeySelector `json:"accessTypeParam,omitempty"`
 }
 
-// Authenticate with Kubernetes ServiceAccount token stored.
+// AkeylessKubernetesAuth configures Kubernetes authentication with Akeyless.
+// It authenticates with Kubernetes ServiceAccount token stored.
 type AkeylessKubernetesAuth struct {
 
 	// the Akeyless Kubernetes auth-method access-id

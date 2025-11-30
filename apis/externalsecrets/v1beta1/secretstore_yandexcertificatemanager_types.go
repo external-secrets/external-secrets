@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,17 +20,19 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// YandexCertificateManagerAuth defines authentication configuration for the Yandex Certificate Manager provider.
 type YandexCertificateManagerAuth struct {
 	// The authorized key used for authentication
 	// +optional
 	AuthorizedKey esmeta.SecretKeySelector `json:"authorizedKeySecretRef,omitempty"`
 }
 
+// YandexCertificateManagerCAProvider defines CA certificate configuration for Yandex Certificate Manager.
 type YandexCertificateManagerCAProvider struct {
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 }
 
-// YandexCertificateManagerProvider Configures a store to sync secrets using the Yandex Certificate Manager provider.
+// YandexCertificateManagerProvider configures a store to sync secrets using the Yandex Certificate Manager provider.
 type YandexCertificateManagerProvider struct {
 	// Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
 	// +optional

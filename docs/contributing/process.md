@@ -32,6 +32,11 @@ for the lifecycle of the PR: review, merging, ping on inactivity, close.
 We close pull requests or issues if there is no response from the author for
 a period of time. Feel free to reopen if you want to get back on it.
 
+_Note:_
+Pull requests that are labelled with _size/l_ and above _MUST_ have at least **TWO**
+approvers for it to be merged. Please respect this policy to ensure the quality
+of code in this project.
+
 ### Triggering e2e tests
 
 We have an extensive set of e2e tests that test the integration with *real* cloud provider APIs.
@@ -144,8 +149,7 @@ Providing support to end users is an important and difficult task.
 We have three different channels through which support questions arise:
 
 1. Kubernetes Slack [#external-secrets](https://kubernetes.slack.com/archives/C017BF84G2Y)
-2. [GitHub Discussions](https://github.com/external-secrets/external-secrets/discussions)
-3. GitHub Issues
+2. [GitHub Issues](https://github.com/external-secrets/external-secrets/issues/new/choose)
 
 We use labels to identify GitHub Issues. Specifically for managing support cases we use the following labels to identify the state a support case is in:
 

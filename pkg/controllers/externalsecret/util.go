@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +17,9 @@ limitations under the License.
 package externalsecret
 
 import (
+	"crypto/sha3"
+	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -78,4 +83,14 @@ func filterOutCondition(conditions []esv1.ExternalSecretStatusCondition, condTyp
 		newConditions = append(newConditions, c)
 	}
 	return newConditions
+}
+
+func fqdnFor(name string) string {
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, name)
+	// If secret name is just too big, use the SHA3 hash of the secret name
+	// Done this way for backwards compatibility thus avoiding breaking changes
+	if len(fqdn) > 63 {
+		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(name)))
+	}
+	return fqdn
 }

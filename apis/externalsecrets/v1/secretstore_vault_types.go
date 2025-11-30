@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,15 +20,16 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// VaultKVStoreVersion represents the version of the Vault KV secret engine.
 type VaultKVStoreVersion string
 
+// These are the currently supported VaultKVStoreVersion.
 const (
 	VaultKVStoreV1 VaultKVStoreVersion = "v1"
 	VaultKVStoreV2 VaultKVStoreVersion = "v2"
 )
 
-// Configures an store to sync secrets using a HashiCorp Vault
-// KV backend.
+// VaultProvider configures a store to sync secrets using a Hashicorp Vault KV backend.
 type VaultProvider struct {
 	// Auth configures how secret-manager authenticates with the Vault server.
 	Auth *VaultAuth `json:"auth,omitempty"`
@@ -90,6 +93,12 @@ type VaultProvider struct {
 	// Headers to be added in Vault request
 	// +optional
 	Headers map[string]string `json:"headers,omitempty"`
+
+	// CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+	// Only applies to Vault KV v2 stores. When enabled, write operations must include
+	// the current version of the secret to prevent unintentional overwrites.
+	// +optional
+	CheckAndSet *VaultCheckAndSet `json:"checkAndSet,omitempty"`
 }
 
 // VaultClientTLS is the configuration used for client side related TLS communication,
@@ -109,7 +118,7 @@ type VaultClientTLS struct {
 }
 
 // VaultAuth is the configuration used to authenticate with a Vault server.
-// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt` or `cert`
+// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt`, `cert`, `iam` or `gcp`
 // can be specified. A namespace to authenticate against can optionally be specified.
 type VaultAuth struct {
 	// Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
@@ -157,6 +166,11 @@ type VaultAuth struct {
 	// UserPass authenticates with Vault by passing username/password pair
 	// +optional
 	UserPass *VaultUserPassAuth `json:"userPass,omitempty"`
+
+	// Gcp authenticates with Vault using Google Cloud Platform authentication method
+	// GCP authentication method
+	// +optional
+	GCP *VaultGCPAuth `json:"gcp,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -186,7 +200,7 @@ type VaultAppRole struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }
 
-// Authenticate against Vault using a Kubernetes ServiceAccount token stored in
+// VaultKubernetesAuth authenticates against Vault using a Kubernetes ServiceAccount token stored in
 // a Secret.
 type VaultKubernetesAuth struct {
 	// Path where the Kubernetes authentication backend is mounted in Vault, e.g:
@@ -242,7 +256,7 @@ type VaultAwsAuth struct {
 	JWTAuth *VaultAwsJWTAuth `json:"jwt,omitempty"`
 }
 
-// VaultAWSAuthSecretRef holds secret references for AWS credentials
+// VaultAwsAuthSecretRef holds secret references for AWS credentials
 // both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
 type VaultAwsAuthSecretRef struct {
 	// The AccessKeyID is used for authentication
@@ -316,6 +330,12 @@ type VaultJwtAuth struct {
 // VaultCertAuth authenticates with Vault using the JWT/OIDC authentication
 // method, with the role name and token stored in a Kubernetes Secret resource.
 type VaultCertAuth struct {
+	// Path where the Certificate authentication backend is mounted
+	// in Vault, e.g: "cert"
+	// +kubebuilder:default=cert
+	// +optional
+	Path string `json:"path"`
+
 	// ClientCert is a certificate to authenticate using the Cert Vault
 	// authentication method
 	// +optional
@@ -328,6 +348,9 @@ type VaultCertAuth struct {
 }
 
 // VaultIamAuth authenticates with Vault using the Vault's AWS IAM authentication method. Refer: https://developer.hashicorp.com/vault/docs/auth/aws
+//
+// When JWTAuth and SecretRef are not specified, the provider will use the controller pod's
+// identity to authenticate with AWS. This supports both IRSA and EKS Pod Identity.
 type VaultIamAuth struct {
 	// Path where the AWS auth method is enabled in Vault, e.g: "aws"
 	// +optional
@@ -370,4 +393,48 @@ type VaultUserPassAuth struct {
 	// method
 	// +optional
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
+// Refer: https://developer.hashicorp.com/vault/docs/auth/gcp
+//
+// When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod's
+// identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.
+type VaultGCPAuth struct {
+	// Path where the GCP auth method is enabled in Vault, e.g: "gcp"
+	// +kubebuilder:default=gcp
+	// +optional
+	Path string `json:"path,omitempty"`
+
+	// Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
+	//+required
+	Role string `json:"role"`
+
+	// Project ID of the Google Cloud Platform project
+	// +optional
+	ProjectID string `json:"projectID,omitempty"`
+
+	// Location optionally defines a location/region for the secret
+	// +optional
+	Location string `json:"location,omitempty"`
+
+	// Specify credentials in a Secret object
+	// +optional
+	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
+
+	// Specify a service account with Workload Identity
+	// +optional
+	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
+
+	// ServiceAccountRef to a service account for impersonation
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+}
+
+// VaultCheckAndSet defines the Check-And-Set (CAS) settings for Vault KV v2 PushSecret operations.
+type VaultCheckAndSet struct {
+	// Required when true, all write operations must include a check-and-set parameter.
+	// This helps prevent unintentional overwrites of secrets.
+	// +optional
+	Required bool `json:"required,omitempty"`
 }

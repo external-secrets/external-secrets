@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +32,7 @@ type GrafanaSpec struct {
 	ServiceAccount GrafanaServiceAccount `json:"serviceAccount"`
 }
 
+// GrafanaServiceAccount defines the configuration for a Grafana service account to be created.
 type GrafanaServiceAccount struct {
 	// Name is the name of the service account that will be created by ESO.
 	Name string `json:"name"`
@@ -39,6 +42,7 @@ type GrafanaServiceAccount struct {
 	Role string `json:"role"`
 }
 
+// GrafanaAuth defines the authentication methods for connecting to a Grafana instance.
 type GrafanaAuth struct {
 	// A service account token used to authenticate against the Grafana instance.
 	// Note: you need a token which has elevated permissions to create service accounts.
@@ -54,6 +58,7 @@ type GrafanaAuth struct {
 	Basic *GrafanaBasicAuth `json:"basic,omitempty"`
 }
 
+// GrafanaBasicAuth defines the credentials for basic authentication with Grafana.
 type GrafanaBasicAuth struct {
 	// A basic auth username used to authenticate against the Grafana instance.
 	Username string `json:"username"`
@@ -75,6 +80,7 @@ type GrafanaStateServiceAccount struct {
 	ServiceAccountTokenID *int64  `json:"tokenID"`
 }
 
+// Grafana represents a generator for Grafana service account tokens.
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
@@ -89,7 +95,7 @@ type Grafana struct {
 
 // +kubebuilder:object:root=true
 
-// ExternalList contains a list of Grafana Generator resources.
+// GrafanaList contains a list of Grafana Generator resources.
 type GrafanaList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package webhookconfig contains the controller for the WebhookConfig resource.
 package webhookconfig
 
 import (
@@ -23,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/go-logr/logr"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -35,9 +39,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/runtime/constants"
 )
 
+// Reconciler reconciles a ValidatingWebhookConfiguration object
+// and updates it with the CA bundle from the given secret.
 type Reconciler struct {
 	client.Client
 	Log             logr.Logger
@@ -58,6 +64,7 @@ type Reconciler struct {
 	webhookReady   bool
 }
 
+// Opts are the options for the webhookconfig controller Reconciler.
 type Opts struct {
 	SvcName         string
 	SvcNamespace    string
@@ -66,6 +73,9 @@ type Opts struct {
 	RequeueInterval time.Duration
 }
 
+// New returns a new Reconciler.
+// The controller will watch ValidatingWebhookConfiguration resources
+// and update them with the CA bundle from the given secret.
 func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan struct{}, log logr.Logger, opts Opts) *Reconciler {
 	return &Reconciler{
 		Client:          k8sClient,
@@ -84,15 +94,18 @@ func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan stru
 }
 
 const (
-	ReasonUpdateFailed   = "UpdateFailed"
-	errWebhookNotReady   = "webhook not ready"
-	errSubsetsNotReady   = "subsets not ready"
-	errAddressesNotReady = "addresses not ready"
-	errCACertNotReady    = "ca cert not yet ready"
+	// ReasonUpdateFailed is used when we fail to update the webhook config.
+	ReasonUpdateFailed = "UpdateFailed"
+	errWebhookNotReady = "webhook not ready"
+	errCACertNotReady  = "ca cert not yet ready"
 
 	caCertName = "ca.crt"
 )
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// In this case, we reconcile ValidatingWebhookConfiguration resources
+// that are labeled with the well-known label key and value.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("Webhookconfig", req.NamespacedName)
 	var cfg admissionregistration.ValidatingWebhookConfiguration
@@ -129,6 +142,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, nil
 }
 
+// SetupWithManager sets up the controller with the Manager.
+// Also initializes the event recorder.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("validating-webhook-configuration")
 	return ctrl.NewControllerManagedBy(mgr).
@@ -137,6 +152,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		Complete(r)
 }
 
+// ReadyCheck does a readiness check for the webhook using the endpoint slices.
 func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	// skip readiness check if we're not leader
 	// as we depend on caches and being able to reconcile Webhooks
@@ -153,21 +169,8 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	if !r.webhookReady {
 		return errors.New(errWebhookNotReady)
 	}
-	var eps v1.Endpoints
-	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      r.SvcName,
-		Namespace: r.SvcNamespace,
-	}, &eps)
-	if err != nil {
-		return err
-	}
-	if len(eps.Subsets) == 0 {
-		return errors.New(errSubsetsNotReady)
-	}
-	if len(eps.Subsets[0].Addresses) == 0 {
-		return errors.New(errAddressesNotReady)
-	}
-	return nil
+
+	return esutils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
 }
 
 // reads the ca cert and updates the webhook config.

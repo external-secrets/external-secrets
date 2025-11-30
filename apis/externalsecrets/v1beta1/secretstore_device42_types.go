@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,10 +29,12 @@ type Device42Provider struct {
 	Auth Device42Auth `json:"auth"`
 }
 
+// Device42Auth defines the authentication method for the Device42 provider.
 type Device42Auth struct {
 	SecretRef Device42SecretRef `json:"secretRef"`
 }
 
+// Device42SecretRef defines a reference to a secret containing credentials for the Device42 provider.
 type Device42SecretRef struct {
 	// Username / Password is used for authentication.
 	// +optional

@@ -24,6 +24,39 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
           value: IfNotPresent
+  - it: should add a init container
+    templates:
+      - cert-controller-deployment.yaml
+    set:
+      certController.extraInitContainers:
+        - name: foo
+          image: example.com/external-secrets/init-image:{{ .Chart.Version }}
+          restartPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: foo
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].image
+          pattern: ^example\.com/external-secrets/init-image:[0-9]+\.[0-9]+\.[0-9]+$
+      - equal:
+          path: spec.template.spec.initContainers[0].restartPolicy
+          value: Always
+  - it: should override the deployment strategy
+    templates:
+      - cert-controller-deployment.yaml
+    set:
+      certController.strategy:
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+    asserts:
+    - equal:
+        path: spec.strategy.rollingUpdate.maxSurge
+        value: 1
+    - equal:
+        path: spec.strategy.rollingUpdate.maxUnavailable
+        value: 0
   - it: should override securityContext
     set:
       certController.podSecurityContext:
@@ -112,7 +145,7 @@ tests:
       serviceMonitor.enabled: true
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - cert-controller-service.yaml
     asserts:
@@ -121,6 +154,35 @@ tests:
       - equal:
           path: metadata.labels["app.kubernetes.io/metrics"]
           value: "cert-controller"
+  - it: should render service with metrics label when APIVersions are not present, serviceMonitor is enabled, and serviceMonitor.renderMode is alwaysRender
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "cert-controller"
+  - it: should fail if APIVersions is missing, serviceMonitor is enabled, and serviceMonitor.renderMode is failIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: failIfMissing
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - failedTemplate: {}
+  - it: should not render service when APIVersions is not present, serviceMonitor is enabled, and and serviceMonitor.renderMode is skipIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: skipIfMissing
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
   - it: should not render service when APIVersions is not present but serviceMonitor is enabled
     set:
       serviceMonitor.enabled: true
@@ -134,7 +196,7 @@ tests:
       serviceMonitor.enabled: false
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - cert-controller-service.yaml
     asserts:
@@ -148,3 +210,40 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+  - it: should not have enableHTTP2 flag by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-http2"
+  - it: should have startup Probe if enabled
+    set:
+      certController.startupProbe.enabled: true
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 5
+  - it: should override the startup Probe port
+    set:
+      certController.startupProbe.enabled: true
+      certController.startupProbe.useReadinessProbePort: false
+      certController.startupProbe.port: "8083"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              port: 8083
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5

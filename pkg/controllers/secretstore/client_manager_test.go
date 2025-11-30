@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -140,7 +142,7 @@ func TestManagerGet(t *testing.T) {
 				namespace: defaultStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+			clientConstructor: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 				return clientA, nil
 			},
 			verify: func(sc esv1.SecretsClient) {
@@ -182,7 +184,7 @@ func TestManagerGet(t *testing.T) {
 				},
 				namespace: defaultStore.Namespace,
 			},
-			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+			clientConstructor: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 				return clientB, nil
 			},
 			verify: func(sc esv1.SecretsClient) {
@@ -224,7 +226,7 @@ func TestManagerGet(t *testing.T) {
 				namespace: defaultStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+			clientConstructor: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 				// constructor should not be called,
 				// the client from the cache should be returned instead
 				t.Fail()
@@ -270,7 +272,7 @@ func TestManagerGet(t *testing.T) {
 				namespace: otherStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+			clientConstructor: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 				// because there is a store mismatch
 				// we create a new client
 				return clientB, nil

@@ -10,6 +10,9 @@
             "properties": {
                 "enabled": {
                     "type": "boolean"
+                },
+                "namespaceOverride": {
+                    "type": "string"
                 }
             }
         },
@@ -31,14 +34,14 @@
                 "extraEnv": {
                     "type": "array"
                 },
+                "extraInitContainers": {
+                    "type": "array"
+                },
                 "extraVolumeMounts": {
                     "type": "array"
                 },
                 "extraVolumes": {
                     "type": "array"
-                },
-                "fullnameOverride": {
-                    "type": "string"
                 },
                 "hostNetwork": {
                     "type": "boolean"
@@ -101,9 +104,6 @@
                         }
                     }
                 },
-                "nameOverride": {
-                    "type": "string"
-                },
                 "nodeSelector": {
                     "type": "object"
                 },
@@ -121,6 +121,9 @@
                                 "integer",
                                 "string"
                             ]
+                        },
+                        "nameOverride": {
+                            "type": "string"
                         }
                     }
                 },
@@ -228,6 +231,23 @@
                         }
                     }
                 },
+                "startupProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "port": {
+                            "type": "string"
+                        },
+                        "useReadinessProbePort": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "strategy": {
+                    "type": "object"
+                },
                 "tolerations": {
                     "type": "array"
                 },
@@ -288,6 +308,9 @@
         "dnsPolicy": {
             "type": "string"
         },
+        "enableHTTP2": {
+            "type": "boolean"
+        },
         "extendedMetricLabels": {
             "type": "boolean"
         },
@@ -298,6 +321,9 @@
             "type": "array"
         },
         "extraEnv": {
+            "type": "array"
+        },
+        "extraInitContainers": {
             "type": "array"
         },
         "extraObjects": {
@@ -311,6 +337,17 @@
         },
         "fullnameOverride": {
             "type": "string"
+        },
+        "genericTargets": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "resources": {
+                    "type": "array"
+                }
+            }
         },
         "global": {
             "type": "object",
@@ -351,6 +388,9 @@
                 "enabled": {
                     "type": "boolean"
                 },
+                "extraLabels": {
+                    "type": "object"
+                },
                 "sidecarLabel": {
                     "type": "string"
                 },
@@ -388,6 +428,51 @@
         "leaderElect": {
             "type": "boolean"
         },
+        "livenessProbe": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "spec": {
+                    "type": "object",
+                    "properties": {
+                        "address": {
+                            "type": "string"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "httpGet": {
+                            "type": "object",
+                            "properties": {
+                                "path": {
+                                    "type": "string"
+                                },
+                                "port": {
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
+                                }
+                            }
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
         "log": {
             "type": "object",
             "properties": {
@@ -407,6 +492,23 @@
                     "properties": {
                         "port": {
                             "type": "integer"
+                        },
+                        "secure": {
+                            "type": "object",
+                            "properties": {
+                                "certDir": {
+                                    "type": "string"
+                                },
+                                "certFile": {
+                                    "type": "string"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "keyFile": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 },
@@ -452,6 +554,9 @@
                         "integer",
                         "string"
                     ]
+                },
+                "nameOverride": {
+                    "type": "string"
                 }
             }
         },
@@ -473,6 +578,9 @@
             "type": "string"
         },
         "processClusterExternalSecret": {
+            "type": "boolean"
+        },
+        "processClusterGenerator": {
             "type": "boolean"
         },
         "processClusterPushSecret": {
@@ -615,10 +723,24 @@
                 "relabelings": {
                     "type": "array"
                 },
+                "renderMode": {
+                    "type": "string",
+                    "enum": [
+                        "skipIfMissing",
+                        "failIfMissing",
+                        "alwaysRender"
+                    ]
+                },
                 "scrapeTimeout": {
                     "type": "string"
                 }
             }
+        },
+        "strategy": {
+            "type": "object"
+        },
+        "systemAuthDelegator": {
+            "type": "boolean"
         },
         "tolerations": {
             "type": "array"
@@ -698,6 +820,9 @@
                 "extraEnv": {
                     "type": "array"
                 },
+                "extraInitContainers": {
+                    "type": "array"
+                },
                 "extraVolumeMounts": {
                     "type": "array"
                 },
@@ -705,9 +830,6 @@
                     "type": "array"
                 },
                 "failurePolicy": {
-                    "type": "string"
-                },
-                "fullnameOverride": {
                     "type": "string"
                 },
                 "hostNetwork": {
@@ -774,9 +896,6 @@
                         }
                     }
                 },
-                "nameOverride": {
-                    "type": "string"
-                },
                 "nodeSelector": {
                     "type": "object"
                 },
@@ -794,6 +913,9 @@
                                 "integer",
                                 "string"
                             ]
+                        },
+                        "nameOverride": {
+                            "type": "string"
                         }
                     }
                 },
@@ -813,14 +935,6 @@
                 },
                 "priorityClassName": {
                     "type": "string"
-                },
-                "rbac": {
-                    "type": "object",
-                    "properties": {
-                        "create": {
-                            "type": "boolean"
-                        }
-                    }
                 },
                 "readinessProbe": {
                     "type": "object",
@@ -923,6 +1037,9 @@
                             "type": "string"
                         }
                     }
+                },
+                "strategy": {
+                    "type": "object"
                 },
                 "tolerations": {
                     "type": "array"

@@ -51,9 +51,9 @@ tests:
     set:
       metrics.listen.port: 8888
     asserts:
-      - equal:
-          path: spec.template.spec.containers[0].args[1]
-          value: "--metrics-addr=:8888"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--metrics-addr=:8888"
   - it: should override image flavour
     set:
       image.repository: ghcr.io/external-secrets/external-secrets
@@ -71,3 +71,62 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].image
           value: example.com/external-secrets/external-secrets:v0.9.9-ubi
+  - it: should add a init container
+    set:
+      extraInitContainers:
+        - name: foo
+          image: example.com/external-secrets/init-image:{{ .Chart.Version }}
+          restartPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: foo
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].image
+          pattern: ^example\.com/external-secrets/init-image:[0-9]+\.[0-9]+\.[0-9]+$
+      - equal:
+          path: spec.template.spec.initContainers[0].restartPolicy
+          value: Always
+  - it: should override the deployment strategy
+    set:
+      strategy:
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+    asserts:
+      - equal:
+          path: spec.strategy.rollingUpdate.maxSurge
+          value: 1
+      - equal:
+          path: spec.strategy.rollingUpdate.maxUnavailable
+          value: 0
+  - it: should add livenessProbe if define
+    set:
+      livenessProbe:
+        enabled: true
+        spec:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 10
+          successThreshold: 10
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: 8080
+  - it: should update args with enableHTTP2=true
+    set:
+      enableHTTP2: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-http2=true"
+  - it: should not have enableHTTP2 flag by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-http2"

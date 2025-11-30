@@ -1,0 +1,125 @@
+/*
+Copyright © 2025 ESO Maintainer Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package fake provides mock implementations for Akeyless provider testing.
+package fake
+
+import (
+	"context"
+
+	akeyless "github.com/akeylesslabs/akeyless-go/v4"
+)
+
+// AkeylessMockClient implements a mock client for Akeyless API operations.
+type AkeylessMockClient struct {
+	getSecret    func(secretName string, version int32) (string, error)
+	createSecret func(ctx context.Context, remoteKey, data string) error
+	updateSecret func(ctx context.Context, remoteKey, data string) error
+	deleteSecret func(ctx context.Context, remoteKey string) error
+	describeItem func(ctx context.Context, itemName string) (*akeyless.Item, error)
+}
+
+// New creates and returns a new AkeylessMockClient.
+func New() *AkeylessMockClient {
+	return &AkeylessMockClient{}
+}
+
+// SetGetSecretFn sets the function to be called when GetSecret is invoked.
+func (mc *AkeylessMockClient) SetGetSecretFn(f func(secretName string, version int32) (string, error)) *AkeylessMockClient {
+	mc.getSecret = f
+	return mc
+}
+
+// SetCreateSecretFn sets the function to be called when CreateSecret is invoked.
+func (mc *AkeylessMockClient) SetCreateSecretFn(f func(ctx context.Context, remoteKey, data string) error) *AkeylessMockClient {
+	mc.createSecret = f
+	return mc
+}
+
+// SetUpdateSecretFn sets the function to be called when UpdateSecret is invoked.
+func (mc *AkeylessMockClient) SetUpdateSecretFn(f func(ctx context.Context, remoteKey, data string) error) *AkeylessMockClient {
+	mc.updateSecret = f
+	return mc
+}
+
+// SetDeleteSecretFn sets the function to be called when DeleteSecret is invoked.
+func (mc *AkeylessMockClient) SetDeleteSecretFn(f func(ctx context.Context, remoteKey string) error) *AkeylessMockClient {
+	mc.deleteSecret = f
+	return mc
+}
+
+// SetDescribeItemFn sets the function to be called when DescribeItem is invoked.
+func (mc *AkeylessMockClient) SetDescribeItemFn(f func(ctx context.Context, itemName string) (*akeyless.Item, error)) *AkeylessMockClient {
+	mc.describeItem = f
+	return mc
+}
+
+// CreateSecret creates a new secret in the mock Akeyless client.
+func (mc *AkeylessMockClient) CreateSecret(ctx context.Context, remoteKey, data string) error {
+	return mc.createSecret(ctx, remoteKey, data)
+}
+
+// DeleteSecret deletes a secret from the mock Akeyless client.
+func (mc *AkeylessMockClient) DeleteSecret(ctx context.Context, remoteKey string) error {
+	return mc.deleteSecret(ctx, remoteKey)
+}
+
+// DescribeItem retrieves an item description from the mock Akeyless client.
+func (mc *AkeylessMockClient) DescribeItem(ctx context.Context, itemName string) (*akeyless.Item, error) {
+	return mc.describeItem(ctx, itemName)
+}
+
+// UpdateSecret updates an existing secret in the mock Akeyless client.
+func (mc *AkeylessMockClient) UpdateSecret(ctx context.Context, remoteKey, data string) error {
+	return mc.updateSecret(ctx, remoteKey, data)
+}
+
+// TokenFromSecretRef returns a new token for the mock Akeyless client.
+func (mc *AkeylessMockClient) TokenFromSecretRef(_ context.Context) (string, error) {
+	return "newToken", nil
+}
+
+// GetSecretByType retrieves a secret by its type from the mock Akeyless client.
+func (mc *AkeylessMockClient) GetSecretByType(_ context.Context, secretName string, version int32) (string, error) {
+	return mc.getSecret(secretName, version)
+}
+
+// ListSecrets lists secrets from the mock Akeyless client.
+func (mc *AkeylessMockClient) ListSecrets(_ context.Context, _, _ string) ([]string, error) {
+	return nil, nil
+}
+
+// WithValue sets the behavior of the mock client based on input and output values.
+func (mc *AkeylessMockClient) WithValue(_ *Input, out *Output) {
+	if mc != nil {
+		mc.getSecret = func(_ string, _ int32) (string, error) {
+			return out.Value, out.Err
+		}
+	}
+}
+
+// Input represents the input parameters for the mock client functions.
+type Input struct {
+	SecretName string
+	Token      string
+	Version    int32
+}
+
+// Output represents the output values for the mock client functions.
+type Output struct {
+	Value string
+	Err   error
+}

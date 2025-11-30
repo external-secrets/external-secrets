@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +32,7 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
-	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
+	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -628,7 +630,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				},
 			},
 			sourceSecret: defaultSourceSecret,
-			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
+			clusterPushSecret: func(_ []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
 				pes.Spec.RefreshInterval = &metav1.Duration{Duration: 100 * time.Millisecond}
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
@@ -702,7 +704,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				},
 			},
 			sourceSecret: defaultSourceSecret,
-			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
+			clusterPushSecret: func(_ []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
 				pes.Spec.RefreshInterval = &metav1.Duration{Duration: 100 * time.Millisecond}
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
@@ -765,7 +767,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					},
 				},
 			},
-			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
+			clusterPushSecret: func(_ []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
@@ -775,7 +777,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				return *pes
 			},
 			sourceSecret: defaultSourceSecret,
-			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
+			expectedClusterPushSecret: func(_ []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: created.Name,
@@ -792,7 +794,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					},
 				}
 			},
-			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
+			expectedPushSecrets: func([]v1.Namespace, v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{}
 			},
 		}),
@@ -823,7 +825,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					},
 				},
 			},
-			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
+			clusterPushSecret: func(_ []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
@@ -836,7 +838,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				return *pes
 			},
 			sourceSecret: defaultSourceSecret,
-			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
+			expectedClusterPushSecret: func(_ []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: created.Name,
@@ -857,7 +859,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					},
 				}
 			},
-			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
+			expectedPushSecrets: func(_ []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
 						ObjectMeta: metav1.ObjectMeta{

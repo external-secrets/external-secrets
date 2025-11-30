@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -105,7 +107,8 @@ type SecretStoreProvider struct {
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
 
-	// Github configures this store to push Github Action secrets using Github API provider
+	// Github configures this store to push GitHub Action secrets using GitHub API provider.
+	// Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
 	// +optional
 	Github *GithubProvider `json:"github,omitempty"`
 
@@ -208,18 +211,28 @@ type SecretStoreProvider struct {
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
+
+	// Volcengine configures this store to sync secrets using the Volcengine provider
+	// +optional
+	Volcengine *VolcengineProvider `json:"volcengine,omitempty"`
+	// Ngrok configures this store to sync secrets using the ngrok provider.
+	// +optional
+	Ngrok *NgrokProvider `json:"ngrok,omitempty"`
 }
 
+// CAProviderType defines the type of provider for certificate authority.
 type CAProviderType string
 
+// Supported CA provider types.
 const (
-	CAProviderTypeSecret    CAProviderType = "Secret"
+	// CAProviderTypeSecret indicates that the CA certificate is stored in a Secret resource.
+	CAProviderTypeSecret CAProviderType = "Secret"
+	// CAProviderTypeConfigMap indicates that the CA certificate is stored in a ConfigMap resource.
 	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
 )
 
-// Used to provide custom certificate authority (CA) certificates
-// for a secret store. The CAProvider points to a Secret or ConfigMap resource
-// that contains a PEM-encoded certificate.
+// CAProvider provides a custom certificate authority for accessing the provider's store.
+// The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
 type CAProvider struct {
 	// The type of provider to use such as "Secret", or "ConfigMap".
 	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
@@ -247,23 +260,29 @@ type CAProvider struct {
 	Namespace *string `json:"namespace,omitempty"`
 }
 
+// SecretStoreRetrySettings defines the retry settings for accessing external secrets manager stores.
 type SecretStoreRetrySettings struct {
 	MaxRetries    *int32  `json:"maxRetries,omitempty"`
 	RetryInterval *string `json:"retryInterval,omitempty"`
 }
 
+// SecretStoreConditionType represents the condition of the SecretStore.
 type SecretStoreConditionType string
 
+// These are valid conditions of a secret store.
 const (
+	// SecretStoreReady indicates that the store is ready and able to serve requests.
 	SecretStoreReady SecretStoreConditionType = "Ready"
 
 	ReasonInvalidStore          = "InvalidStoreConfiguration"
 	ReasonInvalidProviderConfig = "InvalidProviderConfig"
 	ReasonValidationFailed      = "ValidationFailed"
+	ReasonValidationUnknown     = "ValidationUnknown"
 	ReasonStoreValid            = "Valid"
 	StoreUnmaintained           = "StoreUnmaintained"
 )
 
+// SecretStoreStatusCondition contains condition information for a SecretStore.
 type SecretStoreStatusCondition struct {
 	Type   SecretStoreConditionType `json:"type"`
 	Status corev1.ConditionStatus   `json:"status"`
@@ -281,9 +300,13 @@ type SecretStoreStatusCondition struct {
 // SecretStoreCapabilities defines the possible operations a SecretStore can do.
 type SecretStoreCapabilities string
 
+// These are the valid capabilities of a secret store.
 const (
-	SecretStoreReadOnly  SecretStoreCapabilities = "ReadOnly"
+	// SecretStoreReadOnly indicates that the store can only read secrets.
+	SecretStoreReadOnly SecretStoreCapabilities = "ReadOnly"
+	// SecretStoreWriteOnly indicates that the store can only write secrets.
 	SecretStoreWriteOnly SecretStoreCapabilities = "WriteOnly"
+	// SecretStoreReadWrite indicates that the store can both read and write secrets.
 	SecretStoreReadWrite SecretStoreCapabilities = "ReadWrite"
 )
 

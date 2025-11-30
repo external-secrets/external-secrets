@@ -1,10 +1,11 @@
 /*
-Copyright 2020 The cert-manager Authors.
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +17,6 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"os"
 	"strings"
 	"time"
@@ -72,7 +72,7 @@ var _ = Describe("grafana generator", Label("grafana"), func() {
 	})
 
 	setupGenerator := func(tc *testCase) {
-		err := f.CRClient.Create(context.Background(), &v1.Secret{
+		err := f.CRClient.Create(GinkgoT().Context(), &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      grafanaCredsSecretName,
 				Namespace: f.Namespace.Name,
@@ -119,14 +119,14 @@ var _ = Describe("grafana generator", Label("grafana"), func() {
 
 	ensureExternalSecretPurgesGeneratorState := func(tc *testCase) {
 		// delete ES to trigger cleanup of generator state
-		err := f.CRClient.Delete(context.Background(), tc.ExternalSecret)
+		err := f.CRClient.Delete(GinkgoT().Context(), tc.ExternalSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("waiting for generator state to be cleaned up")
 		// wait for generator state to be cleaned up
 		Eventually(func() int {
 			generatorStates := &genv1alpha1.GeneratorStateList{}
-			err := f.CRClient.List(context.Background(), generatorStates, client.InNamespace(f.Namespace.Name))
+			err := f.CRClient.List(GinkgoT().Context(), generatorStates, client.InNamespace(f.Namespace.Name))
 			if err != nil {
 				return -1
 			}
@@ -157,7 +157,7 @@ var _ = Describe("grafana generator", Label("grafana"), func() {
 			// after the generator is deleted.
 			Eventually(func() bool {
 				generatorStates := &genv1alpha1.GeneratorStateList{}
-				err := f.CRClient.List(context.Background(), generatorStates, client.InNamespace(f.Namespace.Name))
+				err := f.CRClient.List(GinkgoT().Context(), generatorStates, client.InNamespace(f.Namespace.Name))
 				Expect(err).ToNot(HaveOccurred())
 				GinkgoLogr.Info("generator states", "states", generatorStates.Items)
 				return len(generatorStates.Items) > 2

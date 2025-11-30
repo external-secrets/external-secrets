@@ -1,11 +1,11 @@
 /*
-Copyright © 2022 ESO Maintainer team
+Copyright © 2025 ESO Maintainer Team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,9 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controller implements the various controllers for external-secrets
 package controller
 
 import (
+	"crypto/tls"
 	"os"
 	"time"
 
@@ -35,10 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/external-secrets/external-secrets/pkg/constants"
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 	"github.com/external-secrets/external-secrets/pkg/controllers/webhookconfig"
+	"github.com/external-secrets/external-secrets/runtime/constants"
 )
 
 var certcontrollerCmd = &cobra.Command{
@@ -46,7 +48,7 @@ var certcontrollerCmd = &cobra.Command{
 	Short: "Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs",
 	Long: `Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs.
 	For more information visit https://external-secrets.io`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		setupLogger()
 
 		// completely disable caching of Secrets and ConfigMaps to save memory
@@ -73,11 +75,19 @@ var certcontrollerCmd = &cobra.Command{
 			}
 		}
 
+		// Configure metrics server options
+		metricsServerOpts := server.Options{
+			BindAddress: metricsAddr,
+		}
+
+		// Disable HTTP/2 if not explicitly enabled
+		if !enableHTTP2 {
+			metricsServerOpts.TLSOpts = []func(*tls.Config){disableHTTP2}
+		}
+
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme: scheme,
-			Metrics: server.Options{
-				BindAddress: metricsAddr,
-			},
+			Scheme:  scheme,
+			Metrics: metricsServerOpts,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
 			}),
@@ -192,4 +202,6 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	certcontrollerCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	certcontrollerCmd.Flags().DurationVar(&crdRequeueInterval, "crd-requeue-interval", time.Minute*5, "Time duration between reconciling CRDs for new certs")
+	certcontrollerCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
+		"If set, HTTP/2 will be enabled for the metrics server")
 }

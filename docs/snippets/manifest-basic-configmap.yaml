@@ -1,0 +1,23 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: application-config
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  target:
+    name: app-config
+    manifest:
+      apiVersion: v1
+      kind: ConfigMap
+  data:
+  - secretKey: database-host
+    remoteRef:
+      key: config/database/host
+  - secretKey: api-endpoint
+    remoteRef:
+      key: config/api/endpoint
+{% endraw %}

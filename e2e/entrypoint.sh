@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 The Kubernetes Authors.
 #
@@ -35,7 +35,6 @@ ginkgo_args=(
   "-p"
   "-trace"
   "-r"
-  "-v"
   "-timeout=45m"
 )
 

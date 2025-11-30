@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,18 +25,19 @@ import (
 )
 
 const (
-	// Ready indicates that the client is configured correctly
+	// ValidationResultReady indicates that the client is configured correctly
 	// and can be used.
 	ValidationResultReady ValidationResult = iota
 
-	// Unknown indicates that the client can be used
-	// but information is missing and it can not be validated.
+	// ValidationResultUnknown indicates that the client can be used
+	// but information is missing, and it can not be validated.
 	ValidationResultUnknown
 
-	// Error indicates that there is a misconfiguration.
+	// ValidationResultError indicates that there is a misconfiguration.
 	ValidationResultError
 )
 
+// ValidationResult is defined type for the number of validation results.
 type ValidationResult uint8
 
 func (v ValidationResult) String() string {
@@ -96,6 +99,7 @@ type SecretsClient interface {
 	Close(ctx context.Context) error
 }
 
+// NoSecretErr is a sentinel error for when a secret is not found.
 var NoSecretErr = NoSecretError{}
 
 // NoSecretError shall be returned when a GetSecret can not find the
@@ -106,6 +110,8 @@ func (NoSecretError) Error() string {
 	return "Secret does not exist"
 }
 
+// NotModifiedErr is a sentinel error to signal that the webhook received no changes,
+// and it should just return without doing anything.
 var NotModifiedErr = NotModifiedError{}
 
 // NotModifiedError to signal that the webhook received no changes,

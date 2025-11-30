@@ -16,30 +16,52 @@ During a minor version support time, we cover:
 We do not do test coverage for any other kubernetes version than the ones running on our test suites.
 As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
-| ESO Version | Kubernetes Version | Release Date | End of Life     |
-| ----------- | ------------------ | ------------ | --------------- |
-| 0.17.x      | 1.33               | May 14, 2025  | Release of 0.18 |
-| 0.16.x      | 1.32               | Apr 14, 2025  | May 14, 2025    |
-| 0.15.x      | 1.32               | Mar 19, 2025  | Apr 14, 2025    |
-| 0.14.x      | 1.32               | Feb 4, 2025  | Mar 19, 2025    |
-| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025 | Feb 4, 2025     |
-| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024 | Jan 21, 2025    |
-| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024  | Dec 24, 2024    |
-| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024  | Dec 24, 2024    |
-| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Dec 2, 2024     |
-| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Aug 3, 2024     |
-| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023    |
-| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023    |
-| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022    |
-| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022     |
-| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021 | Apr 6, 2022     |
+| ESO Version | Kubernetes Version | Release Date       | End of Life        |
+|-------------|--------------------|--------------------|--------------------|
+| 1.0         | 1.34               | November 7, 2025   | Release of 1.1     |
+| 0.20.x      | 1.34               | September 22, 2025 | Release of 0.21    |
+| 0.19.x      | 1.33               | August 2, 2025     | September 22, 2025 |
+| 0.18.x      | 1.33               | July 17, 2025      | August 2, 2025     |
+| 0.17.x      | 1.33               | May 14, 2025       | July 17, 2025      |
+| 0.16.x      | 1.32               | Apr 14, 2025       | May 14, 2025       |
+| 0.15.x      | 1.32               | Mar 19, 2025       | Apr 14, 2025       |
+| 0.14.x      | 1.32               | Feb 4, 2025        | Mar 19, 2025       |
+| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025       | Feb 4, 2025        |
+| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024       | Jan 21, 2025       |
+| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024        | Dec 24, 2024       |
+| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024        | Dec 24, 2024       |
+| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023       | Dec 2, 2024        |
+| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023       | Aug 3, 2024        |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022       | Jun 22, 2023       |
+| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022        | Mar 16, 2023       |
+| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022        | Dec 11, 2022       |
+| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022        | Oct 9, 2022        |
+| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021       | Apr 6, 2022        |
+
+## Upgrading
+
+External Secrets Operator has not reached stable 1.0 yet. This means that **we treat each minor version bump as a potentially breaking change**. Breaking changes may include:
+
+- API schema changes
+- Default behavior modifications
+- Deprecated feature removals
+- Provider authentication changes
+- Configuration format updates
+
+**Important upgrade recommendations:**
+
+1. **Plan your upgrades carefully** - Always review release notes before upgrading, it could contain breaking changes information
+2. **Upgrade version by version** - We strongly recommend upgrading one minor version at a time (e.g., 0.18.x → 0.19.x → 0.20.x) rather than skipping versions
+3. **Test in non-production first** - Always validate upgrades in development/staging environments
+
+Until we reach v1.0, please treat minor version upgrades with the same caution you would give to major version upgrades in other projects.
 
 ## Provider Stability and Support Level
 
 The following table describes the stability level of each provider and who's responsible.
 
-| Provider                                                                                                   | Stability | Maintainer                                                                                          |
-|------------------------------------------------------------------------------------------------------------|-:-:-------|--:--------------------------------------------------------------------------------------------------|
+| Provider | Stability | Maintainer                                                                                                                                                                                            |
+| -------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            | stable    | [external-secrets](https://github.com/external-secrets)                                             |
@@ -50,7 +72,7 @@ The following table describes the stability level of each provider and who's res
 | [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              | alpha     | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
 | [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          | alpha     | [@Jabray5](https://github.com/Jabray5)                                                              |
 | Alibaba Cloud KMS                                                                                          | alpha     | **UNMAINTAINED**                                                                                    |
-| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   | alpha     | **UNMAINTAINED**                                                                                    |
+| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   | alpha     | [@anders-swanson](https://github.com/anders-swanson)                                                                                    |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [1Password](https://external-secrets.io/latest/provider/1password-automation)                              | alpha     | [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer)   |
 | [1Password SDK](https://external-secrets.io/latest/provider/1password-sdk)                                 | alpha     | [@Skarlso](https://github.com/Skarlso)                                                              |
@@ -59,7 +81,7 @@ The following table describes the stability level of each provider and who's res
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          | alpha     | [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/)     |
 | [Keeper Security](https://www.keepersecurity.com/)                                                         | alpha     | [@ppodevlab](https://github.com/ppodevlab)                                                          |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           | alpha     | [@azert9](https://github.com/azert9/)                                                               |
-| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               | stable    | [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh)              |
+| [CyberArk Secrets Manager](https://external-secrets.io/latest/provider/conjur)                             | stable    | [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh)              |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             | alpha     | [@michaelsauter](https://github.com/michaelsauter/)                                                 |
 | [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     | alpha     | [@btfhernandez](https://github.com/btfhernandez/)                                                   |
 | [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   | alpha     | [@billhamilton](https://github.com/pacificcode/)                                                    |
@@ -70,6 +92,8 @@ The following table describes the stability level of each provider and who's res
 | [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         | alpha     | [@skarlso](https://github.com/Skarlso)                                                              |
 | [Previder](https://external-secrets.io/latest/provider/previder)                                           | stable    | [@previder](https://github.com/previder)                                                            |
 | [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            | alpha     | [@default23](https://github.com/default23)                                                          |
+| [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       | alpha     | [@kevinyancn](https://github.com/kevinyancn)                                                        |
+| [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 | alpha     | [@jonstacks](https://github.com/jonstacks)                                                          |
 
 
 ## Provider Feature Support
@@ -77,7 +101,7 @@ The following table describes the stability level of each provider and who's res
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-|---------------------------|:------------:|:------------:|:--------------------:|:-----------------------:|:----------------:|:-----------:|:---------------------------:|
+| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -97,7 +121,7 @@ The following table show the support for features across different providers.
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| Conjur                    |      x       |      x       |                      |                         |        x         |             |                             |
+| CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 | Beyondtrust               |      x       |              |                      |                         |        x         |             |                             |
 | SecretServer              |      x       |              |                      |                         |        x         |             |                             |
@@ -108,6 +132,8 @@ The following table show the support for features across different providers.
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
+| Volcengine                |              |              |                      |                         |        x         |             |                             |
+| ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 
 ## Support Policy
 
@@ -123,3 +149,7 @@ We provide assistance for deploying/upgrading etc. on a best-effort basis. You c
 - GitHub [Discussions](https://github.com/external-secrets/external-secrets/discussions)
 
 Even though we have active maintainers and people assigned to this project, we kindly ask for patience when asking for support. We will try to get to priority issues as fast as possible, but there may be some delays.
+
+### Helm Charts
+
+The Helm charts provided by this project are offered "as-is" and are primarily focused on providing a good user experience and ease of use. Hardened Helm charts are not a deliverable of this project. We encourage users to review the default chart values and customize them to meet their own security requirements and best practices.

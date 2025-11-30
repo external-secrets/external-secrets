@@ -1,10 +1,11 @@
 /*
-Copyright 2020 The cert-manager Authors.
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -31,23 +33,29 @@ import (
 
 const (
 	helmChartRevision = "0.0.0-e2e"
+	fluxManifests     = "https://github.com/fluxcd/flux2/releases/download/v2.6.4/install.yaml"
 )
 
 func installFlux() {
 	By("installing flux")
-	fluxVersion := "v0.29.3"
-	url := fmt.Sprintf("https://github.com/fluxcd/flux2/releases/download/%s/install.yaml", fluxVersion)
-	cmd := exec.Command("kubectl", "apply", "-f", url)
+	cmd := exec.Command("kubectl", "apply", "-f", fluxManifests)
 	out, err := cmd.CombinedOutput()
 	Expect(err).ToNot(HaveOccurred(), string(out))
 }
 
-func installESO(cfg *addon.Config) {
+func uninstallFlux() {
+	By("uninstalling flux")
+	cmd := exec.Command("kubectl", "delete", "-f", fluxManifests)
+	out, err := cmd.CombinedOutput()
+	Expect(err).ToNot(HaveOccurred(), string(out))
+}
+
+func installESO() {
 	By("installing helm http server")
 	addon.InstallGlobalAddon(&addon.HelmServer{
-		ChartDir:      "/k8s/deploy/charts/external-secrets",
+		ChartDir:      filepath.Join(addon.AssetDir(), "deploy/charts/external-secrets"),
 		ChartRevision: helmChartRevision,
-	}, cfg)
+	})
 
 	By("installing eso through flux helmrelease app")
 	tag := os.Getenv("VERSION")
@@ -79,5 +87,5 @@ func installESO(cfg *addon.Config) {
 			  }
 			}
 		  }`, tag, tag, tag),
-	}, cfg)
+	})
 }

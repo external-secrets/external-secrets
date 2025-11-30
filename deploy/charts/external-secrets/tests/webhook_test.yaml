@@ -219,7 +219,7 @@ tests:
       serviceMonitor.enabled: true
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - webhook-service.yaml
     asserts:
@@ -229,6 +229,39 @@ tests:
       - equal:
           path: metadata.labels["app.kubernetes.io/metrics"]
           value: "webhook"
+  - it: should expose metrics port and metrics label when APIVersions is not present, serviceMonitor is enabled, and serviceMonitor.renderMode is alwaysRender
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: spec.ports[1].name
+          value: metrics
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "webhook"
+  - it: should fail if APIVersions is missing, serviceMonitor is enabled, and serviceMonitor.renderMode is failIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: failIfMissing
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - failedTemplate: {}
+  - it: should not expose metrics port nor metrics label when APIVersions is not present, serviceMonitor is enabled, and serviceMonitor.renderMode is skipIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: skipIfMissing
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
   - it: should not expose metrics port nor metrics label when APIVersions is not present but serviceMonitor is enabled
     set:
       serviceMonitor.enabled: true
@@ -245,7 +278,7 @@ tests:
       serviceMonitor.enabled: false
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - webhook-service.yaml
     asserts:
@@ -358,3 +391,45 @@ tests:
       - equal:
           path: metadata.annotations["prometheus.io/scrape"]
           value: "true"
+  - it: should add a init container
+    templates:
+      - webhook-deployment.yaml
+    set:
+      webhook.extraInitContainers:
+        - name: foo
+          image: example.com/external-secrets/init-image:{{ .Chart.Version }}
+          restartPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: foo
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].image
+          pattern: ^example\.com/external-secrets/init-image:[0-9]+\.[0-9]+\.[0-9]+$
+      - equal:
+          path: spec.template.spec.initContainers[0].restartPolicy
+          value: Always
+  - it: should override the deployment strategy
+    templates:
+      - webhook-deployment.yaml
+    set:
+      webhook.strategy:
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+    asserts:
+      - equal:
+          path: spec.strategy.rollingUpdate.maxSurge
+          value: 1
+      - equal:
+          path: spec.strategy.rollingUpdate.maxUnavailable
+          value: 0
+  - it: should update args with enableHTTP2=true
+    set:
+      enableHTTP2: true
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-http2=true"

@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ClusterGeneratorSpec defines the desired state of a ClusterGenerator.
 type ClusterGeneratorSpec struct {
 	// Kind the kind of this generator.
 	Kind GeneratorKind `json:"kind"`
@@ -27,35 +30,55 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
+// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 type GeneratorKind string
 
 const (
-	GeneratorKindACRAccessToken        GeneratorKind = "ACRAccessToken"
+	// GeneratorKindACRAccessToken represents an Azure Container Registry access token generator.
+	GeneratorKindACRAccessToken GeneratorKind = "ACRAccessToken"
+	// GeneratorKindECRAuthorizationToken represents an AWS ECR authorization token generator.
 	GeneratorKindECRAuthorizationToken GeneratorKind = "ECRAuthorizationToken"
-	GeneratorKindFake                  GeneratorKind = "Fake"
-	GeneratorKindGCRAccessToken        GeneratorKind = "GCRAccessToken"
-	GeneratorKindGithubAccessToken     GeneratorKind = "GithubAccessToken"
-	GeneratorKindQuayAccessToken       GeneratorKind = "QuayAccessToken"
-	GeneratorKindPassword              GeneratorKind = "Password"
-	GeneratorKindSTSSessionToken       GeneratorKind = "STSSessionToken"
-	GeneratorKindUUID                  GeneratorKind = "UUID"
-	GeneratorKindVaultDynamicSecret    GeneratorKind = "VaultDynamicSecret"
-	GeneratorKindWebhook               GeneratorKind = "Webhook"
-	GeneratorKindGrafana               GeneratorKind = "Grafana"
-	GeneratorKindMFA                   GeneratorKind = "MFA"
+	// GeneratorKindFake represents a fake generator for testing purposes.
+	GeneratorKindFake GeneratorKind = "Fake"
+	// GeneratorKindGCRAccessToken represents a Google Container Registry access token generator.
+	GeneratorKindGCRAccessToken GeneratorKind = "GCRAccessToken"
+	// GeneratorKindGithubAccessToken represents a GitHub access token generator.
+	GeneratorKindGithubAccessToken GeneratorKind = "GithubAccessToken"
+	// GeneratorKindQuayAccessToken represents a Quay access token generator.
+	GeneratorKindQuayAccessToken GeneratorKind = "QuayAccessToken"
+	// GeneratorKindPassword represents a password generator.
+	GeneratorKindPassword GeneratorKind = "Password"
+	// GeneratorKindSSHKey represents an SSH key generator.
+	GeneratorKindSSHKey GeneratorKind = "SSHKey"
+	// GeneratorKindSTSSessionToken represents an AWS STS session token generator.
+	GeneratorKindSTSSessionToken GeneratorKind = "STSSessionToken"
+	// GeneratorKindUUID represents a UUID generator.
+	GeneratorKindUUID GeneratorKind = "UUID"
+	// GeneratorKindVaultDynamicSecret represents a HashiCorp Vault dynamic secret generator.
+	GeneratorKindVaultDynamicSecret GeneratorKind = "VaultDynamicSecret"
+	// GeneratorKindWebhook represents a webhook-based generator.
+	GeneratorKindWebhook GeneratorKind = "Webhook"
+	// GeneratorKindGrafana represents a Grafana token generator.
+	GeneratorKindGrafana GeneratorKind = "Grafana"
+	// GeneratorKindMFA represents a Multi-Factor Authentication generator.
+	GeneratorKindMFA GeneratorKind = "MFA"
+	// GeneratorKindCloudsmithAccessToken represents a Cloudsmith access token generator.
+	GeneratorKindCloudsmithAccessToken GeneratorKind = "CloudsmithAccessToken"
 )
 
+// GeneratorSpec defines the configuration for various supported generator types.
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type GeneratorSpec struct {
 	ACRAccessTokenSpec        *ACRAccessTokenSpec        `json:"acrAccessTokenSpec,omitempty"`
+	CloudsmithAccessTokenSpec *CloudsmithAccessTokenSpec `json:"cloudsmithAccessTokenSpec,omitempty"`
 	ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrAuthorizationTokenSpec,omitempty"`
 	FakeSpec                  *FakeSpec                  `json:"fakeSpec,omitempty"`
 	GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
 	GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
 	QuayAccessTokenSpec       *QuayAccessTokenSpec       `json:"quayAccessTokenSpec,omitempty"`
 	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
+	SSHKeySpec                *SSHKeySpec                `json:"sshKeySpec,omitempty"`
 	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
 	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`

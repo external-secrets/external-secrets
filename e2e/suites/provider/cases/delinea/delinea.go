@@ -1,3 +1,19 @@
+/*
+Copyright © 2025 ESO Maintainer Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package delinea
 
 import (
@@ -7,61 +23,43 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = ginkgo.Describe("[delinea]", ginkgo.Label("delinea"), func() {
+var _ = Describe("[delinea]", Label("delinea"), func() {
 
 	f := framework.New("eso-delinea")
 
 	// Initialization is deferred so that assertions work.
 	provider := &secretStoreProvider{}
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 
 		cfg, err := loadConfigFromEnv()
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		provider.init(cfg)
 
-		createResources(context.Background(), f, cfg)
+		createResources(GinkgoT().Context(), f, cfg)
 	})
 
-	ginkgo.DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, provider),
+	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, provider),
 
-		ginkgo.Entry(common.JSONDataWithProperty(f)),
-		ginkgo.Entry(common.JSONDataWithoutTargetName(f)),
-		ginkgo.Entry(common.JSONDataWithTemplate(f)),
-		ginkgo.Entry(common.JSONDataWithTemplateFromLiteral(f)),
-		ginkgo.Entry(common.TemplateFromConfigmaps(f)),
-		ginkgo.Entry(common.JSONDataFromSync(f)),
-		ginkgo.Entry(common.JSONDataFromRewrite(f)),
-		ginkgo.Entry(common.NestedJSONWithGJSON(f)),
-		ginkgo.Entry(common.DockerJSONConfig(f)),
-		ginkgo.Entry(common.DataPropertyDockerconfigJSON(f)),
-		ginkgo.Entry(common.SSHKeySyncDataProperty(f)),
-		ginkgo.Entry(common.DecodingPolicySync(f)),
-
-		// V1Alpha1 is not supported.
-		// ginkgo.Entry(common.SyncV1Alpha1(f)),
-
-		// Non-JSON values are not supported by DSV.
-		// ginkgo.Entry(common.SimpleDataSync(f)),
-		// ginkgo.Entry(common.SyncWithoutTargetName(f)),
-		// ginkgo.Entry(common.SSHKeySync(f)),
-		// ginkgo.Entry(common.DeletionPolicyDelete(f)),
-
-		// FindByName is not supported.
-		// ginkgo.Entry(common.FindByName(f)),
-		// ginkgo.Entry(common.FindByNameAndRewrite(f)),
-		// ginkgo.Entry(common.FindByNameWithPath(f)),
-
-		// FindByTag is not supported.
-		// ginkgo.Entry(common.FindByTag(f)),
-		// ginkgo.Entry(common.FindByTagWithPath(f)),
+		Entry(common.JSONDataWithProperty(f)),
+		Entry(common.JSONDataWithoutTargetName(f)),
+		Entry(common.JSONDataWithTemplate(f)),
+		Entry(common.JSONDataWithTemplateFromLiteral(f)),
+		Entry(common.TemplateFromConfigmaps(f)),
+		Entry(common.JSONDataFromSync(f)),
+		Entry(common.JSONDataFromRewrite(f)),
+		Entry(common.NestedJSONWithGJSON(f)),
+		Entry(common.DockerJSONConfig(f)),
+		Entry(common.DataPropertyDockerconfigJSON(f)),
+		Entry(common.SSHKeySyncDataProperty(f)),
+		Entry(common.DecodingPolicySync(f)),
 	)
 })
 

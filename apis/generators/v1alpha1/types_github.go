@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,8 +22,9 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
 type GithubAccessTokenSpec struct {
-	// URL configures the Github instance URL. Defaults to https://github.com/.
+	// URL configures the GitHub instance URL. Defaults to https://github.com/.
 	URL       string `json:"url,omitempty"`
 	AppID     string `json:"appID"`
 	InstallID string `json:"installID"`
@@ -34,10 +37,12 @@ type GithubAccessTokenSpec struct {
 	Auth GithubAuth `json:"auth"`
 }
 
+// GithubAuth defines the authentication configuration for GitHub access.
 type GithubAuth struct {
 	PrivateKey GithubSecretRef `json:"privateKey"`
 }
 
+// GithubSecretRef references a secret containing GitHub credentials.
 type GithubSecretRef struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }
@@ -57,7 +62,7 @@ type GithubAccessToken struct {
 
 // +kubebuilder:object:root=true
 
-// GithubAccessToken contains a list of ExternalSecret resources.
+// GithubAccessTokenList contains a list of GithubAccessToken resources.
 type GithubAccessTokenList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

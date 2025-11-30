@@ -16,6 +16,10 @@ spec:
   selector:
     matchLabels:
       {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
+  {{- with .Values.webhook.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       {{- with .Values.webhook.podAnnotations }}
@@ -64,6 +68,9 @@ spec:
           {{- if .Values.webhook.lookaheadInterval }}
           - --lookahead-interval={{ .Values.webhook.lookaheadInterval }}
           {{- end }}
+          {{- if .Values.enableHTTP2 }}
+          - --enable-http2=true
+          {{- end }}
           {{- range $key, $value := .Values.webhook.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
@@ -99,6 +106,10 @@ spec:
           {{- if .Values.webhook.extraVolumeMounts }}
           {{- toYaml .Values.webhook.extraVolumeMounts | nindent 12 }}
           {{- end }}
+      {{- with .Values.webhook.extraInitContainers }}
+      initContainers:
+        {{- tpl (toYaml . | nindent 8) $ }}
+      {{- end }}
       volumes:
         - name: certs
           secret:

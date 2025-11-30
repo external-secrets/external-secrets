@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +18,8 @@ package v1
 
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// BeyondTrustProviderSecretRef references a value that can be specified directly or via a secret
+// for a BeyondTrustProvider.
 type BeyondTrustProviderSecretRef struct {
 
 	// Value can be specified directly to set a value without using a secret.
@@ -27,7 +31,7 @@ type BeyondTrustProviderSecretRef struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// Configures a store to sync secrets using BeyondTrust Password Safe.
+// BeyondtrustAuth provides different ways to authenticate to a BeyondtrustProvider server.
 type BeyondtrustAuth struct {
 	// APIKey If not provided then ClientID/ClientSecret become required.
 	APIKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
@@ -41,7 +45,7 @@ type BeyondtrustAuth struct {
 	CertificateKey *BeyondTrustProviderSecretRef `json:"certificateKey,omitempty"`
 }
 
-// Configures a store to sync secrets using BeyondTrust Password Safe.
+// BeyondtrustServer configures a store to sync secrets using BeyondTrust Password Safe.
 type BeyondtrustServer struct {
 	// +required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
 	APIURL string `json:"apiUrl"`
@@ -57,6 +61,7 @@ type BeyondtrustServer struct {
 	ClientTimeOutSeconds int `json:"clientTimeOutSeconds,omitempty"`
 }
 
+// BeyondtrustProvider provides access to a BeyondTrust secrets provider.
 type BeyondtrustProvider struct {
 
 	// Auth configures how the operator authenticates with Beyondtrust.

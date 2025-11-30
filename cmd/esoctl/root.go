@@ -1,11 +1,11 @@
 /*
-Copyright © 2025 ESO Maintainer team
+Copyright © 2025 ESO Maintainer Team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+	https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,11 +18,15 @@ package main
 
 import "github.com/spf13/cobra"
 
+func init() {
+	rootCmd.AddCommand(bootstrapCmd)
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "esoctl",
 	Short: "operations for external-secrets-operator",
 	Long:  `For more information visit https://external-secrets.io`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		_ = cmd.Usage()
 	},
 }

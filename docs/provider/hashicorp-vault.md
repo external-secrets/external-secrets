@@ -293,7 +293,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 #### AppRole authentication example
 
 [AppRole authentication](https://www.vaultproject.io/docs/auth/approle) reads the secret id from a
-`Kind=Secret` and uses the specified `roleId` to aquire a temporary token to fetch secrets.
+`Kind=Secret` and uses the specified `roleId` to acquire a temporary token to fetch secrets.
 
 ```yaml
 {% include 'vault-approle-store.yaml' %}
@@ -316,6 +316,23 @@ Vault validates the service account token by using the TokenReview API. ⚠️ Y
 {% include 'vault-kubernetes-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `serviceAccountRef` or in `secretRef`, if used.
+
+**NOTE:** Starting with Vault 1.20, roles without an audience will trigger warnings during authentication.
+In Vault 1.21 and later, roles must include an audience or authentication will fail.
+
+Update your role definitions to include an audience, for example:
+```yaml
+auth:
+  kubernetes:
+    mountPath: kubernetes/my-cluster
+    role: my-role
+    serviceAccountRef:
+      name: my-service-account
+      audiences:
+        - vault # Required for Vault 1.21+
+```
+
+
 
 #### LDAP authentication
 
@@ -398,9 +415,14 @@ Reference the service account from above in the Secret Store:
 ```
 ### Controller's Pod Identity
 
-This is basicially a zero-configuration authentication approach that inherits the credentials from the controller's pod identity
+This is basically a zero-configuration authentication approach that inherits the credentials from the controller's pod identity.
 
-This approach assumes that appropriate IRSA setup is done controller's pod (i.e. IRSA enabled IAM role is created appropriately and controller's service account is annotated appropriately with the annotation "eks.amazonaws.com/role-arn" to enable IRSA)
+This approach supports both [IRSA (IAM Roles for Service Accounts)](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) and [AWS Pod Identity](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html):
+
+- **IRSA**: Requires appropriate IRSA setup on the controller's pod (i.e. IRSA enabled IAM role is created and controller's service account is annotated with "eks.amazonaws.com/role-arn")
+- **Pod Identity**: Requires [EKS Pod Identity](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html) setup with the controller's service account associated with an IAM role
+
+The provider automatically detects which authentication method is available and uses the appropriate one.
 
 ```yaml
 {% include 'vault-iam-store-controller-pod-identity.yaml' %}
@@ -429,6 +451,36 @@ Here is an example of how to set up `PushSecret`:
 ```
 
 Note that in this example, we are generating two secrets in the target vault with the same structure but using different input formats.
+
+#### Check-And-Set (CAS) for PushSecret
+
+Vault KV v2 supports Check-And-Set operations to prevent unintentional overwrites when multiple clients modify the same secret. When CAS is enabled in your Vault configuration, External Secrets Operator can be configured to include the required version parameter in write operations.
+
+To enable CAS support, add the `checkAndSet` configuration to your Vault provider:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      path: "secret"
+      version: "v2"  # CAS only works with KV v2
+      checkAndSet:
+        required: true  # Enable CAS for all write operations
+      auth:
+        # ... authentication config
+```
+
+!!! note "CAS Requirements"
+    - CAS is only supported with Vault KV v2 stores
+    - When `checkAndSet.required` is true, all PushSecret operations will include version information
+    - For new secrets, External Secrets Operator uses CAS version 0
+    - For existing secrets, it automatically retrieves the current version before updating
+    - CAS helps prevent conflicts when multiple External Secrets instances manage the same secrets
 
 ### Vault Enterprise
 

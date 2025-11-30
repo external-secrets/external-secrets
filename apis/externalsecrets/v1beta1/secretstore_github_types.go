@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Configures a store to push secrets to Github Actions.
+// GithubProvider configures a store to push secrets to Github Actions.
 type GithubProvider struct {
 	// URL configures the Github instance URL. Defaults to https://github.com/.
 	//+kubebuilder:default="https://github.com/"
@@ -47,6 +49,7 @@ type GithubProvider struct {
 	Environment string `json:"environment,omitempty"`
 }
 
+// GithubAppAuth defines the GitHub App authentication mechanism for the GitHub provider.
 type GithubAppAuth struct {
 	PrivateKey esmeta.SecretKeySelector `json:"privateKey"`
 }

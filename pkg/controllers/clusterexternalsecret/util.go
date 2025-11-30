@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +23,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 )
 
+// NewClusterExternalSecretCondition creates a new ClusterExternalSecret condition based on failed namespaces.
+// If there are no failed namespaces, it returns a Ready condition with True status.
+// Otherwise, it returns a Ready condition with False status and an error message.
 func NewClusterExternalSecretCondition(failedNamespaces map[string]error) *esv1.ClusterExternalSecretStatusCondition {
 	if len(failedNamespaces) == 0 {
 		return &esv1.ClusterExternalSecretStatusCondition{
@@ -38,6 +43,8 @@ func NewClusterExternalSecretCondition(failedNamespaces map[string]error) *esv1.
 	return condition
 }
 
+// SetClusterExternalSecretCondition updates the conditions on the ClusterExternalSecret status
+// and updates the corresponding metrics.
 func SetClusterExternalSecretCondition(ces *esv1.ClusterExternalSecret, condition esv1.ClusterExternalSecretStatusCondition) {
 	ces.Status.Conditions = append(filterOutCondition(ces.Status.Conditions, condition.Type), condition)
 	cesmetrics.UpdateClusterExternalSecretCondition(ces, &condition)

@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,8 +20,8 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// KubernetesServer defines configuration for connecting to a Kubernetes API server.
 type KubernetesServer struct {
-
 	// configures the Kubernetes server Address.
 	// +kubebuilder:default=kubernetes.default
 	// +optional
@@ -34,7 +36,7 @@ type KubernetesServer struct {
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
-// Configures a store to sync secrets with a Kubernetes instance.
+// KubernetesProvider configures a store to sync secrets with a Kubernetes instance.
 type KubernetesProvider struct {
 	// configures the Kubernetes server Address.
 	// +optional
@@ -42,7 +44,7 @@ type KubernetesProvider struct {
 
 	// Auth configures how secret-manager authenticates with a Kubernetes instance.
 	// +optional
-	Auth KubernetesAuth `json:"auth"`
+	Auth *KubernetesAuth `json:"auth,omitempty"`
 
 	// A reference to a secret that contains the auth information.
 	// +optional
@@ -57,6 +59,7 @@ type KubernetesProvider struct {
 	RemoteNamespace string `json:"remoteNamespace,omitempty"`
 }
 
+// KubernetesAuth defines authentication options for connecting to a Kubernetes cluster.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type KubernetesAuth struct {
@@ -73,11 +76,13 @@ type KubernetesAuth struct {
 	ServiceAccount *esmeta.ServiceAccountSelector `json:"serviceAccount,omitempty"`
 }
 
+// CertAuth defines certificate-based authentication configuration for Kubernetes.
 type CertAuth struct {
 	ClientCert esmeta.SecretKeySelector `json:"clientCert,omitempty"`
 	ClientKey  esmeta.SecretKeySelector `json:"clientKey,omitempty"`
 }
 
+// TokenAuth defines token-based authentication configuration for Kubernetes.
 type TokenAuth struct {
 	BearerToken esmeta.SecretKeySelector `json:"bearerToken,omitempty"`
 }

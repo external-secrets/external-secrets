@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +18,7 @@ package addon
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	// nolint
@@ -36,7 +39,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 		&HelmChart{
 			Namespace:   "default",
 			ReleaseName: "eso",
-			Chart:       "/k8s/deploy/charts/external-secrets",
+			Chart:       filepath.Join(AssetDir(), "deploy/charts/external-secrets"),
 			Vars: []StringTuple{
 				{
 					Key:   "webhook.port",
@@ -168,6 +171,39 @@ func WithCRDs() MutationFunc {
 				eso.HelmChart.Vars[i].Value = "true"
 			}
 		}
+	}
+}
+
+func WithAllowGenericTargets() MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "genericTargets.enabled",
+			Value: "true",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].apiGroup",
+			Value: "",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].resources[0]",
+			Value: "configmaps",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[0]",
+			Value: "create",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[1]",
+			Value: "delete",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[2]",
+			Value: "list",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[3]",
+			Value: "get",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[4]",
+			Value: "patch",
+		}, StringTuple{
+			Key:   "genericTargets.resources[0].verbs[5]",
+			Value: "watch",
+		})
 	}
 }
 

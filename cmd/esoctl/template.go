@@ -1,11 +1,11 @@
 /*
-Copyright © 2025 ESO Maintainer team
+Copyright © 2025 ESO Maintainer Team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+	https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,7 +31,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
-	"github.com/external-secrets/external-secrets/pkg/template"
+	"github.com/external-secrets/external-secrets/runtime/template"
 )
 
 // version is filled during build time.
@@ -116,7 +116,7 @@ func templateRun(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("could not setup from secret: %w", err)
 	}
 
-	if err := executeTemplate(p, ctx, tmpl); err != nil {
+	if err := executeTemplate(ctx, p, tmpl); err != nil {
 		return fmt.Errorf("could not render template: %w", err)
 	}
 
@@ -168,7 +168,7 @@ func fetchTemplateFromSourceObject(obj *unstructured.Unstructured) (*esv1.Extern
 	return tmpl, nil
 }
 
-func executeTemplate(p *templating.Parser, ctx context.Context, tmpl *esv1.ExternalSecretTemplate) error {
+func executeTemplate(ctx context.Context, p *templating.Parser, tmpl *esv1.ExternalSecretTemplate) error {
 	// apply templates defined in template.templateFrom
 	err := p.MergeTemplateFrom(ctx, "default", tmpl)
 	if err != nil {

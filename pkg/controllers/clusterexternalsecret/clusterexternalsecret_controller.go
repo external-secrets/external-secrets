@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package clusterexternalsecret implements a controller for managing ClusterExternalSecret resources,
+// which allow creating ExternalSecrets across multiple namespaces.
 package clusterexternalsecret
 
 import (
@@ -41,7 +45,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 // Reconciler reconciles a ClusterExternalSecret object.
@@ -58,8 +62,18 @@ const (
 	errConvertLabelSelector = "unable to convert labelselector"
 	errGetExistingES        = "could not get existing ExternalSecret"
 	errNamespacesFailed     = "one or more namespaces failed"
+
+	// ClusterExternalSecretFinalizer is the finalizer for ClusterExternalSecret resources.
+	// This finalizer ensures that all ExternalSecrets created by the ClusterExternalSecret
+	// are properly cleaned up before the ClusterExternalSecret is deleted, preventing orphaned resources.
+	ClusterExternalSecretFinalizer = "externalsecrets.external-secrets.io/clusterexternalsecret-cleanup"
 )
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterExternalSecret", req.NamespacedName)
 
@@ -81,9 +95,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	// skip reconciliation if deletion timestamp is set on cluster external secret
+	// Handle deletion with finalizer
+	// When a ClusterExternalSecret is being deleted, we need to ensure all created ExternalSecrets
+	// and namespace finalizers are cleaned up to prevent resource leaks and namespace deletion blocking.
 	if clusterExternalSecret.DeletionTimestamp != nil {
-		log.Info("skipping as it is in deletion")
+		// Always attempt cleanup to handle edge case where finalizer might be removed externally
+		if err := r.cleanupExternalSecrets(ctx, log, &clusterExternalSecret); err != nil {
+			log.Error(err, "failed to cleanup ExternalSecrets")
+			return ctrl.Result{}, err
+		}
+
+		// Remove finalizer from ClusterExternalSecret if it exists
+		if updated := controllerutil.RemoveFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer); updated {
+			if err := r.Update(ctx, &clusterExternalSecret); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer if it doesn't exist
+	// This ensures the ClusterExternalSecret cannot be deleted until we've cleaned up all
+	// ExternalSecrets it created and removed our finalizers from namespaces.
+	if updated := controllerutil.AddFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer); updated {
+		if err := r.Update(ctx, &clusterExternalSecret); err != nil {
+			return ctrl.Result{}, err
+		}
+		// Return immediately after update to let the change propagate
 		return ctrl.Result{}, nil
 	}
 
@@ -103,7 +141,7 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	if esName == "" {
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
-	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != esName {
+	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != "" && prevName != esName {
 		// ExternalSecretName has changed, so remove the old ones
 		if err := r.removeOldSecrets(ctx, log, clusterExternalSecret, prevName); err != nil {
 			return ctrl.Result{}, err
@@ -117,7 +155,7 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	}
 	selectors = append(selectors, clusterExternalSecret.Spec.NamespaceSelectors...)
 
-	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, clusterExternalSecret.Spec.Namespaces, selectors)
+	namespaces, err := esutils.GetTargetNamespaces(ctx, r.Client, clusterExternalSecret.Spec.Namespaces, selectors)
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
 		failedNamespaces := map[string]error{
@@ -142,6 +180,14 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	sort.Strings(provisionedNamespaces)
 	clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
 
+	// Check if any failures are due to conflicts - if so, requeue immediately
+	for _, err := range failedNamespaces {
+		if apierrors.IsConflict(err) {
+			log.V(1).Info("conflict detected, requeuing immediately")
+			return ctrl.Result{}, fmt.Errorf("conflict detected, will retry: %w", err)
+		}
+	}
+
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
@@ -155,6 +201,15 @@ func (r *Reconciler) gatherProvisionedNamespaces(
 ) []string {
 	var provisionedNamespaces []string //nolint:prealloc // we don't know the size
 	for _, namespace := range namespaces {
+		// If namespace is being deleted, remove our finalizer to allow deletion to proceed
+		if namespace.DeletionTimestamp != nil {
+			log.Info("namespace is being deleted, removing finalizer", "namespace", namespace.Name)
+			if err := r.removeNamespaceFinalizer(ctx, log, &namespace, clusterExternalSecret.Name); err != nil {
+				log.Error(err, "failed to remove finalizer from terminating namespace", "namespace", namespace.Name)
+				// Don't add to failedNamespaces - this is cleanup, not provisioning
+			}
+			continue
+		}
 		var existingES esv1.ExternalSecret
 		err := r.Get(ctx, types.NamespacedName{
 			Name:      esName,
@@ -172,6 +227,12 @@ func (r *Reconciler) gatherProvisionedNamespaces(
 		}
 
 		if err := r.createOrUpdateExternalSecret(ctx, clusterExternalSecret, namespace, esName, clusterExternalSecret.Spec.ExternalSecretMetadata); err != nil {
+			// If conflict, don't log as error - just add to failed namespaces for retry
+			if apierrors.IsConflict(err) {
+				log.V(1).Info("conflict while updating namespace, will retry", "namespace", namespace.Name)
+				failedNamespaces[namespace.Name] = err
+				continue
+			}
 			log.Error(err, "failed to create or update external secret")
 			failedNamespaces[namespace.Name] = err
 			continue
@@ -204,7 +265,117 @@ func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clus
 	return nil
 }
 
+// cleanupExternalSecrets removes all ExternalSecrets created by this ClusterExternalSecret
+// and removes the namespace finalizers we added. This uses a dual-finalizer strategy:
+// 1. ClusterExternalSecret has a finalizer to ensure cleanup happens
+// 2. Each namespace gets a CES-specific finalizer to prevent deletion race conditions
+// The namespace finalizer is named with the CES name to allow multiple CES resources
+// to provision into the same namespace independently.
+func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret) error {
+	esName := r.getExternalSecretName(clusterExternalSecret)
+
+	var err error
+	for _, ns := range clusterExternalSecret.Status.ProvisionedNamespaces {
+		if cleanupErr := r.cleanupNamespaceResources(ctx, log, clusterExternalSecret, ns, esName); cleanupErr != nil {
+			err = errors.Join(err, cleanupErr)
+		}
+	}
+
+	return err
+}
+
+// getExternalSecretName returns the name to use for ExternalSecrets.
+func (r *Reconciler) getExternalSecretName(clusterExternalSecret *esv1.ClusterExternalSecret) string {
+	if clusterExternalSecret.Status.ExternalSecretName != "" {
+		return clusterExternalSecret.Status.ExternalSecretName
+	}
+	return clusterExternalSecret.ObjectMeta.Name
+}
+
+// cleanupNamespaceResources handles cleanup for a single namespace.
+func (r *Reconciler) cleanupNamespaceResources(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret, namespaceName, esName string) error {
+	// Get the namespace
+	namespace, err := r.getNamespace(ctx, namespaceName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// Namespace already deleted, that's ok
+			return nil
+		}
+		return fmt.Errorf("failed to get namespace %s: %w", namespaceName, err)
+	}
+
+	// Remove namespace finalizer
+	if err := r.removeNamespaceFinalizer(ctx, log, namespace, clusterExternalSecret.Name); err != nil {
+		return err
+	}
+
+	// Delete ExternalSecret
+	if err := r.deleteExternalSecret(ctx, esName, clusterExternalSecret.Name, namespaceName); err != nil {
+		return fmt.Errorf("failed to delete ExternalSecret in namespace %s: %w", namespaceName, err)
+	}
+
+	return nil
+}
+
+// getNamespace fetches a namespace by name.
+func (r *Reconciler) getNamespace(ctx context.Context, name string) (*v1.Namespace, error) {
+	var namespace v1.Namespace
+	err := r.Get(ctx, types.NamespacedName{Name: name}, &namespace)
+	return &namespace, err
+}
+
+// removeNamespaceFinalizer removes the CES-specific finalizer from a namespace.
+func (r *Reconciler) removeNamespaceFinalizer(ctx context.Context, log logr.Logger, namespace *v1.Namespace, cesName string) error {
+	finalizer := r.buildCESFinalizer(cesName)
+
+	if !controllerutil.ContainsFinalizer(namespace, finalizer) {
+		return nil // Finalizer doesn't exist, nothing to do
+	}
+
+	return r.updateNamespaceRemoveFinalizer(ctx, log, namespace.Name, finalizer)
+}
+
+// buildCESFinalizer creates the finalizer name for a CES.
+func (r *Reconciler) buildCESFinalizer(cesName string) string {
+	return "externalsecrets.external-secrets.io/ces-" + cesName
+}
+
+// updateNamespaceRemoveFinalizer removes a finalizer from a namespace with conflict handling.
+func (r *Reconciler) updateNamespaceRemoveFinalizer(ctx context.Context, log logr.Logger, namespaceName, finalizer string) error {
+	// Fetch the latest namespace to avoid conflicts
+	namespace, err := r.getNamespace(ctx, namespaceName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil // Namespace deleted, that's OK
+		}
+		return fmt.Errorf("failed to get latest namespace %s: %w", namespaceName, err)
+	}
+
+	// Only update if the finalizer was actually removed
+	if updated := controllerutil.RemoveFinalizer(namespace, finalizer); updated {
+		if err := r.Update(ctx, namespace); err != nil {
+			// Ignore NotFound (namespace deleted)
+			if apierrors.IsNotFound(err) {
+				log.V(1).Info("ignoring expected error during finalizer removal",
+					"namespace", namespaceName,
+					"error", err.Error())
+				return nil
+			}
+
+			return fmt.Errorf("failed to remove finalizer from namespace %s: %w", namespaceName, err)
+		}
+	}
+
+	return nil
+}
+
 func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterExternalSecret *esv1.ClusterExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1.ExternalSecretMetadata) error {
+	// Add namespace finalizer first to prevent deletion race conditions
+	if err := r.ensureNamespaceFinalizer(ctx, &namespace, clusterExternalSecret.Name); err != nil {
+		return err
+	}
+
+	// Create or update the ExternalSecret
 	externalSecret := &esv1.ExternalSecret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace.Name,
@@ -215,6 +386,15 @@ func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterEx
 	mutateFunc := func() error {
 		externalSecret.Labels = esMetadata.Labels
 		externalSecret.Annotations = esMetadata.Annotations
+		if value, ok := clusterExternalSecret.Annotations[esv1.AnnotationForceSync]; ok {
+			if externalSecret.Annotations == nil {
+				externalSecret.Annotations = map[string]string{}
+			}
+			externalSecret.Annotations[esv1.AnnotationForceSync] = value
+		} else {
+			delete(externalSecret.Annotations, esv1.AnnotationForceSync)
+		}
+
 		externalSecret.Spec = clusterExternalSecret.Spec.ExternalSecretSpec
 
 		if err := controllerutil.SetControllerReference(clusterExternalSecret, externalSecret, r.Scheme); err != nil {
@@ -226,6 +406,40 @@ func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterEx
 
 	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, externalSecret, mutateFunc); err != nil {
 		return fmt.Errorf("could not create or update ExternalSecret: %w", err)
+	}
+
+	return nil
+}
+
+// ensureNamespaceFinalizer adds a CES-specific finalizer to the namespace if it doesn't exist.
+// This prevents the namespace from being deleted while we're managing ExternalSecrets in it.
+func (r *Reconciler) ensureNamespaceFinalizer(ctx context.Context, namespace *v1.Namespace, cesName string) error {
+	finalizer := r.buildCESFinalizer(cesName)
+
+	if controllerutil.ContainsFinalizer(namespace, finalizer) {
+		return nil // Already has finalizer
+	}
+
+	return r.addNamespaceFinalizer(ctx, namespace.Name, finalizer)
+}
+
+// addNamespaceFinalizer adds a finalizer to a namespace with conflict handling.
+func (r *Reconciler) addNamespaceFinalizer(ctx context.Context, namespaceName, finalizer string) error {
+	// Fetch the latest namespace to avoid conflicts
+	namespace, err := r.getNamespace(ctx, namespaceName)
+	if err != nil {
+		return fmt.Errorf("could not get latest namespace: %w", err)
+	}
+
+	// Only update if the finalizer was actually added
+	if updated := controllerutil.AddFinalizer(namespace, finalizer); updated {
+		if err := r.Update(ctx, namespace); err != nil {
+			// If conflict, return error to trigger requeue
+			if apierrors.IsConflict(err) {
+				return err
+			}
+			return fmt.Errorf("could not add namespace finalizer: %w", err)
+		}
 	}
 
 	return nil
@@ -322,7 +536,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		Watches(
 			&v1.Namespace{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForNamespace),
-			builder.WithPredicates(utils.NamespacePredicate()),
+			builder.WithPredicates(esutils.NamespacePredicate()),
 		).
 		Complete(r)
 }

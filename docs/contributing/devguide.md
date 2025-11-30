@@ -10,10 +10,11 @@ cd external-secrets
 
 _Note: many of the `make` commands use [yq](https://github.com/mikefarah/yq), version 4.2X.X or higher._
 
-Our helm chart is tested using `helm-unittest`. You will need it to run tests locally if you modify the helm chart. Install it with the following command:
+Our helm chart is tested using `helm-unittest`. You will need it to run tests locally if you modify the helm chart.
 
-```
-$ helm plugin install https://github.com/helm-unittest/helm-unittest
+```shell
+make helm.test
+make helm.test.update
 ```
 
 ## Building & Testing
@@ -39,6 +40,12 @@ Build the documentation:
 ```shell
 make docs
 ```
+
+## License Headers
+
+All Go source files must include the Apache License 2.0 header. The CI automatically checks license headers for new files added in pull requests using [Apache SkyWalking Eyes](https://github.com/apache/skywalking-eyes).
+
+If you need to check license headers locally, you can use the SkyWalking Eyes tool directly. The configuration is in `.licenserc.yaml` at the project root.
 
 ## Using Tilt
 

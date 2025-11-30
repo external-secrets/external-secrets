@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,9 +19,11 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// GCRAccessTokenSpec defines the desired state to generate a Google Container Registry access token.
 type GCRAccessTokenSpec struct {
 	// Auth defines the means for authenticating with GCP
 	Auth GCPSMAuth `json:"auth"`
@@ -27,19 +31,24 @@ type GCRAccessTokenSpec struct {
 	ProjectID string `json:"projectID"`
 }
 
+// GCPSMAuth defines the authentication methods for Google Cloud Platform.
 type GCPSMAuth struct {
 	// +optional
 	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
 	// +optional
 	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
+	// +optional
+	WorkloadIdentityFederation *esv1.GCPWorkloadIdentityFederation `json:"workloadIdentityFederation,omitempty"`
 }
 
+// GCPSMAuthSecretRef defines the reference to a secret containing Google Cloud Platform credentials.
 type GCPSMAuthSecretRef struct {
 	// The SecretAccessKey is used for authentication
 	// +optional
 	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
 }
 
+// GCPWorkloadIdentity defines the configuration for using GCP Workload Identity authentication.
 type GCPWorkloadIdentity struct {
 	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
 	ClusterLocation   string                        `json:"clusterLocation"`

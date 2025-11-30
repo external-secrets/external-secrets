@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package psmetrics provides metrics for PushSecret controller.
 package psmetrics
 
 import (
@@ -24,9 +27,14 @@ import (
 )
 
 const (
-	PushSecretSubsystem            = "pushsecret"
+	// PushSecretSubsystem is the subsystem name for PushSecret metrics.
+	PushSecretSubsystem = "pushsecret"
+
+	// PushSecretReconcileDurationKey is the key for the reconcile duration metric.
 	PushSecretReconcileDurationKey = "reconcile_duration"
-	PushSecretStatusConditionKey   = "status_condition"
+
+	// PushSecretStatusConditionKey is the key for the status condition metric.
+	PushSecretStatusConditionKey = "status_condition"
 )
 
 var gaugeVecMetrics = map[string]*prometheus.GaugeVec{}
@@ -54,6 +62,7 @@ func SetUpMetrics() {
 	}
 }
 
+// UpdatePushSecretCondition updates the condition metrics for a PushSecret.
 func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecretStatusCondition, value float64) {
 	psInfo := make(map[string]string)
 	psInfo["name"] = ps.Name
@@ -97,6 +106,7 @@ func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecret
 		})).Set(value)
 }
 
+// GetGaugeVec returns a GaugeVec for the given metric key.
 func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
 }

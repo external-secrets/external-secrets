@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +18,7 @@ package v1
 
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// ConjurProvider provides access to a Conjur provider.
 type ConjurProvider struct {
 	// URL is the endpoint of the Conjur instance.
 	URL string `json:"url"`
@@ -34,6 +37,7 @@ type ConjurProvider struct {
 	Auth ConjurAuth `json:"auth"`
 }
 
+// ConjurAuth is the way to provide authentication credentials to the ConjurProvider.
 type ConjurAuth struct {
 	// Authenticates with Conjur using an API key.
 	// +optional
@@ -44,6 +48,8 @@ type ConjurAuth struct {
 	Jwt *ConjurJWT `json:"jwt,omitempty"`
 }
 
+// ConjurAPIKey contains references to a Secret resource that holds
+// the Conjur username and API key.
 type ConjurAPIKey struct {
 	// Account is the Conjur organization account name.
 	Account string `json:"account"`
@@ -57,6 +63,7 @@ type ConjurAPIKey struct {
 	APIKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`
 }
 
+// ConjurJWT defines the JWT authentication configuration for Conjur provider.
 type ConjurJWT struct {
 	// Account is the Conjur organization account name.
 	Account string `json:"account"`

@@ -1,9 +1,12 @@
 /*
-Copyright 2020 The cert-manager Authors.
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,15 +17,16 @@ limitations under the License.
 package addon
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 
+	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type HelmServer struct {
@@ -33,6 +37,8 @@ type HelmServer struct {
 	srv      *http.Server
 	serveDir string
 }
+
+const serviceName = "e2e-helmserver"
 
 func (s *HelmServer) Setup(config *Config) error {
 	s.config = config
@@ -57,11 +63,14 @@ func (s *HelmServer) Setup(config *Config) error {
 		return fmt.Errorf("unable to create helm index: %w %s", err, string(out))
 	}
 
-	_, err = s.config.KubeClientSet.CoreV1().Services("default").Create(context.Background(), &v1.Service{
+	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "e2e-helmserver",
+			Name:      serviceName,
+			Namespace: "default",
 		},
-		Spec: v1.ServiceSpec{
+	}
+	_, err = controllerutil.CreateOrUpdate(GinkgoT().Context(), s.config.CRClient, svc, func() error {
+		svc.Spec = v1.ServiceSpec{
 			Selector: map[string]string{
 				// set via e2e/run.sh
 				"app": "eso-e2e",
@@ -72,8 +81,10 @@ func (s *HelmServer) Setup(config *Config) error {
 					Port:       80,
 					TargetPort: intstr.FromInt(3000),
 				},
-			}},
-	}, metav1.CreateOptions{})
+			}}
+		return nil
+	})
+
 	return err
 }
 
@@ -92,7 +103,7 @@ func (s *HelmServer) Logs() error {
 }
 
 func (s *HelmServer) Uninstall() error {
-	err := s.config.KubeClientSet.CoreV1().Services("default").Delete(context.Background(), "e2e-helmserver", metav1.DeleteOptions{})
+	err := s.config.KubeClientSet.CoreV1().Services("default").Delete(GinkgoT().Context(), serviceName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
