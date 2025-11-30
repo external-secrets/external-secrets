@@ -96,7 +96,7 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 	return []byte(result), nil
 }
 
-func (cm *CertificateManager) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+func (cm *CertificateManager) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return fmt.Errorf("DeleteSecret is not supported for CertificateManager provider")
 }
 
@@ -112,19 +112,19 @@ func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-func (cm *CertificateManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (cm *CertificateManager) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf("GetAllSecrets is not supported for CertificateManager provider")
 }
 
-func (cm *CertificateManager) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (cm *CertificateManager) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, fmt.Errorf("GetSecretMap is not supported for CertificateManager provider")
 }
 
-func (cm *CertificateManager) SecretExists(ctx context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
+func (cm *CertificateManager) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf("SecretExists is not supported for CertificateManager provider")
 }
 
-func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+func (cm *CertificateManager) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return fmt.Errorf("PushSecret is not supported for CertificateManager provider")
 }
 

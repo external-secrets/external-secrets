@@ -121,7 +121,6 @@ func TestACMResolver(t *testing.T) {
 }
 
 func TestGetSecret(t *testing.T) {
-	// good case: certificate is passed in, output is sent back
 	setValidCertificate := func(tc *certificateManagerTestCase) {
 		tc.apiOutput.Certificate = aws.String(testCertificate)
 		tc.apiOutput.CertificateChain = aws.String(testChain)
@@ -129,7 +128,6 @@ func TestGetSecret(t *testing.T) {
 		tc.expectedSecret = testCertWithAll
 	}
 
-	// good case: certificate only
 	setCertificateOnly := func(tc *certificateManagerTestCase) {
 		tc.apiOutput.Certificate = aws.String(testCertificate)
 		tc.apiOutput.CertificateChain = nil
@@ -137,7 +135,6 @@ func TestGetSecret(t *testing.T) {
 		tc.expectedSecret = testCertificate + "\n"
 	}
 
-	// good case: certificate and chain
 	setCertificateAndChain := func(tc *certificateManagerTestCase) {
 		tc.apiOutput.Certificate = aws.String(testCertificate)
 		tc.apiOutput.CertificateChain = aws.String(testChain)
@@ -145,7 +142,6 @@ func TestGetSecret(t *testing.T) {
 		tc.expectedSecret = testCertificate + "\n" + testChain + "\n"
 	}
 
-	// bad case: no data returned
 	setNoDataReturned := func(tc *certificateManagerTestCase) {
 		tc.apiOutput.Certificate = nil
 		tc.apiOutput.CertificateChain = nil
@@ -153,17 +149,15 @@ func TestGetSecret(t *testing.T) {
 		tc.expectError = "no data returned"
 	}
 
-	// bad case: export certificate fails
 	setExportCertFail := func(tc *certificateManagerTestCase) {
 		tc.apiErr = errors.New("certificate not exportable")
 		tc.expectError = "certificate not exportable"
 	}
 
-	// bad case: describe certificate fails
 	setDescribeCertFail := func(tc *certificateManagerTestCase) {
 		tc.describeCertErr = errors.New("certificate not found")
 		tc.expectError = "certificate not found"
-	} // bad case: empty certificate ARN
+	}
 	setEmptyARN := func(tc *certificateManagerTestCase) {
 		tc.remoteRef.Key = ""
 		tc.expectError = "certificate ARN must be specified in remoteRef.key"
@@ -246,7 +240,6 @@ func TestDeleteSecret(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	// good case: referent auth enabled
 	cm := CertificateManager{
 		referentAuth: true,
 	}
@@ -254,7 +247,6 @@ func TestValidate(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, esv1.ValidationResultUnknown, result)
 
-	// good case: credentials available
 	cfg := &aws.Config{
 		Credentials: mockCredentialsProvider{},
 	}
@@ -266,7 +258,6 @@ func TestValidate(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, esv1.ValidationResultReady, result)
 
-	// bad case: credentials not available
 	cfg = &aws.Config{
 		Credentials: mockCredentialsProviderError{},
 	}
@@ -307,7 +298,9 @@ func errorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
-} // mockCredentialsProvider is a mock implementation of aws.CredentialsProvider
+}
+
+// mockCredentialsProvider is a mock implementation of aws.CredentialsProvider.
 type mockCredentialsProvider struct{}
 
 func (m mockCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
@@ -317,14 +310,12 @@ func (m mockCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials,
 	}, nil
 }
 
-// mockCredentialsProviderError is a mock implementation that returns an error
 type mockCredentialsProviderError struct{}
 
 func (m mockCredentialsProviderError) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return aws.Credentials{}, errors.New("credentials not available")
 }
 
-// fakePushSecretRemoteRef is a fake implementation of PushSecretRemoteRef interface
 type fakePushSecretRemoteRef struct{}
 
 func (f *fakePushSecretRemoteRef) GetRemoteKey() string {
@@ -335,7 +326,6 @@ func (f *fakePushSecretRemoteRef) GetProperty() string {
 	return "fake-property"
 }
 
-// fakePushSecretData is a fake implementation of PushSecretData interface
 type fakePushSecretData struct{}
 
 func (f *fakePushSecretData) GetRemoteKey() string {

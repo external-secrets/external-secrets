@@ -124,6 +124,8 @@ func validateRegion(prov *esv1.AWSProvider) error {
 			return fmt.Errorf(errRegionNotFound, prov.Region)
 		}
 		return nil
+	case esv1.AWSServiceCertificateManager:
+		return nil
 	}
 	return fmt.Errorf(errUnknownProviderService, prov.Service)
 }
@@ -162,6 +164,8 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 			return secretsmanager.New(ctx, &cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, true, kube, namespace)
 		case esv1.AWSServiceParameterStore:
 			return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
+		case esv1.AWSServiceCertificateManager:
+			return certificatemanager.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}

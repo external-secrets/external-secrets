@@ -320,7 +320,11 @@ string
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
+<tbody><tr><td><p>&#34;CertificateManager&#34;</p></td>
+<td><p>AWSServiceCertificateManager is the AWS Certificate Manager service.
+see: <a href="https://aws.amazon.com/certificate-manager/">https://aws.amazon.com/certificate-manager/</a></p>
+</td>
+</tr><tr><td><p>&#34;ParameterStore&#34;</p></td>
 <td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
 </td>
