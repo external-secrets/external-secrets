@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/yandex-cloud/go-sdk/iamkey"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -31,8 +30,6 @@ import (
 	ydxcommon "github.com/external-secrets/external-secrets/providers/v1/yandex/common"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/common/clock"
 )
-
-var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("certificatemanager")
 
 func adaptInput(store esv1.GenericStore) (*ydxcommon.SecretsClientInput, error) {
 	storeSpec := store.GetSpec()
@@ -91,7 +88,7 @@ func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iam
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
 	return ydxcommon.InitYandexCloudProvider(
-		log,
+		[]string{"provider", "yandex", "certificatemanager"},
 		clock.NewRealClock(),
 		adaptInput,
 		newSecretGetter,

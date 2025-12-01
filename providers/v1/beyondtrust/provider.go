@@ -31,14 +31,15 @@ import (
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/secrets"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/utils"
 	"github.com/cenkalti/backoff/v4"
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esutils "github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -56,9 +57,7 @@ var (
 	errSecretRefAndValueConflict = errors.New("cannot specify both secret reference and value")
 	errMissingSecretName         = errors.New("must specify a secret name")
 	errMissingSecretKey          = errors.New("must specify a secret key")
-	// ESOLogger is the logger instance for the Beyondtrust provider.
-	ESOLogger              = ctrl.Log.WithName("provider").WithName("beyondtrust")
-	maxFileSecretSizeBytes = 5000000
+	maxFileSecretSizeBytes       = 5000000
 )
 
 // Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
@@ -82,6 +81,10 @@ type AuthenticatorInput struct {
 	APIKey                     string
 	Logger                     *logging.LogrLogger
 	RetryMaxElapsedTimeMinutes int
+}
+
+func ctxLog(ctx context.Context) logr.Logger {
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("beyondtrust")
 }
 
 // Capabilities implements v1beta1.Provider.
@@ -111,11 +114,12 @@ func (*Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1.PushSecretDa
 
 // Validate implements v1beta1.SecretsClient.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
+	log := ctxLog(context.Background())
 	timeout := 15 * time.Second
 	clientURL := p.apiURL
 
 	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
-		ESOLogger.Error(err, "Network Validate", "clientURL:", clientURL)
+		log.Error(err, "Network Validate", "clientURL:", clientURL)
 		return esv1.ValidationResultError, err
 	}
 
@@ -131,7 +135,8 @@ func (*Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bo
 // NewClient this is where we initialize the SecretClient and return it for the controller to use.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
-	logger := logging.NewLogrLogger(&ESOLogger)
+	log := ctxLog(ctx)
+	logger := logging.NewLogrLogger(&log)
 
 	storeKind := store.GetKind()
 	clientID, clientSecret, apiKey, err := loadCredentialsFromConfig(ctx, config, kube, namespace, storeKind)
@@ -317,7 +322,9 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (
 
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
-func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	log := ctxLog(ctx)
+
 	managedAccountType := !strings.EqualFold(p.retrievaltype, "SECRET")
 
 	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
@@ -334,12 +341,12 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 	}
 
 	managedFetch := func() (string, error) {
-		ESOLogger.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
+		log.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
 		manageAccountObj, _ := managedaccount.NewManagedAccountObj(p.authenticate, &p.log)
 		return manageAccountObj.GetSecret(retrievalPath, p.separator)
 	}
 	unmanagedFetch := func() (string, error) {
-		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
+		log.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
 		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes)
 		return secretObj.GetSecret(retrievalPath, p.separator)
 	}

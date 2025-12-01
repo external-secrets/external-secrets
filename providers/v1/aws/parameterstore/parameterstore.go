@@ -28,19 +28,20 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	ssmTypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/smithy-go"
+	"github.com/go-logr/logr"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // Tier defines policy details for PushSecret.
@@ -64,7 +65,6 @@ var (
 	_               esv1.SecretsClient = &ParameterStore{}
 	managedBy                          = "managed-by"
 	externalSecrets                    = "external-secrets"
-	logger                             = ctrl.Log.WithName("provider").WithName("parameterstore")
 )
 
 // ParameterStore is a provider for AWS ParameterStore.
@@ -92,6 +92,10 @@ const (
 	errUnexpectedFindOperator    = "unexpected find operator"
 	errCodeAccessDeniedException = "AccessDeniedException"
 )
+
+func ctxLog(ctx context.Context) logr.Logger {
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("aws").WithName("parameterstore")
+}
 
 // New constructs a ParameterStore Provider that is specific to a store.
 func New(_ context.Context, cfg *aws.Config, prefix string, referentAuth bool) (*ParameterStore, error) {
@@ -373,6 +377,7 @@ func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1.ExternalSe
 
 // findByName requires `ssm:GetParametersByPath` IAM permission, but the `Resource` scope can be limited.
 func (pm *ParameterStore) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	logger := ctxLog(ctx)
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
 		return nil, err

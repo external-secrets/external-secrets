@@ -123,7 +123,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Info("updating webhook config")
-	err = r.updateConfig(logr.NewContext(ctx, log), &cfg)
+	err = r.updateConfig(ctrl.LoggerInto(ctx, log), &cfg)
 	if err != nil {
 		log.Error(err, "could not update webhook config")
 		r.recorder.Eventf(&cfg, v1.EventTypeWarning, ReasonUpdateFailed, err.Error())

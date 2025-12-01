@@ -128,7 +128,7 @@ type CertInfo struct {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("CustomResourceDefinition", req.NamespacedName)
 	if slices.Contains(r.CrdResources, req.NamespacedName.Name) {
-		err := r.updateCRD(logr.NewContext(ctx, log), req)
+		err := r.updateCRD(ctrl.LoggerInto(ctx, log), req)
 		if err != nil {
 			log.Error(err, "failed to inject conversion webhook")
 			r.readyStatusMapMu.Lock()

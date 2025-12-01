@@ -61,6 +61,7 @@ func setIamAuthToken(ctx context.Context, v *client, jwtProvider vaultutil.JwtPr
 }
 
 func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider vaultutil.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
+	log := ctxLog(ctx)
 	jwtAuth := iamAuth.JWTAuth
 	secretRefAuth := iamAuth.SecretRef
 	regionAWS := c.getRegionOrDefault(iamAuth.Region)
@@ -74,7 +75,7 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.Vaul
 			return err
 		}
 	} else if secretRefAuth != nil { // if jwtAuth is not defined, check if secretRef is defined. Second preference.
-		logger.V(1).Info("using credentials from secretRef")
+		log.V(1).Info("using credentials from secretRef")
 		credsProvider, err = vaultiamauth.CredsFromSecretRef(ctx, *iamAuth, c.storeKind, k, n)
 		if err != nil {
 			return err
@@ -160,10 +161,11 @@ func (c *client) getAuthMountPathOrDefault(path string) string {
 }
 
 func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
+	log := ctxLog(ctx)
 	// First try IRSA (Web Identity Token) - checking if controller pod's service account is IRSA enabled
 	tokenFile := os.Getenv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
 	if tokenFile != "" {
-		logger.V(1).Info("using IRSA token for authentication")
+		log.V(1).Info("using IRSA token for authentication")
 		return c.getCredsFromIRSAToken(ctx, tokenFile, region, k, jwtProvider)
 	}
 
@@ -171,7 +173,7 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 	podIdentityURI := os.Getenv(vaultiamauth.AWSContainerCredentialsFullURIEnvVar)
 
 	if podIdentityURI != "" {
-		logger.V(1).Info("using Pod Identity for authentication")
+		log.V(1).Info("using Pod Identity for authentication")
 		// Return nil to let AWS SDK v2 container credential provider handle Pod Identity automatically
 		return nil, nil
 	}

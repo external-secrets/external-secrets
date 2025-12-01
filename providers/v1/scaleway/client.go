@@ -310,6 +310,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 // GetAllSecrets lists secrets matching the given criteria and return their latest versions.
 func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	log := ctxLog(ctx)
 	request := smapi.ListSecretsRequest{
 		ProjectID: &c.projectID,
 		Page:      scw.Int32Ptr(1),

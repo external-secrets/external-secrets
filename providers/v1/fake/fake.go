@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +32,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -57,6 +59,10 @@ type Provider struct {
 	config           Config
 	database         map[string]Config
 	validationResult *esv1.ValidationResult
+}
+
+func ctxLog(ctx context.Context) logr.Logger {
+	return ctrl.LoggerFrom(ctx).WithName("provider").WithName("fake")
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -109,16 +115,19 @@ func getProvider(store esv1.GenericStore) (*esv1.FakeProvider, error) {
 	return spc.Provider.Fake, nil
 }
 
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
+func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+	ctxLog(ctx).WithValues("key", ref.GetRemoteKey()).Info("deleting secret")
 	return nil
 }
 
-func (p *Provider) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+func (p *Provider) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	ctxLog(ctx).WithValues("key", ref.GetRemoteKey()).Info("checking secret existence")
 	_, ok := p.config[ref.GetRemoteKey()]
 	return ok, nil
 }
 
-func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	ctxLog(ctx).WithValues("secret", secret.GetName(), "key", data.GetSecretKey()).Info("pushing secret")
 	value := secret.Data[data.GetSecretKey()]
 	currentData, ok := p.config[data.GetRemoteKey()]
 	if !ok {
@@ -139,7 +148,14 @@ func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv
 
 // GetAllSecrets returns multiple secrets from the given ExternalSecretFind
 // Currently, only the Name operator is supported.
-func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	log := ctxLog(ctx)
+	if ref.Name != nil {
+		log = log.WithValues("secretRegex", ref.Name.RegExp)
+	} else if ref.Path != nil {
+		log = log.WithValues("secretPath", ref.Path)
+	}
+	log.Info("getting all secrets")
 	if ref.Name != nil {
 		matcher, err := find.New(*ref.Name)
 		if err != nil {
@@ -173,7 +189,8 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	ctxLog(ctx).WithValues("key", ref.Key).Info("getting secret")
 	data, ok := p.config[mapKey(ref.Key, ref.Version)]
 	if !ok || data.Version != ref.Version {
 		return nil, esv1.NoSecretErr
@@ -193,6 +210,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	ctxLog(ctx).WithValues("key", ref.Key).Info("getting secret map")
 	ddata, ok := p.config[mapKey(ref.Key, ref.Version)]
 	if !ok || ddata.Version != ref.Version {
 		return nil, esv1.NoSecretErr
