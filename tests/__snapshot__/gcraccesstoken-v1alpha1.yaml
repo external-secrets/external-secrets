@@ -33,3 +33,5 @@ spec:
         name: string
         namespace: string
   projectID: string
+status:
+  output: 

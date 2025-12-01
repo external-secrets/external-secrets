@@ -74,7 +74,8 @@ type STSSessionToken struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec STSSessionTokenSpec `json:"spec,omitempty"`
+	Spec   STSSessionTokenSpec `json:"spec,omitempty"`
+	Status GeneratorStatus     `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

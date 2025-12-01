@@ -116,7 +116,8 @@ type ACRAccessToken struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec ACRAccessTokenSpec `json:"spec,omitempty"`
+	Spec   ACRAccessTokenSpec `json:"spec,omitempty"`
+	Status GeneratorStatus    `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

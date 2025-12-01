@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,6 +59,23 @@ func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 // Cleanup performs any necessary cleanup operations after secret generation.
 func (w *Webhook) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
+}
+
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (w *Webhook) GetCleanupPolicy(_ *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return nil, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (w *Webhook) LastActivityTime(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+// GetKeys returns the keys for the generator.
+func (w *Webhook) GetKeys() map[string]string {
+	return map[string]string{
+		"<key>": "Each key represents a secret field returned by the webhook server",
+	}
 }
 
 func parseSpec(data []byte) (*webhook.Spec, error) {

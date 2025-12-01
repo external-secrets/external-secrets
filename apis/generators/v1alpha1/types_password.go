@@ -71,7 +71,8 @@ type Password struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec PasswordSpec `json:"spec,omitempty"`
+	Spec   PasswordSpec    `json:"spec,omitempty"`
+	Status GeneratorStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -4,3 +4,5 @@ metadata: {}
 spec:
   controller: string
   data: {}
+status:
+  output: 

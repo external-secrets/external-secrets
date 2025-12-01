@@ -57,6 +57,7 @@ var tplFuncs = tpl.FuncMap{
 
 	"getSecretKey": getSecretKey,
 	"rsaDecrypt":   rsaDecrypt,
+	"isJSON":       isJSON,
 }
 
 var leftDelim, rightDelim string

@@ -21,8 +21,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
+	"github.com/external-secrets/external-secrets/runtime/metrics"
 	infisicalSdk "github.com/infisical/go-sdk"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"

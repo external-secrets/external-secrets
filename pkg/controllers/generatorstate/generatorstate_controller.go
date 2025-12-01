@@ -63,38 +63,89 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		}
 		return ctrl.Result{}, err
 	}
+	defer func() {
+		err := r.Status().Update(ctx, generatorState)
+		if err != nil {
+			r.Log.Error(err, "could not update generator state status")
+		}
+	}()
+	gen, err := r.getGenerator(generatorState.Spec.Resource.Raw)
+	if err != nil {
+		r.markAsFailed(genv1alpha1.GeneratorStatePendingDeletion, "Could not get generator", err, generatorState)
+		return ctrl.Result{}, fmt.Errorf("could not get generator: %w", err)
+	}
 
-	requeue, err := r.handleFinalizer(ctx, generatorState)
+	requeue, err := r.handleFinalizer(ctx, generatorState, gen)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	if requeue {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Millisecond}, nil
 	}
 
 	if generatorState.Spec.GarbageCollectionDeadline != nil {
-		if generatorState.Spec.GarbageCollectionDeadline.Time.Before(time.Now()) {
+		cleanupPolicy, err := gen.GetCleanupPolicy(generatorState.Spec.Resource)
+		if err != nil {
+			r.markAsFailed(genv1alpha1.GeneratorStatePendingDeletion, "Could not get generator cleanup policy", err, generatorState)
+			return ctrl.Result{}, fmt.Errorf("could not get cleanup policy: %w", err)
+		}
+
+		gcDeadlineReached := generatorState.Spec.GarbageCollectionDeadline.Time.Before(time.Now())
+		if cleanupPolicy != nil && cleanupPolicy.Type == genv1alpha1.IdleCleanupPolicy && gcDeadlineReached {
+			if generatorState.DeletionTimestamp != nil {
+				return ctrl.Result{}, nil
+			}
+			shouldCleanup, err := r.isIdleTimeoutExpired(ctx, *cleanupPolicy, gen, generatorState)
+			if err != nil {
+				r.markAsFailed(genv1alpha1.GeneratorStatePendingDeletion, "Could not check idle timeout", err, generatorState)
+				return ctrl.Result{}, fmt.Errorf("could not check idle timeout: %w", err)
+			}
+			if shouldCleanup {
+				if err := r.Client.Delete(ctx, generatorState, &client.DeleteOptions{}); err != nil {
+					r.markAsFailed(genv1alpha1.GeneratorStateReady, "Could not delete GeneratorState", err, generatorState)
+					return ctrl.Result{}, fmt.Errorf("could not delete GeneratorState: %w", err)
+				}
+				r.markSuccess(genv1alpha1.GeneratorStateTerminating, genv1alpha1.ConditionReasonDeadlineReached, "Reached idle timout", generatorState)
+				return ctrl.Result{}, nil
+			}
+			r.markSuccess(
+				genv1alpha1.GeneratorStateDeletionScheduled,
+				genv1alpha1.ConditionReasonStillActive,
+				fmt.Sprintf("State still active. Next check in %s", cleanupPolicy.IdleTimeout.Duration.String()),
+				generatorState,
+			)
+			return ctrl.Result{RequeueAfter: cleanupPolicy.IdleTimeout.Duration}, nil
+		}
+
+		if gcDeadlineReached {
 			if generatorState.DeletionTimestamp != nil {
 				return ctrl.Result{}, nil
 			}
 
 			if err := r.Client.Delete(ctx, generatorState, &client.DeleteOptions{}); err != nil {
-				r.markAsFailed("could not delete GeneratorState", err, generatorState)
+				r.markAsFailed(genv1alpha1.GeneratorStateReady, "Could not delete GeneratorState", err, generatorState)
 				return ctrl.Result{}, fmt.Errorf("could not delete GeneratorState: %w", err)
 			}
-			r.markSuccess("Reached gc deadline", generatorState)
+			r.markSuccess(genv1alpha1.GeneratorStateTerminating, genv1alpha1.ConditionReasonDeadlineReached, "Reached garbage collection deadline", generatorState)
 			return ctrl.Result{}, nil
 		}
+		r.markSuccess(
+			genv1alpha1.GeneratorStateDeletionScheduled,
+			genv1alpha1.ConditionReasonGarbageCollectionSetted,
+			fmt.Sprintf("Deletion scheduled to: %s", generatorState.Spec.GarbageCollectionDeadline.Time.String()),
+			generatorState,
+		)
 		return ctrl.Result{
 			RequeueAfter: time.Until(generatorState.Spec.GarbageCollectionDeadline.Time),
 		}, nil
 	}
 
-	r.markSuccess("GeneratorState created", generatorState)
+	// Add active status here
+	r.markSuccess(genv1alpha1.GeneratorStateReady, genv1alpha1.ConditionReasonCreated, "GeneratorState created", generatorState)
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) handleFinalizer(ctx context.Context, generatorState *genv1alpha1.GeneratorState) (bool, error) {
+func (r *Reconciler) handleFinalizer(ctx context.Context, generatorState *genv1alpha1.GeneratorState, gen genv1alpha1.Generator) (bool, error) {
 	if generatorState.ObjectMeta.DeletionTimestamp.IsZero() {
 		if added := controllerutil.AddFinalizer(generatorState, generatorStateFinalizer); added {
 			if err := r.Client.Update(ctx, generatorState, &client.UpdateOptions{}); err != nil {
@@ -103,14 +154,8 @@ func (r *Reconciler) handleFinalizer(ctx context.Context, generatorState *genv1a
 			return true, nil
 		}
 	} else if controllerutil.ContainsFinalizer(generatorState, generatorStateFinalizer) {
-		gen, err := r.getGenerator(generatorState.Spec.Resource.Raw)
-		if err != nil {
-			r.markAsFailed("could not get generator", err, generatorState)
-			return false, fmt.Errorf("could not get generator: %w", err)
-		}
-
 		if err := gen.Cleanup(ctx, generatorState.Spec.Resource, generatorState.Spec.State, r.Client, generatorState.Namespace); err != nil {
-			r.markAsFailed("could not cleanup generator state", err, generatorState)
+			r.markAsFailed(genv1alpha1.GeneratorStatePendingDeletion, "Could not cleanup generator state", err, generatorState)
 			return false, fmt.Errorf("could not cleanup generator state: %w", err)
 		}
 
@@ -127,21 +172,43 @@ func (r *Reconciler) getGenerator(resource []byte) (genv1alpha1.Generator, error
 	if err := us.UnmarshalJSON(resource); err != nil {
 		return nil, fmt.Errorf("unable to unmarshal resource: %w", err)
 	}
-	gen, ok := genv1alpha1.GetGeneratorByName(us.GroupVersionKind().Kind)
+	gen, ok := genv1alpha1.GetGeneratorByKind(us.GroupVersionKind().Kind)
 	if !ok {
 		return nil, fmt.Errorf("generator not found")
 	}
 	return gen, nil
 }
 
-func (r *Reconciler) markAsFailed(msg string, err error, gs *genv1alpha1.GeneratorState) {
-	conditionSynced := NewGeneratorStateCondition(genv1alpha1.GeneratorStateReady, v1.ConditionFalse, genv1alpha1.ConditionReasonError, fmt.Sprintf("%s: %v", msg, err))
-	SetGeneratorStateCondition(gs, *conditionSynced)
+func (r *Reconciler) isIdleTimeoutExpired(ctx context.Context, policy genv1alpha1.CleanupPolicy, gen genv1alpha1.Generator, gs *genv1alpha1.GeneratorState) (bool, error) {
+	// Determine last activity timestamp
+	lastActivity, found, err := gen.LastActivityTime(ctx, gs.Spec.Resource, gs.Spec.State, r.Client, gs.Namespace)
+	if err != nil {
+		return false, err
+	}
+
+	if !found {
+		return false, nil
+	}
+
+	// If still within idle timeout, schedule next check
+	if time.Since(lastActivity) < policy.IdleTimeout.Duration {
+		return false, nil
+	}
+
+	// Idle timeout expired; proceed with cleanup
+	return true, nil
 }
 
-func (r *Reconciler) markSuccess(msg string, gs *genv1alpha1.GeneratorState) {
-	newReadyCondition := NewGeneratorStateCondition(genv1alpha1.GeneratorStateReady, v1.ConditionTrue, genv1alpha1.ConditionReasonCreated, msg)
-	SetGeneratorStateCondition(gs, *newReadyCondition)
+func (r *Reconciler) markAsFailed(conditionType genv1alpha1.GeneratorStateConditionType, msg string, err error, gs *genv1alpha1.GeneratorState) {
+	conditionSynced := NewGeneratorStateCondition(conditionType, v1.ConditionFalse, genv1alpha1.ConditionReasonError, fmt.Sprintf("%s: %v", msg, err))
+	SetGeneratorStateCondition(gs, *conditionSynced)
+	SetLastGeneratorStateCondition(gs, *conditionSynced)
+}
+
+func (r *Reconciler) markSuccess(conditionType genv1alpha1.GeneratorStateConditionType, conditionReason, msg string, gs *genv1alpha1.GeneratorState) {
+	conditionSynced := NewGeneratorStateCondition(conditionType, v1.ConditionTrue, conditionReason, msg)
+	SetGeneratorStateCondition(gs, *conditionSynced)
+	SetLastGeneratorStateCondition(gs, *conditionSynced)
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

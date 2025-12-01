@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
@@ -102,6 +103,24 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 // Cleanup performs any necessary cleanup after token generation.
 func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
+}
+
+// GetKeys returns the keys for the generator.
+func (g *Generator) GetKeys() map[string]string {
+	return map[string]string{
+		"username": "Default login username for Azure Container Registry (ACR)",
+		"password": "Generated ACR access token",
+	}
+}
+
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (g *Generator) GetCleanupPolicy(_ *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return nil, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (g *Generator) LastActivityTime(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
 }
 
 func (g *Generator) generate(
@@ -396,7 +415,6 @@ func parseSpec(data []byte) (*genv1alpha1.ACRAccessToken, error) {
 	err := yaml.Unmarshal(data, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

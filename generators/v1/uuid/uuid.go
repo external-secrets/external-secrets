@@ -20,6 +20,7 @@ package uuid
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -46,6 +47,23 @@ func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alp
 	return nil
 }
 
+// GetCleanupPolicy returns the cleanup policy for the generator.
+func (g *Generator) GetCleanupPolicy(_ *apiextensions.JSON) (*genv1alpha1.CleanupPolicy, error) {
+	return nil, nil
+}
+
+// LastActivityTime returns the last activity time for the generator.
+func (g *Generator) LastActivityTime(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) (time.Time, bool, error) {
+	return time.Time{}, false, nil
+}
+
+// GetKeys returns the keys for the generator.
+func (g *Generator) GetKeys() map[string]string {
+	return map[string]string{
+		"uuid": "Generated UUID (Universally Unique Identifier) in string format",
+	}
+}
+
 func (g *Generator) generate(_ *apiextensions.JSON, uuidGen generateFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	uuid, err := uuidGen()
 	if err != nil {
@@ -60,7 +78,6 @@ func generateUUID() (string, error) {
 	uuid := uuid.New()
 	return uuid.String(), nil
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

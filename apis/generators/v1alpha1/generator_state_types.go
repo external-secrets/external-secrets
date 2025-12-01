@@ -65,6 +65,12 @@ type GeneratorStateConditionType string
 const (
 	// GeneratorStateReady indicates the generator state is ready and available.
 	GeneratorStateReady GeneratorStateConditionType = "Ready"
+	// GeneratorStateDeletionScheduled indicates the generator state is scheduled for deletion.
+	GeneratorStateDeletionScheduled GeneratorStateConditionType = "Deletion Scheduled"
+	// GeneratorStatePendingDeletion indicates the generator state is pending deletion.
+	GeneratorStatePendingDeletion GeneratorStateConditionType = "Pending Deletion"
+	// GeneratorStateTerminating indicates the generator state is terminating.
+	GeneratorStateTerminating GeneratorStateConditionType = "Terminating"
 )
 
 // GeneratorStateStatusCondition represents the observed condition of a generator state.
@@ -87,16 +93,26 @@ const (
 	ConditionReasonCreated = "Created"
 	// ConditionReasonError indicates an error occurred with the generator state.
 	ConditionReasonError = "Error"
+	// ConditionReasonStillActive indicates the generator state is still active.
+	ConditionReasonStillActive = "Still Active"
+	// ConditionReasonGarbageCollectionSetted indicates the generator state is scheduled for garbage collection.
+	ConditionReasonGarbageCollectionSetted = "Garbage Collection Setted"
+	// ConditionReasonDeadlineReached indicates the generator state's garbage collection deadline was reached.
+	ConditionReasonDeadlineReached = "Garbage Collection deadline reached"
 )
 
 // GeneratorStateStatus defines the observed state of a generator state resource.
 type GeneratorStateStatus struct {
-	Conditions []GeneratorStateStatusCondition `json:"conditions,omitempty"`
+	LastType    GeneratorStateConditionType     `json:"lastType,omitempty"`
+	LastReason  string                          `json:"lastReason,omitempty"`
+	LastMessage string                          `json:"lastMessage,omitempty"`
+	Conditions  []GeneratorStateStatusCondition `json:"conditions,omitempty"`
 }
 
 // GeneratorState represents the state created and managed by a generator resource.
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
+// +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:printcolumn:name="GC Deadline",type="string",JSONPath=".spec.garbageCollectionDeadline"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"

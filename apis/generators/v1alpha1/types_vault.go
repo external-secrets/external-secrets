@@ -84,7 +84,8 @@ type VaultDynamicSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec VaultDynamicSecretSpec `json:"spec,omitempty"`
+	Spec   VaultDynamicSecretSpec `json:"spec,omitempty"`
+	Status GeneratorStatus        `json:"status,omitempty"`
 }
 
 // VaultDynamicSecretList contains a list of VaultDynamicSecret resources.

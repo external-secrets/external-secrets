@@ -12,3 +12,6 @@ status:
     reason: string
     status: string
     type: string
+  lastMessage: string
+  lastReason: string
+  lastType: string

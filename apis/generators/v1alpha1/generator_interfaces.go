@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"context"
+	"time"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,6 +52,18 @@ type Generator interface {
 		kube client.Client,
 		namespace string,
 	) error
+
+	LastActivityTime(
+		ctx context.Context,
+		obj *apiextensions.JSON,
+		status GeneratorProviderState,
+		kube client.Client,
+		namespace string,
+	) (time.Time, bool, error)
+
+	GetCleanupPolicy(obj *apiextensions.JSON) (*CleanupPolicy, error)
+
+	GetKeys() map[string]string
 }
 
 // GeneratorProviderState represents the state of a generator provider that can be stored and retrieved.
