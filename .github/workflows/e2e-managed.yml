@@ -107,12 +107,12 @@ jobs:
           egress-policy: audit
 
       - name: Fork based /ok-to-test-managed checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 
       - name: Setup Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version-file: go.mod
 
@@ -139,7 +139,7 @@ jobs:
       - uses: hashicorp/setup-terraform@4c5fdabea201636fa7ea13d8babd1ed828687f5d # v3
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@2475ef7675c7f555fe065dad4cbebafc7f953779
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -182,12 +182,12 @@ jobs:
           egress-policy: audit
 
       - name: Fork based /ok-to-test-managed checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 
       - name: Setup Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version-file: go.mod
 
@@ -270,12 +270,12 @@ jobs:
           egress-policy: audit
 
       - name: Fork based /ok-to-test-managed checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 
       - name: Setup Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version-file: go.mod
 
