@@ -660,6 +660,11 @@ spec:
                             type:
                               type: string
                           type: object
+                        templateImmutable:
+                          description: |-
+                            Runs the template even when the final secret will be immutable.
+                            Enabling this with stateless generators may lead into unexpected sync errors.
+                          type: boolean
                       type: object
                   type: object
                 namespaceSelector:
@@ -12406,6 +12411,11 @@ spec:
                         type:
                           type: string
                       type: object
+                    templateImmutable:
+                      description: |-
+                        Runs the template even when the final secret will be immutable.
+                        Enabling this with stateless generators may lead into unexpected sync errors.
+                      type: boolean
                   type: object
               type: object
             status:

@@ -246,6 +246,11 @@ type ExternalSecretTarget struct {
 	// Immutable defines if the final secret will be immutable
 	// +optional
 	Immutable bool `json:"immutable,omitempty"`
+
+	// Runs the template even when the final secret will be immutable.
+	// Enabling this with stateless generators may lead into unexpected sync errors.
+	// +optional
+	TemplateImmutable bool `json:"templateImmutable,omitempty"`
 }
 
 // ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.

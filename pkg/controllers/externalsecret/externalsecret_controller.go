@@ -487,9 +487,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			secret.Immutable = ptr.To(true)
 		}
 
-		// only apply the template if the secret is mutable or if the secret is new (has no UID)
+		// only apply the template if the secret is mutable or immutable template is allowed or
+		// if the secret is new (has no UID)
 		// otherwise we would mutate an object that is immutable and already exists
-		objectDoesNotExistOrCanBeMutated := secret.GetUID() == "" || !externalSecret.Spec.Target.Immutable
+		objectDoesNotExistOrCanBeMutated := secret.GetUID() == "" || !externalSecret.Spec.Target.Immutable || externalSecret.Spec.Target.TemplateImmutable
 
 		if objectDoesNotExistOrCanBeMutated {
 			// get the list of keys that are managed by this ExternalSecret

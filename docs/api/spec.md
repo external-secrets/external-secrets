@@ -4822,6 +4822,19 @@ bool
 <p>Immutable defines if the final secret will be immutable</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>templateImmutable</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Runs the template even when the final secret will be immutable.
+Enabling this with stateless generators may lead into unexpected sync errors.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretTemplate">ExternalSecretTemplate
