@@ -113,22 +113,7 @@ kubectl apply -f external-secret.yml
 ```
 
 ```yaml
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: beyondtrust-external-secret
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    kind: SecretStore
-    name: secretstore-beyondtrust
-  target:
-    name: my-beyondtrust-secret # name of secret to create in k8s secrets (etcd)
-    creationPolicy: Owner
-  data:
-    - secretKey: secretKey
-      remoteRef:
-        key: system01/managed_account01
+{% include 'beyondtrust-external-secret.yaml' %}
 ```
 
 ### Get the K8s secret
@@ -138,7 +123,7 @@ spec:
 kubectl get secret my-beyondtrust-secret -o jsonpath="{.data.secretKey}" | base64 --decode && echo
 ```
 
-### Creating an Secret
+### Creating a Secret
 
 The following example shows how to create a Kubernetes `Secret` that will later be pushed to BeyondTrust.
 
@@ -147,13 +132,7 @@ kubectl apply -f beyondtrust-secret.yml
 ```
 
 ```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: app-credentials
-type: Opaque
-stringData:
-  password: S3cr3tP@ss
+{% include 'beyondtrust-secret.yaml' %}
 ```
 
 ### Creating an ClusterSecretStore
@@ -165,36 +144,7 @@ kubectl apply -f beyondtrust-cluster-secret-store.yml
 ```
 
 ```yaml
-apiVersion: external-secrets.io/v1  
-kind: ClusterSecretStore
-metadata:
-  name: beyondtrust-store
-spec:
-  provider:
-    beyondtrust:
-      auth:
-        certificate:
-          secretRef:
-            name: bt-certificate
-            key: ClientCertificate
-        certificateKey:
-          secretRef:
-            name: bt-certificatekey
-            key: ClientCertificateKey
-        clientSecret:
-          secretRef:
-            name: bt-secret
-            key: ClientSecret
-        clientId:
-          secretRef:
-            name: bt-id
-            key: ClientId
-      server:
-        retrievalType: SECRET
-        verifyCA: true
-        clientTimeOutSeconds: 45
-        apiUrl: https://example.com:443/BeyondTrust/api/public/v3/
-        apiVersion: "3.1"
+{% include 'beyondtrust-cluster-secret-store.yaml' %}
 ```
 
 ### Creating an PushSecret
@@ -206,38 +156,5 @@ kubectl apply -f beyondtrust-push-secret.yml
 ```
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: PushSecret
-metadata:
-  name: pushsecret-beyondtrust
-spec:
-  refreshInterval: 1h
-  secretStoreRefs:
-    - name: beyondtrust-store
-      kind: ClusterSecretStore
-  selector:
-    secret:
-      name: app-credentials # name of the kubernetes secret
-  data:
-    - match:
-        secretKey: "password"
-        remoteRef:
-          remoteKey: "" # not used in Beyondtrust PushSecret
-          property: "" # not used in Beyondtrust PushSecret
-      metadata:
-        secret_type: CREDENTIAL # (FILE/CREDENTIAL/TEXT)
-        title: Secret Title 1001
-        username: fhernandez # only for CREDENTIAL secret_type
-        description: Secret Title Description
-        file_name: credentials.txt # only for FILE secret_type
-        notes: "Example Notes"
-        folder_name: folder1
-        owner_id: 1
-        group_id: 1
-        owner_type: User
-        notes: "This is a sample note for the secret"
-        urls: # List of URLs associated with the secret (optional)
-          - url: https://myapp.example.com/login
-            id: "454"
-            credential_id: "25"
+{% include 'beyondtrust-push-secret.yaml' %}
 ```
