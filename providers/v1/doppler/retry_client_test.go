@@ -29,14 +29,14 @@ const testSecretValue = "value"
 
 // mockClient implements SecretsClientInterface for testing retry logic.
 type mockClient struct {
-	authenticateCalls   int
-	getSecretCalls      int
-	getSecretsCalls     int
-	updateSecretsCalls  int
-	failUntilCall       int
-	returnError         error
-	secretResponse      *client.SecretResponse
-	secretsResponse     *client.SecretsResponse
+	authenticateCalls  int
+	getSecretCalls     int
+	getSecretsCalls    int
+	updateSecretsCalls int
+	failUntilCall      int
+	returnError        error
+	secretResponse     *client.SecretResponse
+	secretsResponse    *client.SecretsResponse
 }
 
 func (m *mockClient) BaseURL() *url.URL {
@@ -51,7 +51,7 @@ func (m *mockClient) Authenticate() error {
 	return nil
 }
 
-func (m *mockClient) GetSecret(request client.SecretRequest) (*client.SecretResponse, error) {
+func (m *mockClient) GetSecret(_ client.SecretRequest) (*client.SecretResponse, error) {
 	m.getSecretCalls++
 	if m.getSecretCalls < m.failUntilCall {
 		return nil, m.returnError
@@ -59,7 +59,7 @@ func (m *mockClient) GetSecret(request client.SecretRequest) (*client.SecretResp
 	return m.secretResponse, nil
 }
 
-func (m *mockClient) GetSecrets(request client.SecretsRequest) (*client.SecretsResponse, error) {
+func (m *mockClient) GetSecrets(_ client.SecretsRequest) (*client.SecretsResponse, error) {
 	m.getSecretsCalls++
 	if m.getSecretsCalls < m.failUntilCall {
 		return nil, m.returnError
@@ -67,7 +67,7 @@ func (m *mockClient) GetSecrets(request client.SecretsRequest) (*client.SecretsR
 	return m.secretsResponse, nil
 }
 
-func (m *mockClient) UpdateSecrets(request client.UpdateSecretsRequest) error {
+func (m *mockClient) UpdateSecrets(_ client.UpdateSecretsRequest) error {
 	m.updateSecretsCalls++
 	if m.updateSecretsCalls < m.failUntilCall {
 		return m.returnError

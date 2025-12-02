@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	dclient "github.com/external-secrets/external-secrets/providers/v1/doppler/client"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (
@@ -95,24 +95,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	// Wrap the Doppler client with retry logic if retrySettings are configured
-	var wrappedClient SecretsClientInterface = doppler
-	if storeSpec.RetrySettings != nil {
-		maxRetries := 3 // default value
-		retryInterval := time.Duration(0)
-
-		if storeSpec.RetrySettings.MaxRetries != nil {
-			maxRetries = int(*storeSpec.RetrySettings.MaxRetries)
-		}
-
-		if storeSpec.RetrySettings.RetryInterval != nil {
-			var err error
-			retryInterval, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
-			if err != nil {
-				return nil, fmt.Errorf(errNewClient, fmt.Errorf("invalid retry interval: %w", err))
-			}
-		}
-
-		wrappedClient = newRetryableClient(doppler, maxRetries, retryInterval)
+	wrappedClient, err := p.setRetrySettings(doppler, storeSpec)
+	if err != nil {
+		return nil, err
 	}
 
 	client.doppler = wrappedClient
@@ -138,6 +123,29 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	return nil, nil
+}
+
+func (p *Provider) setRetrySettings(doppler *dclient.DopplerClient, storeSpec *esv1.SecretStoreSpec) (SecretsClientInterface, error) {
+	if storeSpec.RetrySettings == nil {
+		return doppler, nil
+	}
+
+	maxRetries := 3 // default value
+	retryInterval := time.Duration(0)
+
+	if storeSpec.RetrySettings.MaxRetries != nil {
+		maxRetries = int(*storeSpec.RetrySettings.MaxRetries)
+	}
+
+	if storeSpec.RetrySettings.RetryInterval != nil {
+		var err error
+		retryInterval, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+		if err != nil {
+			return nil, fmt.Errorf(errNewClient, fmt.Errorf("invalid retry interval: %w", err))
+		}
+	}
+
+	return newRetryableClient(doppler, maxRetries, retryInterval), nil
 }
 
 // NewProvider creates a new Provider instance.
