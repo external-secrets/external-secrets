@@ -39,7 +39,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
-	"github.com/external-secrets/external-secrets/runtime/template/v2"
+	template "github.com/external-secrets/external-secrets/runtime/template/v2"
 )
 
 // Webhook implements functionality to interact with webhook endpoints

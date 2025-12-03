@@ -441,6 +441,10 @@ func (f *fakeIAMClient) GenerateAccessToken(ctx context.Context, req *credential
 	return f.generateAccessTokenFunc(ctx, req, opts...)
 }
 
+func (f *fakeIAMClient) SignJwt(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error) {
+	return &credentialspb.SignJwtResponse{}, nil
+}
+
 func (f *fakeIAMClient) Close() error {
 	return nil
 }
