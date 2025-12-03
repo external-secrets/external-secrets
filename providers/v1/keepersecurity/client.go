@@ -81,9 +81,10 @@ type SecurityClient interface {
 	Save(record *ksm.Record) error
 }
 
-// Field represents a KeeperSecurity field with its type and value.
+// Field represents a KeeperSecurity field with its type, label (optional), and value.
 type Field struct {
 	Type  string `json:"type"`
+	Label string `json:"label,omitempty"`
 	Value []any  `json:"value"`
 }
 
@@ -384,7 +385,11 @@ func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
 func (s *Secret) validate() error {
 	fields := make(map[string]int)
 	for _, field := range s.Fields {
-		fields[field.Type]++
+		fieldKey := field.Label
+		if fieldKey == "" {
+			fieldKey = field.Type
+		}
+		fields[fieldKey]++
 	}
 
 	for _, customField := range s.Custom {
@@ -471,7 +476,11 @@ func getFieldValue(value []any) []byte {
 
 func (s *Secret) getField(key string) ([]byte, error) {
 	for _, field := range s.Fields {
-		if field.Type == key && field.Type != keeperSecurityFileRef && field.Type != keeperSecurityMfa && len(field.Value) > 0 {
+		fieldKey := field.Label
+		if fieldKey == "" {
+			fieldKey = field.Type
+		}
+		if fieldKey == key && field.Type != keeperSecurityFileRef && field.Type != keeperSecurityMfa && len(field.Value) > 0 {
 			return getFieldValue(field.Value), nil
 		}
 	}
@@ -483,7 +492,11 @@ func (s *Secret) getFields() map[string][]byte {
 	secretData := make(map[string][]byte)
 	for _, field := range s.Fields {
 		if len(field.Value) > 0 {
-			secretData[field.Type] = getFieldValue(field.Value)
+			fieldKey := field.Label
+			if fieldKey == "" {
+				fieldKey = field.Type
+			}
+			secretData[fieldKey] = getFieldValue(field.Value)
 		}
 	}
 
