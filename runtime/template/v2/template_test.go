@@ -1232,6 +1232,54 @@ webhook_url: {{ .webhook }}
 				assert.False(t, hasDuplicateSlack, "should not have spec.slack.slack (the bug)")
 			},
 		},
+		{
+			name:   "nested path merge behavior - preserves existing fields",
+			target: "spec.slack",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"slack-config": []byte(`
+api_url: {{ .url }}
+`),
+			},
+			data: map[string][]byte{
+				"url": []byte("https://hooks.slack.com/services/NEW"),
+			},
+			verify: func(t *testing.T, obj map[string]interface{}) {
+				specMap := obj["spec"].(map[string]interface{})
+				slackMap := specMap["slack"].(map[string]interface{})
+
+				// Should have the new field from template
+				assert.Equal(t, "https://hooks.slack.com/services/NEW", slackMap["api_url"], "api_url should be set from template")
+
+				// Should PRESERVE existing fields that were not in the template
+				assert.Equal(t, "general", slackMap["channel"], "existing channel field should be preserved")
+				assert.Equal(t, "test-value", slackMap["other_field"], "existing other_field should be preserved")
+			},
+		},
+		{
+			name:   "nested path overwrite field - updates existing value",
+			target: "spec.slack",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"slack-config": []byte(`
+channel: {{ .new_channel }}
+`),
+			},
+			data: map[string][]byte{
+				"new_channel": []byte("alerts"),
+			},
+			verify: func(t *testing.T, obj map[string]interface{}) {
+				specMap := obj["spec"].(map[string]interface{})
+				slackMap := specMap["slack"].(map[string]interface{})
+
+				// Should update the existing field
+				assert.Equal(t, "alerts", slackMap["channel"], "channel should be updated")
+
+				// Should still preserve other existing fields
+				assert.Equal(t, "https://hooks.slack.com/existing", slackMap["api_url"], "existing api_url should be preserved")
+				assert.Equal(t, "test-value", slackMap["other_field"], "existing other_field should be preserved")
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -1246,6 +1294,27 @@ webhook_url: {{ .webhook }}
 						"namespace": "default",
 					},
 				},
+			}
+
+			// For merge behavior tests, pre-populate the object with existing content
+			if strings.Contains(tt.name, "merge behavior") {
+				obj.Object["spec"] = map[string]interface{}{
+					"slack": map[string]interface{}{
+						"channel":     "general",
+						"other_field": "test-value",
+					},
+				}
+			}
+
+			// For overwrite field test, pre-populate with different initial values
+			if strings.Contains(tt.name, "overwrite field") {
+				obj.Object["spec"] = map[string]interface{}{
+					"slack": map[string]interface{}{
+						"channel":     "general",
+						"api_url":     "https://hooks.slack.com/existing",
+						"other_field": "test-value",
+					},
+				}
 			}
 
 			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
