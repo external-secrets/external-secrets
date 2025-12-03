@@ -112,11 +112,18 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// GetSecretMap retrieves the secret referenced by ref from the Secret Server API
+// and returns it as a map of byte slices.
 func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
+	// Ensure secret has fields before indexing into them
+	if secret.Fields == nil || len(secret.Fields) == 0 {
+		return nil, errors.New("secret contains no fields")
+	}
+
 	secretData := make(map[string]any)
 
 	err = json.Unmarshal([]byte(secret.Fields[0].ItemValue), &secretData)
