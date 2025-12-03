@@ -347,7 +347,32 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 		}
 
 		// once we constructed the entire segment, we finally apply our parsed object
-		current[parts[len(parts)-1]] = parsed
+		// MERGE the parsed content into existing content instead of replacing it
+		lastPart := parts[len(parts)-1]
+		if existing, exists := current[lastPart]; exists {
+			// if both existing and new values are maps, merge them
+			existingMap, existingOk := existing.(map[string]any)
+			parsedMap, parsedOk := parsed.(map[string]any)
+
+			if existingOk && parsedOk {
+				for k, v := range parsedMap {
+					existingMap[k] = v
+				}
+
+				current[lastPart] = existingMap
+			} else {
+				// existing or parsed value is not a map, replace entirely.
+				// this might break if people are trying to overwrite
+				// fields that aren't supposed to do that. but that's
+				// on the user to keep in mind. If they are trying to
+				// update a number field with a complex value, that's
+				// going to error on update anyway.
+				current[lastPart] = parsed
+			}
+		} else {
+			// field doesn't exist yet, create it
+			current[lastPart] = parsed
+		}
 	}
 
 	// convert back to original object

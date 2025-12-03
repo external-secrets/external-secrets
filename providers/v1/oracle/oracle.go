@@ -190,8 +190,17 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 }
 
 // SecretExists checks if a secret exists in the Oracle Cloud Infrastructure Vault.
-func (vms *VaultManagementService) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (vms *VaultManagementService) SecretExists(ctx context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
+	secretName := pushSecretRef.GetRemoteKey()
+	_, action, err := vms.getSecretBundleWithCode(ctx, secretName)
+	switch action {
+	case SecretNotFound:
+		return false, nil
+	case SecretExists:
+		return true, nil
+	default:
+		return false, sanitizeOCISDKErr(err)
+	}
 }
 
 // GetAllSecrets retrieves all secrets from the Oracle Cloud Infrastructure Vault that match the given criteria.
