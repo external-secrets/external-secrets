@@ -1423,6 +1423,11 @@ func (in *PasswordSpec) DeepCopyInto(out *PasswordSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.SecretKeys != nil {
+		in, out := &in.SecretKeys, &out.SecretKeys
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Encoding != nil {
 		in, out := &in.Encoding, &out.Encoding
 		*out = new(string)

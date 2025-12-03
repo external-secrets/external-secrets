@@ -26772,6 +26772,19 @@ bool
 </tr>
 <tr>
 <td>
+<code>secretKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretKeys defines the keys that will be populated with generated passwords.
+Defaults to &ldquo;password&rdquo; when not set.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>encoding</code></br>
 <em>
 string
@@ -26878,6 +26891,19 @@ bool
 </td>
 <td>
 <p>set AllowRepeat to true to allow repeating characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretKeys defines the keys that will be populated with generated passwords.
+Defaults to &ldquo;password&rdquo; when not set.</p>
 </td>
 </tr>
 <tr>

@@ -160,6 +160,62 @@ func TestGenerate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "secretKeys overrides default output key",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"secretKeys":["custom"]}}`),
+				},
+				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "custom-pwd", nil
+				},
+			},
+			want: map[string][]byte{
+				"custom": []byte(`custom-pwd`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "multiple secretKeys generate multiple passwords",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"secretKeys":["first","second"]}}`),
+				},
+				passGen: func() func(int, int, string, int, bool, bool) (string, error) {
+					passwords := []string{"first-pass", "second-pass"}
+					idx := 0
+					return func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool) (string, error) {
+						p := passwords[idx]
+						idx++
+						return p, nil
+					}
+				}(),
+			},
+			want: map[string][]byte{
+				"first":  []byte(`first-pass`),
+				"second": []byte(`second-pass`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty secretKeys entry should error",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"secretKeys":[""]}}`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "duplicate secretKeys entry should error",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"secretKeys":["dup","dup"]}}`),
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
