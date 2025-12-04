@@ -47,6 +47,13 @@ type PasswordSpec struct {
 	// +kubebuilder:default=false
 	AllowRepeat bool `json:"allowRepeat"`
 
+	// SecretKeys defines the keys that will be populated with generated passwords.
+	// Defaults to "password" when not set.
+	// +optional
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:Items:MinLength=1
+	SecretKeys []string `json:"secretKeys,omitempty"`
+
 	// Encoding specifies the encoding of the generated password.
 	// Valid values are:
 	// - "raw" (default): no encoding
