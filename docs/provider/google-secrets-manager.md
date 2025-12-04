@@ -280,7 +280,7 @@ metadata:
 spec:
   updatePolicy: Replace
   deletionPolicy: None
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRefs:
     - name: gcp-secretstore
       kind: SecretStore

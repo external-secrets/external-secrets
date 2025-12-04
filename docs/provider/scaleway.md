@@ -38,7 +38,7 @@ kind: ExternalSecret
 metadata:
     name: secret
 spec:
-    refreshInterval: 1h
+    refreshInterval: 1h0m0s
     secretStoreRef:
         kind: SecretStore
         name: secret-store
@@ -70,7 +70,7 @@ kind: ExternalSecret
 metadata:
   name: extract-data
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     kind: SecretStore
     name: secret-store
