@@ -748,7 +748,7 @@ func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClie
 		}
 	}
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("%s/versions/%s", name, latestVersion.Name),
+		Name: latestVersion.Name,
 	}
 	return client.AccessSecretVersion(ctx, req)
 }
