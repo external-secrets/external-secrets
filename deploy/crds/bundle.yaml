@@ -439,7 +439,7 @@ spec:
                         specified as Golang Duration strings.
                         Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
                         Example values: "1h0m0s", "2h30m0s", "10m0s"
-                        May be set to zero to fetch and create it once. Defaults to 1h0m0s.
+                        May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                       type: string
                     refreshPolicy:
                       description: |-
@@ -1199,7 +1199,7 @@ spec:
                         specified as Golang Duration strings.
                         Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
                         Example values: "1h0m0s", "2h30m0s", "10m0s"
-                        May be set to zero to fetch and create it once. Defaults to 1h0m0s.
+                        May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                       type: string
                     refreshPolicy:
                       description: |-
@@ -12185,7 +12185,7 @@ spec:
                     specified as Golang Duration strings.
                     Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
                     Example values: "1h0m0s", "2h30m0s", "10m0s"
-                    May be set to zero to fetch and create it once. Defaults to 1h0m0s.
+                    May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                   type: string
                 refreshPolicy:
                   description: |-
@@ -12830,7 +12830,7 @@ spec:
                     specified as Golang Duration strings.
                     Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
                     Example values: "1h0m0s", "2h30m0s", "10m0s"
-                    May be set to zero to fetch and create it once. Defaults to 1h0m0s.
+                    May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                   type: string
                 refreshPolicy:
                   description: |-
