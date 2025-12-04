@@ -250,7 +250,7 @@ kind: ExternalSecret
 metadata:
   name: versioned-api-key
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     name: aws-secretsmanager
     kind: SecretStore
@@ -276,7 +276,7 @@ kind: ExternalSecret
 metadata:
   name: versioned-api-key
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     name: aws-secretsmanager
     kind: SecretStore

@@ -3556,8 +3556,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -4535,8 +4535,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -16709,8 +16709,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -17515,8 +17515,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
