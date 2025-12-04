@@ -70,7 +70,7 @@ func (m *MockKeyManagerClient) Reset() {
 }
 
 // GetPayload mocks the secrets.GetPayload function.
-func (m *MockKeyManagerClient) GetPayload(ctx context.Context, client *gophercloud.ServiceClient, uuid string, opts secrets.GetPayloadOptsBuilder) ([]byte, error) {
+func (m *MockKeyManagerClient) GetPayload(_ context.Context, _ *gophercloud.ServiceClient, uuid string, _ secrets.GetPayloadOptsBuilder) ([]byte, error) {
 	if m.shouldError {
 		return nil, fmt.Errorf("%s", m.errorMessage)
 	}
@@ -84,7 +84,7 @@ func (m *MockKeyManagerClient) GetPayload(ctx context.Context, client *gopherclo
 }
 
 // ListSecrets mocks the secrets.List function.
-func (m *MockKeyManagerClient) ListSecrets(ctx context.Context, client *gophercloud.ServiceClient, opts secrets.ListOptsBuilder) ([]secrets.Secret, error) {
+func (m *MockKeyManagerClient) ListSecrets(_ context.Context, _ *gophercloud.ServiceClient, opts secrets.ListOptsBuilder) ([]secrets.Secret, error) {
 	if m.shouldError {
 		return nil, fmt.Errorf("%s", m.errorMessage)
 	}
@@ -133,11 +133,11 @@ type MockPager struct {
 	page MockPagination
 }
 
-func (p MockPager) AllPages(ctx context.Context) (pagination.Page, error) {
+func (p MockPager) AllPages(_ context.Context) (pagination.Page, error) {
 	return p.page, nil
 }
 
-func (p MockPager) EachPage(ctx context.Context, fn func(pagination.Page) (bool, error)) error {
+func (p MockPager) EachPage(_ context.Context, fn func(pagination.Page) (bool, error)) error {
 	cont, err := fn(p.page)
 	if err != nil {
 		return err
