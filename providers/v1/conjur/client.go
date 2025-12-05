@@ -82,8 +82,7 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		SSLCert:      string(cert),
 		// disable credential storage, as it depends on a writable
 		// file system, which we can't rely on - it would fail.
-		// see: https://github.com/cyberark/conjur-api-go/issues/183
-		NetRCPath: "/dev/null",
+		CredentialStorage: conjurapi.CredentialStorageNone,
 	}
 
 	if prov.Auth.APIKey != nil {
