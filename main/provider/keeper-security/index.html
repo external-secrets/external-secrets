@@ -5166,7 +5166,7 @@
 <li>How a Record is equated to an ExternalSecret:<ul>
 <li><code>remoteRef.key</code> is equated to a Record's ID</li>
 <li><code>remoteRef.property</code> is equated to one of the following options:<ul>
-<li>Fields: <a href="https://docs.keeper.io/secrets-manager/secrets-manager/about/field-record-types">Record's field's Type</a></li>
+<li>Fields: Record's field's Label (if present), otherwise <a href="https://docs.keeper.io/secrets-manager/secrets-manager/about/field-record-types">Record's field's Type</a></li>
 <li>CustomFields: Record's field's Label</li>
 <li>Files: Record's file's Name</li>
 <li>If empty, defaults to the complete Record in JSON format</li>
@@ -5178,7 +5178,7 @@
 <li><code>dataFrom</code>:<ul>
 <li><code>find.path</code> is currently not supported.</li>
 <li><code>find.name.regexp</code> is equated to one of the following options:<ul>
-<li>Fields: Record's field's Type</li>
+<li>Fields: Record's field's Label (if present), otherwise Record's field's Type</li>
 <li>CustomFields: Record's field's Label</li>
 <li>Files: Record's file's Name</li>
 </ul>
