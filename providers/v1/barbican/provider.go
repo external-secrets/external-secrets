@@ -128,7 +128,7 @@ func NewProvider() esv1.Provider {
 // ProviderSpec returns a sample Barbican provider spec.
 func ProviderSpec() *esv1.SecretStoreProvider {
 	return &esv1.SecretStoreProvider{
-		SecretServer: &esv1.SecretServerProvider{},
+		Barbican: &esv1.BarbicanProvider{},
 	}
 }
 
