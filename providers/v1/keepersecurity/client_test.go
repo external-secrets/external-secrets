@@ -39,13 +39,17 @@ const (
 	outputRecord0       = "{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
 	outputRecord1       = "{\"title\":\"record1\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host1\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
 	outputRecord2       = "{\"title\":\"record2\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host2\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
-	record0             = "record0"
-	record1             = "record1"
-	record2             = "record2"
-	LoginKey            = "login"
-	PasswordKey         = "password"
-	HostKeyFormat       = "host%d"
-	RecordNameFormat    = "record%d"
+	outputRecordWithLabels = "{\"title\":\"recordWithLabels\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"label\":\"username\",\"value\":[\"foo\"]},{\"type\":\"password\",\"label\":\"pass\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
+	record0                 = "record0"
+	record1                 = "record1"
+	record2                 = "record2"
+	recordWithLabels        = "recordWithLabels"
+	LoginKey                = "login"
+	PasswordKey             = "password"
+	HostKeyFormat           = "host%d"
+	RecordNameFormat        = "record%d"
+	UsernameLabel = "username"
+	PassLabel     = "pass"
 )
 
 func TestClientDeleteSecret(t *testing.T) {
@@ -236,6 +240,29 @@ func TestClientGetAllSecrets(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Get secrets with labels using matching regex",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(strings []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecordWithLabels()}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretFind{
+					Name: &esv1.FindName{
+						RegExp: recordWithLabels,
+					},
+				},
+			},
+			want: map[string][]byte{
+				recordWithLabels: []byte(outputRecordWithLabels),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -272,7 +299,7 @@ func TestClientGetSecret(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Get Secret with a property",
+			name: "Get Secret with a property (no label)",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
@@ -292,7 +319,7 @@ func TestClientGetSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Get Secret without property",
+			name: "Get Secret without property (no label)",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
@@ -308,6 +335,64 @@ func TestClientGetSecret(t *testing.T) {
 				},
 			},
 			want:    []byte(outputRecord0),
+			wantErr: false,
+		},
+		{
+			name: "Get Secret with a property using label",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecordWithLabels()}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key:      recordWithLabels,
+					Property: UsernameLabel,
+				},
+			},
+			want:    []byte("foo"),
+			wantErr: false,
+		},
+		{
+			name: "Get Secret with a property using type when label exists",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecordWithLabels()}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key:      recordWithLabels,
+					Property: LoginKey, // Try to access by type when label exists
+				},
+			},
+			wantErr: true, // Should fail because label takes precedence
+		},
+		{
+			name: "Get Secret without property (with labels)",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecordWithLabels()}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: recordWithLabels,
+				},
+			},
+			want:    []byte(outputRecordWithLabels),
 			wantErr: false,
 		},
 		{
@@ -402,7 +487,7 @@ func TestClientGetSecretMap(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Get Secret with valid property",
+			name: "Get Secret with valid property (no label)",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
@@ -424,7 +509,7 @@ func TestClientGetSecretMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Get Secret without property",
+			name: "Get Secret without property (no label)",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
@@ -442,6 +527,51 @@ func TestClientGetSecretMap(t *testing.T) {
 			want: map[string][]byte{
 				LoginKey:                      []byte("foo"),
 				PasswordKey:                   []byte("bar"),
+				fmt.Sprintf(HostKeyFormat, 0): []byte("{\"hostName\":\"mysql\",\"port\":\"3306\"}"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Get Secret with valid property using label",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecordWithLabels()}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key:      recordWithLabels,
+					Property: UsernameLabel,
+				},
+			},
+			want: map[string][]byte{
+				UsernameLabel: []byte("foo"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Get Secret without property (with labels)",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecordWithLabels()}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: recordWithLabels,
+				},
+			},
+			want: map[string][]byte{
+				UsernameLabel:                 []byte("foo"),
+				PassLabel:                     []byte("bar"),
 				fmt.Sprintf(HostKeyFormat, 0): []byte("{\"hostName\":\"mysql\",\"port\":\"3306\"}"),
 			},
 			wantErr: false,
@@ -688,4 +818,21 @@ func generateRecords() []*ksm.Record {
 	}
 
 	return records
+}
+
+func generateRecordWithLabels() *ksm.Record {
+	record := ksm.Record{
+		Uid: recordWithLabels,
+		RecordDict: map[string]any{
+			"type":      externalSecretType,
+			"folderUID": folderID,
+		},
+	}
+	// Fields with labels - using label as key
+	sec := fmt.Sprintf("{\"title\":%q,\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"label\":%q,\"value\":[\"foo\"]},{\"type\":\"password\",\"label\":%q,\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}]}", recordWithLabels, UsernameLabel, PassLabel)
+	record.SetTitle(recordWithLabels)
+	record.SetStandardFieldValue(LoginKey, "foo")
+	record.SetStandardFieldValue(PasswordKey, "bar")
+	record.RawJson = sec
+	return &record
 }

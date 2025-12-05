@@ -4,7 +4,7 @@ kind: ExternalSecret
 metadata:
   name: custom-resource-config
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     name: vault-backend
     kind: SecretStore
