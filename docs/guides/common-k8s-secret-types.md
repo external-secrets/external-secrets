@@ -44,7 +44,7 @@ kind: ExternalSecret
 metadata:
   name: dk-cfg-example
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     name: example
     kind: SecretStore
