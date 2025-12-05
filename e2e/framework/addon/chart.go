@@ -62,7 +62,7 @@ func (c *HelmChart) Setup(cfg *Config) error {
 // Install adds the chart repo and installs the helm chart.
 func (c *HelmChart) Install() error {
 	args := []string{
-		"dependency", "update", "charts",
+		"dependency", "update", c.Chart,
 	}
 	cmd := exec.Command("helm", args...)
 	output, err := cmd.CombinedOutput()
