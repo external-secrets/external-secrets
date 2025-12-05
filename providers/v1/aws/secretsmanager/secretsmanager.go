@@ -317,13 +317,84 @@ func isManagedByESO(data *awssm.DescribeSecretOutput) bool {
 
 // GetAllSecrets syncs multiple secrets from aws provider into a single Kubernetes Secret.
 func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Name != nil {
+	hasName := ref.Name != nil
+	hasTags := len(ref.Tags) > 0
+
+	switch {
+	case !hasName && !hasTags:
+		return nil, errors.New(errUnexpectedFindOperator)
+	case hasName && !hasTags:
 		return sm.findByName(ctx, ref)
-	}
-	if len(ref.Tags) > 0 {
+	case !hasName && hasTags:
 		return sm.findByTags(ctx, ref)
+	case hasName && hasTags:
+		return sm.findByNameAndTags(ctx, ref)
 	}
+
 	return nil, errors.New(errUnexpectedFindOperator)
+}
+
+func (sm *SecretsManager) findByNameAndTags(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	filters := make([]types.Filter, 0)
+	for k, v := range ref.Tags {
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeTagKey,
+			Values: []string{
+				k,
+			},
+		}, types.Filter{
+			Key: types.FilterNameStringTypeTagValue,
+			Values: []string{
+				v,
+			},
+		})
+	}
+	if ref.Path != nil {
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeName,
+			Values: []string{
+				*ref.Path,
+			},
+		})
+
+		return sm.fetchWithBatch(ctx, filters, matcher)
+	}
+
+	data := make(map[string][]byte)
+	var nextToken *string
+
+	for {
+		// I put this into the for loop on purpose.
+		log.V(0).Info("using ListSecret to fetch all secrets; this is a costly operations, please use batching by defining a _path_")
+		it, err := sm.client.ListSecrets(ctx, &awssm.ListSecretsInput{
+			Filters:   filters,
+			NextToken: nextToken,
+		})
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMListSecrets, err)
+		if err != nil {
+			return nil, err
+		}
+		log.V(1).Info("aws sm findByName found", "secrets", len(it.SecretList))
+		for _, secret := range it.SecretList {
+			if !matcher.MatchName(*secret.Name) {
+				continue
+			}
+			log.V(1).Info("aws sm findByName matches", "name", *secret.Name)
+			if err := sm.fetchAndSet(ctx, data, *secret.Name); err != nil {
+				return nil, err
+			}
+		}
+		nextToken = it.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+	return data, nil
 }
 
 func (sm *SecretsManager) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
