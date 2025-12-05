@@ -157,7 +157,7 @@ cloud.google.com/go/compute v1.23.1/go.mod h1:CqB3xpmPKKt3OJpW2ndFIXnA9A4xAy/F3X
 cloud.google.com/go/compute v1.23.3/go.mod h1:VCgBUoMnIVIR0CscqQiPJLAG25E3ZRZMzcFZeQ+h8CI=
 cloud.google.com/go/compute v1.23.4/go.mod h1:/EJMj55asU6kAFnuZET8zqgwgJ9FvXWXOkkfQZa4ioI=
 cloud.google.com/go/compute v1.24.0/go.mod h1:kw1/T+h/+tK2LJK0wiPPx1intgdAM3j/g3hFDlscY40=
-cloud.google.com/go/compute v1.25.5/go.mod h1:oopOIR53ly6viBYxaDhBfJwzUAxf1zE//uf3IB011ls=
+cloud.google.com/go/compute v1.25.1/go.mod h1:oopOIR53ly6viBYxaDhBfJwzUAxf1zE//uf3IB011ls=
 cloud.google.com/go/compute v1.49.0/go.mod h1:1uoZvP8Avyfhe3Y4he7sMOR16ZiAm2Q+Rc2P5rrJM28=
 cloud.google.com/go/compute/metadata v0.1.0/go.mod h1:Z1VN+bulIf6bt4P/C37K4DyZYZEXYonfTBHHFPO/4UU=
 cloud.google.com/go/compute/metadata v0.2.0/go.mod h1:zFmK7XCadkQkj6TtorcaGlCW1hT1fIilQDwofLpJ20k=
@@ -307,7 +307,7 @@ cloud.google.com/go/recommender v1.13.6/go.mod h1:y5/5womtdOaIM3xx+76vbsiA+8EBTI
 cloud.google.com/go/redis v1.18.3/go.mod h1:x8HtXZbvMBDNT6hMHaQ022Pos5d7SP7YsUH8fCJ2Wm4=
 cloud.google.com/go/resourcemanager v1.10.7/go.mod h1:rScGkr6j2eFwxAjctvOP/8sqnEpDbQ9r5CKwKfomqjs=
 cloud.google.com/go/resourcesettings v1.8.3/go.mod h1:BzgfXFHIWOOmHe6ZV9+r3OWfpHJgnqXy8jqwx4zTMLw=
-cloud.google.com/go/retail v1.25.5/go.mod h1:J75G8pd+DH0SHueL9IJw7Y5d2VhTsjFsk+F1t9f8jXc=
+cloud.google.com/go/retail v1.25.1/go.mod h1:J75G8pd+DH0SHueL9IJw7Y5d2VhTsjFsk+F1t9f8jXc=
 cloud.google.com/go/run v1.12.1/go.mod h1:DdMsf2m0/n3WHNDcyoqZmfE+LMd/uEJ7j1yIooDrgXU=
 cloud.google.com/go/scheduler v1.11.8/go.mod h1:bNKU7/f04eoM6iKQpwVLvFNBgGyJNS87RiFN73mIPik=
 cloud.google.com/go/secretmanager v1.15.1/go.mod h1://C/e4I8D26SDTz1f3TQcddhcmiC3rMEl0S1Cakvs3Q=
@@ -2399,7 +2399,7 @@ google.golang.org/grpc v1.21.1/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ij
 google.golang.org/grpc v1.22.1/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.23.1/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
-google.golang.org/grpc v1.25.5/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=
+google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=
 google.golang.org/grpc v1.26.0/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8abTk=
 google.golang.org/grpc v1.27.0/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8abTk=
 google.golang.org/grpc v1.27.1/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8abTk=
