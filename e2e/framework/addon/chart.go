@@ -89,14 +89,11 @@ func (c *HelmChart) Install() error {
 
 	args = append(args, c.Args...)
 
-	var sout, serr bytes.Buffer
 	log.Logf("installing chart with args: %+q", args)
 	cmd := exec.Command("helm", args...)
-	cmd.Stdout = &sout
-	cmd.Stderr = &serr
-	err = cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("unable to run cmd: %w: %s %s", err, sout.String(), serr.String())
+		return fmt.Errorf("unable to run cmd: %w: %s", err, string(output))
 	}
 	return nil
 }

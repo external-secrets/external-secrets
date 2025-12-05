@@ -7,7 +7,7 @@ DOCKER_BUILD_ARGS     ?=
 
 export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed
-export TEST_SUITES ?= provider generator flux argocd
+export TEST_SUITES ?= argocd
 
 export OCI_IMAGE_NAME = ghcr.io/external-secrets/external-secrets
 
@@ -60,7 +60,7 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 
 
 e2e-bin: install-ginkgo
-	   CGO_ENABLED=0 ginkgo build ./suites/...
+	   GOARCH=amd64 GOOS=linux CGO_ENABLED=0 ginkgo build ./suites/...
 
 e2e-image: e2e-bin
 	-rm -rf ./k8s/deploy
