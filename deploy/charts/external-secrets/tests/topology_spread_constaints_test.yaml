@@ -1,0 +1,78 @@
+---
+suite: test global topologySpreadConstraints
+templates:
+  - cert-controller-deployment.yaml
+  - deployment.yaml
+  - webhook-deployment.yaml
+tests:
+  - it: should set topologySpreadConstraints to set value if given
+    set:
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          matchLabelKeys:
+            - pod-template-hash
+    asserts:
+      - isSubset:
+          path: spec.template.spec.topologySpreadConstraints[0]
+          content:
+            maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+---
+suite: test global topologySpreadConstraints on deployment.yaml
+templates:
+  - deployment.yaml
+tests:
+  - it: should set topologySpreadConstraints to set value if given
+    set:
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          matchLabelKeys:
+            - pod-template-hash
+    asserts:
+      - isSubset:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          content:
+            app.kubernetes.io/name: external-secrets
+            app.kubernetes.io/instance: RELEASE-NAME
+---
+suite: test global topologySpreadConstraints on cert-controller-deployment.yaml
+templates:
+  - cert-controller-deployment.yaml
+tests:
+  - it: should set topologySpreadConstraints to set value if given
+    set:
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          matchLabelKeys:
+            - pod-template-hash
+    asserts:
+      - isSubset:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          content:
+            app.kubernetes.io/name: external-secrets-cert-controller
+            app.kubernetes.io/instance: RELEASE-NAME
+---
+suite: test global topologySpreadConstraints on webhook-deployment.yaml
+templates:
+  - webhook-deployment.yaml
+tests:
+  - it: should set topologySpreadConstraints to set value if given
+    set:
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          matchLabelKeys:
+            - pod-template-hash
+    asserts:
+      - isSubset:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          content:
+            app.kubernetes.io/name: external-secrets-webhook
+            app.kubernetes.io/instance: RELEASE-NAME

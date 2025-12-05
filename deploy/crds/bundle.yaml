@@ -433,13 +433,13 @@ spec:
                         type: object
                       type: array
                     refreshInterval:
-                      default: 1h
+                      default: 1h0m0s
                       description: |-
                         RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
                         specified as Golang Duration strings.
                         Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-                        Example values: "1h", "2h30m", "10s"
-                        May be set to zero to fetch and create it once. Defaults to 1h.
+                        Example values: "1h0m0s", "2h30m0s", "10m0s"
+                        May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                       type: string
                     refreshPolicy:
                       description: |-
@@ -1193,13 +1193,13 @@ spec:
                         type: object
                       type: array
                     refreshInterval:
-                      default: 1h
+                      default: 1h0m0s
                       description: |-
                         RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
                         specified as Golang Duration strings.
                         Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-                        Example values: "1h", "2h30m", "10s"
-                        May be set to zero to fetch and create it once. Defaults to 1h.
+                        Example values: "1h0m0s", "2h30m0s", "10m0s"
+                        May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                       type: string
                     refreshPolicy:
                       description: |-
@@ -1730,7 +1730,7 @@ spec:
                         - None
                       type: string
                     refreshInterval:
-                      default: 1h
+                      default: 1h0m0s
                       description: The Interval to which External Secrets will try to push a secret definition
                       type: string
                     secretStoreRefs:
@@ -12179,13 +12179,13 @@ spec:
                     type: object
                   type: array
                 refreshInterval:
-                  default: 1h
+                  default: 1h0m0s
                   description: |-
                     RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
                     specified as Golang Duration strings.
                     Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-                    Example values: "1h", "2h30m", "10s"
-                    May be set to zero to fetch and create it once. Defaults to 1h.
+                    Example values: "1h0m0s", "2h30m0s", "10m0s"
+                    May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                   type: string
                 refreshPolicy:
                   description: |-
@@ -12824,13 +12824,13 @@ spec:
                     type: object
                   type: array
                 refreshInterval:
-                  default: 1h
+                  default: 1h0m0s
                   description: |-
                     RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
                     specified as Golang Duration strings.
                     Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-                    Example values: "1h", "2h30m", "10s"
-                    May be set to zero to fetch and create it once. Defaults to 1h.
+                    Example values: "1h0m0s", "2h30m0s", "10m0s"
+                    May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                   type: string
                 refreshPolicy:
                   description: |-
@@ -13186,7 +13186,7 @@ spec:
                     - None
                   type: string
                 refreshInterval:
-                  default: 1h
+                  default: 1h0m0s
                   description: The Interval to which External Secrets will try to push a secret definition
                   type: string
                 secretStoreRefs:
@@ -24386,6 +24386,14 @@ spec:
                           default: false
                           description: Set NoUpper to disable uppercase characters
                           type: boolean
+                        secretKeys:
+                          description: |-
+                            SecretKeys defines the keys that will be populated with generated passwords.
+                            Defaults to "password" when not set.
+                          items:
+                            type: string
+                          minItems: 1
+                          type: array
                         symbolCharacters:
                           description: |-
                             SymbolCharacters specifies the special characters that should be used
@@ -26819,6 +26827,14 @@ spec:
                   default: false
                   description: Set NoUpper to disable uppercase characters
                   type: boolean
+                secretKeys:
+                  description: |-
+                    SecretKeys defines the keys that will be populated with generated passwords.
+                    Defaults to "password" when not set.
+                  items:
+                    type: string
+                  minItems: 1
+                  type: array
                 symbolCharacters:
                   description: |-
                     SymbolCharacters specifies the special characters that should be used
