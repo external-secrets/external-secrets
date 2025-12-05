@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -63,7 +62,7 @@ func (c *HelmChart) Setup(cfg *Config) error {
 // Install adds the chart repo and installs the helm chart.
 func (c *HelmChart) Install() error {
 	args := []string{
-		"dependency", "update", filepath.Join("charts", c.Chart),
+		"dependency", "update", "charts",
 	}
 	cmd := exec.Command("helm", args...)
 	output, err := cmd.CombinedOutput()
