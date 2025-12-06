@@ -46,6 +46,10 @@ func installArgo() {
 				Key:   "controller.args.appResyncPeriod",
 				Value: "15",
 			},
+			{
+				Key:   "redisSecretInit.enabled",
+				Value: "false",
+			},
 		},
 		Args: []string{"--create-namespace"},
 	})
