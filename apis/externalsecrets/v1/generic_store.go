@@ -37,6 +37,7 @@ type GenericStore interface {
 	GetObjectMeta() *metav1.ObjectMeta
 	GetTypeMeta() *metav1.TypeMeta
 	GetKind() string
+	GetName() string
 
 	GetSpec() *SecretStoreSpec
 	GetNamespacedName() string
@@ -76,7 +77,7 @@ func (c *SecretStore) SetStatus(status SecretStoreStatus) {
 
 // GetNamespacedName returns the namespaced name of the SecretStore in the format "namespace/name".
 func (c *SecretStore) GetNamespacedName() string {
-	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
+	return fmt.Sprintf("%s/%s", c.ObjectMeta.Namespace, c.ObjectMeta.Name)
 }
 
 // GetKind returns the kind of the SecretStore.
@@ -125,7 +126,7 @@ func (c *ClusterSecretStore) SetStatus(status SecretStoreStatus) {
 
 // GetNamespacedName returns the namespaced name of the ClusterSecretStore in the format "namespace/name".
 func (c *ClusterSecretStore) GetNamespacedName() string {
-	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
+	return fmt.Sprintf("%s/%s", c.ObjectMeta.Namespace, c.ObjectMeta.Name)
 }
 
 // GetKind returns the kind of the ClusterSecretStore.
