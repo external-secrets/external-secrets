@@ -61,18 +61,11 @@ func (c *HelmChart) Setup(cfg *Config) error {
 
 // Install adds the chart repo and installs the helm chart.
 func (c *HelmChart) Install() error {
-	cmd := exec.Command("ls", "-la")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("unable to run cmd: %w: %s", err, string(output))
-	}
-	log.Logf("ls output: %s", string(output))
-
 	args := []string{
-		"dependency", "update", "deploy/charts/external-secrets",
+		"dependency", "update", "/home/runner/work/external-secrets/external-secrets/deploy/charts/external-secrets",
 	}
-	cmd = exec.Command("helm", args...)
-	output, err = cmd.CombinedOutput()
+	cmd := exec.Command("helm", args...)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unable to run update cmd: %w: %s", err, string(output))
 	}
