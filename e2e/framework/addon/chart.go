@@ -65,6 +65,7 @@ func (c *HelmChart) Install() error {
 	args := []string{
 		"dependency", "update", filepath.Join(AssetDir(), "deploy/charts/external-secrets"),
 	}
+	log.Logf("updating chart dependencies with args: %+q", args)
 	cmd := exec.Command("helm", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -80,7 +81,7 @@ func (c *HelmChart) Install() error {
 		"--dependency-update",
 		"--debug",
 		"--wait",
-		"--timeout", "600s",
+		"--timeout", "1200s",
 		"-o", "yaml",
 		"--namespace", c.Namespace,
 	}
@@ -105,6 +106,9 @@ func (c *HelmChart) Install() error {
 	if err != nil {
 		return fmt.Errorf("unable to run cmd: %w: %s", err, string(output))
 	}
+
+	log.Logf("finished running chart install")
+
 	return nil
 }
 
