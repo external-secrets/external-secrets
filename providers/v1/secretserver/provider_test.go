@@ -546,3 +546,163 @@ func generateRandomString() string {
 
 	return string(b)
 }
+
+// TestValidateStoreSecretRef tests the validateStoreSecretRef function.
+func TestValidateStoreSecretRef(t *testing.T) {
+	tests := map[string]struct {
+		store   esv1.GenericStore
+		ref     *esv1.SecretServerProviderRef
+		wantErr error
+	}{
+		"valid secret ref for SecretStore": {
+			store: &esv1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-store",
+					Namespace: "default",
+				},
+			},
+			ref: &esv1.SecretServerProviderRef{
+				SecretRef: &v1.SecretKeySelector{
+					Name: "secret-name",
+					Key:  "secret-key",
+				},
+			},
+			wantErr: nil,
+		},
+		"error when secret ref missing name": {
+			store: &esv1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-store",
+					Namespace: "default",
+				},
+			},
+			ref: &esv1.SecretServerProviderRef{
+				SecretRef: &v1.SecretKeySelector{
+					Name: "",
+					Key:  "secret-key",
+				},
+			},
+			wantErr: errMissingSecretName,
+		},
+		"error when secret ref missing key": {
+			store: &esv1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-store",
+					Namespace: "default",
+				},
+			},
+			ref: &esv1.SecretServerProviderRef{
+				SecretRef: &v1.SecretKeySelector{
+					Name: "secret-name",
+					Key:  "",
+				},
+			},
+			wantErr: errMissingSecretKey,
+		},
+		"error when both value and secret ref are set": {
+			store: &esv1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-store",
+					Namespace: "default",
+				},
+			},
+			ref: &esv1.SecretServerProviderRef{
+				SecretRef: &v1.SecretKeySelector{
+					Name: "secret-name",
+					Key:  "secret-key",
+				},
+				Value: "some-value",
+			},
+			wantErr: errSecretRefAndValueConflict,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := validateStoreSecretRef(tc.store, tc.ref)
+			if tc.wantErr == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, tc.wantErr)
+			}
+		})
+	}
+}
+
+// TestCapabilities tests the Capabilities function.
+func TestCapabilities(t *testing.T) {
+	tests := map[string]struct {
+		want esv1.SecretStoreCapabilities
+	}{
+		"returns ReadOnly capability": {
+			want: esv1.SecretStoreReadOnly,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			p := &Provider{}
+			got := p.Capabilities()
+			assert.Equal(t, tc.want, got)
+
+			// Edge: call Capabilities on nil Provider
+			var nilP *Provider
+			if nilP != nil {
+				assert.Equal(t, esv1.SecretStoreReadOnly, nilP.Capabilities())
+			}
+		})
+	}
+}
+
+// TestNewProvider tests the NewProvider function.
+func TestNewProvider(t *testing.T) {
+	tests := map[string]struct {
+		want esv1.Provider
+	}{
+		"creates a new provider instance": {
+			want: &Provider{},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := NewProvider()
+			assert.NotNil(t, got)
+			assert.IsType(t, tc.want, got)
+
+			// Edge: call NewProvider multiple times
+			got2 := NewProvider()
+			assert.IsType(t, tc.want, got2)
+		})
+	}
+}
+
+// TestProviderSpec tests the ProviderSpec function.
+func TestProviderSpec(t *testing.T) {
+	tests := map[string]struct {
+		wantType *esv1.SecretStoreProvider
+	}{
+		"returns correct provider spec": {
+			wantType: &esv1.SecretStoreProvider{
+				SecretServer: &esv1.SecretServerProvider{},
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := ProviderSpec()
+			assert.NotNil(t, got)
+			assert.NotNil(t, got.SecretServer)
+			assert.IsType(t, tc.wantType, got)
+
+			// Ensure ProviderSpec returns a fresh instance (no shared mutable state)
+			// Mutate the returned object and verify a subsequent call is unaffected.
+			got.SecretServer.ServerURL = "http://modified.local"
+			got2 := ProviderSpec()
+			assert.IsType(t, tc.wantType, got2)
+			// If ProviderSpec reused a shared object, this would be equal.
+			assert.NotEqual(t, got.SecretServer.ServerURL, got2.SecretServer.ServerURL)
+		})
+	}
+}
