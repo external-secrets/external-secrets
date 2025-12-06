@@ -36,7 +36,7 @@ func installArgo() {
 		Namespace:    "argocd",
 		ReleaseName:  "argocd",
 		Chart:        "argo-cd/argo-cd",
-		ChartVersion: "9.1.6",
+		ChartVersion: "8.5.0",
 		Repo: addon.ChartRepo{
 			Name: "argo-cd",
 			URL:  "https://argoproj.github.io/argo-helm",
@@ -45,14 +45,6 @@ func installArgo() {
 			{
 				Key:   "controller.args.appResyncPeriod",
 				Value: "15",
-			},
-			{
-				Key:   "redis.enabled",
-				Value: "false",
-			},
-			{
-				Key:   "redisSecretInit.enabled",
-				Value: "false",
 			},
 		},
 		Args: []string{"--create-namespace"},

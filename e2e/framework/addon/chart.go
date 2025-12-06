@@ -81,7 +81,7 @@ func (c *HelmChart) Install() error {
 		"--dependency-update",
 		"--debug",
 		"--wait",
-		"--timeout", "1200s",
+		"--timeout", "600s",
 		"-o", "yaml",
 		"--namespace", c.Namespace,
 	}
