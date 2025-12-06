@@ -14,6 +14,15 @@ global:
   #    matchLabelKeys:
   #      - pod-template-hash
   affinity: {}
+  # -- Global pod labels to be applied to all deployments
+  podLabels:
+    gabreu: {}
+  # -- Global pod annotations to be applied to all deployments
+  podAnnotations: {}
+  # -- Global imagePullSecrets to be applied to all deployments
+  imagePullSecrets: []
+  # -- Global image repository to be applied to all deployments
+  repository: ""
   compatibility:
     openshift:
       # -- Manages the securityContext properties to make them compatible with OpenShift.
