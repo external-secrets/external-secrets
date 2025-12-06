@@ -18,7 +18,9 @@ The core controller is invoked without a subcommand and can be configured with t
 | `--concurrent`                                | int      | 1       | The number of concurrent reconciles.                                                                                                                               |
 | `--controller-class`                          | string   | default | The controller is instantiated with a specific controller name and filters ES based on this property                                                               |
 | `--enable-cluster-external-secret-reconciler` | boolean  | true    | Enables the cluster external secret reconciler.                                                                                                                    |
-| `--enable-cluster-store-reconciler`           | boolean  | true    | Enables the cluster store reconciler.                                                                                                                              |
+| `--enable-cluster-store-reconciler`           | boolean  | true    | Enables the cluster store 
+reconciler.                                                                                        
+| `--enable-secret-store-reconciler`            | boolean  | true    | Enables the secret store reconciler                                      |
 | `--enable-push-secret-reconciler`             | boolean  | true    | Enables the push secret reconciler.                                                                                                                                |
 | `--enable-cluster-push-secret-reconciler`     | boolean  | true    | Enables the cluster push secret reconciler.                                                                                                                        |
 | `--enable-secrets-caching`                    | boolean  | false   | Enable secrets caching for ALL secrets in the cluster (WARNING: can increase memory usage).                                                                        |

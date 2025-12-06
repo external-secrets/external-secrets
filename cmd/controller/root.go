@@ -84,6 +84,7 @@ var (
 	zapTimeEncoding                       string
 	namespace                             string
 	enableClusterStoreReconciler          bool
+	enableSecretStoreReconciler           bool
 	enableClusterExternalSecretReconciler bool
 	enableClusterPushSecretReconciler     bool
 	enablePushSecretReconciler            bool
@@ -197,21 +198,24 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		ssmetrics.SetUpMetrics()
-		if err = (&secretstore.StoreReconciler{
-			Client:            mgr.GetClient(),
-			Log:               ctrl.Log.WithName("controllers").WithName("SecretStore"),
-			Scheme:            mgr.GetScheme(),
-			ControllerClass:   controllerClass,
-			RequeueInterval:   storeRequeueInterval,
-			PushSecretEnabled: enablePushSecretReconciler,
-		}).SetupWithManager(mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-			RateLimiter:             ctrlcommon.BuildRateLimiter(),
-		}); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "SecretStore")
-			os.Exit(1)
+		if enableSecretStoreReconciler {
+			ssmetrics.SetUpMetrics()
+			if err = (&secretstore.StoreReconciler{
+				Client:            mgr.GetClient(),
+				Log:               ctrl.Log.WithName("controllers").WithName("SecretStore"),
+				Scheme:            mgr.GetScheme(),
+				ControllerClass:   controllerClass,
+				RequeueInterval:   storeRequeueInterval,
+				PushSecretEnabled: enablePushSecretReconciler,
+			}).SetupWithManager(mgr, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
+			}); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "SecretStore")
+				os.Exit(1)
+			}
 		}
+
 		if enableClusterStoreReconciler {
 			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
@@ -354,6 +358,7 @@ func init() {
 	rootCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
 	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
+	rootCmd.Flags().BoolVar(&enableSecretStoreReconciler, "enable-secret-store-reconciler", true, "Enable secret store reconciler.")
 	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
 	rootCmd.Flags().BoolVar(&enableClusterPushSecretReconciler, "enable-cluster-push-secret-reconciler", true, "Enable cluster push secret reconciler.")
 	rootCmd.Flags().BoolVar(&enablePushSecretReconciler, "enable-push-secret-reconciler", true, "Enable push secret reconciler.")

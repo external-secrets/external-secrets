@@ -82,6 +82,9 @@ spec:
           {{- if not .Values.processPushSecret }}
           - --enable-push-secret-reconciler=false
           {{- end }}
+          {{- if not .Values.processSecretStore }}
+          - --enable-secret-store-reconciler=false
+          {{- end }}
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}
           {{- end }}

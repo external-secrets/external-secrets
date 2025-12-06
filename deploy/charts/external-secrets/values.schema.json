@@ -291,6 +291,9 @@
                 "createClusterSecretStore": {
                     "type": "boolean"
                 },
+                "createSecretStore": {
+                    "type": "boolean"
+                },
                 "createPushSecret": {
                     "type": "boolean"
                 }
@@ -587,6 +590,9 @@
             "type": "boolean"
         },
         "processClusterStore": {
+            "type": "boolean"
+        },
+        "processSecretStore": {
             "type": "boolean"
         },
         "processPushSecret": {
