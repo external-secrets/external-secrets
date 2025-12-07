@@ -2770,6 +2770,8 @@
       
         
       
+        
+      
     
     
     
@@ -2886,6 +2888,34 @@
     
   
     Azure Key Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/barbican/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Barbican
   
 
     
@@ -5989,6 +6019,192 @@ AzureCustomCloudConfig
 Required when EnvironmentType is AzureStackCloud.
 IMPORTANT: This feature REQUIRES UseAzureSDK to be set to true. Custom cloud
 configuration is not supported with the legacy go-autorest SDK.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanAuth">BarbicanAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanProvider">BarbicanProvider</a>)
+</p>
+<p>
+<p>BarbicanAuth contains the authentication information for Barbican.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderUsernameRef">
+BarbicanProviderUsernameRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>password</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderPasswordRef">
+BarbicanProviderPasswordRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProvider">BarbicanProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>BarbicanProvider setup a store to sync secrets with barbican.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>domainName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanAuth">
+BarbicanAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderPasswordRef">BarbicanProviderPasswordRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderUsernameRef">BarbicanProviderUsernameRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -13992,6 +14208,20 @@ NgrokProvider
 <td>
 <em>(Optional)</em>
 <p>Ngrok configures this store to sync secrets using the ngrok provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>barbican</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProvider">
+BarbicanProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Barbican configures this store to sync secrets using the OpenStack Barbican provider</p>
 </td>
 </tr>
 </tbody>

@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../keeper-security/">
+        <link rel="prev" href="../azure-key-vault/">
       
       
-        <link rel="next" href="../scaleway/">
+        <link rel="next" href="../beyondtrust/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>Cloak End 2 End Encrypted Secrets - External Secrets Operator</title>
+        <title>Barbican - External Secrets Operator</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cloak" class="md-skip">
+        <a href="#openstack-barbican" class="md-skip">
           Skip to content
         </a>
       
@@ -133,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cloak End 2 End Encrypted Secrets
+              Barbican
             
           </span>
         </div>
@@ -2902,10 +2902,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../barbican/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Barbican
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2921,6 +2948,192 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-an-externalsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating an ExternalSecret
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-secrets-by-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding Secrets by Name
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clustersecretstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ClusterSecretStore
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#barbicanauth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanAuth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#barbicanproviderusernameref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanProviderUsernameRef
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#barbicanproviderpasswordref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanProviderPasswordRef
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secret-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret Not Found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-connectivity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Network Connectivity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -3602,35 +3815,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cloak End 2 End Encrypted Secrets
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../cloak/" class="md-nav__link">
         
   
   
@@ -3646,79 +3834,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#cloak" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cloak
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Setup
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#deploy-the-decryption-proxy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deploy the decryption proxy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#create-a-secret-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Create a secret store
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#connect-a-secret-to-the-provider" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Connect a secret to the provider
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -4812,6 +4927,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -4820,10 +4937,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#cloak" class="md-nav__link">
+  <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cloak
+        Authentication
       
     </span>
   </a>
@@ -4831,10 +4948,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#key-setup" class="md-nav__link">
+  <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Setup
+        Example
       
     </span>
   </a>
@@ -4842,10 +4959,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#deploy-the-decryption-proxy" class="md-nav__link">
+  <a href="#creating-an-externalsecret" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deploy the decryption proxy
+        Creating an ExternalSecret
       
     </span>
   </a>
@@ -4853,10 +4970,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#create-a-secret-store" class="md-nav__link">
+  <a href="#finding-secrets-by-name" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Create a secret store
+        Finding Secrets by Name
       
     </span>
   </a>
@@ -4864,13 +4981,124 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connect-a-secret-to-the-provider" class="md-nav__link">
+  <a href="#clustersecretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connect a secret to the provider
+        ClusterSecretStore
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#barbicanauth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanAuth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#barbicanproviderusernameref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanProviderUsernameRef
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#barbicanproviderpasswordref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanProviderPasswordRef
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secret-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret Not Found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-connectivity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Network Connectivity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -4894,101 +5122,261 @@
   
 
 
-  <h1>Cloak End 2 End Encrypted Secrets</h1>
-
-<p><img alt="Cloak End 2 End Encrypted Secrets" src="../../pictures/cloak-provider-header.png" /></p>
-<h2 id="cloak">Cloak</h2>
-<p>Sync secrets from the <a href="https://cloak.software">Cloak Encrypted Secrets Platform</a> to Kubernetes using the External Secrets Operator.</p>
-<p>Cloak uses the webhook provider built into the External Secrets Operator but also required a proxy service to handle decrypting secrets when they arrive into your cluster.</p>
-<h2 id="key-setup">Key Setup</h2>
-<p>From the Cloak user interface <a href="https://cloak.software/docs/getting-started/03-cli/">create a service account</a> and store the private key on your file system.</p>
-<p>Now create a kubernetes secret in the same namespace as the External Secrets Operator.</p>
-<div class="highlight"><pre><span></span><code><span class="nv">HISTIGNORE</span><span class="o">=</span><span class="s1">&#39;*kubectl*&#39;</span><span class="w"> </span>kubectl<span class="w"> </span>--namespace<span class="o">=</span>external-secrets<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>cloak-key<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--from-file<span class="o">=</span><span class="nv">ecdh_private_key</span><span class="o">=</span><span class="nv">$LOCATION_OF_YOUR_PEM_FILE</span>
-</code></pre></div>
-<h2 id="deploy-the-decryption-proxy">Deploy the decryption proxy</h2>
-<div class="highlight"><pre><span></span><code><span class="c1"># The cloak external secrets proxy</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
-<span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
-<span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
-<span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">purtontech/cloak-external-secrets:latest</span>
-<span class="w">        </span><span class="nt">imagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IfNotPresent</span>
-<span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECDH_PRIVATE_KEY</span><span class="w"> </span>
-<span class="w">            </span><span class="nt">valueFrom</span><span class="p">:</span><span class="w"> </span>
-<span class="w">              </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w"> </span>
-<span class="w">                </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-key</span><span class="w"> </span>
-<span class="w">                </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ecdh_private_key</span><span class="w"> </span>
-<span class="w">        </span><span class="nt">ports</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7105</span>
-</code></pre></div>
-<p>And a Kubernetes Service so External Secrets Operator can access the proxy.</p>
+<h1 id="openstack-barbican">OpenStack Barbican</h1>
+<p>External Secrets Operator integrates with <a href="https://docs.openstack.org/barbican/latest/">OpenStack Barbican</a> for secret management.</p>
+<p>Barbican is OpenStack's Key Manager service that provides secure storage, provisioning and management of secret data. This includes keys, passwords, certificates, and other sensitive data. The Barbican provider for External Secrets Operator allows you to retrieve secrets stored in Barbican and synchronize them with Kubernetes secrets.</p>
+<h2 id="authentication">Authentication</h2>
+<p>The Barbican provider uses OpenStack Keystone authentication. You need to provide:</p>
+<ul>
+<li><strong>AuthURL</strong>: The OpenStack Keystone authentication endpoint</li>
+<li><strong>TenantName</strong>: The OpenStack tenant/project name</li>
+<li><strong>DomainName</strong>: The OpenStack domain name (optional)</li>
+<li><strong>Region</strong>: The OpenStack region (optional)</li>
+<li><strong>Username</strong>: OpenStack username (stored in a Kubernetes secret)</li>
+<li><strong>Password</strong>: OpenStack password (stored in a Kubernetes secret)</li>
+</ul>
+<h2 id="example">Example</h2>
+<p>First, create a secret containing your OpenStack credentials:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Service</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets-service</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
-<span class="w">  </span><span class="nt">ports</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TCP</span>
-<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7105</span>
-<span class="w">      </span><span class="nt">targetPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7105</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-secret</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bXl1c2VybmFtZQ==</span><span class="w"> </span><span class="c1"># base64 encoded &quot;myusername&quot;</span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bXlwYXNzd29yZA==</span><span class="w"> </span><span class="c1"># base64 encoded &quot;mypassword&quot;</span>
 </code></pre></div>
-<h2 id="create-a-secret-store">Create a secret store</h2>
-<p>You can now place the configuration in any Kubernetes Namespace.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># An External secrets webhookl</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<p>Then create a SecretStore with the Barbican backend:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-backend</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-backend</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://cloak-external-secrets-service:7105/{{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
-<span class="w">      </span><span class="nt">result</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.value&quot;</span>
-<span class="w">      </span><span class="nt">headers</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
+<span class="w">    </span><span class="nt">barbican</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">authURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://keystone.example.com:5000/v3&quot;</span>
+<span class="w">      </span><span class="nt">tenantName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-project&quot;</span>
+<span class="w">      </span><span class="nt">domainName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;default&quot;</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;RegionOne&quot;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">username</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;barbican-secret&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;username&quot;</span>
+<span class="w">        </span><span class="nt">password</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;barbican-secret&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;password&quot;</span>
 </code></pre></div>
-<h2 id="connect-a-secret-to-the-provider">Connect a secret to the provider</h2>
-<p>Each <code>secretKey</code> reference in the yaml should point to the name of the secret as it is stored in Cloak.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Access a secret</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for the <code>secretRef</code> with the namespace of the secret that contains the credentials.</p>
+<h2 id="creating-an-externalsecret">Creating an ExternalSecret</h2>
+<p>Now you can create an ExternalSecret that uses the Barbican provider to retrieve secrets:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-example</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-secret</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15m0s&quot;</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-backend</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-backend</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">access-token</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PULUMI_ACCESS_TOKEN</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">do-access-token</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DIGITALOCEAN_ACCESS_TOKEN</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret-uuid&quot;</span>
 </code></pre></div>
+<p>The <code>remoteRef.key</code> should be the UUID of the secret in Barbican. You can find this by listing secrets in Barbican:</p>
+<div class="highlight"><pre><span></span><code>openstack<span class="w"> </span>secret<span class="w"> </span>list
+</code></pre></div>
+<h2 id="finding-secrets-by-name">Finding Secrets by Name</h2>
+<p>You can also retrieve secrets by using the <code>find</code> feature to search by name.</p>
+<p>It doesnt really support regexp, its exact string matching, so you need to provide the exact name of the secret.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-find-secret</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-backend</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">found-secrets</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;database&quot;</span>
+</code></pre></div>
+<p>This will find all secrets in Barbican whose name exactly matches the string.</p>
+<h2 id="clustersecretstore">ClusterSecretStore</h2>
+<p>For a ClusterSecretStore, you need to specify the namespace where the credentials secret is located:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-cluster-backend</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">barbican</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">authURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://keystone.example.com:5000/v3&quot;</span>
+<span class="w">      </span><span class="nt">tenantName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-project&quot;</span>
+<span class="w">      </span><span class="nt">domainName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;default&quot;</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;RegionOne&quot;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">username</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;barbican-secret&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;username&quot;</span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;default&quot;</span><span class="w">  </span><span class="c1"># Required for ClusterSecretStore</span>
+<span class="w">        </span><span class="nt">password</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;barbican-secret&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;password&quot;</span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;default&quot;</span><span class="w">  </span><span class="c1"># Required for ClusterSecretStore</span>
+</code></pre></div>
+<h2 id="configuration-reference">Configuration Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>authURL</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>OpenStack Keystone authentication endpoint URL</td>
+</tr>
+<tr>
+<td><code>tenantName</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>OpenStack tenant/project name</td>
+</tr>
+<tr>
+<td><code>domainName</code></td>
+<td>string</td>
+<td>No</td>
+<td>OpenStack domain name</td>
+</tr>
+<tr>
+<td><code>region</code></td>
+<td>string</td>
+<td>No</td>
+<td>OpenStack region</td>
+</tr>
+<tr>
+<td><code>auth</code></td>
+<td>BarbicanAuth</td>
+<td>Yes</td>
+<td>Authentication credentials</td>
+</tr>
+</tbody>
+</table>
+<h3 id="barbicanauth">BarbicanAuth</h3>
+<p>The <code>BarbicanAuth</code> type contains the authentication information:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>username</code></td>
+<td>BarbicanProviderUsernameRef</td>
+<td>Yes</td>
+<td>OpenStack username (from secret or literal value)</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td>BarbicanProviderPasswordRef</td>
+<td>Yes</td>
+<td>OpenStack password (from secret only)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="barbicanproviderusernameref">BarbicanProviderUsernameRef</h3>
+<p>The <code>BarbicanProviderUsernameRef</code> type allows you to specify username either as a literal or reference to a Kubernetes secret:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>value</code></td>
+<td>string</td>
+<td>No</td>
+<td>Literal value (not recommended for sensitive data)</td>
+</tr>
+<tr>
+<td><code>secretRef</code></td>
+<td>SecretKeySelector</td>
+<td>No</td>
+<td>Reference to a Kubernetes secret</td>
+</tr>
+</tbody>
+</table>
+<h3 id="barbicanproviderpasswordref">BarbicanProviderPasswordRef</h3>
+<p>The <code>BarbicanProviderPasswordRef</code> type requires a reference to a Kubernetes secret:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>secretRef</code></td>
+<td>SecretKeySelector</td>
+<td>Yes</td>
+<td>Reference to a Kubernetes secret</td>
+</tr>
+</tbody>
+</table>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>The Barbican provider is <strong>read-only</strong>. It does not support creating or updating secrets in Barbican.</li>
+<li>Used credentials has to have access to the provided secret.</li>
+<li>It will retrieve all secret types by default.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="authentication-issues">Authentication Issues</h3>
+<p>If you encounter authentication errors, verify:</p>
+<ol>
+<li>The <code>authURL</code> is correct and accessible</li>
+<li>The credentials are valid and have appropriate permissions</li>
+<li>The <code>tenantName</code> and <code>domainName</code> (if used) are correct</li>
+<li>Network connectivity to the OpenStack endpoints</li>
+</ol>
+<h3 id="secret-not-found">Secret Not Found</h3>
+<p>If a secret cannot be found:</p>
+<ol>
+<li>Verify the secret UUID exists in Barbican: <code>openstack secret get -p https://barbican-url/v1/secrets/&lt;uuid&gt;</code></li>
+<li>Check that the user has permission to access the secret</li>
+<li>Ensure the secret is in the correct project/tenant</li>
+</ol>
+<h3 id="network-connectivity">Network Connectivity</h3>
+<p>Ensure your Kubernetes cluster can reach:
+- The OpenStack Keystone endpoint (for authentication)
+- The Barbican service endpoint (for secret retrieval)</p>
+<p>Check firewall rules and network policies that might block access.</p>
 
 
 
