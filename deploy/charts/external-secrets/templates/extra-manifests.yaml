@@ -1,4 +1,0 @@
-{{- range .Values.extraObjects }}
----
-{{ include "external-secrets.render" (dict "value" . "context" $) }}
-{{- end }}
