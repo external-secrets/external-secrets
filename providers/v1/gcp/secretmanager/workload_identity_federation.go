@@ -124,6 +124,8 @@ const (
 	awsAccessKeyIDKeyName     = "aws_access_key_id"
 	awsSecretAccessKeyKeyName = "aws_secret_access_key"
 	awsSessionTokenKeyName    = "aws_session_token"
+
+	workloadIdentityFederationServiceAccountImpersonationURLFormat = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken"
 )
 
 func newWorkloadIdentityFederation(kube kclient.Client, wif *esv1.GCPWorkloadIdentityFederation, isClusterKind bool, namespace string) (*workloadIdentityFederation, error) {
@@ -173,7 +175,30 @@ func (w *workloadIdentityFederation) TokenSource(ctx context.Context) (oauth2.To
 // readCredConfig is for loading the json cred config stored in the provided configmap.
 func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*externalaccount.Config, error) {
 	if w.config.CredConfig == nil {
-		return w.generateExternalAccountConfig(ctx, nil)
+		cfg, err := w.generateExternalAccountConfig(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		// look up the service account and check if it has a well-known GCP WI annotation.
+		// If so, use that GCP service account for impersonation.
+		// Required if you grant secret access to a GCP service account instead of direct resource access.
+		key := types.NamespacedName{
+			Name:      w.config.ServiceAccountRef.Name,
+			Namespace: w.namespace,
+		}
+		if w.isClusterKind && w.config.ServiceAccountRef.Namespace != nil {
+			key.Namespace = *w.config.ServiceAccountRef.Namespace
+		}
+		sa := &corev1.ServiceAccount{}
+		if err := w.kubeClient.Get(ctx, key, sa); err != nil {
+			return nil, fmt.Errorf("failed to fetch serviceaccount %q: %w", key, err)
+		}
+
+		gcpSA := sa.Annotations[gcpSAAnnotation]
+		if gcpSA != "" {
+			cfg.ServiceAccountImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, gcpSA)
+		}
+		return cfg, nil
 	}
 
 	key := types.NamespacedName{
