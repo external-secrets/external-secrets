@@ -283,10 +283,11 @@ func (a *Azure) processSecretsPage(ctx context.Context, secrets []*azsecrets.Sec
 
 func (a *Azure) getAllSecretsWithNewSDK(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	secretsMap := make(map[string][]byte)
-	pager := a.secretsClient.NewListSecretPropertiesPager(nil)
 
-	for pager.More() {
-		page, err := pager.NextPage(ctx)
+	// Secrets
+	secretsPager := a.secretsClient.NewListSecretPropertiesPager(nil)
+	for secretsPager.More() {
+		page, err := secretsPager.NextPage(ctx)
 		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecrets, err)
 		if err != nil {
 			return nil, parseNewSDKError(err)
@@ -296,6 +297,62 @@ func (a *Azure) getAllSecretsWithNewSDK(ctx context.Context, ref esv1.ExternalSe
 			return nil, err
 		}
 	}
+
+	// Certificates
+	certsPager := a.certsClient.NewListCertificatePropertiesPager(nil)
+	for certsPager.More() {
+		page, err := certsPager.NextPage(ctx)
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+		if err != nil {
+			return nil, parseNewSDKError(err)
+		}
+
+		for _, cert := range page.Value {
+			if cert == nil || cert.ID == nil {
+				continue
+			}
+
+			name := cert.ID.Name()
+
+			resp, err := a.certsClient.GetCertificate(ctx, name, "", nil)
+			if err != nil {
+				return nil, parseNewSDKError(err)
+			}
+
+			if resp.CER != nil {
+				secretsMap["cert/"+name] = resp.CER
+			}
+		}
+	}
+
+	// Keys
+	keysPager := a.keysClient.NewListKeyPropertiesPager(nil)
+	for keysPager.More() {
+		page, err := keysPager.NextPage(ctx)
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+		if err != nil {
+			return nil, parseNewSDKError(err)
+		}
+
+		for _, keyProps := range page.Value {
+			if keyProps == nil || keyProps.KID == nil {
+				continue
+			}
+
+			name := keyProps.KID.Name()
+
+			resp, err := a.keysClient.GetKey(ctx, name, "", nil)
+			if err != nil {
+				return nil, parseNewSDKError(err)
+			}
+
+			if resp.Key != nil {
+				jwkBytes, _ := json.Marshal(resp.Key)
+				secretsMap["key/"+name] = jwkBytes
+			}
+		}
+	}
+
 	return secretsMap, nil
 }
 

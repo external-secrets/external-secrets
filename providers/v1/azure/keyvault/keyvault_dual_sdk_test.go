@@ -18,9 +18,14 @@ package keyvault
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"testing"
 
+	"encoding/json"
+
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -520,5 +525,244 @@ func TestGetCloudConfiguration(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+type fakeID struct {
+	name string
+}
+
+func (f *fakeID) Name() string {
+	return f.name
+}
+
+type fakeSecretProperties struct {
+	ID *fakeID
+}
+
+type fakeCertProperties struct {
+	ID *fakeID
+}
+
+type fakeKeyProperties struct {
+	KID *fakeID
+}
+
+type fakeSecretsPager struct {
+	called bool
+	page   struct{ Value []fakeSecretProperties }
+}
+
+func (p *fakeSecretsPager) More() bool { return !p.called }
+
+func (p *fakeSecretsPager) NextPage(ctx context.Context) (struct{ Value []fakeSecretProperties }, error) {
+	if p.called {
+		return struct{ Value []fakeSecretProperties }{}, errors.New("no more pages")
+	}
+	p.called = true
+	return p.page, nil
+}
+
+type fakeCertsPager struct {
+	called bool
+	page   struct{ Value []fakeCertProperties }
+}
+
+func (p *fakeCertsPager) More() bool { return !p.called }
+
+func (p *fakeCertsPager) NextPage(ctx context.Context) (struct{ Value []fakeCertProperties }, error) {
+	if p.called {
+		return struct{ Value []fakeCertProperties }{}, errors.New("no more pages")
+	}
+	p.called = true
+	return p.page, nil
+}
+
+type fakeKeysPager struct {
+	called bool
+	page   struct{ Value []fakeKeyProperties }
+}
+
+func (p *fakeKeysPager) More() bool { return !p.called }
+
+func (p *fakeKeysPager) NextPage(ctx context.Context) (struct{ Value []fakeKeyProperties }, error) {
+	if p.called {
+		return struct{ Value []fakeKeyProperties }{}, errors.New("no more pages")
+	}
+	p.called = true
+	return p.page, nil
+}
+
+type fakeSecretsClient struct {
+	pager *fakeSecretsPager
+}
+
+func (c *fakeSecretsClient) NewListSecretPropertiesPager(_ any) *fakeSecretsPager {
+	return c.pager
+}
+
+type fakeCertsClient struct {
+	pager   *fakeCertsPager
+	getCert map[string][]byte
+}
+
+func (c *fakeCertsClient) NewListCertificatePropertiesPager(_ any) *fakeCertsPager {
+	return c.pager
+}
+
+func (c *fakeCertsClient) GetCertificate(ctx context.Context, name, version string, _ any) (struct{ CER []byte }, error) {
+	return struct{ CER []byte }{CER: c.getCert[name]}, nil
+}
+
+type fakeKeysClient struct {
+	pager  *fakeKeysPager
+	getKey map[string]any
+}
+
+func (c *fakeKeysClient) NewListKeyPropertiesPager(_ any) *fakeKeysPager {
+	return c.pager
+}
+
+func (c *fakeKeysClient) GetKey(ctx context.Context, name, version string, _ any) (struct{ Key any }, error) {
+	return struct{ Key any }{Key: c.getKey[name]}, nil
+}
+
+type testAzure struct {
+	secretsClient      *fakeSecretsClient
+	certsClient        *fakeCertsClient
+	keysClient         *fakeKeysClient
+	processSecretsPage func(ctx context.Context, props any, ref esv1beta1.ExternalSecretFind, out map[string][]byte) error
+}
+
+func (a *testAzure) getAllSecretsWithNewSDK(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	secretsMap := make(map[string][]byte)
+
+	secretPager := a.secretsClient.NewListSecretPropertiesPager(nil)
+	for secretPager.More() {
+		page, err := secretPager.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := a.processSecretsPage(ctx, page.Value, ref, secretsMap); err != nil {
+			return nil, err
+		}
+	}
+
+	certPager := a.certsClient.NewListCertificatePropertiesPager(nil)
+	for certPager.More() {
+		page, err := certPager.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, cert := range page.Value {
+			if cert.ID == nil {
+				continue
+			}
+
+			name := cert.ID.Name()
+			resp, _ := a.certsClient.GetCertificate(ctx, name, "", nil)
+			if resp.CER != nil {
+				secretsMap["cert/"+name] = resp.CER
+			}
+		}
+	}
+
+	keyPager := a.keysClient.NewListKeyPropertiesPager(nil)
+	for keyPager.More() {
+		page, err := keyPager.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, keyProps := range page.Value {
+			if keyProps.KID == nil {
+				continue
+			}
+
+			name := keyProps.KID.Name()
+			resp, _ := a.keysClient.GetKey(ctx, name, "", nil)
+
+			if resp.Key != nil {
+				jwkBytes, _ := json.Marshal(resp.Key)
+				secretsMap["key/"+name] = jwkBytes
+			}
+		}
+	}
+
+	return secretsMap, nil
+}
+
+func TestGetAllSecretsWithNewSDK_FakeClients(t *testing.T) {
+	ctx := context.Background()
+
+	secretPager := &fakeSecretsPager{
+		page: struct{ Value []fakeSecretProperties }{
+			Value: []fakeSecretProperties{
+				{ID: &fakeID{name: "mysecret"}},
+			},
+		},
+	}
+	secretsClient := &fakeSecretsClient{pager: secretPager}
+
+	certPager := &fakeCertsPager{
+		page: struct{ Value []fakeCertProperties }{
+			Value: []fakeCertProperties{
+				{ID: &fakeID{name: "certA"}},
+			},
+		},
+	}
+	certsClient := &fakeCertsClient{
+		pager: certPager,
+		getCert: map[string][]byte{
+			"certA": []byte("CERTDATA"),
+		},
+	}
+
+	keyPager := &fakeKeysPager{
+		page: struct{ Value []fakeKeyProperties }{
+			Value: []fakeKeyProperties{
+				{KID: &fakeID{name: "keyA"}},
+			},
+		},
+	}
+	keysClient := &fakeKeysClient{
+		pager: keyPager,
+		getKey: map[string]any{
+			"keyA": map[string]string{"kty": "RSA"},
+		},
+	}
+
+	az := &testAzure{
+		secretsClient: secretsClient,
+		certsClient:   certsClient,
+		keysClient:    keysClient,
+
+		processSecretsPage: func(
+			ctx context.Context,
+			props any,
+			ref esv1beta1.ExternalSecretFind,
+			out map[string][]byte,
+		) error {
+			out["mysecret"] = []byte("hello")
+			return nil
+		},
+	}
+
+	out, err := az.getAllSecretsWithNewSDK(ctx, esv1beta1.ExternalSecretFind{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	keyJSON, _ := json.Marshal(map[string]string{"kty": "RSA"})
+	expected := map[string][]byte{
+		"mysecret":   []byte("hello"),
+		"cert/certA": []byte("CERTDATA"),
+		"key/keyA":   keyJSON,
+	}
+
+	if !reflect.DeepEqual(out, expected) {
+		t.Fatalf("expected %v, got %v", expected, out)
 	}
 }
