@@ -433,13 +433,13 @@ spec:
                         type: object
                       type: array
                     refreshInterval:
-                      default: 1h
+                      default: 1h0m0s
                       description: |-
                         RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
                         specified as Golang Duration strings.
                         Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-                        Example values: "1h", "2h30m", "10s"
-                        May be set to zero to fetch and create it once. Defaults to 1h.
+                        Example values: "1h0m0s", "2h30m0s", "10m0s"
+                        May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                       type: string
                     refreshPolicy:
                       description: |-
@@ -1193,13 +1193,13 @@ spec:
                         type: object
                       type: array
                     refreshInterval:
-                      default: 1h
+                      default: 1h0m0s
                       description: |-
                         RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
                         specified as Golang Duration strings.
                         Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-                        Example values: "1h", "2h30m", "10s"
-                        May be set to zero to fetch and create it once. Defaults to 1h.
+                        Example values: "1h0m0s", "2h30m0s", "10m0s"
+                        May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                       type: string
                     refreshPolicy:
                       description: |-
@@ -1730,7 +1730,7 @@ spec:
                         - None
                       type: string
                     refreshInterval:
-                      default: 1h
+                      default: 1h0m0s
                       description: The Interval to which External Secrets will try to push a secret definition
                       type: string
                     secretStoreRefs:
@@ -2946,6 +2946,97 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    barbican:
+                      description: Barbican configures this store to sync secrets using the OpenStack Barbican provider
+                      properties:
+                        auth:
+                          description: BarbicanAuth contains the authentication information for Barbican.
+                          properties:
+                            password:
+                              description: BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - secretRef
+                              type: object
+                            username:
+                              description: BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                value:
+                                  type: string
+                              type: object
+                          required:
+                            - password
+                            - username
+                          type: object
+                        authURL:
+                          type: string
+                        domainName:
+                          type: string
+                        region:
+                          type: string
+                        tenantName:
+                          type: string
+                      required:
+                        - auth
                       type: object
                     beyondtrust:
                       description: Beyondtrust configures this store to sync secrets using Password Safe provider.
@@ -12179,13 +12270,13 @@ spec:
                     type: object
                   type: array
                 refreshInterval:
-                  default: 1h
+                  default: 1h0m0s
                   description: |-
                     RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
                     specified as Golang Duration strings.
                     Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-                    Example values: "1h", "2h30m", "10s"
-                    May be set to zero to fetch and create it once. Defaults to 1h.
+                    Example values: "1h0m0s", "2h30m0s", "10m0s"
+                    May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                   type: string
                 refreshPolicy:
                   description: |-
@@ -12824,13 +12915,13 @@ spec:
                     type: object
                   type: array
                 refreshInterval:
-                  default: 1h
+                  default: 1h0m0s
                   description: |-
                     RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
                     specified as Golang Duration strings.
                     Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-                    Example values: "1h", "2h30m", "10s"
-                    May be set to zero to fetch and create it once. Defaults to 1h.
+                    Example values: "1h0m0s", "2h30m0s", "10m0s"
+                    May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
                   type: string
                 refreshPolicy:
                   description: |-
@@ -13186,7 +13277,7 @@ spec:
                     - None
                   type: string
                 refreshInterval:
-                  default: 1h
+                  default: 1h0m0s
                   description: The Interval to which External Secrets will try to push a secret definition
                   type: string
                 secretStoreRefs:
@@ -14430,6 +14521,97 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    barbican:
+                      description: Barbican configures this store to sync secrets using the OpenStack Barbican provider
+                      properties:
+                        auth:
+                          description: BarbicanAuth contains the authentication information for Barbican.
+                          properties:
+                            password:
+                              description: BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - secretRef
+                              type: object
+                            username:
+                              description: BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                value:
+                                  type: string
+                              type: object
+                          required:
+                            - password
+                            - username
+                          type: object
+                        authURL:
+                          type: string
+                        domainName:
+                          type: string
+                        region:
+                          type: string
+                        tenantName:
+                          type: string
+                      required:
+                        - auth
                       type: object
                     beyondtrust:
                       description: Beyondtrust configures this store to sync secrets using Password Safe provider.
@@ -24386,6 +24568,14 @@ spec:
                           default: false
                           description: Set NoUpper to disable uppercase characters
                           type: boolean
+                        secretKeys:
+                          description: |-
+                            SecretKeys defines the keys that will be populated with generated passwords.
+                            Defaults to "password" when not set.
+                          items:
+                            type: string
+                          minItems: 1
+                          type: array
                         symbolCharacters:
                           description: |-
                             SymbolCharacters specifies the special characters that should be used
@@ -26819,6 +27009,14 @@ spec:
                   default: false
                   description: Set NoUpper to disable uppercase characters
                   type: boolean
+                secretKeys:
+                  description: |-
+                    SecretKeys defines the keys that will be populated with generated passwords.
+                    Defaults to "password" when not set.
+                  items:
+                    type: string
+                  minItems: 1
+                  type: array
                 symbolCharacters:
                   description: |-
                     SymbolCharacters specifies the special characters that should be used

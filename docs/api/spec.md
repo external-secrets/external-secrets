@@ -1283,6 +1283,192 @@ configuration is not supported with the legacy go-autorest SDK.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.BarbicanAuth">BarbicanAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanProvider">BarbicanProvider</a>)
+</p>
+<p>
+<p>BarbicanAuth contains the authentication information for Barbican.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderUsernameRef">
+BarbicanProviderUsernameRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>password</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderPasswordRef">
+BarbicanProviderPasswordRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProvider">BarbicanProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>BarbicanProvider setup a store to sync secrets with barbican.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>domainName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanAuth">
+BarbicanAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderPasswordRef">BarbicanProviderPasswordRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderUsernameRef">BarbicanProviderUsernameRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.BeyondTrustProviderSecretRef">BeyondTrustProviderSecretRef
 </h3>
 <p>
@@ -3556,8 +3742,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -4535,8 +4721,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -9282,6 +9468,20 @@ NgrokProvider
 <td>
 <em>(Optional)</em>
 <p>Ngrok configures this store to sync secrets using the ngrok provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>barbican</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProvider">
+BarbicanProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Barbican configures this store to sync secrets using the OpenStack Barbican provider</p>
 </td>
 </tr>
 </tbody>
@@ -16709,8 +16909,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -17515,8 +17715,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -26772,6 +26972,19 @@ bool
 </tr>
 <tr>
 <td>
+<code>secretKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretKeys defines the keys that will be populated with generated passwords.
+Defaults to &ldquo;password&rdquo; when not set.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>encoding</code></br>
 <em>
 string
@@ -26878,6 +27091,19 @@ bool
 </td>
 <td>
 <p>set AllowRepeat to true to allow repeating characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretKeys defines the keys that will be populated with generated passwords.
+Defaults to &ldquo;password&rdquo; when not set.</p>
 </td>
 </tr>
 <tr>

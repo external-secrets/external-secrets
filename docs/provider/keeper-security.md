@@ -43,7 +43,7 @@ Be sure the `keepersecurity` provider is listed in the `Kind=SecretStore`
 * How a Record is equated to an ExternalSecret:
     * `remoteRef.key` is equated to a Record's ID
     * `remoteRef.property` is equated to one of the following options:
-        * Fields: [Record's field's Type](https://docs.keeper.io/secrets-manager/secrets-manager/about/field-record-types)
+        * Fields: Record's field's Label (if present), otherwise [Record's field's Type](https://docs.keeper.io/secrets-manager/secrets-manager/about/field-record-types)
         * CustomFields: Record's field's Label
         * Files: Record's file's Name
         * If empty, defaults to the complete Record in JSON format
@@ -51,7 +51,7 @@ Be sure the `keepersecurity` provider is listed in the `Kind=SecretStore`
 * `dataFrom`:
     * `find.path` is currently not supported.
     * `find.name.regexp` is equated to one of the following options:
-        * Fields: Record's field's Type
+        * Fields: Record's field's Label (if present), otherwise Record's field's Type
         * CustomFields: Record's field's Label
         * Files: Record's file's Name
     * `find.tags` are not supported at this time.

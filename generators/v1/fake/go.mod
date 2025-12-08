@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/generators/v1/fake
 
-go 1.25.1
+go 1.25.5
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0

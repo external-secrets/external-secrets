@@ -5,6 +5,9 @@ site_dir: ../../site
 docs_dir: ../../docs
 edit_uri: ./edit/main/docs/
 remote_branch: gh-pages
+watch:
+  - ../../docs
+  - ../../overrides
 theme:
   name: material
   palette:
@@ -118,6 +121,7 @@ nav:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
       - Azure Key Vault: provider/azure-key-vault.md
+      - Barbican: provider/barbican.md
       - BeyondTrust: provider/beyondtrust.md
       - Bitwarden Secrets Manager: provider/bitwarden-secrets-manager.md
       - Chef: provider/chef.md

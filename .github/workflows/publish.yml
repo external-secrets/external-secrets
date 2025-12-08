@@ -134,7 +134,15 @@ jobs:
           BUILD_ARGS: ${{ inputs.build-args }}
           DOCKER_BUILD_ARGS: --load
         run: make docker.build
-
+      # images are large to the point trivy fails due to no space on disk left
+      # This is a silly attempt to clean up space for trivy to run more
+      # consistently
+      - name: Cleanup unused cache
+        shell: bash
+        run: | 
+          docker system prune --force
+          go clean -cache
+          go clean -modcache
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # master
         with:

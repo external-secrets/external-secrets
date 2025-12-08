@@ -69,6 +69,7 @@ build: image generate $(SOURCES)
 		--rm \
 		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
 		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
+		--env "GITHUB_TOKEN=$(GITHUB_TOKEN)" \
 		$(MKDOCS_IMAGE) \
 		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish
@@ -79,6 +80,9 @@ build.publish: image generate $(SOURCES)
 		--sig-proxy=true \
 		--rm \
 		--user $(UID):$(GID) \
+		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
+		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
+		--env "GITHUB_TOKEN=$(GITHUB_TOKEN)" \
 		$(MKDOCS_IMAGE) \
 		$(SHELL) -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: generate
@@ -92,7 +96,7 @@ clean:
 # serve runs mkdocs as a local webserver for interactive development.
 # This will serve the live copy of the docs on 127.0.0.1:8000.
 .PHONY: serve
-serve: build
+serve: image generate
 	$(DOCKER) run \
 		-it \
 		--sig-proxy=true \
@@ -101,4 +105,4 @@ serve: build
 		-p $(SERVE_BIND_ADDRESS):8000:8000 \
 		--rm \
 		$(MKDOCS_IMAGE) \
-		$(SHELL) -c "cd /repo && mkdocs serve -f hack/api-docs/mkdocs.yml -a 0.0.0.0:8000"
+		$(SHELL) -c "cd /repo && mkdocs serve -f hack/api-docs/mkdocs.yml -a 0.0.0.0:8000 --livereload"

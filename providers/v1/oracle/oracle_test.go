@@ -745,6 +745,51 @@ func TestOracleVaultDeleteSecret(t *testing.T) {
 	}
 }
 
+func TestOracleVaultSecretExists(t *testing.T) {
+	var testCases = map[string]struct {
+		vms       *VaultManagementService
+		remoteRef esv1.PushSecretRemoteRef
+		ok        bool
+	}{
+		"ok if secret exists": {
+			&VaultManagementService{
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+					},
+				},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s1id,
+			},
+			true,
+		},
+		"not ok if secret doesn't exist": {
+			&VaultManagementService{
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+					},
+				},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s2id,
+			},
+			false,
+		},
+	}
+
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ok, err := testCase.vms.SecretExists(context.Background(), testCase.remoteRef)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.ok, ok)
+		})
+	}
+}
+
 var (
 	s1id      = "test1"
 	s2id      = "mysecret"

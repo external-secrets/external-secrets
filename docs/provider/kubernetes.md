@@ -14,7 +14,7 @@ kind: ExternalSecret
 metadata:
   name: database-credentials
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     kind: SecretStore
     name: k8s-store             # name of the SecretStore (or kind specified)
@@ -63,7 +63,7 @@ kind: ExternalSecret
 metadata:
   name: fetch-tls-and-nginx
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     kind: SecretStore
     name: k8s-store
@@ -362,7 +362,7 @@ kind: PushSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRefs:
     - name: k8s-store-remote-ns
       kind: SecretStore
@@ -413,7 +413,7 @@ kind: PushSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRefs:
     - name: k8s-store-remote-ns
       kind: SecretStore
