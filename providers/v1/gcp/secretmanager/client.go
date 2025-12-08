@@ -149,6 +149,9 @@ func parseError(err error) error {
 // SecretExists checks if a secret exists in Google Cloud Secret Manager.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
+	if c.store.Location != "" {
+		secretName = fmt.Sprintf(regionalSecretPath, c.store.ProjectID, c.store.Location, ref.GetRemoteKey())
+	}
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: secretName,
 	})
