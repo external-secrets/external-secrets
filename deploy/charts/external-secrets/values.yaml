@@ -51,6 +51,8 @@ crds:
   createClusterExternalSecret: true
   # -- If true, create CRDs for Cluster Secret Store.
   createClusterSecretStore: true
+  # -- If true, create CRDs for Secret Store.
+  createSecretStore: true
   # -- If true, create CRDs for Cluster Generator.
   createClusterGenerator: true
   # -- If true, create CRDs for Cluster Push Secret.
@@ -106,6 +108,9 @@ processClusterPushSecret: true
 
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
+
+# -- if true, the operator will process secret store. Else, it will ignore them.
+processSecretStore: true
 
 # -- if true, the operator will process cluster generator. Else, it will ignore them.
 processClusterGenerator: true
