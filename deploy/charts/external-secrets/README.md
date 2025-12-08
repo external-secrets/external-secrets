@@ -97,6 +97,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. |
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. |
 | crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. |
+| crds.createSecretStore | bool | `true` | If true, create CRDs for Secret Store. |
 | createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | dnsConfig | object | `{}` | Specifies `dnsOptions` to deployment |
@@ -167,6 +168,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | processClusterPushSecret | bool | `true` | if true, the operator will process cluster push secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
 | processPushSecret | bool | `true` | if true, the operator will process push secret. Else, it will ignore them. |
+| processSecretStore | bool | `true` | if true, the operator will process secret store. Else, it will ignore them. |
 | rbac.aggregateToEdit | bool | `true` | Specifies whether permissions are aggregated to the edit ClusterRole |
 | rbac.aggregateToView | bool | `true` | Specifies whether permissions are aggregated to the view ClusterRole |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
