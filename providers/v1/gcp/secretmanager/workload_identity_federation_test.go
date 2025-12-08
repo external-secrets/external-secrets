@@ -192,35 +192,6 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			expectTokenSource: true,
 		},
 		{
-			name: "successful kubernetes service account token federation with GCP service account impersonation",
-			wifConfig: &esv1.GCPWorkloadIdentityFederation{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{
-					Name:      testServiceAccount,
-					Namespace: &testNamespace,
-					Audiences: []string{testAudience},
-				},
-			},
-			kubeObjects: []client.Object{
-				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testServiceAccount,
-						Namespace: testNamespace,
-						Annotations: map[string]string{
-							gcpSAAnnotation: testGCPServiceAccountEmail,
-						},
-					},
-				},
-			},
-			genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {
-				return &authv1.TokenRequest{
-					Status: authv1.TokenRequestStatus{
-						Token: testSAToken,
-					},
-				}, nil
-			},
-			expectTokenSource: true,
-		},
-		{
 			name: "cred configmap configured non-existent key",
 			wifConfig: &esv1.GCPWorkloadIdentityFederation{
 				CredConfig: &esv1.ConfigMapReference{
@@ -398,6 +369,36 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {
 				return &authv1.TokenRequest{
+					Status: authv1.TokenRequestStatus{
+						Token: testSAToken,
+					},
+				}, nil
+			},
+			expectTokenSource: true,
+		},
+		{
+			name: "successful kubernetes service account token federation with GCP service account impersonation",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testServiceAccount,
+						Namespace: testNamespace,
+						Annotations: map[string]string{
+							gcpSAAnnotation: testGCPServiceAccountEmail,
+						},
+					},
+				},
+			},
+			genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {
+				return &authv1.TokenRequest{
+					Spec: authv1.TokenRequestSpec{Audiences: []string{testAudience}},
 					Status: authv1.TokenRequestStatus{
 						Token: testSAToken,
 					},

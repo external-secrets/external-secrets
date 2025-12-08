@@ -182,12 +182,13 @@ func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*exter
 		// look up the service account and check if it has a well-known GCP WI annotation.
 		// If so, use that GCP service account for impersonation.
 		// Required if you grant secret access to a GCP service account instead of direct resource access.
+		ns := w.namespace
+		if w.isClusterKind && w.config.ServiceAccountRef.Namespace != nil {
+			ns = *w.config.ServiceAccountRef.Namespace
+		}
 		key := types.NamespacedName{
 			Name:      w.config.ServiceAccountRef.Name,
-			Namespace: w.namespace,
-		}
-		if w.isClusterKind && w.config.ServiceAccountRef.Namespace != nil {
-			key.Namespace = *w.config.ServiceAccountRef.Namespace
+			Namespace: ns,
 		}
 		sa := &corev1.ServiceAccount{}
 		if err := w.kubeClient.Get(ctx, key, sa); err != nil {
