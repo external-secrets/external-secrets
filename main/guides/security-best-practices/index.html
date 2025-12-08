@@ -2530,10 +2530,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-selectively-disable-reconciliation-of-cluster-wide-resources" class="md-nav__link">
+  <a href="#3-selectively-disable-reconciliation-of-resources" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Selectively Disable Reconciliation of Cluster-Wide Resources
+        3. Selectively Disable Reconciliation of Resources
       
     </span>
   </a>
@@ -5099,10 +5099,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-selectively-disable-reconciliation-of-cluster-wide-resources" class="md-nav__link">
+  <a href="#3-selectively-disable-reconciliation-of-resources" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Selectively Disable Reconciliation of Cluster-Wide Resources
+        3. Selectively Disable Reconciliation of Resources
       
     </span>
   </a>
@@ -5400,25 +5400,33 @@
 <span class="w">        </span><span class="nt">matchLabels</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">frontend</span>
 </code></pre></div>
-<h3 id="3-selectively-disable-reconciliation-of-cluster-wide-resources">3. Selectively Disable Reconciliation of Cluster-Wide Resources</h3>
-<p>ESO allows you to selectively disable the reconciliation of cluster-wide resources <code>ClusterSecretStore</code>, <code>ClusterExternalSecret</code>, and <code>PushSecret</code>.
-You can disable the installation of CRDs and reconciliation in the Helm chart, or disable reconciliation in the core controller.</p>
+<h3 id="3-selectively-disable-reconciliation-of-resources">3. Selectively Disable Reconciliation of Resources</h3>
+<p>ESO allows you to selectively disable the reconciliation of resources. You can disable reconciliation for:</p>
+<ul>
+<li><strong>Cluster-wide resources</strong>: <code>ClusterSecretStore</code>, <code>ClusterExternalSecret</code></li>
+<li><strong>Namespaced resources</strong>: <code>SecretStore</code>, <code>PushSecret</code></li>
+</ul>
+<p>You can disable the installation of CRDs and reconciliation in the Helm chart, or disable reconciliation in the core controller.</p>
 <p>To disable reconciliation in the Helm chart:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">processClusterExternalSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="nt">processClusterStore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="nt">processPushSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">processSecretStore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </code></pre></div>
 <p>To disable CRD installation in the Helm chart:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">crds</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">createClusterExternalSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">  </span><span class="nt">createClusterSecretStore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">createSecretStore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">  </span><span class="nt">createPushSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </code></pre></div>
-<p>Note that disabling CRD installation for a cluster-wide resource does not automatically disable its reconciliation.
+<p><strong>Warning:</strong> Disabling the <code>SecretStore</code> CRD will prevent ExternalSecrets from referencing namespaced SecretStores. Only use this if you exclusively use ClusterSecretStore.</p>
+<p>Note that disabling CRD installation for a resource does not automatically disable its reconciliation.
 The core controller will issue error logs if the CRD is not installed but the reconciliation is not disabled.</p>
 <p>To disable reconciliation in the core controller, set the following flags:</p>
 <div class="highlight"><pre><span></span><code>--enable-cluster-external-secret-reconciler=false
 --enable-cluster-store-reconciler=false
+--enable-secret-store-reconciler=false
 --enable-push-secret-reconciler=false
 </code></pre></div>
 <h3 id="4-implement-namespace-scoped-installation">4. Implement Namespace-Scoped Installation</h3>
