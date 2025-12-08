@@ -291,10 +291,10 @@
                 "createClusterSecretStore": {
                     "type": "boolean"
                 },
-                "createSecretStore": {
+                "createPushSecret": {
                     "type": "boolean"
                 },
-                "createPushSecret": {
+                "createSecretStore": {
                     "type": "boolean"
                 }
             }
@@ -592,10 +592,10 @@
         "processClusterStore": {
             "type": "boolean"
         },
-        "processSecretStore": {
+        "processPushSecret": {
             "type": "boolean"
         },
-        "processPushSecret": {
+        "processSecretStore": {
             "type": "boolean"
         },
         "rbac": {
