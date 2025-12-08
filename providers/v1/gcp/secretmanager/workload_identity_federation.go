@@ -172,6 +172,33 @@ func (w *workloadIdentityFederation) TokenSource(ctx context.Context) (oauth2.To
 	return externalaccount.NewTokenSource(ctx, *config)
 }
 
+func (w *workloadIdentityFederation) getGCPServiceAccount(ctx context.Context, cfg *externalaccount.Config) (*externalaccount.Config, error) {
+	if w.config.ServiceAccountRef == nil {
+		return cfg, nil
+	}
+	// look up the service account and check if it has a well-known GCP WI annotation.
+	// If so, use that GCP service account for impersonation.
+	// Required if you grant secret access to a GCP service account instead of direct resource access.
+	ns := w.namespace
+	if w.isClusterKind && w.config.ServiceAccountRef.Namespace != nil {
+		ns = *w.config.ServiceAccountRef.Namespace
+	}
+	key := types.NamespacedName{
+		Name:      w.config.ServiceAccountRef.Name,
+		Namespace: ns,
+	}
+	sa := &corev1.ServiceAccount{}
+	if err := w.kubeClient.Get(ctx, key, sa); err != nil {
+		return nil, fmt.Errorf("failed to fetch serviceaccount %q: %w", key, err)
+	}
+
+	gcpSA := sa.Annotations[gcpSAAnnotation]
+	if gcpSA != "" {
+		cfg.ServiceAccountImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, gcpSA)
+	}
+	return cfg, nil
+}
+
 // readCredConfig is for loading the json cred config stored in the provided configmap.
 func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*externalaccount.Config, error) {
 	if w.config.CredConfig == nil {
@@ -179,27 +206,7 @@ func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*exter
 		if err != nil {
 			return nil, err
 		}
-		// look up the service account and check if it has a well-known GCP WI annotation.
-		// If so, use that GCP service account for impersonation.
-		// Required if you grant secret access to a GCP service account instead of direct resource access.
-		ns := w.namespace
-		if w.isClusterKind && w.config.ServiceAccountRef.Namespace != nil {
-			ns = *w.config.ServiceAccountRef.Namespace
-		}
-		key := types.NamespacedName{
-			Name:      w.config.ServiceAccountRef.Name,
-			Namespace: ns,
-		}
-		sa := &corev1.ServiceAccount{}
-		if err := w.kubeClient.Get(ctx, key, sa); err != nil {
-			return nil, fmt.Errorf("failed to fetch serviceaccount %q: %w", key, err)
-		}
-
-		gcpSA := sa.Annotations[gcpSAAnnotation]
-		if gcpSA != "" {
-			cfg.ServiceAccountImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, gcpSA)
-		}
-		return cfg, nil
+		return w.getGCPServiceAccount(ctx, cfg)
 	}
 
 	key := types.NamespacedName{
