@@ -41,7 +41,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakesm "github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager/fake"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
@@ -1557,6 +1557,8 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
     			                    break
     			                }
     			            }
+						case types.FilterNameStringTypeDescription, types.FilterNameStringTypeTagValue, types.FilterNameStringTypePrimaryRegion, types.FilterNameStringTypeOwningService, types.FilterNameStringTypeAll:
+							continue
     			        }
     			    }
 
