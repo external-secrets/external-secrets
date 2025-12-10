@@ -293,6 +293,9 @@
                 },
                 "createPushSecret": {
                     "type": "boolean"
+                },
+                "createSecretStore": {
+                    "type": "boolean"
                 }
             }
         },
@@ -590,6 +593,9 @@
             "type": "boolean"
         },
         "processPushSecret": {
+            "type": "boolean"
+        },
+        "processSecretStore": {
             "type": "boolean"
         },
         "rbac": {

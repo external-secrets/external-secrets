@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
@@ -1188,4 +1189,147 @@ func TestConfigMapDataNotBase64Encoded(t *testing.T) {
 	assert.Equal(t, "localhost", configMap.Data["host"], "host should be plain text, not base64")
 	assert.Equal(t, "5432", configMap.Data["port"], "port should be plain text, not base64")
 	assert.Equal(t, "mydb", configMap.Data["database"], "database should be plain text, not base64")
+}
+
+func TestNestedPathTargeting(t *testing.T) {
+	tests := []struct {
+		name     string
+		target   string
+		scope    esapi.TemplateScope
+		tpl      map[string][]byte
+		data     map[string][]byte
+		verify   func(t *testing.T, obj map[string]interface{})
+		wantErr  bool
+		errorMsg string
+	}{
+		{
+			name:   "nested path spec.slack with template variables",
+			target: "spec.slack",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"slack-config": []byte(`
+api_url: {{ .url }}
+webhook_url: {{ .webhook }}
+`),
+			},
+			data: map[string][]byte{
+				"url":     []byte("https://hooks.slack.com/services/XXX"),
+				"webhook": []byte("https://hooks.slack.com/services/YYY"),
+			},
+			verify: func(t *testing.T, obj map[string]interface{}) {
+				specMap := obj["spec"].(map[string]interface{})
+				slackMap := specMap["slack"].(map[string]interface{})
+
+				// Should NOT have spec.slack.api_url.url (the bug with template variables)
+				apiURL := slackMap["api_url"]
+				assert.Equal(t, "https://hooks.slack.com/services/XXX", apiURL, "api_url should be string, not nested map")
+
+				webhookURL := slackMap["webhook_url"]
+				assert.Equal(t, "https://hooks.slack.com/services/YYY", webhookURL, "webhook_url should be string, not nested map")
+
+				// Verify the fix: should NOT have duplicate 'slack' in the path
+				_, hasDuplicateSlack := slackMap["slack"]
+				assert.False(t, hasDuplicateSlack, "should not have spec.slack.slack (the bug)")
+			},
+		},
+		{
+			name:   "nested path merge behavior - preserves existing fields",
+			target: "spec.slack",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"slack-config": []byte(`
+api_url: {{ .url }}
+`),
+			},
+			data: map[string][]byte{
+				"url": []byte("https://hooks.slack.com/services/NEW"),
+			},
+			verify: func(t *testing.T, obj map[string]interface{}) {
+				specMap := obj["spec"].(map[string]interface{})
+				slackMap := specMap["slack"].(map[string]interface{})
+
+				// Should have the new field from template
+				assert.Equal(t, "https://hooks.slack.com/services/NEW", slackMap["api_url"], "api_url should be set from template")
+
+				// Should PRESERVE existing fields that were not in the template
+				assert.Equal(t, "general", slackMap["channel"], "existing channel field should be preserved")
+				assert.Equal(t, "test-value", slackMap["other_field"], "existing other_field should be preserved")
+			},
+		},
+		{
+			name:   "nested path overwrite field - updates existing value",
+			target: "spec.slack",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"slack-config": []byte(`
+channel: {{ .new_channel }}
+`),
+			},
+			data: map[string][]byte{
+				"new_channel": []byte("alerts"),
+			},
+			verify: func(t *testing.T, obj map[string]interface{}) {
+				specMap := obj["spec"].(map[string]interface{})
+				slackMap := specMap["slack"].(map[string]interface{})
+
+				// Should update the existing field
+				assert.Equal(t, "alerts", slackMap["channel"], "channel should be updated")
+
+				// Should still preserve other existing fields
+				assert.Equal(t, "https://hooks.slack.com/existing", slackMap["api_url"], "existing api_url should be preserved")
+				assert.Equal(t, "test-value", slackMap["other_field"], "existing other_field should be preserved")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Use an unstructured object to test generic target behavior
+			obj := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "example.com/v1",
+					"kind":       "TestResource",
+					"metadata": map[string]interface{}{
+						"name":      "test-resource",
+						"namespace": "default",
+					},
+				},
+			}
+
+			// For merge behavior tests, pre-populate the object with existing content
+			if strings.Contains(tt.name, "merge behavior") {
+				obj.Object["spec"] = map[string]interface{}{
+					"slack": map[string]interface{}{
+						"channel":     "general",
+						"other_field": "test-value",
+					},
+				}
+			}
+
+			// For overwrite field test, pre-populate with different initial values
+			if strings.Contains(tt.name, "overwrite field") {
+				obj.Object["spec"] = map[string]interface{}{
+					"slack": map[string]interface{}{
+						"channel":     "general",
+						"api_url":     "https://hooks.slack.com/existing",
+						"other_field": "test-value",
+					},
+				}
+			}
+
+			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg)
+				}
+			} else {
+				require.NoError(t, err)
+				if tt.verify != nil {
+					tt.verify(t, obj.Object)
+				}
+			}
+		})
+	}
 }

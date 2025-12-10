@@ -108,7 +108,7 @@ go-work:
 .PHONY: test
 test: generate envtest go-work ## Run tests
 	@$(INFO) go test unit-tests
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test work -v -race -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test -tags $(PROVIDER) work -v -race -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: test.e2e
@@ -138,11 +138,12 @@ test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CR
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
 
+PROVIDER ?= all_providers
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
 	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
-		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
+		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
 lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module)

@@ -1,7 +1,18 @@
+---
 global:
   nodeSelector: {}
   tolerations: []
   topologySpreadConstraints: []
+  #  - maxSkew: 1
+  #    topologyKey: topology.kubernetes.io/zone
+  #    whenUnsatisfiable: ScheduleAnyway
+  #    matchLabelKeys:
+  #      - pod-template-hash
+  #  - maxSkew: 1
+  #    topologyKey: kubernetes.io/hostname
+  #    whenUnsatisfiable: DoNotSchedule
+  #    matchLabelKeys:
+  #      - pod-template-hash
   affinity: {}
   compatibility:
     openshift:
@@ -22,7 +33,7 @@ bitwarden-sdk-server:
 revisionHistoryLimit: 10
 
 image:
-  repository: oci.external-secrets.io/external-secrets/external-secrets
+  repository: ghcr.io/external-secrets/external-secrets
   pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
   tag: ""
@@ -40,6 +51,8 @@ crds:
   createClusterExternalSecret: true
   # -- If true, create CRDs for Cluster Secret Store.
   createClusterSecretStore: true
+  # -- If true, create CRDs for Secret Store.
+  createSecretStore: true
   # -- If true, create CRDs for Cluster Generator.
   createClusterGenerator: true
   # -- If true, create CRDs for Cluster Push Secret.
@@ -95,6 +108,9 @@ processClusterPushSecret: true
 
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
+
+# -- if true, the operator will process secret store. Else, it will ignore them.
+processSecretStore: true
 
 # -- if true, the operator will process cluster generator. Else, it will ignore them.
 processClusterGenerator: true
@@ -380,7 +396,7 @@ webhook:
   # -- Specifies if webhook pod should use hostNetwork or not.
   hostNetwork: false
   image:
-    repository: oci.external-secrets.io/external-secrets/external-secrets
+    repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
     # -- The image tag to use. The default is the chart appVersion.
     tag: ""
@@ -558,7 +574,7 @@ certController:
   revisionHistoryLimit: 10
 
   image:
-    repository: oci.external-secrets.io/external-secrets/external-secrets
+    repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
     tag: ""
     flavour: ""

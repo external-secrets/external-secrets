@@ -31,16 +31,26 @@ package github
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"testing"
 
+	"github.com/bradleyfalzon/ghinstallation/v2"
 	github "github.com/google/go-github/v56/github"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type getSecretFn func(ctx context.Context, ref esv1.PushSecretRemoteRef) (*github.Secret, *github.Response, error)
@@ -226,6 +236,199 @@ func TestPushSecret(t *testing.T) {
 				assert.NoError(t, err)
 			} else {
 				assert.ErrorContains(t, err, test.wantErr.Error())
+			}
+		})
+	}
+}
+
+// generateTestPrivateKey generates a PEM-encoded RSA private key for testing.
+func generateTestPrivateKey() (string, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", err
+	}
+
+	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	privateKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privateKeyBytes,
+	})
+
+	return string(privateKeyPEM), nil
+}
+
+func TestAuthWithPrivateKey(t *testing.T) {
+	// Generate a valid private key for testing
+	privateKeyPEM, err := generateTestPrivateKey()
+	require.NoError(t, err)
+
+	tests := []struct {
+		name           string
+		provider       *esv1.GithubProvider
+		secret         *corev1.Secret
+		wantErr        bool
+		wantBaseURL    string
+		wantUploadURL  string
+		checkTransport bool
+	}{
+		{
+			name: "GitHub.com (default)",
+			provider: &esv1.GithubProvider{
+				AppID:          1,
+				InstallationID: 1,
+				URL:            "https://github.com/",
+				Auth: esv1.GithubAppAuth{
+					PrivateKey: esmeta.SecretKeySelector{
+						Name: "test-secret",
+						Key:  "private-key",
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-secret",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"private-key": []byte(privateKeyPEM),
+				},
+			},
+			wantErr:        false,
+			wantBaseURL:    "https://api.github.com/",
+			checkTransport: false, // For default GitHub, we don't modify transport
+		},
+		{
+			name: "GitHub Enterprise with custom URL",
+			provider: &esv1.GithubProvider{
+				AppID:          1,
+				InstallationID: 1,
+				URL:            "https://github.enterprise.com/",
+				Auth: esv1.GithubAppAuth{
+					PrivateKey: esmeta.SecretKeySelector{
+						Name: "test-secret",
+						Key:  "private-key",
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-secret",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"private-key": []byte(privateKeyPEM),
+				},
+			},
+			wantErr:        false,
+			wantBaseURL:    "https://github.enterprise.com/api/v3/",
+			wantUploadURL:  "https://github.enterprise.com/api/uploads/",
+			checkTransport: true,
+		},
+		{
+			name: "GitHub Enterprise with separate upload URL",
+			provider: &esv1.GithubProvider{
+				AppID:          1,
+				InstallationID: 1,
+				URL:            "https://github.enterprise.com/api/v3",
+				UploadURL:      "https://uploads.github.enterprise.com/api/v3",
+				Auth: esv1.GithubAppAuth{
+					PrivateKey: esmeta.SecretKeySelector{
+						Name: "test-secret",
+						Key:  "private-key",
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-secret",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"private-key": []byte(privateKeyPEM),
+				},
+			},
+			wantErr:        false,
+			wantBaseURL:    "https://github.enterprise.com/api/v3/",
+			wantUploadURL:  "https://uploads.github.enterprise.com/api/v3/api/uploads/",
+			checkTransport: true,
+		},
+		{
+			name: "Empty URL (default to github.com)",
+			provider: &esv1.GithubProvider{
+				AppID:          1,
+				InstallationID: 1,
+				URL:            "",
+				Auth: esv1.GithubAppAuth{
+					PrivateKey: esmeta.SecretKeySelector{
+						Name: "test-secret",
+						Key:  "private-key",
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-secret",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"private-key": []byte(privateKeyPEM),
+				},
+			},
+			wantErr:        false,
+			wantBaseURL:    "https://api.github.com/",
+			checkTransport: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create fake Kubernetes client with the secret
+			scheme := runtime.NewScheme()
+			_ = corev1.AddToScheme(scheme)
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(tt.secret).
+				Build()
+
+			// Create the GitHub client
+			client := &Client{
+				crClient:  fakeClient,
+				provider:  tt.provider,
+				namespace: "default",
+				storeKind: "SecretStore",
+			}
+
+			// Call AuthWithPrivateKey
+			ghClient, err := client.AuthWithPrivateKey(context.Background())
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, ghClient)
+
+			// Verify the BaseURL is set correctly
+			assert.Equal(t, tt.wantBaseURL, ghClient.BaseURL.String())
+
+			// If UploadURL is specified, verify it
+			if tt.wantUploadURL != "" {
+				assert.Equal(t, tt.wantUploadURL, ghClient.UploadURL.String())
+			}
+
+			// For GitHub Enterprise, verify the transport BaseURL is also set
+			if tt.checkTransport {
+				transport := ghClient.Client().Transport
+				require.NotNil(t, transport)
+
+				// Type assert to ghinstallation.Transport
+				ghTransport, ok := transport.(*ghinstallation.Transport)
+				require.True(t, ok, "Expected transport to be *ghinstallation.Transport")
+
+				// Verify the BaseURL is set on the transport
+				assert.Equal(t, tt.wantBaseURL, ghTransport.BaseURL,
+					"Transport BaseURL should match the enterprise URL")
 			}
 		})
 	}

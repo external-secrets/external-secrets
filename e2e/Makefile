@@ -9,7 +9,7 @@ export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed
 export TEST_SUITES ?= provider generator flux argocd
 
-export OCI_IMAGE_NAME = oci.external-secrets.io/external-secrets/external-secrets
+export OCI_IMAGE_NAME = ghcr.io/external-secrets/external-secrets
 
 start-kind: ## Start kind cluster
 	kind create cluster \

@@ -82,10 +82,6 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 // DeleteSecret removes a secret value from Kubernetes.
 // It requires a property to be specified in the RemoteRef.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
-	if remoteRef.GetProperty() == "" {
-		return errors.New("requires property in RemoteRef to delete secret value")
-	}
-
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, getErr)
 	if getErr != nil {
@@ -95,13 +91,15 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		}
 		return getErr
 	}
-	if _, ok := extSecret.Data[remoteRef.GetProperty()]; !ok {
-		// return gracefully if specified secret does not contain the given property
-		return nil
-	}
+	if remoteRef.GetProperty() != "" {
+		if _, ok := extSecret.Data[remoteRef.GetProperty()]; !ok {
+			// return gracefully if specified secret does not contain the given property
+			return nil
+		}
 
-	if len(extSecret.Data) > 1 {
-		return c.removeProperty(ctx, extSecret, remoteRef)
+		if len(extSecret.Data) > 1 {
+			return c.removeProperty(ctx, extSecret, remoteRef)
+		}
 	}
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }

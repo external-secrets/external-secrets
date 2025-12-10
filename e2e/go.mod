@@ -1,11 +1,8 @@
 module github.com/external-secrets/external-secrets-e2e
 
-go 1.25.3
+go 1.25.5
 
-replace (
-	github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
-	github.com/external-secrets/external-secrets => ../
-)
+replace github.com/external-secrets/external-secrets => ../
 
 replace (
 	github.com/external-secrets/external-secrets v0.0.0 => ../
