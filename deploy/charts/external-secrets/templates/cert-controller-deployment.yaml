@@ -32,9 +32,9 @@ spec:
       labels:
         {{- include "external-secrets-cert-controller.labels" . | nindent 8 }}
         {{- if .Values.certController.podLabels }}
-          {{- toYaml .Values.certController.podLabels | nindent 8 }}
+        {{- toYaml .Values.certController.podLabels | nindent 8 }}
         {{- else if .Values.global.podLabels }}
-          {{- toYaml .Values.global.podLabels | nindent 8 }}
+        {{- toYaml .Values.global.podLabels | nindent 8 }}
         {{- end }}
     spec:
       {{- if .Values.certController.imagePullSecrets }}

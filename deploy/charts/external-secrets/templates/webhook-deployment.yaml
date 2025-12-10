@@ -32,9 +32,9 @@ spec:
       labels:
         {{- include "external-secrets-webhook.labels" . | nindent 8 }}
         {{- if .Values.webhook.podLabels }}
-          {{- toYaml .Values.webhook.podLabels | nindent 8 }}
+        {{- toYaml .Values.webhook.podLabels | nindent 8 }}
         {{- else if .Values.global.podLabels }}
-          {{- toYaml .Values.global.podLabels | nindent 8 }}
+        {{- toYaml .Values.global.podLabels | nindent 8 }}
         {{- end }}
     spec:
       {{- if .Values.webhook.imagePullSecrets }}
