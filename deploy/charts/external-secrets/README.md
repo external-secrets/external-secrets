@@ -117,10 +117,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | genericTargets.resources | list | `[]` | List of additional resource types to grant permissions for. Each entry should specify apiGroup, resources, and verbs. Example: resources:   - apiGroup: "argoproj.io"     resources: ["applications"]     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"] |
 | global.affinity | object | `{}` |  |
 | global.compatibility.openshift.adaptSecurityContext | string | `"auto"` | Manages the securityContext properties to make them compatible with OpenShift. Possible values: auto - Apply configurations if it is detected that OpenShift is the target platform. force - Always apply configurations. disabled - No modification applied. |
-| global.imagePullSecrets | list | `[{"name":"my-registry-secret"}]` | Global imagePullSecrets to be applied to all deployments |
+| global.imagePullSecrets | list | `[]` | Global imagePullSecrets to be applied to all deployments |
 | global.nodeSelector | object | `{}` |  |
-| global.podAnnotations | object | `{"gabreu":"juninho"}` | Global pod annotations to be applied to all deployments |
-| global.podLabels | object | `{"gabreu":"juninho"}` | Global pod labels to be applied to all deployments |
+| global.podAnnotations | object | `{}` | Global pod annotations to be applied to all deployments |
+| global.podLabels | object | `{}` | Global pod labels to be applied to all deployments |
 | global.repository | string | `""` | Global image repository to be applied to all deployments |
 | global.tolerations | list | `[]` |  |
 | global.topologySpreadConstraints | list | `[]` |  |
