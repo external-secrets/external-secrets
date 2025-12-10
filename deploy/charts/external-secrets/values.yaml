@@ -15,8 +15,7 @@ global:
   #      - pod-template-hash
   affinity: {}
   # -- Global pod labels to be applied to all deployments
-  podLabels:
-    gabreu: {}
+  podLabels: {}
   # -- Global pod annotations to be applied to all deployments
   podAnnotations: {}
   # -- Global imagePullSecrets to be applied to all deployments
