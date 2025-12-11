@@ -268,14 +268,15 @@ Will generate a secret with:
 ```
 ### Authentication
 
-We support five different modes for authentication:
+We support multiple authentication methods:
 [token-based](https://www.vaultproject.io/docs/auth/token),
 [appRole](https://www.vaultproject.io/docs/auth/approle),
 [kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
 [ldap](https://www.vaultproject.io/docs/auth/ldap),
 [userPass](https://www.vaultproject.io/docs/auth/userpass),
 [jwt/oidc](https://www.vaultproject.io/docs/auth/jwt),
-[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws) and
+[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws),
+[gcpAuth](https://developer.hashicorp.com/vault/docs/auth/gcp), and
 [tlsCert](https://developer.hashicorp.com/vault/docs/auth/cert), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
@@ -375,6 +376,59 @@ or `Kind=ClusterSecretStore` resource.
 [AWS IAM](https://developer.hashicorp.com/vault/docs/auth/aws) uses either a
 set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
 `secretRef` or by getting the authentication token from an [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) enabled service account
+
+#### GCP authentication
+
+[GCP auth method](https://developer.hashicorp.com/vault/docs/auth/gcp) allows authentication to Vault using Google Cloud Platform credentials. The External Secrets Operator supports GCP authentication through Workload Identity, which enables GKE workloads to authenticate to Vault without storing service account keys.
+
+##### GCP Workload Identity
+
+When using [GKE Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity), the operator generates a signed JWT token that Vault validates against the GCP IAM API. This approach provides secure, keyless authentication for GKE clusters.
+
+**Prerequisites:**
+- GKE cluster with Workload Identity enabled
+- Kubernetes service account annotated with `iam.gke.io/gcp-service-account`
+- GCP service account with necessary IAM bindings
+- Vault configured with [GCP auth method](https://developer.hashicorp.com/vault/docs/auth/gcp)
+
+```yaml
+{% include 'vault-gcp-store.yaml' %}
+```
+
+**Important notes:**
+- The Kubernetes service account must be annotated with `iam.gke.io/gcp-service-account` pointing to the GCP service account email
+- The GCP service account needs the `iam.serviceAccountTokenCreator` role to sign JWTs
+- Vault must be configured to accept authentication from your GCP project and service account
+- The operator automatically generates and refreshes the JWT tokens as needed
+
+**NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` in `serviceAccountRef` with the namespace where the service account resides.
+
+##### Alternative: GCP Service Account Key
+
+You can also authenticate using a GCP service account key stored in a Kubernetes secret:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "https://vault.example.com"
+      path: "secret"
+      version: "v2"
+      auth:
+        gcp:
+          role: "my-vault-role"
+          projectID: "my-gcp-project"
+          secretRef:
+            secretAccessKey:
+              name: "gcpsm-secret"
+              key: "secret-access-credentials"
+```
+
+**NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### TLS certificates authentication
 

@@ -435,10 +435,18 @@ func (g *fakeIDBindTokenGen) Generate(ctx context.Context, client *http.Client, 
 // fake IAM Client.
 type fakeIAMClient struct {
 	generateAccessTokenFunc func(context.Context, *credentialspb.GenerateAccessTokenRequest, ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
+	signJwtFunc             func(context.Context, *credentialspb.SignJwtRequest, ...gax.CallOption) (*credentialspb.SignJwtResponse, error)
 }
 
 func (f *fakeIAMClient) GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error) {
 	return f.generateAccessTokenFunc(ctx, req, opts...)
+}
+
+func (f *fakeIAMClient) SignJwt(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error) {
+	if f.signJwtFunc != nil {
+		return f.signJwtFunc(ctx, req, opts...)
+	}
+	return &credentialspb.SignJwtResponse{}, nil
 }
 
 func (f *fakeIAMClient) Close() error {
