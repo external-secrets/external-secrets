@@ -1137,6 +1137,83 @@ func TestSecretExists(t *testing.T) {
 	}
 }
 
+func TestSecretExistsWithRegionalEndpoint(t *testing.T) {
+	tests := []struct {
+		name                          string
+		location                      string
+		ref                           esv1.PushSecretRemoteRef
+		getSecretMockReturn           fakesm.SecretMockReturn
+		accessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
+		expectedSecret                bool
+		expectedErr                   func(t *testing.T, err error)
+	}{
+		{
+			name:     "secret exists with regional endpoint",
+			location: usEast1,
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "bar",
+			},
+			getSecretMockReturn: fakesm.SecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: testSecretName,
+				},
+				Err: nil,
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Name: "projects/foo/locations/us-east1/secrets/bar/versions/latest",
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte("test-data"),
+					},
+				},
+				Err: nil,
+			},
+			expectedSecret: true,
+			expectedErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name:     "secret does not exist with regional endpoint",
+			location: usEast1,
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "bar",
+			},
+			getSecretMockReturn: fakesm.SecretMockReturn{
+				Secret: nil,
+				Err:    status.Errorf(codes.NotFound, "secret not found"),
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{},
+			expectedSecret:                false,
+			expectedErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			smClient := fakesm.MockSMClient{}
+			smClient.NewGetSecretFn(tc.getSecretMockReturn)
+			smClient.NewAccessSecretVersionFn(tc.accessSecretVersionMockReturn)
+
+			client := Client{
+				smClient: &smClient,
+				store: &esv1.GCPSMProvider{
+					ProjectID: "foo",
+					Location:  tc.location,
+				},
+			}
+			got, err := client.SecretExists(t.Context(), tc.ref)
+			tc.expectedErr(t, err)
+
+			if got != tc.expectedSecret {
+				t.Fatalf("unexpected secret: expected %t, got %t", tc.expectedSecret, got)
+			}
+		})
+	}
+}
+
 func TestPushSecretProperty(t *testing.T) {
 	secretKey := "secret-key"
 	defaultAddSecretVersionMockReturn := func(gotPayload, expectedPayload string) (*secretmanagerpb.SecretVersion, error) {
