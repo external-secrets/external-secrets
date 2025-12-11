@@ -3624,6 +3624,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#service-token-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Token Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oidc-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OIDC Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4889,6 +4917,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#service-token-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Token Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oidc-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OIDC Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5000,6 +5056,11 @@
 <h2 id="doppler-secretops-platform">Doppler SecretOps Platform</h2>
 <p>Sync secrets from the <a href="https://www.doppler.com/">Doppler SecretOps Platform</a> to Kubernetes using the External Secrets Operator.</p>
 <h2 id="authentication">Authentication</h2>
+<p>Doppler supports two authentication methods:</p>
+<blockquote>
+<p><strong>NOTE:</strong> When using a <code>ClusterSecretStore</code>, be sure to set <code>namespace</code> in <code>secretRef.dopplerToken</code> (for token auth) or <code>serviceAccountRef</code> (for OIDC auth).</p>
+</blockquote>
+<h3 id="service-token-authentication">Service Token Authentication</h3>
 <p>Doppler <a href="https://docs.doppler.com/docs/service-tokens">Service Tokens</a> are recommended as they restrict access to a single config.</p>
 <p><img alt="Doppler Service Token" src="../../pictures/doppler-service-tokens.png" /></p>
 <blockquote>
@@ -5026,9 +5087,38 @@
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">doppler-token-auth-api</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dopplerToken</span>
 </code></pre></div>
-<blockquote>
-<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to set <code>namespace</code> in <code>secretRef.dopplerToken</code>.</p>
-</blockquote>
+<h3 id="oidc-authentication">OIDC Authentication</h3>
+<p>For OIDC authentication, you'll need to configure a Doppler <a href="https://docs.doppler.com/docs/service-account-identities">Service Account Identity</a> and create a Kubernetes ServiceAccount.</p>
+<p>First, create a Kubernetes ServiceAccount:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">doppler-oidc-sa</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+</code></pre></div>
+<p>Next, create a Doppler Service Account Identity with:
+- <strong>Issuer</strong>: Your cluster's OIDC discovery URL
+- <strong>Audience</strong>: The resource-specific audience for the SecretStore (<code>secretStore:&lt;namespace&gt;:&lt;storeName&gt;</code> or <code>clusterSecretStore:&lt;storeName&gt;</code>), e.g. <code>secretStore:external-secrets:doppler-oidc-sa</code> or <code>clusterSecretStore:doppler-auth-api</code>
+- <strong>Subject</strong>: The Kubernetes ServiceAccount (<code>system:serviceaccount:&lt;serviceAccountNamespace&gt;:&lt;serviceAccountName&gt;</code>), e.g. <code>system:serviceaccount:external-secrets:doppler-oidc-sa</code></p>
+<p>Then configure the SecretStore:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">doppler-auth-api</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">doppler</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">oidcConfig</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identity</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;00000000-0000-0000-0000-000000000000&quot;</span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">doppler-oidc-sa</span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<span class="w">            </span><span class="c1"># expirationSeconds defaults to 600 if not supplied</span>
+<span class="w">            </span><span class="c1"># expirationSeconds: 600</span>
+<span class="w">      </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">      </span><span class="nt">config</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-config</span>
+</code></pre></div>
 <h2 id="use-cases">Use Cases</h2>
 <p>The Doppler provider allows for a wide range of use cases:</p>
 <ol>
