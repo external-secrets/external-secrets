@@ -173,10 +173,16 @@ Create the name of the service account to use
 Determine the image to use, including if using a flavour.
 */}}
 {{- define "external-secrets.image" -}}
+{{- $repository := "" -}}
+{{- if .context.Values.global.repository -}}
+{{- $repository = .context.Values.global.repository -}}
+{{- else -}}
+{{- $repository = .image.repository -}}
+{{- end -}}
 {{- if .image.flavour -}}
-{{ printf "%s:%s-%s" .image.repository (.image.tag | default .chartAppVersion) .image.flavour }}
+{{ printf "%s:%s-%s" $repository (.image.tag | default .chartAppVersion) .image.flavour }}
 {{- else }}
-{{ printf "%s:%s" .image.repository (.image.tag | default .chartAppVersion) }}
+{{ printf "%s:%s" $repository (.image.tag | default .chartAppVersion) }}
 {{- end }}
 {{- end }}
 

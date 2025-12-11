@@ -41,7 +41,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakesm "github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager/fake"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
@@ -1363,6 +1363,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		secretValue           string
 		batchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
 		listSecretsFn         func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
+		getSecretValueFn     func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
 		expectedData          map[string][]byte
 		expectedError         string
 	}{
@@ -1501,6 +1502,99 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			expectedError: "",
 		},
 		{
+			name: "name and tags: matching secrets found",
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
+					RegExp: secretName,
+				},
+				Tags: secretTags,
+			},
+			listSecretsFn: func(_ context.Context, input *awssm.ListSecretsInput, _ ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
+			    allSecrets := []types.SecretListEntry{
+			        {
+			            Name: ptr.To(secretName),
+			            Tags: []types.Tag{
+			                { Key: ptr.To("foo"), Value: ptr.To("bar") },
+			            },
+			        },
+			        {
+			            Name: ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+			        },
+			        {
+			            Name: ptr.To("unmatched-secret"),
+			            Tags: []types.Tag{
+			                { Key: ptr.To("foo"), Value: ptr.To("bar") },
+			            },
+			        },
+			    }
+
+				filtered := make([]types.SecretListEntry, 0, len(allSecrets))
+				for _, secret := range allSecrets {
+    			    exclude := false
+
+    			    tagMap := map[string]string{}
+    			    for _, t := range secret.Tags {
+    			        if t.Key != nil && t.Value != nil {
+    			            tagMap[*t.Key] = *t.Value
+    			        }
+    			    }
+
+    			    for _, f := range input.Filters {
+    			        switch f.Key {
+    			        case types.FilterNameStringTypeName:
+    			            if secret.Name != nil {
+    			                for _, v := range f.Values {
+    			                    if strings.Contains(*secret.Name, v) {
+    			                        exclude = true
+    			                        break
+    			                    }
+    			                }
+    			            }
+    			        case types.FilterNameStringTypeTagKey:
+    			            for _, v := range f.Values {
+    			                if tagMap[v] == "" {
+    			                    exclude = true
+    			                    break
+    			                }
+    			            }
+						case types.FilterNameStringTypeDescription, types.FilterNameStringTypeTagValue, types.FilterNameStringTypePrimaryRegion, types.FilterNameStringTypeOwningService, types.FilterNameStringTypeAll:
+							continue
+    			        }
+    			    }
+
+    			    if !exclude {
+    			        filtered = append(filtered, secret)
+    			    }
+    			}
+			    return &awssm.ListSecretsOutput{SecretList: filtered}, nil
+			},
+			getSecretValueFn: func(_ context.Context, input *awssm.GetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
+				if *input.SecretId == secretName {
+					return &awssm.GetSecretValueOutput{
+						Name:          ptr.To(secretName),
+						VersionStages: []string{secretVersion},
+						SecretBinary:  []byte(secretValue),
+					}, nil
+				}
+				if *input.SecretId == "unmatched-secret" {
+					return &awssm.GetSecretValueOutput{
+						Name:          ptr.To("unmatched-secret"),
+						VersionStages: []string{secretVersion},
+						SecretBinary:  []byte("othervalue"),
+					}, nil
+				}
+				return &awssm.GetSecretValueOutput{
+					Name:          ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+					VersionStages: []string{secretVersion},
+					SecretBinary:  []byte("someothervalue"),
+				}, nil
+			},
+			expectedData: map[string][]byte{
+				secretName: []byte(secretValue),
+			},
+			expectedError: "",
+		},
+		{
 			name: "tags: error occurred while fetching secret value",
 			ref: esv1.ExternalSecretFind{
 				Tags: secretTags,
@@ -1540,6 +1634,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			fc := fakesm.NewClient()
 			fc.BatchGetSecretValueFn = tc.batchGetSecretValueFn
 			fc.ListSecretsFn = tc.listSecretsFn
+			fc.GetSecretValueFn = tc.getSecretValueFn
 			sm := SecretsManager{
 				client: fc,
 				cache:  make(map[string]*awssm.GetSecretValueOutput),

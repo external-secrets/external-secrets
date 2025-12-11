@@ -1,0 +1,67 @@
+suite: test global values schema validation
+# This test validates that the JSON schema correctly defines the new global values
+templates:
+  - deployment.yaml
+tests:
+  - it: should accept valid global.podLabels
+    set:
+      global.podLabels:
+        app: "myapp"
+        environment: "production"
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should accept valid global.podAnnotations
+    set:
+      global.podAnnotations:
+        prometheus.io/scrape: "true"
+        custom-annotation: "value"
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should accept valid global.imagePullSecrets
+    set:
+      global.imagePullSecrets:
+        - name: "my-registry-secret"
+        - name: "another-secret"
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should accept valid global.repository as string
+    set:
+      global.repository: "my-registry.io/org/external-secrets"
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should accept empty global.repository string
+    set:
+      global.repository: ""
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should accept all global values together
+    set:
+      global.repository: "my-registry.io/org/external-secrets"
+      global.imagePullSecrets:
+        - name: "global-secret"
+      global.podLabels:
+        team: "platform"
+      global.podAnnotations:
+        version: "1.0.0"
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.metadata.labels.team
+          value: "platform"
+      - equal:
+          path: spec.template.metadata.annotations.version
+          value: "1.0.0"
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: "global-secret"

@@ -285,6 +285,7 @@ const (
 	ReasonValidationUnknown     = "ValidationUnknown"
 	ReasonStoreValid            = "Valid"
 	StoreUnmaintained           = "StoreUnmaintained"
+	StoreDeprecated             = "StoreDeprecated"
 )
 
 // SecretStoreStatusCondition contains condition information for a SecretStore.
