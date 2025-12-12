@@ -3023,6 +3023,29 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#custom-cloud-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Cloud Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Custom Cloud Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#azure-china-workload-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure China Workload Identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#azure-stack-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3030,6 +3053,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -5044,6 +5072,29 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#custom-cloud-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Cloud Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Custom Cloud Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#azure-china-workload-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure China Workload Identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#azure-stack-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5051,6 +5102,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -5171,7 +5227,7 @@
 <p>We support authentication with Microsoft Entra identities that can be used as Workload Identity or <a href="https://azure.github.io/aad-pod-identity/docs/">AAD Pod Identity</a> as well as with Service Principal credentials.</p>
 <p>Since the <a href="https://azure.github.io/aad-pod-identity/docs/">AAD Pod Identity</a> is deprecated, it is recommended to use the <a href="https://azure.github.io/azure-workload-identity">Workload Identity</a> authentication.</p>
 <p>We support connecting to different cloud flavours azure supports: <code>PublicCloud</code>, <code>USGovernmentCloud</code>, <code>ChinaCloud</code>, <code>GermanCloud</code> and <code>AzureStackCloud</code> (for Azure Stack Hub/Edge). You have to specify the <code>environmentType</code> and point to the correct cloud flavour. This defaults to <code>PublicCloud</code>.</p>
-<p>For Azure Stack Hub or Azure Stack Edge environments, you must also provide custom cloud configuration. See the <a href="#azure-stack-configuration">Azure Stack Configuration</a> section below.</p>
+<p>For environments with non-standard endpoints (Azure Stack, Azure China with AKS Workload Identity, etc.), you can provide custom cloud configuration to override the default endpoints. See the <a href="#custom-cloud-configuration">Custom Cloud Configuration</a> section below.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5302,8 +5358,33 @@ az<span class="w"> </span>keyvault<span class="w"> </span>set-policy<span class=
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">umi-secret</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tenantId</span>
 </code></pre></div>
-<h3 id="azure-stack-configuration">Azure Stack Configuration</h3>
-<p>External Secrets Operator supports Azure Stack Hub and Azure Stack Edge through custom cloud configuration. This feature requires using the new Azure SDK.</p>
+<h3 id="custom-cloud-configuration">Custom Cloud Configuration</h3>
+<p>External Secrets Operator supports custom cloud endpoints for Azure Stack Hub, Azure Stack Edge, and other scenarios where the default cloud endpoints don't match your environment. This feature requires using the new Azure SDK.</p>
+<h4 id="azure-china-workload-identity">Azure China Workload Identity</h4>
+<p>Azure China's AKS uses a different OIDC issuer (<code>login.partner.microsoftonline.cn</code>) than the standard China Cloud endpoint (<code>login.chinacloudapi.cn</code>). When using Workload Identity with AKS in Azure China, you need to override the Active Directory endpoint:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-china-workload-identity</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">azurekv</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">vaultUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://my-vault.vault.azure.cn&quot;</span>
+<span class="w">      </span><span class="nt">environmentType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ChinaCloud</span>
+<span class="w">      </span><span class="nt">authType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WorkloadIdentity</span>
+<span class="w">      </span><span class="c1"># REQUIRED: Must be true to use custom cloud configuration</span>
+<span class="w">      </span><span class="nt">useAzureSDK</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">      </span><span class="c1"># Override the Active Directory endpoint to match AKS OIDC issuer</span>
+<span class="w">      </span><span class="nt">customCloudConfig</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">activeDirectoryEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://login.partner.microsoftonline.cn/&quot;</span>
+<span class="w">        </span><span class="nt">keyVaultEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.azure.cn/&quot;</span>
+<span class="w">        </span><span class="nt">resourceManagerEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://management.chinacloudapi.cn/&quot;</span>
+<span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-service-account</span>
+<span class="w">        </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+</code></pre></div>
+<h4 id="azure-stack-configuration">Azure Stack Configuration</h4>
+<p>For Azure Stack Hub or Azure Stack Edge environments:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5336,8 +5417,9 @@ az<span class="w"> </span>keyvault<span class="w"> </span>set-policy<span class=
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">client-secret</span>
 </code></pre></div>
 <p><strong>Important Notes:</strong>
-- <code>useAzureSDK: true</code> is mandatory for Azure Stack environments
-- The <code>customCloudConfig</code> is only valid when <code>environmentType: AzureStackCloud</code>
+- <code>useAzureSDK: true</code> is mandatory when using <code>customCloudConfig</code>
+- <code>customCloudConfig</code> can be used with any <code>environmentType</code> (PublicCloud, ChinaCloud, etc.)
+- For AzureStackCloud, <code>customCloudConfig</code> is required
 - Contact your Azure Stack administrator for the correct endpoint URLs</p>
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>azurekv</code> provider is listed in the <code>Kind=SecretStore</code></p>
