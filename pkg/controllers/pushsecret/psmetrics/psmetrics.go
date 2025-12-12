@@ -73,17 +73,39 @@ func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecret
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(psInfo)
 	pushSecretCondition := GetGaugeVec(PushSecretStatusConditionKey)
 
+	// This allows us to delete metrics even when other labels (like helm annotations) have changed
+	baseLabels := prometheus.Labels{
+		"name":      ps.Name,
+		"namespace": ps.Namespace,
+	}
+
 	switch condition.Type {
 	case esapi.PushSecretReady:
-		// Toggle opposite Status to 0
+		// Toggle opposite Status to 0, but first delete any stale metrics with old labels
 		switch condition.Status {
 		case v1.ConditionFalse:
+			// delete any existing metrics with status True (regardless of other labels)
+			baseLabels["condition"] = string(esapi.PushSecretReady)
+			baseLabels["status"] = string(v1.ConditionTrue)
+			pushSecretCondition.DeletePartialMatch(baseLabels)
+			delete(baseLabels, "condition")
+			delete(baseLabels, "status")
+
+			// Set the metric with current labels
 			pushSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 				map[string]string{
 					"condition": string(esapi.PushSecretReady),
 					"status":    string(v1.ConditionTrue),
 				})).Set(0)
 		case v1.ConditionTrue:
+			// delete any existing metrics with status False (regardless of other labels)
+			baseLabels["condition"] = string(esapi.PushSecretReady)
+			baseLabels["status"] = string(v1.ConditionFalse)
+			pushSecretCondition.DeletePartialMatch(baseLabels)
+			delete(baseLabels, "condition")
+			delete(baseLabels, "status")
+
+			// finally, set the metric with current labels
 			pushSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 				map[string]string{
 					"condition": string(esapi.PushSecretReady),
