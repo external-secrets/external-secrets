@@ -28,6 +28,7 @@ import (
 
 	"github.com/external-secrets/external-secrets/runtime/find"
 	corev1 "k8s.io/api/core/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -58,10 +59,12 @@ type Client struct {
 	nameTransformer string
 	format          string
 
-	kube      kclient.Client
-	store     *esv1.DopplerProvider
-	namespace string
-	storeKind string
+	kube        kclient.Client
+	corev1      typedcorev1.CoreV1Interface
+	store       *esv1.DopplerProvider
+	namespace   string
+	storeKind   string
+	oidcManager *OIDCTokenManager
 }
 
 // SecretsClientInterface defines the required Doppler Client methods.
@@ -74,16 +77,39 @@ type SecretsClientInterface interface {
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
-	token, err := resolvers.SecretKeyRef(
-		ctx,
-		c.kube,
-		c.storeKind,
-		c.namespace,
-		&c.store.Auth.SecretRef.DopplerToken)
-	if err != nil {
-		return err
+	if c.store.Auth.SecretRef != nil {
+		token, err := resolvers.SecretKeyRef(
+			ctx,
+			c.kube,
+			c.storeKind,
+			c.namespace,
+			&c.store.Auth.SecretRef.DopplerToken)
+		if err != nil {
+			return err
+		}
+		c.dopplerToken = token
+	} else if c.store.Auth.OIDCConfig != nil {
+		token, err := c.oidcManager.Token(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get OIDC token: %w", err)
+		}
+		c.dopplerToken = token
+	} else {
+		return errors.New("no authentication method configured: either secretRef or oidcConfig must be specified")
 	}
-	c.dopplerToken = token
+	return nil
+}
+
+func (c *Client) refreshAuthIfNeeded(ctx context.Context) error {
+	if c.store != nil && c.store.Auth != nil && c.store.Auth.OIDCConfig != nil && c.oidcManager != nil {
+		token, err := c.oidcManager.Token(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to refresh OIDC token: %w", err)
+		}
+		if doppler, ok := c.doppler.(*dclient.DopplerClient); ok {
+			doppler.DopplerToken = token
+		}
+	}
 	return nil
 }
 
@@ -104,7 +130,10 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 }
 
 // DeleteSecret removes a secret from Doppler.
-func (c *Client) DeleteSecret(_ context.Context, ref esv1.PushSecretRemoteRef) error {
+func (c *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+	if err := c.refreshAuthIfNeeded(ctx); err != nil {
+		return err
+	}
 	request := dclient.UpdateSecretsRequest{
 		ChangeRequests: []dclient.Change{
 			{
@@ -131,12 +160,13 @@ func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bo
 }
 
 // PushSecret creates or updates a secret in Doppler.
-func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	value := secret.Data[data.GetSecretKey()]
-
+func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	if err := c.refreshAuthIfNeeded(ctx); err != nil {
+		return err
+	}
 	request := dclient.UpdateSecretsRequest{
 		Secrets: dclient.Secrets{
-			data.GetRemoteKey(): string(value),
+			data.GetRemoteKey(): string(secret.Data[data.GetSecretKey()]),
 		},
 		Project: c.project,
 		Config:  c.config,
@@ -151,7 +181,10 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 }
 
 // GetSecret retrieves a secret from Doppler.
-func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if err := c.refreshAuthIfNeeded(ctx); err != nil {
+		return nil, err
+	}
 	request := dclient.SecretRequest{
 		Name:    ref.Key,
 		Project: c.project,
@@ -194,7 +227,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 // GetAllSecrets retrieves all secrets from Doppler that match the given criteria.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	secrets, err := c.getSecrets(ctx)
+	secrets, err := c.secrets(ctx)
 	selected := map[string][]byte{}
 
 	if err != nil {
@@ -229,7 +262,10 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
+func (c *Client) secrets(ctx context.Context) (map[string][]byte, error) {
+	if err := c.refreshAuthIfNeeded(ctx); err != nil {
+		return nil, err
+	}
 	request := dclient.SecretsRequest{
 		Project:         c.project,
 		Config:          c.config,
