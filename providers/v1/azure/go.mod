@@ -14,6 +14,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
 	github.com/Azure/go-autorest/autorest/date v0.3.1
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.5.0
+	github.com/aws/smithy-go v1.23.1
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/lestrrat-go/jwx/v2 v2.1.6
