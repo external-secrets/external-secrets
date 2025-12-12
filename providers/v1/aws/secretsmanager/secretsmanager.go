@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 
@@ -913,20 +912,9 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		currentPolicy = *currentPolicyOutput.ResourcePolicy
 	}
 
-	// convert to maps so we can do a stable comparison.
-	var (
-		currentPolicyMap map[string]any
-		policyJSONMaps   map[string]any
-	)
-
-	if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
-		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
-	}
-	if err := json.Unmarshal([]byte(policyJSON), &policyJSONMaps); err != nil {
-		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
-	}
-
-	if maps.Equal(currentPolicyMap, policyJSONMaps) {
+	if isSame, err := esutils.CanonicalJSONCompare(currentPolicy, policyJSON); err != nil {
+		return fmt.Errorf("failed to parse and compare resource policies: %w", err)
+	} else if isSame {
 		return nil
 	}
 
