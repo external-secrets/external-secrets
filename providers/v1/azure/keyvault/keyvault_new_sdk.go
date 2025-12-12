@@ -33,6 +33,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -330,6 +331,33 @@ func (a *Azure) getSecretTagsWithNewSDK(ctx context.Context, ref esv1.ExternalSe
 
 // getCloudConfiguration returns the appropriate cloud configuration for the environment type.
 func getCloudConfiguration(provider *esv1.AzureKVProvider) (cloud.Configuration, error) {
+	if provider.CustomCloudConfig != nil {
+		if !ptr.ToBool(provider.UseAzureSDK) {
+			return cloud.Configuration{}, errors.New("CustomCloudConfig requires UseAzureSDK to be set to true")
+		}
+
+		var baseConfig cloud.Configuration
+		switch provider.EnvironmentType {
+		case esv1.AzureEnvironmentGermanCloud:
+			return cloud.Configuration{}, errors.New("Azure Germany (Microsoft Cloud Deutschland) was discontinued on October 29, 2021. Please use AzureStackCloud with custom configuration or migrate to public cloud regions")
+		case esv1.AzureEnvironmentPublicCloud:
+			baseConfig = cloud.AzurePublic
+		case esv1.AzureEnvironmentUSGovernmentCloud:
+			baseConfig = cloud.AzureGovernment
+		case esv1.AzureEnvironmentChinaCloud:
+			baseConfig = cloud.AzureChina
+		case esv1.AzureEnvironmentAzureStackCloud:
+			baseConfig = cloud.Configuration{
+				Services: map[cloud.ServiceName]cloud.ServiceConfiguration{},
+			}
+		default:
+			baseConfig = cloud.AzurePublic
+		}
+
+		return buildCustomCloudConfiguration(provider.CustomCloudConfig, baseConfig)
+	}
+
+	// no custom config - use standard cloud configurations
 	switch provider.EnvironmentType {
 	case esv1.AzureEnvironmentPublicCloud:
 		return cloud.AzurePublic, nil
@@ -340,27 +368,24 @@ func getCloudConfiguration(provider *esv1.AzureKVProvider) (cloud.Configuration,
 	case esv1.AzureEnvironmentGermanCloud:
 		return cloud.Configuration{}, errors.New("Azure Germany (Microsoft Cloud Deutschland) was discontinued on October 29, 2021. Please use AzureStackCloud with custom configuration or migrate to public cloud regions")
 	case esv1.AzureEnvironmentAzureStackCloud:
-		// Azure Stack requires custom configuration
-		if provider.CustomCloudConfig == nil {
-			return cloud.Configuration{}, errors.New("CustomCloudConfig is required when EnvironmentType is AzureStackCloud")
-		}
-		// Validate that new SDK is enabled
-		if provider.UseAzureSDK == nil || !*provider.UseAzureSDK {
-			return cloud.Configuration{}, errors.New("AzureStackCloud environment requires UseAzureSDK to be set to true")
-		}
-		return buildCustomCloudConfiguration(provider.CustomCloudConfig)
+		return cloud.Configuration{}, errors.New("CustomCloudConfig is required when EnvironmentType is AzureStackCloud")
 	default:
 		return cloud.AzurePublic, nil
 	}
 }
 
-// buildCustomCloudConfiguration creates a custom cloud.Configuration for Azure Stack.
-func buildCustomCloudConfiguration(config *esv1.AzureCustomCloudConfig) (cloud.Configuration, error) {
+// buildCustomCloudConfiguration creates a custom cloud.Configuration by merging custom config with base config.
+func buildCustomCloudConfiguration(config *esv1.AzureCustomCloudConfig, baseConfig cloud.Configuration) (cloud.Configuration, error) {
 	cloudConfig := cloud.Configuration{
-		Services: map[cloud.ServiceName]cloud.ServiceConfiguration{},
+		ActiveDirectoryAuthorityHost: baseConfig.ActiveDirectoryAuthorityHost,
+		Services:                     map[cloud.ServiceName]cloud.ServiceConfiguration{},
 	}
 
-	// Set Active Directory endpoint (required)
+	for k, v := range baseConfig.Services {
+		cloudConfig.Services[k] = v
+	}
+
+	// Set Active Directory endpoint with custom value (required)
 	cloudConfig.ActiveDirectoryAuthorityHost = config.ActiveDirectoryEndpoint
 
 	// Set Resource Manager endpoint if provided

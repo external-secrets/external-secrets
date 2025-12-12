@@ -13,7 +13,7 @@ Since the [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) is 
 
 We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud`, `GermanCloud` and `AzureStackCloud` (for Azure Stack Hub/Edge). You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
 
-For Azure Stack Hub or Azure Stack Edge environments, you must also provide custom cloud configuration. See the [Azure Stack Configuration](#azure-stack-configuration) section below.
+For environments with non-standard endpoints (Azure Stack, Azure China with AKS Workload Identity, etc.), you can provide custom cloud configuration to override the default endpoints. See the [Custom Cloud Configuration](#custom-cloud-configuration) section below.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -100,9 +100,40 @@ The following example demonstrates using the secretRef field to directly deliver
 {% include 'azkv-workload-identity-secretref.yaml' %}
 ```
 
-### Azure Stack Configuration
+### Custom Cloud Configuration
 
-External Secrets Operator supports Azure Stack Hub and Azure Stack Edge through custom cloud configuration. This feature requires using the new Azure SDK.
+External Secrets Operator supports custom cloud endpoints for Azure Stack Hub, Azure Stack Edge, and other scenarios where the default cloud endpoints don't match your environment. This feature requires using the new Azure SDK.
+
+#### Azure China Workload Identity
+
+Azure China's AKS uses a different OIDC issuer (`login.partner.microsoftonline.cn`) than the standard China Cloud endpoint (`login.chinacloudapi.cn`). When using Workload Identity with AKS in Azure China, you need to override the Active Directory endpoint:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: azure-china-workload-identity
+spec:
+  provider:
+    azurekv:
+      vaultUrl: "https://my-vault.vault.azure.cn"
+      environmentType: ChinaCloud
+      authType: WorkloadIdentity
+      # REQUIRED: Must be true to use custom cloud configuration
+      useAzureSDK: true
+      # Override the Active Directory endpoint to match AKS OIDC issuer
+      customCloudConfig:
+        activeDirectoryEndpoint: "https://login.partner.microsoftonline.cn/"
+        keyVaultEndpoint: "https://vault.azure.cn/"
+        resourceManagerEndpoint: "https://management.chinacloudapi.cn/"
+      serviceAccountRef:
+        name: my-service-account
+        namespace: default
+```
+
+#### Azure Stack Configuration
+
+For Azure Stack Hub or Azure Stack Edge environments:
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -138,8 +169,9 @@ spec:
 ```
 
 **Important Notes:**
-- `useAzureSDK: true` is mandatory for Azure Stack environments
-- The `customCloudConfig` is only valid when `environmentType: AzureStackCloud`
+- `useAzureSDK: true` is mandatory when using `customCloudConfig`
+- `customCloudConfig` can be used with any `environmentType` (PublicCloud, ChinaCloud, etc.)
+- For AzureStackCloud, `customCloudConfig` is required
 - Contact your Azure Stack administrator for the correct endpoint URLs
 
 ### Update secret store

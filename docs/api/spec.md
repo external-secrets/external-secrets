@@ -1275,8 +1275,11 @@ AzureCustomCloudConfig
 </td>
 <td>
 <em>(Optional)</em>
-<p>CustomCloudConfig defines custom Azure Stack Hub or Azure Stack Edge endpoints.
+<p>CustomCloudConfig defines custom Azure endpoints for non-standard clouds.
 Required when EnvironmentType is AzureStackCloud.
+Optional for other environment types - useful for Azure China when using Workload Identity
+with AKS, where the OIDC issuer (login.partner.microsoftonline.cn) differs from the
+standard China Cloud endpoint (login.chinacloudapi.cn).
 IMPORTANT: This feature REQUIRES UseAzureSDK to be set to true. Custom cloud
 configuration is not supported with the legacy go-autorest SDK.</p>
 </td>
