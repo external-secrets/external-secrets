@@ -3508,7 +3508,8 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.DopplerProvider">DopplerProvider</a>)
 </p>
 <p>
-<p>DopplerAuth defines the authentication method for the Doppler provider.</p>
+<p>DopplerAuth configures authentication with the Doppler API.
+Exactly one of secretRef or oidcConfig must be specified.</p>
 </p>
 <table>
 <thead>
@@ -3528,6 +3529,22 @@ DopplerAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>SecretRef authenticates using a Doppler service token stored in a Kubernetes Secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1.DopplerOIDCAuth">
+DopplerOIDCAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.</p>
 </td>
 </tr>
 </tbody>
@@ -3562,6 +3579,62 @@ External Secrets meta/v1.SecretKeySelector
 <p>The DopplerToken is used for authentication.
 See <a href="https://docs.doppler.com/reference/api#authentication">https://docs.doppler.com/reference/api#authentication</a> for auth token types.
 The Key attribute defaults to dopplerToken if not specified.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DopplerOIDCAuth">DopplerOIDCAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DopplerAuth">DopplerAuth</a>)
+</p>
+<p>
+<p>DopplerOIDCAuth configures OIDC authentication with Doppler using Kubernetes ServiceAccount tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identity</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Identity is the Doppler Service Account Identity ID configured for OIDC authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpirationSeconds sets the ServiceAccount token validity duration.
+Defaults to 10 minutes.</p>
 </td>
 </tr>
 </tbody>
