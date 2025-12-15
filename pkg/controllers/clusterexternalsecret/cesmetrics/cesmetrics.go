@@ -79,16 +79,11 @@ func UpdateClusterExternalSecretCondition(ces *esv1.ClusterExternalSecret, condi
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(cesInfo)
 	clusterExternalSecretCondition := GetGaugeVec(ClusterExternalSecretStatusConditionKey)
 
-	theOtherStatus := v1.ConditionFalse
-	if condition.Status == v1.ConditionFalse {
-		theOtherStatus = v1.ConditionTrue
-	}
-
 	// This handles cases where labels may have changed
 	baseLabels := prometheus.Labels{
 		"name":      ces.Name,
 		"condition": string(condition.Type),
-		"status":    string(theOtherStatus),
+		"status":    string(v1.ConditionFalse),
 	}
 	clusterExternalSecretCondition.DeletePartialMatch(baseLabels)
 
@@ -100,7 +95,7 @@ func UpdateClusterExternalSecretCondition(ces *esv1.ClusterExternalSecret, condi
 	clusterExternalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 		map[string]string{
 			"condition": string(condition.Type),
-			"status":    string(theOtherStatus),
+			"status":    string(v1.ConditionFalse),
 		})).Set(0)
 }
 
