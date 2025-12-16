@@ -168,7 +168,9 @@ func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger,
 }
 
 // applyTemplateToManifest renders templates for generic resources and returns an unstructured object.
-func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+// If existingObj is provided, templates will be applied to it (for merge behavior).
+// Otherwise, a new object is created.
+func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte, existingObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	gvk := getTargetGVK(es)
 
 	obj := &unstructured.Unstructured{}
@@ -176,8 +178,19 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	obj.SetName(getTargetName(es))
 	obj.SetNamespace(es.Namespace)
 
-	labels := make(map[string]string)
-	annotations := make(map[string]string)
+	if existingObj != nil {
+		// use the existing object for merge behavior if it exists
+		obj = existingObj.DeepCopy()
+	}
+
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
 
 	if es.Spec.Target.Template != nil {
 		for k, v := range es.Spec.Target.Template.Metadata.Labels {
