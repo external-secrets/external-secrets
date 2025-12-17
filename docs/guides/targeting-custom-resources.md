@@ -76,13 +76,12 @@ The operator automatically adds the `externalsecrets.external-secrets.io/managed
 When using custom resource targets, ensure the External Secrets Operator has appropriate RBAC permissions to create and manage those resources. The Helm chart provides configuration options to enable these permissions:
 
 ```yaml
-nonSecretTargets:
+genericTargets:
   enabled: true
-  rbac:
-    configMaps: true
-    customResources:
-    - apiGroups: ["config.example.com"]
-      resources: ["appconfigs"]
+  resources:
+  - apiGroups: ["config.example.com"]
+    resources: ["appconfigs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ```
 
 Without these permissions, the operator will not be able to create or update your target resources.
