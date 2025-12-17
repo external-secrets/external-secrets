@@ -55,8 +55,7 @@ var tplFuncs = tpl.FuncMap{
 	"toYaml":   toYAML,
 	"fromYaml": fromYAML,
 
-	"getSecretKey": getSecretKey,
-	"rsaDecrypt":   rsaDecrypt,
+	"rsaDecrypt": rsaDecrypt,
 }
 
 var leftDelim, rightDelim string
