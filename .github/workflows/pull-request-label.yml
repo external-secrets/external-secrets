@@ -75,7 +75,7 @@ jobs:
 
               if (breaking) {
                 console.log("Adding breaking change label");
-                labels.push(process.env.BREAKING_CHANGE_LABEL);
+                labels.push("breaking-change");
               }
 
               // Add type-based label
