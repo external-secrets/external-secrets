@@ -66,10 +66,13 @@ type ListSecretVersionsMockReturn struct {
 	Res *secretmanager.SecretVersionIterator
 }
 
-// NewSecretVersionIterator creates a mock iterator for testing.
-// This is simplified to only support what our tests actually need:
-// - Return 0 or 1 versions
-// - Immediately return iterator.Done when exhausted.
+// NewSecretVersionIterator creates a mock SecretVersionIterator for testing.
+// It takes a slice of SecretVersion objects and returns an iterator that will
+// yield them on successive Next() calls. The iterator uses reflection to set
+// unexported fields required by the google.golang.org/api/iterator package.
+//
+// The iterator returns all provided versions on the first fetch, then returns
+// iterator.Done on subsequent calls to indicate no more items are available.
 func NewSecretVersionIterator(versions []*secretmanagerpb.SecretVersion) *secretmanager.SecretVersionIterator {
 	it := &secretmanager.SecretVersionIterator{}
 
@@ -290,6 +293,9 @@ func (mc *MockSMClient) ListSecretVersions(ctx context.Context, req *secretmanag
 	return mc.ListSecretVersionsFn(ctx, req)
 }
 
+// NewListSecretVersionsFn configures the mock ListSecretVersions function to return
+// a predefined iterator. This is used in tests to control what versions are returned
+// when listing secret versions.
 func (mc *MockSMClient) NewListSecretVersionsFn(mock ListSecretVersionsMockReturn) {
 	mc.ListSecretVersionsFn = func(_ context.Context, _ *secretmanagerpb.ListSecretVersionsRequest, _ ...gax.CallOption) *secretmanager.SecretVersionIterator {
 		return mock.Res

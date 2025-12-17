@@ -687,6 +687,8 @@ func getDataByProperty(data []byte, property string) (gjson.Result, error) {
 	return gjson.Get(payload, property), nil
 }
 
+// getName constructs the full resource name for a GCP secret.
+// If location is provided, it returns a regional secret path; otherwise, it returns a global secret path.
 func getName(projectID, location, key string) string {
 	if location != "" {
 		return fmt.Sprintf(regionalSecretPath, projectID, location, key)
@@ -694,6 +696,8 @@ func getName(projectID, location, key string) string {
 	return fmt.Sprintf(globalSecretPath, projectID, key)
 }
 
+// getParentName constructs the parent resource name for listing secrets in GCP.
+// If location is provided, it returns a regional parent path; otherwise, it returns a global parent path.
 func getParentName(projectID, location string) string {
 	if location != "" {
 		return fmt.Sprintf(regionalSecretParentPath, projectID, location)
@@ -701,12 +705,22 @@ func getParentName(projectID, location string) string {
 	return fmt.Sprintf(globalSecretParentPath, projectID)
 }
 
+// isErrSecretDestroyedOrDisabled checks if an error indicates that a secret version
+// is in DESTROYED or DISABLED state. These states occur when a version has been
+// explicitly destroyed or disabled and cannot be accessed.
 func isErrSecretDestroyedOrDisabled(err error) bool {
 	st, _ := status.FromError(err)
 	return st.Code() == codes.FailedPrecondition &&
 		(strings.Contains(st.Message(), "DESTROYED state") || strings.Contains(st.Message(), "DISABLED state"))
 }
 
+// getLatestEnabledVersion retrieves the most recent enabled version of a secret.
+// It lists all enabled versions and selects the one with the latest creation time.
+// If no enabled versions are found, it falls back to accessing the "latest" version,
+// which will return an appropriate error if the secret doesn't exist or has no accessible versions.
+//
+// Note: The version.Name field contains the full resource path (e.g., projects/*/secrets/*/versions/*),
+// not just the version number, so it's used directly in the AccessSecretVersion request.
 func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClient, name string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 	iter := client.ListSecretVersions(ctx, &secretmanagerpb.ListSecretVersionsRequest{
 		Parent: name,
@@ -714,7 +728,7 @@ func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClie
 	})
 
 	latestCreateTime := time.Unix(0, 0)
-	versionName := "latest"
+	var versionName string
 	for {
 		version, err := iter.Next()
 		if err != nil {
@@ -729,10 +743,13 @@ func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClie
 		}
 	}
 
-	// If no enabled versions found, versionName remains "latest"
+	// If no enabled versions found, fall back to "latest"
 	// This will return the appropriate error (NotFound, FailedPrecondition, etc.)
+	if versionName == "" {
+		versionName = fmt.Sprintf("%s/versions/latest", name)
+	}
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("%s/versions/%s", name, versionName),
+		Name: versionName,
 	}
 	version, err := client.AccessSecretVersion(ctx, req)
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
