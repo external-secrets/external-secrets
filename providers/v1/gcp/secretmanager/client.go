@@ -146,42 +146,16 @@ func parseError(err error) error {
 	return err
 }
 
-// SecretExists checks if a secret exists in Google Cloud Secret Manager.
-// It verifies the existence of a secret in Google Cloud Secret Manager AND that it has at least one version.
+// SecretExists checks if a secret exists in Google Cloud Secret Manager and has at least one accessible version.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
-	if c.store.Location != "" {
-		secretName = fmt.Sprintf(regionalSecretPath, c.store.ProjectID, c.store.Location, ref.GetRemoteKey())
-	}
-	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
-		Name: secretName,
-	})
+	secretName := getName(c.store.ProjectID, c.store.Location, ref.GetRemoteKey())
+	_, err := getLatestEnabledVersion(ctx, c.smClient, secretName)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return false, nil
 		}
-
 		return false, err
 	}
-
-	if gcpSecret == nil {
-		return false, nil
-	}
-	// Check if the secret has at least one version
-	versionName := fmt.Sprintf("%s/versions/latest", secretName)
-	_, err = c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
-		Name: versionName,
-	})
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
-
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			// Secret exists but has no versions
-			return false, nil
-		}
-		return false, err
-	}
-
 	return true, nil
 }
 
@@ -215,7 +189,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 			return err
 		}
 
-		var replication = &secretmanagerpb.Replication{
+		replication := &secretmanagerpb.Replication{
 			Replication: &secretmanagerpb.Replication_Automatic_{
 				Automatic: &secretmanagerpb.Replication_Automatic{},
 			},
@@ -738,20 +712,32 @@ func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClie
 		Parent: name,
 		Filter: "state:ENABLED",
 	})
+
 	latestCreateTime := time.Unix(0, 0)
-	latestVersion := &secretmanagerpb.SecretVersion{}
+	versionName := "latest"
 	for {
 		version, err := iter.Next()
-		if errors.Is(err, iterator.Done) {
-			break
+		if err != nil {
+			if errors.Is(err, iterator.Done) {
+				break
+			}
+			return nil, err
 		}
 		if version.CreateTime.AsTime().After(latestCreateTime) {
 			latestCreateTime = version.CreateTime.AsTime()
-			latestVersion = version
+			versionName = version.Name
 		}
 	}
+
+	// If no enabled versions found, versionName remains "latest"
+	// This will return the appropriate error (NotFound, FailedPrecondition, etc.)
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("%s/versions/%s", name, latestVersion.Name),
+		Name: fmt.Sprintf("%s/versions/%s", name, versionName),
 	}
-	return client.AccessSecretVersion(ctx, req)
+	version, err := client.AccessSecretVersion(ctx, req)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
+	if err != nil {
+		return nil, err
+	}
+	return version, nil
 }
