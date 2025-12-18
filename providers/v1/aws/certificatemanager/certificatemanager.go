@@ -29,6 +29,7 @@ import (
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 )
 
+// CertificateManager implements the AWS Certificate Manager provider for retrieving certificates.
 type CertificateManager struct {
 	cfg          *aws.Config
 	client       ACMInterface
@@ -47,6 +48,7 @@ type ACMInterface interface {
 	RemoveTagsFromCertificate(ctx context.Context, input *acm.RemoveTagsFromCertificateInput, opts ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
 }
 
+// New creates and returns a new CertificateManager provider instance.
 func New(_ context.Context, cfg *aws.Config, prefix string, referentAuth bool) (*CertificateManager, error) {
 	return &CertificateManager{
 		cfg:          cfg,
@@ -58,6 +60,7 @@ func New(_ context.Context, cfg *aws.Config, prefix string, referentAuth bool) (
 	}, nil
 }
 
+// GetSecret retrieves the certificate from AWS Certificate Manager.
 func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	certARN := ref.Key
 	if certARN == "" {
@@ -96,10 +99,12 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 	return []byte(result), nil
 }
 
+// DeleteSecret is not supported for CertificateManager provider.
 func (cm *CertificateManager) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return fmt.Errorf("DeleteSecret is not supported for CertificateManager provider")
 }
 
+// Validate validates the provider configuration.
 func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 	if cm.referentAuth {
 		return esv1.ValidationResultUnknown, nil
@@ -112,18 +117,22 @@ func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// GetAllSecrets is not supported for CertificateManager provider.
 func (cm *CertificateManager) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf("GetAllSecrets is not supported for CertificateManager provider")
 }
 
+// GetSecretMap is not supported for CertificateManager provider.
 func (cm *CertificateManager) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, fmt.Errorf("GetSecretMap is not supported for CertificateManager provider")
 }
 
+// SecretExists is not supported for CertificateManager provider.
 func (cm *CertificateManager) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf("SecretExists is not supported for CertificateManager provider")
 }
 
+// PushSecret is not supported for CertificateManager provider.
 func (cm *CertificateManager) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return fmt.Errorf("PushSecret is not supported for CertificateManager provider")
 }

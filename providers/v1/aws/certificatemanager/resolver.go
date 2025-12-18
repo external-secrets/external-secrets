@@ -27,6 +27,7 @@ import (
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
 )
 
+// ACMEndpointEnv is the environment variable for specifying a custom ACM endpoint.
 const ACMEndpointEnv = "AWS_ACM_ENDPOINT"
 
 // customEndpointResolver is a custom resolver for AWS Certificate Manager endpoint.
