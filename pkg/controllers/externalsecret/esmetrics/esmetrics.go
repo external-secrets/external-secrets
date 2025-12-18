@@ -128,6 +128,7 @@ func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.Exte
 		switch condition.Status {
 		case v1.ConditionFalse:
 			// delete any existing metrics with status True (regardless of other labels)
+			// condition is fixed to ExternalSecretReady because other statuses were already handled above.
 			baseLabels["condition"] = string(esv1.ExternalSecretReady)
 			baseLabels["status"] = string(v1.ConditionTrue)
 			externalSecretCondition.DeletePartialMatch(baseLabels)
