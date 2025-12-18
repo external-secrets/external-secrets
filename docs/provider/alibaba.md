@@ -1,4 +1,10 @@
 
+!!! warning "Provider Deprecated"
+  This provider is deprecated due to lack of maintenance and
+  licensing issues.
+  It will be removed on the next minor release.
+
+
 ## Alibaba Cloud Secrets Manager
 
 External Secrets Operator integrates with [Alibaba Cloud Key Management Service](https://www.alibabacloud.com/help/en/key-management-service/latest/kms-what-is-key-management-service/) for secrets and Keys management.
@@ -90,7 +96,7 @@ kind: ExternalSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     name: secretstore-sample
     kind: SecretStore

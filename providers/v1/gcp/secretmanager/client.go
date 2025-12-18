@@ -150,6 +150,9 @@ func parseError(err error) error {
 // It verifies the existence of a secret in Google Cloud Secret Manager AND that it has at least one version.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
+	if c.store.Location != "" {
+		secretName = fmt.Sprintf(regionalSecretPath, c.store.ProjectID, c.store.Location, ref.GetRemoteKey())
+	}
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: secretName,
 	})

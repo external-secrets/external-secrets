@@ -50,6 +50,7 @@ const (
 
 	msgStoreValidated     = "store validated"
 	msgStoreNotMaintained = "store isn't currently maintained. Please plan and prepare accordingly."
+	msgStoreDeprecated    = "store is deprecated and will be removed on the next minor release. Please plan and prepare accordingly."
 
 	// Finalizer for SecretStores when they have PushSecrets with DeletionPolicy=Delete.
 	secretStoreFinalizer = "secretstore.externalsecrets.io/finalizer"
@@ -125,9 +126,16 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	}
 	annotations := ss.GetAnnotations()
 	_, ok := annotations["external-secrets.io/ignore-maintenance-checks"]
-
-	if !bool(isMaintained) && !ok {
-		opts.Recorder.Event(ss, v1.EventTypeWarning, esapi.StoreUnmaintained, msgStoreNotMaintained)
+	if !ok {
+		switch isMaintained {
+		case esapi.MaintenanceStatusNotMaintained:
+			opts.Recorder.Event(ss, v1.EventTypeWarning, esapi.StoreUnmaintained, msgStoreNotMaintained)
+		case esapi.MaintenanceStatusDeprecated:
+			opts.Recorder.Event(ss, v1.EventTypeWarning, esapi.StoreDeprecated, msgStoreDeprecated)
+		case esapi.MaintenanceStatusMaintained:
+		default:
+			// no warnings
+		}
 	}
 
 	capStatus := esapi.SecretStoreStatus{

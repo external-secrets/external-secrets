@@ -317,22 +317,47 @@ func isManagedByESO(data *awssm.DescribeSecretOutput) bool {
 
 // GetAllSecrets syncs multiple secrets from aws provider into a single Kubernetes Secret.
 func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Name != nil {
-		return sm.findByName(ctx, ref)
-	}
-	if len(ref.Tags) > 0 {
+	hasName := ref.Name != nil
+	hasTags := len(ref.Tags) > 0
+
+	filters := make([]types.Filter, 0)
+	switch {
+	case !hasName && !hasTags:
+		return nil, errors.New(errUnexpectedFindOperator)
+	case hasName && !hasTags:
+		return sm.findByName(ctx, ref, filters)
+	case !hasName && hasTags:
 		return sm.findByTags(ctx, ref)
+	case hasName && hasTags:
+		return sm.findByNameAndTags(ctx, ref, filters)
+	default:
+		return nil, errors.New(errUnexpectedFindOperator)
 	}
-	return nil, errors.New(errUnexpectedFindOperator)
 }
 
-func (sm *SecretsManager) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (sm *SecretsManager) findByNameAndTags(ctx context.Context, ref esv1.ExternalSecretFind, filters []types.Filter) (map[string][]byte, error) {
+	for k, v := range ref.Tags {
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeTagKey,
+			Values: []string{
+				k,
+			},
+		}, types.Filter{
+			Key: types.FilterNameStringTypeTagValue,
+			Values: []string{
+				v,
+			},
+		})
+	}
+	return sm.findByName(ctx, ref, filters)
+}
+
+func (sm *SecretsManager) findByName(ctx context.Context, ref esv1.ExternalSecretFind, filters []types.Filter) (map[string][]byte, error) {
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	filters := make([]types.Filter, 0)
 	if ref.Path != nil {
 		filters = append(filters, types.Filter{
 			Key: types.FilterNameStringTypeName,

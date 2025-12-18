@@ -215,9 +215,14 @@ type SecretStoreProvider struct {
 	// Volcengine configures this store to sync secrets using the Volcengine provider
 	// +optional
 	Volcengine *VolcengineProvider `json:"volcengine,omitempty"`
+
 	// Ngrok configures this store to sync secrets using the ngrok provider.
 	// +optional
 	Ngrok *NgrokProvider `json:"ngrok,omitempty"`
+
+	// Barbican configures this store to sync secrets using the OpenStack Barbican provider
+	// +optional
+	Barbican *BarbicanProvider `json:"barbican,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.
@@ -280,6 +285,7 @@ const (
 	ReasonValidationUnknown     = "ValidationUnknown"
 	ReasonStoreValid            = "Valid"
 	StoreUnmaintained           = "StoreUnmaintained"
+	StoreDeprecated             = "StoreDeprecated"
 )
 
 // SecretStoreStatusCondition contains condition information for a SecretStore.

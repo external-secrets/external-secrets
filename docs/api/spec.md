@@ -1275,10 +1275,199 @@ AzureCustomCloudConfig
 </td>
 <td>
 <em>(Optional)</em>
-<p>CustomCloudConfig defines custom Azure Stack Hub or Azure Stack Edge endpoints.
+<p>CustomCloudConfig defines custom Azure endpoints for non-standard clouds.
 Required when EnvironmentType is AzureStackCloud.
+Optional for other environment types - useful for Azure China when using Workload Identity
+with AKS, where the OIDC issuer (login.partner.microsoftonline.cn) differs from the
+standard China Cloud endpoint (login.chinacloudapi.cn).
 IMPORTANT: This feature REQUIRES UseAzureSDK to be set to true. Custom cloud
 configuration is not supported with the legacy go-autorest SDK.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanAuth">BarbicanAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanProvider">BarbicanProvider</a>)
+</p>
+<p>
+<p>BarbicanAuth contains the authentication information for Barbican.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderUsernameRef">
+BarbicanProviderUsernameRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>password</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderPasswordRef">
+BarbicanProviderPasswordRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProvider">BarbicanProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>BarbicanProvider setup a store to sync secrets with barbican.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>domainName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanAuth">
+BarbicanAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderPasswordRef">BarbicanProviderPasswordRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderUsernameRef">BarbicanProviderUsernameRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -3319,7 +3508,8 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.DopplerProvider">DopplerProvider</a>)
 </p>
 <p>
-<p>DopplerAuth defines the authentication method for the Doppler provider.</p>
+<p>DopplerAuth configures authentication with the Doppler API.
+Exactly one of secretRef or oidcConfig must be specified.</p>
 </p>
 <table>
 <thead>
@@ -3339,6 +3529,22 @@ DopplerAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>SecretRef authenticates using a Doppler service token stored in a Kubernetes Secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1.DopplerOIDCAuth">
+DopplerOIDCAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.</p>
 </td>
 </tr>
 </tbody>
@@ -3373,6 +3579,62 @@ External Secrets meta/v1.SecretKeySelector
 <p>The DopplerToken is used for authentication.
 See <a href="https://docs.doppler.com/reference/api#authentication">https://docs.doppler.com/reference/api#authentication</a> for auth token types.
 The Key attribute defaults to dopplerToken if not specified.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DopplerOIDCAuth">DopplerOIDCAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DopplerAuth">DopplerAuth</a>)
+</p>
+<p>
+<p>DopplerOIDCAuth configures OIDC authentication with Doppler using Kubernetes ServiceAccount tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identity</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Identity is the Doppler Service Account Identity ID configured for OIDC authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpirationSeconds sets the ServiceAccount token validity duration.
+Defaults to 10 minutes.</p>
 </td>
 </tr>
 </tbody>
@@ -3556,8 +3818,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -4535,8 +4797,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -6885,7 +7147,7 @@ bool
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.MaintenanceStatus">MaintenanceStatus
-(<code>bool</code> alias)</p></h3>
+(<code>string</code> alias)</p></h3>
 <p>
 <p>MaintenanceStatus defines a type for different maintenance states of a provider schema.</p>
 </p>
@@ -6896,9 +7158,11 @@ bool
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>true</p></td>
+<tbody><tr><td><p>&#34;Deprecated&#34;</p></td>
 <td></td>
-</tr><tr><td><p>false</p></td>
+</tr><tr><td><p>&#34;Maintained&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;NotMaintained&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -9282,6 +9546,20 @@ NgrokProvider
 <td>
 <em>(Optional)</em>
 <p>Ngrok configures this store to sync secrets using the ngrok provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>barbican</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProvider">
+BarbicanProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Barbican configures this store to sync secrets using the OpenStack Barbican provider</p>
 </td>
 </tr>
 </tbody>
@@ -16709,8 +16987,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -17515,8 +17793,8 @@ Kubernetes meta/v1.Duration
 <p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 specified as Golang Duration strings.
 Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
-Example values: &ldquo;1h&rdquo;, &ldquo;2h30m&rdquo;, &ldquo;10s&rdquo;
-May be set to zero to fetch and create it once. Defaults to 1h.</p>
+Example values: &ldquo;1h0m0s&rdquo;, &ldquo;2h30m0s&rdquo;, &ldquo;10m0s&rdquo;
+May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.</p>
 </td>
 </tr>
 <tr>
@@ -26772,6 +27050,19 @@ bool
 </tr>
 <tr>
 <td>
+<code>secretKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretKeys defines the keys that will be populated with generated passwords.
+Defaults to &ldquo;password&rdquo; when not set.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>encoding</code></br>
 <em>
 string
@@ -26878,6 +27169,19 @@ bool
 </td>
 <td>
 <p>set AllowRepeat to true to allow repeating characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretKeys defines the keys that will be populated with generated passwords.
+Defaults to &ldquo;password&rdquo; when not set.</p>
 </td>
 </tr>
 <tr>

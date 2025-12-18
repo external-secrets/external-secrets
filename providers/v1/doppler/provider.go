@@ -23,11 +23,16 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/spf13/pflag"
+	"k8s.io/client-go/kubernetes"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 	dclient "github.com/external-secrets/external-secrets/providers/v1/doppler/client"
 )
 
@@ -44,6 +49,34 @@ type Provider struct{}
 var _ esv1.SecretsClient = &Client{}
 var _ esv1.Provider = &Provider{}
 
+var (
+	oidcClientCache  *cache.Cache[esv1.SecretsClient]
+	defaultCacheSize = 2 << 17
+)
+
+func initCache(cacheSize int) {
+	if oidcClientCache == nil && cacheSize > 0 {
+		oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
+			// No cleanup is needed when evicting OIDC clients from cache
+		})
+	}
+}
+
+// InitializeFlags registers Doppler-specific flags with the feature system.
+func InitializeFlags() *feature.Feature {
+	var dopplerOIDCCacheSize int
+	fs := pflag.NewFlagSet("doppler", pflag.ExitOnError)
+	fs.IntVar(&dopplerOIDCCacheSize, "doppler-oidc-cache-size", defaultCacheSize,
+		"Maximum size of Doppler OIDC provider cache. Set to 0 to disable caching.")
+
+	return &feature.Feature{
+		Flags: fs,
+		Initialize: func() {
+			initCache(dopplerOIDCCacheSize)
+		},
+	}
+}
+
 // Capabilities returns the provider's supported capabilities.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
@@ -59,9 +92,18 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	dopplerStoreSpec := storeSpec.Provider.Doppler
 
-	// Default Key to dopplerToken if not specified
-	if dopplerStoreSpec.Auth.SecretRef.DopplerToken.Key == "" {
-		storeSpec.Provider.Doppler.Auth.SecretRef.DopplerToken.Key = "dopplerToken"
+	useCache := dopplerStoreSpec.Auth.OIDCConfig != nil && oidcClientCache != nil
+
+	key := cache.Key{
+		Name:      store.GetObjectMeta().Name,
+		Namespace: namespace,
+		Kind:      store.GetTypeMeta().Kind,
+	}
+
+	if useCache {
+		if cachedClient, ok := oidcClientCache.Get(store.GetObjectMeta().ResourceVersion, key); ok {
+			return cachedClient, nil
+		}
 	}
 
 	client := &Client{
@@ -71,18 +113,67 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
 
-	if err := client.setAuth(ctx); err != nil {
+	if err := p.setupClientAuth(ctx, client, dopplerStoreSpec, store, namespace); err != nil {
 		return nil, err
 	}
 
+	if err := p.configureDopplerClient(client); err != nil {
+		return nil, err
+	}
+
+	if useCache {
+		oidcClientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+	}
+
+	return client, nil
+}
+
+func (p *Provider) setupClientAuth(ctx context.Context, client *Client, dopplerStoreSpec *esv1.DopplerProvider, store esv1.GenericStore, namespace string) error {
+	if dopplerStoreSpec.Auth.SecretRef != nil {
+		if dopplerStoreSpec.Auth.SecretRef.DopplerToken.Key == "" {
+			dopplerStoreSpec.Auth.SecretRef.DopplerToken.Key = "dopplerToken"
+		}
+	} else if dopplerStoreSpec.Auth.OIDCConfig != nil {
+		if err := p.setupOIDCAuth(client, dopplerStoreSpec, store, namespace); err != nil {
+			return err
+		}
+	}
+
+	return client.setAuth(ctx)
+}
+
+func (p *Provider) setupOIDCAuth(client *Client, dopplerStoreSpec *esv1.DopplerProvider, store esv1.GenericStore, namespace string) error {
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get kubernetes config: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	client.corev1 = clientset.CoreV1()
+	client.oidcManager = NewOIDCTokenManager(
+		client.corev1,
+		dopplerStoreSpec,
+		namespace,
+		store.GetObjectKind().GroupVersionKind().Kind,
+		store.GetObjectMeta().Name,
+	)
+
+	return nil
+}
+
+func (p *Provider) configureDopplerClient(client *Client) error {
 	doppler, err := dclient.NewDopplerClient(client.dopplerToken)
 	if err != nil {
-		return nil, fmt.Errorf(errNewClient, err)
+		return fmt.Errorf(errNewClient, err)
 	}
 
 	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
 		if err := doppler.SetBaseURL(customBaseURL); err != nil {
-			return nil, fmt.Errorf(errNewClient, err)
+			return fmt.Errorf(errNewClient, err)
 		}
 	}
 
@@ -99,20 +190,39 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	client.nameTransformer = client.store.NameTransformer
 	client.format = client.store.Format
 
-	return client, nil
+	return nil
 }
 
 // ValidateStore validates the Doppler provider configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	dopplerStoreSpec := storeSpec.Provider.Doppler
-	dopplerTokenSecretRef := dopplerStoreSpec.Auth.SecretRef.DopplerToken
-	if err := esutils.ValidateSecretSelector(store, dopplerTokenSecretRef); err != nil {
-		return nil, fmt.Errorf(errInvalidStore, err)
-	}
 
-	if dopplerTokenSecretRef.Name == "" {
-		return nil, fmt.Errorf(errInvalidStore, "dopplerToken.name cannot be empty")
+	if dopplerStoreSpec.Auth.SecretRef != nil {
+		dopplerTokenSecretRef := dopplerStoreSpec.Auth.SecretRef.DopplerToken
+		if err := esutils.ValidateSecretSelector(store, dopplerTokenSecretRef); err != nil {
+			return nil, fmt.Errorf(errInvalidStore, err)
+		}
+
+		if dopplerTokenSecretRef.Name == "" {
+			return nil, fmt.Errorf(errInvalidStore, "dopplerToken.name cannot be empty")
+		}
+	} else if dopplerStoreSpec.Auth.OIDCConfig != nil {
+		oidcAuth := dopplerStoreSpec.Auth.OIDCConfig
+
+		if oidcAuth.Identity == "" {
+			return nil, fmt.Errorf(errInvalidStore, "oidcConfig.identity cannot be empty")
+		}
+
+		if oidcAuth.ServiceAccountRef.Name == "" {
+			return nil, fmt.Errorf(errInvalidStore, "oidcConfig.serviceAccountRef.name cannot be empty")
+		}
+
+		if err := esutils.ValidateServiceAccountSelector(store, oidcAuth.ServiceAccountRef); err != nil {
+			return nil, fmt.Errorf(errInvalidStore, err)
+		}
+	} else {
+		return nil, fmt.Errorf(errInvalidStore, "either auth.secretRef or auth.oidcConfig must be specified")
 	}
 
 	return nil, nil
