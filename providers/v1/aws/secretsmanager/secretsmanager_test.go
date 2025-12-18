@@ -38,6 +38,8 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakesm "github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager/fake"
@@ -101,6 +103,35 @@ func makeValidAPIInput() *awssm.GetSecretValueInput {
 func makeValidAPIOutput() *awssm.GetSecretValueOutput {
 	return &awssm.GetSecretValueOutput{
 		SecretString: aws.String(""),
+	}
+}
+
+func makeValidGetResourcePolicyOutput() *awssm.GetResourcePolicyOutput {
+	return &awssm.GetResourcePolicyOutput{
+		ResourcePolicy: aws.String(`{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Sid": "DenyPolicyChangesExceptAdmins",
+					"Effect": "Deny",
+					"Principal": "*",
+					"Action": [
+						"secretsmanager:PutResourcePolicy",
+						"secretsmanager:DeleteResourcePolicy",
+						"secretsmanager:GetResourcePolicy"
+					],
+					"Resource": "*",
+					"Condition": {
+						"ArnNotEquals": {
+							"aws:PrincipalArn": [
+								"arn:aws:iam::000000000000:root",
+								"arn:aws:iam::000000000000:role/admin"
+							]
+						}
+					}
+				}
+			]
+		}`),
 	}
 }
 
@@ -533,6 +564,7 @@ func TestSetSecret(t *testing.T) {
 		client         fakesm.Client
 		pushSecretData fake.PushSecretData
 		newUUID        string
+		kubeclient     client.Client
 	}
 
 	type want struct {
@@ -1014,6 +1046,157 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithExistingNonChangingResourcePolicy": {
+			reason: "sync an existing secret without syncing resource policy that has no change",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					// NO call to PutResourcePolicy
+					GetSecretValueFn:    fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:    fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:    fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:       fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:     fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(makeValidGetResourcePolicyOutput(), nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"resourcePolicy": {
+										"blockPublicPolicy": true,
+										"policySourceRef": {
+											"kind": "ConfigMap",
+											"name": "resource-policy",
+											"key": "policy.json"
+									}
+								}
+							}
+						}`),
+					},
+				},
+				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "resource-policy",
+					},
+					// Create a policy that does not match object order of the
+					// existing one
+					Data: map[string]string{
+						"policy.json": `
+							{
+								"Version": "2012-10-17",
+								"Statement": [
+									{
+										"Resource": "*",
+										"Effect": "Deny",
+										"Principal": "*",
+										"Action": [
+											"secretsmanager:PutResourcePolicy",
+											"secretsmanager:DeleteResourcePolicy",
+											"secretsmanager:GetResourcePolicy"
+										],
+										"Condition": {
+											"ArnNotEquals": {
+												"aws:PrincipalArn": [
+													"arn:aws:iam::000000000000:root",
+													"arn:aws:iam::000000000000:role/admin"
+												]
+											}
+										},
+										"Sid": "DenyPolicyChangesExceptAdmins"
+									}
+								]
+							}
+						`,
+					},
+				}),
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithExistingChangingResourcePolicy": {
+			reason: "sync an existing secret and the resource policy when it has changes",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn:    fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:    fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:    fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:       fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:     fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(makeValidGetResourcePolicyOutput(), nil),
+					// Call to PutResourcePolicy since policy does not match
+					PutResourcePolicyFn: fakesm.NewPutResourcePolicyFn(&awssm.PutResourcePolicyOutput{}, nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"resourcePolicy": {
+										"blockPublicPolicy": true,
+										"policySourceRef": {
+											"kind": "ConfigMap",
+											"name": "resource-policy",
+											"key": "policy.json"
+									}
+								}
+							}
+						}`),
+					},
+				},
+				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "resource-policy",
+					},
+					// Create a policy that does not match object order of the
+					// existing one
+					Data: map[string]string{
+						"policy.json": `
+							{
+								"Version": "2012-10-17",
+								"Statement": [
+									{
+										"Resource": "*",
+										"Effect": "Deny",
+										"Principal": "*",
+										"Action": [
+											"secretsmanager:PutResourcePolicy",
+											"secretsmanager:DeleteResourcePolicy",
+											"secretsmanager:GetResourcePolicy"
+										],
+										"Condition": {
+											"ArnNotEquals": {
+												"aws:PrincipalArn": [
+													"arn:aws:iam::000000000000:root",
+													"arn:aws:iam::000000000000:role/sudo"
+												]
+											}
+										},
+										"Sid": "DenyPolicyChangesExceptAdmins"
+									}
+								]
+							}
+						`,
+					},
+				}),
+			},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -1022,6 +1205,7 @@ func TestSetSecret(t *testing.T) {
 				client:  &tc.args.client,
 				prefix:  tc.args.store.Prefix,
 				newUUID: func() string { return tc.args.newUUID },
+				kube:    tc.args.kubeclient,
 			}
 
 			err := sm.PushSecret(context.Background(), fakeSecret, tc.args.pushSecretData)
