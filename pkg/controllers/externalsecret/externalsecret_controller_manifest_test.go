@@ -711,6 +711,7 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found, "spec.slack.api_url should be added from template")
 	assert.Equal(t, "https://hooks.slack.com/services/XXX", apiURL, "spec.slack.api_url should come from template")
-
+	assert.Equal(t, "12345", result.GetResourceVersion(), "resourceVersion should be preserved")
+	assert.Equal(t, "test-uid-123", string(result.GetUID()), "uid should be preserved")
 	t.Logf("Result spec: %+v", result.Object["spec"])
 }
