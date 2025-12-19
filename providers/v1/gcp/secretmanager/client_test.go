@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/googleapis/gax-go/v2"
@@ -31,6 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	pointer "k8s.io/utils/ptr"
@@ -79,7 +81,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		latestEnabledSecretPolicy: esv1.SecretVersionSelectionPolicyLatestOrFail,
 	}
 	smtc.mockClient.NilClose()
-	smtc.mockClient.WithValue(context.Background(), smtc.apiInput, smtc.apiOutput, smtc.apiErr)
+	smtc.mockClient.WithValue(context.TODO(), smtc.apiInput, smtc.apiOutput, smtc.apiErr)
 	return &smtc
 }
 
@@ -109,7 +111,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
-	smtc.mockClient.WithValue(context.Background(), smtc.apiInput, smtc.apiOutput, smtc.apiErr)
+	smtc.mockClient.WithValue(context.TODO(), smtc.apiInput, smtc.apiOutput, smtc.apiErr)
 	return smtc
 }
 
@@ -214,7 +216,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	for k, v := range successCases {
 		sm.store = &esv1.GCPSMProvider{ProjectID: v.projectID, SecretVersionSelectionPolicy: v.latestEnabledSecretPolicy}
 		sm.smClient = v.mockClient
-		out, err := sm.GetSecret(context.Background(), *v.ref)
+		out, err := sm.GetSecret(t.Context(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
@@ -401,7 +403,7 @@ func TestGetSecretMetadataPolicyFetch(t *testing.T) {
 					ProjectID: "foo",
 				},
 			}
-			got, err := client.GetSecret(context.TODO(), tc.ref)
+			got, err := client.GetSecret(t.Context(), tc.ref)
 			if tc.expectedErr != "" {
 				if err == nil {
 					t.Fatalf("expected to receive an error but got nit")
@@ -450,7 +452,6 @@ func TestDeleteSecret(t *testing.T) {
 				client: fakeClient,
 				getSecretOutput: fakesm.SecretMockReturn{
 					Secret: &secretmanagerpb.Secret{
-
 						Name: testSecretName,
 						Labels: map[string]string{
 							managedBy: externalSecrets,
@@ -465,7 +466,6 @@ func TestDeleteSecret(t *testing.T) {
 				client: fakeClient,
 				getSecretOutput: fakesm.SecretMockReturn{
 					Secret: &secretmanagerpb.Secret{
-
 						Name:   testSecretName,
 						Labels: map[string]string{},
 					},
@@ -518,7 +518,7 @@ func TestDeleteSecret(t *testing.T) {
 			}
 			tc.args.client.NewGetSecretFn(tc.args.getSecretOutput)
 			tc.args.client.NewDeleteSecretFn(tc.args.deleteSecretErr)
-			err := client.DeleteSecret(context.TODO(), ref)
+			err := client.DeleteSecret(t.Context(), ref)
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
@@ -600,25 +600,25 @@ func TestPushSecret(t *testing.T) {
 		expectedData:   map[string][]byte{},
 	}
 
-	var payload = secretmanagerpb.SecretPayload{
+	payload := secretmanagerpb.SecretPayload{
 		Data: []byte("payload"),
 	}
 
-	var payload2 = secretmanagerpb.SecretPayload{
+	payload2 := secretmanagerpb.SecretPayload{
 		Data: []byte("fake-value"),
 	}
 
-	var res = secretmanagerpb.AccessSecretVersionResponse{
+	res := secretmanagerpb.AccessSecretVersionResponse{
 		Name:    "projects/default/secrets/foo-bar",
 		Payload: &payload,
 	}
 
-	var res2 = secretmanagerpb.AccessSecretVersionResponse{
+	res2 := secretmanagerpb.AccessSecretVersionResponse{
 		Name:    "projects/default/secrets/baz",
 		Payload: &payload2,
 	}
 
-	var secretVersion = secretmanagerpb.SecretVersion{}
+	secretVersion := secretmanagerpb.SecretVersion{}
 
 	type args struct {
 		store                         *esv1.GCPSMProvider
@@ -648,7 +648,8 @@ func TestPushSecret(t *testing.T) {
 				mock:                          smtc.mockClient,
 				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: &secret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
 			want: want{
 				err: nil,
 			},
@@ -685,7 +686,8 @@ func TestPushSecret(t *testing.T) {
 					},
 				}, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
 			want: want{
 				err: nil,
 			},
@@ -727,7 +729,8 @@ func TestPushSecret(t *testing.T) {
 					},
 				}, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
 			want: want{
 				err: nil,
 				req: func(m *fakesm.MockSMClient) error {
@@ -783,7 +786,8 @@ func TestPushSecret(t *testing.T) {
 					},
 				}, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
 			want: want{
 				err: nil,
 				req: func(m *fakesm.MockSMClient) error {
@@ -815,7 +819,8 @@ func TestPushSecret(t *testing.T) {
 				CreateSecretMockReturn:        fakesm.SecretMockReturn{Secret: &secretWithTopics, Err: nil},
 				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
 			want: want{
 				err: nil,
 				req: func(m *fakesm.MockSMClient) error {
@@ -952,7 +957,8 @@ func TestPushSecret(t *testing.T) {
 				mock:                          smtc.mockClient,
 				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: &secret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
 			want: want{
 				err: nil,
 			},
@@ -982,7 +988,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "/baz",
 			}
 
-			err := c.PushSecret(context.Background(), s, data)
+			err := c.PushSecret(t.Context(), s, data)
 			if err != nil {
 				if tc.want.err == nil {
 					t.Errorf("received an unexpected error: %v", err)
@@ -1009,108 +1015,197 @@ func TestPushSecret(t *testing.T) {
 
 func TestSecretExists(t *testing.T) {
 	tests := []struct {
-		name                          string
-		ref                           esv1.PushSecretRemoteRef
-		getSecretMockReturn           fakesm.SecretMockReturn
-		accessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
-		expectedSecret                bool
-		expectedErr                   func(t *testing.T, err error)
+		name           string
+		ref            v1alpha1.PushSecretRemoteRef
+		location       string
+		setupMock      func(*fakesm.MockSMClient)
+		expectedExists bool
+		expectedErr    func(t *testing.T, err error)
 	}{
 		{
-			name: "secret exists",
+			name: "secret and accessible version exist",
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "bar",
 			},
-			getSecretMockReturn: fakesm.SecretMockReturn{
-				Secret: &secretmanagerpb.Secret{
-					Name: testSecretName,
-				},
-				Err: nil,
-			},
-			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
-				Res: &secretmanagerpb.AccessSecretVersionResponse{
-					Name: "projects/foo/secrets/bar/versions/latest",
-					Payload: &secretmanagerpb.SecretPayload{
-						Data: []byte("test-data"),
+			setupMock: func(mc *fakesm.MockSMClient) {
+				// Mock ListSecretVersions to return an iterator with enabled versions
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{
+						{
+							Name:       "projects/foo/secrets/bar/versions/1",
+							State:      secretmanagerpb.SecretVersion_ENABLED,
+							CreateTime: timestamppb.New(time.Now()),
+						},
+					}),
+				})
+				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
+					Res: &secretmanagerpb.AccessSecretVersionResponse{
+						Name: "projects/foo/secrets/bar/versions/1",
+						Payload: &secretmanagerpb.SecretPayload{
+							Data: []byte("test-data"),
+						},
 					},
-				},
-				Err: nil,
+					Err: nil,
+				})
 			},
-			expectedSecret: true,
+			expectedExists: true,
 			expectedErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
 		{
-			name: "secret exists but has no versions",
+			name: "multiple versions exist - selects latest by create time",
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "bar",
 			},
-			getSecretMockReturn: fakesm.SecretMockReturn{
-				Secret: &secretmanagerpb.Secret{
-					Name: testSecretName,
-				},
-				Err: nil,
+			setupMock: func(mc *fakesm.MockSMClient) {
+				// Mock ListSecretVersions to return multiple versions with different create times
+				now := time.Now()
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{
+						{
+							Name:       "projects/foo/secrets/bar/versions/1",
+							State:      secretmanagerpb.SecretVersion_ENABLED,
+							CreateTime: timestamppb.New(now.Add(-2 * time.Hour)),
+						},
+						{
+							Name:       "projects/foo/secrets/bar/versions/3",
+							State:      secretmanagerpb.SecretVersion_ENABLED,
+							CreateTime: timestamppb.New(now), // Most recent
+						},
+						{
+							Name:       "projects/foo/secrets/bar/versions/2",
+							State:      secretmanagerpb.SecretVersion_ENABLED,
+							CreateTime: timestamppb.New(now.Add(-1 * time.Hour)),
+						},
+					}),
+				})
+				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
+					Res: &secretmanagerpb.AccessSecretVersionResponse{
+						Name: "projects/foo/secrets/bar/versions/3",
+						Payload: &secretmanagerpb.SecretPayload{
+							Data: []byte("latest-data"),
+						},
+					},
+					Err: nil,
+				})
 			},
-			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
-				Res: nil,
-				Err: status.Errorf(codes.NotFound, "secret version not found"),
-			},
-			expectedSecret: false,
+			expectedExists: true,
 			expectedErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
 		{
-			name: "secret does not exists",
+			name: "secret does not exist - NotFound error",
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "bar",
 			},
-			getSecretMockReturn: fakesm.SecretMockReturn{
-				Secret: nil,
-				Err:    status.Errorf(codes.NotFound, "secret not found"),
+			setupMock: func(mc *fakesm.MockSMClient) {
+				// Mock ListSecretVersions to return an empty iterator (no enabled versions)
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
+				})
+				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
+					Res: nil,
+					Err: status.Error(codes.NotFound, "secret not found"),
+				})
 			},
-			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{},
-			expectedSecret:                false,
+			expectedExists: false,
 			expectedErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
 		{
-			name: "unexpected error when getting secret",
+			name: "unexpected error occurs on access secret version",
 			ref: v1alpha1.PushSecretRemoteRef{
-				RemoteKey: "bar2",
+				RemoteKey: "bar",
 			},
-			getSecretMockReturn: fakesm.SecretMockReturn{
-				Secret: &secretmanagerpb.Secret{
-					Name: testSecretName,
-				},
-				Err: errors.New("some error"),
+			setupMock: func(mc *fakesm.MockSMClient) {
+				// Mock ListSecretVersions to return an empty iterator
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
+				})
+				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
+					Res: nil,
+					Err: status.Error(codes.PermissionDenied, "permission denied"),
+				})
 			},
-			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{},
-			expectedSecret:                false,
+			expectedExists: false,
 			expectedErr: func(t *testing.T, err error) {
-				assert.ErrorContains(t, err, "some error")
+				assert.ErrorContains(t, err, "permission denied")
 			},
 		},
 		{
-			name: "unexpected error occurs when accessing secret version",
+			name: "regional secret exists",
 			ref: v1alpha1.PushSecretRemoteRef{
-				RemoteKey: "bar3",
+				RemoteKey: "bar",
 			},
-			getSecretMockReturn: fakesm.SecretMockReturn{
-				Secret: &secretmanagerpb.Secret{
-					Name: testSecretName,
-				},
-				Err: nil,
+			location: "us-east1",
+			setupMock: func(mc *fakesm.MockSMClient) {
+				// Mock ListSecretVersions to return an iterator with enabled versions
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{
+						{
+							Name:       "projects/foo/locations/us-east1/secrets/bar/versions/1",
+							State:      secretmanagerpb.SecretVersion_ENABLED,
+							CreateTime: timestamppb.New(time.Now()),
+						},
+					}),
+				})
+				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
+					Res: &secretmanagerpb.AccessSecretVersionResponse{
+						Name: "projects/foo/locations/us-east1/secrets/bar/versions/1",
+						Payload: &secretmanagerpb.SecretPayload{
+							Data: []byte("test-data"),
+						},
+					},
+					Err: nil,
+				})
 			},
-			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
-				Res: nil,
-				Err: errors.New("version access error"),
-			},
-			expectedSecret: false,
+			expectedExists: true,
 			expectedErr: func(t *testing.T, err error) {
-				assert.ErrorContains(t, err, "version access error")
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "regional secret does not exist",
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "bar",
+			},
+			location: "us-east1",
+			setupMock: func(mc *fakesm.MockSMClient) {
+				// Mock ListSecretVersions to return an empty iterator
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
+				})
+				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
+					Res: nil,
+					Err: status.Error(codes.NotFound, "regional secret not found"),
+				})
+			},
+			expectedExists: false,
+			expectedErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "secret version does not exist - latest version is destroyed/disabled",
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "bar",
+			},
+			setupMock: func(mc *fakesm.MockSMClient) {
+				// Mock ListSecretVersions to return an empty iterator (no enabled versions)
+				mc.NewListSecretVersionsFn(fakesm.ListSecretVersionsMockReturn{
+					Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
+				})
+				mc.NewAccessSecretVersionFn(fakesm.AccessSecretVersionMockReturn{
+					Res: nil,
+					Err: status.Error(codes.FailedPrecondition, "Secret version is in DESTROYED state"),
+				})
+			},
+			expectedExists: false,
+			expectedErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "DESTROYED state")
 			},
 		},
 	}
@@ -1118,20 +1213,20 @@ func TestSecretExists(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			smClient := fakesm.MockSMClient{}
-			smClient.NewGetSecretFn(tc.getSecretMockReturn)
-			smClient.NewAccessSecretVersionFn(tc.accessSecretVersionMockReturn)
+			tc.setupMock(&smClient)
 
 			client := Client{
 				smClient: &smClient,
 				store: &esv1.GCPSMProvider{
 					ProjectID: "foo",
+					Location:  tc.location,
 				},
 			}
-			got, err := client.SecretExists(context.TODO(), tc.ref)
+			got, err := client.SecretExists(t.Context(), tc.ref)
 			tc.expectedErr(t, err)
 
-			if got != tc.expectedSecret {
-				t.Fatalf("unexpected secret: expected %t, got %t", tc.expectedSecret, got)
+			if got != tc.expectedExists {
+				t.Fatalf("unexpected result: expected %t, got %t", tc.expectedExists, got)
 			}
 		})
 	}
@@ -1142,7 +1237,7 @@ func TestSecretExistsWithRegionalEndpoint(t *testing.T) {
 		name                          string
 		location                      string
 		ref                           esv1.PushSecretRemoteRef
-		getSecretMockReturn           fakesm.SecretMockReturn
+		listSecretVersionsMockReturn  fakesm.ListSecretVersionsMockReturn
 		accessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
 		expectedSecret                bool
 		expectedErr                   func(t *testing.T, err error)
@@ -1153,15 +1248,18 @@ func TestSecretExistsWithRegionalEndpoint(t *testing.T) {
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "bar",
 			},
-			getSecretMockReturn: fakesm.SecretMockReturn{
-				Secret: &secretmanagerpb.Secret{
-					Name: testSecretName,
-				},
-				Err: nil,
+			listSecretVersionsMockReturn: fakesm.ListSecretVersionsMockReturn{
+				Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{
+					{
+						Name:       "projects/foo/locations/us-east1/secrets/bar/versions/1",
+						State:      secretmanagerpb.SecretVersion_ENABLED,
+						CreateTime: timestamppb.New(time.Now()),
+					},
+				}),
 			},
 			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
 				Res: &secretmanagerpb.AccessSecretVersionResponse{
-					Name: "projects/foo/locations/us-east1/secrets/bar/versions/latest",
+					Name: "projects/foo/locations/us-east1/secrets/bar/versions/1",
 					Payload: &secretmanagerpb.SecretPayload{
 						Data: []byte("test-data"),
 					},
@@ -1179,12 +1277,14 @@ func TestSecretExistsWithRegionalEndpoint(t *testing.T) {
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "bar",
 			},
-			getSecretMockReturn: fakesm.SecretMockReturn{
-				Secret: nil,
-				Err:    status.Errorf(codes.NotFound, "secret not found"),
+			listSecretVersionsMockReturn: fakesm.ListSecretVersionsMockReturn{
+				Res: fakesm.NewSecretVersionIterator([]*secretmanagerpb.SecretVersion{}),
 			},
-			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{},
-			expectedSecret:                false,
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: nil,
+				Err: status.Error(codes.NotFound, "secret not found"),
+			},
+			expectedSecret: false,
 			expectedErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
@@ -1194,7 +1294,7 @@ func TestSecretExistsWithRegionalEndpoint(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			smClient := fakesm.MockSMClient{}
-			smClient.NewGetSecretFn(tc.getSecretMockReturn)
+			smClient.NewListSecretVersionsFn(tc.listSecretVersionsMockReturn)
 			smClient.NewAccessSecretVersionFn(tc.accessSecretVersionMockReturn)
 
 			client := Client{
@@ -1397,7 +1497,7 @@ func TestPushSecretProperty(t *testing.T) {
 				store:    &esv1.GCPSMProvider{},
 			}
 			s := &corev1.Secret{Data: map[string][]byte{secretKey: []byte(tc.payload)}}
-			err := client.PushSecret(context.Background(), s, tc.data)
+			err := client.PushSecret(t.Context(), s, tc.data)
 			if err != nil {
 				if tc.expectedErr == "" {
 					t.Fatalf("PushSecret returns unexpected error: %v", err)
@@ -1449,7 +1549,7 @@ func TestGetSecretMap(t *testing.T) {
 	for k, v := range successCases {
 		sm.store = &esv1.GCPSMProvider{ProjectID: v.projectID}
 		sm.smClient = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, err := sm.GetSecretMap(t.Context(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
