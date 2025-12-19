@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -926,7 +926,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
 	}
 
-	if maps.Equal(currentPolicyMap, policyJSONMaps) {
+	if reflect.DeepEqual(currentPolicyMap, policyJSONMaps) {
 		return nil
 	}
 
