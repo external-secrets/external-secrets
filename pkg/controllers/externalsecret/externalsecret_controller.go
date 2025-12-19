@@ -687,6 +687,9 @@ func (r *Reconciler) reconcileGenericTarget(ctx context.Context, externalSecret 
 			return r.getRequeueResult(externalSecret), nil
 		}
 
+		obj.SetResourceVersion(existing.GetResourceVersion())
+		obj.SetUID(existing.GetUID())
+
 		// update the existing resource
 		err = r.updateGenericResource(ctx, log, externalSecret, obj)
 	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner:
