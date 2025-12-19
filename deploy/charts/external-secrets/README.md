@@ -92,12 +92,12 @@ The command removes all the Kubernetes components associated with the chart and 
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
 | crds.annotations | object | `{}` |  |
 | crds.conversion.enabled | bool | `false` | Conversion is disabled by default as we stopped supporting v1alpha1. |
-| crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. If set to false also set processClusterExternalSecret: false. |
-| crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. If set to false also set processClusterGenerator: false. |
-| crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. If set to false also set processClusterPushSecret: false. |
-| crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. If set to false also set processClusterSecretStore: false. |
-| crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. If set to false also set processPushSecret: false. |
-| crds.createSecretStore | bool | `true` | If true, create CRDs for Secret Store. If set to false also set processSecretStore: false. |
+| crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false. |
+| crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false. |
+| crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false. |
+| crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false. |
+| crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false. |
+| crds.createSecretStore | bool | `true` | If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false. |
 | createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | dnsConfig | object | `{}` | Specifies `dnsOptions` to deployment |

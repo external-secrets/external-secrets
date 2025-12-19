@@ -57,7 +57,7 @@ installCRDs: true
 crds:
   # -- If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false.
   createClusterExternalSecret: true
-  # -- If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterSecretStore: false.
+  # -- If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false.
   createClusterSecretStore: true
   # -- If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false.
   createSecretStore: true
