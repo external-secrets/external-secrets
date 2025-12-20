@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/acm"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -125,6 +126,13 @@ func validateRegion(prov *esv1.AWSProvider) error {
 		}
 		return nil
 	case esv1.AWSServiceCertificateManager:
+		resolver := acm.NewDefaultEndpointResolverV2()
+		_, err := resolver.ResolveEndpoint(context.TODO(), acm.EndpointParameters{
+			Region: &prov.Region,
+		})
+		if err != nil {
+			return fmt.Errorf(errRegionNotFound, prov.Region)
+		}
 		return nil
 	}
 	return fmt.Errorf(errUnknownProviderService, prov.Service)
