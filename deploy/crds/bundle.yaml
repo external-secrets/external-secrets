@@ -8302,6 +8302,7 @@ spec:
                           enum:
                             - SecretsManager
                             - ParameterStore
+                            - CertificateManager
                           type: string
                         sessionTags:
                           description: AWS STS assume role session tags
@@ -19927,6 +19928,7 @@ spec:
                           enum:
                             - SecretsManager
                             - ParameterStore
+                            - CertificateManager
                           type: string
                         sessionTags:
                           description: AWS STS assume role session tags
