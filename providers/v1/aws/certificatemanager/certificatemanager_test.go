@@ -74,6 +74,7 @@ func makeValidCertificateManagerTestCase() *certificateManagerTestCase {
 func makeValidACMInput() *acm.ExportCertificateInput {
 	return &acm.ExportCertificateInput{
 		CertificateArn: aws.String(testCertificateARN),
+		Passphrase:     []byte("test-passphrase"),
 	}
 }
 
@@ -95,7 +96,8 @@ func makeValidDescribeCertOutput() *acm.DescribeCertificateOutput {
 
 func makeValidCMRemoteRef() *esv1.ExternalSecretDataRemoteRef {
 	return &esv1.ExternalSecretDataRemoteRef{
-		Key: testCertificateARN,
+		Key:      testCertificateARN,
+		Property: "test-passphrase",
 	}
 }
 
@@ -163,6 +165,11 @@ func TestGetSecret(t *testing.T) {
 		tc.expectError = "certificate ARN must be specified in remoteRef.key"
 	}
 
+	setMissingPassphrase := func(tc *certificateManagerTestCase) {
+		tc.remoteRef.Property = ""
+		tc.expectError = "passphrase must be specified in remoteRef.property"
+	}
+
 	successCases := []*certificateManagerTestCase{
 		makeValidCertificateManagerTestCaseCustom(setValidCertificate),
 		makeValidCertificateManagerTestCaseCustom(setCertificateOnly),
@@ -171,6 +178,7 @@ func TestGetSecret(t *testing.T) {
 		makeValidCertificateManagerTestCaseCustom(setExportCertFail),
 		makeValidCertificateManagerTestCaseCustom(setDescribeCertFail),
 		makeValidCertificateManagerTestCaseCustom(setEmptyARN),
+		makeValidCertificateManagerTestCaseCustom(setMissingPassphrase),
 	}
 
 	for k, tc := range successCases {

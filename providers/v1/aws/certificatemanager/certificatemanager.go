@@ -71,11 +71,18 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 		CertificateArn: aws.String(certARN),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to describe ACM certificate %s: %w", certARN, err)
+		return nil, awsutil.SanitizeErr(err)
+	}
+
+	// Validate that passphrase is present - required for ExportCertificate
+	passphrase := ref.Property
+	if passphrase == "" {
+		return nil, fmt.Errorf("passphrase must be specified in remoteRef.property to export certificate %s", certARN)
 	}
 
 	exportOut, err := cm.client.ExportCertificate(ctx, &acm.ExportCertificateInput{
 		CertificateArn: aws.String(certARN),
+		Passphrase:     []byte(passphrase),
 	})
 	if err != nil {
 		return nil, awsutil.SanitizeErr(err)
