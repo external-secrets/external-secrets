@@ -71,9 +71,12 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Configure Git
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ env.TOKEN }}@github.com/${{ github.repository }}.git"
 
       - name: Update Docs
         if: github.ref == 'refs/heads/main'
