@@ -490,3 +490,4 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 )
+replace github.com/external-secrets/external-secrets/runtime/gcp => ./runtime/gcp

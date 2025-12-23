@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretmanager
+package auth
 
 import (
 	"context"
@@ -186,7 +186,7 @@ func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*exter
 
 	cm := &corev1.ConfigMap{}
 	if err := w.kubeClient.Get(ctx, key, cm); err != nil {
-		return nil, fmt.Errorf("failed to fetch external acccount credentials configmap %q: %w", key, err)
+		return nil, fmt.Errorf("failed to fetch external account credentials configmap %q: %w", key, err)
 	}
 
 	credKeyName := w.config.CredConfig.Key
@@ -199,7 +199,7 @@ func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*exter
 	}
 	credFile := &credentialsFile{}
 	if err := json.Unmarshal([]byte(credJSON), credFile); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal external acccount config in %q: %w", w.config.CredConfig.Name, err)
+		return nil, fmt.Errorf("failed to unmarshal external account config in %q: %w", w.config.CredConfig.Name, err)
 	}
 
 	return w.generateExternalAccountConfig(ctx, credFile)
