@@ -268,14 +268,15 @@ Will generate a secret with:
 ```
 ### Authentication
 
-We support five different modes for authentication:
+We support multiple authentication methods:
 [token-based](https://www.vaultproject.io/docs/auth/token),
 [appRole](https://www.vaultproject.io/docs/auth/approle),
 [kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
 [ldap](https://www.vaultproject.io/docs/auth/ldap),
 [userPass](https://www.vaultproject.io/docs/auth/userpass),
 [jwt/oidc](https://www.vaultproject.io/docs/auth/jwt),
-[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws) and
+[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws),
+[gcpAuth](https://developer.hashicorp.com/vault/docs/auth/gcp) and
 [tlsCert](https://developer.hashicorp.com/vault/docs/auth/cert), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
@@ -375,6 +376,16 @@ or `Kind=ClusterSecretStore` resource.
 [AWS IAM](https://developer.hashicorp.com/vault/docs/auth/aws) uses either a
 set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
 `secretRef` or by getting the authentication token from an [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) enabled service account
+
+#### GCP authentication
+
+[GCP IAM authentication](https://developer.hashicorp.com/vault/docs/auth/gcp) uses Google Cloud Platform service accounts to authenticate with Vault. It supports both Workload Identity (recommended for GKE) and service account keys.
+
+```yaml
+{% include 'vault-gcp-store.yaml' %}
+```
+
+**NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` in `serviceAccountRef` or `secretRef` with the namespace where the resource resides.
 
 #### TLS certificates authentication
 
