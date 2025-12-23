@@ -29,7 +29,7 @@ spec:
               namespace: "default"
           # Option 2: Authenticate using a service account key stored in a Secret
           # secretRef:
-          #   secretAccessKey:
+          #   secretAccessKeySecretRef:
           #     name: "gcpsm-secret"
           #     key: "secret-access-credentials"
 
