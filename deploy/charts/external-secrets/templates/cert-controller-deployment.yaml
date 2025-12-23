@@ -95,6 +95,16 @@ spec:
             - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
               name: metrics
+            - containerPort: {{ .Values.certController.readinessProbe.port }}
+              protocol: TCP
+              name: readiness
+            {{- if .Values.certController.startupProbe.enabled }}
+            {{- if not .Values.certController.startupProbe.useReadinessProbePort }}
+            - containerPort: {{ .Values.certController.startupProbe.port }}
+              protocol: TCP
+              name: startup
+            {{- end }}
+            {{- end }}
           readinessProbe:
             httpGet:
               port: {{ .Values.certController.readinessProbe.port }}
