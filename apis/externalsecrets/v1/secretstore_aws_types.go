@@ -52,7 +52,7 @@ type AWSJWTAuth struct {
 }
 
 // AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.
-// +kubebuilder:validation:Enum=SecretsManager;ParameterStore
+// +kubebuilder:validation:Enum=SecretsManager;ParameterStore;CertificateManager
 type AWSServiceType string
 
 const (
@@ -62,6 +62,9 @@ const (
 	// AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 	// see: https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html
 	AWSServiceParameterStore AWSServiceType = "ParameterStore"
+	// AWSServiceCertificateManager is the AWS Certificate Manager service.
+	// see: https://aws.amazon.com/certificate-manager/
+	AWSServiceCertificateManager AWSServiceType = "CertificateManager"
 )
 
 // SecretsManager defines how the provider behaves when interacting with AWS

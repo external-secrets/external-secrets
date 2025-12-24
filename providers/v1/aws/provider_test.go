@@ -471,6 +471,21 @@ func TestValidateStore(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "valid region certificate manager",
+			args: args{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AWS: &esv1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1.AWSServiceCertificateManager,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
