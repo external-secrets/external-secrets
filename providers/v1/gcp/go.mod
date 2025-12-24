@@ -3,8 +3,6 @@ module github.com/external-secrets/external-secrets/providers/v1/gcp
 go 1.25.5
 
 require (
-	cloud.google.com/go/compute/metadata v0.9.0
-	cloud.google.com/go/iam v1.5.3
 	cloud.google.com/go/secretmanager v1.16.0
 	github.com/external-secrets/external-secrets/apis v0.11.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
@@ -18,16 +16,15 @@ require (
 	google.golang.org/genproto v0.0.0-20251029180050-ab9386a59fda
 	google.golang.org/grpc v1.76.0
 	google.golang.org/protobuf v1.36.10
-	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
-	k8s.io/apimachinery v0.34.1
-	k8s.io/client-go v0.34.1
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.22.3
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.9.0 // indirect
+	cloud.google.com/go/iam v1.5.3 // indirect
 	github.com/go-openapi/swag/cmdutils v0.25.1 // indirect
 	github.com/go-openapi/swag/conv v0.25.1 // indirect
 	github.com/go-openapi/swag/fileutils v0.25.1 // indirect
@@ -39,6 +36,8 @@ require (
 	github.com/go-openapi/swag/stringutils v0.25.1 // indirect
 	github.com/go-openapi/swag/typeutils v0.25.1 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.1 // indirect
+	k8s.io/apimachinery v0.34.1 // indirect
+	k8s.io/client-go v0.34.1 // indirect
 )
 
 require (
