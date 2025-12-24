@@ -336,10 +336,29 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	infisicalSpec := storeSpec.Provider.Infisical
 
+	// Fetch CA certificate if configured
+	var caCertificate string
+	if len(infisicalSpec.CABundle) > 0 || infisicalSpec.CAProvider != nil {
+		caCert, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+			CABundle:   infisicalSpec.CABundle,
+			CAProvider: infisicalSpec.CAProvider,
+			StoreKind:  store.GetObjectKind().GroupVersionKind().Kind,
+			Namespace:  namespace,
+			Client:     kube,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get CA certificate: %w", err)
+		}
+		if caCert != nil {
+			caCertificate = string(caCert)
+		}
+	}
+
 	ctx, cancelSdkClient := context.WithCancel(ctx)
 
 	sdkClient := infisicalSdk.NewInfisicalClient(ctx, infisicalSdk.Config{
-		SiteUrl: infisicalSpec.HostAPI,
+		SiteUrl:       infisicalSpec.HostAPI,
+		CaCertificate: caCertificate,
 	})
 	secretPath := infisicalSpec.SecretsScope.SecretsPath
 	if secretPath == "" {
@@ -447,6 +466,18 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	if infisicalStoreSpec.SecretsScope.EnvironmentSlug == "" || infisicalStoreSpec.SecretsScope.ProjectSlug == "" {
 		return nil, errors.New("secretsScope.projectSlug and secretsScope.environmentSlug cannot be empty")
+	}
+
+	// Validate CAProvider namespace requirements
+	if infisicalStoreSpec.CAProvider != nil {
+		if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind &&
+			infisicalStoreSpec.CAProvider.Namespace == nil {
+			return nil, errors.New("caProvider.namespace is required for ClusterSecretStore")
+		}
+		if store.GetObjectKind().GroupVersionKind().Kind == esv1.SecretStoreKind &&
+			infisicalStoreSpec.CAProvider.Namespace != nil {
+			return nil, errors.New("caProvider.namespace must be empty with SecretStore")
+		}
 	}
 
 	if infisicalStoreSpec.Auth.UniversalAuthCredentials != nil {
