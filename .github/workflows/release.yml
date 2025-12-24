@@ -34,7 +34,16 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve and validate ref
+        id: resolve_ref
+        run: |
+          git fetch origin "${{ github.event.inputs.source_ref }}"
+          RESOLVED_SHA=$(git rev-parse "origin/${{ github.event.inputs.source_ref }}" 2>/dev/null || git rev-parse "${{ github.event.inputs.source_ref }}")
+          echo "sha=$RESOLVED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout validated ref
+        run: git checkout ${{ steps.resolve_ref.outputs.sha }}
       - name: check-docs
         env:
           DOCS_VERSION: ${{ github.event.inputs.version }}
@@ -55,7 +64,16 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve and validate ref
+        id: resolve_ref
+        run: |
+          git fetch origin "${{ github.event.inputs.source_ref }}"
+          RESOLVED_SHA=$(git rev-parse "origin/${{ github.event.inputs.source_ref }}" 2>/dev/null || git rev-parse "${{ github.event.inputs.source_ref }}")
+          echo "sha=$RESOLVED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout validated ref
+        run: git checkout ${{ steps.resolve_ref.outputs.sha }}
 
       - name: Create Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
