@@ -89,7 +89,7 @@ func (m *MockKeyManagerClient) ListSecrets(_ context.Context, _ *gophercloud.Ser
 		return nil, fmt.Errorf("%s", m.errorMessage)
 	}
 
-	var result =  make([]secrets.Secret, 10)
+	var result = make([]secrets.Secret, 10)
 	for _, secret := range m.secretsInfo {
 		// Apply name filter if provided
 		if opts != nil {

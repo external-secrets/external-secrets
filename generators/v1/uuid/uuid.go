@@ -61,7 +61,6 @@ func generateUUID() (string, error) {
 	return uuid.String(), nil
 }
 
-
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {
 	return &Generator{}

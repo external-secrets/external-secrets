@@ -30,7 +30,6 @@ import (
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/smithy-go"
-	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -44,6 +43,7 @@ import (
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )

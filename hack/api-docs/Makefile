@@ -22,6 +22,7 @@ MAJOR_VERSION ?= $(shell echo $(VERSION_NO_V) | cut -d'.' -f1)
 MINOR_VERSION ?= $(shell echo $(VERSION_NO_V) | cut -d'.' -f2)
 VERSION_TO_CHECK ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION))
 DOCS_ALIAS ?= unstable
+GITHUB_TOKEN ?= invalid
 SERVE_BIND_ADDRESS ?= 127.0.0.1
 SHELL := /usr/bin/env bash
 

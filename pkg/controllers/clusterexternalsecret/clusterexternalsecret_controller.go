@@ -371,7 +371,13 @@ func (r *Reconciler) updateNamespaceRemoveFinalizer(ctx context.Context, log log
 	return nil
 }
 
-func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterExternalSecret *esv1.ClusterExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1.ExternalSecretMetadata) error {
+func (r *Reconciler) createOrUpdateExternalSecret(
+	ctx context.Context,
+	clusterExternalSecret *esv1.ClusterExternalSecret,
+	namespace v1.Namespace,
+	esName string,
+	esMetadata esv1.ExternalSecretMetadata,
+) error {
 	// Add namespace finalizer first to prevent deletion race conditions
 	if err := r.ensureNamespaceFinalizer(ctx, &namespace, clusterExternalSecret.Name); err != nil {
 		return err

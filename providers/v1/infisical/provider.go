@@ -21,16 +21,16 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/external-secrets/external-secrets/runtime/metrics"
-	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
 	infisicalSdk "github.com/infisical/go-sdk"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
 const (
@@ -75,7 +75,14 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
-func performUniversalAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performUniversalAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
 	clientID, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
 	if err != nil {
@@ -97,7 +104,14 @@ func performUniversalAuthLogin(ctx context.Context, store esv1.GenericStore, inf
 	return nil
 }
 
-func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performAzureAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	azureAuthCredentials := infisicalSpec.Auth.AzureAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.IdentityID)
 	if err != nil {
@@ -123,7 +137,14 @@ func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisic
 	return nil
 }
 
-func performGcpIDTokenAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performGcpIDTokenAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	gcpIDTokenAuthCredentials := infisicalSpec.Auth.GcpIDTokenAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIDTokenAuthCredentials.IdentityID)
 	if err != nil {
@@ -140,7 +161,14 @@ func performGcpIDTokenAuthLogin(ctx context.Context, store esv1.GenericStore, in
 	return nil
 }
 
-func performGcpIamAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performGcpIamAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	gcpIamAuthCredentials := infisicalSpec.Auth.GcpIamAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIamAuthCredentials.IdentityID)
 	if err != nil {
@@ -162,7 +190,14 @@ func performGcpIamAuthLogin(ctx context.Context, store esv1.GenericStore, infisi
 	return nil
 }
 
-func performJwtAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performJwtAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	jwtAuthCredentials := infisicalSpec.Auth.JwtAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, jwtAuthCredentials.IdentityID)
 	if err != nil {
@@ -184,7 +219,14 @@ func performJwtAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 	return nil
 }
 
-func performLdapAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performLdapAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	ldapAuthCredentials := infisicalSpec.Auth.LdapAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.IdentityID)
 	if err != nil {
@@ -211,7 +253,14 @@ func performLdapAuthLogin(ctx context.Context, store esv1.GenericStore, infisica
 	return nil
 }
 
-func performOciAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performOciAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	ociAuthCredentials := infisicalSpec.Auth.OciAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.IdentityID)
 	if err != nil {
@@ -270,7 +319,14 @@ func performOciAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 	return nil
 }
 
-func performKubernetesAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performKubernetesAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	kubernetesAuthCredentials := infisicalSpec.Auth.KubernetesAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, kubernetesAuthCredentials.IdentityID)
 	if err != nil {
@@ -296,7 +352,14 @@ func performKubernetesAuthLogin(ctx context.Context, store esv1.GenericStore, in
 	return nil
 }
 
-func performAwsAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performAwsAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	awsAuthCredentials := infisicalSpec.Auth.AwsAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, awsAuthCredentials.IdentityID)
 	if err != nil {
@@ -313,7 +376,14 @@ func performAwsAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 	return nil
 }
 
-func performTokenAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+func performTokenAuthLogin(
+	ctx context.Context,
+	store esv1.GenericStore,
+	infisicalSpec *esv1.InfisicalProvider,
+	sdkClient infisicalSdk.InfisicalClientInterface,
+	kube kclient.Client,
+	namespace string,
+) error {
 	tokenAuthCredentials := infisicalSpec.Auth.TokenAuthCredentials
 	accessToken, err := GetStoreSecretData(ctx, store, kube, namespace, tokenAuthCredentials.AccessToken)
 	if err != nil {

@@ -257,7 +257,10 @@ func makeValidSecretManagerGetAllTestCaseCustom(tweaks ...func(smtc *secretManag
 func prepareMockProjectVarClient(smtc *secretManagerTestCase) {
 	responses := make([]fakegitlab.APIResponse[[]*gitlab.ProjectVariable], 0)
 	if smtc.projectAPIOutput != nil {
-		responses = append(responses, fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{Output: []*gitlab.ProjectVariable{smtc.projectAPIOutput}, Response: smtc.projectAPIResponse, Error: smtc.apiErr})
+		responses = append(
+			responses,
+			fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{Output: []*gitlab.ProjectVariable{smtc.projectAPIOutput}, Response: smtc.projectAPIResponse, Error: smtc.apiErr},
+		)
 	}
 	for _, response := range smtc.projectAPIOutputs {
 		responses = append(responses, *response)

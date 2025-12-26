@@ -28,7 +28,7 @@ import (
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 
-	"github.com/external-secrets/external-secrets/providers/v1/yandex/common"
+	ydxcommon "github.com/external-secrets/external-secrets/providers/v1/yandex/common"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/common/clock"
 )
 

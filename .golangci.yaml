@@ -125,7 +125,15 @@ issues:
   max-same-issues: 0
 
 formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+    - golines
   settings:
+    goimports:
+      local-prefixes:
+        - github.com/external-secrets/external-secrets
     golines:
       # Target maximum line length.
       # Default: 100

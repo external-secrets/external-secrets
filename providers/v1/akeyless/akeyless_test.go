@@ -312,7 +312,11 @@ func TestSecretExists(t *testing.T) {
 		failGetTestCase(),
 		makeValidAkeylessTestCase("success without property").SetExpectVal(true).SetExpectInput(&testingfake.PushSecretData{Property: ""}).
 			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) { return "my secret", nil })),
-		makeValidAkeylessTestCase("fail unmarshal").SetExpectVal(false).SetExpectErr("invalid character 'd' looking for beginning of value").SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
+		makeValidAkeylessTestCase(
+			"fail unmarshal",
+		).SetExpectVal(false).
+			SetExpectErr("invalid character 'd' looking for beginning of value").
+			SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
 			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) { return "daenerys", nil })),
 		makeValidAkeylessTestCase("no property").SetExpectVal(false).SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
 			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) { return `{"propa": "a"}`, nil })),

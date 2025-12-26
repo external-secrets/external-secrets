@@ -339,7 +339,9 @@ func getCloudConfiguration(provider *esv1.AzureKVProvider) (cloud.Configuration,
 		var baseConfig cloud.Configuration
 		switch provider.EnvironmentType {
 		case esv1.AzureEnvironmentGermanCloud:
-			return cloud.Configuration{}, errors.New("Azure Germany (Microsoft Cloud Deutschland) was discontinued on October 29, 2021. Please use AzureStackCloud with custom configuration or migrate to public cloud regions")
+			return cloud.Configuration{}, errors.New(
+				"Azure Germany (Microsoft Cloud Deutschland) was discontinued on October 29, 2021. Please use AzureStackCloud with custom configuration or migrate to public cloud regions",
+			)
 		case esv1.AzureEnvironmentPublicCloud:
 			baseConfig = cloud.AzurePublic
 		case esv1.AzureEnvironmentUSGovernmentCloud:
@@ -366,7 +368,9 @@ func getCloudConfiguration(provider *esv1.AzureKVProvider) (cloud.Configuration,
 	case esv1.AzureEnvironmentChinaCloud:
 		return cloud.AzureChina, nil
 	case esv1.AzureEnvironmentGermanCloud:
-		return cloud.Configuration{}, errors.New("Azure Germany (Microsoft Cloud Deutschland) was discontinued on October 29, 2021. Please use AzureStackCloud with custom configuration or migrate to public cloud regions")
+		return cloud.Configuration{}, errors.New(
+			"Azure Germany (Microsoft Cloud Deutschland) was discontinued on October 29, 2021. Please use AzureStackCloud with custom configuration or migrate to public cloud regions",
+		)
 	case esv1.AzureEnvironmentAzureStackCloud:
 		return cloud.Configuration{}, errors.New("CustomCloudConfig is required when EnvironmentType is AzureStackCloud")
 	default:

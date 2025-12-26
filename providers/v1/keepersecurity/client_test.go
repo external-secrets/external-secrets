@@ -33,23 +33,23 @@ import (
 )
 
 const (
-	folderID            = "a8ekf031k"
-	validExistingRecord = "record0/login"
-	invalidRecord       = "record5/login"
-	outputRecord0       = "{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
-	outputRecord1       = "{\"title\":\"record1\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host1\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
-	outputRecord2       = "{\"title\":\"record2\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host2\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
+	folderID               = "a8ekf031k"
+	validExistingRecord    = "record0/login"
+	invalidRecord          = "record5/login"
+	outputRecord0          = "{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
+	outputRecord1          = "{\"title\":\"record1\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host1\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
+	outputRecord2          = "{\"title\":\"record2\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host2\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
 	outputRecordWithLabels = "{\"title\":\"recordWithLabels\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"label\":\"username\",\"value\":[\"foo\"]},{\"type\":\"password\",\"label\":\"pass\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
-	record0                 = "record0"
-	record1                 = "record1"
-	record2                 = "record2"
-	recordWithLabels        = "recordWithLabels"
-	LoginKey                = "login"
-	PasswordKey             = "password"
-	HostKeyFormat           = "host%d"
-	RecordNameFormat        = "record%d"
-	UsernameLabel = "username"
-	PassLabel     = "pass"
+	record0                = "record0"
+	record1                = "record1"
+	record2                = "record2"
+	recordWithLabels       = "recordWithLabels"
+	LoginKey               = "login"
+	PasswordKey            = "password"
+	HostKeyFormat          = "host%d"
+	RecordNameFormat       = "record%d"
+	UsernameLabel          = "username"
+	PassLabel              = "pass"
 )
 
 func TestClientDeleteSecret(t *testing.T) {
@@ -809,7 +809,11 @@ func generateRecords() []*ksm.Record {
 				},
 			}
 		}
-		sec := fmt.Sprintf("{\"title\":\"record%d\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host%d\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}]}", i, i)
+		sec := fmt.Sprintf(
+			"{\"title\":\"record%d\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host%d\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}]}",
+			i,
+			i,
+		)
 		record.SetTitle(fmt.Sprintf(RecordNameFormat, i))
 		record.SetStandardFieldValue(LoginKey, "foo")
 		record.SetStandardFieldValue(PasswordKey, "bar")
@@ -829,7 +833,12 @@ func generateRecordWithLabels() *ksm.Record {
 		},
 	}
 	// Fields with labels - using label as key
-	sec := fmt.Sprintf("{\"title\":%q,\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"label\":%q,\"value\":[\"foo\"]},{\"type\":\"password\",\"label\":%q,\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}]}", recordWithLabels, UsernameLabel, PassLabel)
+	sec := fmt.Sprintf(
+		"{\"title\":%q,\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"label\":%q,\"value\":[\"foo\"]},{\"type\":\"password\",\"label\":%q,\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}]}",
+		recordWithLabels,
+		UsernameLabel,
+		PassLabel,
+	)
 	record.SetTitle(recordWithLabels)
 	record.SetStandardFieldValue(LoginKey, "foo")
 	record.SetStandardFieldValue(PasswordKey, "bar")
