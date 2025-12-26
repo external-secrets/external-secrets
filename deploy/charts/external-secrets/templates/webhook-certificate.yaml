@@ -23,6 +23,9 @@ spec:
   {{- with .Values.webhook.certManager.cert.duration }}
   duration: {{ . | quote }}
   {{- end }}
+  privateKey:
+    {{- toYaml .Values.webhook.certManager.cert.privateKey | trim | nindent 4 }}
+  signatureAlgorithm: {{ .Values.webhook.certManager.cert.signatureAlgorithm }}
   {{- with .Values.webhook.certManager.cert.renewBefore }}
   renewBefore: {{ . | quote }}
   {{- end }}
