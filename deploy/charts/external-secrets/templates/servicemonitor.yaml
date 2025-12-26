@@ -18,6 +18,12 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
+  {{- if .Values.metrics.listen.auth.enabled }}
+  - authorization:
+    credentials:
+      name: {{ include "external-secrets.serviceAccountName" . }}-token
+      key: token
+  {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
@@ -50,6 +56,12 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
+  {{- if .Values.metrics.listen.auth.enabled }}
+  - authorization:
+    credentials:
+      name: {{ include "external-secrets-webhook.serviceAccountName" . }}-token
+      key: token
+  {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
@@ -83,6 +95,12 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
+  {{- if .Values.metrics.listen.auth.enabled }}
+  - authorization:
+    credentials:
+      name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
+      key: token
+  {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
