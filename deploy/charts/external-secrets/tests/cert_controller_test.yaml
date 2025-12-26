@@ -228,7 +228,7 @@ tests:
           value:
             httpGet:
               path: /readyz
-              port: 8081
+              port: ready
             initialDelaySeconds: 20
             periodSeconds: 5
   - it: should override the startup Probe port
@@ -240,10 +240,16 @@ tests:
       - cert-controller-deployment.yaml
     asserts:
       - equal:
+          path: spec.template.spec.containers[0].ports[2]
+          value:
+            containerPort: 8083
+            protocol: TCP
+            name: startup
+      - equal:
           path: spec.template.spec.containers[0].startupProbe
           value:
             httpGet:
-              port: 8083
+              port: startup
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
