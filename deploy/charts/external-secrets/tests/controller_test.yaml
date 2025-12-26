@@ -100,7 +100,53 @@ tests:
       - equal:
           path: spec.strategy.rollingUpdate.maxUnavailable
           value: 0
-  - it: should add livenessProbe if define
+  - it: should add livenessProbe if defined
+    set:
+      livenessProbe:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            timeoutSeconds: 5
+            failureThreshold: 5
+            periodSeconds: 10
+            successThreshold: 1
+            initialDelaySeconds: 10
+            httpGet:
+              port: live
+              path: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].ports[1]
+          value:
+            containerPort: 8082
+            protocol: TCP
+            name: live
+  - it: should customize livenessProbe port under spec.port
+    set:
+      livenessProbe:
+        enabled: true
+        spec:
+          port: 8888
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            timeoutSeconds: 5
+            failureThreshold: 5
+            periodSeconds: 10
+            successThreshold: 1
+            initialDelaySeconds: 10
+            httpGet:
+              port: live
+              path: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].ports[1]
+          value:
+            containerPort: 8888
+            protocol: TCP
+            name: live
+  - it: should customize livenessProbe port under spec.httpGet
     set:
       livenessProbe:
         enabled: true
@@ -116,8 +162,57 @@ tests:
             scheme: HTTP
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
-          value: 8080
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 10
+            successThreshold: 10
+            httpGet:
+              port: 8080
+              path: /healthz
+              scheme: HTTP
+      - equal:
+          path: spec.template.spec.containers[0].ports[1]
+          value:
+            containerPort: 8080
+            protocol: TCP
+            name: live
+  - it: should use httpGet.port over spec.port when httpGet.port is numeric
+    set:
+      livenessProbe:
+        enabled: true
+        spec:
+          port: 3030
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 10
+          successThreshold: 10
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 10
+            successThreshold: 10
+            httpGet:
+              port: 8080
+              path: /healthz
+              scheme: HTTP
+      - equal:
+          path: spec.template.spec.containers[0].ports[1]
+          value:
+            containerPort: 8080
+            protocol: TCP
+            name: live
   - it: should update args with enableHTTP2=true
     set:
       enableHTTP2: true
