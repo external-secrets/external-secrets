@@ -381,6 +381,36 @@ podDisruptionBudget:
 # -- Run the controller on the host network
 hostNetwork: false
 
+# -- Setup a networkPolicy for external-secrets
+networkPolicy:
+  # -- Specifies whether the networkPolicy should be created.
+  enabled: false
+  # -- The ingress traffic
+  # Should match the health and (optionally) metrics port
+  ingress:
+  - ports:
+    - port: 8080  # metrics port
+      protocol: TCP
+    - port: 8082  # health port
+      protocol: TCP
+  # -- The egress traffic
+  # The minimum egress ports required to function are:
+  #   DNS (53/udp, 53/tcp)
+  #   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp
+  # You will need to add any additional ports for your external stores
+  egress:
+  - ports:
+    - port: 80
+      protocol: TCP
+    - port: 443
+      protocol: TCP
+    - port: 53
+      protocol: TCP
+    - port: 53
+      protocol: UDP
+    - port: 6443
+      protocol: TCP
+
 webhook:
   # -- Annotations to place on validating webhook configuration.
   annotations: {}
@@ -403,6 +433,38 @@ webhook:
   failurePolicy: Fail
   # -- Specifies if webhook pod should use hostNetwork or not.
   hostNetwork: false
+
+  # -- Setup a networkPolicy for external-secrets webhook
+  networkPolicy:
+    # -- Specifies whether the networkPolicy should be created.
+    enabled: false
+    # -- The ingress traffic
+    # Should match the webhook, health, and (optionally) metrics port
+    ingress:
+    - ports:
+      - port: 8080  # metrics port
+        protocol: TCP
+      - port: 8081  # health port
+        protocol: TCP
+      - port: 10250  # webhook port
+        protocol: TCP
+    # -- The egress traffic
+    # The minimum egress ports required to function are:
+    #   DNS (53/udp, 53/tcp)
+    #   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp
+    egress:
+    - ports:
+      - port: 80
+        protocol: TCP
+      - port: 443
+        protocol: TCP
+      - port: 53
+        protocol: TCP
+      - port: 53
+        protocol: UDP
+      - port: 6443
+        protocol: TCP
+
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
@@ -615,6 +677,35 @@ certController:
 
   # -- Run the certController on the host network
   hostNetwork: false
+
+  # -- Setup a networkPolicy for external-secrets certController
+  networkPolicy:
+    # -- Specifies whether the networkPolicy should be created.
+    enabled: false
+    # -- The ingress traffic
+    # Should match the health and (optionally) metrics port
+    ingress:
+    - ports:
+      - port: 8080  # metrics port
+        protocol: TCP
+      - port: 8081  # health port
+        protocol: TCP
+    # -- The egress traffic
+    # The minimum egress ports required to function are:
+    #   DNS (53/udp, 53/tcp)
+    #   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp
+    egress:
+    - ports:
+      - port: 80
+        protocol: TCP
+      - port: 443
+        protocol: TCP
+      - port: 53
+        protocol: TCP
+      - port: 53
+        protocol: UDP
+      - port: 6443
+        protocol: TCP
 
     # -- Pod priority class name.
   priorityClassName: ""
