@@ -43,6 +43,20 @@
                 "extraVolumes": {
                     "type": "array"
                 },
+                "networkPolicy": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "ingress": {
+                            "type": "object"
+                        },
+                        "egress": {
+                            "type": "object"
+                        }
+                    }
+                },
                 "hostNetwork": {
                     "type": "boolean"
                 },
@@ -411,6 +425,20 @@
                 },
                 "sidecarLabelValue": {
                     "type": "string"
+                }
+            }
+        },
+        "networkPolicy": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "ingress": {
+                    "type": "object"
+                },
+                "egress": {
+                    "type": "object"
                 }
             }
         },
@@ -849,6 +877,20 @@
                 },
                 "failurePolicy": {
                     "type": "string"
+                },
+                "networkPolicy": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "ingress": {
+                            "type": "object"
+                        },
+                        "egress": {
+                            "type": "object"
+                        }
+                    }
                 },
                 "hostNetwork": {
                     "type": "boolean"
