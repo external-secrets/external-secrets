@@ -464,41 +464,59 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, errors.New("invalid infisical store")
 	}
 
-	if infisicalStoreSpec.SecretsScope.EnvironmentSlug == "" || infisicalStoreSpec.SecretsScope.ProjectSlug == "" {
-		return nil, errors.New("secretsScope.projectSlug and secretsScope.environmentSlug cannot be empty")
+	if err := validateSecretsScope(infisicalStoreSpec); err != nil {
+		return nil, err
 	}
 
-	// Validate CAProvider namespace requirements
-	if infisicalStoreSpec.CAProvider != nil {
-		if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind &&
-			infisicalStoreSpec.CAProvider.Namespace == nil {
-			return nil, errors.New("caProvider.namespace is required for ClusterSecretStore")
-		}
-		if store.GetObjectKind().GroupVersionKind().Kind == esv1.SecretStoreKind &&
-			infisicalStoreSpec.CAProvider.Namespace != nil {
-			return nil, errors.New("caProvider.namespace must be empty with SecretStore")
-		}
+	if err := validateCAProvider(store, infisicalStoreSpec); err != nil {
+		return nil, err
 	}
 
-	if infisicalStoreSpec.Auth.UniversalAuthCredentials != nil {
-		uaCredential := infisicalStoreSpec.Auth.UniversalAuthCredentials
-		// to validate reference authentication
-		err := esutils.ValidateReferentSecretSelector(store, uaCredential.ClientID)
-		if err != nil {
-			return nil, err
-		}
-
-		err = esutils.ValidateReferentSecretSelector(store, uaCredential.ClientSecret)
-		if err != nil {
-			return nil, err
-		}
-
-		if uaCredential.ClientID.Key == "" || uaCredential.ClientSecret.Key == "" {
-			return nil, errors.New("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty")
-		}
+	if err := validateUniversalAuth(store, infisicalStoreSpec); err != nil {
+		return nil, err
 	}
 
 	return nil, nil
+}
+
+func validateSecretsScope(spec *esv1.InfisicalProvider) error {
+	if spec.SecretsScope.EnvironmentSlug == "" || spec.SecretsScope.ProjectSlug == "" {
+		return errors.New("secretsScope.projectSlug and secretsScope.environmentSlug cannot be empty")
+	}
+	return nil
+}
+
+func validateCAProvider(store esv1.GenericStore, spec *esv1.InfisicalProvider) error {
+	if spec.CAProvider == nil {
+		return nil
+	}
+
+	storeKind := store.GetObjectKind().GroupVersionKind().Kind
+	if storeKind == esv1.ClusterSecretStoreKind && spec.CAProvider.Namespace == nil {
+		return errors.New("caProvider.namespace is required for ClusterSecretStore")
+	}
+	if storeKind == esv1.SecretStoreKind && spec.CAProvider.Namespace != nil {
+		return errors.New("caProvider.namespace must be empty with SecretStore")
+	}
+	return nil
+}
+
+func validateUniversalAuth(store esv1.GenericStore, spec *esv1.InfisicalProvider) error {
+	if spec.Auth.UniversalAuthCredentials == nil {
+		return nil
+	}
+
+	uaCredential := spec.Auth.UniversalAuthCredentials
+	if err := esutils.ValidateReferentSecretSelector(store, uaCredential.ClientID); err != nil {
+		return err
+	}
+	if err := esutils.ValidateReferentSecretSelector(store, uaCredential.ClientSecret); err != nil {
+		return err
+	}
+	if uaCredential.ClientID.Key == "" || uaCredential.ClientSecret.Key == "" {
+		return errors.New("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty")
+	}
+	return nil
 }
 
 // NewProvider creates a new Provider instance.

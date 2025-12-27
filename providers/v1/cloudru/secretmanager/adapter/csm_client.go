@@ -35,6 +35,8 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
+const errUnauthorized = "unauthorized: %w"
+
 // CredentialsResolver returns the actual client credentials.
 type CredentialsResolver interface {
 	Resolve(ctx context.Context) (*Credentials, error)
@@ -101,7 +103,7 @@ func (c *APIClient) ListSecrets(ctx context.Context, req *ListSecretsRequest) ([
 	var err error
 	ctx, err = c.authCtx(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unauthorized: %w", err)
+		return nil, fmt.Errorf(errUnauthorized, err)
 	}
 
 	resp, err := c.smsClient.V2.SecretService.Search(ctx, searchReq)
@@ -117,7 +119,7 @@ func (c *APIClient) AccessSecretVersionByPath(ctx context.Context, projectID, pa
 	var err error
 	ctx, err = c.authCtx(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unauthorized: %w", err)
+		return nil, fmt.Errorf(errUnauthorized, err)
 	}
 
 	req := &smsV2.AccessSecretRequest{
@@ -143,7 +145,7 @@ func (c *APIClient) AccessSecretVersion(ctx context.Context, id, version string)
 	var err error
 	ctx, err = c.authCtx(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unauthorized: %w", err)
+		return nil, fmt.Errorf(errUnauthorized, err)
 	}
 
 	if version == "" {

@@ -14,9 +14,6 @@ env:
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-permissions:
-  contents: read
-
 jobs:
   detect-noop:
     permissions:
