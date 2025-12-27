@@ -813,11 +813,28 @@
                                         }
                                     }
                                 },
+                                "privateKey": {
+                                    "type": "object",
+                                    "properties": {
+                                        "rotationPolicy": {
+                                            "type": "string"
+                                        },
+                                        "algorithm": {
+                                            "type": "string"
+                                        },
+                                        "size": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
                                 "renewBefore": {
                                     "type": "string"
                                 },
                                 "revisionHistoryLimit": {
                                     "type": "integer"
+                                },
+                                "signatureAlgorithm": {
+                                    "type": "string"
                                 }
                             }
                         },
