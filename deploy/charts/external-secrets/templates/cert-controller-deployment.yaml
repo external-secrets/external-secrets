@@ -113,6 +113,17 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 5
           {{- end }}
+          {{- if .Values.certController.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              port: {{ .Values.certController.readinessProbe.port }}
+              path: /healthz
+            initialDelaySeconds: {{ .Values.certController.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.certController.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.certController.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.certController.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.certController.livenessProbe.failureThreshold }}
+          {{- end }}
           {{- with .Values.certController.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}

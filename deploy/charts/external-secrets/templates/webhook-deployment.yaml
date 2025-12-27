@@ -99,6 +99,17 @@ spec:
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
+          {{- if .Values.webhook.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              port: {{ .Values.webhook.readinessProbe.port }}
+              path: /healthz
+            initialDelaySeconds: {{ .Values.webhook.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.webhook.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.webhook.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.webhook.livenessProbe.failureThreshold }}
+          {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}

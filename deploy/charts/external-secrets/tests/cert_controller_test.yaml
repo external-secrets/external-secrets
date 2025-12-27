@@ -247,3 +247,26 @@ tests:
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
+  - it: should have liveness Probe if enabled
+    set:
+      certController.livenessProbe.enabled: true
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            httpGet:
+              path: /healthz
+              port: 8081
+            failureThreshold: 5
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+  - it: should not have liveness Probe by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].livenessProbe
