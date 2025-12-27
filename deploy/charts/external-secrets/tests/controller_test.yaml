@@ -118,6 +118,30 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].livenessProbe.httpGet.port
           value: 8080
+  - it: should add readinessProbe if defined
+    set:
+      readinessProbe:
+        enabled: true
+        spec:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 10
+          successThreshold: 10
+          httpGet:
+            path: /readyz
+            port: 8082
+            scheme: HTTP
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: 8082
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /readyz
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--live-addr=:8082"
   - it: should update args with enableHTTP2=true
     set:
       enableHTTP2: true
