@@ -354,9 +354,9 @@ livenessProbe:
     initialDelaySeconds: 10
     # -- Handler for liveness probe.
     httpGet:
-      # -- Set this value to 8082 to active liveness probes.
+      # -- Set this value to 'metrics' (named port: 8080) to active liveness probes.
       # @schema type: [string, integer]
-      port: 8082
+      port: metrics
       # -- Path for liveness probe.
       path: /healthz
 
