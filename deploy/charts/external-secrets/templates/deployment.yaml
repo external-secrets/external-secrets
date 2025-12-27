@@ -121,6 +121,8 @@ spec:
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
           {{- if .Values.livenessProbe.enabled }}
           - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.httpGet.port }}
+          {{- else if .Values.readinessProbe.enabled }}
+          - --live-addr={{ .Values.readinessProbe.spec.address }}:{{ .Values.readinessProbe.spec.httpGet.port }}
           {{- end }}
           {{- if .Values.metrics.listen.secure.enabled }}
           - --metrics-secure=true
@@ -135,6 +137,10 @@ spec:
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
           {{- toYaml (omit .Values.livenessProbe.spec "address") | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+          {{- toYaml (omit .Values.readinessProbe.spec "address") | nindent 12 }}
           {{- end }}
           {{- with .Values.extraEnv }}
           env:

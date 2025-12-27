@@ -320,6 +320,11 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+			setupLog.Error(err, "unable to add controller readyz check")
+			os.Exit(1)
+		}
+
 		fs := feature.Features()
 		for _, f := range fs {
 			if f.Initialize == nil {
