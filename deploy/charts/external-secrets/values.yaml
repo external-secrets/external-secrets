@@ -507,6 +507,19 @@ webhook:
     # -- ReadinessProbe port for kubelet
     port: 8081
 
+  livenessProbe:
+    # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
+    enabled: false
+    # -- Number of consecutive probe failures that should occur before considering the probe as failed.
+    failureThreshold: 5
+    # -- Delay in seconds for the container to start before performing the initial probe.
+    initialDelaySeconds: 10
+    # -- Period in seconds for K8s to start performing probes.
+    periodSeconds: 10
+    # -- Number of successful probes to mark probe successful.
+    successThreshold: 1
+    # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
+    timeoutSeconds: 5
 
     ## -- Extra environment variables to add to container.
   extraEnv: []
@@ -654,6 +667,20 @@ certController:
     useReadinessProbePort: true
     # -- Port for startup probe.
     port: ""
+
+  livenessProbe:
+    # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
+    enabled: false
+    # -- Number of consecutive probe failures that should occur before considering the probe as failed.
+    failureThreshold: 5
+    # -- Delay in seconds for the container to start before performing the initial probe.
+    initialDelaySeconds: 10
+    # -- Period in seconds for K8s to start performing probes.
+    periodSeconds: 10
+    # -- Number of successful probes to mark probe successful.
+    successThreshold: 1
+    # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
+    timeoutSeconds: 5
 
     ## -- Extra environment variables to add to container.
   extraEnv: []

@@ -433,3 +433,26 @@ tests:
       - contains:
           path: spec.template.spec.containers[0].args
           content: "--enable-http2=true"
+  - it: should have liveness Probe if enabled
+    set:
+      webhook.livenessProbe.enabled: true
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            httpGet:
+              path: /healthz
+              port: 8081
+            failureThreshold: 5
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+  - it: should not have liveness Probe by default
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].livenessProbe
