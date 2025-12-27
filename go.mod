@@ -97,13 +97,12 @@ require (
 	github.com/yandex-cloud/go-sdk v0.27.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.43.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/oauth2 v0.32.0 // indirect
 	google.golang.org/api v0.254.0 // indirect
 	google.golang.org/genproto v0.0.0-20251029180050-ab9386a59fda // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919 // indirect
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.34.1
@@ -116,7 +115,7 @@ require (
 require github.com/1Password/connect-sdk-go v1.5.3 // indirect
 
 require (
-	github.com/external-secrets/external-secrets/apis v0.0.0
+	github.com/external-secrets/external-secrets/apis v0.11.0
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-00010101000000-000000000000
@@ -262,6 +261,7 @@ require (
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
+	github.com/external-secrets/external-secrets/runtime/gcp v0.0.0 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fortanix/sdkms-client-go v0.4.1 // indirect
@@ -375,7 +375,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
-	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251029180050-ab9386a59fda // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
@@ -473,13 +473,13 @@ require (
 	go.mongodb.org/mongo-driver v1.17.6 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/term v0.36.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/term v0.38.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/time v0.14.0
-	golang.org/x/tools v0.38.0 // indirect
+	golang.org/x/tools v0.39.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -490,3 +490,5 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 )
+
+replace github.com/external-secrets/external-secrets/runtime/gcp => ./runtime/gcp

@@ -39,16 +39,18 @@ import (
 var _ esv1.SecretsClient = &client{}
 
 type client struct {
-	kube      kclient.Client
-	store     *esv1.VaultProvider
-	log       logr.Logger
-	corev1    typedcorev1.CoreV1Interface
-	client    vaultutil.Client
-	auth      vaultutil.Auth
-	logical   vaultutil.Logical
-	token     vaultutil.Token
-	namespace string
-	storeKind string
+	kube                   kclient.Client
+	store                  *esv1.VaultProvider
+	log                    logr.Logger
+	corev1                 typedcorev1.CoreV1Interface
+	client                 vaultutil.Client
+	auth                   vaultutil.Auth
+	logical                vaultutil.Logical
+	token                  vaultutil.Token
+	namespace              string
+	storeKind              string
+	gcpSignedJWT           string // Signed JWT for GCP Workload Identity authentication
+	gcpServiceAccountEmail string // Service account email for GCP IAM authentication
 }
 
 func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {

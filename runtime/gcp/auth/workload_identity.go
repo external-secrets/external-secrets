@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretmanager
+package auth
 
 import (
 	"bytes"
@@ -32,9 +32,6 @@ import (
 	"github.com/googleapis/gax-go/v2"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"grpc.go4.org/credentials/oauth"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,6 +92,7 @@ type workloadIdentity struct {
 // IamClient provides an interface to the GCP IAM API.
 type IamClient interface {
 	GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
+	SignJwt(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error)
 	Close() error
 }
 
@@ -103,6 +101,7 @@ type IamClient interface {
 type MetadataClient interface {
 	InstanceAttributeValueWithContext(ctx context.Context, attr string) (string, error)
 	ProjectIDWithContext(ctx context.Context) (string, error)
+	NumericProjectIDWithContext(ctx context.Context) (string, error)
 }
 
 // interface to securetoken/identitybindingtoken API.
@@ -115,17 +114,13 @@ type saTokenGenerator interface {
 	Generate(context.Context, []string, string, string) (*authenticationv1.TokenRequest, error)
 }
 
-func newWorkloadIdentity(ctx context.Context, projectID string) (*workloadIdentity, error) {
+func newWorkloadIdentity(projectID string) (*workloadIdentity, error) {
 	satg, err := newSATokenGenerator()
 	if err != nil {
 		return nil, err
 	}
-	iamc, err := newIAMClient(ctx)
-	if err != nil {
-		return nil, err
-	}
 	return &workloadIdentity{
-		iamClient:            iamc,
+		iamClient:            nil, // Will be created on-demand with the correct TokenSource
 		metadataClient:       newMetadataClient(),
 		idBindTokenGenerator: newIDBindTokenGenerator(),
 		saTokenGenerator:     satg,
@@ -216,10 +211,21 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 	if gcpSA == "" {
 		return oauth2.StaticTokenSource(idBindToken), nil
 	}
-	gcpSAResp, err := w.iamClient.GenerateAccessToken(ctx, &credentialspb.GenerateAccessTokenRequest{
+
+	// Create IAM client with the token source from Workload Identity
+	tokenSource := oauth2.StaticTokenSource(idBindToken)
+	iamClient, err := newIAMClient(ctx, tokenSource)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create IAM client: %w", err)
+	}
+	defer func() {
+		_ = iamClient.Close()
+	}()
+
+	gcpSAResp, err := iamClient.GenerateAccessToken(ctx, &credentialspb.GenerateAccessTokenRequest{
 		Name:  fmt.Sprintf("projects/-/serviceAccounts/%s", gcpSA),
 		Scope: gsmapiv1.DefaultAuthScopes(),
-	}, gax.WithGRPCOptions(grpc.PerRPCCredentials(oauth.TokenSource{TokenSource: oauth2.StaticTokenSource(idBindToken)})))
+	})
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateAccessToken, err)
 	if err != nil {
 		return nil, fmt.Errorf(errGenAccessToken, err)
@@ -229,6 +235,82 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 	}), nil
 }
 
+// SignedJWTForVault generates a signed JWT for Vault GCP IAM authentication.
+// This JWT contains the required claims (sub, aud, exp) and is signed using the
+// GCP service account's private key via the IAM SignJwt API.
+// It reuses the same TokenSource logic used by GCP Secret Manager.
+func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWorkloadIdentity, role string, isClusterKind bool, kube kclient.Client, namespace string) (string, error) {
+	saKey := types.NamespacedName{
+		Name:      wi.ServiceAccountRef.Name,
+		Namespace: namespace,
+	}
+
+	// only ClusterStore is allowed to set namespace (and then it's required)
+	if isClusterKind && wi.ServiceAccountRef.Namespace != nil {
+		saKey.Namespace = *wi.ServiceAccountRef.Namespace
+	}
+
+	sa := &v1.ServiceAccount{}
+	err := kube.Get(ctx, saKey, sa)
+	if err != nil {
+		return "", err
+	}
+
+	gcpSA := sa.Annotations[gcpSAAnnotation]
+	if gcpSA == "" {
+		return "", fmt.Errorf("service account %s/%s is missing required annotation %s", saKey.Namespace, saKey.Name, gcpSAAnnotation)
+	}
+
+	// Create a GCPSMAuth with WorkloadIdentity to reuse the existing TokenSource logic
+	auth := esv1.GCPSMAuth{
+		WorkloadIdentity: wi,
+	}
+
+	// Get token source using the same logic as GCP Secret Manager
+	// This already handles GKE Workload Identity correctly
+	tokenSource, err := w.TokenSource(ctx, auth, isClusterKind, kube, namespace)
+	if err != nil {
+		return "", fmt.Errorf("failed to get token source: %w", err)
+	}
+	if tokenSource == nil {
+		return "", fmt.Errorf("no token source available")
+	}
+
+	// Create IAM client with the token source
+	iamClient, err := newIAMClient(ctx, tokenSource)
+	if err != nil {
+		return "", fmt.Errorf("failed to create IAM client: %w", err)
+	}
+	defer func() {
+		_ = iamClient.Close()
+	}()
+
+	// Create JWT payload for Vault IAM auth
+	// The audience must be in the format "vault/{role}"
+	exp := time.Now().Add(15 * time.Minute).Unix()
+	payload := map[string]interface{}{
+		"sub": gcpSA,
+		"aud": fmt.Sprintf("vault/%s", role),
+		"exp": exp,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JWT payload: %w", err)
+	}
+
+	// Sign the JWT using the GCP service account
+	signResp, err := iamClient.SignJwt(ctx, &credentialspb.SignJwtRequest{
+		Name:    fmt.Sprintf("projects/-/serviceAccounts/%s", gcpSA),
+		Payload: string(payloadBytes),
+	})
+	if err != nil {
+		return "", fmt.Errorf("unable to sign JWT for authenticating to GCP: %w", err)
+	}
+
+	return signResp.GetSignedJwt(), nil
+}
+
+
 func (w *workloadIdentity) Close() error {
 	if w.iamClient != nil {
 		return w.iamClient.Close()
@@ -236,15 +318,10 @@ func (w *workloadIdentity) Close() error {
 	return nil
 }
 
-func newIAMClient(ctx context.Context) (IamClient, error) {
+func newIAMClient(ctx context.Context, tokenSource oauth2.TokenSource) (IamClient, error) {
 	iamOpts := []option.ClientOption{
 		option.WithUserAgent("external-secrets-operator"),
-		// tell the secretmanager library to not add transport-level ADC since
-		// we need to override on a per call basis
-		option.WithoutAuthentication(),
-		// grpc oauth TokenSource credentials require transport security, so
-		// this must be set explicitly even though TLS is used
-		option.WithGRPCDialOption(grpc.WithTransportCredentials(credentials.NewTLS(nil))),
+		option.WithTokenSource(tokenSource),
 		option.WithGRPCConnectionPool(5),
 	}
 	return iam.NewIamCredentialsClient(ctx, iamOpts...)
@@ -297,7 +374,7 @@ type gcpIDBindTokenGenerator struct {
 
 func newIDBindTokenGenerator() idBindTokenGenerator {
 	return &gcpIDBindTokenGenerator{
-		targetURL: "https://securetoken.googleapis.com/v1/identitybindingtoken",
+		targetURL: workloadIdentityTokenURL,
 	}
 }
 
