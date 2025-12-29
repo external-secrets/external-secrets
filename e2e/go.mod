@@ -127,7 +127,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
-	github.com/external-secrets/external-secrets/runtime/gcp v0.0.0 // indirect
+	github.com/external-secrets/external-secrets/runtime/gcp/auth v0.0.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fluxcd/pkg/apis/acl v0.9.0 // indirect
 	github.com/fluxcd/pkg/apis/kustomize v1.13.0 // indirect
@@ -268,7 +268,7 @@ replace github.com/external-secrets/external-secrets/apis => ../apis
 
 replace github.com/external-secrets/external-secrets/runtime => ../runtime
 
-replace github.com/external-secrets/external-secrets/runtime/gcp => ../runtime/gcp
+replace github.com/external-secrets/external-secrets/runtime/gcp/auth => ../runtime/gcp/auth
 
 replace github.com/external-secrets/external-secrets/providers/v1/azure => ../providers/v1/azure
 

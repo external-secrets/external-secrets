@@ -59,7 +59,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
-	github.com/external-secrets/external-secrets/runtime/gcp v0.0.0
+	github.com/external-secrets/external-secrets/runtime/gcp/auth v0.0.0
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -175,4 +175,4 @@ replace (
 
 replace github.com/external-secrets/external-secrets/providers/v1/aws => ../aws
 
-replace github.com/external-secrets/external-secrets/runtime/gcp => ../../../runtime/gcp
+replace github.com/external-secrets/external-secrets/runtime/gcp/auth => ../../../runtime/gcp/auth

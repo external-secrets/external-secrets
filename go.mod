@@ -58,6 +58,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/webhook => ./providers/v1/webhook
 	github.com/external-secrets/external-secrets/providers/v1/yandex => ./providers/v1/yandex
 	github.com/external-secrets/external-secrets/runtime => ./runtime
+	github.com/external-secrets/external-secrets/runtime/gcp/auth => ./runtime/gcp/auth
 )
 
 require (
@@ -261,7 +262,7 @@ require (
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-	github.com/external-secrets/external-secrets/runtime/gcp v0.0.0 // indirect
+	github.com/external-secrets/external-secrets/runtime/gcp/auth v0.0.0 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fortanix/sdkms-client-go v0.4.1 // indirect
@@ -490,5 +491,3 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 )
-
-replace github.com/external-secrets/external-secrets/runtime/gcp => ./runtime/gcp
