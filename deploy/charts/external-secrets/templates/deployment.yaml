@@ -134,6 +134,11 @@ spec:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
+          {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+            - containerPort: {{ .Values.livenessProbe.spec.httpGet.port }}
+              protocol: TCP
+              name: healthz
+          {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
           {{- toYaml (omit .Values.livenessProbe.spec "address") | nindent 12 }}

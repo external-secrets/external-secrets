@@ -17,10 +17,7 @@ limitations under the License.
 package controller
 
 import (
-	"context"
 	"crypto/tls"
-	"errors"
-	"net/http"
 	"os"
 	"time"
 
@@ -323,29 +320,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Add readyz check that verifies:
-		// 1. Leader election has completed (if enabled)
-		// 2. Informer caches have synced
-		if err := mgr.AddReadyzCheck("readyz", func(_ *http.Request) error {
-			// Check leader election status if enabled
-			if enableLeaderElection {
-				select {
-				case <-mgr.Elected():
-					// Leader election completed
-				default:
-					return errors.New("not yet elected as leader")
-				}
-			}
-
-			// Check if cache has synced using a short timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-			defer cancel()
-			if !mgr.GetCache().WaitForCacheSync(ctx) {
-				return errors.New("informer caches have not synced")
-			}
-
-			return nil
-		}); err != nil {
+		if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 			setupLog.Error(err, "unable to add controller readyz check")
 			os.Exit(1)
 		}
