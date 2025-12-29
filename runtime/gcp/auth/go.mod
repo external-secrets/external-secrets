@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/runtime/gcp/auth
 
-go 1.25.5
+go 1.25.1
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0
@@ -99,4 +99,3 @@ replace (
 	github.com/external-secrets/external-secrets/apis => ../../../apis
 	github.com/external-secrets/external-secrets/runtime => ../../
 )
-
