@@ -251,6 +251,12 @@
                         "enabled": {
                             "type": "boolean"
                         },
+                        "useReadinessProbePort": {
+                            "type": "boolean"
+                        },
+                        "port": {
+                            "type": ["string", "integer"]
+                        },
                         "failureThreshold": {
                             "type": "integer"
                         },
@@ -993,6 +999,12 @@
                     "properties": {
                         "enabled": {
                             "type": "boolean"
+                        },
+                        "useReadinessProbePort": {
+                            "type": "boolean"
+                        },
+                        "port": {
+                            "type": ["string", "integer"]
                         },
                         "failureThreshold": {
                             "type": "integer"

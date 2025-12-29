@@ -510,6 +510,10 @@ webhook:
   livenessProbe:
     # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
     enabled: false
+    # -- whether to use the readiness probe port for liveness probe.
+    useReadinessProbePort: true
+    # -- Port for liveness probe (used when useReadinessProbePort is false).
+    port: ""
     # -- Number of consecutive probe failures that should occur before considering the probe as failed.
     failureThreshold: 5
     # -- Delay in seconds for the container to start before performing the initial probe.
@@ -671,6 +675,10 @@ certController:
   livenessProbe:
     # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
     enabled: false
+    # -- whether to use the readiness probe port for liveness probe.
+    useReadinessProbePort: true
+    # -- Port for liveness probe (used when useReadinessProbePort is false).
+    port: ""
     # -- Number of consecutive probe failures that should occur before considering the probe as failed.
     failureThreshold: 5
     # -- Delay in seconds for the container to start before performing the initial probe.
