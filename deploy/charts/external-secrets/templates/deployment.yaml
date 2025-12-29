@@ -134,8 +134,12 @@ spec:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
-          {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+          {{- if .Values.livenessProbe.enabled }}
             - containerPort: {{ .Values.livenessProbe.spec.httpGet.port }}
+              protocol: TCP
+              name: healthz
+          {{- else if .Values.readinessProbe.enabled }}
+            - containerPort: {{ .Values.readinessProbe.spec.httpGet.port }}
               protocol: TCP
               name: healthz
           {{- end }}
