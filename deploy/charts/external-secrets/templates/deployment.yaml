@@ -1,5 +1,10 @@
 {{- if .Values.createOperator }}
 {{- include "external-secrets.reconciler-sanity-test" . }}
+{{- if and .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+  {{- if ne (.Values.livenessProbe.spec.httpGet.port | int) (.Values.readinessProbe.spec.httpGet.port | int) }}
+    {{- fail "livenessProbe and readinessProbe must use the same httpGet.port when both are enabled" }}
+  {{- end }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
