@@ -120,6 +120,7 @@ nav:
   - Provider:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
+      - AWS Access: provider/aws-access.md
       - Azure Key Vault: provider/azure-key-vault.md
       - Barbican: provider/barbican.md
       - BeyondTrust: provider/beyondtrust.md
@@ -174,6 +175,7 @@ nav:
           - Community meetings calendar: contributing/calendar.md
           - Roadmap: contributing/roadmap.md
           - Burnout Prevention: contributing/burnout-mitigation.md
+          - LLM Policy: contributing/llm-policy.md
       - External Resources:
           - Talks: eso-talks.md
           - Demos: eso-demos.md
