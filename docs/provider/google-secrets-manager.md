@@ -323,7 +323,7 @@ spec:
           remoteKey: my-secret
       metadata:
         apiVersion: kubernetes.external-secrets.io/v1alpha1
-        kind: PushSecretMetadata`
+        kind: PushSecretMetadata
         spec:
           replicationLocation: "us-east1"
 ```
