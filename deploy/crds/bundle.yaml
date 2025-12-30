@@ -2155,7 +2155,7 @@ spec:
               description: SecretStoreSpec defines the desired state of SecretStore.
               properties:
                 conditions:
-                  description: Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+                  description: Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
                   items:
                     description: |-
                       ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
@@ -4191,7 +4191,7 @@ spec:
                       type: object
                     github:
                       description: |-
-                        Github configures this store to push GitHub Action secrets using GitHub API provider.
+                        Github configures this store to push GitHub Actions secrets using the GitHub API provider.
                         Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
                       properties:
                         appID:
@@ -6074,7 +6074,7 @@ spec:
                         - project
                       type: object
                     scaleway:
-                      description: Scaleway
+                      description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:
                         accessKey:
                           description: AccessKey is the non-secret part of the api key.
@@ -6337,7 +6337,7 @@ spec:
                         - url
                       type: object
                     vault:
-                      description: Vault configures this store to sync secrets using Hashi provider
+                      description: Vault configures this store to sync secrets using the HashiCorp Vault provider.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the Vault server.
@@ -7706,7 +7706,7 @@ spec:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
                 retrySettings:
-                  description: Used to configure http retries if failed
+                  description: Used to configure HTTP retries on failures.
                   properties:
                     maxRetries:
                       format: int32
@@ -7790,7 +7790,7 @@ spec:
               description: SecretStoreSpec defines the desired state of SecretStore.
               properties:
                 conditions:
-                  description: Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+                  description: Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
                   items:
                     description: |-
                       ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
@@ -9526,7 +9526,7 @@ spec:
                           type: string
                       type: object
                     github:
-                      description: Github configures this store to push Github Action secrets using Github API provider
+                      description: Github configures this store to push GitHub Actions secrets using the GitHub API provider.
                       properties:
                         appID:
                           description: appID specifies the Github APP that will be used to authenticate the client
@@ -10594,7 +10594,7 @@ spec:
                         - project
                       type: object
                     scaleway:
-                      description: Scaleway
+                      description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:
                         accessKey:
                           description: AccessKey is the non-secret part of the api key.
@@ -10814,7 +10814,7 @@ spec:
                         - url
                       type: object
                     vault:
-                      description: Vault configures this store to sync secrets using Hashi provider
+                      description: Vault configures this store to sync secrets using the HashiCorp Vault provider.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the Vault server.
@@ -11900,7 +11900,7 @@ spec:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
                 retrySettings:
-                  description: Used to configure http retries if failed
+                  description: Used to configure HTTP retries on failures.
                   properties:
                     maxRetries:
                       description: MaxRetries is the maximum number of retry attempts.
@@ -13827,7 +13827,7 @@ spec:
               description: SecretStoreSpec defines the desired state of SecretStore.
               properties:
                 conditions:
-                  description: Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+                  description: Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
                   items:
                     description: |-
                       ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
@@ -15863,7 +15863,7 @@ spec:
                       type: object
                     github:
                       description: |-
-                        Github configures this store to push GitHub Action secrets using GitHub API provider.
+                        Github configures this store to push GitHub Actions secrets using the GitHub API provider.
                         Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
                       properties:
                         appID:
@@ -17746,7 +17746,7 @@ spec:
                         - project
                       type: object
                     scaleway:
-                      description: Scaleway
+                      description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:
                         accessKey:
                           description: AccessKey is the non-secret part of the api key.
@@ -18009,7 +18009,7 @@ spec:
                         - url
                       type: object
                     vault:
-                      description: Vault configures this store to sync secrets using Hashi provider
+                      description: Vault configures this store to sync secrets using the HashiCorp Vault provider.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the Vault server.
@@ -19378,7 +19378,7 @@ spec:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
                 retrySettings:
-                  description: Used to configure http retries if failed
+                  description: Used to configure HTTP retries on failures.
                   properties:
                     maxRetries:
                       format: int32
@@ -19462,7 +19462,7 @@ spec:
               description: SecretStoreSpec defines the desired state of SecretStore.
               properties:
                 conditions:
-                  description: Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+                  description: Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
                   items:
                     description: |-
                       ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
@@ -21198,7 +21198,7 @@ spec:
                           type: string
                       type: object
                     github:
-                      description: Github configures this store to push Github Action secrets using Github API provider
+                      description: Github configures this store to push GitHub Actions secrets using the GitHub API provider.
                       properties:
                         appID:
                           description: appID specifies the Github APP that will be used to authenticate the client
@@ -22266,7 +22266,7 @@ spec:
                         - project
                       type: object
                     scaleway:
-                      description: Scaleway
+                      description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:
                         accessKey:
                           description: AccessKey is the non-secret part of the api key.
@@ -22486,7 +22486,7 @@ spec:
                         - url
                       type: object
                     vault:
-                      description: Vault configures this store to sync secrets using Hashi provider
+                      description: Vault configures this store to sync secrets using the HashiCorp Vault provider.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the Vault server.
@@ -23572,7 +23572,7 @@ spec:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
                 retrySettings:
-                  description: Used to configure http retries if failed
+                  description: Used to configure HTTP retries on failures.
                   properties:
                     maxRetries:
                       description: MaxRetries is the maximum number of retry attempts.
