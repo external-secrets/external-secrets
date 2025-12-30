@@ -79,6 +79,7 @@ var (
 type Provider struct {
 	apiURL        string
 	retrievaltype string
+	decrypt       bool
 	authenticate  auth.AuthenticationObj
 	log           logging.LogrLogger
 	separator     string
@@ -134,7 +135,7 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 // SecretExists checks if a secret exists in the provider.
 func (p *Provider) SecretExists(_ context.Context, pushSecretRef esv1.PushSecretRemoteRef) (bool, error) {
 	logger := logging.NewLogrLogger(&ESOLogger)
-	secretObj, err := secrets.NewSecretObj(p.authenticate, logger, maxFileSecretSizeBytes)
+	secretObj, err := secrets.NewSecretObj(p.authenticate, logger, maxFileSecretSizeBytes, false)
 
 	if err != nil {
 		return false, err
@@ -361,7 +362,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 	}
 	unmanagedFetch := func() (string, error) {
 		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
-		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes)
+		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes, p.decrypt)
 		return secretObj.GetSecret(retrievalPath, p.separator)
 	}
 	fetch := unmanagedFetch
@@ -477,7 +478,7 @@ func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.Pus
 // CreateSecret creates a secret in BeyondTrust Password Safe.
 func (p *Provider) CreateSecret(secret string, data map[string]interface{}, signAppinResponse entities.SignAppinResponse) error {
 	logger := logging.NewLogrLogger(&ESOLogger)
-	secretObj, err := secrets.NewSecretObj(p.authenticate, logger, maxFileSecretSizeBytes)
+	secretObj, err := secrets.NewSecretObj(p.authenticate, logger, maxFileSecretSizeBytes, false)
 
 	if err != nil {
 		return err
