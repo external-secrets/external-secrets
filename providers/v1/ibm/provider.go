@@ -125,10 +125,15 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1.ExternalSecretData
 		return nil, errors.New(errUninitializedIBMProvider)
 	}
 
+	secretGroupName, secretType, secretName := parseSecretReference(ref.Key)
+	return ibm.getSecretByType(secretType, secretName, secretGroupName, ref)
+}
+
+func parseSecretReference(key string) (string, string, string) {
 	var secretGroupName string
 	secretType := sm.Secret_SecretType_Arbitrary
-	secretName := ref.Key
-	nameSplitted := strings.Split(secretName, "/")
+	secretName := key
+	nameSplitted := strings.Split(key, "/")
 
 	switch len(nameSplitted) {
 	case 2:
@@ -139,77 +144,84 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1.ExternalSecretData
 		secretType = nameSplitted[1]
 		secretName = nameSplitted[2]
 	}
+	return secretGroupName, secretType, secretName
+}
 
+func (ibm *providerIBM) getSecretByType(secretType, secretName, secretGroupName string, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	switch secretType {
 	case sm.Secret_SecretType_Arbitrary:
 		return getArbitrarySecret(ibm, &secretName, secretGroupName)
-
 	case sm.Secret_SecretType_UsernamePassword:
-
-		if ref.Property == "" {
-			return nil, errors.New("remoteRef.property required for secret type username_password")
-		}
-		return getUsernamePasswordSecret(ibm, &secretName, ref, secretGroupName)
-
+		return ibm.getUsernamePasswordSecretWithValidation(&secretName, ref, secretGroupName)
 	case sm.Secret_SecretType_IamCredentials:
-
 		return getIamCredentialsSecret(ibm, &secretName, secretGroupName)
-
 	case sm.Secret_SecretType_ServiceCredentials:
-
 		return getServiceCredentialsSecret(ibm, &secretName, secretGroupName)
-
 	case sm.Secret_SecretType_ImportedCert:
-
-		if ref.Property == "" {
-			return nil, errors.New("remoteRef.property required for secret type imported_cert")
-		}
-
-		return getImportCertSecret(ibm, &secretName, ref, secretGroupName)
-
+		return ibm.getImportCertSecretWithValidation(&secretName, ref, secretGroupName)
 	case sm.Secret_SecretType_PublicCert:
-
-		if ref.Property == "" {
-			return nil, errors.New("remoteRef.property required for secret type public_cert")
-		}
-
-		return getPublicCertSecret(ibm, &secretName, ref, secretGroupName)
-
+		return ibm.getPublicCertSecretWithValidation(&secretName, ref, secretGroupName)
 	case sm.Secret_SecretType_PrivateCert:
-
-		if ref.Property == "" {
-			return nil, errors.New("remoteRef.property required for secret type private_cert")
-		}
-
-		return getPrivateCertSecret(ibm, &secretName, ref, secretGroupName)
-
+		return ibm.getPrivateCertSecretWithValidation(&secretName, ref, secretGroupName)
 	case sm.Secret_SecretType_Kv:
-
-		response, err := getSecretData(ibm, &secretName, sm.Secret_SecretType_Kv, secretGroupName)
-		if err != nil {
-			return nil, err
-		}
-		secret, ok := response.(*sm.KVSecret)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecret")
-		}
-		return getKVOrCustomCredentialsSecret(ref, secret.Data)
-
+		return ibm.getKVSecret(&secretName, secretGroupName, ref)
 	case sm.Secret_SecretType_CustomCredentials:
-
-		response, err := getSecretData(ibm, &secretName, sm.Secret_SecretType_CustomCredentials, secretGroupName)
-		if err != nil {
-			return nil, err
-		}
-		secret, ok := response.(*sm.CustomCredentialsSecret)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_CustomCredentials, "GetSecret")
-		}
-		return getKVOrCustomCredentialsSecret(ref, secret.CredentialsContent)
-
+		return ibm.getCustomCredentialsSecret(&secretName, secretGroupName, ref)
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
+}
+
+func (ibm *providerIBM) getUsernamePasswordSecretWithValidation(secretName *string, ref esv1.ExternalSecretDataRemoteRef, secretGroupName string) ([]byte, error) {
+	if ref.Property == "" {
+		return nil, errors.New("remoteRef.property required for secret type username_password")
+	}
+	return getUsernamePasswordSecret(ibm, secretName, ref, secretGroupName)
+}
+
+func (ibm *providerIBM) getImportCertSecretWithValidation(secretName *string, ref esv1.ExternalSecretDataRemoteRef, secretGroupName string) ([]byte, error) {
+	if ref.Property == "" {
+		return nil, errors.New("remoteRef.property required for secret type imported_cert")
+	}
+	return getImportCertSecret(ibm, secretName, ref, secretGroupName)
+}
+
+func (ibm *providerIBM) getPublicCertSecretWithValidation(secretName *string, ref esv1.ExternalSecretDataRemoteRef, secretGroupName string) ([]byte, error) {
+	if ref.Property == "" {
+		return nil, errors.New("remoteRef.property required for secret type public_cert")
+	}
+	return getPublicCertSecret(ibm, secretName, ref, secretGroupName)
+}
+
+func (ibm *providerIBM) getPrivateCertSecretWithValidation(secretName *string, ref esv1.ExternalSecretDataRemoteRef, secretGroupName string) ([]byte, error) {
+	if ref.Property == "" {
+		return nil, errors.New("remoteRef.property required for secret type private_cert")
+	}
+	return getPrivateCertSecret(ibm, secretName, ref, secretGroupName)
+}
+
+func (ibm *providerIBM) getKVSecret(secretName *string, secretGroupName string, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_Kv, secretGroupName)
+	if err != nil {
+		return nil, err
+	}
+	secret, ok := response.(*sm.KVSecret)
+	if !ok {
+		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_Kv, "GetSecret")
+	}
+	return getKVOrCustomCredentialsSecret(ref, secret.Data)
+}
+
+func (ibm *providerIBM) getCustomCredentialsSecret(secretName *string, secretGroupName string, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_CustomCredentials, secretGroupName)
+	if err != nil {
+		return nil, err
+	}
+	secret, ok := response.(*sm.CustomCredentialsSecret)
+	if !ok {
+		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_CustomCredentials, "GetSecret")
+	}
+	return getKVOrCustomCredentialsSecret(ref, secret.CredentialsContent)
 }
 
 func getArbitrarySecret(ibm *providerIBM, secretName *string, secretGroupName string) ([]byte, error) {

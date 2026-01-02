@@ -29,6 +29,8 @@ import (
 //go:embed templates/*.tmpl
 var templates embed.FS
 
+const generatorImportPath = "github.com/external-secrets/external-secrets/generators/v1/"
+
 // Config holds the configuration for bootstrapping a generator.
 type Config struct {
 	GeneratorName string
@@ -184,8 +186,8 @@ func updateRegisterFile(rootDir string, cfg Config) error {
 	}
 
 	// Add import
-	importLine := fmt.Sprintf("\t%s \"github.com/external-secrets/external-secrets/generators/v1/%s\"",
-		cfg.PackageName, cfg.PackageName)
+	importLine := fmt.Sprintf("\t%s \"%s%s\"",
+		cfg.PackageName, generatorImportPath, cfg.PackageName)
 
 	// Find the last import before the closing parenthesis
 	lines := strings.Split(content, "\n")
@@ -197,7 +199,7 @@ func updateRegisterFile(rootDir string, cfg Config) error {
 		newLines = append(newLines, line)
 
 		// Add import after the last generator import
-		if !importAdded && strings.Contains(line, "\"github.com/external-secrets/external-secrets/generators/v1/") {
+		if !importAdded && strings.Contains(line, "\""+generatorImportPath) {
 			// Look ahead to see if next line is still an import or closing paren
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == ")" {
 				newLines = append(newLines, importLine)
@@ -323,7 +325,8 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 	}
 
 	content := string(data)
-	replaceLine := fmt.Sprintf("\tgithub.com/external-secrets/external-secrets/generators/v1/%s => ./generators/v1/%s",
+	replaceLine := fmt.Sprintf("\t%s%s => ./generators/v1/%s",
+		generatorImportPath,
 		cfg.PackageName, cfg.PackageName)
 
 	// Check if already exists
@@ -339,7 +342,7 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 
 	// First pass: find where to insert
 	for i, line := range lines {
-		if strings.Contains(line, "github.com/external-secrets/external-secrets/generators/v1/") {
+		if strings.Contains(line, generatorImportPath) {
 			lastGeneratorIdx = i
 			// Extract the package name from the current line
 			currentPkg := extractGeneratorPackage(line)
@@ -355,7 +358,7 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 		// If this was the last generator and we haven't added yet, add after it
 		if i == lastGeneratorIdx && !added && lastGeneratorIdx != -1 {
 			// Check if next line is NOT a generator (meaning this is the last one)
-			if i+1 >= len(lines) || !strings.Contains(lines[i+1], "github.com/external-secrets/external-secrets/generators/v1/") {
+			if i+1 >= len(lines) || !strings.Contains(lines[i+1], generatorImportPath) {
 				newLines = append(newLines, replaceLine)
 				added = true
 			}
@@ -376,7 +379,7 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 }
 
 func extractGeneratorPackage(line string) string {
-	if !strings.Contains(line, "github.com/external-secrets/external-secrets/generators/v1/") {
+	if !strings.Contains(line, generatorImportPath) {
 		return ""
 	}
 	// Extract package name from line like:

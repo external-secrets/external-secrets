@@ -32,6 +32,8 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
+const errWriteOnlyProvider = "not implemented - this provider supports write-only operations"
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
 
@@ -144,17 +146,17 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 
 // GetAllSecrets is not implemented as this provider is write-only.
 func (g *Client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
+	return nil, fmt.Errorf(errWriteOnlyProvider)
 }
 
 // GetSecret is not implemented as this provider is write-only.
 func (g *Client) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
+	return nil, fmt.Errorf(errWriteOnlyProvider)
 }
 
 // GetSecretMap is not implemented as this provider is write-only.
 func (g *Client) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
+	return nil, fmt.Errorf(errWriteOnlyProvider)
 }
 
 // Close cleans up any resources held by the client. No-op for this provider.

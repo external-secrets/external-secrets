@@ -31,7 +31,27 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve and validate ref
+        id: resolve_ref
+        run: |
+          set -e
+          # Try to fetch the ref from remote
+          if git fetch origin "${{ github.event.inputs.source_ref }}"; then
+            # Remote ref exists, use it
+            RESOLVED_SHA=$(git rev-parse "origin/${{ github.event.inputs.source_ref }}")
+          elif git rev-parse --verify "${{ github.event.inputs.source_ref }}" >/dev/null 2>&1; then
+            # Local ref exists (e.g., a tag)
+            RESOLVED_SHA=$(git rev-parse "${{ github.event.inputs.source_ref }}")
+          else
+            echo "Error: ref '${{ github.event.inputs.source_ref }}' not found"
+            exit 1
+          fi
+          echo "Resolved to SHA: $RESOLVED_SHA"
+          echo "sha=$RESOLVED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout validated ref
+        run: git checkout ${{ steps.resolve_ref.outputs.sha }}
 
       - name: Setup Go
         uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
