@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/acm"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,6 +34,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsauth "github.com/external-secrets/external-secrets/providers/v1/aws/auth"
+	"github.com/external-secrets/external-secrets/providers/v1/aws/certificatemanager"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
@@ -123,6 +125,15 @@ func validateRegion(prov *esv1.AWSProvider) error {
 			return fmt.Errorf(errRegionNotFound, prov.Region)
 		}
 		return nil
+	case esv1.AWSServiceCertificateManager:
+		resolver := acm.NewDefaultEndpointResolverV2()
+		_, err := resolver.ResolveEndpoint(context.TODO(), acm.EndpointParameters{
+			Region: &prov.Region,
+		})
+		if err != nil {
+			return fmt.Errorf(errRegionNotFound, prov.Region)
+		}
+		return nil
 	}
 	return fmt.Errorf(errUnknownProviderService, prov.Service)
 }
@@ -161,6 +172,8 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 			return secretsmanager.New(ctx, &cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, true, kube, namespace)
 		case esv1.AWSServiceParameterStore:
 			return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
+		case esv1.AWSServiceCertificateManager:
+			return certificatemanager.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}
@@ -216,6 +229,8 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return secretsmanager.New(ctx, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false, kube, namespace)
 	case esv1.AWSServiceParameterStore:
 		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
+	case esv1.AWSServiceCertificateManager:
+		return certificatemanager.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
