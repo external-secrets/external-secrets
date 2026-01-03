@@ -1708,6 +1708,17 @@ string
 </tr>
 <tr>
 <td>
+<code>decrypt</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>When true, returns the decrypted password field; when false, the password field is omitted</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>verifyCA</code></br>
 <em>
 bool
@@ -15073,6 +15084,17 @@ string
 </td>
 <td>
 <p>A character that separates the folder names.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>decrypt</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>When true, returns the decrypted password field; when false, the password field is omitted</p>
 </td>
 </tr>
 <tr>
