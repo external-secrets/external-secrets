@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 

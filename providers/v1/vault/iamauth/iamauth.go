@@ -161,7 +161,15 @@ func (p *authTokenFetcher) GetIdentityToken() ([]byte, error) {
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region string, isClusterKind bool, kube kclient.Client, namespace string, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
+func CredsFromServiceAccount(
+	ctx context.Context,
+	auth esv1.VaultIamAuth,
+	region string,
+	isClusterKind bool,
+	kube kclient.Client,
+	namespace string,
+	jwtProvider vaultutil.JwtProviderFactory,
+) (aws.CredentialsProvider, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace

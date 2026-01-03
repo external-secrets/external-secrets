@@ -35,7 +35,6 @@ import (
 
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/register"
-	_ "github.com/external-secrets/external-secrets/pkg/register"
 )
 
 // GetProviderSecretData returns the provider's secret data with the provided ExternalSecret.
@@ -153,7 +152,13 @@ func toStoreGenSourceRef(ref *esv1.StoreSourceRef) *esv1.StoreGeneratorSourceRef
 	}
 }
 
-func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1.ExternalSecretDataFromRemoteRef, i int, generatorState *statemanager.Manager) (map[string][]byte, error) {
+func (r *Reconciler) handleGenerateSecrets(
+	ctx context.Context,
+	namespace string,
+	remoteRef esv1.ExternalSecretDataFromRemoteRef,
+	i int,
+	generatorState *statemanager.Manager,
+) (map[string][]byte, error) {
 	impl, generatorResource, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, remoteRef.SourceRef.GeneratorRef)
 	if err != nil {
 		return nil, err
@@ -199,7 +204,14 @@ func generatorStateKey(i int) string {
 	return strconv.Itoa(i)
 }
 
-func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1.ExternalSecret, remoteRef esv1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, genState *statemanager.Manager, i int) (map[string][]byte, error) {
+func (r *Reconciler) handleExtractSecrets(
+	ctx context.Context,
+	externalSecret *esv1.ExternalSecret,
+	remoteRef esv1.ExternalSecretDataFromRemoteRef,
+	cmgr *secretstore.Manager,
+	genState *statemanager.Manager,
+	i int,
+) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
 		return nil, err
@@ -240,7 +252,14 @@ func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *e
 	return secretMap, nil
 }
 
-func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *esv1.ExternalSecret, remoteRef esv1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, genState *statemanager.Manager, i int) (map[string][]byte, error) {
+func (r *Reconciler) handleFindAllSecrets(
+	ctx context.Context,
+	externalSecret *esv1.ExternalSecret,
+	remoteRef esv1.ExternalSecretDataFromRemoteRef,
+	cmgr *secretstore.Manager,
+	genState *statemanager.Manager,
+	i int,
+) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
 		return nil, err

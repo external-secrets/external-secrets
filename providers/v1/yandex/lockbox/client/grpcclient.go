@@ -23,7 +23,7 @@ import (
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	"google.golang.org/grpc"
 
-	"github.com/external-secrets/external-secrets/providers/v1/yandex/common"
+	ydxcommon "github.com/external-secrets/external-secrets/providers/v1/yandex/common"
 )
 
 // Real/gRPC implementation of LockboxClient.

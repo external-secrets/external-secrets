@@ -29,10 +29,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
+	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
-	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
 )
 
 const (

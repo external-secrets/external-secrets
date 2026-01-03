@@ -106,7 +106,11 @@ func TestValidateSecretStore(t *testing.T) {
 				})
 			},
 			assertErr: func(t *testing.T, err error) {
-				assert.EqualError(t, err, "failed to compile 0th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\1`\nfailed to compile 1th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\2`")
+				assert.EqualError(
+					t,
+					err,
+					"failed to compile 0th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\1`\nfailed to compile 1th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\2`",
+				)
 			},
 		},
 		{

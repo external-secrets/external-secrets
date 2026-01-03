@@ -126,7 +126,6 @@ func parseSpec(data []byte) (*genv1alpha1.STSSessionToken, error) {
 	return &spec, err
 }
 
-
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {
 	return &Generator{}

@@ -608,7 +608,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 }
 
 // reconcileGenericTarget handles reconciliation for generic targets (ConfigMaps, Custom Resources).
-func (r *Reconciler) reconcileGenericTarget(ctx context.Context, externalSecret *esv1.ExternalSecret, log logr.Logger, start time.Time, resourceLabels map[string]string, syncCallsError *prometheus.CounterVec) (ctrl.Result, error) {
+func (r *Reconciler) reconcileGenericTarget(
+	ctx context.Context,
+	externalSecret *esv1.ExternalSecret,
+	log logr.Logger,
+	start time.Time,
+	resourceLabels map[string]string,
+	syncCallsError *prometheus.CounterVec,
+) (ctrl.Result, error) {
 	// retrieve the provider secret data
 	dataMap, err := r.GetProviderSecretData(ctx, externalSecret)
 	if err != nil {

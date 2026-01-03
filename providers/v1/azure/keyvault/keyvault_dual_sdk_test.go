@@ -20,12 +20,13 @@ import (
 	"context"
 	"testing"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 // TestFeatureFlagRouting tests that the UseAzureSDK feature flag correctly routes to the appropriate implementation.

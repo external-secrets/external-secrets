@@ -32,7 +32,7 @@ import (
 
 	provider "github.com/external-secrets/external-secrets/providers/v1/vault"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	utilfake "github.com/external-secrets/external-secrets/runtime/util/fake"
 )
 

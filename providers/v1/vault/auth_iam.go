@@ -60,7 +60,15 @@ func setIamAuthToken(ctx context.Context, v *client, jwtProvider vaultutil.JwtPr
 	return false, nil
 }
 
-func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider vaultutil.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
+func (c *client) requestTokenWithIamAuth(
+	ctx context.Context,
+	iamAuth *esv1.VaultIamAuth,
+	isClusterKind bool,
+	k kclient.Client,
+	n string,
+	jwtProvider vaultutil.JwtProviderFactory,
+	assumeRoler vaultiamauth.STSProvider,
+) error {
 	jwtAuth := iamAuth.JWTAuth
 	secretRefAuth := iamAuth.SecretRef
 	regionAWS := c.getRegionOrDefault(iamAuth.Region)
@@ -126,7 +134,13 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.Vaul
 	var awsAuthClient *authaws.AWSAuth
 
 	if iamAuth.VaultAWSIAMServerID != "" {
-		awsAuthClient, err = authaws.NewAWSAuth(authaws.WithRegion(regionAWS), authaws.WithIAMAuth(), authaws.WithRole(iamAuth.Role), authaws.WithMountPath(awsAuthMountPath), authaws.WithIAMServerIDHeader(iamAuth.VaultAWSIAMServerID))
+		awsAuthClient, err = authaws.NewAWSAuth(
+			authaws.WithRegion(regionAWS),
+			authaws.WithIAMAuth(),
+			authaws.WithRole(iamAuth.Role),
+			authaws.WithMountPath(awsAuthMountPath),
+			authaws.WithIAMServerIDHeader(iamAuth.VaultAWSIAMServerID),
+		)
 		if err != nil {
 			return err
 		}

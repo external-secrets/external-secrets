@@ -587,7 +587,11 @@ func (vms *VaultManagementService) ValidateStore(store esv1.GenericStore) (admis
 	return nil, nil
 }
 
-func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.GenericStore, serviceAcccountRef *esmeta.ServiceAccountSelector, region, namespace string) (configurationProvider common.ConfigurationProvider, err error) {
+func (vms *VaultManagementService) getWorkloadIdentityProvider(
+	store esv1.GenericStore,
+	serviceAcccountRef *esmeta.ServiceAccountSelector,
+	region, namespace string,
+) (configurationProvider common.ConfigurationProvider, err error) {
 	defer func() {
 		if uerr := os.Unsetenv(auth.ResourcePrincipalVersionEnvVar); uerr != nil {
 			err = errors.Join(err, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalRegionEnvVar, uerr))
@@ -641,7 +645,13 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.Generi
 	return vms.authConfigurationsCache[store.GetResourceVersion()], nil
 }
 
-func (vms *VaultManagementService) constructProvider(ctx context.Context, store esv1.GenericStore, oracleSpec *esv1.OracleProvider, kube kclient.Client, namespace string) (common.ConfigurationProvider, error) {
+func (vms *VaultManagementService) constructProvider(
+	ctx context.Context,
+	store esv1.GenericStore,
+	oracleSpec *esv1.OracleProvider,
+	kube kclient.Client,
+	namespace string,
+) (common.ConfigurationProvider, error) {
 	var (
 		configurationProvider common.ConfigurationProvider
 		err                   error
@@ -696,7 +706,13 @@ func sanitizeOCISDKErr(err error) error {
 	// If we have a ServiceError from the OCI SDK, strip only the message from the verbose error
 
 	if serviceError, ok := err.(common.ServiceErrorRichInfo); ok {
-		return fmt.Errorf("%s service failed to %s, HTTP status code %d: %s", serviceError.GetTargetService(), serviceError.GetOperationName(), serviceError.GetHTTPStatusCode(), serviceError.GetMessage())
+		return fmt.Errorf(
+			"%s service failed to %s, HTTP status code %d: %s",
+			serviceError.GetTargetService(),
+			serviceError.GetOperationName(),
+			serviceError.GetHTTPStatusCode(),
+			serviceError.GetMessage(),
+		)
 	}
 	return err
 }
