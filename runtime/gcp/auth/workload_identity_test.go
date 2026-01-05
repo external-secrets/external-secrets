@@ -215,7 +215,7 @@ func TestTokenSourceWithWorkloadIdentity(t *testing.T) {
 			kube := tt.setupKube().Build()
 
 			// Create workloadIdentity with mocked providers
-			wi, err := newWorkloadIdentity("test-project")
+			wi, err := newWorkloadIdentity()
 			require.NoError(t, err)
 
 			if tt.setupMock != nil {
@@ -292,7 +292,7 @@ func TestSignedJWTForVault(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := tt.setupKube().Build()
 
-			wi, err := newWorkloadIdentity("test-project")
+			wi, err := newWorkloadIdentity()
 			require.NoError(t, err)
 
 			// Inject mocks
@@ -321,7 +321,7 @@ func TestSignedJWTForVault(t *testing.T) {
 // the production code. These aspects are covered by integration tests.
 
 func TestWorkloadIdentityClose(t *testing.T) {
-	wi, err := newWorkloadIdentity("test-project")
+	wi, err := newWorkloadIdentity()
 	require.NoError(t, err)
 
 	err = wi.Close()

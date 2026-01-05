@@ -85,7 +85,6 @@ type workloadIdentity struct {
 	metadataClient       MetadataClient
 	idBindTokenGenerator idBindTokenGenerator
 	saTokenGenerator     saTokenGenerator
-	clusterProjectID     string
 }
 
 // IamClient provides an interface to the GCP IAM API.
@@ -112,7 +111,7 @@ type saTokenGenerator interface {
 	Generate(context.Context, []string, string, string) (*authenticationv1.TokenRequest, error)
 }
 
-func newWorkloadIdentity(projectID string) (*workloadIdentity, error) {
+func newWorkloadIdentity() (*workloadIdentity, error) {
 	satg, err := newSATokenGenerator()
 	if err != nil {
 		return nil, err
@@ -121,7 +120,6 @@ func newWorkloadIdentity(projectID string) (*workloadIdentity, error) {
 		metadataClient:       newMetadataClient(),
 		idBindTokenGenerator: newIDBindTokenGenerator(),
 		saTokenGenerator:     satg,
-		clusterProjectID:     projectID,
 	}, nil
 }
 

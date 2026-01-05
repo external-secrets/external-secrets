@@ -40,13 +40,13 @@ const (
 // NewTokenSource creates a new OAuth2 token source for GCP authentication.
 // It attempts to create a token source using service account credentials, workload identity,
 // or workload identity federation in that order, falling back to default credentials.
-func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) { //nolint:revive // projectID kept for API compatibility
 	ts, err := serviceAccountTokenSource(ctx, auth, storeKind, kube, namespace)
 	if ts != nil || err != nil {
 		return ts, err
 	}
 
-	wi, err := newWorkloadIdentity(projectID)
+	wi, err := newWorkloadIdentity()
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize workload identity: %w", err)
 	}
@@ -75,12 +75,12 @@ func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKi
 // GenerateSignedJWTForVault generates a signed JWT specifically for Vault GCP IAM authentication.
 // It uses workload identity to generate a JWT with the required claims (sub, aud, exp)
 // signed by the GCP service account specified in the WorkloadIdentity configuration.
-func GenerateSignedJWTForVault(ctx context.Context, wi *esv1.GCPWorkloadIdentity, role, projectID, storeKind string, kube kclient.Client, namespace string) (string, error) {
+func GenerateSignedJWTForVault(ctx context.Context, wi *esv1.GCPWorkloadIdentity, role, projectID, storeKind string, kube kclient.Client, namespace string) (string, error) { //nolint:revive // projectID kept for API compatibility
 	if wi == nil {
 		return "", fmt.Errorf("workload identity configuration is required")
 	}
 
-	wIdentity, err := newWorkloadIdentity(projectID)
+	wIdentity, err := newWorkloadIdentity()
 	if err != nil {
 		return "", fmt.Errorf("unable to initialize workload identity: %w", err)
 	}
