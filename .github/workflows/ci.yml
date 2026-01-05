@@ -35,34 +35,6 @@ jobs:
           do_not_skip: '["workflow_dispatch", "schedule", "push"]'
           concurrent_skipping: false
 
-  lint:
-    permissions:
-      contents: read  # for actions/checkout to fetch code
-      pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
-    runs-on: ubuntu-latest
-    needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
-
-    steps:
-      - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
-        with:
-          egress-policy: audit
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Setup Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
-        id: setup-go
-        with:
-          go-version-file: "go.mod"
-
-      - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
-        run: go mod download
-
-      - name: Run lint
-        run: make lint
-
   license-check:
     permissions:
       contents: read  # for actions/checkout to fetch code
@@ -99,7 +71,6 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Configure Git
@@ -108,8 +79,11 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Check Diff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          make check-diff
+          # make check-diff will also execute linting so there is no need for a separate lint action
+          make check-diff LINT_JOBS=2
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -133,7 +107,6 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Cache envtest binaries

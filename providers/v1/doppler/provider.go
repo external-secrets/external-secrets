@@ -30,10 +30,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	dclient "github.com/external-secrets/external-secrets/providers/v1/doppler/client"
 	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/feature"
-	dclient "github.com/external-secrets/external-secrets/providers/v1/doppler/client"
 )
 
 const (

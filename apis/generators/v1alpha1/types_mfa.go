@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 // MFASpec controls the behavior of the mfa generator.

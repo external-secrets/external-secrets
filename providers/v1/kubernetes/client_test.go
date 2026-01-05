@@ -589,21 +589,21 @@ func TestDeleteSecret(t *testing.T) {
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
 			},
-			wantErr: false,
+			wantErr:       false,
 			wantSecretMap: map[string]*v1.Secret{},
 		},
 		{
 			name: "delete whole secret if no property specified and empty properties",
 			fields: fields{
 				Client: &fakeClient{
-					t: t,
+					t:         t,
 					secretMap: map[string]*v1.Secret{},
 				},
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
 			},
-			wantErr: false,
+			wantErr:       false,
 			wantSecretMap: map[string]*v1.Secret{},
 		},
 		{
@@ -1181,7 +1181,9 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "mysec",
 				Property:  "secret",
 				Metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", spec: { "sourceMergePolicy": "Replace", "annotations": {"another-field": "from-remote-ref"}, "labels": {"other-label": "from-remote-ref"}}}`),
+					Raw: []byte(
+						`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", spec: { "sourceMergePolicy": "Replace", "annotations": {"another-field": "from-remote-ref"}, "labels": {"other-label": "from-remote-ref"}}}`,
+					),
 				},
 			},
 			wantErr: false,

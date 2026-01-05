@@ -160,7 +160,6 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Login to Docker
