@@ -140,36 +140,40 @@ func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv
 // GetAllSecrets returns multiple secrets from the given ExternalSecretFind
 // Currently, only the Name operator is supported.
 func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Name != nil {
-		matcher, err := find.New(*ref.Name)
-		if err != nil {
-			return nil, err
-		}
-
-		latestVersionMap := make(map[string]string)
-		dataMap := make(map[string][]byte)
-		for key, data := range p.config {
-			// Reconstruct the original key without the version suffix
-			// See the mapKey function to know how the provider generates keys
-			originalKey := strings.TrimSuffix(key, data.Version)
-			if !matcher.MatchName(originalKey) {
-				continue
-			}
-
-			if version, ok := latestVersionMap[originalKey]; ok {
-				// Need to get only the latest version
-				if version < data.Version {
-					latestVersionMap[originalKey] = data.Version
-					dataMap[originalKey] = []byte(data.Value)
-				}
-			} else {
-				latestVersionMap[originalKey] = data.Version
-				dataMap[originalKey] = []byte(data.Value)
-			}
-		}
-		return esutils.ConvertKeys(ref.ConversionStrategy, dataMap)
+	if ref.Name == nil {
+		return nil, fmt.Errorf("unsupported find operator: %#v", ref)
 	}
-	return nil, fmt.Errorf("unsupported find operator: %#v", ref)
+
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	dataMap := p.collectMatchingSecrets(matcher)
+	return esutils.ConvertKeys(ref.ConversionStrategy, dataMap)
+}
+
+func (p *Provider) collectMatchingSecrets(matcher *find.Matcher) map[string][]byte {
+	latestVersionMap := make(map[string]string)
+	dataMap := make(map[string][]byte)
+
+	for key, data := range p.config {
+		originalKey := strings.TrimSuffix(key, data.Version)
+		if !matcher.MatchName(originalKey) {
+			continue
+		}
+
+		p.updateLatestVersion(originalKey, data, latestVersionMap, dataMap)
+	}
+	return dataMap
+}
+
+func (p *Provider) updateLatestVersion(originalKey string, data *Data, latestVersionMap map[string]string, dataMap map[string][]byte) {
+	version, exists := latestVersionMap[originalKey]
+	if !exists || version < data.Version {
+		latestVersionMap[originalKey] = data.Version
+		dataMap[originalKey] = []byte(data.Value)
+	}
 }
 
 // GetSecret returns a single secret from the provider.

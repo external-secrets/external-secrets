@@ -84,3 +84,68 @@ To filter secrets by `path` (path prefix) and `name` (regular expression).
 ``` yaml
 {% include 'infisical-filtered-secrets.yaml' %}
 ```
+
+## Custom CA Certificates
+
+If you are using a self-hosted Infisical instance with a self-signed certificate or a certificate signed by a private CA, you can configure the provider to trust it.
+
+### Using caBundle (inline)
+
+You can provide the CA certificate directly as a base64-encoded PEM bundle:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: infisical
+spec:
+  provider:
+    infisical:
+      hostAPI: https://my-infisical.example.com
+      # Base64-encoded PEM certificate
+      caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t..."
+      auth:
+        universalAuthCredentials:
+          clientId:
+            key: clientId
+            name: universal-auth-credentials
+          clientSecret:
+            key: clientSecret
+            name: universal-auth-credentials
+      secretsScope:
+        projectSlug: my-project
+        environmentSlug: dev
+```
+
+### Using caProvider (from Secret or ConfigMap)
+
+Alternatively, you can reference a Secret or ConfigMap containing the CA certificate:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: infisical
+spec:
+  provider:
+    infisical:
+      hostAPI: https://my-infisical.example.com
+      caProvider:
+        type: Secret
+        name: infisical-ca
+        key: ca.crt
+      auth:
+        universalAuthCredentials:
+          clientId:
+            key: clientId
+            name: universal-auth-credentials
+          clientSecret:
+            key: clientSecret
+            name: universal-auth-credentials
+      secretsScope:
+        projectSlug: my-project
+        environmentSlug: dev
+```
+
+!!! note
+    For `ClusterSecretStore`, be sure to set `namespace` in `caProvider`.

@@ -78,60 +78,95 @@ func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
-	symbolCharacters := defaultSymbolChars
+
+	config := extractPasswordConfig(res)
+	keys, err := validateSecretKeys(res.Spec.SecretKeys)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	passwords, err := generatePasswords(keys, config, passGen)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return passwords, nil, nil
+}
+
+type passwordConfig struct {
+	length           int
+	digits           int
+	symbols          int
+	symbolCharacters string
+	encoding         string
+	noUpper          bool
+	allowRepeat      bool
+}
+
+func extractPasswordConfig(res *genv1alpha1.Password) passwordConfig {
+	config := passwordConfig{
+		symbolCharacters: defaultSymbolChars,
+		length:           defaultLength,
+		encoding:         "raw",
+	}
+
 	if res.Spec.SymbolCharacters != nil {
-		symbolCharacters = *res.Spec.SymbolCharacters
+		config.symbolCharacters = *res.Spec.SymbolCharacters
 	}
-	passLen := defaultLength
 	if res.Spec.Length > 0 {
-		passLen = res.Spec.Length
+		config.length = res.Spec.Length
 	}
-	digits := int(float32(passLen) * digitFactor)
+	config.digits = int(float32(config.length) * digitFactor)
 	if res.Spec.Digits != nil {
-		digits = *res.Spec.Digits
+		config.digits = *res.Spec.Digits
 	}
-	symbols := int(float32(passLen) * symbolFactor)
+	config.symbols = int(float32(config.length) * symbolFactor)
 	if res.Spec.Symbols != nil {
-		symbols = *res.Spec.Symbols
+		config.symbols = *res.Spec.Symbols
 	}
-
-	encoding := "raw"
 	if res.Spec.Encoding != nil {
-		encoding = *res.Spec.Encoding
+		config.encoding = *res.Spec.Encoding
 	}
+	config.noUpper = res.Spec.NoUpper
+	config.allowRepeat = res.Spec.AllowRepeat
 
-	keys := res.Spec.SecretKeys
+	return config
+}
+
+func validateSecretKeys(keys []string) ([]string, error) {
 	if len(keys) == 0 {
 		keys = []string{"password"}
 	}
 	seen := make(map[string]struct{}, len(keys))
 	for _, key := range keys {
 		if key == "" {
-			return nil, nil, errors.New(errSecretKey)
+			return nil, errors.New(errSecretKey)
 		}
 		if _, ok := seen[key]; ok {
-			return nil, nil, errors.New(errSecretKey)
+			return nil, errors.New(errSecretKey)
 		}
 		seen[key] = struct{}{}
 	}
+	return keys, nil
+}
 
+func generatePasswords(keys []string, config passwordConfig, passGen generateFunc) (map[string][]byte, error) {
 	passwords := make(map[string][]byte, len(keys))
 	for _, key := range keys {
 		pass, err := passGen(
-			passLen,
-			symbols,
-			symbolCharacters,
-			digits,
-			res.Spec.NoUpper,
-			res.Spec.AllowRepeat,
+			config.length,
+			config.symbols,
+			config.symbolCharacters,
+			config.digits,
+			config.noUpper,
+			config.allowRepeat,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		passwords[key] = encodePassword([]byte(pass), encoding)
+		passwords[key] = encodePassword([]byte(pass), config.encoding)
 	}
-
-	return passwords, nil, nil
+	return passwords, nil
 }
 
 func generateSafePassword(
