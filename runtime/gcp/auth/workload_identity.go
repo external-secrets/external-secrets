@@ -82,7 +82,6 @@ var (
 // workloadIdentity holds all clients and generators needed
 // to create a gcp oauth token.
 type workloadIdentity struct {
-	iamClient            IamClient
 	metadataClient       MetadataClient
 	idBindTokenGenerator idBindTokenGenerator
 	saTokenGenerator     saTokenGenerator
@@ -119,7 +118,6 @@ func newWorkloadIdentity(projectID string) (*workloadIdentity, error) {
 		return nil, err
 	}
 	return &workloadIdentity{
-		iamClient:            nil, // Will be created on-demand with the correct TokenSource
 		metadataClient:       newMetadataClient(),
 		idBindTokenGenerator: newIDBindTokenGenerator(),
 		saTokenGenerator:     satg,
@@ -313,9 +311,8 @@ func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWo
 
 
 func (w *workloadIdentity) Close() error {
-	if w.iamClient != nil {
-		return w.iamClient.Close()
-	}
+	// IAM clients are created on-demand and closed immediately after use,
+	// so there's nothing to close here. This method exists for interface compatibility.
 	return nil
 }
 
