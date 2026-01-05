@@ -1,8 +1,7 @@
 apiVersion: external-secrets.io/v1
-kind: SecretStore
+kind: ClusterSecretStore
 metadata:
   name: vault-backend
-  namespace: example
 spec:
   provider:
     vault:

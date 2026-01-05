@@ -287,6 +287,8 @@ func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWo
 
 	// Create JWT payload for Vault IAM auth
 	// The audience must be in the format "vault/{role}"
+	// Reference: https://support.hashicorp.com/hc/en-us/articles/37175601988499
+	// API Docs: https://developer.hashicorp.com/vault/api-docs/auth/gcp
 	exp := time.Now().Add(15 * time.Minute).Unix()
 	payload := map[string]interface{}{
 		"sub": gcpSA,
