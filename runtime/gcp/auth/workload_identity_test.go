@@ -71,7 +71,6 @@ func (m *mockIamClient) Close() error {
 type mockMetadataClient struct {
 	instanceAttributeFunc func(ctx context.Context, attr string) (string, error)
 	projectIDFunc         func(ctx context.Context) (string, error)
-	numericProjectIDFunc  func(ctx context.Context) (string, error)
 }
 
 func (m *mockMetadataClient) InstanceAttributeValueWithContext(ctx context.Context, attr string) (string, error) {
@@ -92,13 +91,6 @@ func (m *mockMetadataClient) ProjectIDWithContext(ctx context.Context) (string, 
 		return m.projectIDFunc(ctx)
 	}
 	return "test-project", nil
-}
-
-func (m *mockMetadataClient) NumericProjectIDWithContext(ctx context.Context) (string, error) {
-	if m.numericProjectIDFunc != nil {
-		return m.numericProjectIDFunc(ctx)
-	}
-	return "123456789", nil
 }
 
 type mockSATokenGenerator struct {

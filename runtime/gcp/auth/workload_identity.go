@@ -101,7 +101,6 @@ type IamClient interface {
 type MetadataClient interface {
 	InstanceAttributeValueWithContext(ctx context.Context, attr string) (string, error)
 	ProjectIDWithContext(ctx context.Context) (string, error)
-	NumericProjectIDWithContext(ctx context.Context) (string, error)
 }
 
 // interface to securetoken/identitybindingtoken API.
