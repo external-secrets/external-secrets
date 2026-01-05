@@ -71,14 +71,12 @@ func TestNewTokenSource(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:      "no auth configured - default credentials",
-			auth:      esv1.GCPSMAuth{},
-			projectID: "test-project",
-			storeKind: esv1.SecretStoreKind,
-			namespace: "default",
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			name:        "no auth configured - default credentials",
+			auth:        esv1.GCPSMAuth{},
+			projectID:   "test-project",
+			storeKind:   esv1.SecretStoreKind,
+			namespace:   "default",
+			setupKube:   clientfake.NewClientBuilder,
 			expectToken: true,
 			expectError: false,
 		},
@@ -117,15 +115,13 @@ func TestGenerateSignedJWTForVault(t *testing.T) {
 		// Note: Successful JWT generation test is skipped because it requires GCP IAM API
 		// or complex mocks. The functionality is tested in integration tests.
 		{
-			name:      "no workload identity configured",
-			wi:        nil,
-			role:      "vault-role",
-			projectID: "test-project",
-			storeKind: esv1.SecretStoreKind,
-			namespace: "default",
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			name:        "no workload identity configured",
+			wi:          nil,
+			role:        "vault-role",
+			projectID:   "test-project",
+			storeKind:   esv1.SecretStoreKind,
+			namespace:   "default",
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: true,
 			errorMsg:    "workload identity configuration is required",
 		},
@@ -206,22 +202,18 @@ func TestServiceAccountTokenSource(t *testing.T) {
 					},
 				},
 			},
-			storeKind: esv1.SecretStoreKind,
-			namespace: "default",
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			storeKind:   esv1.SecretStoreKind,
+			namespace:   "default",
+			setupKube:   clientfake.NewClientBuilder,
 			expectToken: false,
 			expectError: true,
 		},
 		{
-			name:      "no secret ref configured",
-			auth:      esv1.GCPSMAuth{},
-			storeKind: esv1.SecretStoreKind,
-			namespace: "default",
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			name:        "no secret ref configured",
+			auth:        esv1.GCPSMAuth{},
+			storeKind:   esv1.SecretStoreKind,
+			namespace:   "default",
+			setupKube:   clientfake.NewClientBuilder,
 			expectToken: false,
 			expectError: false,
 		},

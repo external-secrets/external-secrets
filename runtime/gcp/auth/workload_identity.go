@@ -307,7 +307,6 @@ func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWo
 	return signResp.GetSignedJwt(), nil
 }
 
-
 func (w *workloadIdentity) Close() error {
 	// IAM clients are created on-demand and closed immediately after use,
 	// so there's nothing to close here. This method exists for interface compatibility.

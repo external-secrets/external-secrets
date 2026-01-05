@@ -83,7 +83,7 @@ func TestWorkloadIdentityFederationTokenSource(t *testing.T) {
 		{
 			name:        "nil config returns nil token source",
 			config:      nil,
-			setupKube:   func() *clientfake.ClientBuilder { return clientfake.NewClientBuilder() },
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: false,
 		},
 		{
@@ -98,9 +98,7 @@ func TestWorkloadIdentityFederationTokenSource(t *testing.T) {
 					Key:  "credentials",
 				},
 			},
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: true,
 			errorMsg:    "exactly one of",
 		},
@@ -109,9 +107,7 @@ func TestWorkloadIdentityFederationTokenSource(t *testing.T) {
 			config: &esv1.GCPWorkloadIdentityFederation{
 				Audience: "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/my-pool/providers/my-provider",
 			},
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: true,
 			errorMsg:    "exactly one of",
 		},
@@ -122,9 +118,7 @@ func TestWorkloadIdentityFederationTokenSource(t *testing.T) {
 					Name: "test-sa",
 				},
 			},
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: true,
 			errorMsg:    "audience must be provided",
 		},
@@ -138,9 +132,7 @@ func TestWorkloadIdentityFederationTokenSource(t *testing.T) {
 					},
 				},
 			},
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: true,
 			errorMsg:    "audience must be provided",
 		},
@@ -152,9 +144,7 @@ func TestWorkloadIdentityFederationTokenSource(t *testing.T) {
 					Key:  "credentials",
 				},
 			},
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: true,
 			errorMsg:    "failed to fetch",
 		},
@@ -356,9 +346,7 @@ func TestReadAWSSecurityCredentials(t *testing.T) {
 					},
 				},
 			},
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: true,
 			errorMsg:    "failed to fetch",
 		},

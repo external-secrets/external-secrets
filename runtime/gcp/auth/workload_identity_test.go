@@ -21,8 +21,6 @@ import (
 	"net/http"
 	"testing"
 
-	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
-	"github.com/googleapis/gax-go/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -36,38 +34,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Mock implementations for testing
-type mockIamClient struct {
-	signJwtFunc           func(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error)
-	generateAccessTokenFunc func(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
-	closeFunc             func() error
-}
-
-func (m *mockIamClient) SignJwt(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error) {
-	if m.signJwtFunc != nil {
-		return m.signJwtFunc(ctx, req, opts...)
-	}
-	return &credentialspb.SignJwtResponse{
-		SignedJwt: "mock-signed-jwt-token",
-	}, nil
-}
-
-func (m *mockIamClient) GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error) {
-	if m.generateAccessTokenFunc != nil {
-		return m.generateAccessTokenFunc(ctx, req, opts...)
-	}
-	return &credentialspb.GenerateAccessTokenResponse{
-		AccessToken: "mock-access-token",
-	}, nil
-}
-
-func (m *mockIamClient) Close() error {
-	if m.closeFunc != nil {
-		return m.closeFunc()
-	}
-	return nil
-}
-
+// Mock implementations for testing.
 type mockMetadataClient struct {
 	instanceAttributeFunc func(ctx context.Context, attr string) (string, error)
 	projectIDFunc         func(ctx context.Context) (string, error)
@@ -141,7 +108,7 @@ func TestTokenSourceWithWorkloadIdentity(t *testing.T) {
 					},
 				},
 			},
-			setupKube: func() *clientfake.ClientBuilder{
+			setupKube: func() *clientfake.ClientBuilder {
 				saNoAnnotation := &corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "sa-no-annotation",
@@ -168,9 +135,7 @@ func TestTokenSourceWithWorkloadIdentity(t *testing.T) {
 					},
 				},
 			},
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			setupKube: clientfake.NewClientBuilder,
 			setupMock: func(wi *workloadIdentity) {
 				wi.metadataClient = &mockMetadataClient{}
 				wi.saTokenGenerator = &mockSATokenGenerator{}
@@ -279,10 +244,8 @@ func TestSignedJWTForVault(t *testing.T) {
 					Name: "missing-sa",
 				},
 			},
-			role: "my-vault-role",
-			setupKube: func() *clientfake.ClientBuilder {
-				return clientfake.NewClientBuilder()
-			},
+			role:        "my-vault-role",
+			setupKube:   clientfake.NewClientBuilder,
 			expectError: true,
 			errorMsg:    "not found",
 		},
