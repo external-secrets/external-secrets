@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"testing"
 
+	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
+	"github.com/googleapis/gax-go/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -35,6 +37,37 @@ import (
 )
 
 // Mock implementations for testing.
+type mockIamClient struct {
+	generateAccessTokenFunc func(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
+	signJwtFunc             func(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error)
+	closeFunc               func() error
+}
+
+func (m *mockIamClient) GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error) {
+	if m.generateAccessTokenFunc != nil {
+		return m.generateAccessTokenFunc(ctx, req, opts...)
+	}
+	return &credentialspb.GenerateAccessTokenResponse{
+		AccessToken: "mock-gcp-access-token",
+	}, nil
+}
+
+func (m *mockIamClient) SignJwt(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error) {
+	if m.signJwtFunc != nil {
+		return m.signJwtFunc(ctx, req, opts...)
+	}
+	return &credentialspb.SignJwtResponse{
+		SignedJwt: "mock-signed-jwt",
+	}, nil
+}
+
+func (m *mockIamClient) Close() error {
+	if m.closeFunc != nil {
+		return m.closeFunc()
+	}
+	return nil
+}
+
 type mockMetadataClient struct {
 	instanceAttributeFunc func(ctx context.Context, attr string) (string, error)
 	projectIDFunc         func(ctx context.Context) (string, error)
@@ -170,6 +203,49 @@ func TestTokenSourceWithWorkloadIdentity(t *testing.T) {
 				wi.metadataClient = &mockMetadataClient{}
 				wi.saTokenGenerator = &mockSATokenGenerator{}
 				wi.idBindTokenGenerator = &mockIDBindTokenGenerator{}
+			},
+			expectError: false,
+		},
+		{
+			name: "successful token source with GCP SA annotation via GenerateAccessToken",
+			auth: esv1.GCPSMAuth{
+				WorkloadIdentity: &esv1.GCPWorkloadIdentity{
+					ClusterLocation: "us-central1",
+					ClusterName:     "test-cluster",
+					ServiceAccountRef: esmeta.ServiceAccountSelector{
+						Name: "sa-with-annotation",
+					},
+				},
+			},
+			setupKube: func() *clientfake.ClientBuilder {
+				// Create SA with the GCP service account annotation to exercise the IAM path
+				saWithAnnotation := &corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "sa-with-annotation",
+						Namespace: "default",
+						Annotations: map[string]string{
+							"iam.gke.io/gcp-service-account": "test-sa@test-project.iam.gserviceaccount.com",
+						},
+					},
+				}
+				return clientfake.NewClientBuilder().WithObjects(saWithAnnotation)
+			},
+			setupMock: func(wi *workloadIdentity) {
+				wi.metadataClient = &mockMetadataClient{}
+				wi.saTokenGenerator = &mockSATokenGenerator{}
+				wi.idBindTokenGenerator = &mockIDBindTokenGenerator{}
+				// Inject mock IAM client creator to exercise the GenerateAccessToken flow
+				wi.iamClientCreator = func(_ context.Context, _ oauth2.TokenSource) (IamClient, error) {
+					return &mockIamClient{
+						generateAccessTokenFunc: func(_ context.Context, req *credentialspb.GenerateAccessTokenRequest, _ ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error) {
+							// Verify the request contains the expected service account
+							assert.Contains(t, req.Name, "test-sa@test-project.iam.gserviceaccount.com")
+							return &credentialspb.GenerateAccessTokenResponse{
+								AccessToken: "mock-gcp-access-token-from-iam",
+							}, nil
+						},
+					}, nil
+				}
 			},
 			expectError: false,
 		},

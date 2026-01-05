@@ -85,6 +85,9 @@ type workloadIdentity struct {
 	metadataClient       MetadataClient
 	idBindTokenGenerator idBindTokenGenerator
 	saTokenGenerator     saTokenGenerator
+	// iamClientCreator allows injection of a custom IAM client creator for testing.
+	// If nil, the default newIAMClient function is used.
+	iamClientCreator func(ctx context.Context, tokenSource oauth2.TokenSource) (IamClient, error)
 }
 
 // IamClient provides an interface to the GCP IAM API.
@@ -209,7 +212,11 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 
 	// Create IAM client with the token source from Workload Identity
 	tokenSource := oauth2.StaticTokenSource(idBindToken)
-	iamClient, err := newIAMClient(ctx, tokenSource)
+	iamClientCreator := w.iamClientCreator
+	if iamClientCreator == nil {
+		iamClientCreator = newIAMClient
+	}
+	iamClient, err := iamClientCreator(ctx, tokenSource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create IAM client: %w", err)
 	}
@@ -272,7 +279,11 @@ func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWo
 	}
 
 	// Create IAM client with the token source
-	iamClient, err := newIAMClient(ctx, tokenSource)
+	iamClientCreator := w.iamClientCreator
+	if iamClientCreator == nil {
+		iamClientCreator = newIAMClient
+	}
+	iamClient, err := iamClientCreator(ctx, tokenSource)
 	if err != nil {
 		return "", fmt.Errorf("failed to create IAM client: %w", err)
 	}
