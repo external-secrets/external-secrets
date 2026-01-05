@@ -1714,7 +1714,6 @@ bool
 </em>
 </td>
 <td>
-<p>When true, returns the decrypted password field; when false, the password field is omitted</p>
 </td>
 </tr>
 <tr>
@@ -15094,7 +15093,6 @@ bool
 </em>
 </td>
 <td>
-<p>When true, returns the decrypted password field; when false, the password field is omitted</p>
 </td>
 </tr>
 <tr>

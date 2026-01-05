@@ -213,12 +213,18 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, fmt.Errorf("error authenticating: %w", err)
 	}
 
+	decryptValue := true
+	if config.Server.Decrypt != nil {
+		decryptValue = *config.Server.Decrypt
+	}
+
 	return &Provider{
 		apiURL:        config.Server.APIURL,
 		retrievaltype: config.Server.RetrievalType,
 		authenticate:  *authenticate,
 		log:           *logger,
 		separator:     separator,
+		decrypt:       decryptValue,
 	}, nil
 }
 
