@@ -8,10 +8,6 @@ on:
       - synchronize
       - reopened
 
-permissions:
-  pull-requests: write
-  issues: write
-
 jobs:
   conventional-commit-labeler:
     name: Label PR based on Conventional Commit Specification

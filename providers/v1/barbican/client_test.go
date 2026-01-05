@@ -202,7 +202,7 @@ func TestGetAllSecretsValidation(t *testing.T) {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorMessage)
 			} else if err != nil {
-					assert.Contains(t, err.Error(), "barbican client")
+				assert.Contains(t, err.Error(), "barbican client")
 			}
 		})
 	}
