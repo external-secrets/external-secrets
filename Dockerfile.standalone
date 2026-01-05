@@ -8,12 +8,9 @@ ARG TARGETOS
 ARG TARGETARCH
 ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 WORKDIR /app
-# Avoid invalidating the `go mod download` cache when only code has changed.
-COPY go.mod go.sum /app/
-RUN go mod download
 COPY . /app/
+RUN go mod download
 RUN go build -o external-secrets main.go
-
 
 FROM gcr.io/distroless/static@sha256:4b2a093ef4649bccd586625090a3c668b254cfe180dee54f4c94f3e9bd7e381e AS app
 COPY --from=builder /app/external-secrets /bin/external-secrets
