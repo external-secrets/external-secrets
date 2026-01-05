@@ -7,14 +7,12 @@ on:
   workflow_dispatch:
     inputs: {}
 
-
-permissions:
-  contents: read
-
 jobs:
   branches:
     name: get branch data
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       branches: ${{ steps.branches.outputs.branches }}
 
