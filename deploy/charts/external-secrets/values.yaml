@@ -467,6 +467,8 @@ webhook:
 
     listen:
       port: 8080
+      auth:
+        enabled: false 
 
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
@@ -605,9 +607,11 @@ certController:
     # maxUnavailable: "50%"
 
   metrics:
-
+    
     listen:
       port: 8080
+      auth:
+        enabled: false 
 
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
