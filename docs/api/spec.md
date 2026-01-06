@@ -1714,6 +1714,8 @@ bool
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.</p>
 </td>
 </tr>
 <tr>
@@ -15093,6 +15095,8 @@ bool
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.</p>
 </td>
 </tr>
 <tr>
