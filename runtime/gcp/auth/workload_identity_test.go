@@ -282,13 +282,60 @@ func TestTokenSourceWithWorkloadIdentity(t *testing.T) {
 
 func TestSignedJWTForVault(t *testing.T) {
 	tests := []struct {
-		name        string
-		wi          *esv1.GCPWorkloadIdentity
-		role        string
-		setupKube   func() *clientfake.ClientBuilder
-		expectError bool
-		errorMsg    string
+		name           string
+		wi             *esv1.GCPWorkloadIdentity
+		role           string
+		setupKube      func() *clientfake.ClientBuilder
+		setupMock      func(*workloadIdentity)
+		expectError    bool
+		errorMsg       string
+		expectedJWT    string
+		validateCalled bool
 	}{
+		{
+			name: "successful JWT generation with GCP SA annotation",
+			wi: &esv1.GCPWorkloadIdentity{
+				ClusterLocation: "us-central1",
+				ClusterName:     "test-cluster",
+				ServiceAccountRef: esmeta.ServiceAccountSelector{
+					Name: "sa-with-annotation",
+				},
+			},
+			role: "my-vault-role",
+			setupKube: func() *clientfake.ClientBuilder {
+				saWithAnnotation := &corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "sa-with-annotation",
+						Namespace: "default",
+						Annotations: map[string]string{
+							"iam.gke.io/gcp-service-account": "test-sa@test-project.iam.gserviceaccount.com",
+						},
+					},
+				}
+				return clientfake.NewClientBuilder().WithObjects(saWithAnnotation)
+			},
+			setupMock: func(wi *workloadIdentity) {
+				wi.metadataClient = &mockMetadataClient{}
+				wi.idBindTokenGenerator = &mockIDBindTokenGenerator{}
+				// Inject mock IAM client creator that returns a mock SignJwt response
+				wi.iamClientCreator = func(_ context.Context, _ oauth2.TokenSource) (IamClient, error) {
+					return &mockIamClient{
+						signJwtFunc: func(_ context.Context, req *credentialspb.SignJwtRequest, _ ...gax.CallOption) (*credentialspb.SignJwtResponse, error) {
+							// Verify the request contains the expected service account
+							assert.Contains(t, req.Name, "test-sa@test-project.iam.gserviceaccount.com")
+							// Verify the payload contains the expected audience format
+							assert.Contains(t, req.Payload, "vault/my-vault-role")
+							return &credentialspb.SignJwtResponse{
+								SignedJwt: "mock-signed-jwt-for-vault",
+							}, nil
+						},
+					}, nil
+				}
+			},
+			expectError:    false,
+			expectedJWT:    "mock-signed-jwt-for-vault",
+			validateCalled: true,
+		},
 		{
 			name: "service account without GCP annotation",
 			wi: &esv1.GCPWorkloadIdentity{
@@ -335,9 +382,14 @@ func TestSignedJWTForVault(t *testing.T) {
 			wi, err := newWorkloadIdentity(withSATokenGenerator(&mockSATokenGenerator{}))
 			require.NoError(t, err)
 
-			// Inject additional mocks
+			// Inject additional mocks - apply defaults first
 			wi.metadataClient = &mockMetadataClient{}
 			wi.idBindTokenGenerator = &mockIDBindTokenGenerator{}
+
+			// Apply test-specific mock setup if provided
+			if tt.setupMock != nil {
+				tt.setupMock(wi)
+			}
 
 			jwt, err := wi.SignedJWTForVault(context.Background(), tt.wi, tt.role, false, kube, "default")
 
@@ -350,6 +402,9 @@ func TestSignedJWTForVault(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, jwt)
+				if tt.expectedJWT != "" {
+					assert.Equal(t, tt.expectedJWT, jwt)
+				}
 			}
 		})
 	}
