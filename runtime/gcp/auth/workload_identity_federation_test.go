@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -29,6 +30,17 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
+
+// mockWifSATokenGenerator is a mock saTokenGenerator for testing.
+type mockWifSATokenGenerator struct{}
+
+func (m *mockWifSATokenGenerator) Generate(_ context.Context, _ []string, _, _ string) (*authenticationv1.TokenRequest, error) {
+	return &authenticationv1.TokenRequest{
+		Status: authenticationv1.TokenRequestStatus{
+			Token: "mock-k8s-token",
+		},
+	}, nil
+}
 
 func TestNewWorkloadIdentityFederation(t *testing.T) {
 	tests := []struct {
@@ -51,7 +63,8 @@ func TestNewWorkloadIdentityFederation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := clientfake.NewClientBuilder().Build()
-			wif, err := newWorkloadIdentityFederation(kube, tt.config, false, "default")
+			// Use mock SA token generator to avoid K8s dependency
+			wif, err := newWorkloadIdentityFederation(kube, tt.config, false, "default", withWifSATokenGenerator(&mockWifSATokenGenerator{}))
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -245,7 +258,8 @@ func TestWorkloadIdentityFederationTokenSource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := tt.setupKube().Build()
-			wif, err := newWorkloadIdentityFederation(kube, tt.config, false, "default")
+			// Use mock SA token generator to avoid K8s dependency
+			wif, err := newWorkloadIdentityFederation(kube, tt.config, false, "default", withWifSATokenGenerator(&mockWifSATokenGenerator{}))
 			require.NoError(t, err)
 
 			ts, err := wif.TokenSource(context.Background())
@@ -310,7 +324,8 @@ func TestWorkloadIdentityFederationWithClusterKind(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := tt.setupKube().Build()
-			wif, err := newWorkloadIdentityFederation(kube, tt.config, true, "default")
+			// Use mock SA token generator to avoid K8s dependency
+			wif, err := newWorkloadIdentityFederation(kube, tt.config, true, "default", withWifSATokenGenerator(&mockWifSATokenGenerator{}))
 			require.NoError(t, err)
 
 			_, err = wif.TokenSource(context.Background())
@@ -381,7 +396,8 @@ func TestReadAWSSecurityCredentials(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := tt.setupKube().Build()
-			wif, err := newWorkloadIdentityFederation(kube, tt.config, false, "default")
+			// Use mock SA token generator to avoid K8s dependency
+			wif, err := newWorkloadIdentityFederation(kube, tt.config, false, "default", withWifSATokenGenerator(&mockWifSATokenGenerator{}))
 			require.NoError(t, err)
 
 			_, err = wif.TokenSource(context.Background())

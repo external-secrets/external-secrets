@@ -126,18 +126,39 @@ const (
 	awsSessionTokenKeyName    = "aws_session_token"
 )
 
-func newWorkloadIdentityFederation(kube kclient.Client, wif *esv1.GCPWorkloadIdentityFederation, isClusterKind bool, namespace string) (*workloadIdentityFederation, error) {
-	satg, err := newSATokenGenerator()
-	if err != nil {
-		return nil, err
+// wifOption is a functional option for configuring workloadIdentityFederation.
+type wifOption func(*workloadIdentityFederation)
+
+// withWifSATokenGenerator sets a custom saTokenGenerator (used for testing).
+func withWifSATokenGenerator(satg saTokenGenerator) wifOption {
+	return func(w *workloadIdentityFederation) {
+		w.saTokenGenerator = satg
 	}
-	return &workloadIdentityFederation{
-		kubeClient:       kube,
-		saTokenGenerator: satg,
-		config:           wif,
-		isClusterKind:    isClusterKind,
-		namespace:        namespace,
-	}, nil
+}
+
+func newWorkloadIdentityFederation(kube kclient.Client, wif *esv1.GCPWorkloadIdentityFederation, isClusterKind bool, namespace string, opts ...wifOption) (*workloadIdentityFederation, error) {
+	w := &workloadIdentityFederation{
+		kubeClient:    kube,
+		config:        wif,
+		isClusterKind: isClusterKind,
+		namespace:     namespace,
+	}
+
+	// Apply options first (allows tests to inject mocks)
+	for _, opt := range opts {
+		opt(w)
+	}
+
+	// Only create real SA token generator if not injected
+	if w.saTokenGenerator == nil {
+		satg, err := newSATokenGenerator()
+		if err != nil {
+			return nil, err
+		}
+		w.saTokenGenerator = satg
+	}
+
+	return w, nil
 }
 
 func (w *workloadIdentityFederation) TokenSource(ctx context.Context) (oauth2.TokenSource, error) {

@@ -114,16 +114,37 @@ type saTokenGenerator interface {
 	Generate(context.Context, []string, string, string) (*authenticationv1.TokenRequest, error)
 }
 
-func newWorkloadIdentity() (*workloadIdentity, error) {
-	satg, err := newSATokenGenerator()
-	if err != nil {
-		return nil, err
+// workloadIdentityOption is a functional option for configuring workloadIdentity.
+type workloadIdentityOption func(*workloadIdentity)
+
+// withSATokenGenerator sets a custom saTokenGenerator (used for testing).
+func withSATokenGenerator(satg saTokenGenerator) workloadIdentityOption {
+	return func(w *workloadIdentity) {
+		w.saTokenGenerator = satg
 	}
-	return &workloadIdentity{
+}
+
+func newWorkloadIdentity(opts ...workloadIdentityOption) (*workloadIdentity, error) {
+	wi := &workloadIdentity{
 		metadataClient:       newMetadataClient(),
 		idBindTokenGenerator: newIDBindTokenGenerator(),
-		saTokenGenerator:     satg,
-	}, nil
+	}
+
+	// Apply options first (allows tests to inject mocks)
+	for _, opt := range opts {
+		opt(wi)
+	}
+
+	// Only create real SA token generator if not injected
+	if wi.saTokenGenerator == nil {
+		satg, err := newSATokenGenerator()
+		if err != nil {
+			return nil, err
+		}
+		wi.saTokenGenerator = satg
+	}
+
+	return wi, nil
 }
 
 func (w *workloadIdentity) gcpWorkloadIdentity(ctx context.Context, id *esv1.GCPWorkloadIdentity) (string, string, error) {
@@ -359,7 +380,15 @@ func (g *k8sSATokenGenerator) Generate(ctx context.Context, audiences []string, 
 		)
 }
 
+// newSATokenGeneratorFunc is a factory function for creating saTokenGenerator.
+// It can be overridden in tests to provide a mock implementation.
+var newSATokenGeneratorFunc = defaultNewSATokenGenerator
+
 func newSATokenGenerator() (saTokenGenerator, error) {
+	return newSATokenGeneratorFunc()
+}
+
+func defaultNewSATokenGenerator() (saTokenGenerator, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err

@@ -255,8 +255,8 @@ func TestTokenSourceWithWorkloadIdentity(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := tt.setupKube().Build()
 
-			// Create workloadIdentity with mocked providers
-			wi, err := newWorkloadIdentity()
+			// Create workloadIdentity with mock SA token generator to avoid K8s dependency
+			wi, err := newWorkloadIdentity(withSATokenGenerator(&mockSATokenGenerator{}))
 			require.NoError(t, err)
 
 			if tt.setupMock != nil {
@@ -331,12 +331,12 @@ func TestSignedJWTForVault(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := tt.setupKube().Build()
 
-			wi, err := newWorkloadIdentity()
+			// Create workloadIdentity with mock SA token generator to avoid K8s dependency
+			wi, err := newWorkloadIdentity(withSATokenGenerator(&mockSATokenGenerator{}))
 			require.NoError(t, err)
 
-			// Inject mocks
+			// Inject additional mocks
 			wi.metadataClient = &mockMetadataClient{}
-			wi.saTokenGenerator = &mockSATokenGenerator{}
 			wi.idBindTokenGenerator = &mockIDBindTokenGenerator{}
 
 			jwt, err := wi.SignedJWTForVault(context.Background(), tt.wi, tt.role, false, kube, "default")
@@ -360,7 +360,8 @@ func TestSignedJWTForVault(t *testing.T) {
 // the production code. These aspects are covered by integration tests.
 
 func TestWorkloadIdentityClose(t *testing.T) {
-	wi, err := newWorkloadIdentity()
+	// Create workloadIdentity with mock SA token generator to avoid K8s dependency
+	wi, err := newWorkloadIdentity(withSATokenGenerator(&mockSATokenGenerator{}))
 	require.NoError(t, err)
 
 	err = wi.Close()
