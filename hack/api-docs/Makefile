@@ -22,6 +22,7 @@ MAJOR_VERSION ?= $(shell echo $(VERSION_NO_V) | cut -d'.' -f1)
 MINOR_VERSION ?= $(shell echo $(VERSION_NO_V) | cut -d'.' -f2)
 VERSION_TO_CHECK ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION))
 DOCS_ALIAS ?= unstable
+GITHUB_TOKEN ?= invalid
 SERVE_BIND_ADDRESS ?= 127.0.0.1
 SHELL := /usr/bin/env bash
 
@@ -96,7 +97,7 @@ clean:
 # serve runs mkdocs as a local webserver for interactive development.
 # This will serve the live copy of the docs on 127.0.0.1:8000.
 .PHONY: serve
-serve: build
+serve: image generate
 	$(DOCKER) run \
 		-it \
 		--sig-proxy=true \
@@ -105,4 +106,4 @@ serve: build
 		-p $(SERVE_BIND_ADDRESS):8000:8000 \
 		--rm \
 		$(MKDOCS_IMAGE) \
-		$(SHELL) -c "cd /repo && mkdocs serve -f hack/api-docs/mkdocs.yml -a 0.0.0.0:8000"
+		$(SHELL) -c "cd /repo && mkdocs serve -f hack/api-docs/mkdocs.yml -a 0.0.0.0:8000 --livereload"

@@ -95,44 +95,61 @@ func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.Exte
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(esInfo)
 	externalSecretCondition := GetGaugeVec(ExternalSecretStatusConditionKey)
 
+	// this allows us to delete metrics even when other labels (like helm annotations) have changed
+	baseLabels := prometheus.Labels{
+		"name":      es.Name,
+		"namespace": es.Namespace,
+	}
+
 	switch condition.Type {
 	case esv1.ExternalSecretDeleted:
 		// Remove condition=Ready metrics when the object gets deleted.
-		externalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
-			map[string]string{
-				"condition": string(esv1.ExternalSecretReady),
-				"status":    string(v1.ConditionFalse),
-			}))
+		baseLabels["condition"] = string(esv1.ExternalSecretReady)
+		baseLabels["status"] = string(v1.ConditionFalse)
+		externalSecretCondition.DeletePartialMatch(baseLabels)
 
-		externalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
-			map[string]string{
-				"condition": string(esv1.ExternalSecretReady),
-				"status":    string(v1.ConditionTrue),
-			}))
+		baseLabels["status"] = string(v1.ConditionTrue)
+		externalSecretCondition.DeletePartialMatch(baseLabels)
+		delete(baseLabels, "condition")
+		delete(baseLabels, "status")
 
 	case esv1.ExternalSecretReady:
 		// Remove condition=Deleted metrics when the object gets ready.
-		externalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
-			map[string]string{
-				"condition": string(esv1.ExternalSecretDeleted),
-				"status":    string(v1.ConditionFalse),
-			}))
+		baseLabels["condition"] = string(esv1.ExternalSecretDeleted)
+		baseLabels["status"] = string(v1.ConditionFalse)
+		externalSecretCondition.DeletePartialMatch(baseLabels)
 
-		externalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
-			map[string]string{
-				"condition": string(esv1.ExternalSecretDeleted),
-				"status":    string(v1.ConditionTrue),
-			}))
+		baseLabels["status"] = string(v1.ConditionTrue)
+		externalSecretCondition.DeletePartialMatch(baseLabels)
+		delete(baseLabels, "condition")
+		delete(baseLabels, "status")
 
-		// Toggle opposite Status to 0
+		// Toggle opposite Status to 0, but first delete any stale metrics with old labels
 		switch condition.Status {
 		case v1.ConditionFalse:
+			// delete any existing metrics with status True (regardless of other labels)
+			// condition is fixed to ExternalSecretReady because other statuses were already handled above.
+			baseLabels["condition"] = string(esv1.ExternalSecretReady)
+			baseLabels["status"] = string(v1.ConditionTrue)
+			externalSecretCondition.DeletePartialMatch(baseLabels)
+			delete(baseLabels, "condition")
+			delete(baseLabels, "status")
+
+			// Set the metric with current labels
 			externalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 				map[string]string{
 					"condition": string(esv1.ExternalSecretReady),
 					"status":    string(v1.ConditionTrue),
 				})).Set(0)
 		case v1.ConditionTrue:
+			// delete any existing metrics with status False (regardless of other labels)
+			baseLabels["condition"] = string(esv1.ExternalSecretReady)
+			baseLabels["status"] = string(v1.ConditionFalse)
+			externalSecretCondition.DeletePartialMatch(baseLabels)
+			delete(baseLabels, "condition")
+			delete(baseLabels, "status")
+
+			// finally, set the metric with current labels
 			externalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 				map[string]string{
 					"condition": string(esv1.ExternalSecretReady),

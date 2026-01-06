@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -213,8 +214,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		}
 
 		// Remove finalizer if it exists
+		// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
+		patch := client.MergeFrom(externalSecret.DeepCopy())
 		if updated := controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer); updated {
-			if err := r.Update(ctx, externalSecret); err != nil {
+			if err := r.Patch(ctx, externalSecret, patch); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -222,8 +225,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	// Add finalizer if it doesn't exist
+	// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
+	patch := client.MergeFrom(externalSecret.DeepCopy())
 	if updated := controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer); updated {
-		if err := r.Update(ctx, externalSecret); err != nil {
+		if err := r.Patch(ctx, externalSecret, patch); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -603,7 +608,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 }
 
 // reconcileGenericTarget handles reconciliation for generic targets (ConfigMaps, Custom Resources).
-func (r *Reconciler) reconcileGenericTarget(ctx context.Context, externalSecret *esv1.ExternalSecret, log logr.Logger, start time.Time, resourceLabels map[string]string, syncCallsError *prometheus.CounterVec) (ctrl.Result, error) {
+func (r *Reconciler) reconcileGenericTarget(
+	ctx context.Context,
+	externalSecret *esv1.ExternalSecret,
+	log logr.Logger,
+	start time.Time,
+	resourceLabels map[string]string,
+	syncCallsError *prometheus.CounterVec,
+) (ctrl.Result, error) {
 	// retrieve the provider secret data
 	dataMap, err := r.GetProviderSecretData(ctx, externalSecret)
 	if err != nil {
@@ -642,8 +654,28 @@ func (r *Reconciler) reconcileGenericTarget(ctx context.Context, externalSecret 
 		}
 	}
 
+	// Check if we need to fetch existing resource first (for Merge and Owner/Orphan policies)
+	var existing *unstructured.Unstructured
+	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan ||
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		var getErr error
+		existing, getErr = r.getGenericResource(ctx, log, externalSecret)
+		if getErr != nil && !apierrors.IsNotFound(getErr) {
+			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+			return ctrl.Result{}, getErr
+		}
+	}
+
+	// For Merge policy with existing resource, pass it to applyTemplateToManifest
+	// so templates are applied to the existing resource instead of creating a new one
+	var baseObj *unstructured.Unstructured
+	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge && existing != nil {
+		baseObj = existing
+	}
+
 	// render the template for the manifest
-	obj, err := r.applyTemplateToManifest(ctx, externalSecret, dataMap)
+	obj, err := r.applyTemplateToManifest(ctx, externalSecret, dataMap, baseObj)
 	if err != nil {
 		r.markAsFailed("could not apply template to manifest", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 		return ctrl.Result{}, err
@@ -657,12 +689,6 @@ func (r *Reconciler) reconcileGenericTarget(ctx context.Context, externalSecret 
 
 	case esv1.CreatePolicyMerge:
 		// for Merge policy, only update if resource exists
-		existing, getErr := r.getGenericResource(ctx, log, externalSecret)
-		if getErr != nil && !apierrors.IsNotFound(getErr) {
-			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
-			return ctrl.Result{}, getErr
-		}
-
 		if existing == nil || existing.GetUID() == "" {
 			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceMissing, "resource will not be created due to CreationPolicy=Merge")
 			return r.getRequeueResult(externalSecret), nil
@@ -674,12 +700,6 @@ func (r *Reconciler) reconcileGenericTarget(ctx context.Context, externalSecret 
 		// update the existing resource
 		err = r.updateGenericResource(ctx, log, externalSecret, obj)
 	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner:
-		existing, getErr := r.getGenericResource(ctx, log, externalSecret)
-		if getErr != nil && !apierrors.IsNotFound(getErr) {
-			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
-			return ctrl.Result{}, getErr
-		}
-
 		if existing != nil {
 			obj.SetResourceVersion(existing.GetResourceVersion())
 			obj.SetUID(existing.GetUID())

@@ -45,6 +45,7 @@ const (
 	errNoSpec    = "no config spec provided"
 	errParseSpec = "unable to parse spec: %w"
 	errGetToken  = "unable to get authorization token: %w"
+	errSecretKey = "secretKeys must be non-empty and unique"
 )
 
 type generateFunc func(
@@ -77,45 +78,95 @@ func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
-	symbolCharacters := defaultSymbolChars
-	if res.Spec.SymbolCharacters != nil {
-		symbolCharacters = *res.Spec.SymbolCharacters
-	}
-	passLen := defaultLength
-	if res.Spec.Length > 0 {
-		passLen = res.Spec.Length
-	}
-	digits := int(float32(passLen) * digitFactor)
-	if res.Spec.Digits != nil {
-		digits = *res.Spec.Digits
-	}
-	symbols := int(float32(passLen) * symbolFactor)
-	if res.Spec.Symbols != nil {
-		symbols = *res.Spec.Symbols
-	}
-	pass, err := passGen(
-		passLen,
-		symbols,
-		symbolCharacters,
-		digits,
-		res.Spec.NoUpper,
-		res.Spec.AllowRepeat,
-	)
+
+	config := extractPasswordConfig(res)
+	keys, err := validateSecretKeys(res.Spec.SecretKeys)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Apply encoding
-	encoding := "raw"
-	if res.Spec.Encoding != nil {
-		encoding = *res.Spec.Encoding
+	passwords, err := generatePasswords(keys, config, passGen)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	encodedPass := encodePassword([]byte(pass), encoding)
+	return passwords, nil, nil
+}
 
-	return map[string][]byte{
-		"password": encodedPass,
-	}, nil, nil
+type passwordConfig struct {
+	length           int
+	digits           int
+	symbols          int
+	symbolCharacters string
+	encoding         string
+	noUpper          bool
+	allowRepeat      bool
+}
+
+func extractPasswordConfig(res *genv1alpha1.Password) passwordConfig {
+	config := passwordConfig{
+		symbolCharacters: defaultSymbolChars,
+		length:           defaultLength,
+		encoding:         "raw",
+	}
+
+	if res.Spec.SymbolCharacters != nil {
+		config.symbolCharacters = *res.Spec.SymbolCharacters
+	}
+	if res.Spec.Length > 0 {
+		config.length = res.Spec.Length
+	}
+	config.digits = int(float32(config.length) * digitFactor)
+	if res.Spec.Digits != nil {
+		config.digits = *res.Spec.Digits
+	}
+	config.symbols = int(float32(config.length) * symbolFactor)
+	if res.Spec.Symbols != nil {
+		config.symbols = *res.Spec.Symbols
+	}
+	if res.Spec.Encoding != nil {
+		config.encoding = *res.Spec.Encoding
+	}
+	config.noUpper = res.Spec.NoUpper
+	config.allowRepeat = res.Spec.AllowRepeat
+
+	return config
+}
+
+func validateSecretKeys(keys []string) ([]string, error) {
+	if len(keys) == 0 {
+		keys = []string{"password"}
+	}
+	seen := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		if key == "" {
+			return nil, errors.New(errSecretKey)
+		}
+		if _, ok := seen[key]; ok {
+			return nil, errors.New(errSecretKey)
+		}
+		seen[key] = struct{}{}
+	}
+	return keys, nil
+}
+
+func generatePasswords(keys []string, config passwordConfig, passGen generateFunc) (map[string][]byte, error) {
+	passwords := make(map[string][]byte, len(keys))
+	for _, key := range keys {
+		pass, err := passGen(
+			config.length,
+			config.symbols,
+			config.symbolCharacters,
+			config.digits,
+			config.noUpper,
+			config.allowRepeat,
+		)
+		if err != nil {
+			return nil, err
+		}
+		passwords[key] = encodePassword([]byte(pass), config.encoding)
+	}
+	return passwords, nil
 }
 
 func generateSafePassword(
@@ -165,7 +216,6 @@ func parseSpec(data []byte) (*genv1alpha1.Password, error) {
 	err := yaml.Unmarshal(data, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

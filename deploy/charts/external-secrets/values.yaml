@@ -14,6 +14,14 @@ global:
   #    matchLabelKeys:
   #      - pod-template-hash
   affinity: {}
+  # -- Global pod labels to be applied to all deployments
+  podLabels: {}
+  # -- Global pod annotations to be applied to all deployments
+  podAnnotations: {}
+  # -- Global imagePullSecrets to be applied to all deployments
+  imagePullSecrets: []
+  # -- Global image repository to be applied to all deployments
+  repository: ""
   compatibility:
     openshift:
       # -- Manages the securityContext properties to make them compatible with OpenShift.
@@ -47,15 +55,17 @@ image:
 installCRDs: true
 
 crds:
-  # -- If true, create CRDs for Cluster External Secret.
+  # -- If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false.
   createClusterExternalSecret: true
-  # -- If true, create CRDs for Cluster Secret Store.
+  # -- If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false.
   createClusterSecretStore: true
-  # -- If true, create CRDs for Cluster Generator.
+  # -- If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false.
+  createSecretStore: true
+  # -- If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false.
   createClusterGenerator: true
-  # -- If true, create CRDs for Cluster Push Secret.
+  # -- If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false.
   createClusterPushSecret: true
-  # -- If true, create CRDs for Push Secret.
+  # -- If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false.
   createPushSecret: true
   annotations: {}
   conversion:
@@ -106,6 +116,9 @@ processClusterPushSecret: true
 
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
+
+# -- if true, the operator will process secret store. Else, it will ignore them.
+processSecretStore: true
 
 # -- if true, the operator will process cluster generator. Else, it will ignore them.
 processClusterGenerator: true

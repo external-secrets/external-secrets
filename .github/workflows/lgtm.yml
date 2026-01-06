@@ -19,7 +19,7 @@ jobs:
     steps:
     # Checkout repo to access CODEOWNERS.md
     - name: Checkout repository
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v5
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v5
       with:
         sparse-checkout: |
           CODEOWNERS.md
@@ -27,14 +27,14 @@ jobs:
     # Generate a GitHub App installation access token
     - name: Generate token
       id: generate_token
-      uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94 # v2.2.0
+      uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
       with:
         app-id: ${{ secrets.LGTM_APP_ID }}
         private-key: ${{ secrets.LGTM_PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
 
     - name: Slash Command Dispatch
-      uses: peter-evans/slash-command-dispatch@e1b4e266bc781656359bb7e462e228daf68c04f6 # v5.0.0
+      uses: peter-evans/slash-command-dispatch@9bdcd7914ec1b75590b790b844aa3b8eee7c683a # v5.0.2
       with:
         token: ${{ steps.generate_token.outputs.token }}
         reaction-token: ${{ secrets.GITHUB_TOKEN }}
