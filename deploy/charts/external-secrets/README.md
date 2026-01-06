@@ -52,6 +52,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Certificate Controller |
+| certController.metrics.listen.auth.enabled | bool | `false` | Specifies whether authentication must be enabled for metrics scraping for the certController |
 | certController.metrics.listen.port | int | `8080` |  |
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
@@ -232,6 +233,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Webhook |
 | webhook.lookaheadInterval | string | `""` | Specifies the lookaheadInterval for certificate validity |
+| webhook.metrics.listen.auth.enabled | bool | `false` | Specifies whether authentication must be enabled for metrics scraping for the webhook |
 | webhook.metrics.listen.port | int | `8080` |  |
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
