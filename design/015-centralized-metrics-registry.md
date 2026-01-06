@@ -59,11 +59,16 @@ The External Secrets Operator defines controller metrics in 8 separate packages 
 
 ## Proposal
 
+Clear separation of concerns.
+Simplified metrics handling.
+
+All example code below is prototyping.
+
 ### Architecture: Controller vs Provider Metrics
 
-**Clear separation of concerns:**
 
-```
+
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        ESO Core                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
@@ -106,7 +111,7 @@ ESO core metrics registry will not contain knowledge of specific providers. Prov
 
 ### Phase 1: Create Controller Metrics Registry
 
-Create a centralized package for controller metrics only:
+Create a centralized package for controller metrics only (example only, not functional code yet):
 
 **Location:** `pkg/metrics/registry.go`
 
@@ -168,6 +173,27 @@ type ControllerRegistry struct {
 }
 
 var globalRegistry *ControllerRegistry
+
+// LabelSet holds the label slices for metric registration.
+// Returned by buildLabelNames(). See below for field definitions.
+//
+//     type LabelSet struct {
+//         // NonCondition contains labels for counters and duration gauges.
+//         // Default: []string{"namespace", "name"}
+//         NonCondition []string
+//
+//         // Condition contains labels for status condition gauges.
+//         // Default: []string{"namespace", "name", "condition", "status"}
+//         Condition []string
+//     }
+//
+// buildLabelNames(extendedLabels ...string) LabelSet
+//
+// Parameters:
+//   - extendedLabels: Reserved for Phase 3. When not empty, may add extra labels
+//     (e.g., "controller", "cluster") for new cases. This could make the function messy, so I am not doing premature optimization.
+//     Currently unused; always returns the default label sets above.
+//
 
 // Initialize creates and registers all controller metrics.
 // Call once at startup from cmd/controller/root.go.
@@ -375,7 +401,8 @@ func (r *ControllerRegistry) RemoveESMetrics(labels Labels) {
 
 Update controllers to use the central registry:
 
-**Before (distributed, string-based):**
+Before (distributed, string-based):
+
 ```go
 // pkg/controllers/externalsecret/externalsecret_controller.go
 import "github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
@@ -387,7 +414,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 ```
 
-**After (centralized, type-safe):**
+After (centralized, type-safe):
 ```go
 // pkg/controllers/externalsecret/externalsecret_controller.go
 import "github.com/external-secrets/external-secrets/pkg/metrics"
