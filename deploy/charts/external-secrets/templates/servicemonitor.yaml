@@ -18,13 +18,13 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
-+    {{- if .Values.metrics.listen.auth.enabled }}
-+    authorization:
-+      credentials:
-+        name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
-+        key: token
-+      type: Bearer
-+    {{- end }}
+     {{- if .Values.metrics.listen.auth.enabled }}
+     authorization:
+       credentials:
+         name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
+         key: token
+       type: Bearer
+     {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
@@ -57,12 +57,13 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
-  {{- if .Values.metrics.listen.auth.enabled }}
-  - authorization:
-    credentials:
-      name: {{ include "external-secrets-webhook.serviceAccountName" . }}-token
-      key: token
-  {{- end }}
+     {{- if .Values.webhook.metrics.listen.auth.enabled }}
+     authorization:
+       credentials:
+         name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
+         key: token
+       type: Bearer
+     {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
@@ -96,12 +97,13 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
-  {{- if .Values.metrics.listen.auth.enabled }}
-  - authorization:
-    credentials:
-      name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
-      key: token
-  {{- end }}
+     {{- if .Values.certController.metrics.listen.auth.enabled }}
+     authorization:
+       credentials:
+         name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
+         key: token
+       type: Bearer
+     {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}

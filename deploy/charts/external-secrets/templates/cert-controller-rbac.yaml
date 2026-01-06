@@ -76,7 +76,7 @@ rules:
     - "create"
     - "update"
     - "patch"
-  {{- if .Values.metrics.listen.auth.enabled }}
+  {{- if .Values.certController.metrics.listen.auth.enabled }}
   - apiGroups:
     - "authentication.k8s.io"
     resources: 
