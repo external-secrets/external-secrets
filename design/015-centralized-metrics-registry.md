@@ -66,8 +66,6 @@ All example code below is prototyping.
 
 ### Architecture: Controller vs Provider Metrics
 
-
-
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        ESO Core                                 │
@@ -339,9 +337,12 @@ func ObserveAPICall(provider, call string, err error) {
 ### Phase 3: Type-Safe Accessor Methods
 
 Add helper methods for common operations:
-
 ```go
 // pkg/metrics/helpers.go
+//
+// NOTE: This is a proof-of-concept showing the pattern for one controller (ExternalSecret).
+// The full implementation will include similar type-safe methods for all controllers
+// (PushSecret, ClusterExternalSecret, ClusterPushSecret, SecretStore, ClusterSecretStore).
 
 // Labels provides pre-built label maps for metrics
 type Labels map[string]string
@@ -391,10 +392,27 @@ func (r *ControllerRegistry) RemoveESMetrics(labels Labels) {
     r.ESSyncCallsTotal.Delete(pl)
     r.ESSyncCallsError.Delete(pl)
     r.ESReconcileDuration.Delete(pl)
-    // Note: status_condition requires iterating conditions
+
+    // StatusCondition requires deleting per-condition label combinations
+    // Iterate through known condition types
+    for _, condition := range []string{"Synced", "Ready", "Error"} {
+        for _, status := range []string{"True", "False", "Unknown"} {
+            condLabels := prometheus.Labels(labels)
+            condLabels["condition"] = condition
+            condLabels["status"] = status
+            r.ESStatusCondition.Delete(condLabels)
+        }
+    }
 }
 
-// Similar methods for PS, CES, CPS, SS, CSS...
+// Similar type-safe methods will be implemented for:
+// - PushSecret (PS prefix)
+// - ClusterExternalSecret (CES prefix)
+// - ClusterPushSecret (CPS prefix)
+// - SecretStore (SS prefix)
+// - ClusterSecretStore (CSS prefix)
+//
+// Implementation details will be provided during the actual coding phase.
 ```
 
 ### Phase 4: Migrate Controllers
