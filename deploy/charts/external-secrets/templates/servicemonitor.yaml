@@ -71,10 +71,10 @@ spec:
     {{- end }}
     {{- if .Values.webhook.metrics.listen.auth.enabled }}
     authorization:
-     credentials:
+      credentials:
        name: {{ include "external-secrets-webhook.serviceAccountName" . }}-token
        key: token
-     type: Bearer
+      type: Bearer
     {{- end }}
 {{- end }}
 ---
@@ -111,10 +111,10 @@ spec:
     {{- end }}
     {{- if .Values.certController.metrics.listen.auth.enabled }}
     authorization:
-     credentials:
+      credentials:
        name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
        key: token
-     type: Bearer
+      type: Bearer
     {{- end }}
 {{- end }}
 {{- end }}
