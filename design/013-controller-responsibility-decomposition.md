@@ -33,7 +33,9 @@ The ExternalSecret controller has grown organically to handle multiple concerns 
 - Hard to maintain: Changes to one concern (e.g., refresh policy) can inadvertently break another (e.g., secret mutation)
 - Code duplication not explained: The Secret path and Generic Target path duplicate ~100 lines of policy evaluation logic - Why did we do it? Is that the best solution?
 - Difficult to Test as we must test a full reconciliation setup even for isolated logic
-- I like spaghetti but at some point I am afraid the meal won't look good.
+- Hard to maintain: Changes to one concern (e.g., refresh policy) can inadvertently break another (e.g., secret mutation)
+- Code duplication not explained: The Secret path and Generic Target path duplicate ~100 lines of policy evaluation logic, making the optimal solution unclear
+- Difficult to test: Must test full reconciliation setup even for isolated logic, limiting test granularity and increasing maintenance burden
 
 ### Goals
 
