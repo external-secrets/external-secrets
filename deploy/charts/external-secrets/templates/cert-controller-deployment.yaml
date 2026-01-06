@@ -83,7 +83,7 @@ spec:
           - --{{ $key }}
             {{- end }}
           {{- end }}
-          {{- if .Values.metrics.listen.auth.enabled }}
+          {{- if .Values.certController.metrics.listen.auth.enabled }}
           - --metrics-auth=true
           {{- end }}
           ports:
