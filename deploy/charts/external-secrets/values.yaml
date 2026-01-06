@@ -607,7 +607,7 @@ certController:
     # maxUnavailable: "50%"
 
   metrics:
-    
+
     listen:
       port: 8080
       auth:
