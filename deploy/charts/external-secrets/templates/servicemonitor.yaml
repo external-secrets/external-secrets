@@ -18,13 +18,6 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
-     {{- if .Values.metrics.listen.auth.enabled }}
-     authorization:
-       credentials:
-         name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
-         key: token
-       type: Bearer
-     {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
@@ -36,6 +29,13 @@ spec:
     {{- with .Values.serviceMonitor.relabelings }}
     relabelings:
       {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if .Values.metrics.listen.auth.enabled }}
+    authorization:
+      credentials:
+        name: {{ include "external-secrets.serviceAccountName" . }}-token
+        key: token
+      type: Bearer
     {{- end }}
 ---
 {{- if .Values.webhook.create }}
@@ -57,13 +57,6 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
-     {{- if .Values.webhook.metrics.listen.auth.enabled }}
-     authorization:
-       credentials:
-         name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
-         key: token
-       type: Bearer
-     {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
@@ -75,6 +68,13 @@ spec:
     {{- with .Values.serviceMonitor.relabelings }}
     relabelings:
       {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if .Values.webhook.metrics.listen.auth.enabled }}
+    authorization:
+     credentials:
+       name: {{ include "external-secrets-webhook.serviceAccountName" . }}-token
+       key: token
+     type: Bearer
     {{- end }}
 {{- end }}
 ---
@@ -97,13 +97,6 @@ spec:
     matchNames:
     - {{ template "external-secrets.namespace" . }}
   endpoints:
-     {{- if .Values.certController.metrics.listen.auth.enabled }}
-     authorization:
-       credentials:
-         name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
-         key: token
-       type: Bearer
-     {{- end }}
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
@@ -115,6 +108,13 @@ spec:
     {{- with .Values.serviceMonitor.relabelings }}
     relabelings:
       {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if .Values.certController.metrics.listen.auth.enabled }}
+    authorization:
+     credentials:
+       name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}-token
+       key: token
+     type: Bearer
     {{- end }}
 {{- end }}
 {{- end }}
