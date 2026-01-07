@@ -7,12 +7,11 @@ on:
   pull_request:
   workflow_dispatch: {}
 
-permissions:
-  contents: read
-
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
         with:

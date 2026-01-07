@@ -21,9 +21,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/external-secrets/external-secrets/providers/v1/yandex/certificatemanager/client"
-	"github.com/external-secrets/external-secrets/providers/v1/yandex/common"
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1"
+
+	"github.com/external-secrets/external-secrets/providers/v1/yandex/certificatemanager/client"
+	ydxcommon "github.com/external-secrets/external-secrets/providers/v1/yandex/common"
 )
 
 const (
@@ -63,7 +64,12 @@ func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken
 	}
 }
 
-func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceID string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID string) (map[string][]byte, error) {
+func (g *certificateManagerSecretGetter) GetSecretMap(
+	ctx context.Context,
+	iamToken, resourceID string,
+	resourceKeyType ydxcommon.ResourceKeyType,
+	folderID, versionID string,
+) (map[string][]byte, error) {
 	response, err := g.fetchCertificateContentResponse(ctx, iamToken, resourceID, resourceKeyType, folderID, versionID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request certificate content to get secret map: %w", err)
@@ -77,7 +83,12 @@ func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamTo
 	}, nil
 }
 
-func (g *certificateManagerSecretGetter) fetchCertificateContentResponse(ctx context.Context, iamToken, resourceID string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID string) (*api.GetCertificateContentResponse, error) {
+func (g *certificateManagerSecretGetter) fetchCertificateContentResponse(
+	ctx context.Context,
+	iamToken, resourceID string,
+	resourceKeyType ydxcommon.ResourceKeyType,
+	folderID, versionID string,
+) (*api.GetCertificateContentResponse, error) {
 	switch resourceKeyType {
 	case ydxcommon.ResourceKeyTypeID:
 		return g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)

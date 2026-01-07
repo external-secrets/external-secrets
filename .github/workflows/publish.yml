@@ -80,7 +80,6 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Fetch History
@@ -139,7 +138,7 @@ jobs:
       # consistently
       - name: Cleanup unused cache
         shell: bash
-        run: | 
+        run: |
           docker system prune --force
           go clean -cache
           go clean -modcache

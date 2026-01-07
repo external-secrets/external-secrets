@@ -242,7 +242,14 @@ func fetchACRRefreshToken(aadAccessToken, tenantID, registryURL string) (string,
 	return refreshToken, nil
 }
 
-func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client, kubeClient kcorev1.CoreV1Interface, envType esv1.AzureEnvironmentType, serviceAccountRef *smmeta.ServiceAccountSelector, namespace string) (string, error) {
+func accessTokenForWorkloadIdentity(
+	ctx context.Context,
+	crClient client.Client,
+	kubeClient kcorev1.CoreV1Interface,
+	envType esv1.AzureEnvironmentType,
+	serviceAccountRef *smmeta.ServiceAccountSelector,
+	namespace string,
+) (string, error) {
 	aadEndpoint := keyvault.AadEndpointForType(envType)
 	scope := keyvault.ServiceManagementEndpointForType(envType)
 	// if no serviceAccountRef was provided
@@ -323,7 +330,14 @@ func accessTokenForManagedIdentity(ctx context.Context, envType esv1.AzureEnviro
 	return accessToken.Token, nil
 }
 
-func (g *Generator) accessTokenForServicePrincipal(ctx context.Context, crClient client.Client, namespace string, envType esv1.AzureEnvironmentType, tenantID string, idRef, secretRef smmeta.SecretKeySelector) (string, error) {
+func (g *Generator) accessTokenForServicePrincipal(
+	ctx context.Context,
+	crClient client.Client,
+	namespace string,
+	envType esv1.AzureEnvironmentType,
+	tenantID string,
+	idRef, secretRef smmeta.SecretKeySelector,
+) (string, error) {
 	cid, err := secretKeyRef(ctx, crClient, namespace, idRef)
 	if err != nil {
 		return "", err
@@ -396,7 +410,6 @@ func parseSpec(data []byte) (*genv1alpha1.ACRAccessToken, error) {
 	err := yaml.Unmarshal(data, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

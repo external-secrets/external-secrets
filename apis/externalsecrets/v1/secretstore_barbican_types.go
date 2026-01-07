@@ -35,11 +35,11 @@ type BarbicanProviderPasswordRef struct {
 
 // BarbicanProvider setup a store to sync secrets with barbican.
 type BarbicanProvider struct {
-	AuthURL    string              `json:"authURL,omitempty"`
-	TenantName string              `json:"tenantName,omitempty"`
-	DomainName string              `json:"domainName,omitempty"`
-	Region     string              `json:"region,omitempty"`
-	Auth       BarbicanAuth        `json:"auth"`
+	AuthURL    string       `json:"authURL,omitempty"`
+	TenantName string       `json:"tenantName,omitempty"`
+	DomainName string       `json:"domainName,omitempty"`
+	Region     string       `json:"region,omitempty"`
+	Auth       BarbicanAuth `json:"auth"`
 }
 
 // BarbicanAuth contains the authentication information for Barbican.

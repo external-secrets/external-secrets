@@ -34,7 +34,27 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve and validate ref
+        id: resolve_ref
+        run: |
+          set -e
+          # Try to fetch the ref from remote
+          if git fetch origin "${{ github.event.inputs.source_ref }}"; then
+            # Remote ref exists, use it
+            RESOLVED_SHA=$(git rev-parse "origin/${{ github.event.inputs.source_ref }}")
+          elif git rev-parse --verify "${{ github.event.inputs.source_ref }}" >/dev/null 2>&1; then
+            # Local ref exists (e.g., a tag)
+            RESOLVED_SHA=$(git rev-parse "${{ github.event.inputs.source_ref }}")
+          else
+            echo "Error: ref '${{ github.event.inputs.source_ref }}' not found"
+            exit 1
+          fi
+          echo "Resolved to SHA: $RESOLVED_SHA"
+          echo "sha=$RESOLVED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout validated ref
+        run: git checkout ${{ steps.resolve_ref.outputs.sha }}
       - name: check-docs
         env:
           DOCS_VERSION: ${{ github.event.inputs.version }}
@@ -55,7 +75,27 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve and validate ref
+        id: resolve_ref
+        run: |
+          set -e
+          # Try to fetch the ref from remote
+          if git fetch origin "${{ github.event.inputs.source_ref }}"; then
+            # Remote ref exists, use it
+            RESOLVED_SHA=$(git rev-parse "origin/${{ github.event.inputs.source_ref }}")
+          elif git rev-parse --verify "${{ github.event.inputs.source_ref }}" >/dev/null 2>&1; then
+            # Local ref exists (e.g., a tag)
+            RESOLVED_SHA=$(git rev-parse "${{ github.event.inputs.source_ref }}")
+          else
+            echo "Error: ref '${{ github.event.inputs.source_ref }}' not found"
+            exit 1
+          fi
+          echo "Resolved to SHA: $RESOLVED_SHA"
+          echo "sha=$RESOLVED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout validated ref
+        run: git checkout ${{ steps.resolve_ref.outputs.sha }}
 
       - name: Create Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
@@ -120,7 +160,6 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Login to Docker

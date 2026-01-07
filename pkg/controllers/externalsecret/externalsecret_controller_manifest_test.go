@@ -369,7 +369,7 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
 
 	// Verify
 	require.NoError(t, err)
@@ -431,7 +431,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
 
 	// Verify
 	require.NoError(t, err)
@@ -600,7 +600,7 @@ template:
 		"version":  []byte("1.21"),
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
 
 	require.NoError(t, err)
 	assert.NotNil(t, result)
@@ -626,4 +626,92 @@ template:
 	assert.Equal(t, "nginx:1.21", container["image"])
 
 	t.Logf("Result spec: %+v", spec)
+}
+
+func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+
+	r := &Reconciler{
+		Client: fakeClient,
+	}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-slack-config",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "notification.toolkit.fluxcd.io/v1beta1",
+					Kind:       "Provider",
+				},
+				Template: &esv1.ExternalSecretTemplate{
+					EngineVersion: esv1.TemplateEngineV2,
+					TemplateFrom: []esv1.TemplateFrom{
+						{
+							Target:  "spec.slack",
+							Literal: ptr.To(`api_url: {{ .url }}`),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	existingResource := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "notification.toolkit.fluxcd.io/v1beta1",
+			"kind":       "Provider",
+			"metadata": map[string]interface{}{
+				"name":            "test-slack-config",
+				"namespace":       "default",
+				"resourceVersion": "12345",
+				"uid":             "test-uid-123",
+			},
+			"spec": map[string]interface{}{
+				"type": "slack",
+				"slack": map[string]interface{}{
+					"channel":  "general",
+					"username": "bot",
+				},
+			},
+		},
+	}
+
+	dataMap := map[string][]byte{
+		"url": []byte("https://hooks.slack.com/services/XXX"),
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, existingResource)
+
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "Provider", result.GetKind())
+	assert.Equal(t, "test-slack-config", result.GetName())
+
+	specType, found, err := unstructured.NestedString(result.Object, "spec", "type")
+	require.NoError(t, err)
+	require.True(t, found, "spec.type should be preserved")
+	assert.Equal(t, "slack", specType, "spec.type should be preserved from existing resource")
+
+	slackChannel, found, err := unstructured.NestedString(result.Object, "spec", "slack", "channel")
+	require.NoError(t, err)
+	require.True(t, found, "spec.slack.channel should be preserved")
+	assert.Equal(t, "general", slackChannel, "spec.slack.channel should be preserved from existing resource")
+
+	slackUsername, found, err := unstructured.NestedString(result.Object, "spec", "slack", "username")
+	require.NoError(t, err)
+	require.True(t, found, "spec.slack.username should be preserved")
+	assert.Equal(t, "bot", slackUsername, "spec.slack.username should be preserved from existing resource")
+
+	apiURL, found, err := unstructured.NestedString(result.Object, "spec", "slack", "api_url")
+	require.NoError(t, err)
+	require.True(t, found, "spec.slack.api_url should be added from template")
+	assert.Equal(t, "https://hooks.slack.com/services/XXX", apiURL, "spec.slack.api_url should come from template")
+	assert.Equal(t, "12345", result.GetResourceVersion(), "resourceVersion should be preserved")
+	assert.Equal(t, "test-uid-123", string(result.GetUID()), "uid should be preserved")
+	t.Logf("Result spec: %+v", result.Object["spec"])
 }
