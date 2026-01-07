@@ -282,15 +282,14 @@ func TestTokenSourceWithWorkloadIdentity(t *testing.T) {
 
 func TestSignedJWTForVault(t *testing.T) {
 	tests := []struct {
-		name           string
-		wi             *esv1.GCPWorkloadIdentity
-		role           string
-		setupKube      func() *clientfake.ClientBuilder
-		setupMock      func(*workloadIdentity)
-		expectError    bool
-		errorMsg       string
-		expectedJWT    string
-		validateCalled bool
+		name        string
+		wi          *esv1.GCPWorkloadIdentity
+		role        string
+		setupKube   func() *clientfake.ClientBuilder
+		setupMock   func(*workloadIdentity)
+		expectError bool
+		errorMsg    string
+		expectedJWT string
 	}{
 		{
 			name: "successful JWT generation with GCP SA annotation",
@@ -332,9 +331,8 @@ func TestSignedJWTForVault(t *testing.T) {
 					}, nil
 				}
 			},
-			expectError:    false,
-			expectedJWT:    "mock-signed-jwt-for-vault",
-			validateCalled: true,
+			expectError: false,
+			expectedJWT: "mock-signed-jwt-for-vault",
 		},
 		{
 			name: "service account without GCP annotation",
@@ -419,6 +417,10 @@ func TestWorkloadIdentityClose(t *testing.T) {
 	wi, err := newWorkloadIdentity(withSATokenGenerator(&mockSATokenGenerator{}))
 	require.NoError(t, err)
 
+	// Note: workloadIdentity no longer maintains an IAM client reference.
+	// IAM clients are created on-demand within TokenSource and SignedJWTForVault
+	// and closed immediately after use. The Close() method exists for interface
+	// compatibility and simply returns nil.
 	err = wi.Close()
 	assert.NoError(t, err, "Close should not return an error")
 }
