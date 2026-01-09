@@ -98,6 +98,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false. |
 | crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false. |
 | crds.createSecretStore | bool | `true` | If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false. |
+| crds.unsafeServeV1Beta1 | bool | `false` | If true, enable v1beta1 API version serving for ExternalSecret, ClusterExternalSecret, SecretStore, and ClusterSecretStore CRDs. v1beta1 is deprecated. Only enable this for backward compatibility if you have existing v1beta1 resources. Warning: This flag will be removed on 2026.05.01. |
 | createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | dnsConfig | object | `{}` | Specifies `dnsOptions` to deployment |
