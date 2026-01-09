@@ -17,6 +17,8 @@ limitations under the License.
 package v1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -36,6 +38,21 @@ type IntegrationInfo struct {
 	Version string `json:"version,omitempty"`
 }
 
+// CacheConfig configures client-side caching for read operations.
+type CacheConfig struct {
+	// TTL is the time-to-live for cached secrets.
+	// Format: duration string (e.g., "5m", "1h", "30s")
+	// +kubebuilder:default="5m"
+	// +optional
+	TTL metav1.Duration `json:"ttl,omitempty"`
+
+	// MaxSize is the maximum number of secrets to cache.
+	// When the cache is full, least-recently-used entries are evicted.
+	// +kubebuilder:default=100
+	// +optional
+	MaxSize int `json:"maxSize,omitempty"`
+}
+
 // OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.
 type OnePasswordSDKProvider struct {
 	// Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
@@ -46,4 +63,10 @@ type OnePasswordSDKProvider struct {
 	IntegrationInfo *IntegrationInfo `json:"integrationInfo,omitempty"`
 	// Auth defines the information necessary to authenticate against OnePassword API.
 	Auth *OnePasswordSDKAuth `json:"auth"`
+	// Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+	// When enabled, secrets are cached with the specified TTL.
+	// Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+	// If nil, caching is disabled (default).
+	// +optional
+	Cache *CacheConfig `json:"cache,omitempty"`
 }
