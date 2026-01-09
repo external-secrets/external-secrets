@@ -200,6 +200,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Device42 *Device42Provider `json:"device42,omitempty"`
 
+	// DVLS configures this store to sync secrets using Devolutions Server provider
+	// +optional
+	DVLS *DVLSProvider `json:"dvls,omitempty"`
+
 	// Infisical configures this store to sync secrets using the Infisical provider
 	// +optional
 	Infisical *InfisicalProvider `json:"infisical,omitempty"`
