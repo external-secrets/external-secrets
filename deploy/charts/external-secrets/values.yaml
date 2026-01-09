@@ -71,6 +71,10 @@ crds:
   conversion:
     # -- Conversion is disabled by default as we stopped supporting v1alpha1.
     enabled: false
+  # -- If true, enable v1beta1 API version serving for ExternalSecret, ClusterExternalSecret, SecretStore, and ClusterSecretStore CRDs.
+  # v1beta1 is deprecated. Only enable this for backward compatibility if you have existing v1beta1 resources.
+  # Warning: This flag will be removed on 2026.05.01.
+  unsafeServeV1Beta1: false
 
 imagePullSecrets: []
 nameOverride: ""
