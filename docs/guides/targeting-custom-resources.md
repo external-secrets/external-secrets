@@ -57,7 +57,7 @@ When working with custom resources that have complex structures, you can use `ta
 The `target` field accepts dot-notation paths like `spec.database` or `spec.logging` to place the rendered template output at specific locations in the resource structure. When `target` is not specified it defaults to `Data` for backward compatibility with Secrets.
 
 !!! note "Using `property` when templating `data`"
-    The return of `data:` find is a map. If templated as a `string` it will fail in finding the right key. Therefore, something like this:
+    The return of `data:` isn't an object on the template scope. If templated as a `string` it will fail in finding the right key. Therefore, something like this:
     ```yaml
       data:
         - secretKey: url
