@@ -5151,6 +5151,24 @@ We recommend not overusing this feature without too many objects until further p
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database/password</span>
 </code></pre></div>
 <p>The <code>target</code> field accepts dot-notation paths like <code>spec.database</code> or <code>spec.logging</code> to place the rendered template output at specific locations in the resource structure. When <code>target</code> is not specified it defaults to <code>Data</code> for backward compatibility with Secrets.</p>
+<div class="admonition note">
+<p class="admonition-title">Using <code>property</code> when templating <code>data</code></p>
+<p>The return of <code>data:</code> isn't an object on the template scope. If templated as a <code>string</code> it will fail in finding the right key. Therefore, something like this:
+<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">url</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">slack-alerts/myalert-dev</span>
+</code></pre></div>
+templated as a literal:
+<div class="highlight"><pre><span></span><code><span class="nt">template</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">  </span><span class="nt">templateFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">literal</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">        </span><span class="no">api_url: {{ .url }}</span>
+<span class="w">      </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.slack</span>
+</code></pre></div>
+will not work. A property like <code>property: url</code> MUST be defined.</p>
+</div>
 <h2 id="drift-detection">Drift Detection</h2>
 <p>The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state immediately.
 This is achieved with informers watching the relevant GVK of the Resource.</p>
