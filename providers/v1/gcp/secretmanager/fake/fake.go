@@ -20,12 +20,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"unsafe"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/googleapis/gax-go/v2"
+	"google.golang.org/api/iterator"
 )
 
 type MockSMClient struct {
@@ -59,6 +62,86 @@ type AddSecretVersionMockReturn struct {
 	Err           error
 }
 
+type ListSecretVersionsMockReturn struct {
+	Res *secretmanager.SecretVersionIterator
+}
+
+// NewSecretVersionIterator creates a mock SecretVersionIterator for testing.
+// It takes a slice of SecretVersion objects and returns an iterator that will
+// yield them on successive Next() calls. The iterator uses reflection to set
+// unexported fields required by the google.golang.org/api/iterator package.
+//
+// The iterator returns all provided versions on the first fetch, then returns
+// iterator.Done on subsequent calls to indicate no more items are available.
+func NewSecretVersionIterator(versions []*secretmanagerpb.SecretVersion) *secretmanager.SecretVersionIterator {
+	it := &secretmanager.SecretVersionIterator{}
+
+	// Simple helper to set an unexported field using reflection
+	setField := func(name string, value any) {
+		v := reflect.ValueOf(it).Elem()
+		field := v.FieldByName(name)
+		if field.IsValid() {
+			//#nosec G103 -- Audited this use and it's only for mocking in testing
+			reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).
+				Elem().Set(reflect.ValueOf(value))
+		}
+	}
+
+	// Simple state: are we done?
+	done := false
+
+	// InternalFetch returns all versions on first call, then nothing
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*secretmanagerpb.SecretVersion, string, error) {
+		if done {
+			return nil, "", nil
+		}
+		done = true
+		return versions, "", nil
+	}
+
+	// Simple fetch: call InternalFetch and store results in items field
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		results, nextToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		setField("items", results)
+		return nextToken, nil
+	}
+
+	// bufLen: return length of items field
+	bufLen := func() int {
+		v := reflect.ValueOf(it).Elem()
+		itemsField := v.FieldByName("items")
+		if itemsField.IsValid() {
+			return itemsField.Len()
+		}
+		return 0
+	}
+
+	// takeBuf: return and clear items field
+	takeBuf := func() any {
+		v := reflect.ValueOf(it).Elem()
+		itemsField := v.FieldByName("items")
+		if itemsField.IsValid() {
+			items := itemsField.Interface()
+			setField("items", []*secretmanagerpb.SecretVersion(nil))
+			return items
+		}
+		return []*secretmanagerpb.SecretVersion(nil)
+	}
+
+	// Create the PageInfo and nextFunc using the iterator package
+	pageInfo, nextFunc := iterator.NewPageInfo(fetch, bufLen, takeBuf)
+
+	// Set the required unexported fields
+	setField("pageInfo", pageInfo)
+	setField("nextFunc", nextFunc)
+	setField("items", []*secretmanagerpb.SecretVersion(nil))
+
+	return it
+}
+
 type SecretMockReturn struct {
 	Secret *secretmanagerpb.Secret
 	Err    error
@@ -67,11 +150,13 @@ type SecretMockReturn struct {
 func (mc *MockSMClient) DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, _ ...gax.CallOption) error {
 	return mc.DeleteSecretFn(ctx, req)
 }
+
 func (mc *MockSMClient) NewDeleteSecretFn(err error) {
 	mc.DeleteSecretFn = func(_ context.Context, _ *secretmanagerpb.DeleteSecretRequest, _ ...gax.CallOption) error {
 		return err
 	}
 }
+
 func (mc *MockSMClient) GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 	return mc.GetSecretFn(ctx, req)
 }
@@ -95,6 +180,7 @@ func (mc *MockSMClient) NewAccessSecretVersionFn(mock AccessSecretVersionMockRet
 func (mc *MockSMClient) ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, _ ...gax.CallOption) *secretmanager.SecretIterator {
 	return mc.ListSecretsFn(ctx, req)
 }
+
 func (mc *MockSMClient) Close() error {
 	return mc.closeFn()
 }
@@ -205,6 +291,15 @@ func (mc *MockSMClient) NewUpdateSecretFn(mock SecretMockReturn) {
 
 func (mc *MockSMClient) ListSecretVersions(ctx context.Context, req *secretmanagerpb.ListSecretVersionsRequest, _ ...gax.CallOption) *secretmanager.SecretVersionIterator {
 	return mc.ListSecretVersionsFn(ctx, req)
+}
+
+// NewListSecretVersionsFn configures the mock ListSecretVersions function to return
+// a predefined iterator. This is used in tests to control what versions are returned
+// when listing secret versions.
+func (mc *MockSMClient) NewListSecretVersionsFn(mock ListSecretVersionsMockReturn) {
+	mc.ListSecretVersionsFn = func(_ context.Context, _ *secretmanagerpb.ListSecretVersionsRequest, _ ...gax.CallOption) *secretmanager.SecretVersionIterator {
+		return mock.Res
+	}
 }
 
 func (mc *MockSMClient) WithValue(_ context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {

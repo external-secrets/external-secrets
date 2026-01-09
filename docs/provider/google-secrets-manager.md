@@ -280,7 +280,7 @@ metadata:
 spec:
   updatePolicy: Replace
   deletionPolicy: None
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRefs:
     - name: gcp-secretstore
       kind: SecretStore
@@ -323,7 +323,7 @@ spec:
           remoteKey: my-secret
       metadata:
         apiVersion: kubernetes.external-secrets.io/v1alpha1
-        kind: PushSecretMetadata`
+        kind: PushSecretMetadata
         spec:
           replicationLocation: "us-east1"
 ```

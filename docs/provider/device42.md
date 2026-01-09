@@ -45,7 +45,7 @@ kind: ExternalSecret
 metadata:
   name: device42-external-secret
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     kind: SecretStore
     name: device42-secret-store

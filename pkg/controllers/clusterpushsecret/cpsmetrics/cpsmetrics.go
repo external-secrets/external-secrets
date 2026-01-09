@@ -78,10 +78,13 @@ func UpdateClusterPushSecretCondition(ces *v1alpha1.ClusterPushSecret, condition
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(cesInfo)
 	ClusterPushSecretCondition := GetGaugeVec(ClusterPushSecretStatusConditionKey)
 
-	theOtherStatus := v1.ConditionFalse
-	if condition.Status == v1.ConditionFalse {
-		theOtherStatus = v1.ConditionTrue
+	// This handles cases where labels may have changed
+	baseLabels := prometheus.Labels{
+		"name":      ces.Name,
+		"condition": string(condition.Type),
+		"status":    string(v1.ConditionFalse),
 	}
+	ClusterPushSecretCondition.DeletePartialMatch(baseLabels)
 
 	ClusterPushSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 		map[string]string{
@@ -91,7 +94,7 @@ func UpdateClusterPushSecretCondition(ces *v1alpha1.ClusterPushSecret, condition
 	ClusterPushSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 		map[string]string{
 			"condition": string(condition.Type),
-			"status":    string(theOtherStatus),
+			"status":    string(v1.ConditionFalse),
 		})).Set(0)
 }
 

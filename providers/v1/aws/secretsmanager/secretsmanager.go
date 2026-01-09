@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -30,7 +30,6 @@ import (
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/smithy-go"
-	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -41,11 +40,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
 )
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to AWS Secret Manager.
@@ -317,22 +317,47 @@ func isManagedByESO(data *awssm.DescribeSecretOutput) bool {
 
 // GetAllSecrets syncs multiple secrets from aws provider into a single Kubernetes Secret.
 func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Name != nil {
-		return sm.findByName(ctx, ref)
-	}
-	if len(ref.Tags) > 0 {
+	hasName := ref.Name != nil
+	hasTags := len(ref.Tags) > 0
+
+	filters := make([]types.Filter, 0)
+	switch {
+	case !hasName && !hasTags:
+		return nil, errors.New(errUnexpectedFindOperator)
+	case hasName && !hasTags:
+		return sm.findByName(ctx, ref, filters)
+	case !hasName && hasTags:
 		return sm.findByTags(ctx, ref)
+	case hasName && hasTags:
+		return sm.findByNameAndTags(ctx, ref, filters)
+	default:
+		return nil, errors.New(errUnexpectedFindOperator)
 	}
-	return nil, errors.New(errUnexpectedFindOperator)
 }
 
-func (sm *SecretsManager) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (sm *SecretsManager) findByNameAndTags(ctx context.Context, ref esv1.ExternalSecretFind, filters []types.Filter) (map[string][]byte, error) {
+	for k, v := range ref.Tags {
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeTagKey,
+			Values: []string{
+				k,
+			},
+		}, types.Filter{
+			Key: types.FilterNameStringTypeTagValue,
+			Values: []string{
+				v,
+			},
+		})
+	}
+	return sm.findByName(ctx, ref, filters)
+}
+
+func (sm *SecretsManager) findByName(ctx context.Context, ref esv1.ExternalSecretFind, filters []types.Filter) (map[string][]byte, error) {
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	filters := make([]types.Filter, 0)
 	if ref.Path != nil {
 		filters = append(filters, types.Filter{
 			Key: types.FilterNameStringTypeName,
@@ -901,7 +926,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
 	}
 
-	if maps.Equal(currentPolicyMap, policyJSONMaps) {
+	if reflect.DeepEqual(currentPolicyMap, policyJSONMaps) {
 		return nil
 	}
 

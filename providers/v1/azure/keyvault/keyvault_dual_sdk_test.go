@@ -20,12 +20,13 @@ import (
 	"context"
 	"testing"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 // TestFeatureFlagRouting tests that the UseAzureSDK feature flag correctly routes to the appropriate implementation.
@@ -335,7 +336,7 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 				ActiveDirectoryEndpoint: "https://login.microsoftonline.com/",
 			},
 			expectError:   true,
-			expectedError: "AzureStackCloud environment requires UseAzureSDK to be set to true - the legacy SDK does not support custom clouds",
+			expectedError: "CustomCloudConfig requires UseAzureSDK to be set to true - the legacy SDK does not support custom clouds",
 			description:   "Azure Stack with legacy SDK should fail",
 		},
 		{
@@ -346,7 +347,7 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 				ActiveDirectoryEndpoint: "https://login.microsoftonline.com/",
 			},
 			expectError:   true,
-			expectedError: "AzureStackCloud environment requires UseAzureSDK to be set to true - the legacy SDK does not support custom clouds",
+			expectedError: "CustomCloudConfig requires UseAzureSDK to be set to true - the legacy SDK does not support custom clouds",
 			description:   "Azure Stack without explicit new SDK flag should fail",
 		},
 		{
@@ -361,15 +362,14 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 			description:   "Azure Stack without AAD endpoint should fail",
 		},
 		{
-			name:        "custom_config_without_azure_stack",
+			name:        "custom_config_with_china_cloud",
 			useAzureSDK: ptr.To(true),
-			envType:     esv1.AzureEnvironmentPublicCloud,
+			envType:     esv1.AzureEnvironmentChinaCloud,
 			customConfig: &esv1.AzureCustomCloudConfig{
-				ActiveDirectoryEndpoint: "https://login.microsoftonline.com/",
+				ActiveDirectoryEndpoint: "https://login.partner.microsoftonline.cn/",
 			},
-			expectError:   true,
-			expectedError: "CustomCloudConfig should only be specified when EnvironmentType is AzureStackCloud",
-			description:   "Custom config with non-AzureStack environment should fail",
+			expectError: false,
+			description: "Custom config with ChinaCloud environment should be allowed for AKS Workload Identity",
 		},
 		{
 			name:         "public_cloud_without_custom_config",
@@ -464,6 +464,20 @@ func TestGetCloudConfiguration(t *testing.T) {
 			description: "China cloud should return valid configuration",
 		},
 		{
+			name: "china_cloud_with_custom_endpoint",
+			provider: &esv1.AzureKVProvider{
+				EnvironmentType: esv1.AzureEnvironmentChinaCloud,
+				UseAzureSDK:     ptr.To(true),
+				CustomCloudConfig: &esv1.AzureCustomCloudConfig{
+					ActiveDirectoryEndpoint: "https://login.partner.microsoftonline.cn/",
+					KeyVaultEndpoint:        ptr.To("https://vault.azure.cn/"),
+					ResourceManagerEndpoint: ptr.To("https://management.chinacloudapi.cn/"),
+				},
+			},
+			expectError: false,
+			description: "China cloud with custom AAD endpoint for AKS Workload Identity should work",
+		},
+		{
 			name: "azure_stack_with_config",
 			provider: &esv1.AzureKVProvider{
 				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
@@ -486,7 +500,7 @@ func TestGetCloudConfiguration(t *testing.T) {
 				},
 			},
 			expectError:   true,
-			expectedError: "AzureStackCloud environment requires UseAzureSDK to be set to true",
+			expectedError: "CustomCloudConfig requires UseAzureSDK to be set to true",
 			description:   "Azure Stack without new SDK should fail",
 		},
 		{

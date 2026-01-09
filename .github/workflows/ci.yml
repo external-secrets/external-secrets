@@ -14,9 +14,6 @@ env:
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-permissions:
-  contents: read
-
 jobs:
   detect-noop:
     permissions:
@@ -26,7 +23,7 @@ jobs:
     outputs:
       noop: ${{ steps.noop.outputs.should_skip }}
     steps:
-      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+      - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
         with:
           egress-policy: audit
       - name: Detect No-op Changes
@@ -38,34 +35,6 @@ jobs:
           do_not_skip: '["workflow_dispatch", "schedule", "push"]'
           concurrent_skipping: false
 
-  lint:
-    permissions:
-      contents: read  # for actions/checkout to fetch code
-      pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
-    runs-on: ubuntu-latest
-    needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
-
-    steps:
-      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
-        with:
-          egress-policy: audit
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Setup Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
-        id: setup-go
-        with:
-          go-version-file: "go.mod"
-
-      - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
-        run: go mod download
-
-      - name: Run lint
-        run: make lint
-
   license-check:
     permissions:
       contents: read  # for actions/checkout to fetch code
@@ -75,11 +44,11 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
-      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+      - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Check License Headers
         uses: apache/skywalking-eyes/header@61275cc80d0798a405cb070f7d3a8aaf7cf2c2c1 # v0.8.0
 
@@ -89,20 +58,19 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
-      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+      - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - uses: hashicorp/setup-terraform@4c5fdabea201636fa7ea13d8babd1ed828687f5d # v3
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: hashicorp/setup-terraform@92e4d08fe1d24283952afa28216efa8f4ed5aeab # v3
       - name: Setup Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         id: setup-go
         with:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Configure Git
@@ -111,8 +79,11 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Check Diff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          make check-diff
+          # make check-diff will also execute linting so there is no need for a separate lint action
+          make check-diff LINT_JOBS=2
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -120,27 +91,26 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
 
     steps:
-      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+      - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Fetch History
         run: git fetch --prune --unshallow
 
       - name: Setup Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         id: setup-go
         with:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Cache envtest binaries
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: bin/k8s
           key: ${{ runner.os }}-envtest-${{env.KUBERNETES_VERSION}}
@@ -150,7 +120,7 @@ jobs:
           make test
 
       - name: Publish Unit Test Coverage
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:

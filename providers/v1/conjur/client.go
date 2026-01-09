@@ -28,9 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	conjurutil "github.com/external-secrets/external-secrets/providers/v1/conjur/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/providers/v1/conjur/util"
 )
 
 var (
@@ -82,8 +82,7 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		SSLCert:      string(cert),
 		// disable credential storage, as it depends on a writable
 		// file system, which we can't rely on - it would fail.
-		// see: https://github.com/cyberark/conjur-api-go/issues/183
-		NetRCPath: "/dev/null",
+		CredentialStorage: conjurapi.CredentialStorageNone,
 	}
 
 	if prov.Auth.APIKey != nil {

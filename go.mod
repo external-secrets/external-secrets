@@ -1,8 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.25.3
-
-replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
+go 1.25.5
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
@@ -25,6 +23,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/alibaba => ./providers/v1/alibaba
 	github.com/external-secrets/external-secrets/providers/v1/aws => ./providers/v1/aws
 	github.com/external-secrets/external-secrets/providers/v1/azure => ./providers/v1/azure
+	github.com/external-secrets/external-secrets/providers/v1/barbican => ./providers/v1/barbican
 	github.com/external-secrets/external-secrets/providers/v1/beyondtrust => ./providers/v1/beyondtrust
 	github.com/external-secrets/external-secrets/providers/v1/bitwarden => ./providers/v1/bitwarden
 	github.com/external-secrets/external-secrets/providers/v1/chef => ./providers/v1/chef
@@ -137,6 +136,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/alibaba v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/aws v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-20251103072335-a9b233b6936f
+	github.com/external-secrets/external-secrets/providers/v1/barbican v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/beyondtrust v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/bitwarden v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/chef v0.0.0-00010101000000-000000000000
@@ -189,10 +189,10 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets v1.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v1.2.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
-	github.com/BeyondTrust/go-client-library-passwordsafe v0.23.0 // indirect
+	github.com/BeyondTrust/go-client-library-passwordsafe v0.25.0 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 // indirect
-	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.0 // indirect
+	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
@@ -304,6 +304,7 @@ require (
 	github.com/google/go-github/v56 v56.0.0 // indirect
 	github.com/google/go-github/v75 v75.0.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
+	github.com/gophercloud/gophercloud/v2 v2.8.0 // indirect
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250925215610-d92957c70d5c // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.3.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
@@ -407,7 +408,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
-	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
