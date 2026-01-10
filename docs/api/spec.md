@@ -2850,7 +2850,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -2876,7 +2876,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -9068,7 +9068,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -9094,7 +9094,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -9246,7 +9246,7 @@ VaultProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Vault configures this store to sync secrets using Hashi provider</p>
+<p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
 </td>
 </tr>
 <tr>
@@ -9330,7 +9330,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push GitHub Action secrets using GitHub API provider.
+<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.
 Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
@@ -9457,7 +9457,7 @@ ScalewayProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Scaleway</p>
+<p>Scaleway configures this store to sync secrets using the Scaleway provider.</p>
 </td>
 </tr>
 <tr>
@@ -9882,7 +9882,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -9908,7 +9908,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </tbody>
@@ -16323,7 +16323,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -16349,7 +16349,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -20992,7 +20992,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -21018,7 +21018,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -21170,7 +21170,7 @@ VaultProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Vault configures this store to sync secrets using Hashi provider</p>
+<p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
 </td>
 </tr>
 <tr>
@@ -21254,7 +21254,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push Github Action secrets using Github API provider</p>
+<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.</p>
 </td>
 </tr>
 <tr>
@@ -21366,7 +21366,7 @@ ScalewayProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Scaleway</p>
+<p>Scaleway configures this store to sync secrets using the Scaleway provider.</p>
 </td>
 </tr>
 <tr>
@@ -21736,7 +21736,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -21762,7 +21762,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </tbody>

@@ -27,11 +27,11 @@ import (
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/logging"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/utils"
 	"github.com/cenkalti/backoff/v4"
-	"go.uber.org/zap"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -40,10 +40,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const (

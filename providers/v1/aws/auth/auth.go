@@ -35,12 +35,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // Config contains configuration to create a new AWS provider.
@@ -176,7 +176,15 @@ func constructCredsProvider(ctx context.Context, prov *esv1.AWSProvider, isClust
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*aws.Config, error) {
+func NewGeneratorSession(
+	ctx context.Context,
+	auth esv1.AWSAuth,
+	role, region string,
+	kube client.Client,
+	namespace string,
+	assumeRoler STSProvider,
+	jwtProvider jwtProviderFactory,
+) (*aws.Config, error) {
 	var (
 		credsProvider aws.CredentialsProvider
 		err           error
@@ -250,7 +258,15 @@ func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (aws.CredentialsProvider, error) {
+func credsFromServiceAccount(
+	ctx context.Context,
+	auth esv1.AWSAuth,
+	region string,
+	isClusterKind bool,
+	kube client.Client,
+	namespace string,
+	jwtProvider jwtProviderFactory,
+) (aws.CredentialsProvider, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
