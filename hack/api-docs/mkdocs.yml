@@ -161,6 +161,7 @@ nav:
       - OpenBao: provider/openbao.md
       - Volcengine: provider/volcengine.md
       - ngrok: provider/ngrok.md
+      - Devolutions Server: provider/devolutions-server.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
