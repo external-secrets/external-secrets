@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../chef/">
+        <link rel="prev" href="../ngrok/">
       
       
-        <link rel="next" href="../conjur/">
+        <link rel="next" href="../../examples/gitops-using-fluxcd/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>Cloud.ru Secret Manager - External Secrets Operator</title>
+        <title>Devolutions Server - External Secrets Operator</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#authentication" class="md-skip">
+        <a href="#devolutions-server-dvls" class="md-skip">
           Skip to content
         </a>
       
@@ -133,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cloud.ru Secret Manager
+              Devolutions Server
             
           </span>
         </div>
@@ -3046,35 +3046,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cloud.ru Secret Manager
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../cloudru/" class="md-nav__link">
         
   
   
@@ -3090,74 +3065,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Authentication
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#creating-cloudru-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Creating Cloud.ru secret
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#creating-externalsecret" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Creating ExternalSecret
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Creating ExternalSecret">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#create-an-externalsecret-pointing-to-secretstore" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Create an ExternalSecret pointing to SecretStore.
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -4119,10 +4026,35 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../devolutions-server/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Devolutions Server
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -4138,6 +4070,207 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#devolutions-server-dvls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Devolutions Server (DVLS)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-an-application-in-dvls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating an Application in DVLS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-the-kubernetes-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating the Kubernetes Secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-secretstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating a SecretStore
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencing-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencing Secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-credential-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Credential Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fetching-individual-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fetching Individual Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-datafrom-to-extract-all-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using dataFrom to Extract All Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#push-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push Secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#entry-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entry Not Found
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -4905,6 +5038,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#devolutions-server-dvls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Devolutions Server (DVLS)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4913,36 +5057,158 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#creating-cloudru-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Creating Cloud.ru secret
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#creating-externalsecret" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Creating ExternalSecret
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Creating ExternalSecret">
+    <nav class="md-nav" aria-label="Authentication">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#create-an-externalsecret-pointing-to-secretstore" class="md-nav__link">
+  <a href="#creating-an-application-in-dvls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Create an ExternalSecret pointing to SecretStore.
+        Creating an Application in DVLS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-the-kubernetes-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating the Kubernetes Secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-secretstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating a SecretStore
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencing-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencing Secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-credential-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Credential Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fetching-individual-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fetching Individual Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-datafrom-to-extract-all-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using dataFrom to Extract All Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#push-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push Secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#entry-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entry Not Found
       
     </span>
   </a>
@@ -4974,194 +5240,235 @@
   
 
 
-  <h1>Cloud.ru Secret Manager</h1>
+  <h1>Devolutions Server</h1>
 
-<p>External Secrets Operator integrates with <a href="https://cloud.ru">Cloud.ru</a> for secret management.</p>
-<p>Cloud.ru Secret Manager works in conjunction with the Key Manager cryptographic key management system to ensure secure
-encryption of secrets.</p>
-<h3 id="authentication">Authentication</h3>
-<ul>
-<li>Before you can use the Cloud.ru Secret Manager, you need to create a service account in
-  the <a href="https://console.cloud.ru">Cloud.ru Console</a>.</li>
-<li>Create a <a href="https://cloud.ru/ru/docs/console_api/ug/topics/guides__service_accounts_create.html">Service Account</a>
-  and <a href="https://cloud.ru/ru/docs/console_api/ug/topics/guides__service_accounts_key.html">Access Key</a> for it.</li>
-</ul>
-<p><strong>NOTE:</strong> To interact with the SecretManager API, you need to use the access token. You can get it by running the
-following command, using the Access Key, created above:</p>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-i<span class="w"> </span>--data-urlencode<span class="w"> </span><span class="s1">&#39;grant_type=access_key&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--data-urlencode<span class="w"> </span><span class="s2">&quot;client_id=</span><span class="nv">$KEY_ID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--data-urlencode<span class="w"> </span><span class="s2">&quot;client_secret=</span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>https://id.cloud.ru/auth/system/openid/token
+<h2 id="devolutions-server-dvls">Devolutions Server (DVLS)</h2>
+<p>External Secrets Operator integrates with <a href="https://devolutions.net/server/">Devolutions Server</a> (DVLS) for secret management.</p>
+<p>DVLS is a self-hosted privileged access management solution that provides secure password management, role-based access control, and credential injection for teams and enterprises.</p>
+<h2 id="authentication">Authentication</h2>
+<p>DVLS authentication uses Application ID and Application Secret credentials.</p>
+<h3 id="creating-an-application-in-dvls">Creating an Application in DVLS</h3>
+<ol>
+<li>Log into your DVLS web interface</li>
+<li>Navigate to <strong>Administration &gt; Applications identities</strong></li>
+<li>Click <strong>+ (Add)</strong> to create a new application</li>
+<li>Configure the application with appropriate permissions to access the vaults and entries you need</li>
+<li>Save the <strong>Application ID</strong> and <strong>Application Secret</strong></li>
+</ol>
+<h3 id="creating-the-kubernetes-secret">Creating the Kubernetes Secret</h3>
+<p>Create a Kubernetes secret containing your DVLS credentials:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>dvls-credentials<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-literal<span class="o">=</span>app-id<span class="o">=</span><span class="s2">&quot;your-application-id&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-literal<span class="o">=</span>app-secret<span class="o">=</span><span class="s2">&quot;your-application-secret&quot;</span>
 </code></pre></div>
-<h3 id="creating-cloudru-secret">Creating Cloud.ru secret</h3>
-<p>To make External Secrets Operator sync a k8s secret with a Cloud.ru secret:</p>
-<ul>
-<li>Navigate to the <a href="https://console.cloud.ru/">Cloud.ru Console</a>.</li>
-<li>Click the menu at upper-left corner, scroll down to the <code>Management</code> section and click on <code>Secret Manager</code>.</li>
-<li>Click on <code>Create secret</code>.</li>
-<li>Fill in the secret name and secret value.</li>
-<li>Click on <code>Create</code>.</li>
-</ul>
-<p>Also, you can use <a href="https://cloud.ru/ru/docs/scsm/ug/topics/guides__add-secret.html">SecretManager API</a> to create the
-secret:</p>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>--location<span class="w"> </span><span class="s1">&#39;https://secretmanager.api.cloud.ru/v1/secrets&#39;</span><span class="w"> </span><span class="se">\</span>
---header<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
---header<span class="w"> </span><span class="s1">&#39;Authorization: Bearer ${ACCESS_TOKEN}&#39;</span><span class="w"> </span><span class="se">\</span>
---data<span class="w"> </span><span class="s1">&#39;{</span>
-<span class="s1">    &quot;description&quot;: &quot;your secret description&quot;,</span>
-<span class="s1">    &quot;labels&quot;: {</span>
-<span class="s1">        &quot;env&quot;: &quot;production&quot;</span>
-<span class="s1">    },</span>
-<span class="s1">    &quot;name&quot;: &quot;my_first_secret&quot;,</span>
-<span class="s1">    &quot;parent_id&quot;: &quot;50000000-4000-3000-2000-100000000001&quot;,</span>
-<span class="s1">    &quot;payload&quot;: {</span>
-<span class="s1">        &quot;data&quot;: {</span>
-<span class="s1">            &quot;value&quot;: &quot;aGksIHRoZXJlJ3Mgbm90aGluZyBpbnRlcmVzdGluZyBoZXJlCg==&quot;</span>
-<span class="s1">        }</span>
-<span class="s1">    }</span>
-<span class="s1">}&#39;</span>
-</code></pre></div>
-<ul>
-<li><code>ACCESS_TOKEN</code> is the access token for the Cloud.ru API. See <strong>Authentication</strong> section</li>
-<li><code>parent_id</code> parent service instance identifier: ServiceInstanceID. To get the ID value, in your personal account on
-  the top left panel, click the Button with nine dots, select <strong>Management</strong> → <strong>Secret Manager</strong> and copy the value
-  from the Service Instance ID field.</li>
-<li><code>name</code> is the name of the secret.</li>
-<li><code>description</code> is the description of the secret.</li>
-<li><code>labels</code> are the labels(tags) for the secret. Is used in the search.</li>
-<li><code>payload.data.value</code> is the base64-encoded secret value.</li>
-</ul>
-<p><strong>NOTE:</strong> To create the Multi KeyValue secret in Cloud.ru, you can use the following format (json):</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;value1&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;value2&quot;</span>
-<span class="p">}</span>
-</code></pre></div>
-<h3 id="creating-externalsecret">Creating ExternalSecret</h3>
-<ul>
-<li>Create the k8s Secret, it will be used for authentication in SecretStore:
-    <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm-secret</span>
-<span class="w">    </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm</span>
-<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
-<span class="nt">stringData</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">key_id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;000000000000000000001&#39;</span>
-<span class="w">    </span><span class="nt">key_secret</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;000000000000000000002&#39;</span>
-</code></pre></div><ul>
-<li><code>key_id</code> is the AccessKey key_id.</li>
-<li><code>key_secret</code> is the AccessKey key_secret</li>
-</ul>
-</li>
-<li>Create a <a href="../../api/secretstore/">SecretStore</a> pointing to <code>csm-secret</code> k8s Secret:
-    <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<h3 id="creating-a-secretstore">Creating a SecretStore</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-store</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">cloudrusm</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">dvls</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">serverUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;https://dvls.example.com&#39;</span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">accessKeyIDSecretRef</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm-secret</span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key_id</span>
-<span class="w">          </span><span class="nt">accessKeySecretSecretRef</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm-secret</span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key_secret</span>
-<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50000000-4000-3000-2000-100000000001</span>
-</code></pre></div><ul>
-<li><code>accessKeyIDSecretRef</code> is the reference to the k8s Secret with the AccessKey.</li>
-<li><code>projectID</code>  is the project identifier. To get the project id value, in your
-  personal account on the top left, click on project name, In the opening window,
-  click at 3 points next to the name of the necessary project, then the button "Copy the Project ID".</li>
-</ul>
-</li>
-</ul>
-<h4 id="create-an-externalsecret-pointing-to-secretstore">Create an <a href="../../api/externalsecret/">ExternalSecret</a> pointing to SecretStore.</h4>
+<span class="w">          </span><span class="nt">appId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-id</span>
+<span class="w">          </span><span class="nt">appSecret</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-secret</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>serverUrl</code></td>
+<td>The URL of your DVLS instance (e.g., <code>https://dvls.example.com</code>)</td>
+</tr>
+<tr>
+<td><code>insecure</code></td>
+<td>(Optional) Set to <code>true</code> to allow plain HTTP connections. <strong>Not recommended for production.</strong></td>
+</tr>
+<tr>
+<td><code>auth.secretRef.appId</code></td>
+<td>Reference to the secret containing the Application ID</td>
+</tr>
+<tr>
+<td><code>auth.secretRef.appSecret</code></td>
+<td>Reference to the secret containing the Application Secret</td>
+</tr>
+</tbody>
+</table>
+<p><strong>NOTE:</strong> For <code>ClusterSecretStore</code>, ensure you specify the <code>namespace</code> in the secret references.</p>
+<h2 id="referencing-secrets">Referencing Secrets</h2>
+<p>Secrets are referenced using the format: <code>&lt;vault-id&gt;/&lt;entry-id&gt;</code></p>
 <ul>
-<li>Classic, non-json:
-    <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<li><strong>vault-id</strong>: The UUID of the vault containing the entry</li>
+<li><strong>entry-id</strong>: The UUID of the credential entry</li>
+</ul>
+<p>You can find these UUIDs in the DVLS web interface by viewing the entry properties.</p>
+<h2 id="supported-credential-types">Supported Credential Types</h2>
+<p>DVLS supports multiple credential types. The provider maps each type to specific properties:</p>
+<table>
+<thead>
+<tr>
+<th>Credential Type</th>
+<th>DVLS Entry Type</th>
+<th>Available Properties</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Default</strong></td>
+<td>Credential</td>
+<td><code>username</code>, <code>password</code>, <code>domain</code></td>
+</tr>
+<tr>
+<td><strong>Access Code</strong></td>
+<td>Secret</td>
+<td><code>password</code></td>
+</tr>
+<tr>
+<td><strong>API Key</strong></td>
+<td>Credential</td>
+<td><code>api-id</code>, <code>api-key</code>, <code>tenant-id</code></td>
+</tr>
+<tr>
+<td><strong>Azure Service Principal</strong></td>
+<td>Credential</td>
+<td><code>client-id</code>, <code>client-secret</code>, <code>tenant-id</code></td>
+</tr>
+<tr>
+<td><strong>Connection String</strong></td>
+<td>Credential</td>
+<td><code>connection-string</code></td>
+</tr>
+<tr>
+<td><strong>Private Key</strong></td>
+<td>Credential</td>
+<td><code>username</code>, <code>password</code>, <code>private-key</code>, <code>public-key</code>, <code>passphrase</code></td>
+</tr>
+</tbody>
+</table>
+<p>All entries also include <code>entry-id</code> and <code>entry-name</code> metadata properties.</p>
+<p><strong>Note:</strong> When no <code>property</code> is specified, the <code>password</code> field is returned by default.</p>
+<p><strong>Note:</strong> In the DVLS web interface, "Secret" entries appear as a distinct entry type and are mapped to the Access Code credential subtype internally.</p>
+<h2 id="examples">Examples</h2>
+<h3 id="fetching-individual-properties">Fetching Individual Properties</h3>
+<p>To fetch specific properties from a credential entry:</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="c1"># Fetch a single property from a credential entry</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm-ext-secret</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-store</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-awesome-secret</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-secret</span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">target_key</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_first_secret</span><span class="w"> </span><span class="c1"># or you can use the secret.id (e.g. 50000000-4000-3000-2000-100000000001)</span>
-</code></pre></div></li>
-<li>
-<p>From Multi KeyValue, value MUST be in <strong>json format</strong>:
-  NOTE: You can use <em>either</em> <code>name</code> or <code>tags</code> to filter the secrets. Here are basic examples of both:
-    <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/entry-uuid&#39;</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/entry-uuid&#39;</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="nn">---</span>
+<span class="c1"># Fetch all fields from a credential entry</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm-ext-secret</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-credentials</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-store</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-awesome-secret</span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">target_key</span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_first_secret</span><span class="w"> </span><span class="c1"># or you can use the secret.id (e.g. 50000000-4000-3000-2000-100000000001)</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloudru.secret.key</span><span class="w"> </span><span class="c1"># is the JSON path for the key in the secret value.</span>
-</code></pre></div></p>
-</li>
-<li>
-<p>With all fields, value MUST be in <strong>json format</strong>:
-    <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm-ext-secret</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-awesome-secret</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-secret</span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_first_secret</span><span class="w"> </span><span class="c1"># or you can use the secret.id (e.g. 50000000-4000-3000-2000-100000000001)</span>
-</code></pre></div></p>
-</li>
-<li>Search the secrets by the Name or Labels (tags):
-    <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/entry-uuid&#39;</span>
+<span class="nn">---</span>
+<span class="c1"># Fetch a Secret entry (Access Code type)</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm-ext-secret</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-secret</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csm</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-store</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-awesome-secret</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-secret</span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
-<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"> </span><span class="c1"># You can use the name and tags separately or together to search for secrets.</span>
-<span class="w">        </span><span class="nt">tags</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
-<span class="w">        </span><span class="nt">name</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my.*secret&quot;</span>
-</code></pre></div></li>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/secret-entry-uuid&#39;</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+</code></pre></div>
+<h3 id="using-datafrom-to-extract-all-fields">Using dataFrom to Extract All Fields</h3>
+<p>When using <code>dataFrom.extract</code>, all available properties from the credential entry will be synced to the Kubernetes secret.</p>
+<h2 id="push-secrets">Push Secrets</h2>
+<p>The DVLS provider supports pushing secrets back to DVLS:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">push-to-dvls</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-store</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-k8s-secret</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/entry-uuid&#39;</span>
+</code></pre></div>
+<p><strong>Note:</strong> Push secret updates an existing entry's password field. The entry must already exist in DVLS.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><strong>GetAllSecrets</strong>: The <code>find</code> operation for discovering secrets is not currently supported</li>
+<li><strong>Custom CA Certificates</strong>: Custom TLS certificates for self-signed DVLS instances are not yet supported. Use the <code>SSL_CERT_FILE</code> environment variable as a workaround</li>
+<li><strong>Name-based lookups</strong>: Currently only UUID-based references (<code>vault-id/entry-id</code>) are supported. Path/name-based lookups are planned for future releases</li>
+<li><strong>Certificate entries</strong>: Certificate entry types (<code>Document/Certificate</code>) are not currently supported. Only Credential entries are supported</li>
 </ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="authentication-errors">Authentication Errors</h3>
+<p>If you receive authentication errors:</p>
+<ol>
+<li>Verify the Application ID and Secret are correct</li>
+<li>Ensure the application has the necessary permissions in DVLS</li>
+<li>Check that the DVLS server URL is accessible from your Kubernetes cluster</li>
+</ol>
+<h3 id="entry-not-found">Entry Not Found</h3>
+<p>If an entry cannot be found:</p>
+<ol>
+<li>Verify the vault UUID and entry UUID are correct</li>
+<li>Ensure the application has at least read access to the vault</li>
+<li>Check that the entry exists and is a Credential or Secret type entry</li>
+<li>Ensure the application has at least read, view password, and connect (execute) permissions on the entry.</li>
+</ol>
 
 
 
