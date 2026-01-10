@@ -1,0 +1,19 @@
+suite: test cert controller networkpolicy
+templates:
+  - cert-controller-networkpolicy.yaml
+tests:
+  - it: should create a networkPolicy
+    set:
+      certController.networkPolicy.enabled: true
+    asserts:
+      - equal:
+          path: spec.policyTypes
+          value:
+            - Egress
+            - Ingress
+  - it: should not create a networkPolicy
+    set:
+      certController.networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
