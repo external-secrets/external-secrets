@@ -3546,6 +3546,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#client-side-caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-Side Caching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#getsecret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4909,6 +4920,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#client-side-caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client-Side Caching
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#getsecret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4995,6 +5017,29 @@ that has the same title as another label we won't know which one to update and a
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integration-info</span>
 <span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 </code></pre></div>
+<h3 id="client-side-caching">Client-Side Caching</h3>
+<p>Optional client-side caching reduces 1Password API calls. Configure TTL and cache size in the store:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1password-cached</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">onepasswordSDK</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">vault</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">serviceAccountSecretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">op-token</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">      </span><span class="nt">cache</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">ttl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5m</span><span class="w">      </span><span class="c1"># Optional, default: 5m</span>
+<span class="w">        </span><span class="nt">maxSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w"> </span><span class="c1"># Optional, default: 100</span>
+</code></pre></div>
+<p>Caching applies to read operations (<code>GetSecret</code>, <code>GetSecretMap</code>). Write operations (<code>PushSecret</code>, <code>DeleteSecret</code>) automatically invalidate relevant cache entries.</p>
+<div class="admonition warning">
+<p class="admonition-title">Experimental</p>
+<p>This is an experimental feature and if too long of a TTL is set, secret information might be out of date.</p>
+</div>
 <h3 id="getsecret">GetSecret</h3>
 <p>Valid secret references should use the following key format: <code>&lt;item&gt;/[section/]&lt;field&gt;</code>.</p>
 <p>This is described here: <a href="https://developer.1password.com/docs/cli/secret-reference-syntax/">Secret Reference Syntax</a>.</p>

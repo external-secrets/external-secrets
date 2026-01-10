@@ -6919,6 +6919,53 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.CacheConfig">CacheConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>CacheConfig configures client-side caching for read operations.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ttl</code></br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TTL is the time-to-live for cached secrets.
+Format: duration string (e.g., &ldquo;5m&rdquo;, &ldquo;1h&rdquo;, &ldquo;30s&rdquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxSize</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxSize is the maximum number of secrets to cache.
+When the cache is full, least-recently-used entries are evicted.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.CertAuth">CertAuth
 </h3>
 <p>
@@ -12666,6 +12713,24 @@ OnePasswordSDKAuth
 </td>
 <td>
 <p>Auth defines the information necessary to authenticate against OnePassword API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cache</code></br>
+<em>
+<a href="#external-secrets.io/v1.CacheConfig">
+CacheConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+When enabled, secrets are cached with the specified TTL.
+Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+If omitted, caching is disabled (default).
+cache: {} is a valid option to set.</p>
 </td>
 </tr>
 </tbody>
