@@ -446,16 +446,21 @@ func (p *Provider) cacheAdd(key string, value []byte) {
 // invalidateCacheByPrefix removes all cache entries that start with the given prefix.
 // This is used to invalidate cache entries when an item is modified or deleted.
 // No-op if cache is disabled.
+// Why are we using a Prefix? Because items and properties are stored via prefixes using 1Password SDK.
+// This means when an item is deleted we delete the fields and properties that belong to the item as well.
 func (p *Provider) invalidateCacheByPrefix(prefix string) {
 	if p.cache == nil {
 		return
 	}
 
-	// remove all keys from cache with matching the prefix
 	keys := p.cache.Keys()
 	for _, key := range keys {
 		if strings.HasPrefix(key, prefix) {
-			p.cache.Remove(key)
+			// if exact match, or ends in `/` or `|` we can remove it.
+			// this will clear all fields and properties for this entry.
+			if len(key) == len(prefix) || key[len(prefix)] == '/' || key[len(prefix)] == '|' {
+				p.cache.Remove(key)
+			}
 		}
 	}
 }

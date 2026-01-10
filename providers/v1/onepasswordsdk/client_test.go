@@ -104,7 +104,7 @@ func TestProviderGetSecret(t *testing.T) {
 				client:      tt.client(),
 				vaultPrefix: "op://vault/",
 			}
-			got, err := p.GetSecret(context.Background(), tt.ref)
+			got, err := p.GetSecret(t.Context(), tt.ref)
 			tt.assertError(t, err)
 			require.Equal(t, string(got), string(tt.want))
 		})
@@ -274,7 +274,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 				client:      tt.client(),
 				vaultPrefix: "op://vault/",
 			}
-			got, err := p.GetSecretMap(context.Background(), tt.ref)
+			got, err := p.GetSecretMap(t.Context(), tt.ref)
 			tt.assertError(t, err)
 			require.Equal(t, tt.want, got)
 		})
@@ -417,7 +417,7 @@ func TestPushSecret(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			lister := tt.lister()
 			p := &Provider{
 				client: &onepassword.Client{
@@ -543,7 +543,7 @@ func TestDeleteItemField(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			lister := testCase.lister()
 			p := &Provider{
 				client: &onepassword.Client{
@@ -579,7 +579,7 @@ func TestGetVault(t *testing.T) {
 
 	for _, titleOrUuid := range titleOrUuids {
 		t.Run(titleOrUuid, func(t *testing.T) {
-			vaultID, err := p.GetVault(context.Background(), titleOrUuid)
+			vaultID, err := p.GetVault(t.Context(), titleOrUuid)
 			require.NoError(t, err)
 			require.Equal(t, fc.listAllResult[0].ID, vaultID)
 		})
@@ -695,13 +695,13 @@ func TestCachingGetSecret(t *testing.T) {
 		ref := v1.ExternalSecretDataRemoteRef{Key: "item/field"}
 
 		// First call - cache miss
-		val1, err := p.GetSecret(context.Background(), ref)
+		val1, err := p.GetSecret(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, []byte("secret-value"), val1)
 		assert.Equal(t, 1, fcWithCounter.resolveCallCount)
 
 		// Second call - cache hit, should not call API
-		val2, err := p.GetSecret(context.Background(), ref)
+		val2, err := p.GetSecret(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, []byte("secret-value"), val2)
 		assert.Equal(t, 1, fcWithCounter.resolveCallCount, "API should not be called on cache hit")
@@ -726,11 +726,11 @@ func TestCachingGetSecret(t *testing.T) {
 		ref := v1.ExternalSecretDataRemoteRef{Key: "item/field"}
 
 		// Multiple calls should always hit API
-		_, err := p.GetSecret(context.Background(), ref)
+		_, err := p.GetSecret(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, 1, fcWithCounter.resolveCallCount)
 
-		_, err = p.GetSecret(context.Background(), ref)
+		_, err = p.GetSecret(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, 2, fcWithCounter.resolveCallCount)
 	})
@@ -776,7 +776,7 @@ func TestCachingGetSecretMap(t *testing.T) {
 		ref := v1.ExternalSecretDataRemoteRef{Key: "item"}
 
 		// First call - cache miss
-		val1, err := p.GetSecretMap(context.Background(), ref)
+		val1, err := p.GetSecretMap(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, map[string][]byte{
 			"username": []byte("user1"),
@@ -785,7 +785,7 @@ func TestCachingGetSecretMap(t *testing.T) {
 		assert.Equal(t, 1, flWithCounter.getCallCount)
 
 		// Second call - cache hit
-		val2, err := p.GetSecretMap(context.Background(), ref)
+		val2, err := p.GetSecretMap(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, val1, val2)
 		assert.Equal(t, 1, flWithCounter.getCallCount, "API should not be called on cache hit")
@@ -826,7 +826,7 @@ func TestCacheInvalidationPushSecret(t *testing.T) {
 		ref := v1.ExternalSecretDataRemoteRef{Key: "item/password"}
 
 		// Populate cache
-		val1, err := p.GetSecret(context.Background(), ref)
+		val1, err := p.GetSecret(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, []byte("secret-value"), val1)
 		assert.Equal(t, 1, fcWithCounter.resolveCallCount)
@@ -844,11 +844,11 @@ func TestCacheInvalidationPushSecret(t *testing.T) {
 		secret := &corev1.Secret{
 			Data: map[string][]byte{"key": []byte("new-value")},
 		}
-		err = p.PushSecret(context.Background(), secret, pushRef)
+		err = p.PushSecret(t.Context(), secret, pushRef)
 		require.NoError(t, err)
 
 		// Next GetSecret should fetch fresh value (cache was invalidated)
-		val2, err := p.GetSecret(context.Background(), ref)
+		val2, err := p.GetSecret(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, []byte("secret-value"), val2)
 		assert.Equal(t, 2, fcWithCounter.resolveCallCount, "Cache should have been invalidated")
@@ -892,7 +892,7 @@ func TestCacheInvalidationDeleteSecret(t *testing.T) {
 		ref := v1.ExternalSecretDataRemoteRef{Key: "item/field1"}
 
 		// Populate cache
-		_, err := p.GetSecret(context.Background(), ref)
+		_, err := p.GetSecret(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, 1, fcWithCounter.resolveCallCount)
 
@@ -901,11 +901,11 @@ func TestCacheInvalidationDeleteSecret(t *testing.T) {
 			RemoteKey: "item",
 			Property:  "field1",
 		}
-		err = p.DeleteSecret(context.Background(), deleteRef)
+		err = p.DeleteSecret(t.Context(), deleteRef)
 		require.NoError(t, err)
 
 		// Next GetSecret should miss cache
-		_, err = p.GetSecret(context.Background(), ref)
+		_, err = p.GetSecret(t.Context(), ref)
 		require.NoError(t, err)
 		assert.Equal(t, 2, fcWithCounter.resolveCallCount, "Cache should have been invalidated")
 	})
@@ -946,6 +946,46 @@ func TestInvalidateCacheByPrefix(t *testing.T) {
 
 		// Should not panic
 		p.invalidateCacheByPrefix("op://vault/item1")
+	})
+
+	t.Run("does not invalidate entries with similar prefixes", func(t *testing.T) {
+		p := &Provider{
+			vaultPrefix: "op://vault/",
+			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
+		}
+
+		p.cache.Add("op://vault/item/field1", []byte("val1"))
+		p.cache.Add("op://vault/item/field2", []byte("val2"))
+		p.cache.Add("op://vault/item|property", []byte("val3"))
+		p.cache.Add("op://vault/item-backup/field1", []byte("val4"))
+		p.cache.Add("op://vault/prod-db/secret", []byte("val5"))
+		p.cache.Add("op://vault/prod-db-replica/secret", []byte("val6"))
+		p.cache.Add("op://vault/prod-db-replica/secret|property", []byte("val7"))
+
+		p.invalidateCacheByPrefix("op://vault/item")
+
+		_, ok1 := p.cache.Get("op://vault/item/field1")
+		assert.False(t, ok1)
+		_, ok2 := p.cache.Get("op://vault/item/field2")
+		assert.False(t, ok2)
+		_, ok3 := p.cache.Get("op://vault/item|property")
+		assert.False(t, ok3)
+
+		val4, ok4 := p.cache.Get("op://vault/item-backup/field1")
+		assert.True(t, ok4, "item-backup should not be invalidated")
+		assert.Equal(t, []byte("val4"), val4)
+
+		p.invalidateCacheByPrefix("op://vault/prod-db")
+		_, ok5 := p.cache.Get("op://vault/prod-db/secret")
+		assert.False(t, ok5)
+
+		val6, ok6 := p.cache.Get("op://vault/prod-db-replica/secret")
+		assert.True(t, ok6, "prod-db-replica/secret should not be invalidated")
+		assert.Equal(t, []byte("val6"), val6)
+
+		val7, ok7 := p.cache.Get("op://vault/prod-db-replica/secret|property")
+		assert.True(t, ok7, "prod-db-replica/secret|property should not be invalidated")
+		assert.Equal(t, []byte("val7"), val7)
 	})
 }
 
