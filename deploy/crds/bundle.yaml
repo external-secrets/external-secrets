@@ -5683,6 +5683,28 @@ spec:
                           required:
                             - serviceAccountSecretRef
                           type: object
+                        cache:
+                          description: |-
+                            Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+                            When enabled, secrets are cached with the specified TTL.
+                            Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+                            If omitted, caching is disabled (default).
+                            cache: {} is a valid option to set.
+                          properties:
+                            maxSize:
+                              default: 100
+                              description: |-
+                                MaxSize is the maximum number of secrets to cache.
+                                When the cache is full, least-recently-used entries are evicted.
+                              minimum: 1
+                              type: integer
+                            ttl:
+                              default: 5m
+                              description: |-
+                                TTL is the time-to-live for cached secrets.
+                                Format: duration string (e.g., "5m", "1h", "30s")
+                              type: string
+                          type: object
                         integrationInfo:
                           description: |-
                             IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
@@ -17348,6 +17370,28 @@ spec:
                               type: object
                           required:
                             - serviceAccountSecretRef
+                          type: object
+                        cache:
+                          description: |-
+                            Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+                            When enabled, secrets are cached with the specified TTL.
+                            Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+                            If omitted, caching is disabled (default).
+                            cache: {} is a valid option to set.
+                          properties:
+                            maxSize:
+                              default: 100
+                              description: |-
+                                MaxSize is the maximum number of secrets to cache.
+                                When the cache is full, least-recently-used entries are evicted.
+                              minimum: 1
+                              type: integer
+                            ttl:
+                              default: 5m
+                              description: |-
+                                TTL is the time-to-live for cached secrets.
+                                Format: duration string (e.g., "5m", "1h", "30s")
+                              type: string
                           type: object
                         integrationInfo:
                           description: |-
