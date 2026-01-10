@@ -49,6 +49,7 @@ type CacheConfig struct {
 	// MaxSize is the maximum number of secrets to cache.
 	// When the cache is full, least-recently-used entries are evicted.
 	// +kubebuilder:default=100
+	// +kubebuilder:validation:Minimum=1
 	// +optional
 	MaxSize int `json:"maxSize,omitempty"`
 }
@@ -66,7 +67,8 @@ type OnePasswordSDKProvider struct {
 	// Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
 	// When enabled, secrets are cached with the specified TTL.
 	// Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
-	// If nil, caching is disabled (default).
+	// If omitted, caching is disabled (default).
+	// cache: {} is a valid option to set.
 	// +optional
 	Cache *CacheConfig `json:"cache,omitempty"`
 }

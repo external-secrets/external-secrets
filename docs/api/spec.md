@@ -7929,7 +7929,8 @@ CacheConfig
 <p>Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
 When enabled, secrets are cached with the specified TTL.
 Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
-If nil, caching is disabled (default).</p>
+If omitted, caching is disabled (default).
+cache: {} is a valid option to set.</p>
 </td>
 </tr>
 </tbody>
