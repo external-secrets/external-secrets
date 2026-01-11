@@ -62,6 +62,7 @@ const (
 	errUninitalizedGCPProvider      = "provider GCP is not initialized"
 	errClientGetSecretAccess        = "unable to access Secret from SecretManager Client: %w"
 	errJSONSecretUnmarshal          = "unable to unmarshal secret from JSON: %w"
+	errNoProjectID                  = "unable to find ProjectID in storeSpec"
 
 	errInvalidStore           = "invalid store"
 	errInvalidStoreSpec       = "invalid store spec"
@@ -92,8 +93,7 @@ type Client struct {
 	storeKind string
 
 	// namespace of the external secret
-	namespace        string
-	workloadIdentity *workloadIdentity
+	namespace string
 }
 
 // GoogleSecretManagerClient defines the interface for interacting with Google Secret Manager.
@@ -648,9 +648,6 @@ func (c *Client) Close(_ context.Context) error {
 	var err error
 	if c.smClient != nil {
 		err = c.smClient.Close()
-	}
-	if c.workloadIdentity != nil {
-		err = c.workloadIdentity.Close()
 	}
 	useMu.Unlock()
 	if err != nil {

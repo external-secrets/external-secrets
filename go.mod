@@ -59,6 +59,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/webhook => ./providers/v1/webhook
 	github.com/external-secrets/external-secrets/providers/v1/yandex => ./providers/v1/yandex
 	github.com/external-secrets/external-secrets/runtime => ./runtime
+	github.com/external-secrets/external-secrets/runtime/gcp/auth => ./runtime/gcp/auth
 )
 
 require (
@@ -104,7 +105,6 @@ require (
 	google.golang.org/genproto v0.0.0-20251029180050-ab9386a59fda // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919 // indirect
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.34.1
@@ -117,7 +117,7 @@ require (
 require github.com/1Password/connect-sdk-go v1.5.3 // indirect
 
 require (
-	github.com/external-secrets/external-secrets/apis v0.0.0
+	github.com/external-secrets/external-secrets/apis v0.11.0
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-00010101000000-000000000000
@@ -265,6 +265,7 @@ require (
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
+	github.com/external-secrets/external-secrets/runtime/gcp/auth v0.0.0 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fortanix/sdkms-client-go v0.4.1 // indirect
