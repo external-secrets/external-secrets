@@ -16,15 +16,19 @@ RUN mkdir /image && \
 	ln -s usr/lib /image/lib && \
 	mkdir -p /image/{usr/bin,usr/lib64,usr/lib,root,home,proc,etc,sys,var,dev}
 
-COPY ubi-build-files-${TARGETARCH}.txt /tmp
 # Copy all the required files from the base UBI image into the image directory
 # As the go binary is not statically compiled this includes everything needed for CGO to work, cacerts, tzdata and RH release files
-RUN tar cf /tmp/files.tar -T /tmp/ubi-build-files-${TARGETARCH}.txt && tar xf /tmp/files.tar -C /image/ \
+COPY ubi-build-files-${TARGETARCH}.txt /tmp/file-list.txt
+RUN mkdir -p /image/etc/pki/tls/certs /image/etc/pki/ca-trust/extracted/openssl /image/etc/pki/ca-trust/extracted/pem /image/usr/share \
+  && while IFS= read -r file; do \
+       [ -z "$file" ] && continue; \
+       mkdir -p "/image/$(dirname "$file")" 2>/dev/null || true; \
+       cp -a "/$file" "/image/$file" 2>/dev/null || true; \
+     done < /tmp/file-list.txt \
   && rpm --root /image --initdb \
-  && PACKAGES=$(rpm -qf $(cat /tmp/ubi-build-files-${TARGETARCH}.txt) | grep -v "is not owned by any package" | sort -u) \
-  && echo dnf install -y 'dnf-command(download)' \
+  && PACKAGES=$(while IFS= read -r file; do [ -n "$file" ] && echo "/$file"; done < /tmp/file-list.txt | xargs rpm -qf 2>/dev/null | grep -v "is not owned by any package" | sort -u) \
   && dnf download --destdir / ${PACKAGES} \
-  && rpm --root /image -ivh --justdb --nodeps `for i in ${PACKAGES}; do echo $i.rpm; done`
+  && rpm --root /image -ivh --justdb --nodeps /*.rpm
 
 FROM scratch
 # Copy all required files + rpm database so the image is scannable
