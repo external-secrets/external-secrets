@@ -301,6 +301,8 @@ metrics:
 
   listen:
     port: 8080
+    auth:
+      enabled: false
     secure:
       enabled: false
       # -- if those are not set or invalid, self-signed certs will be generated
@@ -493,6 +495,8 @@ webhook:
 
     listen:
       port: 8080
+      auth:
+        enabled: false
 
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
@@ -634,6 +638,8 @@ certController:
 
     listen:
       port: 8080
+      auth:
+        enabled: false
 
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
