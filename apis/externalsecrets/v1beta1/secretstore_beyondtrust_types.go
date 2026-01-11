@@ -54,6 +54,10 @@ type BeyondtrustServer struct {
 	RetrievalType string `json:"retrievalType,omitempty"`
 	// A character that separates the folder names.
 	Separator string `json:"separator,omitempty"`
+	// When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.
+	// +optional
+	// +kubebuilder:default=true
+	Decrypt bool `json:"decrypt,omitempty"`
 	// +required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.
 	VerifyCA bool `json:"verifyCA"`
 	// Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
