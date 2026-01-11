@@ -93,6 +93,38 @@ tests:
       - equal:
           path: spec.renewBefore
           value: "5d"
+      - notExists:
+          path: spec.privateKey
+      - notExists:
+          path: spec.signatureAlgorithm
+      - hasDocuments:
+          count: 1
+    templates:
+      - webhook-certificate.yaml
+  - it: should create a certificate CRD with privateKey and signatureAlgorithm
+    set:
+      webhook:
+        certManager:
+          enabled: true
+          cert:
+            privateKey:
+              algorithm: RSA
+              rotationPolicy: Always
+              size: 2048
+            signatureAlgorithm: SHA256WithRSA
+    asserts:
+      - equal:
+          path: spec.privateKey.algorithm
+          value: "RSA"
+      - equal:
+          path: spec.privateKey.rotationPolicy
+          value: "Always"
+      - equal:
+          path: spec.privateKey.size
+          value: 2048
+      - equal:
+          path: spec.signatureAlgorithm
+          value: "SHA256WithRSA"
       - hasDocuments:
           count: 1
     templates:
