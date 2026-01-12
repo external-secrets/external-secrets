@@ -37,6 +37,17 @@ func (m *testSATokenGenerator) Generate(_ context.Context, _ []string, _, _ stri
 
 // TestMain sets up the test environment by replacing the saTokenGenerator factory
 // with a mock implementation to avoid requiring a real Kubernetes cluster.
+//
+// Note: We don't restore the original newSATokenGeneratorFunc because:
+// 1. TestMain runs once for the entire package
+// 2. os.Exit terminates the process after tests complete
+// 3. No other code runs after this that would need the original function
+//
+// For individual tests that need custom mocks, use t.Cleanup to restore:
+//
+//	original := newSATokenGeneratorFunc
+//	t.Cleanup(func() { newSATokenGeneratorFunc = original })
+//	newSATokenGeneratorFunc = customMock
 func TestMain(m *testing.M) {
 	// Replace the factory function with a mock for all tests
 	newSATokenGeneratorFunc = func() (saTokenGenerator, error) {

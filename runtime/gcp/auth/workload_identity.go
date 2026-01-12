@@ -336,6 +336,8 @@ func (w *workloadIdentity) generateToken(ctx context.Context, wi *esv1.GCPWorklo
 		return nil, fmt.Errorf("failed to create IAM client: %w", err)
 	}
 	defer func() {
+		// Close errors are typically not actionable (connection already closed, etc.)
+		// and logging would require injecting a logger into this function.
 		_ = iamClient.Close()
 	}()
 
@@ -396,6 +398,8 @@ func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWo
 		return "", fmt.Errorf("failed to create IAM client: %w", err)
 	}
 	defer func() {
+		// Close errors are typically not actionable (connection already closed, etc.)
+		// and logging would require injecting a logger into this function.
 		_ = iamClient.Close()
 	}()
 
