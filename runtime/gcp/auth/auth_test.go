@@ -105,7 +105,6 @@ func TestGenerateSignedJWTForVault(t *testing.T) {
 		name        string
 		wi          *esv1.GCPWorkloadIdentity
 		role        string
-		projectID   string
 		storeKind   string
 		namespace   string
 		setupKube   func() *clientfake.ClientBuilder
@@ -118,7 +117,6 @@ func TestGenerateSignedJWTForVault(t *testing.T) {
 			name:        "no workload identity configured",
 			wi:          nil,
 			role:        "vault-role",
-			projectID:   "test-project",
 			storeKind:   esv1.SecretStoreKind,
 			namespace:   "default",
 			setupKube:   clientfake.NewClientBuilder,
@@ -130,7 +128,7 @@ func TestGenerateSignedJWTForVault(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := tt.setupKube().Build()
-			jwt, err := GenerateSignedJWTForVault(context.Background(), tt.wi, tt.role, tt.projectID, tt.storeKind, kube, tt.namespace)
+			jwt, err := GenerateSignedJWTForVault(context.Background(), tt.wi, tt.role, tt.storeKind, kube, tt.namespace)
 
 			if tt.expectError {
 				assert.Error(t, err)

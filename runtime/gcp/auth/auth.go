@@ -86,7 +86,7 @@ func NewTokenSource(
 func GenerateSignedJWTForVault(
 	ctx context.Context,
 	wi *esv1.GCPWorkloadIdentity,
-	role, _ /* projectID */, storeKind string,
+	role, storeKind string,
 	kube kclient.Client,
 	namespace string,
 ) (string, error) {

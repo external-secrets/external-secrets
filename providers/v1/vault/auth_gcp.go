@@ -200,13 +200,12 @@ func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.Va
 		ctx,
 		gcpAuth.WorkloadIdentity,
 		gcpAuth.Role,
-		gcpAuth.ProjectID,
 		c.storeKind,
 		c.kube,
 		c.namespace,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to generate signed JWT from workload identity: %w", err)
+		return fmt.Errorf("failed to generate signed JWT for Vault GCP IAM auth: role=%q, gcpServiceAccount=%q: %w", gcpAuth.Role, gcpSAEmail, err)
 	}
 
 	c.log.V(1).Info("Setting up GCP authentication using workload identity with signed JWT", "email", c.gcpServiceAccountEmail)
@@ -277,11 +276,11 @@ func (c *client) loginWithSignedJWT(ctx context.Context, mountPath, role, jwt st
 	secret, err := c.logical.WriteWithContext(ctx, loginPath, loginData)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
-		return fmt.Errorf("unable to log in with GCP auth: %w", err)
+		return fmt.Errorf("unable to log in with GCP IAM auth: path=%q, role=%q: %w", loginPath, role, err)
 	}
 
 	if secret == nil || secret.Auth == nil || secret.Auth.ClientToken == "" {
-		return errors.New("login response did not return client token")
+		return fmt.Errorf("GCP IAM auth login response did not return client token: path=%q, role=%q", loginPath, role)
 	}
 
 	// Set the client token for subsequent requests

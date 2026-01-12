@@ -36,9 +36,3 @@ import (
 func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	return gcpauth.NewTokenSource(ctx, auth, projectID, storeKind, kube, namespace)
 }
-
-// GenerateSignedJWTForVault generates a signed JWT specifically for Vault GCP IAM authentication.
-// This is a wrapper around the shared runtime/gcp/auth implementation.
-func GenerateSignedJWTForVault(ctx context.Context, wi *esv1.GCPWorkloadIdentity, role, projectID, storeKind string, kube kclient.Client, namespace string) (string, error) {
-	return gcpauth.GenerateSignedJWTForVault(ctx, wi, role, projectID, storeKind, kube, namespace)
-}
