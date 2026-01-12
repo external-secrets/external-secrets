@@ -4,8 +4,6 @@
 
 We use the following labels to organize the issues (this is not an exhaustive list):
 
-TODO evrardjp: Contact skarlso: Review this based on what's actually useful.
-
 | Label              | Purpose                                                                                                                                                    |
 |--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `kind/*`           | Classifies the type of work (e.g. `chore`, `bug`, `cleanup`, `dependency`, `design`, `doc`, `feature`, `initiative`, `performance`, `refactor`, `testing`) |
@@ -16,3 +14,4 @@ TODO evrardjp: Contact skarlso: Review this based on what's actually useful.
 | `priority/*`       | Priority labels (e.g., `priority/important-soon`, `priority/important-longterm`, `priority/urgent`)                                                        |
 | `good first issue` | Suitable for newcomers; lower complexity onboarding tasks                                                                                                  |
 | `help wanted`      | Contributor help requested; maintainers welcome external contributions                                                                                     |
+
