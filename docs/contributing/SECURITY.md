@@ -8,7 +8,10 @@ To report a security issue, email `cncf-ExternalSecretsOp-maintainers@lists.cncf
 
 ## Escalation
 
-TODO EVRARDJP
+In case of no answer, please contact our maintainers or `security-reviewers` individually.
+If they do not respond, contact their ad-interim equivalent individually.
+
+You should expect an answer in a two-weeks timeframe (14 calendar days).
 
 ## Our response process
 

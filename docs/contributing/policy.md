@@ -88,8 +88,6 @@ For more technical details about WHAT is covered by this deprecation policy, che
 
 While the project is currently considered as in *Beta* state (see table below), we are considering deprecations very thoroughly.
 
-// TODO EVRARDJP: CHECK WITH SKARLSO
-
 | Version | Status    | Notes                                                                                                                                                                                                                       |
 |---------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | v0.9.x  | **Alpha** | Experimental features; API may change without notice. New features may be added, removed, or changed without a major version bump. Use only in short-lived test clusters unless you are prepared for manual migration work. |
@@ -142,11 +140,11 @@ Next to that, more votes of a unique company could technically lead to unbalanci
 
 ESO strives for **consensus** via open discussion. When consensus cannot be reached, any eligible voter may call a vote.
 
-- **Supermajority**: Two-thirds (⅔) of eligible voters in the group.
+- Quorum: **Supermajority** of two-thirds (⅔) of eligible voters in the group.
 - **Venues**: Votes may occur on GitHub, email, Slack, community meetings, or a suitable voting service.
 - **Ballots**: “Agree/+1”, “Disagree/-1”, or “Abstain” (counts as no vote).
-
-TODO: EVRARDJP WITH SKARLSO: Deprecations: "A majority vote of maintainers is required to approve the deprecation." this is not the supermajority
+- **Winner criterion**: The option preferred by more than half of the voters (a majority) should win (in a yes/no scenario). In case of a choice amongst multiple choices, we are picking a condorcet winner.
+  - We do not require the voting system to succeed other criterion (participation criterion, Condorcet loser criterion, majority loser criterion, mutual majority criterion, ...)
 
 ### Lazy consensus principle
 
