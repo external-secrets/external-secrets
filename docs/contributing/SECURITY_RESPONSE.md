@@ -32,7 +32,7 @@ simple, and does not require user interaction should be evaluated immediately.
 [CVSS Version 3.1](https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator) can be
 a helpful tool in evaluating the criticality of reported issues.
 
-Do this analysis quickly to go through step 2 in a timely manner.
+Do this analysis quickly to promptly acknowledge receipt of the problem.
 
 ### Acknowledge receipt of the problem
 
@@ -43,7 +43,7 @@ Notify the reporter (written evidence) that:
 - you triaged the issue according to the matrix above
 - the project follows [CNCF embargo policy](https://github.com/cncf/tag-security/blob/231b87f371274b2d68def2c6a35a719210836191/project-resources/templates/embargo-policy.md)
 - you are the contact (or give another contact) in charge of this incident, if they have questions.
-- they can expect to receive an update for certain date (TIP: Create a calendar reminder to contact them again by that date to provide an update)
+- they can expect to receive an update for a certain date (TIP: Create a calendar reminder to contact them again by that date to provide an update)
 
 ### Replicate the problem and work on a fix
 

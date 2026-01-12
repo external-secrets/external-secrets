@@ -1,5 +1,5 @@
 <!-- This is a tutorial. -->
-<!-- An introduction to teach we intend prevent burnouts in our team -->
+<!-- In this page, we teach people how to detect and prevent burnout in our team -->
 # Contributor Burnout Mitigation Guide
 
 ## Overview
