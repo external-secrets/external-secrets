@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
@@ -132,6 +133,7 @@ func withSATokenGenerator(satg saTokenGenerator) workloadIdentityOption {
 // the token when it's about to expire. This ensures long-running operations
 // don't fail due to token expiration.
 type refreshableTokenSource struct {
+	mu sync.Mutex
 	// refreshFunc is called to generate a new token when needed.
 	refreshFunc func(ctx context.Context) (*oauth2.Token, error)
 	// currentToken holds the current valid token.
@@ -142,7 +144,11 @@ type refreshableTokenSource struct {
 
 // Token returns a valid token, refreshing it if necessary.
 // It implements the oauth2.TokenSource interface.
+// This method is thread-safe.
 func (r *refreshableTokenSource) Token() (*oauth2.Token, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	// Check if we need to refresh the token
 	if r.currentToken == nil || r.shouldRefresh() {
 		newToken, err := r.refreshFunc(r.ctx)
