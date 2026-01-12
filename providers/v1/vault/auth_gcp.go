@@ -281,7 +281,7 @@ func (c *client) loginWithSignedJWT(ctx context.Context, mountPath, role, jwt st
 	}
 
 	if secret == nil || secret.Auth == nil || secret.Auth.ClientToken == "" {
-		return fmt.Errorf("login response did not return client token")
+		return errors.New("login response did not return client token")
 	}
 
 	// Set the client token for subsequent requests
