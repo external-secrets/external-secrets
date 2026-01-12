@@ -50,6 +50,10 @@ import (
 const (
 	gcpSAAnnotation = "iam.gke.io/gcp-service-account"
 
+	// jwtTTL is the time-to-live for generated JWTs and SA tokens.
+	// Used by both k8sSATokenGenerator and SignedJWTForVault.
+	jwtTTL = 15 * time.Minute
+
 	errFetchPodToken  = "unable to fetch pod token: %w"
 	errFetchIBToken   = "unable to fetch identitybindingtoken: %w"
 	errGenAccessToken = "unable to generate gcp access token: %w"
@@ -400,7 +404,7 @@ func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWo
 	// Reference: https://support.hashicorp.com/hc/en-us/articles/37175601988499
 	// API Docs: https://developer.hashicorp.com/vault/api-docs/auth/gcp
 	now := time.Now()
-	exp := now.Add(15 * time.Minute).Unix()
+	exp := now.Add(jwtTTL).Unix()
 	iat := now.Unix()
 	payload := map[string]interface{}{
 		"sub": gcpSA,
@@ -418,6 +422,7 @@ func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWo
 		Name:    fmt.Sprintf("projects/-/serviceAccounts/%s", gcpSA),
 		Payload: string(payloadBytes),
 	})
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMSignJwt, err)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign JWT for Vault GCP IAM auth: role=%q, gcpServiceAccount=%q: %w", role, gcpSA, err)
 	}
@@ -452,7 +457,7 @@ type k8sSATokenGenerator struct {
 
 func (g *k8sSATokenGenerator) Generate(ctx context.Context, audiences []string, name, namespace string) (*authenticationv1.TokenRequest, error) {
 	// Request a serviceaccount token for the pod
-	ttl := int64((15 * time.Minute).Seconds())
+	ttl := int64(jwtTTL.Seconds())
 	return g.corev1.
 		ServiceAccounts(namespace).
 		CreateToken(ctx, name,
