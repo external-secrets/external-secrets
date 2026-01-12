@@ -274,6 +274,7 @@ metrics:
   listen:
     port: 8080
     auth:
+      # -- Enable Kubernetes RBAC-based authentication for metrics endpoint.
       enabled: false
     secure:
       enabled: false
@@ -468,6 +469,7 @@ webhook:
     listen:
       port: 8080
       auth:
+        # -- Enable Kubernetes RBAC-based authentication for webhook's metrics endpoint.
         enabled: false
 
     service:
@@ -611,6 +613,7 @@ certController:
     listen:
       port: 8080
       auth:
+        # -- Enable Kubernetes RBAC-based authentication for certController's metrics endpoint.
         enabled: false
 
     service:
