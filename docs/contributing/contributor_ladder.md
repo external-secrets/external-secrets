@@ -23,8 +23,6 @@ Anyone making contributions of any kind (code, docs, tests, CI configs, security
 - Recognized as an active community member.
 - Eligible for nomination to **Member**.
 
-// TODO EVRARDJP WITH SKARLSO: Verify if that's true.
-
 **Election Process**:
 
 - Automatically granted by GitHub
@@ -52,8 +50,9 @@ Regular contributors engaged with the project for at least **3 months**.
 ---
 
 ### 4) Reviewer (per Specialty)
-Experienced contributors who review changes in **one or more specialties**.
-A specialty define scope for `reviewer` permissions and expectations.
+
+This is a permanent role for experienced contributors who will review changes in **one or more specialties**.
+A specialty defines scope for `reviewer` permissions and expectations.
 
 > A contributor may hold different roles across specialties (e.g., **Reviewer** in CI, **Member** in Core Controllers).
 
@@ -65,9 +64,10 @@ A specialty define scope for `reviewer` permissions and expectations.
 
 **Privileges**:
 
-- Listed as `reviewer` in the relevant `OWNERS` files. // TODO EVRARDJP: REPLACE OWNERS WITH CODEOWNERS
+- Added to the specialty's GitHub team.
 - May use `/lgtm` on PRs within the specialty.
-- may `/approve` and merge within their specialty if they are also `approvers`
+- May `/approve` and merge within their specialty if they are also `approvers`
+- May start to use `/ok-to-test` for e2e tests (based on specialty)
 - Eligible for **Maintainer** nomination.
 
 **Expectations**:
@@ -75,42 +75,34 @@ A specialty define scope for `reviewer` permissions and expectations.
 - Review pull requests, triage issues, and fix bugs in their areas of expertise.
 - Participate in ESO community meetings and asynchronous design/review discussions.
 - Follow the decision-making processes described in our governance document.
-- //TODO EVRARDJP: Mention the ok-to-test?
-- //TODO EVRARDJP: ASK SKARLSO IF THAT MAKES SENSE.
 
 **Election process**:
 
-- Must be nominated by **one Maintainer**?.
-
-// TODO EVRARDJP: ASK SKARLSO IF THAT MAKES SENSE.
+- **Addition**: A candidate is nominated by an existing maintainer and elected by a **supermajority** of current maintainers.
+- **Removal**: Removal requires a **supermajority** of current maintainers.
 
 #### Reviewer specialties
 
-| Name                | Focus                                                                                                                                                                                | Activities                                                                                                                                      | Name of `CODEOWNERS` group              |
-|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
-| CI / Infrastructure | GitHub Actions, build/test pipelines, images, release automation                                                                                                                     | Reviews CI changes, enforces reproducibility, flags flaky tests                                                                                 | `@external-secrets/ci-reviewers`        |
-| Testing             | Unit/integration/E2E tests, frameworks, fixtures, test data                                                                                                                          | Ensures adequate coverage and quality in PRs, promotes testability                                                                              | `@external-secrets/testing-reviewers`   |
-| Core Controllers    | CRDs, reconciliation logic, API evolution, performance                                                                                                                               | Reviews controller/CRD changes, ensures API consistency and backward compatibility                                                              | `@external-secrets/core-reviewers`      |
-| Providers           | Provider integrations (AWS, Vault, GCP, Azure, CyberArk, etc.)                                                                                                                       | Reviews provider-specific code and conformance to provider guidelines; coordinates breaking changes (for providers that aren't `stable` graded) | `@external-secrets/providers-reviewers` |
-| Documentation       | Update documentation in the project. This could be the following: blog posts, provider documentation, tutorials, examples, enhanced developer guides, etc.                           | Reviews and create documents and descriptions of the project                                                                                    |                                         |
-| Community           | Community nurturing. Help with issues, handling community meetings, help fostering the face of external secrets operator, potentially partaking in events and promoting this project | Help on issues, monitor the slack channel, organize community talks and events, promote ESO, create demos, etc.                                 |                                         |
+| Name                | Focus                                                                                                                                                                                | Activities                                                                                                                                      | Name of `CODEOWNERS` group                                                            |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| CI / Infrastructure | GitHub Actions, build/test pipelines, images, release automation                                                                                                                     | Reviews CI changes, enforces reproducibility, flags flaky tests                                                                                 | `@external-secrets/ci-reviewers`                                                      |
+| Testing             | Unit/integration/E2E tests, frameworks, fixtures, test data                                                                                                                          | Ensures adequate coverage and quality in PRs, promotes testability                                                                              | `@external-secrets/testing-reviewers`                                                 |
+| Core Controllers    | CRDs, reconciliation logic, API evolution, performance                                                                                                                               | Reviews controller/CRD changes, ensures API consistency and backward compatibility                                                              | `@external-secrets/core-reviewers`                                                    |
+| Providers           | Provider integrations (AWS, Vault, GCP, Azure, CyberArk, etc.)                                                                                                                       | Reviews provider-specific code and conformance to provider guidelines; coordinates breaking changes (for providers that aren't `stable` graded) | `@external-secrets/providers-reviewers` or `@external-secrets/provider-<x>-reviewers` |
+| Documentation       | Update documentation in the project. This could be the following: blog posts, provider documentation, tutorials, examples, enhanced developer guides, etc.                           | Reviews and create documents and descriptions of the project                                                                                    | `@external-secrets/docs-reviewers`                                                    |
+| Community           | Community nurturing. Help with issues, handling community meetings, help fostering the face of external secrets operator, potentially partaking in events and promoting this project | Help on issues, monitor the slack channel, organize community talks and events, promote ESO, create demos, etc.                                 | `@external-secrets/community-organizers`                                              |
+| Security            | Security items, including their documentation                                                                                                                                        | Finds and fixes security issues, proactively prevent new issues                                                                                 | `@external-secrets/security-reviewers`                                                |
 
-
-// TODO EVRARDJP: ASK SKARLSO WHAT WE DO FOR: SECURITY (NO CODE OWNERS, NOT LISTED HERE) + Docs (NO CODEOWNERS, OK TO FIX THIS?)
 ---
 
 ### 5) Maintainer (Project-Wide)
 
 They are project leaders responsible for overall health, governance, technical direction, cross-specialty knowledge and release management.
 
-// TODO: EVRARDJP: SPLIT BETWEEN REQUIREMENTS AND EXPECTATIONS
-
 **Requirements**:
 
 - Reviewer for at least **6 months** in one or more specialties.
 - Demonstrated leadership, reliability, and constructive collaboration.
-
-TODO: EVRARDJP -> link to decision-making processes
 
 **Privileges**:
 
@@ -157,13 +149,13 @@ Criteria for an interim maintainer position includes contribution/maintenance on
 
 ### Eligibility
 
-Anyone can be nominated to an interim position. // TODO EVRARDJP: Any CONTRIBUTOR?
+Any contributor can be nominated to an interim position.
 
 ### Scope / Privileges
 
 - Specialty and scope are explicitly documented in `OWNERS` files and/or a public tracking issue.
 - A person may have multiple ad-interim roles across specialties (e.g. a contributor can be an interim reviewer on CI and on Providers at the same time). This is to allow a fast path to upskill future project-wide maintainers.
-- Anyone effectivated after its interim period does not need to cover requirements from lower positions (e.g. an effectivated interim reviewer on CI does not need to have the criteria of being an effective CI member) // TODO EVRARDJP: CLARIFY WITH SKARLSO
+- Anyone promoted to permanent status after its interim period does not need to cover requirements from lower positions (e.g. Promoted "interim" reviewers/maintainers don't need to fill in other/new requirements to be promoted to permanent, as the successful interim experience is a showing success of matching the requirements)
 - Any time spent on an interim role counts as participation to the project towards the requirements of the permanent role.
 
 ### Limitations
@@ -334,8 +326,6 @@ Voting rights vary by decision type:
 
 ## Cross-References
 
-TODO EVRARDJP: CLARIFY WITH SKARLSO v (current leadership pointer to codeowners + how-to propose someone as maintainer?)
-
 - Project governance and decision-making: see [policy](policy.md)
 - Proposal process and template: `design/000-template.md`
-- Specialty ownership: `OWNERS` files per directory
+- Specialty ownership: GitHub teams

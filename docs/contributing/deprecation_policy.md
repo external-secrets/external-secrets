@@ -30,8 +30,6 @@ The release notes must prominently include:
 * A deprecation notice for the feature.
 * The expected timeline for removal (if applicable).
 
-TODO EVRARDJP w/ SKARLSO: Should we add a UPGRADING.md file explaining how to upgrade and force this in our policy?
-
 ### Removal timeframe
 
 The removal must follow standard Kubernetes deprecation timelines.

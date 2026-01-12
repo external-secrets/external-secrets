@@ -32,11 +32,9 @@ Mention in your comment whether if you can tackle the issue or not. If you canno
 
 ## New feature? Check for alignment with the roadmap
 
-// TODO EVRARDJP: CLEAN THIS UP! https://github.com/github/roadmap/issues/576 is replacing https://github.com/github/roadmap/issues/286 and I don't think we need this at all. See https://github.blog/changelog/2023-01-19-github-issues-january-19th-update/ and https://docs.github.com/en/enterprise-cloud@latest/issues/planning-and-tracking-with-projects/automating-your-project/adding-items-automatically
-
-Our [Roadmap](roadmap.md), our [Project Board](https://github.com/orgs/external-secrets/projects/2/views/1) contains our vision for next releases.
+Our [Project Board](https://github.com/orgs/external-secrets/projects/2/views/1) contains our vision for next releases.
 If your change is aligned, continue further with this document.
-If you don't know, ask on slack.
+If you don't know, you should ask on Slack first if you are afraid of doing something that might not get merged.
 
 We welcome any change aligned with the roadmap. We will prioritize work in the next milestone before working on the longer term items.
 If you would like to raise the priority of an issue, comment on the issue or ping a maintainer.
@@ -164,7 +162,7 @@ This project uses the pull request process from GitHub. To submit a pull request
 fork the repository and push any changes to a branch on "your fork".
 From there, propose a pull request in the external-secrets repository, targeting our main branch.
 
-// TODO EVRARDJP: Skarlso confirm? Add /ok-to-test here? Discuss this with moolen?
+You do not have to worry about /ok-to-test, maintainers will execute it when necessary.
 
 > Unless you add a new provider or change e2e test, you do not need to run e2e test for your contribution.
 > The following section will help you run those tests.
@@ -197,7 +195,6 @@ Examples:
 ```
 /ok-to-test sha=b8ca0040200a7a05d57048d86a972fdf833b8c9b
 ```
-
 
 ### Contribute to "managed kubernetes" e2e tests
 
