@@ -24,7 +24,7 @@ They require a proposal.
 
 ### Deprecation notices in release management
 
-Every deprecation warrant a major version bump.
+Every deprecation warrants a major version bump.
 
 The release notes must prominently include:
 * A deprecation notice for the feature.

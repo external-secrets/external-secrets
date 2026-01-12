@@ -51,7 +51,7 @@ Financial contributions are welcomed and documented in our [financial contributi
 ## The value of triaging issues
 
 We appreciate help to triage issues in our GitHub repository.
-This helps the maintainers' team to focus on the most important/urgent problems are handled first.
+This helps the maintainers' team ensure the most important/urgent problems are handled first.
 
 If you want to help in triaging issues, you can start by commenting on them with:
 

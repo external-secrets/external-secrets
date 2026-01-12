@@ -34,7 +34,7 @@ Regular contributors engaged with the project for at least **3 months**.
 
 **Requirements**:
 
-- Self nomination by the contributor via a GitHub Issue.
+- Self-nomination by the contributor via a GitHub Issue.
 - substantive contributions (code, docs, tests, reviews, triage) in the last 3 months.
 
 **Privileges**:
@@ -90,7 +90,7 @@ A specialty defines scope for `reviewer` permissions and expectations.
 | Core Controllers    | CRDs, reconciliation logic, API evolution, performance                                                                                                                               | Reviews controller/CRD changes, ensures API consistency and backward compatibility                                                              | `@external-secrets/core-reviewers`                                                    |
 | Providers           | Provider integrations (AWS, Vault, GCP, Azure, CyberArk, etc.)                                                                                                                       | Reviews provider-specific code and conformance to provider guidelines; coordinates breaking changes (for providers that aren't `stable` graded) | `@external-secrets/providers-reviewers` or `@external-secrets/provider-<x>-reviewers` |
 | Documentation       | Update documentation in the project. This could be the following: blog posts, provider documentation, tutorials, examples, enhanced developer guides, etc.                           | Reviews and create documents and descriptions of the project                                                                                    | `@external-secrets/docs-reviewers`                                                    |
-| Community           | Community nurturing. Help with issues, handling community meetings, help fostering the face of external secrets operator, potentially partaking in events and promoting this project | Help on issues, monitor the slack channel, organize community talks and events, promote ESO, create demos, etc.                                 | `@external-secrets/community-organizers`                                              |
+| Community           | Community nurturing. Help with issues, handling community meetings, help fostering the face of external secrets operator, potentially partaking in events and promoting this project | Help on issues, monitor our Slack channel, organize community talks and events, promote ESO, create demos, etc.                                 | `@external-secrets/community-organizers`                                              |
 | Security            | Security items, including their documentation                                                                                                                                        | Finds and fixes security issues, proactively prevent new issues                                                                                 | `@external-secrets/security-reviewers`                                                |
 
 ---
@@ -222,7 +222,7 @@ Emeritus status recognizes former Maintainers, Reviewers, or Members who have ma
 
 ### Election Process
 
-This is automatically granted upon step down request, if requirements are met.
+This is automatically granted upon step-down request, if requirements are met.
 
 ## Member Abuse
 
@@ -256,7 +256,7 @@ All actions taken will be documented. The privacy of all individuals involved wi
 
 ### Climbing up the ladder
 
-1. **Nomination** by an eligible community member (Member or Higher) via a github issue.
+1. **Nomination** by an eligible community member (Member or Higher) via a GitHub issue.
 2. **Sponsorship** by two role holders at the **target level or higher** (within the specialty where applicable).
 3. **Review** of activity and behavior (quality, reliability, collaboration, responsiveness).
 4. **Decision** by lazy consensus of the relevant group (or **supermajority** if contested).

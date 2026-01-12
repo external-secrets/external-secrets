@@ -20,7 +20,7 @@ Next to that, as a CNCF project, you must also follow the CNCF Code of Conduct.
 
 ## Contributor License Agreement
 
-As a CNCF project, any contributor must (where applicable) sign the CNCF Contributor License Agreement (CLA) before the project accept their contribution.
+As a CNCF project, any contributor must (where applicable) sign the [CNCF Contributor License Agreement (CLA)](https://easycla.lfx.linuxfoundation.org/#/) before the project accept their contribution.
 
 ## Code contributions must be tracked until completion, no stragglers
 
@@ -71,7 +71,7 @@ Significant changes include for example:
 * changing the behavior of the controller significantly
 
 These are proposals under the repository’s `design/` directory.
-Each proposal go through the following cycle: **New** → **Reviewing** → **Accepted** or **Rejected**.
+Each proposal goes through the following cycle: **New** → **Reviewing** → **Accepted** or **Rejected**.
 
 The maintainers team will move the status of the proposal during community meeting.
 The project's roadmap is shaped by **Accepted** proposals.
@@ -169,7 +169,7 @@ Details on how to cut a release can be found in the [Contributing](CONTRIBUTING.
 We welcome you to spread the love about external secrets.
 
 External Secrets being a CNCF project, you have to follow the CNCF guidelines for the use of marketing materials.
-When in doubt, contact the maintainers through in slack (#external-secrets) if you want to organize a community event
+When in doubt, contact the maintainers in Slack (#external-secrets) if you want to organize a community event
 (e.g., meetup, webinar, workshop, etc.) around External Secrets.
 
 Sadly, as mentioned in our [Contributing Journey](journey.md), we do not have marketing material available.
