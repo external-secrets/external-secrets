@@ -132,6 +132,11 @@ func withSATokenGenerator(satg saTokenGenerator) workloadIdentityOption {
 // refreshableTokenSource is an oauth2.TokenSource that automatically refreshes
 // the token when it's about to expire. This ensures long-running operations
 // don't fail due to token expiration.
+//
+// Note: The ctx field is stored because oauth2.TokenSource.Token() doesn't accept
+// a context parameter. This is a known limitation - if the original context is
+// canceled, subsequent Token() calls will fail. For long-running operations,
+// consider creating a new TokenSource with a fresh context.
 type refreshableTokenSource struct {
 	mu sync.Mutex
 	// refreshFunc is called to generate a new token when needed.
@@ -394,11 +399,14 @@ func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWo
 	// The audience must be in the format "vault/{role}"
 	// Reference: https://support.hashicorp.com/hc/en-us/articles/37175601988499
 	// API Docs: https://developer.hashicorp.com/vault/api-docs/auth/gcp
-	exp := time.Now().Add(15 * time.Minute).Unix()
+	now := time.Now()
+	exp := now.Add(15 * time.Minute).Unix()
+	iat := now.Unix()
 	payload := map[string]interface{}{
 		"sub": gcpSA,
 		"aud": fmt.Sprintf("vault/%s", role),
 		"exp": exp,
+		"iat": iat,
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -514,13 +522,14 @@ func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Cli
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not get idbindtoken token, status: %v", resp.StatusCode)
-	}
-
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("could not get idbindtoken token, status: %v, body: %s", resp.StatusCode, string(body))
+	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
