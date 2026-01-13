@@ -19,6 +19,7 @@ RUN mkdir /image && \
 COPY ubi-build-files-${TARGETARCH}.txt /tmp
 # Copy all the required files from the base UBI image into the image directory
 # As the go binary is not statically compiled this includes everything needed for CGO to work, cacerts, tzdata and RH release files
+RUN ls -lR /
 RUN tar cf /tmp/files.tar -T /tmp/ubi-build-files-${TARGETARCH}.txt && tar xf /tmp/files.tar -C /image/ \
   && rpm --root /image --initdb \
   && PACKAGES=$(rpm -qf $(cat /tmp/ubi-build-files-${TARGETARCH}.txt) | grep -v "is not owned by any package" | sort -u) \
