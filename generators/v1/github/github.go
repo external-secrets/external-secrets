@@ -59,7 +59,6 @@ const (
 
 	errNoSpec    = "no config spec provided"
 	errParseSpec = "unable to parse spec: %w"
-	errGetToken  = "unable to get authorization token: %w"
 
 	contextTimeout    = 30 * time.Second
 	httpClientTimeout = 5 * time.Second
