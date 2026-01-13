@@ -210,6 +210,10 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1.Pu
 	defer provider.mu.Unlock()
 	providerItem, err := provider.findItem(ref.GetRemoteKey())
 	if err != nil {
+		if errors.Is(err, ErrKeyNotFound) {
+			return nil
+		}
+
 		return err
 	}
 

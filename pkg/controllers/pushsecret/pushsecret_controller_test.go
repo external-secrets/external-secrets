@@ -577,6 +577,101 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	// if PushSecret deletes a secret with properties, the status map should be cleaned up correctly
+	syncAndDeleteWithProperties := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.DeleteSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						Name: PushSecretStore,
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: &v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: defaultKey,
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: defaultPath,
+								Property:  "field1",
+							},
+						},
+					},
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: otherKey,
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: defaultPath,
+								Property:  "field2",
+							},
+						},
+					},
+				},
+			},
+		}
+		tc.secret.Data[otherKey] = []byte(otherVal)
+		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
+			updatedPS := &v1alpha1.PushSecret{}
+			// Wait for initial sync
+			Eventually(func() bool {
+				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				// Check both properties are in status
+				_, ok1 := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][defaultPath+"/field1"]
+				_, ok2 := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][defaultPath+"/field2"]
+				return ok1 && ok2
+			}, time.Second*10, time.Second).Should(BeTrue())
+
+			// Remove one property
+			updatedPS.Spec.Data = []v1alpha1.PushSecretData{
+				{
+					Match: v1alpha1.PushSecretMatch{
+						SecretKey: defaultKey,
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: defaultPath,
+							Property:  "field1",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Update(context.Background(), updatedPS, &client.UpdateOptions{})).Should(Succeed())
+
+			// Verify the removed property is deleted from status
+			Eventually(func() bool {
+				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				// field1 should still exist
+				_, ok1 := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][defaultPath+"/field1"]
+				// field2 should be removed
+				_, ok2 := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][defaultPath+"/field2"]
+				return ok1 && !ok2
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
 	// if PushSecret's DeletionPolicy is cleared, it should delete successfully
 	syncChangePolicyAndDeleteSuccessfully := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
@@ -1259,6 +1354,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should sync with template reusing keys", syncSuccessfullyReusingKeys),
 		Entry("should sync with conversion strategy", syncSuccessfullyWithConversionStrategy),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
+		Entry("should delete secrets with properties and update status correctly", syncAndDeleteWithProperties),
 		Entry("should delete after DeletionPolicy changed from Delete to None", syncChangePolicyAndDeleteSuccessfully),
 		Entry("should track deletion tasks if Delete fails", failDelete),
 		Entry("should track deleted stores if Delete fails", failDeleteStore),
