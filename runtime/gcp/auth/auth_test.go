@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -29,7 +30,23 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// mockTokenSource is a mock implementation of oauth2.TokenSource for testing.
+type mockTokenSource struct{}
+
+func (m *mockTokenSource) Token() (*oauth2.Token, error) {
+	return &oauth2.Token{AccessToken: "mock-token"}, nil
+}
+
 func TestNewTokenSource(t *testing.T) {
+	// Save original and restore after test
+	originalDefaultTokenSourceFunc := defaultTokenSourceFunc
+	t.Cleanup(func() { defaultTokenSourceFunc = originalDefaultTokenSourceFunc })
+
+	// Mock the default token source for tests that fall through to ADC
+	defaultTokenSourceFunc = func(_ context.Context, _ ...string) (oauth2.TokenSource, error) {
+		return &mockTokenSource{}, nil
+	}
+
 	tests := []struct {
 		name        string
 		auth        esv1.GCPSMAuth
@@ -240,31 +257,26 @@ func TestServiceAccountTokenSource(t *testing.T) {
 
 func TestTokenSourceFallback(t *testing.T) {
 	// Test the fallback behavior: service account key -> workload identity -> default credentials
-	tests := []struct {
-		name        string
-		auth        esv1.GCPSMAuth
-		expectError bool
-	}{
-		{
-			name:        "fallback to default credentials when nothing configured",
-			auth:        esv1.GCPSMAuth{},
-			expectError: false,
-		},
+
+	// Save original and restore after test
+	originalDefaultTokenSourceFunc := defaultTokenSourceFunc
+	t.Cleanup(func() { defaultTokenSourceFunc = originalDefaultTokenSourceFunc })
+
+	// Mock the default token source
+	defaultTokenSourceFunc = func(_ context.Context, _ ...string) (oauth2.TokenSource, error) {
+		return &mockTokenSource{}, nil
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			kube := clientfake.NewClientBuilder().Build()
-			ts, err := NewTokenSource(context.Background(), tt.auth, "test-project", esv1.SecretStoreKind, kube, "default")
+	t.Run("fallback to default credentials when nothing configured", func(t *testing.T) {
+		kube := clientfake.NewClientBuilder().Build()
+		ts, err := NewTokenSource(context.Background(), esv1.GCPSMAuth{}, "test-project", esv1.SecretStoreKind, kube, "default")
 
-			if tt.expectError {
-				assert.Error(t, err)
-				assert.Nil(t, ts)
-			} else {
-				assert.NoError(t, err)
-				// Default credentials will return a token source
-				assert.NotNil(t, ts)
-			}
-		})
-	}
+		assert.NoError(t, err)
+		assert.NotNil(t, ts)
+
+		// Verify the mock token source works
+		token, err := ts.Token()
+		assert.NoError(t, err)
+		assert.Equal(t, "mock-token", token.AccessToken)
+	})
 }

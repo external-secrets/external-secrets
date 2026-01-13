@@ -37,6 +37,10 @@ const (
 	errUnableProcessJSONCredentials = "unable to process json credentials: %w"
 )
 
+// defaultTokenSourceFunc is the function used to get default credentials.
+// It can be overridden in tests to avoid requiring real ADC.
+var defaultTokenSourceFunc = google.DefaultTokenSource
+
 // NewTokenSource creates a new OAuth2 token source for GCP authentication.
 // It attempts to create a token source using service account credentials, workload identity,
 // or workload identity federation in that order, falling back to default credentials.
@@ -77,7 +81,7 @@ func NewTokenSource(
 		return ts, err
 	}
 
-	return google.DefaultTokenSource(ctx, CloudPlatformRole)
+	return defaultTokenSourceFunc(ctx, CloudPlatformRole)
 }
 
 // GenerateSignedJWTForVault generates a signed JWT specifically for Vault GCP IAM authentication.
