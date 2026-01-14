@@ -133,34 +133,38 @@ func withSATokenGenerator(satg saTokenGenerator) workloadIdentityOption {
 	}
 }
 
+// tokenRefreshTimeout is the timeout for token refresh operations.
+const tokenRefreshTimeout = 30 * time.Second
+
 // refreshableTokenSource is an oauth2.TokenSource that automatically refreshes
 // the token when it's about to expire. This ensures long-running operations
 // don't fail due to token expiration.
-//
-// Note: The ctx field is stored because oauth2.TokenSource.Token() doesn't accept
-// a context parameter. This is a known limitation - if the original context is
-// canceled, subsequent Token() calls will fail. For long-running operations,
-// consider creating a new TokenSource with a fresh context.
 type refreshableTokenSource struct {
 	mu sync.Mutex
 	// refreshFunc is called to generate a new token when needed.
 	refreshFunc func(ctx context.Context) (*oauth2.Token, error)
 	// currentToken holds the current valid token.
 	currentToken *oauth2.Token
-	// ctx is used for token refresh operations.
-	ctx context.Context
 }
 
 // Token returns a valid token, refreshing it if necessary.
 // It implements the oauth2.TokenSource interface.
 // This method is thread-safe.
+//
+// Each refresh operation uses a fresh context.Background() with a bounded timeout,
+// ensuring that token refresh is independent of any original request context.
 func (r *refreshableTokenSource) Token() (*oauth2.Token, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	// Check if we need to refresh the token
 	if r.currentToken == nil || r.shouldRefresh() {
-		newToken, err := r.refreshFunc(r.ctx)
+		// Use a fresh context with timeout for refresh operations.
+		// This ensures refresh works even if the original request context was canceled.
+		ctx, cancel := context.WithTimeout(context.Background(), tokenRefreshTimeout)
+		defer cancel()
+
+		newToken, err := r.refreshFunc(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to refresh token: %w", err)
 		}
@@ -277,7 +281,6 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 	return &refreshableTokenSource{
 		refreshFunc:  refreshFunc,
 		currentToken: initialToken,
-		ctx:          ctx,
 	}, nil
 }
 
