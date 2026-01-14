@@ -26,20 +26,19 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/keymanager/v1/secrets"
-
 	corev1 "k8s.io/api/core/v1"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
-	errClientGeneric      = "barbican client: %w"
-	errClientMissingField = "barbican client: missing field %w"
-	errClientListAllSecrets = "barbican client: failed to list all secrets: %w"
-	errClientExtractSecrets = "barbican client: failed to extract secrets: %w"
-	errClientGetSecretPayload = "barbican client: failed to get secret payload: %w"
+	errClientGeneric                  = "barbican client: %w"
+	errClientMissingField             = "barbican client: missing field %w"
+	errClientListAllSecrets           = "barbican client: failed to list all secrets: %w"
+	errClientExtractSecrets           = "barbican client: failed to extract secrets: %w"
+	errClientGetSecretPayload         = "barbican client: failed to get secret payload: %w"
 	errClientGetSecretPayloadProperty = "barbican client: failed to get secret payload property: %w"
-	errClientJSONUnmarshal = "barbican client: failed to unmarshal json: %w"
+	errClientJSONUnmarshal            = "barbican client: failed to unmarshal json: %w"
 )
 
 var _ esapi.SecretsClient = &Client{}
@@ -180,5 +179,5 @@ func extractUUIDFromRef(secretRef string) string {
 		return secretRef[lastSlash+1:] // <- will not result in overflow even if it's the last `/`
 	}
 
-  return ""
+	return ""
 }

@@ -1951,6 +1951,7 @@ string
 <a href="#external-secrets.io/v1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
 <a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>, 
 <a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
+<a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
@@ -2114,6 +2115,53 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <p>The AccessKeySecret is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CacheConfig">CacheConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>CacheConfig configures client-side caching for read operations.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ttl</code></br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TTL is the time-to-live for cached secrets.
+Format: duration string (e.g., &ldquo;5m&rdquo;, &ldquo;1h&rdquo;, &ldquo;30s&rdquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxSize</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxSize is the maximum number of secrets to cache.
+When the cache is full, least-recently-used entries are evicted.</p>
 </td>
 </tr>
 </tbody>
@@ -2849,7 +2897,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -2875,7 +2923,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -3262,6 +3310,140 @@ ConjurAuth
 </td>
 <td>
 <p>Defines authentication settings for connecting to Conjur.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DVLSAuth">DVLSAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DVLSProvider">DVLSProvider</a>)
+</p>
+<p>
+<p>DVLSAuth defines the authentication method for the DVLS provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.DVLSAuthSecretRef">
+DVLSAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef contains the Application ID and Application Secret for authentication.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DVLSAuthSecretRef">DVLSAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DVLSAuth">DVLSAuth</a>)
+</p>
+<p>
+<p>DVLSAuthSecretRef defines the secret references for DVLS authentication credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>appId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AppID is the reference to the secret containing the Application ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AppSecret is the reference to the secret containing the Application Secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DVLSProvider">DVLSProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>DVLSProvider configures a store to sync secrets using Devolutions Server.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serverUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServerURL is the DVLS instance URL (e.g., <a href="https://dvls.example.com">https://dvls.example.com</a>).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>insecure</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Insecure allows connecting to DVLS over plain HTTP.
+This is NOT RECOMMENDED for production use.
+Set to true only if you understand the security implications.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.DVLSAuth">
+DVLSAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the authentication method to use.</p>
 </td>
 </tr>
 </tbody>
@@ -6652,6 +6834,35 @@ string
 <p>HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to &ldquo;<a href="https://app.infisical.com/api&quot;">https://app.infisical.com/api&rdquo;</a>.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CABundle is a PEM-encoded CA certificate bundle used to validate
+the Infisical server&rsquo;s TLS certificate. Mutually exclusive with CAProvider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CAProvider is a reference to a Secret or ConfigMap that contains a CA certificate.
+The certificate is used to validate the Infisical server&rsquo;s TLS certificate.
+Mutually exclusive with CABundle.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.IntegrationInfo">IntegrationInfo
@@ -7838,6 +8049,24 @@ OnePasswordSDKAuth
 <p>Auth defines the information necessary to authenticate against OnePassword API.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>cache</code></br>
+<em>
+<a href="#external-secrets.io/v1.CacheConfig">
+CacheConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+When enabled, secrets are cached with the specified TTL.
+Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+If omitted, caching is disabled (default).
+cache: {} is a valid option to set.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.OracleAuth">OracleAuth
@@ -8904,7 +9133,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -8930,7 +9159,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -9082,7 +9311,7 @@ VaultProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Vault configures this store to sync secrets using Hashi provider</p>
+<p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
 </td>
 </tr>
 <tr>
@@ -9166,7 +9395,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push GitHub Action secrets using GitHub API provider.
+<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.
 Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
@@ -9293,7 +9522,7 @@ ScalewayProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Scaleway</p>
+<p>Scaleway configures this store to sync secrets using the Scaleway provider.</p>
 </td>
 </tr>
 <tr>
@@ -9476,6 +9705,20 @@ Device42Provider
 <td>
 <em>(Optional)</em>
 <p>Device42 configures this store to sync secrets using the Device42 provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dvls</code></br>
+<em>
+<a href="#external-secrets.io/v1.DVLSProvider">
+DVLSProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DVLS configures this store to sync secrets using Devolutions Server provider</p>
 </td>
 </tr>
 <tr>
@@ -9704,7 +9947,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -9730,7 +9973,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </tbody>
@@ -16145,7 +16388,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -16171,7 +16414,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -20814,7 +21057,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -20840,7 +21083,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -20992,7 +21235,7 @@ VaultProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Vault configures this store to sync secrets using Hashi provider</p>
+<p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
 </td>
 </tr>
 <tr>
@@ -21076,7 +21319,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push Github Action secrets using Github API provider</p>
+<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.</p>
 </td>
 </tr>
 <tr>
@@ -21188,7 +21431,7 @@ ScalewayProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Scaleway</p>
+<p>Scaleway configures this store to sync secrets using the Scaleway provider.</p>
 </td>
 </tr>
 <tr>
@@ -21558,7 +21801,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -21584,7 +21827,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </tbody>

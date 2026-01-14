@@ -36,7 +36,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -47,6 +46,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (

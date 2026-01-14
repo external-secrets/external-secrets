@@ -17,6 +17,7 @@ limitations under the License.
 package ecr
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -24,10 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecrpublic"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
-)
-
-import (
-	"context"
 )
 
 const (
