@@ -8,7 +8,7 @@ Helm Chart releases are named `external-secrets-x.y.z`.
 
 ## Releasing policy
 
-Read when we are cutting releases in our [policy](policy.md#cutting-releases)
+Read when we are cutting releases in our [policy](GOVERNANCE.md#cutting-releases)
 
 ## Setting up your environment for releasing
 

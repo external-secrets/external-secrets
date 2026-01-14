@@ -149,8 +149,11 @@ Thanks for being part of this community! 🚀
 
 ## Conclusion
 
-This document sums up various procedures and things that we can do and we can start on. The important part is publication,
-visibility and outreach. There are many channel on which ESO can communicate but the most important ones are:
+This document sums up our various actionable procedures. The important part is publication,
+visibility and outreach.
+
+There are many channel on which ESO can communicate but the most important ones are:
+
 - Slack ( [external-secrets](https://kubernetes.slack.com/archives/C017BF84G2Y), [external-secrets-dev](https://kubernetes.slack.com/archives/C047LA9MUPJ) channels )
 - Reddit [Kubernetes Subreddit](https://www.reddit.com/r/kubernetes/) ( this was particulalry helpful in the past )
 - HackerNews pos
@@ -169,6 +172,7 @@ When events occur and response do not go as planned, the maintainers team will t
 Here is our DNA: Contributor's healths come first. We will never compromise humans for software.
 
 The team will try (best effort) to:
+
 - minimize impact on community
 - be transparent over any potential impact
 

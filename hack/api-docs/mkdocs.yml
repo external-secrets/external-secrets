@@ -34,7 +34,8 @@ markdown_extensions:
   - pymdownx.superfences
   - admonition
   - pymdownx.snippets:
-      base_path: docs
+      base_path:
+        - docs
 plugins:
   - search:
       lang: en
@@ -182,7 +183,7 @@ nav:
               - Contributor ladder policy: contributing/contributor_ladder.md
               - Code of Conduct: contributing/CODE_OF_CONDUCT.md
           - Deep dive explanations:
-              - Our policy: contributing/policy.md
+              - Our policy: contributing/GOVERNANCE.md
       - External Resources:
           - Talks: eso-talks.md
           - Demos: eso-demos.md
