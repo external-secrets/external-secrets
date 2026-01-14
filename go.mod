@@ -32,6 +32,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/delinea => ./providers/v1/delinea
 	github.com/external-secrets/external-secrets/providers/v1/device42 => ./providers/v1/device42
 	github.com/external-secrets/external-secrets/providers/v1/doppler => ./providers/v1/doppler
+	github.com/external-secrets/external-secrets/providers/v1/dvls => ./providers/v1/dvls
 	github.com/external-secrets/external-secrets/providers/v1/fake => ./providers/v1/fake
 	github.com/external-secrets/external-secrets/providers/v1/fortanix => ./providers/v1/fortanix
 	github.com/external-secrets/external-secrets/providers/v1/gcp => ./providers/v1/gcp
@@ -145,6 +146,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/device42 v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/dvls v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251104073127-4d2c8fd13e10
@@ -193,6 +195,7 @@ require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 // indirect
 	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1 // indirect
+	github.com/Devolutions/go-dvls v0.15.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect

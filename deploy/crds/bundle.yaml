@@ -3910,6 +3910,87 @@ spec:
                       required:
                         - auth
                       type: object
+                    dvls:
+                      description: DVLS configures this store to sync secrets using Devolutions Server provider
+                      properties:
+                        auth:
+                          description: Auth defines the authentication method to use.
+                          properties:
+                            secretRef:
+                              description: SecretRef contains the Application ID and Application Secret for authentication.
+                              properties:
+                                appId:
+                                  description: AppID is the reference to the secret containing the Application ID.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                appSecret:
+                                  description: AppSecret is the reference to the secret containing the Application Secret.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - appId
+                                - appSecret
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        insecure:
+                          description: |-
+                            Insecure allows connecting to DVLS over plain HTTP.
+                            This is NOT RECOMMENDED for production use.
+                            Set to true only if you understand the security implications.
+                          type: boolean
+                        serverUrl:
+                          description: ServerURL is the DVLS instance URL (e.g., https://dvls.example.com).
+                          type: string
+                      required:
+                        - auth
+                        - serverUrl
+                      type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
                       properties:
@@ -5682,6 +5763,28 @@ spec:
                               type: object
                           required:
                             - serviceAccountSecretRef
+                          type: object
+                        cache:
+                          description: |-
+                            Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+                            When enabled, secrets are cached with the specified TTL.
+                            Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+                            If omitted, caching is disabled (default).
+                            cache: {} is a valid option to set.
+                          properties:
+                            maxSize:
+                              default: 100
+                              description: |-
+                                MaxSize is the maximum number of secrets to cache.
+                                When the cache is full, least-recently-used entries are evicted.
+                              minimum: 1
+                              type: integer
+                            ttl:
+                              default: 5m
+                              description: |-
+                                TTL is the time-to-live for cached secrets.
+                                Format: duration string (e.g., "5m", "1h", "30s")
+                              type: string
                           type: object
                         integrationInfo:
                           description: |-
@@ -15576,6 +15679,87 @@ spec:
                       required:
                         - auth
                       type: object
+                    dvls:
+                      description: DVLS configures this store to sync secrets using Devolutions Server provider
+                      properties:
+                        auth:
+                          description: Auth defines the authentication method to use.
+                          properties:
+                            secretRef:
+                              description: SecretRef contains the Application ID and Application Secret for authentication.
+                              properties:
+                                appId:
+                                  description: AppID is the reference to the secret containing the Application ID.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                appSecret:
+                                  description: AppSecret is the reference to the secret containing the Application Secret.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - appId
+                                - appSecret
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        insecure:
+                          description: |-
+                            Insecure allows connecting to DVLS over plain HTTP.
+                            This is NOT RECOMMENDED for production use.
+                            Set to true only if you understand the security implications.
+                          type: boolean
+                        serverUrl:
+                          description: ServerURL is the DVLS instance URL (e.g., https://dvls.example.com).
+                          type: string
+                      required:
+                        - auth
+                        - serverUrl
+                      type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
                       properties:
@@ -17348,6 +17532,28 @@ spec:
                               type: object
                           required:
                             - serviceAccountSecretRef
+                          type: object
+                        cache:
+                          description: |-
+                            Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+                            When enabled, secrets are cached with the specified TTL.
+                            Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+                            If omitted, caching is disabled (default).
+                            cache: {} is a valid option to set.
+                          properties:
+                            maxSize:
+                              default: 100
+                              description: |-
+                                MaxSize is the maximum number of secrets to cache.
+                                When the cache is full, least-recently-used entries are evicted.
+                              minimum: 1
+                              type: integer
+                            ttl:
+                              default: 5m
+                              description: |-
+                                TTL is the time-to-live for cached secrets.
+                                Format: duration string (e.g., "5m", "1h", "30s")
+                              type: string
                           type: object
                         integrationInfo:
                           description: |-
