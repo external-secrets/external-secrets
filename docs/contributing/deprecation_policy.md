@@ -19,7 +19,7 @@ On top of that, we have our own deprecation policy explained here.
 
 ### Deprecations follow our general policy and are considered as impactful
 
-A quick reminder: Our [general policy](policy.md#deprecations-are-considered-impactful) considers deprecations and removals are impactful.
+A quick reminder: Our [general policy](GOVERNANCE.md#deprecations-are-considered-impactful) considers deprecations and removals are impactful.
 They require a proposal.
 
 ### Deprecation notices in release management
@@ -27,6 +27,7 @@ They require a proposal.
 Every deprecation warrants a major version bump.
 
 The release notes must prominently include:
+
 * A deprecation notice for the feature.
 * The expected timeline for removal (if applicable).
 
@@ -35,7 +36,9 @@ The release notes must prominently include:
 The removal must follow standard Kubernetes deprecation timelines.
 
 ## Non-Scope
+
 Everything not listed in scope is:
+
 * not subject to this deprecation policy
 * subject to breaking changes, updates at any point in time, and deprecation **as long as it follows the Deprecation Process listed below**.
 
