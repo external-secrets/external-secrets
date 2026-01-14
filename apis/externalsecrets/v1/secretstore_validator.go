@@ -32,6 +32,7 @@ var _ admission.CustomValidator = &GenericStoreValidator{}
 const (
 	errInvalidStore       = "invalid store"
 	warnStoreUnmaintained = "store %s isn't currently maintained. Please plan and prepare accordingly."
+	warnStoreDeprecated   = "store %s is deprecated and will stop working on the next major version. Please plan and prepare accordingly."
 )
 
 // GenericStoreValidator implements webhook validation for SecretStore and ClusterSecretStore resources.
@@ -69,13 +70,19 @@ func validateStore(store GenericStore) (admission.Warnings, error) {
 	if err != nil {
 		return nil, err
 	}
-	isMaintained, err := GetMaintenanceStatus(store)
+	status, err := GetMaintenanceStatus(store)
 	if err != nil {
 		return nil, err
 	}
 	warns, err := provider.ValidateStore(store)
-	if !isMaintained {
+	switch status {
+	case MaintenanceStatusNotMaintained:
 		warns = append(warns, fmt.Sprintf(warnStoreUnmaintained, store.GetName()))
+	case MaintenanceStatusDeprecated:
+		warns = append(warns, fmt.Sprintf(warnStoreDeprecated, store.GetName()))
+	case MaintenanceStatusMaintained:
+	default:
+		// no warnings
 	}
 	return warns, err
 }

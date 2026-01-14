@@ -108,7 +108,7 @@ go-work:
 .PHONY: test
 test: generate envtest go-work ## Run tests
 	@$(INFO) go test unit-tests
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test work -v -race -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test -tags $(PROVIDER) work -v -race -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: test.e2e
@@ -138,54 +138,48 @@ test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CR
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
 
+PROVIDER ?= all_providers
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
 	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
-		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
+		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module)
+lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
 		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
 		$(OK) Finished linting $(LINT_TARGET); \
 	else \
-		$(INFO) Running golangci-lint on all modules; \
-		FAILED=0; \
-		MODULES=$$(find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/node_modules/*" -exec dirname {} \;); \
-		for module in $$MODULES; do \
+		$(INFO) Running golangci-lint on all modules in parallel; \
+		JOBS=$${LINT_JOBS:-20}; \
+		TMPDIR=$$(mktemp -d); \
+		GOLANGCI=$(GOLANGCI_LINT); \
+		trap "rm -rf $$TMPDIR" EXIT; \
+		export TMPDIR GOLANGCI; \
+		find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/node_modules/*" -exec dirname {} \; | \
+		xargs -n 1 -P $$JOBS sh -c ' \
+			module="$$0"; \
+			name=$$(echo "$$module" | sed "s/[\/\.]/_/g"); \
 			echo "Linting $$module"; \
-			(cd $$module && $(GOLANGCI_LINT) run ./...) || FAILED=$$((FAILED + 1)); \
-		done; \
+			if (cd "$$module" && $$GOLANGCI run ./... 2>&1); then \
+				echo "✓ $$module" > "$$TMPDIR/$$name.success"; \
+			else \
+				echo "✗ $$module" > "$$TMPDIR/$$name.failed"; \
+				exit 1; \
+			fi \
+		'; \
+		FAILED=$$(find $$TMPDIR -name "*.failed" 2>/dev/null | wc -l | tr -d " "); \
+		SUCCESS=$$(find $$TMPDIR -name "*.success" 2>/dev/null | wc -l | tr -d " "); \
+		echo "Results: $$SUCCESS passed, $$FAILED failed"; \
 		if [ $$FAILED -ne 0 ]; then \
+			echo "Failed modules:"; \
+			cat $$TMPDIR/*.failed 2>/dev/null || true; \
 			$(ERR) Linting failed in $$FAILED module\(s\); \
 			exit 1; \
 		fi; \
-		$(OK) Finished linting; \
-	fi
-
-fmt: golangci-lint ## Ensure consistent code style (set LINT_TARGET to run on specific module)
-	@go mod tidy
-	@cd e2e/ && go mod tidy
-	@go fmt ./...
-	@if [ -n "$(LINT_TARGET)" ]; then \
-		$(INFO) Running golangci-lint --fix on $(LINT_TARGET); \
-		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run --fix ./...); \
-		$(OK) Finished fixing $(LINT_TARGET); \
-	else \
-		$(INFO) Running golangci-lint --fix on all modules; \
-		FAILED=0; \
-		MODULES=$$(find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/node_modules/*" -exec dirname {} \;); \
-		for module in $$MODULES; do \
-			echo "Fixing $$module"; \
-			(cd $$module && $(GOLANGCI_LINT) run --fix ./...) || FAILED=$$((FAILED + 1)); \
-		done; \
-		if [ $$FAILED -ne 0 ]; then \
-			$(ERR) Fixing failed in $$FAILED module\(s\); \
-			exit 1; \
-		fi; \
-		$(OK) Ensured consistent code style; \
+		$(OK) Finished linting all modules; \
 	fi
 
 generate: ## Generate code and crds
@@ -292,6 +286,7 @@ helm.update.appversion:
 
 # ====================================================================================
 # Documentation
+
 .PHONY: docs
 docs: generate ## Generate docs
 	$(MAKE) -C ./hack/api-docs build

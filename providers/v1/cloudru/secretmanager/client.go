@@ -31,8 +31,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/providers/v1/cloudru/secretmanager/adapter"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 var (

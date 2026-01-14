@@ -114,6 +114,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return admission.Warnings{}, errors.New("bitwarden spec not configured")
 	}
 
+	if bitwardenSpec.BitwardenServerSDKURL == "" {
+		return admission.Warnings{}, errors.New("bitwardenServerSDKURL not configured")
+	}
+
 	if bitwardenSpec.CAProvider == nil && bitwardenSpec.CABundle == "" {
 		return admission.Warnings{
 			"Neither CA nor CA bundle is configured; user is expected to provide certificate information via volume mount.",

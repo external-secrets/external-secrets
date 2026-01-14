@@ -24,27 +24,46 @@ jobs:
     permissions:
       contents: write # for publishing the release
     steps:
-      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+      - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve and validate ref
+        id: resolve_ref
+        run: |
+          set -e
+          # Try to fetch the ref from remote
+          if git fetch origin "${{ github.event.inputs.source_ref }}"; then
+            # Remote ref exists, use it
+            RESOLVED_SHA=$(git rev-parse "origin/${{ github.event.inputs.source_ref }}")
+          elif git rev-parse --verify "${{ github.event.inputs.source_ref }}" >/dev/null 2>&1; then
+            # Local ref exists (e.g., a tag)
+            RESOLVED_SHA=$(git rev-parse "${{ github.event.inputs.source_ref }}")
+          else
+            echo "Error: ref '${{ github.event.inputs.source_ref }}' not found"
+            exit 1
+          fi
+          echo "Resolved to SHA: $RESOLVED_SHA"
+          echo "sha=$RESOLVED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout validated ref
+        run: git checkout ${{ steps.resolve_ref.outputs.sha }}
 
       - name: Setup Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         id: setup-go
         with:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
+        uses: anchore/sbom-action/download-syft@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
 
       - name: Import GPG key
         id: import_gpg

@@ -88,7 +88,7 @@ const (
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
-	// +kubebuilder:default="1h"
+	// +kubebuilder:default="1h0m0s"
 	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
 
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`

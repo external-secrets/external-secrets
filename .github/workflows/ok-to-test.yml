@@ -16,7 +16,7 @@ jobs:
     # Only run for PRs, not issue comments
     if: ${{ github.event.issue.pull_request }}
     steps:
-    - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+    - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
       with:
         egress-policy: audit
     # Generate a GitHub App installation access token from an App ID and private key
@@ -25,14 +25,14 @@ jobs:
     # See app.yml for an example app manifest
     - name: Generate token
       id: generate_token
-      uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+      uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
       with:
         app-id: ${{ secrets.APP_ID }}
         private-key: ${{ secrets.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
 
     - name: Slash Command Dispatch
-      uses: peter-evans/slash-command-dispatch@13bc09769d122a64f75aa5037256f6f2d78be8c4 # v4.0.0
+      uses: peter-evans/slash-command-dispatch@9bdcd7914ec1b75590b790b844aa3b8eee7c683a # v5.0.2
       with:
         token: ${{ steps.generate_token.outputs.token }}
         reaction-token: ${{ secrets.GITHUB_TOKEN }}

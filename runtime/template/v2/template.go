@@ -55,8 +55,7 @@ var tplFuncs = tpl.FuncMap{
 	"toYaml":   toYAML,
 	"fromYaml": fromYAML,
 
-	"getSecretKey": getSecretKey,
-	"rsaDecrypt":   rsaDecrypt,
+	"rsaDecrypt": rsaDecrypt,
 }
 
 var leftDelim, rightDelim string
@@ -333,7 +332,9 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 		// navigate to the last element of the path and apply the entire struct at that location.
 		// build up the entire map structure that we are eventually going to apply.
 		current := unstructured
-		for _, part := range parts {
+		// this STOPS at the last part! That is important. for _, part := range parts does _include_ the last part
+		for i := 0; i < len(parts)-1; i++ {
+			part := parts[i]
 			if current[part] == nil {
 				current[part] = make(map[string]any)
 			}
@@ -345,7 +346,32 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 		}
 
 		// once we constructed the entire segment, we finally apply our parsed object
-		current[parts[len(parts)-1]] = parsed
+		// MERGE the parsed content into existing content instead of replacing it
+		lastPart := parts[len(parts)-1]
+		if existing, exists := current[lastPart]; exists {
+			// if both existing and new values are maps, merge them
+			existingMap, existingOk := existing.(map[string]any)
+			parsedMap, parsedOk := parsed.(map[string]any)
+
+			if existingOk && parsedOk {
+				for k, v := range parsedMap {
+					existingMap[k] = v
+				}
+
+				current[lastPart] = existingMap
+			} else {
+				// existing or parsed value is not a map, replace entirely.
+				// this might break if people are trying to overwrite
+				// fields that aren't supposed to do that. but that's
+				// on the user to keep in mind. If they are trying to
+				// update a number field with a complex value, that's
+				// going to error on update anyway.
+				current[lastPart] = parsed
+			}
+		} else {
+			// field doesn't exist yet, create it
+			current[lastPart] = parsed
+		}
 	}
 
 	// convert back to original object

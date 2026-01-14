@@ -1,8 +1,27 @@
+---
 global:
   nodeSelector: {}
   tolerations: []
   topologySpreadConstraints: []
+  #  - maxSkew: 1
+  #    topologyKey: topology.kubernetes.io/zone
+  #    whenUnsatisfiable: ScheduleAnyway
+  #    matchLabelKeys:
+  #      - pod-template-hash
+  #  - maxSkew: 1
+  #    topologyKey: kubernetes.io/hostname
+  #    whenUnsatisfiable: DoNotSchedule
+  #    matchLabelKeys:
+  #      - pod-template-hash
   affinity: {}
+  # -- Global pod labels to be applied to all deployments
+  podLabels: {}
+  # -- Global pod annotations to be applied to all deployments
+  podAnnotations: {}
+  # -- Global imagePullSecrets to be applied to all deployments
+  imagePullSecrets: []
+  # -- Global image repository to be applied to all deployments
+  repository: ""
   compatibility:
     openshift:
       # -- Manages the securityContext properties to make them compatible with OpenShift.
@@ -22,7 +41,7 @@ bitwarden-sdk-server:
 revisionHistoryLimit: 10
 
 image:
-  repository: oci.external-secrets.io/external-secrets/external-secrets
+  repository: ghcr.io/external-secrets/external-secrets
   pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
   tag: ""
@@ -36,20 +55,26 @@ image:
 installCRDs: true
 
 crds:
-  # -- If true, create CRDs for Cluster External Secret.
+  # -- If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false.
   createClusterExternalSecret: true
-  # -- If true, create CRDs for Cluster Secret Store.
+  # -- If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false.
   createClusterSecretStore: true
-  # -- If true, create CRDs for Cluster Generator.
+  # -- If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false.
+  createSecretStore: true
+  # -- If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false.
   createClusterGenerator: true
-  # -- If true, create CRDs for Cluster Push Secret.
+  # -- If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false.
   createClusterPushSecret: true
-  # -- If true, create CRDs for Push Secret.
+  # -- If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false.
   createPushSecret: true
   annotations: {}
   conversion:
     # -- Conversion is disabled by default as we stopped supporting v1alpha1.
     enabled: false
+  # -- If true, enable v1beta1 API version serving for ExternalSecret, ClusterExternalSecret, SecretStore, and ClusterSecretStore CRDs.
+  # v1beta1 is deprecated. Only enable this for backward compatibility if you have existing v1beta1 resources.
+  # Warning: This flag will be removed on 2026.05.01.
+  unsafeServeV1Beta1: false
 
 imagePullSecrets: []
 nameOverride: ""
@@ -95,6 +120,9 @@ processClusterPushSecret: true
 
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
+
+# -- if true, the operator will process secret store. Else, it will ignore them.
+processSecretStore: true
 
 # -- if true, the operator will process cluster generator. Else, it will ignore them.
 processClusterGenerator: true
@@ -383,7 +411,7 @@ webhook:
   # -- Specifies if webhook pod should use hostNetwork or not.
   hostNetwork: false
   image:
-    repository: oci.external-secrets.io/external-secrets/external-secrets
+    repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
     # -- The image tag to use. The default is the chart appVersion.
     tag: ""
@@ -564,7 +592,7 @@ certController:
   revisionHistoryLimit: 10
 
   image:
-    repository: oci.external-secrets.io/external-secrets/external-secrets
+    repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
     tag: ""
     flavour: ""

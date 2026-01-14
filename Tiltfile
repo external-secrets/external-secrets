@@ -102,7 +102,7 @@ if settings.get('debug').get('enabled'):
     dockerfile = 'tilt.debug.dockerfile'
 
 docker_build_with_restart(
-    'oci.external-secrets.io/external-secrets/external-secrets',
+    'ghcr.io/external-secrets/external-secrets',
     '.',
     dockerfile = dockerfile,
     entrypoint = entrypoint,
