@@ -30,7 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
-	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,6 +43,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakesm "github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager/fake"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
@@ -1547,7 +1547,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		secretValue           string
 		batchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
 		listSecretsFn         func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
-		getSecretValueFn     func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
+		getSecretValueFn      func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
 		expectedData          map[string][]byte
 		expectedError         string
 	}{
@@ -1694,63 +1694,67 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				Tags: secretTags,
 			},
 			listSecretsFn: func(_ context.Context, input *awssm.ListSecretsInput, _ ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
-			    allSecrets := []types.SecretListEntry{
-			        {
-			            Name: ptr.To(secretName),
-			            Tags: []types.Tag{
-			                { Key: ptr.To("foo"), Value: ptr.To("bar") },
-			            },
-			        },
-			        {
-			            Name: ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
-			        },
-			        {
-			            Name: ptr.To("unmatched-secret"),
-			            Tags: []types.Tag{
-			                { Key: ptr.To("foo"), Value: ptr.To("bar") },
-			            },
-			        },
-			    }
+				allSecrets := []types.SecretListEntry{
+					{
+						Name: ptr.To(secretName),
+						Tags: []types.Tag{
+							{Key: ptr.To("foo"), Value: ptr.To("bar")},
+						},
+					},
+					{
+						Name: ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+					},
+					{
+						Name: ptr.To("unmatched-secret"),
+						Tags: []types.Tag{
+							{Key: ptr.To("foo"), Value: ptr.To("bar")},
+						},
+					},
+				}
 
 				filtered := make([]types.SecretListEntry, 0, len(allSecrets))
 				for _, secret := range allSecrets {
-    			    exclude := false
+					exclude := false
 
-    			    tagMap := map[string]string{}
-    			    for _, t := range secret.Tags {
-    			        if t.Key != nil && t.Value != nil {
-    			            tagMap[*t.Key] = *t.Value
-    			        }
-    			    }
+					tagMap := map[string]string{}
+					for _, t := range secret.Tags {
+						if t.Key != nil && t.Value != nil {
+							tagMap[*t.Key] = *t.Value
+						}
+					}
 
-    			    for _, f := range input.Filters {
-    			        switch f.Key {
-    			        case types.FilterNameStringTypeName:
-    			            if secret.Name != nil {
-    			                for _, v := range f.Values {
-    			                    if strings.Contains(*secret.Name, v) {
-    			                        exclude = true
-    			                        break
-    			                    }
-    			                }
-    			            }
-    			        case types.FilterNameStringTypeTagKey:
-    			            for _, v := range f.Values {
-    			                if tagMap[v] == "" {
-    			                    exclude = true
-    			                    break
-    			                }
-    			            }
-						case types.FilterNameStringTypeDescription, types.FilterNameStringTypeTagValue, types.FilterNameStringTypePrimaryRegion, types.FilterNameStringTypeOwningService, types.FilterNameStringTypeAll:
+					for _, f := range input.Filters {
+						switch f.Key {
+						case types.FilterNameStringTypeName:
+							if secret.Name != nil {
+								for _, v := range f.Values {
+									if strings.Contains(*secret.Name, v) {
+										exclude = true
+										break
+									}
+								}
+							}
+						case types.FilterNameStringTypeTagKey:
+							for _, v := range f.Values {
+								if tagMap[v] == "" {
+									exclude = true
+									break
+								}
+							}
+						case types.FilterNameStringTypeDescription,
+							types.FilterNameStringTypeTagValue,
+							types.FilterNameStringTypePrimaryRegion,
+							types.FilterNameStringTypeOwningService,
+							types.FilterNameStringTypeAll:
 							continue
-    			        }
-    			    }
+						}
+					}
 
-    			    if !exclude {
-    			        filtered = append(filtered, secret)
-    			    }
-    			}
-			    return &awssm.ListSecretsOutput{SecretList: filtered}, nil
+					if !exclude {
+						filtered = append(filtered, secret)
+					}
+				}
+				return &awssm.ListSecretsOutput{SecretList: filtered}, nil
 			},
 			getSecretValueFn: func(_ context.Context, input *awssm.GetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
 				if *input.SecretId == secretName {

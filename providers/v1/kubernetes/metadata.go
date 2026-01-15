@@ -89,7 +89,11 @@ func mergeSourceMetadata(localSecret *v1.Secret, pushMeta *metadata.PushSecretMe
 // Takes the remote secret metadata and merges it with the source metadata.
 // The source metadata may replace the existing labels/annotations
 // or merge into it depending on policy.
-func mergeTargetMetadata(remoteSecret *v1.Secret, pushMeta *metadata.PushSecretMetadata[PushSecretMetadataSpec], sourceLabels, sourceAnnotations map[string]string) (map[string]string, map[string]string, error) {
+func mergeTargetMetadata(
+	remoteSecret *v1.Secret,
+	pushMeta *metadata.PushSecretMetadata[PushSecretMetadataSpec],
+	sourceLabels, sourceAnnotations map[string]string,
+) (map[string]string, map[string]string, error) {
 	labels := remoteSecret.ObjectMeta.Labels
 	annotations := remoteSecret.ObjectMeta.Annotations
 	if labels == nil {
