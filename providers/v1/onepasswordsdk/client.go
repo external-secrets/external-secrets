@@ -19,6 +19,7 @@ package onepasswordsdk
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -53,11 +54,20 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 		return nil, errors.New(errVersionNotImplemented)
 	}
 	key := p.constructRefKey(ref.Key)
+
+	if cached, ok := p.cacheGet(key); ok {
+		return cached, nil
+	}
+
 	secret, err := p.client.Secrets().Resolve(ctx, key)
 	if err != nil {
 		return nil, err
 	}
-	return []byte(secret), nil
+
+	result := []byte(secret)
+	p.cacheAdd(key, result)
+
+	return result, nil
 }
 
 // Close closes the client connection.
@@ -87,12 +97,16 @@ func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRe
 		if err = p.client.Items().Delete(ctx, providerItem.VaultID, providerItem.ID); err != nil {
 			return fmt.Errorf("failed to delete item: %w", err)
 		}
+		p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
 		return nil
 	}
 
 	if _, err = p.client.Items().Put(ctx, providerItem); err != nil {
 		return fmt.Errorf("failed to update item: %w", err)
 	}
+
+	p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
+
 	return nil
 }
 
@@ -128,17 +142,37 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 		return nil, errors.New(errVersionNotImplemented)
 	}
 
+	cacheKey := p.constructRefKey(ref.Key) + "|" + ref.Property
+	if cached, ok := p.cacheGet(cacheKey); ok {
+		var result map[string][]byte
+		if err := json.Unmarshal(cached, &result); err == nil {
+			return result, nil
+		}
+		// continue with fresh instead
+	}
+
 	item, err := p.findItem(ctx, ref.Key)
 	if err != nil {
 		return nil, err
 	}
 
+	var result map[string][]byte
 	propertyType, property := getObjType(item.Category, ref.Property)
 	if propertyType == filePrefix {
-		return p.getFiles(ctx, item, property)
+		result, err = p.getFiles(ctx, item, property)
+	} else {
+		result, err = p.getFields(item, property)
 	}
 
-	return p.getFields(item, property)
+	if err != nil {
+		return nil, err
+	}
+
+	if serialized, err := json.Marshal(result); err == nil {
+		p.cacheAdd(cacheKey, serialized)
+	}
+
+	return result, nil
 }
 
 func (p *Provider) getFields(item onepassword.Item, property string) (map[string][]byte, error) {
@@ -205,13 +239,11 @@ func getObjType(documentType onepassword.ItemCategory, property string) (string,
 
 // createItem creates a new item in the first vault. If no vaults exist, it returns an error.
 func (p *Provider) createItem(ctx context.Context, val []byte, ref esv1.PushSecretData) error {
-	// Get the metadata
 	mdata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
 
-	// Get the label
 	label := ref.GetProperty()
 	if label == "" {
 		label = "password"
@@ -235,6 +267,8 @@ func (p *Provider) createItem(ctx context.Context, val []byte, ref esv1.PushSecr
 	if err != nil {
 		return fmt.Errorf("failed to create item: %w", err)
 	}
+
+	p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
 
 	return nil
 }
@@ -326,6 +360,8 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref es
 		return fmt.Errorf("failed to update item: %w", err)
 	}
 
+	p.invalidateCacheByPrefix(p.constructRefKey(title))
+
 	return nil
 }
 
@@ -389,4 +425,42 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 func (p *Provider) constructRefKey(key string) string {
 	// remove any possible leading slashes because the vaultPrefix already contains it.
 	return p.vaultPrefix + strings.TrimPrefix(key, "/")
+}
+
+// cacheGet retrieves a value from the cache. Returns false if cache is disabled or key not found.
+func (p *Provider) cacheGet(key string) ([]byte, bool) {
+	if p.cache == nil {
+		return nil, false
+	}
+	return p.cache.Get(key)
+}
+
+// cacheAdd stores a value in the cache. No-op if cache is disabled.
+func (p *Provider) cacheAdd(key string, value []byte) {
+	if p.cache == nil {
+		return
+	}
+	p.cache.Add(key, value)
+}
+
+// invalidateCacheByPrefix removes all cache entries that start with the given prefix.
+// This is used to invalidate cache entries when an item is modified or deleted.
+// No-op if cache is disabled.
+// Why are we using a Prefix? Because items and properties are stored via prefixes using 1Password SDK.
+// This means when an item is deleted we delete the fields and properties that belong to the item as well.
+func (p *Provider) invalidateCacheByPrefix(prefix string) {
+	if p.cache == nil {
+		return
+	}
+
+	keys := p.cache.Keys()
+	for _, key := range keys {
+		if strings.HasPrefix(key, prefix) {
+			// if exact match, or ends in `/` or `|` we can remove it.
+			// this will clear all fields and properties for this entry.
+			if len(key) == len(prefix) || key[len(prefix)] == '/' || key[len(prefix)] == '|' {
+				p.cache.Remove(key)
+			}
+		}
+	}
 }

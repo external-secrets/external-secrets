@@ -296,6 +296,9 @@
                 },
                 "createSecretStore": {
                     "type": "boolean"
+                },
+                "unsafeServeV1Beta1": {
+                    "type": "boolean"
                 }
             }
         },

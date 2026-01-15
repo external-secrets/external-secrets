@@ -23,7 +23,7 @@ import (
 
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 
-	"github.com/external-secrets/external-secrets/providers/v1/yandex/common"
+	ydxcommon "github.com/external-secrets/external-secrets/providers/v1/yandex/common"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/lockbox/client"
 )
 
@@ -81,7 +81,12 @@ func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resour
 	return secretMap, nil
 }
 
-func (g *lockboxSecretGetter) fetchPayloadEntries(ctx context.Context, iamToken, resourceKey string, resourceKeyType ydxcommon.ResourceKeyType, folderID, versionID string) ([]*lockbox.Payload_Entry, error) {
+func (g *lockboxSecretGetter) fetchPayloadEntries(
+	ctx context.Context,
+	iamToken, resourceKey string,
+	resourceKeyType ydxcommon.ResourceKeyType,
+	folderID, versionID string,
+) ([]*lockbox.Payload_Entry, error) {
 	switch resourceKeyType {
 	case ydxcommon.ResourceKeyTypeID:
 		return g.lockboxClient.GetPayloadEntries(ctx, iamToken, resourceKey, versionID)
