@@ -52,7 +52,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.9
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.3
 	github.com/cyberark/conjur-api-go v0.13.8
-	github.com/external-secrets/external-secrets/apis v0.11.0
+	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/runtime v0.0.0
@@ -256,6 +256,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
