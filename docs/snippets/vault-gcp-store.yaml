@@ -1,0 +1,33 @@
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "https://vault.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        # Authenticate against Vault using GCP IAM
+        # https://developer.hashicorp.com/vault/docs/auth/gcp
+        gcp:
+          # Path where the GCP authentication backend is mounted in Vault
+          mountPath: "gcp"
+          # A required field containing the Vault Role to assume
+          role: "my-role"
+          # Optional GCP project ID
+          projectID: "my-project"
+          # Option 1: Authenticate using GKE Workload Identity (recommended)
+          workloadIdentity:
+            clusterLocation: us-central1
+            clusterName: my-cluster
+            serviceAccountRef:
+              name: "my-sa"
+              # Namespace is required for ClusterSecretStore
+              namespace: "default"
+          # Option 2: Authenticate using a service account key stored in a Secret
+          # secretRef:
+          #   secretAccessKeySecretRef:
+          #     name: "gcpsm-secret"
+          #     key: "secret-access-credentials"

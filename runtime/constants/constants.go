@@ -33,6 +33,7 @@ const (
 	CallAWSSMPutResourcePolicy    = "PutResourcePolicy"
 	CallAWSSMGetResourcePolicy    = "GetResourcePolicy"
 	CallAWSSMDeleteResourcePolicy = "DeleteResourcePolicy"
+	CallGCPSMSignJwt             = "SignJwt"
 
 	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"

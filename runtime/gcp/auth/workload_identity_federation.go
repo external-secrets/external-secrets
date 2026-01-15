@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretmanager
+package auth
 
 import (
 	"context"
@@ -126,18 +126,39 @@ const (
 	awsSessionTokenKeyName    = "aws_session_token"
 )
 
-func newWorkloadIdentityFederation(kube kclient.Client, wif *esv1.GCPWorkloadIdentityFederation, isClusterKind bool, namespace string) (*workloadIdentityFederation, error) {
-	satg, err := newSATokenGenerator()
-	if err != nil {
-		return nil, err
+// wifOption is a functional option for configuring workloadIdentityFederation.
+type wifOption func(*workloadIdentityFederation)
+
+// withWifSATokenGenerator sets a custom saTokenGenerator (used for testing).
+func withWifSATokenGenerator(satg saTokenGenerator) wifOption {
+	return func(w *workloadIdentityFederation) {
+		w.saTokenGenerator = satg
 	}
-	return &workloadIdentityFederation{
-		kubeClient:       kube,
-		saTokenGenerator: satg,
-		config:           wif,
-		isClusterKind:    isClusterKind,
-		namespace:        namespace,
-	}, nil
+}
+
+func newWorkloadIdentityFederation(kube kclient.Client, wif *esv1.GCPWorkloadIdentityFederation, isClusterKind bool, namespace string, opts ...wifOption) (*workloadIdentityFederation, error) {
+	w := &workloadIdentityFederation{
+		kubeClient:    kube,
+		config:        wif,
+		isClusterKind: isClusterKind,
+		namespace:     namespace,
+	}
+
+	// Apply options first (allows tests to inject mocks)
+	for _, opt := range opts {
+		opt(w)
+	}
+
+	// Only create real SA token generator if not injected
+	if w.saTokenGenerator == nil {
+		satg, err := newSATokenGenerator()
+		if err != nil {
+			return nil, err
+		}
+		w.saTokenGenerator = satg
+	}
+
+	return w, nil
 }
 
 func (w *workloadIdentityFederation) TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
@@ -186,7 +207,7 @@ func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*exter
 
 	cm := &corev1.ConfigMap{}
 	if err := w.kubeClient.Get(ctx, key, cm); err != nil {
-		return nil, fmt.Errorf("failed to fetch external acccount credentials configmap %q: %w", key, err)
+		return nil, fmt.Errorf("failed to fetch external account credentials configmap %q: %w", key, err)
 	}
 
 	credKeyName := w.config.CredConfig.Key
@@ -199,7 +220,7 @@ func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*exter
 	}
 	credFile := &credentialsFile{}
 	if err := json.Unmarshal([]byte(credJSON), credFile); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal external acccount config in %q: %w", w.config.CredConfig.Name, err)
+		return nil, fmt.Errorf("failed to unmarshal external account config in %q: %w", w.config.CredConfig.Name, err)
 	}
 
 	return w.generateExternalAccountConfig(ctx, credFile)
