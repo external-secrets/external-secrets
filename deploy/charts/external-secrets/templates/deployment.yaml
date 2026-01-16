@@ -141,6 +141,10 @@ spec:
           livenessProbe:
           {{- toYaml (omit .Values.livenessProbe.spec "address") | nindent 12 }}
           {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+          {{- toYaml .Values.readinessProbe.spec | nindent 12 }}
+          {{- end }}
           {{- with .Values.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
