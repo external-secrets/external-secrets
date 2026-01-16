@@ -366,6 +366,7 @@ livenessProbe:
 
 readinessProbe:
   # -- Enabled determines if the readiness probe should be used or not. By default it's disabled.
+  # -- Note: Requires livenessProbe.enabled=true as the healthz endpoint is started by the liveness probe configuration.
   enabled: false
   # -- The body of the readiness probe settings.
   spec:
