@@ -124,7 +124,7 @@ spec:
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
-          {{- if .Values.livenessProbe.enabled }}
+          {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
           - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.httpGet.port }}
           {{- end }}
           {{- if .Values.metrics.listen.secure.enabled }}
