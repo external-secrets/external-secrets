@@ -130,3 +130,29 @@ tests:
       - notContains:
           path: spec.template.spec.containers[0].args
           content: "--enable-http2"
+  - it: should default to hostUsers absent
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should permit override of hostUsers
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    set:
+      hostUsers: false
+    asserts:
+      - equal:
+          path: spec.template.spec.hostUsers
+          value: false
+  - it: should ignore hostUsers on older k8s
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '32'
+    set:
+      hostUsers: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
