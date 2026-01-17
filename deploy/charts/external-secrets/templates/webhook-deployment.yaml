@@ -47,6 +47,11 @@ spec:
       hostNetwork: {{ .Values.webhook.hostNetwork}}
       serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.webhook.serviceAccount.automount }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      {{- if kindIs "bool" .Values.webhook.hostUsers }}
+      hostUsers: {{ .Values.webhook.hostUsers }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.webhook.podSecurityContext }}
       {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:

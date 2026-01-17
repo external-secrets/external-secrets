@@ -46,6 +46,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.extraVolumeMounts | list | `[]` |  |
 | certController.extraVolumes | list | `[]` |  |
 | certController.hostNetwork | bool | `false` | Run the certController on the host network |
+| certController.hostUsers | bool | `nil` | Specifies if certController pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | certController.image.flavour | string | `""` |  |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
 | certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
@@ -131,6 +132,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | grafanaDashboard.sidecarLabel | string | `"grafana_dashboard"` | Label that ConfigMaps should have to be loaded as dashboards. |
 | grafanaDashboard.sidecarLabelValue | string | `"1"` | Label value that ConfigMaps should have to be loaded as dashboards. |
 | hostNetwork | bool | `false` | Run the controller on the host network |
+| hostUsers | bool | `nil` | Specifies if controller pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default, the distroless image is used. |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
@@ -205,7 +207,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceMonitor.metricRelabelings | list | `[]` | Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs) |
 | serviceMonitor.namespace | string | `""` | namespace where you want to install ServiceMonitors |
 | serviceMonitor.relabelings | list | `[]` | Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) |
-| serviceMonitor.renderMode | string | `"skipIfMissing"` | How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`" Possible values: - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing. - `failIfMissing`: Fail Helm install if CRD is not present. - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD. @schema enum: - skipIfMissing - failIfMissing - alwaysRender @schema |
+| serviceMonitor.renderMode | string | `"skipIfMissing"` | How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`"  Possible values: - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing. - `failIfMissing`: Fail Helm install if CRD is not present. - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD. @schema enum: - skipIfMissing - failIfMissing - alwaysRender @schema |
 | serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | strategy | object | `{}` | Set deployment strategy |
 | systemAuthDelegator | bool | `false` | If true the system:auth-delegator ClusterRole will be added to RBAC |
@@ -232,6 +234,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.extraVolumes | list | `[]` |  |
 | webhook.failurePolicy | string | `"Fail"` | Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore |
 | webhook.hostNetwork | bool | `false` | Specifies if webhook pod should use hostNetwork or not. |
+| webhook.hostUsers | bool | `nil` | Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | webhook.image.flavour | string | `""` | The flavour of tag you want to use |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
 | webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |

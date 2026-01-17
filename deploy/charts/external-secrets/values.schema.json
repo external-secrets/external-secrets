@@ -46,6 +46,12 @@
                 "hostNetwork": {
                     "type": "boolean"
                 },
+                "hostUsers": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
                 "image": {
                     "type": "object",
                     "properties": {
@@ -419,6 +425,12 @@
         },
         "hostNetwork": {
             "type": "boolean"
+        },
+        "hostUsers": {
+            "type": [
+                "boolean",
+                "null"
+            ]
         },
         "image": {
             "type": "object",
@@ -858,6 +870,12 @@
                 },
                 "hostNetwork": {
                     "type": "boolean"
+                },
+                "hostUsers": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
                 },
                 "image": {
                     "type": "object",

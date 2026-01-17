@@ -46,6 +46,11 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.certController.serviceAccount.automount }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      {{- if kindIs "bool" .Values.certController.hostUsers }}
+      hostUsers: {{ .Values.certController.hostUsers }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.certController.podSecurityContext }}
        {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:

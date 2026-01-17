@@ -433,3 +433,39 @@ tests:
       - contains:
           path: spec.template.spec.containers[0].args
           content: "--enable-http2=true"
+  - it: should default to hostUsers absent
+    set:
+      webhook.create: true
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should permit override of hostUsers
+    set:
+      webhook.create: true
+      webhook.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostUsers
+          value: false
+  - it: should ignore hostUsers on older k8s
+    set:
+      webhook.create: true
+      webhook.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '32'
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
