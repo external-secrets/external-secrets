@@ -385,7 +385,7 @@ podDisruptionBudget:
 # -- Run the controller on the host network
 hostNetwork: false
 
-# -- Specifies if controller pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too.
+# -- (bool) Specifies if controller pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too.
 # @schema type: [boolean, null]
 hostUsers:
 
@@ -411,7 +411,7 @@ webhook:
   failurePolicy: Fail
   # -- Specifies if webhook pod should use hostNetwork or not.
   hostNetwork: false
-  # -- Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too.
+  # -- (bool) Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too.
   # @schema type: [boolean, null]
   hostUsers:
   image:
@@ -626,7 +626,7 @@ certController:
 
   # -- Run the certController on the host network
   hostNetwork: false
-  # -- Specifies if certController pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too.
+  # -- (bool) Specifies if certController pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too.
   # @schema type: [boolean, null]
   hostUsers:
 
