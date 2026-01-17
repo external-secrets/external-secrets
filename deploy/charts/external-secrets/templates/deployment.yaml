@@ -125,8 +125,9 @@ spec:
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
           {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+          {{- $healthAddress := ternary .Values.livenessProbe.spec.address .Values.readinessProbe.spec.address .Values.livenessProbe.enabled }}
           {{- $healthPort := ternary .Values.livenessProbe.spec.httpGet.port .Values.readinessProbe.spec.httpGet.port .Values.livenessProbe.enabled }}
-          - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ $healthPort }}
+          - --live-addr={{ $healthAddress }}:{{ $healthPort }}
           {{- end }}
           {{- if .Values.metrics.listen.secure.enabled }}
           - --metrics-secure=true
@@ -144,7 +145,7 @@ spec:
           {{- end }}
           {{- if .Values.readinessProbe.enabled }}
           readinessProbe:
-          {{- toYaml .Values.readinessProbe.spec | nindent 12 }}
+          {{- toYaml (omit .Values.readinessProbe.spec "address") | nindent 12 }}
           {{- end }}
           {{- with .Values.extraEnv }}
           env:

@@ -370,6 +370,8 @@ readinessProbe:
   enabled: false
   # -- The body of the readiness probe settings.
   spec:
+    # -- Address for readiness probe.
+    address: ""
     # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
     timeoutSeconds: 5
     # -- Number of consecutive probe failures that should occur before considering the probe as failed.
