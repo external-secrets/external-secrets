@@ -20,8 +20,10 @@ import (
 	"encoding/json"
 
 	"github.com/DelineaXPM/tss-sdk-go/v3/server"
-	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/onsi/gomega"
+
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/framework/log"
 )
 
 type secretStoreProvider struct {
@@ -43,6 +45,8 @@ func (p *secretStoreProvider) init(cfg *config, f *framework.Framework) {
 		ServerURL: cfg.serverURL,
 	})
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	log.Logf("secret store provider initialized with server url: %s", cfg.serverURL)
 
 	p.api = secretserverClient
 }
