@@ -13,7 +13,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.22.3
 )
 
-replace github.com/DelineaXPM/tss-sdk-go/v3 => github.com/Skarlso/tss-sdk-go/v3 v3.0.0
+replace github.com/DelineaXPM/tss-sdk-go/v3 => github.com/Skarlso/tss-sdk-go/v3 v3.0.1
 
 require (
 	dario.cat/mergo v1.0.2 // indirect

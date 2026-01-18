@@ -61,7 +61,7 @@ replace (
 	github.com/external-secrets/external-secrets/runtime => ./runtime
 )
 
-replace github.com/DelineaXPM/tss-sdk-go/v3 => github.com/Skarlso/tss-sdk-go/v3 v3.0.0
+replace github.com/DelineaXPM/tss-sdk-go/v3 => github.com/Skarlso/tss-sdk-go/v3 v3.0.1
 
 require (
 	cloud.google.com/go/iam v1.5.3 // indirect

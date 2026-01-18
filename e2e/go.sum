@@ -122,8 +122,8 @@ github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1
 github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Masterminds/sprig/v3 v3.3.0 h1:mQh0Yrg1XPo6vjYXgtf5OtijNAKJRNcTdOOGZe3tPhs=
 github.com/Masterminds/sprig/v3 v3.3.0/go.mod h1:Zy1iXRYNqNLUolqCpL4uhk6SHUMAOSCzdgBfDb35Lz0=
-github.com/Skarlso/tss-sdk-go/v3 v3.0.0 h1:TPm6lYQCKO62I0HsK1x3fGoYeVG56zDpS2QvPtr8p5o=
-github.com/Skarlso/tss-sdk-go/v3 v3.0.0/go.mod h1:VmyoHQ25FhSVHTI3/ptQNOviNEMfCy2ALAf/3E4Eqxg=
+github.com/Skarlso/tss-sdk-go/v3 v3.0.1 h1:xYE1ZiLu5WkhCMxS9gDwQyXBSqWRm6Aq+o62BsUaZuw=
+github.com/Skarlso/tss-sdk-go/v3 v3.0.1/go.mod h1:VmyoHQ25FhSVHTI3/ptQNOviNEMfCy2ALAf/3E4Eqxg=
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5 h1:ly0WKARATneFzwBlTZ2lUyjtLqoOEYqt1vOlf89za/4=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5/go.mod h1:W6DMNwPyIE3jpXDaJOvCKUT/kHPZrpl/BGiIVUILbMk=
