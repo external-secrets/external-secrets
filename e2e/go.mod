@@ -4,7 +4,7 @@ go 1.25.5
 
 replace github.com/external-secrets/external-secrets => ../
 
-replace github.com/DelineaXPM/tss-sdk-go => github.com/Skarlso/tss-sdk-go v0.0.0-20260118202929-eac07e8c0a4b
+replace github.com/DelineaXPM/tss-sdk-go/v3 => github.com/Skarlso/tss-sdk-go/v3 v3.0.0
 
 replace (
 	github.com/external-secrets/external-secrets v0.0.0 => ../

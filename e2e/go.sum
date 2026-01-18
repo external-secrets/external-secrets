@@ -115,8 +115,6 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 h1:62E66sDf+Hs1TChuu3R7d+0U5s7yV84QIOvvnfxtUJM=
 github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0/go.mod h1:58Pflli0BtqeF0VgluDSSVE5QlIfLOJvat0JSvo/d70=
-github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1 h1:4JBJukbaTjv2gJogF3MxZkrt7i+ayRhM//FgdJTKJ3Q=
-github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1/go.mod h1:VmyoHQ25FhSVHTI3/ptQNOviNEMfCy2ALAf/3E4Eqxg=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
@@ -124,6 +122,8 @@ github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1
 github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Masterminds/sprig/v3 v3.3.0 h1:mQh0Yrg1XPo6vjYXgtf5OtijNAKJRNcTdOOGZe3tPhs=
 github.com/Masterminds/sprig/v3 v3.3.0/go.mod h1:Zy1iXRYNqNLUolqCpL4uhk6SHUMAOSCzdgBfDb35Lz0=
+github.com/Skarlso/tss-sdk-go/v3 v3.0.0 h1:TPm6lYQCKO62I0HsK1x3fGoYeVG56zDpS2QvPtr8p5o=
+github.com/Skarlso/tss-sdk-go/v3 v3.0.0/go.mod h1:VmyoHQ25FhSVHTI3/ptQNOviNEMfCy2ALAf/3E4Eqxg=
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5 h1:ly0WKARATneFzwBlTZ2lUyjtLqoOEYqt1vOlf89za/4=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5/go.mod h1:W6DMNwPyIE3jpXDaJOvCKUT/kHPZrpl/BGiIVUILbMk=
