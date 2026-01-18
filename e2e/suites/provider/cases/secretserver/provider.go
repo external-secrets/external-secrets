@@ -46,7 +46,7 @@ func (p *secretStoreProvider) init(cfg *config, f *framework.Framework) {
 	})
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	log.Logf("secret store provider initialized with server url: %s", cfg.serverURL)
+	log.Logf("secret store provider initialized with server url: %d", len(cfg.serverURL))
 
 	p.api = secretserverClient
 }
