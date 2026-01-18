@@ -4,6 +4,8 @@ go 1.25.5
 
 replace github.com/external-secrets/external-secrets => ../
 
+replace github.com/DelineaXPM/tss-sdk-go => github.com/Skarlso/tss-sdk-go v0.0.0-20260118202929-eac07e8c0a4b
+
 replace (
 	github.com/external-secrets/external-secrets v0.0.0 => ../
 	github.com/go-check/check => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
@@ -42,7 +44,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.30
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0
-	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.0
+	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5
 	github.com/akeylesslabs/akeyless-go/v4 v4.3.0
 	github.com/aliyun/alibaba-cloud-sdk-go v1.63.107

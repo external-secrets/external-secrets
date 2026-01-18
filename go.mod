@@ -61,6 +61,8 @@ replace (
 	github.com/external-secrets/external-secrets/runtime => ./runtime
 )
 
+replace github.com/DelineaXPM/tss-sdk-go => github.com/Skarlso/tss-sdk-go v0.0.0-20260118202929-eac07e8c0a4b
+
 require (
 	cloud.google.com/go/iam v1.5.3 // indirect
 	cloud.google.com/go/secretmanager v1.16.0 // indirect
@@ -194,7 +196,7 @@ require (
 	github.com/BeyondTrust/go-client-library-passwordsafe v1.0.0 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 // indirect
-	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.0 // indirect
+	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1 // indirect
 	github.com/Devolutions/go-dvls v0.15.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d // indirect

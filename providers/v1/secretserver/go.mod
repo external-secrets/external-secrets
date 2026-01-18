@@ -3,7 +3,7 @@ module github.com/external-secrets/external-secrets/providers/v1/secretserver
 go 1.25.5
 
 require (
-	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.0
+	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/stretchr/testify v1.11.1
@@ -12,6 +12,8 @@ require (
 	k8s.io/apimachinery v0.34.1
 	sigs.k8s.io/controller-runtime v0.22.3
 )
+
+replace github.com/DelineaXPM/tss-sdk-go => github.com/Skarlso/tss-sdk-go v0.0.0-20260118202929-eac07e8c0a4b
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
