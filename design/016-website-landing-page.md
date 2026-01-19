@@ -118,91 +118,7 @@ This gives us:
 - Search across the whole website
 - Simpler CI/CD
 
-In other words: This is better if team prefers single toolchain. Hugo recommended for better landing page flexibility.
-
-#### Landing Page Template
-
-```html
-<!-- website/layouts/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>External Secrets Operator</title>
-    <meta name="description" content="Kubernetes operator that integrates external secret management systems">
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="icon" href="/images/logo.svg">
-</head>
-<body>
-    <!-- Navigation -->
-    <nav>
-        <a href="/" class="logo">
-            <img src="/images/logo.svg" alt="ESO">
-            <span>External Secrets</span>
-        </a>
-        <div class="nav-links">
-            <a href="/latest/">Docs</a>
-            <a href="https://github.com/external-secrets/external-secrets">GitHub</a>
-        </div>
-    </nav>
-
-    <!-- Hero -->
-    <section class="hero">
-        <h1>External Secrets Operator</h1>
-        <p class="tagline">Sync secrets from external APIs into Kubernetes</p>
-        <div class="cta-buttons">
-            <a href="/latest/introduction/getting-started/" class="btn primary">Get Started</a>
-            <a href="https://github.com/external-secrets/external-secrets" class="btn secondary">View on GitHub</a>
-        </div>
-    </section>
-
-    <!-- Features -->
-    <section class="features">
-        <div class="feature">
-            <h3>40+ Providers</h3>
-            <p>AWS, Vault, Azure, GCP, and many more out of the box.</p>
-        </div>
-        <div class="feature">
-            <h3>Kubernetes Native</h3>
-            <p>Declarative CRDs with automatic reconciliation.</p>
-        </div>
-        <div class="feature">
-            <h3>Bidirectional Sync</h3>
-            <p>Pull secrets in, or push them out with PushSecret.</p>
-        </div>
-        <div class="feature">
-            <h3>Dynamic Generators</h3>
-            <p>Generate passwords, SSH keys, and registry credentials.</p>
-        </div>
-    </section>
-
-    <!-- CNCF Badge -->
-    <section class="cncf">
-        <p>We are a <a href="https://www.cncf.io/">Cloud Native Computing Foundation</a> project.</p>
-        <img src="/images/cncf-logo.svg" alt="CNCF">
-    </section>
-
-    <!-- Adopters -->
-    <section class="adopters">
-        <h2>Trusted By</h2>
-        <div class="adopter-logos">
-            <!-- Logos added here -->
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer>
-        <div class="social-links">
-            <a href="https://kubernetes.slack.com/messages/external-secrets">Slack</a>
-            <a href="https://github.com/external-secrets/external-secrets">GitHub</a>
-            <a href="https://twitter.com/ExtSecretsOptr">Twitter</a>
-        </div>
-        <p>&copy; 2025 The external-secrets Authors. A CNCF Project.</p>
-    </footer>
-</body>
-</html>
-```
+In other words: This is better if team prefers single toolchain.
 
 The biggest alternative is to build our docs with Hugo. It is recommended for better landing page flexibility. See alternatives section.
 
@@ -286,7 +202,7 @@ external-secrets/
 └── ...
 ```
 
-Alternatively, we can do the website on another git repo to not pollute our main content.
+Alternatively, we can do the website on another git repo to not pollute our main content. 
 
 #### Hugo Configuration
 
@@ -306,50 +222,6 @@ title = "External Secrets Operator"
 # Minimal theme - single page doesn't need much
 [module]
   # Use a minimal theme or custom layouts
-```
-
-#### Build Pipeline
-
-Update GitHub Actions to build both Hugo and mkdocs:
-
-```yaml
-# .github/workflows/publish.yml (addition)
-jobs:
-  build-website:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # Build Hugo landing page
-      - name: Setup Hugo
-        uses: peaceiris/actions-hugo@v2
-        with:
-          hugo-version: 'latest'
-
-      - name: Build Landing Page
-        run: hugo --source website --destination ../public
-
-      # Build mkdocs docs
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install mkdocs
-        run: pip install mkdocs-material mike pymdown-extensions
-
-      - name: Build Docs
-        run: mkdocs build -f hack/api-docs/mkdocs.yml
-
-      # Combine outputs
-      # Hugo output at /public/
-      # mkdocs output at /public/latest/ (via mike)
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
 ```
 
 **Pros:**
