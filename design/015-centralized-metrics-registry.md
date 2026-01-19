@@ -415,6 +415,9 @@ func (r *ControllerRegistry) RemoveESMetrics(labels Labels) {
 // Implementation details will be provided during the actual coding phase.
 ```
 
+It is worth noting we could use generics here + type switch.
+We could use `IncreaseValueMetric` `SetDurationMetric` `SetConditionMetric`, and adapt the type switch over time.
+
 ### Phase 4: Migrate Controllers
 
 Update controllers to use the central registry:
@@ -490,7 +493,7 @@ We might want to clarify that to our users.
 
 ### Resulting Package Structure
 
-```
+```text
 pkg/metrics/                              # NEW: Controller metrics registry
 ├── registry.go                           # Central metric definitions
 ├── helpers.go                            # Type-safe accessor methods
@@ -594,7 +597,7 @@ Define a `MetricsRecorder` interface each controller implements.
 **Pros**: Flexibility
 **Cons**: Still duplicates implementations across controllers
 
-**Decision**: Rejected - doesn't address root cause of duplication
+**Decision**: Rejected - Will lead to incoherent implementations in the future.
 
 ## Compatibility with Other Designs
 
