@@ -1553,6 +1553,42 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	syncWithDataFromConversionStrategy := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		// Set up secret with unicode data
+		tc.secret.Data = map[string][]byte{
+			"unicode-key": []byte("unicode-value-αβγ"),
+			"normal-key":  []byte("normal-value"),
+		}
+		// Use dataFrom with ConversionStrategy
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+			{
+				ConversionStrategy: v1alpha1.PushSecretConversionReverseUnicode,
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if all keys were pushed with unicode conversion")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				// Both keys should be pushed
+				if len(setSecretArgs) != 2 {
+					return false
+				}
+				// Verify keys exist (actual unicode encoding is tested in provider tests)
+				_, hasUnicode := setSecretArgs["unicode-key"]
+				_, hasNormal := setSecretArgs["normal-key"]
+				return hasUnicode && hasNormal
+			}, timeout, time.Second).Should(BeTrue())
+
+			cond := GetPushSecretCondition(ps.Status.Conditions, v1alpha1.PushSecretReady)
+			return cond != nil && cond.Status == v1.ConditionTrue && cond.Reason == v1alpha1.ReasonSynced
+		}
+	}
+
 	syncWithDataFromMultipleRewrites := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
@@ -1661,6 +1697,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should override dataFrom with explicit data", syncDataFromWithDataOverride),
 		Entry("should sync with dataFrom and multiple chained rewrites", syncWithDataFromMultipleRewrites),
 		Entry("should fail with invalid regex in dataFrom", failDataFromInvalidRegex),
+		Entry("should sync with dataFrom and conversion strategy", syncWithDataFromConversionStrategy),
 	)
 })
 
