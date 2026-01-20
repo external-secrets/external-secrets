@@ -1722,10 +1722,10 @@ spec:
                           - match
                         type: object
                       type: array
-                    dataFrom:
-                      description: Secret Data that should be pushed to providers from dataFrom
+                    dataTo:
+                      description: Secret Data that should be pushed to providers
                       items:
-                        description: PushSecretDataFrom defines how to bulk-push secrets without explicit per-key mappings.
+                        description: PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
                         properties:
                           conversionStrategy:
                             default: None
@@ -13401,10 +13401,10 @@ spec:
                       - match
                     type: object
                   type: array
-                dataFrom:
-                  description: Secret Data that should be pushed to providers from dataFrom
+                dataTo:
+                  description: Secret Data that should be pushed to providers
                   items:
-                    description: PushSecretDataFrom defines how to bulk-push secrets without explicit per-key mappings.
+                    description: PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
                     properties:
                       conversionStrategy:
                         default: None
