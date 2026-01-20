@@ -1589,6 +1589,56 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	failDataToDuplicateAcrossEntries := func(tc *testCase) {
+		tc.secret.Data = map[string][]byte{
+			"db-host": []byte("localhost"),
+			"db-port": []byte("5432"),
+		}
+		// Create two dataTo entries that both produce the same remote key "app/config"
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
+			{
+				Match: &v1alpha1.PushSecretDataToMatch{
+					RegExp: "^db-host$",
+				},
+				Rewrite: []v1alpha1.PushSecretRewrite{
+					{
+						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+							Source: ".*",
+							Target: "app/config",
+						},
+					},
+				},
+			},
+			{
+				Match: &v1alpha1.PushSecretDataToMatch{
+					RegExp: "^db-port$",
+				},
+				Rewrite: []v1alpha1.PushSecretRewrite{
+					{
+						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+							Source: ".*",
+							Target: "app/config",
+						},
+					},
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if PushSecret has error condition for duplicate remote keys")
+				cond := GetPushSecretCondition(ps.Status.Conditions, v1alpha1.PushSecretReady)
+				if cond == nil {
+					return false
+				}
+				// Should have error status
+				return cond.Status == v1.ConditionFalse && cond.Reason == v1alpha1.ReasonErrored
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
 	syncWithDataToMultipleRewrites := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
@@ -1698,6 +1748,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should sync with dataTo and multiple chained rewrites", syncWithDataToMultipleRewrites),
 		Entry("should fail with invalid regex in dataTo", failDataToInvalidRegex),
 		Entry("should sync with dataTo and conversion strategy", syncWithDataToConversionStrategy),
+		Entry("should fail with duplicate remote keys across dataTo entries", failDataToDuplicateAcrossEntries),
 	)
 })
 
