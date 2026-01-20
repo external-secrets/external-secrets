@@ -241,6 +241,7 @@ type PushSecretDataFromMatch struct {
 }
 
 // PushSecretRewrite defines key transformation operations.
+// +kubebuilder:validation:XValidation:rule="(has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))",message="exactly one of regexp or transform must be specified"
 type PushSecretRewrite struct {
 	// Regexp rewrites keys using regular expression replacement.
 	// +optional
