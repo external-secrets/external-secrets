@@ -55,7 +55,7 @@ spec:
 ```
 
 If `app-secrets` contains:
-```
+```yaml
 db-host: localhost
 db-port: 5432
 db-password: secret123
