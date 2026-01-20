@@ -109,6 +109,10 @@ type PushSecretSpec struct {
 	// Secret Data that should be pushed to providers
 	Data []PushSecretData `json:"data,omitempty"`
 
+	// Secret Data that should be pushed to providers from dataFrom
+	// +optional
+	DataFrom []PushSecretDataFrom `json:"dataFrom,omitempty"`
+
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
 	Template *esv1.ExternalSecretTemplate `json:"template,omitempty"`
@@ -203,6 +207,64 @@ func (d PushSecretData) GetRemoteKey() string {
 // GetProperty returns the property from the PushSecretData match.
 func (d PushSecretData) GetProperty() string {
 	return d.Match.RemoteRef.Property
+}
+
+// PushSecretDataFrom defines how to bulk-push secrets without explicit per-key mappings.
+type PushSecretDataFrom struct {
+	// Match pattern for selecting keys from the source Secret.
+	// If not specified, all keys are selected.
+	// +optional
+	Match *PushSecretDataFromMatch `json:"match,omitempty"`
+
+	// Rewrite operations to transform keys before pushing to the provider.
+	// Operations are applied sequentially.
+	// +optional
+	Rewrite []PushSecretRewrite `json:"rewrite,omitempty"`
+
+	// Metadata is metadata attached to the secret.
+	// The structure of metadata is provider specific, please look it up in the provider documentation.
+	// +optional
+	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
+
+	// Used to define a conversion Strategy for the secret keys
+	// +kubebuilder:default="None"
+	// +optional
+	ConversionStrategy PushSecretConversionStrategy `json:"conversionStrategy,omitempty"`
+}
+
+// PushSecretDataFromMatch defines pattern matching for key selection.
+type PushSecretDataFromMatch struct {
+	// Regexp matches keys by regular expression.
+	// If not specified, all keys are matched.
+	// +optional
+	RegExp string `json:"regexp,omitempty"`
+}
+
+// PushSecretRewrite defines key transformation operations.
+type PushSecretRewrite struct {
+	// Regexp rewrites keys using regular expression replacement.
+	// +optional
+	Regexp *PushSecretRewriteRegexp `json:"regexp,omitempty"`
+
+	// Transform rewrites keys using a Go template.
+	// +optional
+	Transform *PushSecretRewriteTransform `json:"transform,omitempty"`
+}
+
+// PushSecretRewriteRegexp defines regular expression rewrite operation.
+type PushSecretRewriteRegexp struct {
+	// Source is the regular expression pattern to match.
+	Source string `json:"source"`
+
+	// Target is the replacement string. Can use capture groups like $1, $2, etc.
+	Target string `json:"target"`
+}
+
+// PushSecretRewriteTransform defines template-based rewrite operation.
+type PushSecretRewriteTransform struct {
+	// Template is a Go template that transforms the key.
+	// The key name is available as .value in the template.
+	Template string `json:"template"`
 }
 
 // PushSecretConditionType indicates the condition of the PushSecret.

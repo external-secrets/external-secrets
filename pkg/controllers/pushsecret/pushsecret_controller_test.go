@@ -1315,6 +1315,289 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	// dataFrom tests
+	syncWithDataFromMatchAll := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		// Set up secret with multiple keys
+		tc.secret.Data = map[string][]byte{
+			"db-host":     []byte("localhost"),
+			"db-port":     []byte("5432"),
+			"db-username": []byte("admin"),
+		}
+		// Replace data with dataFrom that matches all keys
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+			{
+				// No match pattern means match all
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if all keys were pushed to provider")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				// All three keys should be pushed
+				if len(setSecretArgs) != 3 {
+					return false
+				}
+				// Check each key was pushed with same name
+				for key, expectedValue := range secret.Data {
+					providerValue, ok := setSecretArgs[key]
+					if !ok {
+						return false
+					}
+					if !bytes.Equal(providerValue.Value, expectedValue) {
+						return false
+					}
+				}
+				return true
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	syncWithDataFromRegex := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		// Set up secret with multiple keys
+		tc.secret.Data = map[string][]byte{
+			"db-host":     []byte("localhost"),
+			"db-port":     []byte("5432"),
+			"app-name":    []byte("myapp"),
+			"app-version": []byte("1.0"),
+		}
+		// Use dataFrom with regex to match only db-* keys
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+			{
+				Match: &v1alpha1.PushSecretDataFromMatch{
+					RegExp: "^db-.*",
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if only db-* keys were pushed")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				// Only two db-* keys should be pushed
+				if len(setSecretArgs) != 2 {
+					return false
+				}
+				// Check db-* keys were pushed
+				for key := range setSecretArgs {
+					if key != "db-host" && key != "db-port" {
+						return false
+					}
+				}
+				return true
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	syncWithDataFromRegexpRewrite := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		// Set up secret with multiple keys
+		tc.secret.Data = map[string][]byte{
+			"db-host": []byte("localhost"),
+			"db-port": []byte("5432"),
+		}
+		// Use dataFrom with regex rewrite to add prefix
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+			{
+				Match: &v1alpha1.PushSecretDataFromMatch{
+					RegExp: "^db-.*",
+				},
+				Rewrite: []v1alpha1.PushSecretRewrite{
+					{
+						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+							Source: "^db-",
+							Target: "app/database/",
+						},
+					},
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if keys were rewritten with prefix")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				if len(setSecretArgs) != 2 {
+					return false
+				}
+				// Check keys were rewritten
+				_, hasHost := setSecretArgs["app/database/host"]
+				_, hasPort := setSecretArgs["app/database/port"]
+				return hasHost && hasPort
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	syncWithDataFromTransformRewrite := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.secret.Data = map[string][]byte{
+			"username": []byte("admin"),
+		}
+		// Use dataFrom with template transformation
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+			{
+				Rewrite: []v1alpha1.PushSecretRewrite{
+					{
+						Transform: &v1alpha1.PushSecretRewriteTransform{
+							Template: "app/{{ .value | upper }}",
+						},
+					},
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if key was transformed using template")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				if len(setSecretArgs) != 1 {
+					return false
+				}
+				// Check key was transformed to uppercase with prefix
+				providerValue, ok := setSecretArgs["app/USERNAME"]
+				if !ok {
+					return false
+				}
+				return bytes.Equal(providerValue.Value, []byte("admin"))
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	syncDataFromWithDataOverride := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.secret.Data = map[string][]byte{
+			"key1": []byte("value1"),
+			"key2": []byte("value2"),
+		}
+		// Use both dataFrom and explicit data
+		// Explicit data should override dataFrom for key1
+		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+			{
+				// Match all keys, no rewrite
+			},
+		}
+		tc.pushsecret.Spec.Data = []v1alpha1.PushSecretData{
+			{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "key1",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{
+						RemoteKey: "override-key1", // Different remote key
+					},
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if explicit data overrode dataFrom")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				// Should have 2 keys: override-key1 and key2
+				if len(setSecretArgs) != 2 {
+					return false
+				}
+				// key1 should be pushed as override-key1 (from explicit data)
+				_, hasOverride := setSecretArgs["override-key1"]
+				// key2 should be pushed as key2 (from dataFrom)
+				_, hasKey2 := setSecretArgs["key2"]
+				return hasOverride && hasKey2
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	failDataFromInvalidRegex := func(tc *testCase) {
+		tc.secret.Data = map[string][]byte{
+			"key1": []byte("value1"),
+		}
+		// Use invalid regex pattern
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+			{
+				Match: &v1alpha1.PushSecretDataFromMatch{
+					RegExp: "[invalid(regex",
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if PushSecret has error condition")
+				cond := GetPushSecretCondition(ps.Status.Conditions, v1alpha1.PushSecretReady)
+				if cond == nil {
+					return false
+				}
+				// Should have error status
+				return cond.Status == v1.ConditionFalse && cond.Reason == v1alpha1.ReasonErrored
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	syncWithDataFromMultipleRewrites := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.secret.Data = map[string][]byte{
+			"db-username": []byte("admin"),
+		}
+		// Chain multiple rewrites
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+			{
+				Rewrite: []v1alpha1.PushSecretRewrite{
+					{
+						// First rewrite: remove db- prefix
+						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+							Source: "^db-",
+							Target: "",
+						},
+					},
+					{
+						// Second rewrite: add app/ prefix
+						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+							Source: "^",
+							Target: "app/",
+						},
+					},
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if multiple rewrites were applied")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				if len(setSecretArgs) != 1 {
+					return false
+				}
+				// db-username -> username -> app/username
+				_, ok := setSecretArgs["app/username"]
+				return ok
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
 	DescribeTable("When reconciling a PushSecret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestcase()
@@ -1371,6 +1654,13 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should fail if NewClient fails", newClientFail),
 		Entry("should not sync to SecretStore in different namespace", secretStoreDifferentNamespace),
 		Entry("should not reference secret in different namespace", secretDifferentNamespace),
+		Entry("should sync with dataFrom matching all keys", syncWithDataFromMatchAll),
+		Entry("should sync with dataFrom using regex pattern", syncWithDataFromRegex),
+		Entry("should sync with dataFrom and regexp rewrite", syncWithDataFromRegexpRewrite),
+		Entry("should sync with dataFrom and transform rewrite", syncWithDataFromTransformRewrite),
+		Entry("should override dataFrom with explicit data", syncDataFromWithDataOverride),
+		Entry("should sync with dataFrom and multiple chained rewrites", syncWithDataFromMultipleRewrites),
+		Entry("should fail with invalid regex in dataFrom", failDataFromInvalidRegex),
 	)
 })
 
