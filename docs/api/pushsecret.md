@@ -4,6 +4,7 @@ The `PushSecret` is namespaced and it describes what data should be pushed to th
 
 * tells the operator what secrets should be pushed by using `spec.selector`.
 * you can specify what secret keys should be pushed by using `spec.data`.
+* you can bulk-push secrets using pattern matching with `spec.dataFrom`.
 * you can also template the resulting property values using [templating](#templating).
 
 ## Example
@@ -25,6 +26,153 @@ metadata:
 stringData:
   best-pokemon-dst: "PIKACHU is the really best!"
 ```
+
+## DataFrom
+
+The `spec.dataFrom` field enables bulk pushing of secrets without explicit per-key configuration. This is useful when you need to push multiple related secrets and want to avoid verbose YAML.
+
+### Basic Example
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-db-secrets
+spec:
+  secretStoreRefs:
+    - name: aws-secret-store
+  selector:
+    secret:
+      name: app-secrets
+  dataFrom:
+    - match:
+        regexp: "^db-.*"  # Push all keys starting with "db-"
+      rewrite:
+        - regexp:
+            source: "^db-"
+            target: "myapp/database/"  # db-host -> myapp/database/host
+```
+
+### Fields
+
+#### `match` (optional)
+
+Defines which keys to select from the source Secret.
+
+- **`regexp`** (string, optional): Regular expression pattern to match keys. If omitted, all keys are matched.
+
+**Examples:**
+```yaml
+# Match all keys
+dataFrom:
+  - {}
+
+# Match keys starting with "db-"
+dataFrom:
+  - match:
+      regexp: "^db-.*"
+
+# Match keys ending with "-key"
+dataFrom:
+  - match:
+      regexp: ".*-key$"
+```
+
+#### `rewrite` (array, optional)
+
+Array of rewrite operations to transform key names. Operations are applied sequentially.
+
+Each rewrite can be either:
+
+**Regexp Rewrite:**
+```yaml
+rewrite:
+  - regexp:
+      source: "^db-"      # Regex pattern to match
+      target: "app/db/"   # Replacement string (supports capture groups like $1, $2)
+```
+
+**Transform Rewrite (Go Template):**
+```yaml
+rewrite:
+  - transform:
+      template: "secrets/{{ .value | upper }}"  # .value contains the key name
+```
+
+**Chained Rewrites:**
+```yaml
+rewrite:
+  - regexp: {source: "^db-", target: ""}     # Remove "db-" prefix
+  - regexp: {source: "^", target: "prod/"}   # Add "prod/" prefix
+```
+
+#### `metadata` (object, optional)
+
+Provider-specific metadata to attach to all pushed secrets. Structure depends on the provider.
+
+```yaml
+dataFrom:
+  - match:
+      regexp: "^db-.*"
+    metadata:
+      labels:
+        app: myapp
+        env: production
+```
+
+#### `conversionStrategy` (string, optional)
+
+Strategy for converting secret values. Default: `"None"`
+
+- `"None"`: No conversion
+- `"ReverseUnicode"`: Reverse Unicode escape sequences (useful when paired with ExternalSecret's `Unicode` strategy)
+
+```yaml
+dataFrom:
+  - conversionStrategy: ReverseUnicode
+```
+
+### Combining dataFrom with data
+
+You can use both `dataFrom` and `data` fields. Explicit `data` entries override `dataFrom` for the same source key:
+
+```yaml
+spec:
+  dataFrom:
+    - {}  # Push all keys with original names
+  data:
+    - match:
+        secretKey: db-host
+        remoteRef:
+          remoteKey: custom-db-host  # Override for db-host only
+```
+
+### Multiple dataFrom Entries
+
+You can specify multiple `dataFrom` entries with different patterns:
+
+```yaml
+spec:
+  dataFrom:
+    # Push db-* keys with database/ prefix
+    - match:
+        regexp: "^db-.*"
+      rewrite:
+        - regexp: {source: "^db-", target: "database/"}
+    # Push api-* keys with api/ prefix
+    - match:
+        regexp: "^api-.*"
+      rewrite:
+        - regexp: {source: "^api-", target: "api/"}
+```
+
+### Error Handling
+
+- **Invalid regex**: PushSecret enters error state with details in status
+- **Duplicate remote keys**: Operation fails if rewrites produce duplicate keys
+- **No matching keys**: Warning logged, PushSecret remains Ready
+
+See the [PushSecret dataFrom guide](../guides/pushsecret-datafrom.md) for more examples and use cases.
 
 ## Template
 
