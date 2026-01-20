@@ -1315,8 +1315,8 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
-	// dataFrom tests
-	syncWithDataFromMatchAll := func(tc *testCase) {
+	// dataTo tests
+	syncWithDataToMatchAll := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
@@ -1326,9 +1326,9 @@ var _ = Describe("PushSecret controller", func() {
 			"db-port":     []byte("5432"),
 			"db-username": []byte("admin"),
 		}
-		// Replace data with dataFrom that matches all keys
+		// Replace data with dataTo that matches all keys
 		tc.pushsecret.Spec.Data = nil
-		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
 			{
 				// No match pattern means match all
 			},
@@ -1358,7 +1358,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
-	syncWithDataFromRegex := func(tc *testCase) {
+	syncWithDataToRegex := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
@@ -1369,11 +1369,11 @@ var _ = Describe("PushSecret controller", func() {
 			"app-name":    []byte("myapp"),
 			"app-version": []byte("1.0"),
 		}
-		// Use dataFrom with regex to match only db-* keys
+		// Use dataTo with regex to match only db-* keys
 		tc.pushsecret.Spec.Data = nil
-		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
 			{
-				Match: &v1alpha1.PushSecretDataFromMatch{
+				Match: &v1alpha1.PushSecretDataToMatch{
 					RegExp: "^db-.*",
 				},
 			},
@@ -1399,7 +1399,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
-	syncWithDataFromRegexpRewrite := func(tc *testCase) {
+	syncWithDataToRegexpRewrite := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
@@ -1408,11 +1408,11 @@ var _ = Describe("PushSecret controller", func() {
 			"db-host": []byte("localhost"),
 			"db-port": []byte("5432"),
 		}
-		// Use dataFrom with regex rewrite to add prefix
+		// Use dataTo with regex rewrite to add prefix
 		tc.pushsecret.Spec.Data = nil
-		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
 			{
-				Match: &v1alpha1.PushSecretDataFromMatch{
+				Match: &v1alpha1.PushSecretDataToMatch{
 					RegExp: "^db-.*",
 				},
 				Rewrite: []v1alpha1.PushSecretRewrite{
@@ -1442,16 +1442,16 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
-	syncWithDataFromTransformRewrite := func(tc *testCase) {
+	syncWithDataToTransformRewrite := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
 		tc.secret.Data = map[string][]byte{
 			"username": []byte("admin"),
 		}
-		// Use dataFrom with template transformation
+		// Use dataTo with template transformation
 		tc.pushsecret.Spec.Data = nil
-		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
 			{
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
@@ -1481,7 +1481,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
-	syncDataFromWithDataOverride := func(tc *testCase) {
+	syncDataToWithDataOverride := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
@@ -1489,9 +1489,9 @@ var _ = Describe("PushSecret controller", func() {
 			"key1": []byte("value1"),
 			"key2": []byte("value2"),
 		}
-		// Use both dataFrom and explicit data
-		// Explicit data should override dataFrom for key1
-		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+		// Use both dataTo and explicit data
+		// Explicit data should override dataTo for key1
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
 			{
 				// Match all keys, no rewrite
 			},
@@ -1509,7 +1509,7 @@ var _ = Describe("PushSecret controller", func() {
 
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			Eventually(func() bool {
-				By("checking if explicit data overrode dataFrom")
+				By("checking if explicit data overrode dataTo")
 				setSecretArgs := fakeProvider.GetPushSecretData()
 				// Should have 2 keys: override-key1 and key2
 				if len(setSecretArgs) != 2 {
@@ -1517,7 +1517,7 @@ var _ = Describe("PushSecret controller", func() {
 				}
 				// key1 should be pushed as override-key1 (from explicit data)
 				_, hasOverride := setSecretArgs["override-key1"]
-				// key2 should be pushed as key2 (from dataFrom)
+				// key2 should be pushed as key2 (from dataTo)
 				_, hasKey2 := setSecretArgs["key2"]
 				return hasOverride && hasKey2
 			}, time.Second*10, time.Second).Should(BeTrue())
@@ -1525,15 +1525,15 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
-	failDataFromInvalidRegex := func(tc *testCase) {
+	failDataToInvalidRegex := func(tc *testCase) {
 		tc.secret.Data = map[string][]byte{
 			"key1": []byte("value1"),
 		}
 		// Use invalid regex pattern
 		tc.pushsecret.Spec.Data = nil
-		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
 			{
-				Match: &v1alpha1.PushSecretDataFromMatch{
+				Match: &v1alpha1.PushSecretDataToMatch{
 					RegExp: "[invalid(regex",
 				},
 			},
@@ -1553,7 +1553,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
-	syncWithDataFromConversionStrategy := func(tc *testCase) {
+	syncWithDataToConversionStrategy := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
@@ -1562,9 +1562,9 @@ var _ = Describe("PushSecret controller", func() {
 			"unicode-key": []byte("unicode-value-αβγ"),
 			"normal-key":  []byte("normal-value"),
 		}
-		// Use dataFrom with ConversionStrategy
+		// Use dataTo with ConversionStrategy
 		tc.pushsecret.Spec.Data = nil
-		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
 			{
 				ConversionStrategy: v1alpha1.PushSecretConversionReverseUnicode,
 			},
@@ -1589,7 +1589,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
-	syncWithDataFromMultipleRewrites := func(tc *testCase) {
+	syncWithDataToMultipleRewrites := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
@@ -1598,7 +1598,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Chain multiple rewrites
 		tc.pushsecret.Spec.Data = nil
-		tc.pushsecret.Spec.DataFrom = []v1alpha1.PushSecretDataFrom{
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
 			{
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
@@ -1690,14 +1690,14 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should fail if NewClient fails", newClientFail),
 		Entry("should not sync to SecretStore in different namespace", secretStoreDifferentNamespace),
 		Entry("should not reference secret in different namespace", secretDifferentNamespace),
-		Entry("should sync with dataFrom matching all keys", syncWithDataFromMatchAll),
-		Entry("should sync with dataFrom using regex pattern", syncWithDataFromRegex),
-		Entry("should sync with dataFrom and regexp rewrite", syncWithDataFromRegexpRewrite),
-		Entry("should sync with dataFrom and transform rewrite", syncWithDataFromTransformRewrite),
-		Entry("should override dataFrom with explicit data", syncDataFromWithDataOverride),
-		Entry("should sync with dataFrom and multiple chained rewrites", syncWithDataFromMultipleRewrites),
-		Entry("should fail with invalid regex in dataFrom", failDataFromInvalidRegex),
-		Entry("should sync with dataFrom and conversion strategy", syncWithDataFromConversionStrategy),
+		Entry("should sync with dataTo matching all keys", syncWithDataToMatchAll),
+		Entry("should sync with dataTo using regex pattern", syncWithDataToRegex),
+		Entry("should sync with dataTo and regexp rewrite", syncWithDataToRegexpRewrite),
+		Entry("should sync with dataTo and transform rewrite", syncWithDataToTransformRewrite),
+		Entry("should override dataTo with explicit data", syncDataToWithDataOverride),
+		Entry("should sync with dataTo and multiple chained rewrites", syncWithDataToMultipleRewrites),
+		Entry("should fail with invalid regex in dataTo", failDataToInvalidRegex),
+		Entry("should sync with dataTo and conversion strategy", syncWithDataToConversionStrategy),
 	)
 })
 
