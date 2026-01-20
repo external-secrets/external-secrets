@@ -4,7 +4,7 @@ The `PushSecret` is namespaced and it describes what data should be pushed to th
 
 * tells the operator what secrets should be pushed by using `spec.selector`.
 * you can specify what secret keys should be pushed by using `spec.data`.
-* you can bulk-push secrets using pattern matching with `spec.dataFrom`.
+* you can bulk-push secrets using pattern matching with `spec.dataTo`.
 * you can also template the resulting property values using [templating](#templating).
 
 ## Example
@@ -29,7 +29,7 @@ stringData:
 
 ## DataFrom
 
-The `spec.dataFrom` field enables bulk pushing of secrets without explicit per-key configuration. This is useful when you need to push multiple related secrets and want to avoid verbose YAML.
+The `spec.dataTo` field enables bulk pushing of secrets without explicit per-key configuration. This is useful when you need to push multiple related secrets and want to avoid verbose YAML.
 
 ### Basic Example
 
@@ -44,7 +44,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^db-.*"  # Push all keys starting with "db-"
       rewrite:
@@ -64,16 +64,16 @@ Defines which keys to select from the source Secret.
 **Examples:**
 ```yaml
 # Match all keys
-dataFrom:
+dataTo:
   - {}
 
 # Match keys starting with "db-"
-dataFrom:
+dataTo:
   - match:
       regexp: "^db-.*"
 
 # Match keys ending with "-key"
-dataFrom:
+dataTo:
   - match:
       regexp: ".*-key$"
 ```
@@ -111,7 +111,7 @@ rewrite:
 Provider-specific metadata to attach to all pushed secrets. Structure depends on the provider.
 
 ```yaml
-dataFrom:
+dataTo:
   - match:
       regexp: "^db-.*"
     metadata:
@@ -128,17 +128,17 @@ Strategy for converting secret values. Default: `"None"`
 - `"ReverseUnicode"`: Reverse Unicode escape sequences (useful when paired with ExternalSecret's `Unicode` strategy)
 
 ```yaml
-dataFrom:
+dataTo:
   - conversionStrategy: ReverseUnicode
 ```
 
-### Combining dataFrom with data
+### Combining dataTo with data
 
-You can use both `dataFrom` and `data` fields. Explicit `data` entries override `dataFrom` for the same source key:
+You can use both `dataTo` and `data` fields. Explicit `data` entries override `dataTo` for the same source key:
 
 ```yaml
 spec:
-  dataFrom:
+  dataTo:
     - {}  # Push all keys with original names
   data:
     - match:
@@ -147,13 +147,13 @@ spec:
           remoteKey: custom-db-host  # Override for db-host only
 ```
 
-### Multiple dataFrom Entries
+### Multiple dataTo Entries
 
-You can specify multiple `dataFrom` entries with different patterns:
+You can specify multiple `dataTo` entries with different patterns:
 
 ```yaml
 spec:
-  dataFrom:
+  dataTo:
     # Push db-* keys with database/ prefix
     - match:
         regexp: "^db-.*"
@@ -172,7 +172,7 @@ spec:
 - **Duplicate remote keys**: Operation fails if rewrites produce duplicate keys
 - **No matching keys**: Warning logged, PushSecret remains Ready
 
-See the [PushSecret dataFrom guide](../guides/pushsecret-datafrom.md) for more examples and use cases.
+See the [PushSecret dataTo guide](../guides/pushsecret-datato.md) for more examples and use cases.
 
 ## Template
 

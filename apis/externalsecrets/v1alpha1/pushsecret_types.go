@@ -107,11 +107,12 @@ type PushSecretSpec struct {
 	Selector PushSecretSelector `json:"selector"`
 
 	// Secret Data that should be pushed to providers
+	// +optional
 	Data []PushSecretData `json:"data,omitempty"`
 
-	// Secret Data that should be pushed to providers from dataFrom
+	// Secret Data that should be pushed to providers
 	// +optional
-	DataFrom []PushSecretDataFrom `json:"dataFrom,omitempty"`
+	DataTo []PushSecretDataTo `json:"dataTo,omitempty"`
 
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
@@ -209,12 +210,12 @@ func (d PushSecretData) GetProperty() string {
 	return d.Match.RemoteRef.Property
 }
 
-// PushSecretDataFrom defines how to bulk-push secrets without explicit per-key mappings.
-type PushSecretDataFrom struct {
+// PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
+type PushSecretDataTo struct {
 	// Match pattern for selecting keys from the source Secret.
 	// If not specified, all keys are selected.
 	// +optional
-	Match *PushSecretDataFromMatch `json:"match,omitempty"`
+	Match *PushSecretDataToMatch `json:"match,omitempty"`
 
 	// Rewrite operations to transform keys before pushing to the provider.
 	// Operations are applied sequentially.
@@ -232,8 +233,8 @@ type PushSecretDataFrom struct {
 	ConversionStrategy PushSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
 
-// PushSecretDataFromMatch defines pattern matching for key selection.
-type PushSecretDataFromMatch struct {
+// PushSecretDataToMatch defines pattern matching for key selection.
+type PushSecretDataToMatch struct {
 	// Regexp matches keys by regular expression.
 	// If not specified, all keys are matched.
 	// +optional

@@ -1,15 +1,15 @@
-# PushSecret dataFrom
+# PushSecret dataTo
 
-The `dataFrom` field in PushSecret enables bulk pushing of secrets without requiring explicit per-key configuration. This feature is particularly useful when you need to push multiple related secrets and want to avoid verbose, repetitive YAML configurations.
+The `dataTo` field in PushSecret enables bulk pushing of secrets without requiring explicit per-key configuration. This feature is particularly useful when you need to push multiple related secrets and want to avoid verbose, repetitive YAML configurations.
 
 ## Overview
 
-Instead of manually mapping each secret key individually in the `data` field, `dataFrom` allows you to:
+Instead of manually mapping each secret key individually in the `data` field, `dataTo` allows you to:
 
 - **Match secrets by pattern**: Use regex to select keys from your source Secret
 - **Transform keys**: Apply regexp or template-based transformations to key names
 - **Bulk push**: Push multiple secrets with minimal configuration
-- **Combine with explicit data**: Override specific keys while using dataFrom for the rest
+- **Combine with explicit data**: Override specific keys while using dataTo for the rest
 
 ## Basic Usage
 
@@ -28,7 +28,7 @@ spec:
   selector:
     secret:
       name: source-secret
-  dataFrom:
+  dataTo:
     - {}  # Empty object = match all keys
 ```
 
@@ -49,7 +49,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^db-.*"  # Only push keys starting with "db-"
 ```
@@ -81,7 +81,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^db-.*"
       rewrite:
@@ -110,7 +110,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     - rewrite:
         - transform:
             template: "app/{{ .value | upper }}"
@@ -138,7 +138,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^db-.*"
       rewrite:
@@ -156,9 +156,9 @@ spec:
 
 Rewrites are applied in order, with each rewrite seeing the output of the previous one.
 
-## Combining dataFrom with Explicit Data
+## Combining dataTo with Explicit Data
 
-You can use both `dataFrom` and `data` fields together. Explicit `data` entries override `dataFrom` for the same source key:
+You can use both `dataTo` and `data` fields together. Explicit `data` entries override `dataTo` for the same source key:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
@@ -172,7 +172,7 @@ spec:
     secret:
       name: app-secrets
   # Push all keys with original names
-  dataFrom:
+  dataTo:
     - {}
   # But override how db-host is pushed
   data:
@@ -184,7 +184,7 @@ spec:
 
 Result:
 - `db-host` → `custom/database/hostname` (from explicit `data`)
-- All other keys → original names (from `dataFrom`)
+- All other keys → original names (from `dataTo`)
 
 This is useful when you want bulk behavior for most keys but need custom handling for specific ones.
 
@@ -203,7 +203,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^db-.*"
       metadata:
@@ -215,9 +215,9 @@ spec:
 
 The metadata structure is provider-specific. Check your provider's documentation for supported metadata fields.
 
-## Multiple dataFrom Entries
+## Multiple dataTo Entries
 
-You can have multiple `dataFrom` entries with different patterns and rewrites:
+You can have multiple `dataTo` entries with different patterns and rewrites:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
@@ -230,7 +230,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     # Push db-* keys with database/ prefix
     - match:
         regexp: "^db-.*"
@@ -254,7 +254,7 @@ spec:
 If you provide an invalid regex pattern, the PushSecret will enter an error state:
 
 ```yaml
-dataFrom:
+dataTo:
   - match:
       regexp: "[invalid(regex"  # Invalid regex
 ```
@@ -269,7 +269,7 @@ kubectl get pushsecret my-pushsecret -o yaml
 If rewrites result in duplicate remote keys, the operation will fail:
 
 ```yaml
-dataFrom:
+dataTo:
   - rewrite:
       - regexp:
           source: ".*"
@@ -299,7 +299,7 @@ spec:
   selector:
     secret:
       name: legacy-secrets
-  dataFrom:
+  dataTo:
     - rewrite:
         - regexp:
             source: "^"
@@ -321,7 +321,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     - rewrite:
         - regexp:
             source: "^"
@@ -343,7 +343,7 @@ spec:
   selector:
     secret:
       name: app-config
-  dataFrom:
+  dataTo:
     # Database credentials
     - match:
         regexp: "^db-.*"
@@ -367,13 +367,13 @@ spec:
 2. **Test Patterns**: Use `kubectl get secret source-secret -o jsonpath='{.data}' | jq 'keys'` to see all keys before writing patterns
 3. **Use Descriptive Patterns**: Regex patterns should be readable and maintainable
 4. **Document Transformations**: Add comments explaining complex rewrite chains
-5. **Validate in Non-Prod**: Test dataFrom configurations in development before production
+5. **Validate in Non-Prod**: Test dataTo configurations in development before production
 6. **Monitor Status**: Check PushSecret status regularly for errors or warnings
-7. **Combine Wisely**: Use `dataFrom` for bulk operations and `data` for exceptions
+7. **Combine Wisely**: Use `dataTo` for bulk operations and `data` for exceptions
 
 ## Comparison: Before and After
 
-**Before (without dataFrom):**
+**Before (without dataTo):**
 ```yaml
 spec:
   data:
@@ -385,10 +385,10 @@ spec:
     # ... many more entries
 ```
 
-**After (with dataFrom):**
+**After (with dataTo):**
 ```yaml
 spec:
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^db-.*"
       rewrite:
@@ -400,4 +400,4 @@ spec:
 - [PushSecret Guide](pushsecrets.md) - Basic PushSecret usage
 - [PushSecret API Reference](../api/pushsecret.md) - Complete API specification
 - [Templating Guide](templating.md) - Advanced template usage
-- [ExternalSecret dataFrom](datafrom-rewrite.md) - Similar feature for pulling secrets
+- [ExternalSecret dataTo](datafrom-rewrite.md) - Similar feature for pulling secrets
