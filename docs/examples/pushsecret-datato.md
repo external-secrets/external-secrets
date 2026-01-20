@@ -523,10 +523,10 @@ kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.status.syncedPushSec
 
 **1. No keys matched:**
 - Verify the source Secret has keys matching your pattern
-- Check regex syntax: `kubectl get secret <name> -o jsonpath='{.data}' | jq 'keys'`
+- Check regexp syntax: `kubectl get secret <name> -o jsonpath='{.data}' | jq 'keys'`
 
-**2. Invalid regex error:**
-- Validate your regex using an online regex tester
+**2. Invalid regexp error:**
+- Validate your regexp using an online regexp tester
 - Ensure special characters are properly escaped
 
 **3. Duplicate remote keys:**
@@ -536,8 +536,8 @@ kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.status.syncedPushSec
 ## Best Practices
 
 1. **Start with match-all to verify**: Test with `dataTo: [{}]` first
-2. **Test regex patterns**: Use `kubectl get secret -o jsonpath='{.data}' | jq 'keys'`
-3. **Use descriptive patterns**: Make regex patterns self-documenting
+2. **Test regexp patterns**: Use `kubectl get secret -o jsonpath='{.data}' | jq 'keys'`
+3. **Use descriptive patterns**: Make regexp patterns self-documenting
 4. **Monitor status**: Check PushSecret status after creation
 5. **Version control**: Keep PushSecret manifests in git
 6. **Document transformations**: Add comments explaining complex rewrites
