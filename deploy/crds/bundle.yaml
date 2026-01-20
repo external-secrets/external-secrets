@@ -1758,7 +1758,11 @@ spec:
                               Rewrite operations to transform keys before pushing to the provider.
                               Operations are applied sequentially.
                             items:
-                              description: PushSecretRewrite defines key transformation operations.
+                              description: |-
+                                PushSecretRewrite defines key transformation operations.
+                                Exactly one of Regexp or Transform must be specified.
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 regexp:
                                   description: Regexp rewrites keys using regular expression replacement.
@@ -1785,9 +1789,6 @@ spec:
                                     - template
                                   type: object
                               type: object
-                              x-kubernetes-validations:
-                                - message: exactly one of regexp or transform must be specified
-                                  rule: (has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))
                             type: array
                         type: object
                       type: array
@@ -13726,7 +13727,11 @@ spec:
                           Rewrite operations to transform keys before pushing to the provider.
                           Operations are applied sequentially.
                         items:
-                          description: PushSecretRewrite defines key transformation operations.
+                          description: |-
+                            PushSecretRewrite defines key transformation operations.
+                            Exactly one of Regexp or Transform must be specified.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             regexp:
                               description: Regexp rewrites keys using regular expression replacement.
@@ -13753,9 +13758,6 @@ spec:
                                 - template
                               type: object
                           type: object
-                          x-kubernetes-validations:
-                            - message: exactly one of regexp or transform must be specified
-                              rule: (has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))
                         type: array
                     type: object
                   type: array
