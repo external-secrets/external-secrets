@@ -27,7 +27,7 @@ stringData:
   best-pokemon-dst: "PIKACHU is the really best!"
 ```
 
-## DataFrom
+## DataTo
 
 The `spec.dataTo` field enables bulk pushing of secrets without explicit per-key configuration. This is useful when you need to push multiple related secrets and want to avoid verbose YAML.
 
@@ -168,7 +168,7 @@ spec:
 
 ### Error Handling
 
-- **Invalid regex**: PushSecret enters error state with details in status
+- **Invalid regexp**: PushSecret enters error state with details in status
 - **Duplicate remote keys**: Operation fails if rewrites produce duplicate keys
 - **No matching keys**: Warning logged, PushSecret remains Ready
 

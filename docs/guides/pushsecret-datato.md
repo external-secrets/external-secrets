@@ -6,7 +6,7 @@ The `dataTo` field in PushSecret enables bulk pushing of secrets without requiri
 
 Instead of manually mapping each secret key individually in the `data` field, `dataTo` allows you to:
 
-- **Match secrets by pattern**: Use regex to select keys from your source Secret
+- **Match secrets by pattern**: Use regexp to select keys from your source Secret
 - **Transform keys**: Apply regexp or template-based transformations to key names
 - **Bulk push**: Push multiple secrets with minimal configuration
 - **Combine with explicit data**: Override specific keys while using dataTo for the rest
@@ -36,7 +36,7 @@ This will push all keys from `source-secret` to the provider with their original
 
 ### Match Keys with Pattern
 
-Use regex to select specific keys:
+Use regexp to select specific keys:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
@@ -249,14 +249,14 @@ spec:
 
 ## Error Handling
 
-### Invalid Regex
+### Invalid Regexp
 
-If you provide an invalid regex pattern, the PushSecret will enter an error state:
+If you provide an invalid regexp pattern, the PushSecret will enter an error state:
 
 ```yaml
 dataTo:
   - match:
-      regexp: "[invalid(regex"  # Invalid regex
+      regexp: "[invalid(regexp"  # Invalid regexp
 ```
 
 Check the PushSecret status for error details:
@@ -365,7 +365,7 @@ spec:
 
 1. **Start Simple**: Begin with basic pattern matching before adding complex rewrites
 2. **Test Patterns**: Use `kubectl get secret source-secret -o jsonpath='{.data}' | jq 'keys'` to see all keys before writing patterns
-3. **Use Descriptive Patterns**: Regex patterns should be readable and maintainable
+3. **Use Descriptive Patterns**: Regexp patterns should be readable and maintainable
 4. **Document Transformations**: Add comments explaining complex rewrite chains
 5. **Validate in Non-Prod**: Test dataTo configurations in development before production
 6. **Monitor Status**: Check PushSecret status regularly for errors or warnings
