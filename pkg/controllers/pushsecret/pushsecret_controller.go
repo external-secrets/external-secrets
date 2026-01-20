@@ -432,14 +432,14 @@ func (r *Reconciler) handlePushSecretDataForStore(
 		return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 	}
 
-	// Expand dataFrom entries into PushSecretData
-	dataFromEntries, err := r.expandDataFrom(&ps, secret)
+	// Expand dataTo entries into PushSecretData
+	dataToEntries, err := r.expandDataTo(&ps, secret)
 	if err != nil {
-		return out, fmt.Errorf("failed to expand dataFrom: %w", err)
+		return out, fmt.Errorf("failed to expand dataTo: %w", err)
 	}
 
-	// Merge dataFrom entries with explicit data (explicit data overrides)
-	allData := mergeDataEntries(dataFromEntries, ps.Spec.Data)
+	// Merge dataTo entries with explicit data (explicit data overrides)
+	allData := mergeDataEntries(dataToEntries, ps.Spec.Data)
 
 	for _, data := range allData {
 		secretData, err := esutils.ReverseKeys(data.ConversionStrategy, originalSecretData)
@@ -728,7 +728,7 @@ func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler,
 
 // matchKeys filters secret keys based on the provided match pattern.
 // If pattern is nil or empty, all keys are matched.
-func matchKeys(allKeys []string, match *esapi.PushSecretDataFromMatch) ([]string, error) {
+func matchKeys(allKeys []string, match *esapi.PushSecretDataToMatch) ([]string, error) {
 	// If no match pattern specified, return all keys
 	if match == nil || match.RegExp == "" {
 		return allKeys, nil
@@ -751,9 +751,9 @@ func matchKeys(allKeys []string, match *esapi.PushSecretDataFromMatch) ([]string
 	return matched, nil
 }
 
-// applyDataFromRewrites applies sequential rewrite operations to transform keys.
+// applyDataToRewrites applies sequential rewrite operations to transform keys.
 // Returns a map of source key to remote key.
-func applyDataFromRewrites(keys []string, rewrites []esapi.PushSecretRewrite) (map[string]string, error) {
+func applyDataToRewrites(keys []string, rewrites []esapi.PushSecretRewrite) (map[string]string, error) {
 	if len(rewrites) == 0 {
 		// No rewrites, keys stay the same
 		result := make(map[string]string, len(keys))
@@ -833,10 +833,10 @@ func applyTransformRewrite(keyMap map[string]string, rewrite esapi.PushSecretRew
 	return result, nil
 }
 
-// expandDataFrom expands dataFrom entries into PushSecretData entries.
+// expandDataTo expands dataTo entries into PushSecretData entries.
 // It matches keys from the source secret, applies rewrites, and creates PushSecretData entries.
-func (r *Reconciler) expandDataFrom(ps *esapi.PushSecret, secret *v1.Secret) ([]esapi.PushSecretData, error) {
-	if len(ps.Spec.DataFrom) == 0 {
+func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]esapi.PushSecretData, error) {
+	if len(ps.Spec.DataTo) == 0 {
 		return nil, nil
 	}
 
@@ -848,30 +848,30 @@ func (r *Reconciler) expandDataFrom(ps *esapi.PushSecret, secret *v1.Secret) ([]
 		allKeys = append(allKeys, key)
 	}
 
-	// Process each dataFrom entry
-	for i, dataFrom := range ps.Spec.DataFrom {
+	// Process each dataTo entry
+	for i, dataTo := range ps.Spec.DataTo {
 		// Match keys based on pattern
-		matchedKeys, err := matchKeys(allKeys, dataFrom.Match)
+		matchedKeys, err := matchKeys(allKeys, dataTo.Match)
 		if err != nil {
-			return nil, fmt.Errorf("dataFrom[%d]: match failed: %w", i, err)
+			return nil, fmt.Errorf("dataTo[%d]: match failed: %w", i, err)
 		}
 
 		if len(matchedKeys) == 0 {
-			r.Log.Info("dataFrom entry matched no keys", "index", i)
+			r.Log.Info("dataTo entry matched no keys", "index", i)
 			continue
 		}
 
 		// Apply rewrites to get sourceKey -> remoteKey mapping
-		keyMap, err := applyDataFromRewrites(matchedKeys, dataFrom.Rewrite)
+		keyMap, err := applyDataToRewrites(matchedKeys, dataTo.Rewrite)
 		if err != nil {
-			return nil, fmt.Errorf("dataFrom[%d]: rewrite failed: %w", i, err)
+			return nil, fmt.Errorf("dataTo[%d]: rewrite failed: %w", i, err)
 		}
 
 		// Check for duplicate remote keys
 		remoteKeys := make(map[string]string) // remoteKey -> sourceKey
 		for sourceKey, remoteKey := range keyMap {
 			if existingSource, exists := remoteKeys[remoteKey]; exists {
-				return nil, fmt.Errorf("dataFrom[%d]: duplicate remote key %q from source keys %q and %q", i, remoteKey, existingSource, sourceKey)
+				return nil, fmt.Errorf("dataTo[%d]: duplicate remote key %q from source keys %q and %q", i, remoteKey, existingSource, sourceKey)
 			}
 			remoteKeys[remoteKey] = sourceKey
 		}
@@ -885,21 +885,21 @@ func (r *Reconciler) expandDataFrom(ps *esapi.PushSecret, secret *v1.Secret) ([]
 						RemoteKey: remoteKey,
 					},
 				},
-				Metadata:           dataFrom.Metadata,
-				ConversionStrategy: dataFrom.ConversionStrategy,
+				Metadata:           dataTo.Metadata,
+				ConversionStrategy: dataTo.ConversionStrategy,
 			}
 			allData = append(allData, data)
 		}
 
-		r.Log.Info("expanded dataFrom entry", "index", i, "matchedKeys", len(matchedKeys), "created", len(keyMap))
+		r.Log.Info("expanded dataTo entry", "index", i, "matchedKeys", len(matchedKeys), "created", len(keyMap))
 	}
 
 	return allData, nil
 }
 
-// mergeDataEntries merges dataFrom-expanded entries with explicit data entries.
-// Explicit data entries override dataFrom entries for the same source secret key.
-func mergeDataEntries(dataFromEntries []esapi.PushSecretData, explicitData []esapi.PushSecretData) []esapi.PushSecretData {
+// mergeDataEntries merges dataTo-expanded entries with explicit data entries.
+// Explicit data entries override dataTo entries for the same source secret key.
+func mergeDataEntries(dataToEntries []esapi.PushSecretData, explicitData []esapi.PushSecretData) []esapi.PushSecretData {
 	// Create a map of source secretKey -> data from explicit data
 	explicitMap := make(map[string]esapi.PushSecretData)
 	for _, data := range explicitData {
@@ -907,9 +907,9 @@ func mergeDataEntries(dataFromEntries []esapi.PushSecretData, explicitData []esa
 		explicitMap[key] = data
 	}
 
-	// Add dataFrom entries that don't conflict with explicit data (based on source key)
-	result := make([]esapi.PushSecretData, 0, len(dataFromEntries)+len(explicitData))
-	for _, data := range dataFromEntries {
+	// Add dataTo entries that don't conflict with explicit data (based on source key)
+	result := make([]esapi.PushSecretData, 0, len(dataToEntries)+len(explicitData))
+	for _, data := range dataToEntries {
 		key := data.GetSecretKey()
 		if _, exists := explicitMap[key]; !exists {
 			result = append(result, data)
