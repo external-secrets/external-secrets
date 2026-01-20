@@ -842,6 +842,9 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 
 	allData := make([]esapi.PushSecretData, 0)
 
+	// Track remote keys across all dataTo entries to detect duplicates
+	overallRemoteKeys := make(map[string]string) // remoteKey -> "dataTo[i]:sourceKey"
+
 	// Process each dataTo entry
 	for i, dataTo := range ps.Spec.DataTo {
 		// Apply conversion strategy BEFORE matching and rewriting
@@ -874,13 +877,12 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 			return nil, fmt.Errorf("dataTo[%d]: rewrite failed: %w", i, err)
 		}
 
-		// Check for duplicate remote keys
-		remoteKeys := make(map[string]string) // remoteKey -> sourceKey
+		// Check for duplicate remote keys within this dataTo entry and across all dataTo entries
 		for sourceKey, remoteKey := range keyMap {
-			if existingSource, exists := remoteKeys[remoteKey]; exists {
-				return nil, fmt.Errorf("dataTo[%d]: duplicate remote key %q from source keys %q and %q", i, remoteKey, existingSource, sourceKey)
+			if existingSource, exists := overallRemoteKeys[remoteKey]; exists {
+				return nil, fmt.Errorf("dataTo[%d]: duplicate remote key %q from source key %q (conflicts with %s)", i, remoteKey, sourceKey, existingSource)
 			}
-			remoteKeys[remoteKey] = sourceKey
+			overallRemoteKeys[remoteKey] = fmt.Sprintf("dataTo[%d]:%s", i, sourceKey)
 		}
 
 		// Create PushSecretData entries
