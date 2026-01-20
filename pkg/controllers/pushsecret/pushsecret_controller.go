@@ -842,15 +842,22 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 
 	allData := make([]esapi.PushSecretData, 0)
 
-	// Get all keys from the secret
-	allKeys := make([]string, 0, len(secret.Data))
-	for key := range secret.Data {
-		allKeys = append(allKeys, key)
-	}
-
 	// Process each dataTo entry
 	for i, dataTo := range ps.Spec.DataTo {
-		// Match keys based on pattern
+		// Apply conversion strategy BEFORE matching and rewriting
+		// This ensures that keys are matched against their converted names
+		convertedData, err := esutils.ReverseKeys(dataTo.ConversionStrategy, secret.Data)
+		if err != nil {
+			return nil, fmt.Errorf("dataTo[%d]: conversion failed: %w", i, err)
+		}
+
+		// Get all keys from the converted secret data
+		allKeys := make([]string, 0, len(convertedData))
+		for key := range convertedData {
+			allKeys = append(allKeys, key)
+		}
+
+		// Match keys based on pattern (using converted keys)
 		matchedKeys, err := matchKeys(allKeys, dataTo.Match)
 		if err != nil {
 			return nil, fmt.Errorf("dataTo[%d]: match failed: %w", i, err)
@@ -877,10 +884,11 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 		}
 
 		// Create PushSecretData entries
+		// Note: SecretKey now references the converted key name
 		for sourceKey, remoteKey := range keyMap {
 			data := esapi.PushSecretData{
 				Match: esapi.PushSecretMatch{
-					SecretKey: sourceKey,
+					SecretKey: sourceKey, // This is now the converted key name
 					RemoteRef: esapi.PushSecretRemoteRef{
 						RemoteKey: remoteKey,
 					},
