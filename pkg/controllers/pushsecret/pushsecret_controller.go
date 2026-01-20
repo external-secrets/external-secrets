@@ -18,11 +18,14 @@ limitations under the License.
 package pushsecret
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"maps"
+	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -48,6 +51,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/statemanager"
+	estemplate "github.com/external-secrets/external-secrets/runtime/template/v2"
 	"github.com/external-secrets/external-secrets/runtime/util/locks"
 
 	// Load registered generators.
@@ -427,7 +431,17 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	if err != nil {
 		return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 	}
-	for _, data := range ps.Spec.Data {
+
+	// Expand dataFrom entries into PushSecretData
+	dataFromEntries, err := r.expandDataFrom(&ps, secret)
+	if err != nil {
+		return out, fmt.Errorf("failed to expand dataFrom: %w", err)
+	}
+
+	// Merge dataFrom entries with explicit data (explicit data overrides)
+	allData := mergeDataEntries(dataFromEntries, ps.Spec.Data)
+
+	for _, data := range allData {
 		secretData, err := esutils.ReverseKeys(data.ConversionStrategy, originalSecretData)
 		if err != nil {
 			return nil, fmt.Errorf(errConvert, err)
@@ -710,4 +724,200 @@ func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler,
 		}
 	}
 	return ss, nil
+}
+
+// matchKeys filters secret keys based on the provided match pattern.
+// If pattern is nil or empty, all keys are matched.
+func matchKeys(allKeys []string, match *esapi.PushSecretDataFromMatch) ([]string, error) {
+	// If no match pattern specified, return all keys
+	if match == nil || match.RegExp == "" {
+		return allKeys, nil
+	}
+
+	// Compile the regex pattern
+	re, err := regexp.Compile(match.RegExp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile regexp pattern %q: %w", match.RegExp, err)
+	}
+
+	// Filter keys that match the pattern
+	matched := make([]string, 0)
+	for _, key := range allKeys {
+		if re.MatchString(key) {
+			matched = append(matched, key)
+		}
+	}
+
+	return matched, nil
+}
+
+// applyDataFromRewrites applies sequential rewrite operations to transform keys.
+// Returns a map of source key to remote key.
+func applyDataFromRewrites(keys []string, rewrites []esapi.PushSecretRewrite) (map[string]string, error) {
+	if len(rewrites) == 0 {
+		// No rewrites, keys stay the same
+		result := make(map[string]string, len(keys))
+		for _, key := range keys {
+			result[key] = key
+		}
+		return result, nil
+	}
+
+	// Start with original keys as both source and current
+	keyMap := make(map[string]string, len(keys))
+	for _, key := range keys {
+		keyMap[key] = key
+	}
+
+	// Apply each rewrite operation sequentially
+	for i, rewrite := range rewrites {
+		if rewrite.Regexp != nil && rewrite.Transform != nil {
+			return nil, fmt.Errorf("rewrite[%d]: cannot specify both regexp and transform", i)
+		}
+
+		if rewrite.Regexp == nil && rewrite.Transform == nil {
+			return nil, fmt.Errorf("rewrite[%d]: must specify either regexp or transform", i)
+		}
+
+		var err error
+		if rewrite.Regexp != nil {
+			keyMap, err = applyRegexpRewrite(keyMap, *rewrite.Regexp)
+			if err != nil {
+				return nil, fmt.Errorf("rewrite[%d] regexp failed: %w", i, err)
+			}
+		}
+
+		if rewrite.Transform != nil {
+			keyMap, err = applyTransformRewrite(keyMap, *rewrite.Transform)
+			if err != nil {
+				return nil, fmt.Errorf("rewrite[%d] transform failed: %w", i, err)
+			}
+		}
+	}
+
+	return keyMap, nil
+}
+
+// applyRegexpRewrite applies a regular expression rewrite to all keys.
+func applyRegexpRewrite(keyMap map[string]string, rewrite esapi.PushSecretRewriteRegexp) (map[string]string, error) {
+	re, err := regexp.Compile(rewrite.Source)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile regexp %q: %w", rewrite.Source, err)
+	}
+
+	result := make(map[string]string, len(keyMap))
+	for sourceKey, currentKey := range keyMap {
+		newKey := re.ReplaceAllString(currentKey, rewrite.Target)
+		result[sourceKey] = newKey
+	}
+
+	return result, nil
+}
+
+// applyTransformRewrite applies a template transformation to all keys.
+func applyTransformRewrite(keyMap map[string]string, rewrite esapi.PushSecretRewriteTransform) (map[string]string, error) {
+	tmpl, err := template.New("transform").Funcs(estemplate.FuncMap()).Parse(rewrite.Template)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse template %q: %w", rewrite.Template, err)
+	}
+
+	result := make(map[string]string, len(keyMap))
+	for sourceKey, currentKey := range keyMap {
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, map[string]string{"value": currentKey}); err != nil {
+			return nil, fmt.Errorf("failed to execute template for key %q: %w", currentKey, err)
+		}
+		result[sourceKey] = buf.String()
+	}
+
+	return result, nil
+}
+
+// expandDataFrom expands dataFrom entries into PushSecretData entries.
+// It matches keys from the source secret, applies rewrites, and creates PushSecretData entries.
+func (r *Reconciler) expandDataFrom(ps *esapi.PushSecret, secret *v1.Secret) ([]esapi.PushSecretData, error) {
+	if len(ps.Spec.DataFrom) == 0 {
+		return nil, nil
+	}
+
+	allData := make([]esapi.PushSecretData, 0)
+
+	// Get all keys from the secret
+	allKeys := make([]string, 0, len(secret.Data))
+	for key := range secret.Data {
+		allKeys = append(allKeys, key)
+	}
+
+	// Process each dataFrom entry
+	for i, dataFrom := range ps.Spec.DataFrom {
+		// Match keys based on pattern
+		matchedKeys, err := matchKeys(allKeys, dataFrom.Match)
+		if err != nil {
+			return nil, fmt.Errorf("dataFrom[%d]: match failed: %w", i, err)
+		}
+
+		if len(matchedKeys) == 0 {
+			r.Log.Info("dataFrom entry matched no keys", "index", i)
+			continue
+		}
+
+		// Apply rewrites to get sourceKey -> remoteKey mapping
+		keyMap, err := applyDataFromRewrites(matchedKeys, dataFrom.Rewrite)
+		if err != nil {
+			return nil, fmt.Errorf("dataFrom[%d]: rewrite failed: %w", i, err)
+		}
+
+		// Check for duplicate remote keys
+		remoteKeys := make(map[string]string) // remoteKey -> sourceKey
+		for sourceKey, remoteKey := range keyMap {
+			if existingSource, exists := remoteKeys[remoteKey]; exists {
+				return nil, fmt.Errorf("dataFrom[%d]: duplicate remote key %q from source keys %q and %q", i, remoteKey, existingSource, sourceKey)
+			}
+			remoteKeys[remoteKey] = sourceKey
+		}
+
+		// Create PushSecretData entries
+		for sourceKey, remoteKey := range keyMap {
+			data := esapi.PushSecretData{
+				Match: esapi.PushSecretMatch{
+					SecretKey: sourceKey,
+					RemoteRef: esapi.PushSecretRemoteRef{
+						RemoteKey: remoteKey,
+					},
+				},
+				Metadata:           dataFrom.Metadata,
+				ConversionStrategy: dataFrom.ConversionStrategy,
+			}
+			allData = append(allData, data)
+		}
+
+		r.Log.Info("expanded dataFrom entry", "index", i, "matchedKeys", len(matchedKeys), "created", len(keyMap))
+	}
+
+	return allData, nil
+}
+
+// mergeDataEntries merges dataFrom-expanded entries with explicit data entries.
+// Explicit data entries override dataFrom entries for the same source secret key.
+func mergeDataEntries(dataFromEntries []esapi.PushSecretData, explicitData []esapi.PushSecretData) []esapi.PushSecretData {
+	// Create a map of source secretKey -> data from explicit data
+	explicitMap := make(map[string]esapi.PushSecretData)
+	for _, data := range explicitData {
+		key := data.GetSecretKey()
+		explicitMap[key] = data
+	}
+
+	// Add dataFrom entries that don't conflict with explicit data (based on source key)
+	result := make([]esapi.PushSecretData, 0, len(dataFromEntries)+len(explicitData))
+	for _, data := range dataFromEntries {
+		key := data.GetSecretKey()
+		if _, exists := explicitMap[key]; !exists {
+			result = append(result, data)
+		}
+	}
+
+	// Add all explicit data entries
+	result = append(result, explicitData...)
+
+	return result
 }
