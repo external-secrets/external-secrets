@@ -120,6 +120,7 @@ jobs:
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: ${{ inputs.build-args }}
           DOCKER_BUILD_ARGS: >-
+            --no-cache
             --push
             --platform ${{ inputs.build-platform }}
         run: make docker.build
@@ -130,7 +131,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: ${{ inputs.build-args }}
-          DOCKER_BUILD_ARGS: --load
+          DOCKER_BUILD_ARGS: --no-cache --load
         run: make docker.build
       # images are large to the point trivy fails due to no space on disk left
       # This is a silly attempt to clean up space for trivy to run more
