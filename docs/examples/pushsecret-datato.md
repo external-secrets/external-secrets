@@ -476,7 +476,7 @@ spec:
     name: aws-secrets-manager
   target:
     name: aws-backup-secrets
-  dataTo:
+  dataFrom:
     - find:
         name:
           regexp: "^myapp/.*"
