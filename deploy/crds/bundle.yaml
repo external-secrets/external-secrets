@@ -1782,6 +1782,9 @@ spec:
                                     - template
                                   type: object
                               type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of regexp or transform must be specified
+                                  rule: (has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))
                             type: array
                         type: object
                       type: array
@@ -13458,6 +13461,9 @@ spec:
                                 - template
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of regexp or transform must be specified
+                              rule: (has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))
                         type: array
                     type: object
                   type: array
