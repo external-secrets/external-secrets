@@ -1,6 +1,6 @@
-# PushSecret dataFrom Examples
+# PushSecret dataTo Examples
 
-This page provides practical examples of using the `dataFrom` field in PushSecret to bulk-push secrets to external providers.
+This page provides practical examples of using the `dataTo` field in PushSecret to bulk-push secrets to external providers.
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ stringData:
   db-ssl-mode: "require"
 ```
 
-**PushSecret with dataFrom:**
+**PushSecret with dataTo:**
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -46,7 +46,7 @@ spec:
   selector:
     secret:
       name: db-credentials
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^db-.*"
       rewrite:
@@ -95,7 +95,7 @@ spec:
   selector:
     secret:
       name: app-config
-  dataFrom:
+  dataTo:
     - rewrite:
         - regexp:
             source: "^"
@@ -115,7 +115,7 @@ spec:
   selector:
     secret:
       name: app-config
-  dataFrom:
+  dataTo:
     - rewrite:
         - regexp:
             source: "^"
@@ -156,7 +156,7 @@ spec:
   selector:
     secret:
       name: mixed-secrets
-  dataFrom:
+  dataTo:
     # Database credentials -> config/database/*
     - match:
         regexp: "^db-.*"
@@ -221,7 +221,7 @@ spec:
   selector:
     secret:
       name: service-keys
-  dataFrom:
+  dataTo:
     - rewrite:
         - transform:
             template: "services/{{ .value | upper | replace \"-\" \"_\" }}"
@@ -263,7 +263,7 @@ spec:
   selector:
     secret:
       name: legacy-secrets
-  dataFrom:
+  dataTo:
     - rewrite:
         # First: Remove "old-" prefix
         - regexp:
@@ -286,7 +286,7 @@ spec:
 
 ## Example 6: Override Specific Keys
 
-Use both dataFrom and explicit data to handle exceptions.
+Use both dataTo and explicit data to handle exceptions.
 
 **Source Secret:**
 ```yaml
@@ -318,7 +318,7 @@ spec:
     secret:
       name: app-secrets
   # Push all db-* keys to app/database/*
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^db-.*"
       rewrite:
@@ -335,10 +335,10 @@ spec:
 ```
 
 **Result:**
-- `app/database/host` (from dataFrom)
-- `app/database/port` (from dataFrom)
-- `app/database/user` (from dataFrom)
-- `app/database/password` (from dataFrom)
+- `app/database/host` (from dataTo)
+- `app/database/port` (from dataTo)
+- `app/database/user` (from dataTo)
+- `app/database/password` (from dataTo)
 - `admin/database/password` (from explicit data override)
 
 ## Example 7: AWS Secrets Manager with Metadata
@@ -358,7 +358,7 @@ spec:
   selector:
     secret:
       name: app-config
-  dataFrom:
+  dataTo:
     - match:
         regexp: "^prod-.*"
       rewrite:
@@ -406,7 +406,7 @@ spec:
   selector:
     secret:
       name: vault-secrets
-  dataFrom:
+  dataTo:
     # Service-specific secrets
     - match:
         regexp: "^service-.*-key$"
@@ -446,7 +446,7 @@ spec:
   selector:
     secret:
       name: app-secrets
-  dataFrom:
+  dataTo:
     - rewrite:
         # Azure Key Vault only allows alphanumeric and hyphens
         # Convert underscores to hyphens
@@ -476,13 +476,13 @@ spec:
     name: aws-secrets-manager
   target:
     name: aws-backup-secrets
-  dataFrom:
+  dataTo:
     - find:
         name:
           regexp: "^myapp/.*"
 ```
 
-**Step 2: Push to GCP with dataFrom:**
+**Step 2: Push to GCP with dataTo:**
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -495,7 +495,7 @@ spec:
   selector:
     secret:
       name: aws-backup-secrets
-  dataFrom:
+  dataTo:
     - rewrite:
         # Maintain structure but add backup prefix
         - regexp:
@@ -535,7 +535,7 @@ kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.status.syncedPushSec
 
 ## Best Practices
 
-1. **Start with match-all to verify**: Test with `dataFrom: [{}]` first
+1. **Start with match-all to verify**: Test with `dataTo: [{}]` first
 2. **Test regex patterns**: Use `kubectl get secret -o jsonpath='{.data}' | jq 'keys'`
 3. **Use descriptive patterns**: Make regex patterns self-documenting
 4. **Monitor status**: Check PushSecret status after creation
@@ -544,6 +544,6 @@ kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.status.syncedPushSec
 
 ## See Also
 
-- [PushSecret dataFrom Guide](../guides/pushsecret-datafrom.md)
+- [PushSecret dataTo Guide](../guides/pushsecret-datato.md)
 - [PushSecret API Reference](../api/pushsecret.md)
 - [Provider Documentation](../provider/)
