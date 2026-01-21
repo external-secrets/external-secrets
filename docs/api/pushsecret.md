@@ -168,7 +168,7 @@ spec:
 
 ### Error Handling
 
-- **Invalid regexp**: PushSecret enters error state with details in status
+- **Invalid regular expression**: PushSecret enters error state with details in status
 - **Duplicate remote keys**: Operation fails if rewrites produce duplicate keys
 - **No matching keys**: Warning logged, PushSecret remains Ready
 
