@@ -122,10 +122,10 @@ dataTo:
 
 #### `conversionStrategy` (string, optional)
 
-Strategy for converting secret values. Default: `"None"`
+Strategy for converting secret key names before matching and rewriting. The conversion is applied to keys (not values), and `match` patterns and `rewrite` operations operate on the converted key names. Default: `"None"`
 
 - `"None"`: No conversion
-- `"ReverseUnicode"`: Reverse Unicode escape sequences (useful when paired with ExternalSecret's `Unicode` strategy)
+- `"ReverseUnicode"`: Reverse Unicode escape sequences in key names (useful when paired with ExternalSecret's `Unicode` strategy)
 
 ```yaml
 dataTo:
