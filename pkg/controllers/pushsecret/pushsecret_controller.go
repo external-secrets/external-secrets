@@ -439,7 +439,10 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	}
 
 	// Merge dataTo entries with explicit data (explicit data overrides)
-	allData := mergeDataEntries(dataToEntries, ps.Spec.Data)
+	allData, err := mergeDataEntries(dataToEntries, ps.Spec.Data)
+	if err != nil {
+		return out, fmt.Errorf("failed to merge data entries: %w", err)
+	}
 
 	for _, data := range allData {
 		secretData, err := esutils.ReverseKeys(data.ConversionStrategy, originalSecretData)
@@ -909,7 +912,8 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 
 // mergeDataEntries merges dataTo-expanded entries with explicit data entries.
 // Explicit data entries override dataTo entries for the same source secret key.
-func mergeDataEntries(dataToEntries []esapi.PushSecretData, explicitData []esapi.PushSecretData) []esapi.PushSecretData {
+// Returns an error if duplicate remote keys are detected.
+func mergeDataEntries(dataToEntries []esapi.PushSecretData, explicitData []esapi.PushSecretData) ([]esapi.PushSecretData, error) {
 	// Create a map of source secretKey -> data from explicit data
 	explicitMap := make(map[string]esapi.PushSecretData)
 	for _, data := range explicitData {
@@ -929,5 +933,16 @@ func mergeDataEntries(dataToEntries []esapi.PushSecretData, explicitData []esapi
 	// Add all explicit data entries
 	result = append(result, explicitData...)
 
-	return result
+	// Check for duplicate remote keys
+	remoteKeys := make(map[string]string) // remoteKey -> sourceKey
+	for _, data := range result {
+		remoteKey := data.GetRemoteKey()
+		sourceKey := data.GetSecretKey()
+		if existingSource, exists := remoteKeys[remoteKey]; exists {
+			return nil, fmt.Errorf("duplicate remote key %q: source keys %q and %q both map to the same remote key", remoteKey, existingSource, sourceKey)
+		}
+		remoteKeys[remoteKey] = sourceKey
+	}
+
+	return result, nil
 }
