@@ -121,7 +121,7 @@ spec:
 - `password` → `app/PASSWORD`
 - `api-key` → `app/API-KEY`
 
-Available template functions include all [sprig functions](http://masterminds.github.io/sprig/) like `upper`, `lower`, `replace`, `trim`, etc.
+Available template functions include all [sprig functions](https://masterminds.github.io/sprig/) like `upper`, `lower`, `replace`, `trim`, etc.
 
 ### Chained Rewrites
 
