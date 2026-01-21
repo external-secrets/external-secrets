@@ -918,7 +918,7 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 
 // mergeDataEntries merges dataTo-expanded entries with explicit data entries.
 // Explicit data entries override dataTo entries for the same source secret key.
-// Returns an error if duplicate remote keys are detected.
+// Returns an error if duplicate remote keys with the same property are detected.
 func mergeDataEntries(dataToEntries []esapi.PushSecretData, explicitData []esapi.PushSecretData) ([]esapi.PushSecretData, error) {
 	// Create a map of source secretKey -> data from explicit data
 	explicitMap := make(map[string]esapi.PushSecretData)
@@ -939,15 +939,30 @@ func mergeDataEntries(dataToEntries []esapi.PushSecretData, explicitData []esapi
 	// Add all explicit data entries
 	result = append(result, explicitData...)
 
-	// Check for duplicate remote keys
-	remoteKeys := make(map[string]string) // remoteKey -> sourceKey
+	// Check for duplicate remote keys with the same property.
+	type compositeKeyInfo struct {
+		sourceKey string
+		property  string
+	}
+	remoteKeys := make(map[string]compositeKeyInfo) // compositeKey -> info
 	for _, data := range result {
 		remoteKey := data.GetRemoteKey()
+		property := data.GetProperty()
 		sourceKey := data.GetSecretKey()
-		if existingSource, exists := remoteKeys[remoteKey]; exists {
-			return nil, fmt.Errorf("duplicate remote key %q: source keys %q and %q both map to the same remote key", remoteKey, existingSource, sourceKey)
+
+		// Create composite key by combining remote key and property
+		compositeKey := remoteKey + "|" + property
+
+		if existing, exists := remoteKeys[compositeKey]; exists {
+			if property != "" {
+				return nil, fmt.Errorf("duplicate remote key %q with property %q: source keys %q and %q both map to the same remote key and property", remoteKey, property, existing.sourceKey, sourceKey)
+			}
+			return nil, fmt.Errorf("duplicate remote key %q: source keys %q and %q both map to the same remote key", remoteKey, existing.sourceKey, sourceKey)
 		}
-		remoteKeys[remoteKey] = sourceKey
+		remoteKeys[compositeKey] = compositeKeyInfo{
+			sourceKey: sourceKey,
+			property:  property,
+		}
 	}
 
 	return result, nil
