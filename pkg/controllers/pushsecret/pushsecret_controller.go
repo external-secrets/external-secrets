@@ -886,6 +886,13 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 			return nil, fmt.Errorf("dataTo[%d]: rewrite failed: %w", i, err)
 		}
 
+		// Validate that no remote key is empty
+		for sourceKey, remoteKey := range keyMap {
+			if remoteKey == "" {
+				return nil, fmt.Errorf("dataTo[%d]: empty remote key produced for source key %q", i, sourceKey)
+			}
+		}
+
 		// Check for duplicate remote keys within this dataTo entry and across all dataTo entries
 		for sourceKey, remoteKey := range keyMap {
 			if existingSource, exists := overallRemoteKeys[remoteKey]; exists {
