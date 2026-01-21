@@ -1639,6 +1639,52 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	failDataToAndDataDuplicateRemoteKey := func(tc *testCase) {
+		tc.secret.Data = map[string][]byte{
+			"db-host": []byte("localhost"),
+			"api-key": []byte("secret123"),
+		}
+		// Create dataTo entry and explicit data that map to the same remote key
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
+			{
+				Match: &v1alpha1.PushSecretDataToMatch{
+					RegExp: "^db-host$",
+				},
+				Rewrite: []v1alpha1.PushSecretRewrite{
+					{
+						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+							Source: ".*",
+							Target: "myapp/config",
+						},
+					},
+				},
+			},
+		}
+		tc.pushsecret.Spec.Data = []v1alpha1.PushSecretData{
+			{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "api-key",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{
+						RemoteKey: "myapp/config", // Same remote key as dataTo produces
+					},
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if PushSecret has error condition for duplicate remote keys")
+				cond := GetPushSecretCondition(ps.Status.Conditions, v1alpha1.PushSecretReady)
+				if cond == nil {
+					return false
+				}
+				// Should have error status
+				return cond.Status == v1.ConditionFalse && cond.Reason == v1alpha1.ReasonErrored
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
 	syncWithDataToMultipleRewrites := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
@@ -1749,6 +1795,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should fail with invalid regex in dataTo", failDataToInvalidRegex),
 		Entry("should sync with dataTo and conversion strategy", syncWithDataToConversionStrategy),
 		Entry("should fail with duplicate remote keys across dataTo entries", failDataToDuplicateAcrossEntries),
+		Entry("should fail with duplicate remote keys between dataTo and explicit data", failDataToAndDataDuplicateRemoteKey),
 	)
 })
 
