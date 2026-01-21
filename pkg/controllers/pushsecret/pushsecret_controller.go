@@ -426,14 +426,16 @@ func (r *Reconciler) handlePushSecretDataForStore(
 		Name: storeName,
 		Kind: refKind,
 	}
-	originalSecretData := secret.Data
 	secretClient, err := mgr.Get(ctx, storeRef, ps.GetNamespace(), nil)
 	if err != nil {
 		return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 	}
 
+	// Create a copy of the secret for this store to avoid mutating the shared secret
+	storeSecret := secret.DeepCopy()
+
 	// Expand dataTo entries into PushSecretData
-	dataToEntries, err := r.expandDataTo(&ps, secret)
+	dataToEntries, err := r.expandDataTo(&ps, storeSecret)
 	if err != nil {
 		return out, fmt.Errorf("failed to expand dataTo: %w", err)
 	}
@@ -444,14 +446,18 @@ func (r *Reconciler) handlePushSecretDataForStore(
 		return out, fmt.Errorf("failed to merge data entries: %w", err)
 	}
 
+	// Preserve the original secret data so each data entry's conversion
+	// is applied to the original data, not to already-converted data
+	originalStoreSecretData := storeSecret.Data
+
 	for _, data := range allData {
-		secretData, err := esutils.ReverseKeys(data.ConversionStrategy, originalSecretData)
+		secretData, err := esutils.ReverseKeys(data.ConversionStrategy, originalStoreSecretData)
 		if err != nil {
 			return nil, fmt.Errorf(errConvert, err)
 		}
-		secret.Data = secretData
+		storeSecret.Data = secretData
 		key := data.GetSecretKey()
-		if !secretKeyExists(key, secret) {
+		if !secretKeyExists(key, storeSecret) {
 			return out, fmt.Errorf("secret key %v does not exist", key)
 		}
 		switch ps.Spec.UpdatePolicy {
@@ -466,7 +472,7 @@ func (r *Reconciler) handlePushSecretDataForStore(
 		case esapi.PushSecretUpdatePolicyReplace:
 		default:
 		}
-		if err := secretClient.PushSecret(ctx, secret, data); err != nil {
+		if err := secretClient.PushSecret(ctx, storeSecret, data); err != nil {
 			return out, fmt.Errorf(errSetSecretFailed, key, storeName, err)
 		}
 		out[storeKey][statusRef(data)] = data
