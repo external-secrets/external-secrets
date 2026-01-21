@@ -947,28 +947,34 @@ func mergeDataEntries(dataToEntries []esapi.PushSecretData, explicitData []esapi
 	result = append(result, explicitData...)
 
 	// Check for duplicate remote keys with the same property.
-	type compositeKeyInfo struct {
-		sourceKey string
+	// Use a struct as the map key to avoid collisions from string concatenation.
+	type compositeKey struct {
+		remoteKey string
 		property  string
 	}
-	remoteKeys := make(map[string]compositeKeyInfo) // compositeKey -> info
+	type compositeKeyInfo struct {
+		sourceKey string
+	}
+	remoteKeys := make(map[compositeKey]compositeKeyInfo)
 	for _, data := range result {
 		remoteKey := data.GetRemoteKey()
 		property := data.GetProperty()
 		sourceKey := data.GetSecretKey()
 
-		// Create composite key by combining remote key and property
-		compositeKey := remoteKey + "|" + property
+		// Create composite key using struct (collision-free)
+		key := compositeKey{
+			remoteKey: remoteKey,
+			property:  property,
+		}
 
-		if existing, exists := remoteKeys[compositeKey]; exists {
+		if existing, exists := remoteKeys[key]; exists {
 			if property != "" {
 				return nil, fmt.Errorf("duplicate remote key %q with property %q: source keys %q and %q both map to the same remote key and property", remoteKey, property, existing.sourceKey, sourceKey)
 			}
 			return nil, fmt.Errorf("duplicate remote key %q: source keys %q and %q both map to the same remote key", remoteKey, existing.sourceKey, sourceKey)
 		}
-		remoteKeys[compositeKey] = compositeKeyInfo{
+		remoteKeys[key] = compositeKeyInfo{
 			sourceKey: sourceKey,
-			property:  property,
 		}
 	}
 
