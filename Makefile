@@ -192,7 +192,7 @@ generate: ## Generate code and crds
 # This is for running out-of-cluster locally, and is for convenience.
 # For more control, try running the binary directly with different arguments.
 run: generate ## Run app locally (without a k8s cluster)
-	go run ./main.go
+	go run -tags $(PROVIDER) ./main.go
 
 manifests: helm.generate ## Generate manifests from helm chart
 	mkdir -p $(OUTPUT_DIR)/deploy/manifests

@@ -73,9 +73,11 @@ gcflags = ''
 if settings.get('debug').get('enabled'):
     gcflags = '-N -l'
 
+buildtags = settings.get('buildtags', 'all_providers')
+
 local_resource(
     'external-secret-binary',
-    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags '{gcflags}' -v -o bin/external-secrets ./".format(gcflags=gcflags),
+    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags '{buildtags}' -gcflags '{gcflags}' -v -o bin/external-secrets ./".format(buildtags=buildtags, gcflags=gcflags),
     deps = [
         "main.go",
         "go.mod",
