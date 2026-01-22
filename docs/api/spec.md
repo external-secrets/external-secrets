@@ -8023,6 +8023,203 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.OvhAuth">OvhAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhProvider">OvhProvider</a>)
+</p>
+<p>
+<p>OvhAuth tells the controller how to authenticate to OVHcloud&rsquo;s Secret Manager, either using mTLS or a token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mtls</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientMTLS">
+OvhClientMTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientToken">
+OvhClientToken
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientMTLS defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager using mTLS.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientToken">OvhClientToken
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientToken defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager using a token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhProvider">OvhProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OvhProvider holds the configuration to synchronize secrets with OVHcloud&rsquo;s Secret Manager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>specifies the OKMS server endpoint</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>okmsid</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>specifies the OKMS ID</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>casRequired</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Enables or disables check-and-set (CAS) (default: false)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>okmsTimeout</code></br>
+<em>
+uint32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Setup a timeout in seconds when requests to the KMS are made (default: 30)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhAuth">
+OvhAuth
+</a>
+</em>
+</td>
+<td>
+<p>Authentication method (mtls or token)</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.PassboltAuth">PassboltAuth
 </h3>
 <p>
@@ -9026,6 +9223,18 @@ VaultProvider
 <td>
 <em>(Optional)</em>
 <p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ovh</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhProvider">
+OvhProvider
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 <tr>
