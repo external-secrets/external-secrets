@@ -46,7 +46,7 @@ func TestGetSecret(t *testing.T) {
 			},
 		},
 		"Secret without data": {
-			errshould: "empty secret",
+			errshould: "secret version data is missing",
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "key",
 			},

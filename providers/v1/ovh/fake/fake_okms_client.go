@@ -28,6 +28,8 @@ import (
 	"github.com/ovh/okms-sdk-go/types"
 )
 
+const str = "string"
+
 type FakeOkmsClient struct {
 	TestCase string
 }
@@ -37,10 +39,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 
 	// Metadata
 	CasRequired := true
-	CreatedAt := "string"
-	DeactivateVersionAfter := "string"
+	CreatedAt := str
+	DeactivateVersionAfter := str
 	MaxVersions := uint32(10)
-	UpdatedAt := "string"
+	UpdatedAt := str
+	var State types.SecretV2State = str
 
 	// Version
 	Data := map[string]any{
@@ -65,11 +68,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 		},
 		Path: &kmsClient.TestCase,
 		Version: &types.SecretV2Version{
-			CreatedAt:     "string",
+			CreatedAt:     CreatedAt,
 			Data:          &Data,
 			DeactivatedAt: &DeactivatedAt,
 			Id:            1,
-			State:         "string",
+			State:         State,
 			Warnings:      &Warnings,
 		},
 	}
@@ -83,11 +86,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 		},
 		Path: &kmsClient.TestCase,
 		Version: &types.SecretV2Version{
-			CreatedAt:     "string",
+			CreatedAt:     CreatedAt,
 			Data:          &NestedData,
 			DeactivatedAt: &DeactivatedAt,
 			Id:            1,
-			State:         "string",
+			State:         State,
 			Warnings:      &Warnings,
 		},
 	}
@@ -112,11 +115,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
-				Data:          &map[string]interface{}{},
+				CreatedAt:     CreatedAt,
+				Data:          nil,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil
@@ -188,11 +191,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
+				CreatedAt:     CreatedAt,
 				Data:          &data1,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil
@@ -207,11 +210,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
+				CreatedAt:     CreatedAt,
 				Data:          &data2,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil
@@ -226,11 +229,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
+				CreatedAt:     CreatedAt,
 				Data:          &data3,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil
@@ -245,11 +248,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
+				CreatedAt:     CreatedAt,
 				Data:          &data4,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil
@@ -264,11 +267,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
+				CreatedAt:     CreatedAt,
 				Data:          &data5,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil
@@ -283,11 +286,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
+				CreatedAt:     CreatedAt,
 				Data:          &data6,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil
@@ -302,11 +305,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
+				CreatedAt:     CreatedAt,
 				Data:          &data7,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil
@@ -321,11 +324,11 @@ func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path
 			},
 			Path: &kmsClient.TestCase,
 			Version: &types.SecretV2Version{
-				CreatedAt:     "string",
+				CreatedAt:     CreatedAt,
 				Data:          &data8,
 				DeactivatedAt: &DeactivatedAt,
 				Id:            1,
-				State:         "string",
+				State:         State,
 				Warnings:      &Warnings,
 			},
 		}, nil

@@ -42,7 +42,7 @@ func TestSecretExists(t *testing.T) {
 			remoteRef: testingfake.PushSecretData{},
 		},
 		"Error case": {
-			errshould: "SecretExists error",
+			errshould: "failed to parse okms error: SecretExists error",
 			remoteRef: testingfake.PushSecretData{},
 		},
 	}
@@ -56,9 +56,19 @@ func TestSecretExists(t *testing.T) {
 			}
 			ctx := context.Background()
 			exists, err := cl.SecretExists(ctx, testCase.remoteRef)
-			if testCase.errshould != "" && err != nil && err.Error() != testCase.errshould {
-				t.Error()
-			} else if (testCase.should && !exists) || (!testCase.should && exists) {
+			if testCase.errshould != "" {
+				if err == nil {
+					t.Error()
+				}
+				if err.Error() != testCase.errshould {
+					t.Error()
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if exists != testCase.should {
 				t.Error()
 			}
 		})
