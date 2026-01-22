@@ -26,9 +26,11 @@ import (
 func (cl *ovhClient) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
 	// Check if the secret exists using the OVH SDK.
 	_, err := cl.okmsClient.GetSecretV2(ctx, cl.okmsID, remoteRef.GetRemoteKey(), nil, nil)
-	if err != nil && errors.Is(handleOkmsError(err), esv1.NoSecretErr) {
-		return false, nil
-	} else if err != nil {
+	if err != nil {
+		err = handleOkmsError(err)
+		if errors.Is(err, esv1.NoSecretErr) {
+			return false, nil
+		}
 		return false, err
 	}
 

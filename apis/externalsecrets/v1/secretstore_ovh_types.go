@@ -21,20 +21,20 @@ import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 // OvhProvider holds the configuration to synchronize secrets with OVHcloud's Secret Manager.
 // +optional
 type OvhProvider struct {
-	// specifies the OKMS server endpoint
+	// specifies the OKMS server endpoint.
 	// +required
 	Server string `json:"server"`
-	// specifies the OKMS ID
+	// specifies the OKMS ID.
 	// +required
 	OkmsID string `json:"okmsid"`
-	// Enables or disables check-and-set (CAS) (default: false)
+	// Enables or disables check-and-set (CAS) (default: false).
 	// +optional
 	CasRequired *bool `json:"casRequired,omitempty"`
-	// Setup a timeout in seconds when requests to the KMS are made (default: 30)
+	// Setup a timeout in seconds when requests to the KMS are made (default: 30).
 	// +optional
 	// +kubebuilder:default=30
 	OkmsTimeout *uint32 `json:"okmsTimeout,omitempty"`
-	// Authentication method (mtls or token)
+	// Authentication method (mtls or token).
 	// +required
 	Auth OvhAuth `json:"auth"`
 }
