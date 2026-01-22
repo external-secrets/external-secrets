@@ -247,3 +247,39 @@ tests:
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
+  - it: should default to hostUsers absent
+    set:
+      certController.create: true
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should permit override of hostUsers
+    set:
+      certController.create: true
+      certController.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostUsers
+          value: false
+  - it: should ignore hostUsers on older k8s
+    set:
+      certController.create: true
+      certController.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '32'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers

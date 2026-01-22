@@ -385,6 +385,10 @@ podDisruptionBudget:
 # -- Run the controller on the host network
 hostNetwork: false
 
+# -- (bool) Specifies if controller pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
+# @schema type: [boolean, null]
+hostUsers:
+
 webhook:
   # -- Annotations to place on validating webhook configuration.
   annotations: {}
@@ -407,6 +411,9 @@ webhook:
   failurePolicy: Fail
   # -- Specifies if webhook pod should use hostNetwork or not.
   hostNetwork: false
+  # -- (bool) Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
+  # @schema type: [boolean, null]
+  hostUsers:
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
@@ -627,6 +634,9 @@ certController:
 
   # -- Run the certController on the host network
   hostNetwork: false
+  # -- (bool) Specifies if certController pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
+  # @schema type: [boolean, null]
+  hostUsers:
 
     # -- Pod priority class name.
   priorityClassName: ""
