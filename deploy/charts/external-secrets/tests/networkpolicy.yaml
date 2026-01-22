@@ -1,0 +1,19 @@
+suite: test external-secrets networkpolicy
+templates:
+  - networkpolicy.yaml
+tests:
+  - it: should create a networkPolicy
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - equal:
+          path: spec.policyTypes
+          value:
+            - Egress
+            - Ingress
+  - it: should not create a networkPolicy
+    set:
+      networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

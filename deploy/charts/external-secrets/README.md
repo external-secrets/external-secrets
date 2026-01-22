@@ -57,12 +57,16 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | certController.metrics.service.port | int | `8080` | Metrics service port to scrape |
+| certController.networkPolicy | object | `{"egress":[{"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"},{"port":53,"protocol":"TCP"},{"port":53,"protocol":"UDP"},{"port":6443,"protocol":"TCP"}]}],"enabled":false,"ingress":[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8081,"protocol":"TCP"}]}]}` | Setup a networkPolicy for external-secrets certController |
+| certController.networkPolicy.egress | list | `[{"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"},{"port":53,"protocol":"TCP"},{"port":53,"protocol":"UDP"},{"port":6443,"protocol":"TCP"}]}]` | The egress traffic The minimum egress ports required to function are:   DNS (53/udp, 53/tcp)   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp |
+| certController.networkPolicy.enabled | bool | `false` | Specifies whether the networkPolicy should be created. |
+| certController.networkPolicy.ingress | list | `[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8081,"protocol":"TCP"}]}]` | The ingress traffic Should match the health and (optionally) metrics port |
 | certController.nodeSelector | object | `{}` |  |
 | certController.podAnnotations | object | `{}` | Annotations to add to Pod |
 | certController.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
 | certController.podLabels | object | `{}` |  |
 | certController.podSecurityContext.enabled | bool | `true` |  |
-| certController.priorityClassName | string | `""` | Pod priority class name. |
+| certController.priorityClassName | string | `""` |  |
 | certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | certController.readinessProbe.address | string | `""` | Address for readiness probe |
 | certController.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
@@ -162,6 +166,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | metrics.service.port | int | `8080` | Metrics service port to scrape |
 | nameOverride | string | `""` |  |
 | namespaceOverride | string | `""` |  |
+| networkPolicy | object | `{"egress":[{"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"},{"port":53,"protocol":"TCP"},{"port":53,"protocol":"UDP"},{"port":6443,"protocol":"TCP"}]}],"enabled":false,"ingress":[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8082,"protocol":"TCP"}]}]}` | Setup a networkPolicy for external-secrets |
+| networkPolicy.egress | list | `[{"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"},{"port":53,"protocol":"TCP"},{"port":53,"protocol":"UDP"},{"port":6443,"protocol":"TCP"}]}]` | The egress traffic The minimum egress ports required to function are:   DNS (53/udp, 53/tcp)   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp You will need to add any additional ports for your external stores |
+| networkPolicy.enabled | bool | `false` | Specifies whether the networkPolicy should be created. |
+| networkPolicy.ingress | list | `[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8082,"protocol":"TCP"}]}]` | The ingress traffic Should match the health and (optionally) metrics port |
 | nodeSelector | object | `{}` |  |
 | openshiftFinalizers | bool | `true` | If true the OpenShift finalizer permissions will be added to RBAC |
 | podAnnotations | object | `{}` | Annotations to add to Pod |
@@ -247,6 +255,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | webhook.metrics.service.port | int | `8080` | Metrics service port to scrape |
+| webhook.networkPolicy | object | `{"egress":[{"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"},{"port":53,"protocol":"TCP"},{"port":53,"protocol":"UDP"},{"port":6443,"protocol":"TCP"}]}],"enabled":false,"ingress":[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8081,"protocol":"TCP"},{"port":10250,"protocol":"TCP"}]}]}` | Setup a networkPolicy for external-secrets webhook |
+| webhook.networkPolicy.egress | list | `[{"ports":[{"port":80,"protocol":"TCP"},{"port":443,"protocol":"TCP"},{"port":53,"protocol":"TCP"},{"port":53,"protocol":"UDP"},{"port":6443,"protocol":"TCP"}]}]` | The egress traffic The minimum egress ports required to function are:   DNS (53/udp, 53/tcp)   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp |
+| webhook.networkPolicy.enabled | bool | `false` | Specifies whether the networkPolicy should be created. |
+| webhook.networkPolicy.ingress | list | `[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8081,"protocol":"TCP"},{"port":10250,"protocol":"TCP"}]}]` | The ingress traffic Should match the webhook, health, and (optionally) metrics port |
 | webhook.nodeSelector | object | `{}` |  |
 | webhook.podAnnotations | object | `{}` | Annotations to add to Pod |
 | webhook.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
