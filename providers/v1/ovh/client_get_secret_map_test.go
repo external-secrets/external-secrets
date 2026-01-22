@@ -49,7 +49,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"Secret without data": {
-			shouldmap: map[string][]byte{},
+			errshould: "secret version data is missing",
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "key",
 			},

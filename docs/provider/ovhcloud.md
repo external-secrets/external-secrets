@@ -1,6 +1,6 @@
 ## Secrets Manager
 
-External Secrets Operator integrates with [OVHcloud KMS](https://www.ovhcloud.com/fr/identity-security-operations/key-management-service/).  
+External Secrets Operator integrates with [OVHcloud KMS](https://www.ovhcloud.com/en/identity-security-operations/key-management-service/).  
 
 This guide demonstrates:
 - how to set up a `ClusterSecretStore`/`SecretStore` with the OVH provider.
@@ -27,7 +27,6 @@ mTLS authentication:
 
 !!! note
      A `ClusterSecretStore` configuration is the same except you have to provide the `tokenSecretRef` `namespace`.  
-     `ExternalSecret` objects must be in the same `namespace` as the `tokenSecretRef` provided to your `ClusterSecretStore`.
 
 ### <u>ExternalSecret</u>
  
@@ -195,7 +194,7 @@ Resulting Kubernetes Secret data:
 ### <u>PushSecret</u>
 
 #### Check-And-Set
-Check-And-Set can be enabled/disabled (default: enabled), in the Secret Store configuration:
+Check-And-Set can be enabled/disabled (default: disabled), in the Secret Store configuration:
 ```yaml
 {% include 'ovh-secret-store-cas.yaml' %}
 ```

@@ -27,7 +27,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// GetAllSecret retrieves multiple secrets from the Secret Manager.
+// GetAllSecrets retrieves multiple secrets from the Secret Manager.
 // You can optionally filter secrets by name using a regular expression.
 // When path is set to "/" or left empty, the search starts from the Secret Manager root.
 func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
@@ -190,7 +190,7 @@ func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []s
 		}
 	}
 	if len(secretsDataMap) == 0 {
-		return map[string][]byte{}, errors.New("no secrets matched the regexp")
+		return map[string][]byte{}, errors.New("no secrets could be retrieved")
 	}
 	return secretsDataMap, nil
 }

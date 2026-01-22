@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -80,20 +81,22 @@ func getSecretWithOvhSDK(ctx context.Context, kmsClient OkmsClient, okmsID uuid.
 //
 // Returns nil if no version is provided; in that case, the OVH SDK uses the latest version.
 func decodeSecretVersion(strVersion string) (*uint32, error) {
-	var version *uint32
+	var version uint32
 
 	if strVersion != "" {
 		v, err := strconv.Atoi(strVersion)
 		if err != nil {
-			return version, err
+			return nil, err
 		}
-		tmpVersion := uint32(v)
-		if int(tmpVersion) != v {
+		if v < 0 || v > math.MaxUint32 {
 			return nil, errors.New("overflow occurred while decoding secret version")
 		}
-		version = &tmpVersion
+		version = uint32(v)
+	} else {
+		return nil, nil
 	}
-	return version, nil
+
+	return &version, nil
 }
 
 // Retrieve the value of the secret property.
