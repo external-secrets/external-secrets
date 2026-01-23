@@ -364,6 +364,32 @@ livenessProbe:
       # -- Path for liveness probe.
       path: /healthz
 
+readinessProbe:
+  # -- Enabled determines if the readiness probe should be used or not. By default it's disabled.
+  # -- Note: Enabling this will auto-start the health server (--live-addr) even if livenessProbe.enabled is false.
+  enabled: false
+  # -- The body of the readiness probe settings.
+  spec:
+    # -- Address for readiness probe.
+    address: ""
+    # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
+    timeoutSeconds: 5
+    # -- Number of consecutive probe failures that should occur before considering the probe as failed.
+    failureThreshold: 3
+    # -- Period in seconds for K8s to start performing probes.
+    periodSeconds: 10
+    # -- Number of successful probes to mark probe successful.
+    successThreshold: 1
+    # -- Delay in seconds for the container to start before performing the initial probe.
+    initialDelaySeconds: 10
+    # -- Handler for readiness probe.
+    httpGet:
+      # -- Port for readiness probe. Should match the livenessProbe port when both are enabled.
+      # @schema type: [string, integer]
+      port: 8082
+      # -- Path for readiness probe.
+      path: /healthz
+
 nodeSelector: {}
 
 tolerations: []
