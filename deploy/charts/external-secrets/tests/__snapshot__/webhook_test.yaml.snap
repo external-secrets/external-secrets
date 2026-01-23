@@ -49,10 +49,13 @@ should match snapshot of default values:
                 - containerPort: 10250
                   name: webhook
                   protocol: TCP
+                - containerPort: 8081
+                  protocol: TCP
+                  name: ready
               readinessProbe:
                 httpGet:
                   path: /readyz
-                  port: 8081
+                  port: ready
                 initialDelaySeconds: 20
                 periodSeconds: 5
               securityContext:

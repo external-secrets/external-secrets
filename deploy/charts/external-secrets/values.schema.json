@@ -493,6 +493,9 @@
                         "periodSeconds": {
                             "type": "integer"
                         },
+                        "port": {
+                            "type": "integer"
+                        },
                         "successThreshold": {
                             "type": "integer"
                         },

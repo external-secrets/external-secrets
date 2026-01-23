@@ -346,6 +346,8 @@ livenessProbe:
   spec:
     # -- Address for liveness probe.
     address: ""
+    # -- Named port for liveness probe.
+    port: 8082
     # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
     timeoutSeconds: 5
     # -- Number of consecutive probe failures that should occur before considering the probe as failed.
@@ -358,9 +360,9 @@ livenessProbe:
     initialDelaySeconds: 10
     # -- Handler for liveness probe.
     httpGet:
-      # -- Set this value to 8082 to active liveness probes.
+      # -- Set this value to 'live' (for named port) or an an integer for liveness probes.
       # @schema type: [string, integer]
-      port: 8082
+      port: live
       # -- Path for liveness probe.
       path: /healthz
 

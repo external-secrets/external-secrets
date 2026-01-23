@@ -100,9 +100,17 @@ spec:
             - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
               name: metrics
+            - containerPort: {{ .Values.certController.readinessProbe.port }}
+              protocol: TCP
+              name: ready
+            {{- if and .Values.certController.startupProbe.enabled (not .Values.certController.startupProbe.useReadinessProbePort) }}
+            - containerPort: {{ .Values.certController.startupProbe.port }}
+              protocol: TCP
+              name: startup
+            {{- end }}
           readinessProbe:
             httpGet:
-              port: {{ .Values.certController.readinessProbe.port }}
+              port: ready
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
@@ -110,9 +118,9 @@ spec:
           startupProbe:
             httpGet:
               {{- if .Values.certController.startupProbe.useReadinessProbePort }}
-              port: {{ .Values.certController.readinessProbe.port }}
+              port: ready
               {{- else }}
-              port: {{ .Values.certController.startupProbe.port }}
+              port: startup
               {{- end }}
               path: /readyz
             initialDelaySeconds: 20
