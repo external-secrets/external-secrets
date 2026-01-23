@@ -20,7 +20,6 @@ replace (
 	github.com/external-secrets/external-secrets/generators/v1/vault => ./generators/v1/vault
 	github.com/external-secrets/external-secrets/generators/v1/webhook => ./generators/v1/webhook
 	github.com/external-secrets/external-secrets/providers/v1/akeyless => ./providers/v1/akeyless
-	github.com/external-secrets/external-secrets/providers/v1/alibaba => ./providers/v1/alibaba
 	github.com/external-secrets/external-secrets/providers/v1/aws => ./providers/v1/aws
 	github.com/external-secrets/external-secrets/providers/v1/azure => ./providers/v1/azure
 	github.com/external-secrets/external-secrets/providers/v1/barbican => ./providers/v1/barbican
@@ -30,7 +29,6 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/cloudru => ./providers/v1/cloudru
 	github.com/external-secrets/external-secrets/providers/v1/conjur => ./providers/v1/conjur
 	github.com/external-secrets/external-secrets/providers/v1/delinea => ./providers/v1/delinea
-	github.com/external-secrets/external-secrets/providers/v1/device42 => ./providers/v1/device42
 	github.com/external-secrets/external-secrets/providers/v1/doppler => ./providers/v1/doppler
 	github.com/external-secrets/external-secrets/providers/v1/dvls => ./providers/v1/dvls
 	github.com/external-secrets/external-secrets/providers/v1/fake => ./providers/v1/fake
@@ -47,7 +45,6 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk => ./providers/v1/onepasswordsdk
 	github.com/external-secrets/external-secrets/providers/v1/oracle => ./providers/v1/oracle
-	github.com/external-secrets/external-secrets/providers/v1/passbolt => ./providers/v1/passbolt
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot => ./providers/v1/passworddepot
 	github.com/external-secrets/external-secrets/providers/v1/previder => ./providers/v1/previder
 	github.com/external-secrets/external-secrets/providers/v1/pulumi => ./providers/v1/pulumi
@@ -134,7 +131,6 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/akeyless v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/providers/v1/alibaba v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/aws v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/barbican v0.0.0-00010101000000-000000000000
@@ -144,7 +140,6 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/cloudru v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/conjur v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/providers/v1/device42 v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/dvls v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-00010101000000-000000000000
@@ -161,7 +156,6 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/pulumi v0.0.0-00010101000000-000000000000
@@ -199,29 +193,10 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
-	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
-	github.com/ProtonMail/gopenpgp/v2 v2.9.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/akeylesslabs/akeyless-go/v4 v4.3.0 // indirect
-	github.com/alibabacloud-go/alibabacloud-gateway-pop v0.1.0 // indirect
-	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
-	github.com/alibabacloud-go/darabonba-array v0.1.0 // indirect
-	github.com/alibabacloud-go/darabonba-encode-util v0.0.2 // indirect
-	github.com/alibabacloud-go/darabonba-map v0.0.2 // indirect
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.13 // indirect
-	github.com/alibabacloud-go/darabonba-signature-util v0.0.7 // indirect
-	github.com/alibabacloud-go/darabonba-string v1.0.2 // indirect
-	github.com/alibabacloud-go/debug v1.0.1 // indirect
-	github.com/alibabacloud-go/endpoint-util v1.1.1 // indirect
-	github.com/alibabacloud-go/kms-20160120/v3 v3.3.1 // indirect
-	github.com/alibabacloud-go/openapi-util v0.1.1 // indirect
-	github.com/alibabacloud-go/tea v1.3.13 // indirect
-	github.com/alibabacloud-go/tea-utils/v2 v2.0.7 // indirect
-	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
-	github.com/aliyun/credentials-go v1.4.8 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
-	github.com/avast/retry-go/v4 v4.7.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.39.6 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.31.19 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.23 // indirect
@@ -252,7 +227,6 @@ require (
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/cheggaaa/pb v1.0.29 // indirect
-	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
@@ -336,7 +310,6 @@ require (
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/ngrok/ngrok-api-go/v7 v7.6.0 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
-	github.com/passbolt/go-passbolt v0.7.2 // indirect
 	github.com/pgavlin/fx v0.1.6 // indirect
 	github.com/pgavlin/fx/v2 v2.0.12 // indirect
 	github.com/pjbgf/sha1cd v0.5.0 // indirect
@@ -359,7 +332,6 @@ require (
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/texttheater/golang-levenshtein v1.0.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/volcengine/volc-sdk-golang v1.0.225 // indirect
 	github.com/volcengine/volcengine-go-sdk v1.1.46 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -486,7 +458,6 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/gengo v0.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog v1.0.0 // indirect
