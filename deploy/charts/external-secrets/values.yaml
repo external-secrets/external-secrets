@@ -474,6 +474,14 @@ webhook:
       # since the webhook will check this far in advance that the certificate is
       # valid.
       renewBefore: ""
+      # -- Specific settings on the privateKey and its generation
+      privateKey: {}
+        # rotationPolicy: Always
+        # algorithm: RSA
+        # size: 2048
+      # -- Specific settings on the signatureAlgorithm used on the cert.
+      # signatureAlgorithm is only valid for cert-manager v1.18.0+
+      signatureAlgorithm: ""
       # -- Add extra annotations to the Certificate resource.
       annotations: {}
 
