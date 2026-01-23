@@ -1,0 +1,20 @@
+# Reference to Helm repository
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: external-secrets
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: https://charts.external-secrets.io
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: external-secrets
+  namespace: flux-system
+spec:
+  interval: 10m
+  ref:
+    tag: v0.10.3
+  url: https://github.com/external-secrets/external-secrets
