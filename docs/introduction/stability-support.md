@@ -62,42 +62,39 @@ Until we reach v1.0, please treat minor version upgrades with the same caution y
 
 The following table describes the stability level of each provider and who's responsible.
 
-| Provider | Stability | Maintainer                                                                                                                                                                                            |
-| -------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
-| [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
-| [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            | stable    | [external-secrets](https://github.com/external-secrets)                                             |
-| [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                  | stable    | [external-secrets](https://github.com/external-secrets)                                             |
-| [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                             | stable    | [external-secrets](https://github.com/external-secrets)                                             |
-| [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)              | stable    | [@IdanAdar](https://github.com/IdanAdar)                                                            |
-| [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       | beta      | [external-secrets](https://github.com/external-secrets)                                             |
-| [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              | alpha     | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
-| [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          | alpha     | [@Jabray5](https://github.com/Jabray5)                                                              |
-| Alibaba Cloud KMS                                                                                          | alpha     | **DEPRECATED**                                                                                    |
-| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   | alpha     | [@anders-swanson](https://github.com/anders-swanson)                                                                                    |
-| [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           | stable    | [external-secrets](https://github.com/external-secrets)                                             |
-| [1Password](https://external-secrets.io/latest/provider/1password-automation)                              | alpha     | [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer)   |
-| [1Password SDK](https://external-secrets.io/latest/provider/1password-sdk)                                 | alpha     | [@Skarlso](https://github.com/Skarlso)                                                              |
-| [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                     | alpha     | [@willemm](https://github.com/willemm)                                                              |
-| [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider/senhasegura-dsm) | alpha     | [@lfraga](https://github.com/lfraga)                                                                |
-| [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          | alpha     | [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/)     |
-| [Keeper Security](https://www.keepersecurity.com/)                                                         | alpha     | [@ppodevlab](https://github.com/ppodevlab)                                                          |
-| [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           | alpha     | [@azert9](https://github.com/azert9/)                                                               |
-| [CyberArk Secrets Manager](https://external-secrets.io/latest/provider/conjur)                             | stable    | [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh)              |
-| [Delinea](https://external-secrets.io/latest/provider/delinea)                                             | alpha     | [@michaelsauter](https://github.com/michaelsauter/)                                                 |
-| [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     | alpha     | [@btfhernandez](https://github.com/btfhernandez/)                                                   |
-| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   | beta     | [@gmurugezan](https://github.com/gmurugezan)                                                    |
-| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           | alpha     | [@dirien](https://github.com/dirien)                                                                |
-| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           | alpha     | **UNMAINTAINED**                                                                                    |
-| [Infisical](https://external-secrets.io/latest/provider/infisical)                                         | alpha     | [@akhilmhdh](https://github.com/akhilmhdh)                                                          |
-| [Device42](https://external-secrets.io/latest/provider/device42)                                           | alpha     | **UNMAINTAINED**                                                                                    |
-| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         | alpha     | [@skarlso](https://github.com/Skarlso)                                                              |
-| [Previder](https://external-secrets.io/latest/provider/previder)                                           | stable    | [@previder](https://github.com/previder)                                                            |
-| [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            | alpha     | [@default23](https://github.com/default23)                                                          |
-| [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       | alpha     | [@kevinyancn](https://github.com/kevinyancn)                                                        |
-| [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 | alpha     | [@jonstacks](https://github.com/jonstacks)                                                          |
-| [Barbican](https://external-secrets.io/latest/provider/barbican)                                           | alpha     | [@rkferreira](https://github.com/rkferreira)                                                        |
-| [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       | alpha     | [@rbstp](https://github.com/rbstp)                                                                  |
+| Provider                                                                                                   | Stability |                                                                                          Maintainer |
+|------------------------------------------------------------------------------------------------------------|----------:|----------------------------------------------------------------------------------------------------:|
+| [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    |    stable |                                             [external-secrets](https://github.com/external-secrets) |
+| [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    |    stable |                                             [external-secrets](https://github.com/external-secrets) |
+| [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            |    stable |                                             [external-secrets](https://github.com/external-secrets) |
+| [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                  |    stable |                                             [external-secrets](https://github.com/external-secrets) |
+| [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                             |    stable |                                             [external-secrets](https://github.com/external-secrets) |
+| [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)              |    stable |                                                            [@IdanAdar](https://github.com/IdanAdar) |
+| [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |      beta |                                             [external-secrets](https://github.com/external-secrets) |
+| [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              |     alpha | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
+| [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          |     alpha |                                                              [@Jabray5](https://github.com/Jabray5) |
+| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   |     alpha |                                                [@anders-swanson](https://github.com/anders-swanson) |
+| [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           |    stable |                                             [external-secrets](https://github.com/external-secrets) |
+| [1Password](https://external-secrets.io/latest/provider/1password-automation)                              |     alpha |   [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer) |
+| [1Password SDK](https://external-secrets.io/latest/provider/1password-sdk)                                 |     alpha |                                                              [@Skarlso](https://github.com/Skarlso) |
+| [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                     |     alpha |                                                              [@willemm](https://github.com/willemm) |
+| [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider/senhasegura-dsm) |     alpha |                                                                [@lfraga](https://github.com/lfraga) |
+| [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |     alpha |     [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/) |
+| [Keeper Security](https://www.keepersecurity.com/)                                                         |     alpha |                                                          [@ppodevlab](https://github.com/ppodevlab) |
+| [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |     alpha |                                                               [@azert9](https://github.com/azert9/) |
+| [CyberArk Secrets Manager](https://external-secrets.io/latest/provider/conjur)                             |    stable |              [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh) |
+| [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |     alpha |                                                 [@michaelsauter](https://github.com/michaelsauter/) |
+| [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     |     alpha |                                                   [@btfhernandez](https://github.com/btfhernandez/) |
+| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   |      beta |                                                        [@gmurugezan](https://github.com/gmurugezan) |
+| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |     alpha |                                                                [@dirien](https://github.com/dirien) |
+| [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |     alpha |                                                          [@akhilmhdh](https://github.com/akhilmhdh) |
+| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |     alpha |                                                              [@skarlso](https://github.com/Skarlso) |
+| [Previder](https://external-secrets.io/latest/provider/previder)                                           |    stable |                                                            [@previder](https://github.com/previder) |
+| [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            |     alpha |                                                          [@default23](https://github.com/default23) |
+| [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       |     alpha |                                                        [@kevinyancn](https://github.com/kevinyancn) |
+| [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 |     alpha |                                                          [@jonstacks](https://github.com/jonstacks) |
+| [Barbican](https://external-secrets.io/latest/provider/barbican)                                           |     alpha |                                                        [@rkferreira](https://github.com/rkferreira) |
+| [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha |                                                                  [@rbstp](https://github.com/rbstp) |
 
 
 ## Provider Feature Support
@@ -105,7 +102,7 @@ The following table describes the stability level of each provider and who's res
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
+|---------------------------|:------------:|:------------:|:--------------------:|:-----------------------:|:----------------:|:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -115,7 +112,6 @@ The following table show the support for features across different providers.
 | IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
-| Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
@@ -130,9 +126,7 @@ The following table show the support for features across different providers.
 | Beyondtrust               |      x       |              |                      |                         |        x         |             |                             |
 | SecretServer              |      x       |              |                      |                         |        x         |             |                             |
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
-| Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 | Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
-| Device42                  |              |              |                      |                         |        x         |             |                             |
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
