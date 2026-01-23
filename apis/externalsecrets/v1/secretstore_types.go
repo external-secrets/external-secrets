@@ -116,6 +116,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Gitlab *GitlabProvider `json:"gitlab,omitempty"`
 
+	// Alibaba configures this store to sync secrets using Alibaba Cloud provider
+	// +optional
+	Alibaba *AlibabaProvider `json:"alibaba,omitempty"`
+
 	// OnePassword configures this store to sync secrets using the 1Password Cloud provider
 	// +optional
 	OnePassword *OnePasswordProvider `json:"onepassword,omitempty"`
@@ -188,6 +192,13 @@ type SecretStoreProvider struct {
 
 	// +optional
 	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
+
+	// +optional
+	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
+
+	// Device42 configures this store to sync secrets using the Device42 provider
+	// +optional
+	Device42 *Device42Provider `json:"device42,omitempty"`
 
 	// DVLS configures this store to sync secrets using Devolutions Server provider
 	// +optional
