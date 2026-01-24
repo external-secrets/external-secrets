@@ -227,6 +227,10 @@ type SecretStoreProvider struct {
 	// Barbican configures this store to sync secrets using the OpenStack Barbican provider
 	// +optional
 	Barbican *BarbicanProvider `json:"barbican,omitempty"`
+
+	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
+	// +optional
+	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

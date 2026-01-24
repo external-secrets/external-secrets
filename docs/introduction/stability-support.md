@@ -105,7 +105,7 @@ The following table describes the stability level of each provider and who's res
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
+|---------------------------| :----------: | :----------: | :------------------: | :---------------------: | :--------------: |:-----------:| :-------------------------: |
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -140,6 +140,7 @@ The following table show the support for features across different providers.
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
+| Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 

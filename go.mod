@@ -42,6 +42,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/infisical => ./providers/v1/infisical
 	github.com/external-secrets/external-secrets/providers/v1/keepersecurity => ./providers/v1/keepersecurity
 	github.com/external-secrets/external-secrets/providers/v1/kubernetes => ./providers/v1/kubernetes
+	github.com/external-secrets/external-secrets/providers/v1/nebius => ./providers/v1/nebius
 	github.com/external-secrets/external-secrets/providers/v1/ngrok => ./providers/v1/ngrok
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase => ./providers/v1/onboardbase
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
