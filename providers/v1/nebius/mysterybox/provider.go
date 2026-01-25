@@ -86,10 +86,8 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 // NewClient creates and returns a new SecretsClient for the specified SecretStore and namespace context.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	// lazy initialization with a current flag value
-	if p.TokenService == nil {
-		if err := p.initTokenService(); err != nil {
-			return nil, fmt.Errorf("init token service: %w", err)
-		}
+	if err := p.initTokenService(); err != nil {
+		return nil, fmt.Errorf("init token service: %w", err)
 	}
 
 	clientConfig, err := parseConfig(store)
@@ -162,11 +160,8 @@ func (p *Provider) getIamToken(ctx context.Context, config *SecretsClientConfig,
 // createOrGetMysteryboxClient initializes or retrieves a cached Mysterybox client for a specified API domain and certificate.
 func (p *Provider) createOrGetMysteryboxClient(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox2.Client, error) {
 	// lazy initialization with a current flag value
-	if p.mysteryboxClientsCache == nil {
-		err := p.initMysteryboxClientsCache()
-		if err != nil {
-			return nil, err
-		}
+	if err := p.initMysteryboxClientsCache(); err != nil {
+		return nil, err
 	}
 
 	cacheKey := ClientCacheKey{
