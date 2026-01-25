@@ -34,6 +34,7 @@ const (
 )
 
 func TestValidateStore(t *testing.T) {
+	t.Parallel()
 	p := &Provider{}
 
 	mkStore := func(cfg func(*esv1.SecretStore)) esv1.GenericStore {
@@ -195,6 +196,7 @@ func TestValidateStore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := p.ValidateStore(tt.store)
 			if tt.wantErr == "" {
 				tassert.NoError(t, err, "%s: unexpected error", tt.name)
@@ -209,6 +211,7 @@ func TestValidateStore(t *testing.T) {
 }
 
 func TestValidateStoreClusterScope(t *testing.T) {
+	t.Parallel()
 	p := &Provider{}
 
 	makeStore := func(cfg func(*esv1.NebiusMysteryboxProvider)) esv1.GenericStore {
@@ -275,6 +278,7 @@ func TestValidateStoreClusterScope(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			_, err := p.ValidateStore(tt.store)
 			if tt.wantErr == "" {
 				tassert.NoError(t, err, "%s: unexpected error", tt.name)
@@ -290,6 +294,7 @@ func TestValidateStoreClusterScope(t *testing.T) {
 }
 
 func TestValidateStore_APIDomainCases(t *testing.T) {
+	t.Parallel()
 	p := &Provider{}
 	mkStore := func(domain string) esv1.GenericStore {
 		st := &esv1.SecretStore{}
@@ -338,6 +343,7 @@ func TestValidateStore_APIDomainCases(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			store := mkStore(tc.domain)
 			_, err := p.ValidateStore(store)
 			if tc.valid {

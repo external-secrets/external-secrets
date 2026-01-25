@@ -61,6 +61,7 @@ func buildSubjectCredsJSON(t *testing.T, privateKey, keyID, subject string) stri
 }
 
 func TestGetToken_CachesUntilTenPercentLeft(t *testing.T) {
+	t.Parallel()
 	env := newTokenTestEnv(t)
 
 	ctx := env.ctx
@@ -87,6 +88,7 @@ func TestGetToken_CachesUntilTenPercentLeft(t *testing.T) {
 }
 
 func TestGetToken_SeparateCacheEntriesPerSubjectCreds(t *testing.T) {
+	t.Parallel()
 	env := newTokenTestEnv(t)
 
 	ctx := env.ctx
@@ -112,6 +114,7 @@ func TestGetToken_SeparateCacheEntriesPerSubjectCreds(t *testing.T) {
 }
 
 func TestGetToken_InvalidSubjectCreds_ReturnsError(t *testing.T) {
+	t.Parallel()
 	env := newTokenTestEnv(t)
 
 	_, err := env.TokenCacheService.GetToken(env.ctx, "api.example", "not a json", nil)
@@ -123,6 +126,7 @@ func addSecondsToClock(clk *clocktesting.FakeClock, second time.Duration) {
 }
 
 func TestGetToken_SeparateCacheEntriesPerApiDomain(t *testing.T) {
+	t.Parallel()
 	env := newTokenTestEnv(t)
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
@@ -144,6 +148,7 @@ func TestGetToken_SeparateCacheEntriesPerApiDomain(t *testing.T) {
 }
 
 func TestGetToken_LRUEviction(t *testing.T) {
+	t.Parallel()
 	clk := clocktesting.NewFakeClock(time.Unix(0, 0))
 	ex := &iam.FakeTokenExchanger{}
 	svc, err := NewTokenCacheService(2, ex, clk)
@@ -177,6 +182,7 @@ func TestGetToken_LRUEviction(t *testing.T) {
 }
 
 func TestGetToken_AfterExpiration_Refreshes(t *testing.T) {
+	t.Parallel()
 	env := newTokenTestEnv(t)
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
@@ -191,6 +197,7 @@ func TestGetToken_AfterExpiration_Refreshes(t *testing.T) {
 }
 
 func TestGetToken_CacheKeyChangesOnKeyRotation(t *testing.T) {
+	t.Parallel()
 	env := newTokenTestEnv(t)
 	ctx := env.ctx
 
@@ -211,6 +218,7 @@ func TestGetToken_CacheKeyChangesOnKeyRotation(t *testing.T) {
 }
 
 func TestGetToken_ExchangerErrorIsWrapped(t *testing.T) {
+	t.Parallel()
 	clk := clocktesting.NewFakeClock(time.Unix(0, 0))
 	svc, err := NewTokenCacheService(10, &iam.FakeTokenExchanger{ReturnError: true}, clk)
 	trequire.NoError(t, err)

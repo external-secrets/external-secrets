@@ -50,6 +50,7 @@ const (
 	authRefName       = "authRefSecretName"
 	authRefKey        = "authRefSecretKey"
 	apiDomain         = "api.public"
+	tokenToBeIssued   = "token-to-be-issued"
 )
 
 var (
@@ -75,16 +76,15 @@ func setupClientWithTokenAuth(t *testing.T, entries []mysterybox.Entry, tokenSer
 	createK8sSecret(ctx, t, k8sClient, namespace, tokenSecretName, tokenSecretKey, []byte("token"))
 	store := newNebiusMysteryboxSecretStoreWithAuthTokenKey(apiDomain, namespace, tokenSecretName, tokenSecretKey)
 	client, err := provider.NewClient(ctx, store, k8sClient, namespace)
-	tassert.Nil(t, err)
+	tassert.NoError(t, err)
 
 	mysteryboxSecretsClient, ok := client.(*SecretsClient)
-	if !ok {
-		t.Fatalf("expected *SecretsClient, got %T", client)
-	}
+	tassert.True(t, ok, "expected *SecretsClient, got %T", client)
 	return ctx, mysteryboxSecretsClient, secret, k8sClient, mysteryboxService
 }
 
 func TestNewClient_GetTokenError(t *testing.T) {
+	t.Parallel()
 	tokenService := fakeTokenService{returnError: true}
 
 	ctx := context.Background()
@@ -107,6 +107,7 @@ func TestNewClient_GetTokenError(t *testing.T) {
 }
 
 func TestGetSecret(t *testing.T) {
+	t.Parallel()
 	entries := []mysterybox.Entry{
 		{Key: "key1", StringValue: "string"},
 		{Key: "key2", StringValue: "string2"},
@@ -148,9 +149,10 @@ func TestGetSecret(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, client, secret, _, svc := setupClientWithTokenAuth(t, entries, nil)
 			result, err := tt.prepare(ctx, client, secret, svc)
-			tassert.Nil(t, err)
+			tassert.NoError(t, err)
 			if tt.expectJSON != nil {
 				tassert.Equal(t, tt.expectJSON, unmarshalStringMap(t, result))
 			} else {
@@ -161,19 +163,21 @@ func TestGetSecret(t *testing.T) {
 }
 
 func TestGetSecret_ByVersionId(t *testing.T) {
+	t.Parallel()
 	ctx, client, secret, _, mboxService := setupClientWithTokenAuth(t, []mysterybox.Entry{{Key: "key", StringValue: "string_value"}}, nil)
 	_, err := mboxService.CreateNewSecretVersion(secret.Id, []mysterybox.Entry{
 		{Key: "new_key", StringValue: "updated_string_value"},
 		{Key: "new", StringValue: "new"},
 	})
-	tassert.Nil(t, err)
+	tassert.NoError(t, err)
 
 	result, err := client.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "key", Version: secret.VersionId})
-	tassert.Nil(t, err)
+	tassert.NoError(t, err)
 	tassert.Equal(t, []byte("string_value"), result)
 }
 
 func TestGetSecretMap(t *testing.T) {
+	t.Parallel()
 	allEntries := []mysterybox.Entry{
 		{Key: "key1", StringValue: "string"},
 		{Key: "key2", StringValue: "string2"},
@@ -216,22 +220,24 @@ func TestGetSecretMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, client, secret, _, svc := setupClientWithTokenAuth(t, tt.entries, nil)
 			result, err := tt.prepare(ctx, client, secret, svc)
-			tassert.Nil(t, err)
+			tassert.NoError(t, err)
 			tassert.Equal(t, tt.expectMap, result)
 		})
 	}
 }
 
 func TestNewClient_ValidationErrors(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	mysteryboxService := fake.InitMysteryboxService()
 	k8sClient := clientfake.NewClientBuilder().Build()
 	createK8sSecret(ctx, t, k8sClient, namespace, tokenSecretName, tokenSecretKey, []byte("token"))
 
-	tokenToIssue := "token-to-be-issued"
+	tokenToIssue := tokenToBeIssued
 	notExistingSecretName := "not-existing-secret"
 	notExistingSecretKey := "not-existing-secret-key"
 
@@ -357,6 +363,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			p := newProvider()
 			store := tt.storeSpec()
 			_, err := p.NewClient(ctx, store, k8sClient, namespace)
@@ -367,6 +374,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 }
 
 func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	mysteryboxService := fake.InitMysteryboxService()
@@ -383,7 +391,7 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 		},
 	})
 
-	tokenToIssue := "token-to-be-issued"
+	tokenToIssue := tokenToBeIssued
 
 	tokenService := &fakeTokenService{
 		tokenToIssue: tokenToIssue,
@@ -397,9 +405,9 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			return fake.NewFakeMysteryboxClient(mysteryboxService), nil
 		},
-		TokenService:           tokenService,
 		mysteryboxClientsCache: cache,
 	}
+	setTokenServiceWorkaround(tokenService, p)
 
 	createK8sSecret(ctx, t, k8sClient, namespace, authRefName, authRefKey, providedCreds)
 	store := newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace, authRefName, authRefKey)
@@ -408,26 +416,14 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 	tassert.NoError(t, err)
 
 	msc, ok := client.(*SecretsClient)
-	if !ok {
-		t.Fatalf("expected *SecretsClient, got %T", client)
-	}
-	if got := msc.token; got != tokenToIssue {
-		t.Fatalf("token mismatch: got %q want %q (issued by TokenService)", got, tokenToIssue)
-	}
+	tassert.True(t, ok, "expected *MysteryboxSecretsClient, got %T", client)
+	tassert.Equal(t, tokenToIssue, msc.token, fmt.Sprintf("token mismatch: got %q want %q (issued by TokenService)", msc.token, tokenToIssue))
 
 	// also ensure TokenService was exercised with the domain and creds we expect
-	if tokenService.calls != 1 {
-		t.Fatalf("expected TokenService to be called once, got %d", tokenService.calls)
-	}
-	if tokenService.gotDomain != apiDomain {
-		t.Fatalf("TokenService called with wrong domain: got %q want %q", tokenService.gotDomain, apiDomain)
-	}
-	if tokenService.gotCreds != string(providedCreds) {
-		t.Fatalf("TokenService called with wrong creds; got %q", tokenService.gotCreds)
-	}
-	if tokenService.gotCACert != nil {
-		t.Fatalf("expected nil CA cert to be passed to TokenService, got non-nil")
-	}
+	tassert.Equal(t, int32(1), tokenService.calls, "expected TokenService to be called once")
+	tassert.Equal(t, apiDomain, tokenService.gotDomain, "expected TokenService to be called with the correct domain")
+	tassert.Equal(t, string(providedCreds), tokenService.gotCreds, "expected TokenService to be called with the correct creds")
+	tassert.Nil(t, tokenService.gotCACert, "expected TokenService to be called without CA cert")
 
 	got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k"})
 	tassert.NoError(t, err)
@@ -435,6 +431,7 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 }
 
 func TestGetSecret_NotFound(t *testing.T) {
+	t.Parallel()
 	// Use table-driven tests to cover all NotFound scenarios in one place
 	cases := []struct {
 		name           string
@@ -498,6 +495,7 @@ func TestGetSecret_NotFound(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, client, secret, _, _ := setupClientWithTokenAuth(t, tc.entries, nil)
 			_, err := tc.prepare(ctx, client, secret)
 			tc.expectErrEqual(t, err, secret)
@@ -506,7 +504,8 @@ func TestGetSecret_NotFound(t *testing.T) {
 }
 
 func TestGetSecretMap_NotFound(t *testing.T) {
-	// Use table-driven tests to cover all NotFound scenarios in one place
+	t.Parallel()
+
 	cases := []struct {
 		name           string
 		entries        []mysterybox.Entry
@@ -543,6 +542,7 @@ func TestGetSecretMap_NotFound(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			ctx, client, secret, _, _ := setupClientWithTokenAuth(t, tc.entries, nil)
 			_, err := tc.prepare(ctx, client, secret)
 			tc.expectErrEqual(t, err, secret)
@@ -551,6 +551,7 @@ func TestGetSecretMap_NotFound(t *testing.T) {
 }
 
 func TestCreateOrGetMysteryboxClient_CachesByKey(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	cache, err := lru.New(10)
@@ -566,29 +567,23 @@ func TestCreateOrGetMysteryboxClient_CachesByKey(t *testing.T) {
 	}
 
 	// same domain + same CA
-	if _, err := p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte("CA1")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, err := p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte("CA1")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err = p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte("CA1"))
+	tassert.NoError(t, err)
+	_, err = p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte("CA1"))
+	tassert.NoError(t, err)
 
 	// different CA
-	if _, err := p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte("CA2")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err = p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte("CA2"))
+	tassert.NoError(t, err)
 
-	// different domain
-	if _, err := p.createOrGetMysteryboxClient(ctx, "other.nebius.example", []byte("CA1")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err = p.createOrGetMysteryboxClient(ctx, "other.nebius.example", []byte("CA1"))
+	tassert.NoError(t, err)
 
-	if got, want := atomic.LoadInt32(&factoryCalls), int32(3); got != want {
-		t.Fatalf("factory called %d times, want %d (3 distinct keys)", got, want)
-	}
+	tassert.Equal(t, int32(3), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d (3 distinct keys)", &factoryCalls, 3))
 }
 
 func TestCreateOrGetMysteryboxClient_EmptyCA_EqualsNil(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	cache, err := lru.New(10)
@@ -604,21 +599,51 @@ func TestCreateOrGetMysteryboxClient_EmptyCA_EqualsNil(t *testing.T) {
 		mysteryboxClientsCache: cache,
 	}
 
-	if _, err := p.createOrGetMysteryboxClient(ctx, "api.nebius.example", nil); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, err := p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte{}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, err = p.createOrGetMysteryboxClient(ctx, "api.nebius.example", nil)
+	tassert.NoError(t, err)
+	_, err = p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte{})
+	tassert.NoError(t, err)
 
-	if got, want := atomic.LoadInt32(&factoryCalls), int32(1); got != want {
-		t.Fatalf("factory called %d times, want %d when CA=nil and CA=empty should map to same key", got, want)
-	}
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d when CA=nil and CA=empty should map to same key", &factoryCalls, 1))
 }
 
-func TestCreateOrGetMysteryboxClient_ConcurrentSingleCreation(t *testing.T) {
+func TestMysteryboxClientsCache_EvictionClosesClient(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
+	var created []*fake.FakeMysteryboxClient
+	p := &Provider{
+		Logger: logger,
+		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+			c := &fake.FakeMysteryboxClient{}
+			created = append(created, c)
+			return c, nil
+		},
+	}
+
+	setCacheSizeWorkaround(t, 1, p)
+
+	_, err := p.createOrGetMysteryboxClient(ctx, "domain-a", nil)
+	tassert.NoError(t, err)
+
+	tassert.Len(t, created, 1, "expected 1 client created, got %d", len(created))
+
+	_, err = p.createOrGetMysteryboxClient(ctx, "domain-b", nil)
+	tassert.NoError(t, err)
+
+	tassert.Len(t, created, 2, "expected 2 clients created, got %d", len(created))
+
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&created[0].Closed), "expected second client to be closed")
+	tassert.Equal(t, int32(0), atomic.LoadInt32(&created[1].Closed), "expected second client not to be closed")
+}
+
+// concurrent tests
+
+func TestCreateOrGetMysteryboxClient_Concurrent_SingleClient(t *testing.T) {
+	t.Parallel()
+	clientData := ClientData{domain: "api.nebius.example", ca: []byte("CA1")}
+
+	ctx := context.Background()
 	cache, err := lru.New(10)
 	tassert.NoError(t, err)
 
@@ -637,22 +662,182 @@ func TestCreateOrGetMysteryboxClient_ConcurrentSingleCreation(t *testing.T) {
 	wg.Add(goroutines)
 	start := make(chan struct{})
 
+	errs := make([]error, goroutines)
 	for i := 0; i < goroutines; i++ {
-		go func() {
+		go func(ix int) {
 			defer wg.Done()
 			<-start
-			if _, err := p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte("CA1")); err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		}()
+			_, err := p.createOrGetMysteryboxClient(ctx, clientData.domain, clientData.ca)
+			errs[ix] = err
+		}(i)
 	}
 	close(start)
 	wg.Wait()
 
-	if got, want := atomic.LoadInt32(&factoryCalls), int32(1); got != want {
-		t.Fatalf("factory called %d times, want %d for concurrent same-key requests", got, want)
+	for i, err := range errs {
+		if err != nil {
+			tassert.NoError(t, err, "goroutine %d", i)
+		}
 	}
+
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d for concurrent same-key requests", &factoryCalls, 1))
 }
+
+func TestCreateOrGetMysteryboxClient_Concurrent_MultipleClients(t *testing.T) {
+	clientRequests := []ClientData{
+		{domain: "api.nebius.example1", ca: []byte("CA1")},
+		{domain: "api.nebius.example1", ca: []byte("CA1")}, // duplicate
+		{domain: "api.nebius.example1", ca: []byte("CA2")}, // the same domain, different CA
+		{domain: "api.nebius.example2", ca: []byte("CA2")}, // different domain, the same CA
+		{domain: "api.nebius.example1", ca: []byte{}},      // the same domain, empty CA
+	}
+
+	ctx := context.Background()
+	cache, err := lru.New(10)
+	tassert.NoError(t, err)
+	var factoryCalls int32
+	p := &Provider{
+		Logger: log,
+		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+			atomic.AddInt32(&factoryCalls, 1)
+			return fake.NewFakeMysteryboxClient(nil), nil
+		},
+		mysteryboxClientsCache: cache,
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(clientRequests))
+	start := make(chan struct{})
+
+	errs := make([]error, len(clientRequests))
+	for i, r := range clientRequests {
+		go func(ix int, req ClientData) {
+			defer wg.Done()
+			<-start
+			_, err := p.createOrGetMysteryboxClient(ctx, req.domain, req.ca)
+			errs[ix] = err
+		}(i, r)
+	}
+	close(start)
+	wg.Wait()
+
+	for i, err := range errs {
+		if err != nil {
+			tassert.NoError(t, err, "goroutine %d", i)
+		}
+	}
+
+	tassert.Equal(t, int32(4), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d", &factoryCalls, 3))
+}
+
+func TestMysteryboxClientsCache_ConcurrentEviction_CloseOnce(t *testing.T) {
+	ctx := context.Background()
+
+	var created []*fake.FakeMysteryboxClient
+	var mu sync.Mutex
+
+	p := &Provider{
+		Logger: log,
+		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+			c := &fake.FakeMysteryboxClient{}
+			mu.Lock()
+			created = append(created, c)
+			mu.Unlock()
+			return c, nil
+		},
+	}
+	setCacheSizeWorkaround(t, 1, p)
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+	start := make(chan struct{})
+
+	go func() {
+		defer wg.Done()
+		<-start
+		_, _ = p.createOrGetMysteryboxClient(ctx, "domain-a", nil)
+	}()
+
+	go func() {
+		defer wg.Done()
+		<-start
+		_, _ = p.createOrGetMysteryboxClient(ctx, "domain-b", nil)
+	}()
+	go func() {
+		defer wg.Done()
+		<-start
+		_, _ = p.createOrGetMysteryboxClient(ctx, "domain-c", nil)
+	}()
+
+	close(start)
+	wg.Wait()
+
+	tassert.Len(t, created, 3, "expected 3 clients created, got %d", len(created))
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&created[0].Closed), "expected first client to be closed on eviction")
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&created[1].Closed), "expected first client to be closed on eviction")
+	tassert.Equal(t, int32(0), atomic.LoadInt32(&created[2].Closed), "expected first client not to be closed on eviction")
+}
+
+func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing.T) {
+	ctx := context.Background()
+
+	namespace := uuid.NewString()
+	mboxSvc := fake.InitMysteryboxService()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	secret := mboxSvc.CreateSecret([]mysterybox.Entry{{Key: "k", StringValue: "v"}})
+
+	var factoryCalls int32
+	tokenToIssue := tokenToBeIssued
+
+	tokenService := &fakeTokenService{tokenToIssue: tokenToIssue}
+
+	p := &Provider{
+		Logger: log,
+		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+			atomic.AddInt32(&factoryCalls, 1)
+			return fake.NewFakeMysteryboxClient(mboxSvc), nil
+		},
+	}
+	setTokenServiceWorkaround(tokenService, p)
+
+	creds := []byte(`{"private_key":"KEY","key_id":"id","subject":"sub","issuer":"iss"}`)
+	createK8sSecret(ctx, t, k8sClient, namespace, authRefName, authRefKey, creds)
+
+	store := newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace, authRefName, authRefKey)
+
+	const goroutines = 10
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	start := make(chan struct{})
+
+	clients := make([]esv1.SecretsClient, goroutines)
+	errs := make([]error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func(ix int) {
+			defer wg.Done()
+			<-start
+			c, err := p.NewClient(ctx, store, k8sClient, namespace)
+			clients[ix], errs[ix] = c, err
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+
+	for i := 0; i < goroutines; i++ {
+		tassert.NoError(t, errs[i], "NewClient error: %w", errs[i])
+		msc := clients[i].(*SecretsClient)
+		got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k"})
+		tassert.NoError(t, err)
+		tassert.Equal(t, []byte("v"), got)
+	}
+
+	tassert.Equal(t, int32(goroutines), atomic.LoadInt32(&tokenService.calls), fmt.Sprintf("TokenService.GetToken called %d times, want %d", &factoryCalls, goroutines))
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("NewMysteryboxClient called %d times, want 1", &factoryCalls))
+}
+
+// helpers
 
 func newNebiusMysteryboxSecretStoreWithAuthTokenKey(apiDomain, namespace, tokenSecretName, tokenSecretKey string) esv1.GenericStore {
 	return &esv1.SecretStore{
@@ -704,13 +889,13 @@ func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Clie
 		},
 		Data: map[string][]byte{secretKey: secretValue},
 	})
-	tassert.Nil(t, err)
+	tassert.NoError(t, err)
 }
 
 func unmarshalStringMap(t *testing.T, data []byte) map[string]string {
 	stringMap := make(map[string]string)
 	err := json.Unmarshal(data, &stringMap)
-	tassert.Nil(t, err)
+	tassert.NoError(t, err)
 	return stringMap
 }
 
@@ -726,40 +911,6 @@ func newProvider(t *testing.T, newMysteryboxClientFunc NewMysteryboxClient, toke
 	}
 }
 
-func TestMysteryboxClientsCache_EvictionClosesClient(t *testing.T) {
-	ctx := context.Background()
-
-	mysteryboxClientsCacheSize = 1
-
-	var created []*fake.FakeMysteryboxClient
-	p := &Provider{
-		Logger: logger,
-		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
-			c := &fake.FakeMysteryboxClient{}
-			created = append(created, c)
-			return c, nil
-		},
-	}
-
-	_, err := p.createOrGetMysteryboxClient(ctx, "domain-a", nil)
-	tassert.Nil(t, err)
-
-	tassert.Equal(t, 1, len(created), "expected 1 client created, got %d", len(created))
-
-	_, err = p.createOrGetMysteryboxClient(ctx, "domain-b", nil)
-	tassert.Nil(t, err)
-	if len(created) != 2 {
-		t.Fatalf("expected 2 clients created, got %d", len(created))
-	}
-
-	if got := atomic.LoadInt32(&created[0].Closed); got != 1 {
-		t.Fatalf("expected first client Close() to be called once on eviction, got %d", got)
-	}
-	if got := atomic.LoadInt32(&created[1].Closed); got != 0 {
-		t.Fatalf("expected second client not to be closed, got %d", got)
-	}
-}
-
 type fakeTokenService struct {
 	calls        int32
 	returnError  bool
@@ -767,15 +918,40 @@ type fakeTokenService struct {
 	gotCreds     string
 	gotCACert    []byte
 	tokenToIssue string
+
+	mu sync.Mutex
 }
 
 func (f *fakeTokenService) GetToken(_ context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
-	f.calls++
+	atomic.AddInt32(&f.calls, 1)
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	f.gotDomain = apiDomain
 	f.gotCreds = subjectCreds
 	f.gotCACert = caCert
 	if f.returnError {
 		return "", errors.New("internal error")
 	}
+
 	return f.tokenToIssue, nil
+}
+
+func setCacheSizeWorkaround(t *testing.T, size int, p *Provider) {
+	t.Helper()
+	err := p.initMysteryboxClientsCache()
+	tassert.NoError(t, err)
+	p.mysteryboxClientsCache.Resize(size)
+}
+
+func setTokenServiceWorkaround(tokenService TokenService, p *Provider) {
+	p.tokenOnce.Do(func() {
+		p.TokenService = tokenService
+	})
+}
+
+type ClientData struct {
+	domain string
+	ca     []byte
 }
