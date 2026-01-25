@@ -100,6 +100,17 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].args[7]
           value: "--healthz-addr=:8082"
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].name
+          value: ready
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].protocol
+          value: TCP
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].containerPort
+          value: 8082
+      - notExists:
+          path: spec.template.spec.containers[0].ports[2]
   - it: should override metrics port
     set:
       certController.metrics.listen.port: 8888
@@ -231,6 +242,11 @@ tests:
               port: ready
             initialDelaySeconds: 20
             periodSeconds: 5
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].name
+          value: ready
+      - notExists:
+          path: spec.template.spec.containers[0].ports[2]
   - it: should override the startup Probe port
     set:
       certController.startupProbe.enabled: true
@@ -253,6 +269,15 @@ tests:
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].name
+          value: startup
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].protocol
+          value: TCP
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].containerPort
+          value: 8083
   - it: should default to hostUsers absent
     set:
       certController.create: true
