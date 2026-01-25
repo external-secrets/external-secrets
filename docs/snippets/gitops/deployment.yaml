@@ -9,20 +9,19 @@ metadata:
 spec:
   # Override Release name to avoid the pattern Namespace-Release
   # Ref: https://fluxcd.io/flux/components/helm/api/v2/#helm.toolkit.fluxcd.io/v2.HelmRelease
-  releaseName: external-secrets
-  targetNamespace: external-secrets
   interval: 10m
+  releaseName: external-secrets
   chart:
     spec:
       chart: external-secrets
-      version: 0.10.3
+      version: 1.3.1
       sourceRef:
         kind: HelmRepository
         name: external-secrets
         namespace: flux-system
   values:
-    installCRDs: false
-
+    crds:
+      create: false
   # Ref: https://fluxcd.io/flux/components/helm/api/v2/#helm.toolkit.fluxcd.io/v2.Install
   install:
     createNamespace: true
