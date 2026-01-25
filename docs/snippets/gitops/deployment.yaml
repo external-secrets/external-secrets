@@ -22,6 +22,6 @@ spec:
   values:
     crds:
       create: false
-   # Ref: https://fluxcd.io/flux/components/helm/api/v2/#helm.toolkit.fluxcd.io/v2.Install
+  # Ref: https://fluxcd.io/flux/components/helm/api/v2/#helm.toolkit.fluxcd.io/v2.Install
   install:
     createNamespace: true
