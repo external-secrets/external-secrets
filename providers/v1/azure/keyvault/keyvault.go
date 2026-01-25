@@ -26,6 +26,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -1133,6 +1134,9 @@ func NewTokenProvider(ctx context.Context, token, clientID, tenantID, aadEndpoin
 		return token, nil
 	})
 
+	// Azure client uses clientID field as a query parameter eventually
+	// qv.Set(clientID, req.AuthParams.ClientID)
+	clientID = url.QueryEscape(clientID)
 	cClient, err := confidential.New(fmt.Sprintf("%s%s", aadEndpoint, tenantID), clientID, cred)
 	if err != nil {
 		return nil, err
