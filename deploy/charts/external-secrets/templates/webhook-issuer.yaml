@@ -1,0 +1,31 @@
+{{- if and .Values.webhook.create .Values.webhook.certManager.enabled .Values.webhook.certManager.cert.create .Values.webhook.certManager.cert.createIssuer }}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: "{{ include 'external-secrets.fullname' . }}-selfsigned-issuer"
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "{{ include 'external-secrets.fullname' . }}-root-cert"
+spec:
+  isCA: true
+  commonName: "ca.webhook.{{ include 'external-secrets.fullname' . }}"
+  secretName: "{{ include 'external-secrets.fullname' . }}-root-cert"
+  duration: "48300h0m0s"
+  issuerRef:
+    name: "{{ include 'external-secrets.fullname' . }}-selfsigned-issuer"
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: {{ .Values.webhook.certManager.cert.issuerRef.kind }}
+metadata:
+  name: "{{ .Values.webhook.certManager.cert.issuerRef.name }}"
+spec:
+  ca:
+    secretName: "{{ include 'external-secrets.fullname' . }}-root-cert"
+{{- end }}

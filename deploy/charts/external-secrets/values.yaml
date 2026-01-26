@@ -457,10 +457,11 @@ webhook:
       create: true
       # -- For the Certificate created by this chart, setup the issuer. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
+      createIssuer: true
       issuerRef:
         group: cert-manager.io
         kind: "Issuer"
-        name: "my-issuer"
+        name: "external-secrets-root-issuer"
       # -- Set the requested duration (i.e. lifetime) of the Certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
       # One year by default.
