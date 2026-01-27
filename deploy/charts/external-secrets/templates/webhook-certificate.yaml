@@ -19,7 +19,13 @@ spec:
     - {{ include "external-secrets.fullname" . }}-webhook.{{ template "external-secrets.namespace" . }}
     - {{ include "external-secrets.fullname" . }}-webhook.{{ template "external-secrets.namespace" . }}.svc
   issuerRef:
+  {{- if .Values.webhook.certManager.issuer.create }}
+    group: cert-manager.io
+    kind: "Issuer"
+    name: {{ .Values.webhook.certManager.issuer.name }}
+  {{- else }}
     {{- toYaml .Values.webhook.certManager.cert.issuerRef | nindent 4 }}
+  {{- end }}
   {{- with .Values.webhook.certManager.cert.duration }}
   duration: {{ . | quote }}
   {{- end }}

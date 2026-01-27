@@ -1,4 +1,4 @@
-{{- if and .Values.webhook.create .Values.webhook.certManager.enabled .Values.webhook.certManager.cert.create .Values.webhook.certManager.cert.createIssuer }}
+{{- if and .Values.webhook.create .Values.webhook.certManager.enabled .Values.webhook.certManager.cert.create .Values.webhook.certManager.issuer.create }}
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
@@ -23,6 +23,9 @@ spec:
   isCA: true
   commonName: 'ca.webhook.{{ include "external-secrets.name" . }}'
   secretName: '{{ include "external-secrets.name" . }}-root-cert'
+  privateKey:
+    algorithm: ECDSA
+    size: 256
   duration: "48300h0m0s"
   issuerRef:
     name: '{{ include "external-secrets.name" . }}-selfsigned-issuer'
@@ -30,9 +33,9 @@ spec:
     group: cert-manager.io
 ---
 apiVersion: cert-manager.io/v1
-kind: {{ .Values.webhook.certManager.cert.issuerRef.kind }}
+kind: Issuer
 metadata:
-  name: "{{ .Values.webhook.certManager.cert.issuerRef.name }}"
+  name: "{{ .Values.webhook.certManager.issuer.name }}"
   namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}

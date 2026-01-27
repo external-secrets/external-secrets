@@ -451,17 +451,22 @@ webhook:
     # enabled, this will automatically setup your webhook's CA to the one used
     # by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector
     addInjectorAnnotations: true
+    # -- Create a self-signed CA Issuer resource within this chart. Overrides webhook.certManager.cert.issuerRef
+    # if enabled. See https://cert-manager.io/docs/configuration/selfsigned/#bootstrapping-ca-issuers
+    issuer:
+      create: false
+      name: "external-secrets-root-issuer"
     cert:
       # -- Create a certificate resource within this chart. See
       # https://cert-manager.io/docs/usage/certificate/
       create: true
-      # -- For the Certificate created by this chart, setup the issuer. See
+      # -- For the Certificate created by this chart, use an externally-managed Issuer.
+      # Ignored if webhook.certManager.issuer.create is true. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
-      createIssuer: true
       issuerRef:
         group: cert-manager.io
         kind: "Issuer"
-        name: "external-secrets-root-issuer"
+        name: "my-issuer"
       # -- Set the requested duration (i.e. lifetime) of the Certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
       # One year by default.
