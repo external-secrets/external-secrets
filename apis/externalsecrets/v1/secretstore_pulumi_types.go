@@ -27,8 +27,9 @@ type PulumiProvider struct {
 	APIURL string `json:"apiUrl,omitempty"`
 
 	// Auth configures how the Operator authenticates with the Pulumi API.
-	// Exactly one of accessToken or oidcConfig must be specified.
-	Auth PulumiAuth `json:"auth"`
+	// Either auth or the deprecated accessToken field must be specified.
+	// +optional
+	Auth *PulumiAuth `json:"auth,omitempty"`
 
 	// Organization are a space to collaborate on shared projects and stacks.
 	// To create a new organization, visit https://app.pulumi.com/ and click "New Organization".

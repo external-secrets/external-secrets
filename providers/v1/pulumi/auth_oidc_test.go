@@ -38,7 +38,7 @@ func TestOIDCTokenManager_IsTokenValid(t *testing.T) {
 	store := &esv1.PulumiProvider{
 		APIURL:       "https://api.pulumi.com/api/esc",
 		Organization: "test-org",
-		Auth: esv1.PulumiAuth{
+		Auth: &esv1.PulumiAuth{
 			OIDCConfig: &esv1.PulumiOIDCAuth{
 				Organization: "test-org",
 				ServiceAccountRef: esmeta.ServiceAccountSelector{
@@ -133,7 +133,7 @@ func TestOIDCTokenManager_ExchangeResponse(t *testing.T) {
 			store := &esv1.PulumiProvider{
 				APIURL:       server.URL + "/api/esc",
 				Organization: "test-org",
-				Auth: esv1.PulumiAuth{
+				Auth: &esv1.PulumiAuth{
 					OIDCConfig: &esv1.PulumiOIDCAuth{
 						Organization: "test-org",
 						ServiceAccountRef: esmeta.ServiceAccountSelector{
@@ -202,7 +202,7 @@ func TestNewOIDCTokenManager_BaseURLParsing(t *testing.T) {
 			store := &esv1.PulumiProvider{
 				APIURL:       tt.apiURL,
 				Organization: "test-org",
-				Auth: esv1.PulumiAuth{
+				Auth: &esv1.PulumiAuth{
 					OIDCConfig: &esv1.PulumiOIDCAuth{
 						Organization: "test-org",
 						ServiceAccountRef: esmeta.ServiceAccountSelector{

@@ -6161,7 +6161,7 @@ spec:
                         auth:
                           description: |-
                             Auth configures how the Operator authenticates with the Pulumi API.
-                            Exactly one of accessToken or oidcConfig must be specified.
+                            Either auth or the deprecated accessToken field must be specified.
                           properties:
                             accessToken:
                               description: AccessToken authenticates using a Pulumi access token stored in a Kubernetes Secret.
@@ -6258,7 +6258,6 @@ spec:
                           description: Project is the name of the Pulumi ESC project the environment belongs to.
                           type: string
                       required:
-                        - auth
                         - environment
                         - organization
                         - project
@@ -18024,7 +18023,7 @@ spec:
                         auth:
                           description: |-
                             Auth configures how the Operator authenticates with the Pulumi API.
-                            Exactly one of accessToken or oidcConfig must be specified.
+                            Either auth or the deprecated accessToken field must be specified.
                           properties:
                             accessToken:
                               description: AccessToken authenticates using a Pulumi access token stored in a Kubernetes Secret.
@@ -18121,7 +18120,6 @@ spec:
                           description: Project is the name of the Pulumi ESC project the environment belongs to.
                           type: string
                       required:
-                        - auth
                         - environment
                         - organization
                         - project

@@ -92,7 +92,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	// Check if we should use cache
-	useCache := cfg.Auth.OIDCConfig != nil && oidcClientCache != nil
+	useCache := cfg.Auth != nil && cfg.Auth.OIDCConfig != nil && oidcClientCache != nil
 
 	key := cache.Key{
 		Name:      store.GetObjectMeta().Name,
@@ -110,12 +110,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	var oidcManager *OIDCTokenManager
 
 	// Get access token either from secret or OIDC
-	if cfg.Auth.AccessToken != nil {
+	if cfg.Auth != nil && cfg.Auth.AccessToken != nil {
 		accessToken, err = loadAccessTokenSecret(ctx, cfg.Auth.AccessToken, kube, storeKind, namespace)
 		if err != nil {
 			return nil, err
 		}
-	} else if cfg.Auth.OIDCConfig != nil {
+	} else if cfg.Auth != nil && cfg.Auth.OIDCConfig != nil {
 		// Setup OIDC authentication
 		oidcManager, err = p.setupOIDCAuth(cfg, store, namespace)
 		if err != nil {
@@ -192,15 +192,17 @@ func loadAccessTokenSecret(ctx context.Context, ref *esv1.PulumiProviderSecretRe
 
 func doesConfigDependOnNamespace(cfg *esv1.PulumiProvider) bool {
 	// Check new auth structure
-	if cfg.Auth.AccessToken != nil && cfg.Auth.AccessToken.SecretRef != nil && cfg.Auth.AccessToken.SecretRef.Namespace == nil {
-		return true
+	if cfg.Auth != nil {
+		if cfg.Auth.AccessToken != nil && cfg.Auth.AccessToken.SecretRef != nil && cfg.Auth.AccessToken.SecretRef.Namespace == nil {
+			return true
+		}
+		// Check OIDC config
+		if cfg.Auth.OIDCConfig != nil && cfg.Auth.OIDCConfig.ServiceAccountRef.Namespace == nil {
+			return true
+		}
 	}
 	// Check deprecated AccessToken field
 	if cfg.AccessToken != nil && cfg.AccessToken.SecretRef != nil && cfg.AccessToken.SecretRef.Namespace == nil {
-		return true
-	}
-	// Check OIDC config
-	if cfg.Auth.OIDCConfig != nil && cfg.Auth.OIDCConfig.ServiceAccountRef.Namespace == nil {
 		return true
 	}
 	return false
@@ -239,7 +241,7 @@ func getConfig(store esv1.GenericStore) (*esv1.PulumiProvider, error) {
 }
 
 func validateAuth(store esv1.GenericStore, cfg *esv1.PulumiProvider) error {
-	hasNewAuth := cfg.Auth.AccessToken != nil || cfg.Auth.OIDCConfig != nil
+	hasNewAuth := cfg.Auth != nil && (cfg.Auth.AccessToken != nil || cfg.Auth.OIDCConfig != nil)
 	hasDeprecatedAuth := cfg.AccessToken != nil
 
 	// If using new auth structure, validate it
