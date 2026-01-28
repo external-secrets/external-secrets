@@ -83,6 +83,10 @@ type SecretStoreProvider struct {
 	// +optional
 	BitwardenSecretsManager *BitwardenSecretsManagerProvider `json:"bitwardensecretsmanager,omitempty"`
 
+	// PrivX configures this store to sync secrets using the PrivX provider.
+	// +optional
+	PrivX *PrivxProvider `json:"privx,omitempty"`
+
 	// Vault configures this store to sync secrets using the HashiCorp Vault provider.
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
