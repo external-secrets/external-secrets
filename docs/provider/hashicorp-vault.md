@@ -547,14 +547,14 @@ The Vault provider supports token caching to improve performance by reusing Vaul
 The following command-line flags control the Vault token cache behavior:
 
 - `--enable-vault-token-cache`: Enable Vault token cache (default: `false`)
-- `--vault-token-cache-size`: Maximum size of the Vault token cache (default: `0`)
+- `--vault-token-cache-size`: Maximum size of the Vault token cache (default: `262144`)
 
 #### Usage
 
 To enable token caching, set the `--enable-vault-token-cache` flag to `true`:
 
 ```bash
-external-secrets --enable-vault-token-cache --vault-token-cache-size=1000
+external-secrets --enable-vault-token-cache --vault-token-cache-size=262144
 ```
 
 #### Cache Behavior

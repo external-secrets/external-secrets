@@ -157,7 +157,7 @@ vault:
   # -- Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.
   enableTokenCache: false
   # -- Maximum size of Vault token cache. Only used if enableTokenCache is true.
-  tokenCacheSize: 0
+  tokenCacheSize: 262144
 
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.

@@ -70,7 +70,7 @@ func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 	c.tokenExpiryTime = expiry
 	if tokenExists {
 		// if token expiry exists only re-use it IF the token expiry didn't expire
-		if expiry == nil || expiry.Before(time.Now()) {
+		if expiry == nil || expiry.After(time.Now()) {
 			c.log.V(1).Info("Re-using existing token")
 			return err
 		}
