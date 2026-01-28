@@ -12,7 +12,7 @@ jobs:
     # PRs but also ensures that it only does work for Dependabot PRs.
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
-      - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+      - uses: step-security/harden-runner@e3f713f2d8f53843e71c69a996d56f51aa9adfb9 # v2.14.1
         with:
           egress-policy: audit
       - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
