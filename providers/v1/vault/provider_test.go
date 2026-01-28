@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
@@ -873,24 +874,61 @@ func resetCache() {
 	clientCache = nil
 }
 
-func TestExperimentalFlagsBackwardCompatibility(t *testing.T) {
-	// This test verifies that the experimental flags still work
-	// and that the deprecation warnings are logged
+func TestValidateTokenExpiry(t *testing.T) {
+	t.Run("skip checkToken when token expiry is in the future", func(t *testing.T) {
+		futureExpiry := time.Now().Add(1 * time.Hour)
+		c := &client{
+			store:           makeValidSecretStore().Spec.Provider.Vault,
+			storeKind:       esv1.SecretStoreKind,
+			tokenExpiryTime: &futureExpiry,
+		}
+		result, err := c.Validate()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result != esv1.ValidationResultReady {
+			t.Fatalf("expected ValidationResultReady, got %v", result)
+		}
+	})
 
-	// Note: This is a basic test to ensure the flags are registered
-	// In a real scenario, you would need to test the actual flag parsing
-	// which requires more complex setup with pflag and feature registration
+	t.Run("call checkToken when token expiry is in the past", func(t *testing.T) {
+		pastExpiry := time.Now().Add(-1 * time.Hour)
+		c := &client{
+			store:           makeValidSecretStore().Spec.Provider.Vault,
+			storeKind:       esv1.SecretStoreKind,
+			tokenExpiryTime: &pastExpiry,
+			token: fake.Token{
+				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+					return nil, errors.New("token expired")
+				},
+			},
+		}
+		result, err := c.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if result != esv1.ValidationResultError {
+			t.Fatalf("expected ValidationResultError, got %v", result)
+		}
+	})
 
-	t.Run("Experimental flags are registered", func(t *testing.T) {
-		// The experimental flags should be registered in the init() function
-		// This test ensures the code compiles and the flags are available
-		// In a real test environment, you would:
-		// 1. Parse command line arguments with experimental flags
-		// 2. Verify that deprecation warnings are logged
-		// 3. Verify that the new flags are set correctly
-
-		// For now, we just verify the code compiles
-		// A more comprehensive test would require mocking the logger
-		// and testing the actual flag parsing behavior
+	t.Run("call checkToken when token expiry is nil", func(t *testing.T) {
+		c := &client{
+			store:           makeValidSecretStore().Spec.Provider.Vault,
+			storeKind:       esv1.SecretStoreKind,
+			tokenExpiryTime: nil,
+			token: fake.Token{
+				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+					return nil, errors.New("lookup failed")
+				},
+			},
+		}
+		result, err := c.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if result != esv1.ValidationResultError {
+			t.Fatalf("expected ValidationResultError, got %v", result)
+		}
 	})
 }

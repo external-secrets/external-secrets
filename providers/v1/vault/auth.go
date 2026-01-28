@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	vault "github.com/hashicorp/vault/api"
 	authv1 "k8s.io/api/authentication/v1"
@@ -58,13 +59,21 @@ func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 	defer restoreNamespace()
 
 	tokenExists := false
-	var err error
+	var (
+		err    error
+		expiry *time.Time
+	)
 	if c.client.Token() != "" {
-		tokenExists, err = checkToken(ctx, c.token)
+		tokenExists, expiry, err = checkToken(ctx, c.token)
 	}
+	// update the token before returning so it's always the latest value even if the token does not exist.
+	c.tokenExpiryTime = expiry
 	if tokenExists {
-		c.log.V(1).Info("Re-using existing token")
-		return err
+		// if token expiry exists only re-use it IF the token expiry didn't expire
+		if expiry == nil || expiry.Before(time.Now()) {
+			c.log.V(1).Info("Re-using existing token")
+			return err
+		}
 	}
 
 	tokenExists, err = setSecretKeyToken(ctx, c)
@@ -157,49 +166,64 @@ func createServiceAccountToken(
 }
 
 // checkToken does a lookup and checks if the provided token exists.
-func checkToken(ctx context.Context, token vaultutil.Token) (bool, error) {
+func checkToken(ctx context.Context, token vaultutil.Token) (bool, *time.Time, error) {
 	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
 	resp, err := token.LookupSelfWithContext(ctx)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLookupSelf, err)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 	// LookupSelfWithContext() calls ParseSecret(), which has several places
 	// that return no data and no error, including when a token is expired.
 	if resp == nil {
-		return false, errors.New("no response nor error for token lookup")
+		return false, nil, errors.New("no response nor error for token lookup")
 	}
 	t, ok := resp.Data["type"]
 	if !ok {
-		return false, errors.New("could not assert token type")
+		return false, nil, errors.New("could not assert token type")
 	}
 	tokenType := t.(string)
 	if tokenType == "batch" {
-		return false, nil
+		return false, nil, nil
 	}
 	ttl, ok := resp.Data["ttl"]
 	if !ok {
-		return false, errors.New("no TTL found in response")
+		return false, nil, errors.New("no TTL found in response")
 	}
 	ttlInt, err := ttl.(json.Number).Int64()
 	if err != nil {
-		return false, fmt.Errorf("invalid token TTL: %v: %w", ttl, err)
+		return false, nil, fmt.Errorf("invalid token TTL: %v: %w", ttl, err)
 	}
 	expireTime, ok := resp.Data["expire_time"]
 	if !ok {
-		return false, errors.New("no expiration time found in response")
+		return false, nil, errors.New("no expiration time found in response")
 	}
 	if ttlInt < 60 && expireTime != nil {
 		// Treat expirable tokens that are about to expire as already expired.
 		// This ensures that the token won't expire in between this check and
 		// performing the actual operation.
-		return false, nil
+		return false, nil, nil
 	}
-	return true, nil
+
+	if expireTime == nil {
+		return true, nil, nil
+	}
+
+	et, ok := expireTime.(string)
+	if !ok {
+		return false, nil, fmt.Errorf("expire time is not a string but is: %T", expireTime)
+	}
+
+	parsedExpiry, err := time.Parse(time.RFC3339, et)
+	if err != nil {
+		return false, nil, fmt.Errorf("invalid token expiration time: %v: %w", et, err)
+	}
+
+	return true, &parsedExpiry, nil
 }
 
 func revokeTokenIfValid(ctx context.Context, client vaultutil.Client) error {
-	valid, err := checkToken(ctx, client.AuthToken())
+	valid, _, err := checkToken(ctx, client.AuthToken())
 	if err != nil {
 		return fmt.Errorf(errVaultRevokeToken, err)
 	}
