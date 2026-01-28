@@ -22,18 +22,51 @@ import (
 	"fmt"
 
 	esc "github.com/pulumi/esc-sdk/sdk/go"
+	"github.com/spf13/pflag"
+	"k8s.io/client-go/kubernetes"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 // Provider implements the esv1.Provider interface for Pulumi ESC.
 type Provider struct{}
 
 var _ esv1.Provider = &Provider{}
+
+var (
+	oidcClientCache  *cache.Cache[esv1.SecretsClient]
+	defaultCacheSize = 2 << 17
+)
+
+func initCache(cacheSize int) {
+	if oidcClientCache == nil && cacheSize > 0 {
+		oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
+			// No cleanup is needed when evicting OIDC clients from cache
+		})
+	}
+}
+
+// InitializeFlags registers Pulumi-specific flags with the feature system.
+func InitializeFlags() *feature.Feature {
+	var pulumiOIDCCacheSize int
+	fs := pflag.NewFlagSet("pulumi", pflag.ExitOnError)
+	fs.IntVar(&pulumiOIDCCacheSize, "pulumi-oidc-cache-size", defaultCacheSize,
+		"Maximum size of Pulumi OIDC provider cache. Set to 0 to disable caching.")
+
+	return &feature.Feature{
+		Flags: fs,
+		Initialize: func() {
+			initCache(pulumiOIDCCacheSize)
+		},
+	}
+}
 
 const (
 	errClusterStoreRequiresNamespace = "cluster store requires namespace"
@@ -57,10 +90,51 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if storeKind == esv1.ClusterSecretStoreKind && doesConfigDependOnNamespace(cfg) {
 		return nil, errors.New(errClusterStoreRequiresNamespace)
 	}
-	accessToken, err := loadAccessTokenSecret(ctx, cfg.AccessToken, kube, storeKind, namespace)
-	if err != nil {
-		return nil, err
+
+	// Check if we should use cache
+	useCache := cfg.Auth.OIDCConfig != nil && oidcClientCache != nil
+
+	key := cache.Key{
+		Name:      store.GetObjectMeta().Name,
+		Namespace: namespace,
+		Kind:      store.GetTypeMeta().Kind,
 	}
+
+	if useCache {
+		if cachedClient, ok := oidcClientCache.Get(store.GetObjectMeta().ResourceVersion, key); ok {
+			return cachedClient, nil
+		}
+	}
+
+	var accessToken string
+	var oidcManager *OIDCTokenManager
+
+	// Get access token either from secret or OIDC
+	if cfg.Auth.AccessToken != nil {
+		accessToken, err = loadAccessTokenSecret(ctx, cfg.Auth.AccessToken, kube, storeKind, namespace)
+		if err != nil {
+			return nil, err
+		}
+	} else if cfg.Auth.OIDCConfig != nil {
+		// Setup OIDC authentication
+		oidcManager, err = p.setupOIDCAuth(cfg, store, namespace)
+		if err != nil {
+			return nil, err
+		}
+		accessToken, err = oidcManager.Token(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get OIDC token: %w", err)
+		}
+	} else if cfg.AccessToken != nil {
+		// Fallback to deprecated AccessToken field
+		accessToken, err = loadAccessTokenSecret(ctx, cfg.AccessToken, kube, storeKind, namespace)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("no authentication method configured: either auth.accessToken, auth.oidcConfig, or accessToken must be specified")
+	}
+
 	configuration := esc.NewConfiguration()
 	configuration.UserAgent = "external-secrets-operator"
 	configuration.Servers = esc.ServerConfigurations{
@@ -70,13 +144,42 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 	authCtx := esc.NewAuthContext(accessToken)
 	escClient := esc.NewClient(configuration)
-	return &client{
+
+	client := &client{
 		escClient:    *escClient,
 		authCtx:      authCtx,
 		project:      cfg.Project,
 		environment:  cfg.Environment,
 		organization: cfg.Organization,
-	}, nil
+		oidcManager:  oidcManager,
+		store:        cfg,
+	}
+
+	if useCache {
+		oidcClientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+	}
+
+	return client, nil
+}
+
+func (p *Provider) setupOIDCAuth(cfg *esv1.PulumiProvider, store esv1.GenericStore, namespace string) (*OIDCTokenManager, error) {
+	k8sConfig, err := config.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kubernetes config: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+
+	return NewOIDCTokenManager(
+		clientset.CoreV1(),
+		cfg,
+		namespace,
+		store.GetObjectKind().GroupVersionKind().Kind,
+		store.GetObjectMeta().Name,
+	), nil
 }
 
 func loadAccessTokenSecret(ctx context.Context, ref *esv1.PulumiProviderSecretRef, kube kclient.Client, storeKind, namespace string) (string, error) {
@@ -88,7 +191,16 @@ func loadAccessTokenSecret(ctx context.Context, ref *esv1.PulumiProviderSecretRe
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.PulumiProvider) bool {
-	if cfg.AccessToken.SecretRef != nil && cfg.AccessToken.SecretRef.Namespace == nil {
+	// Check new auth structure
+	if cfg.Auth.AccessToken != nil && cfg.Auth.AccessToken.SecretRef != nil && cfg.Auth.AccessToken.SecretRef.Namespace == nil {
+		return true
+	}
+	// Check deprecated AccessToken field
+	if cfg.AccessToken != nil && cfg.AccessToken.SecretRef != nil && cfg.AccessToken.SecretRef.Namespace == nil {
+		return true
+	}
+	// Check OIDC config
+	if cfg.Auth.OIDCConfig != nil && cfg.Auth.OIDCConfig.ServiceAccountRef.Namespace == nil {
 		return true
 	}
 	return false
@@ -117,11 +229,50 @@ func getConfig(store esv1.GenericStore) (*esv1.PulumiProvider, error) {
 	if cfg.Project == "" {
 		return nil, errors.New(errProjectIsRequired)
 	}
-	err := validateStoreSecretRef(store, cfg.AccessToken)
-	if err != nil {
+
+	// Validate authentication configuration
+	if err := validateAuth(store, cfg); err != nil {
 		return nil, err
 	}
+
 	return cfg, nil
+}
+
+func validateAuth(store esv1.GenericStore, cfg *esv1.PulumiProvider) error {
+	hasNewAuth := cfg.Auth.AccessToken != nil || cfg.Auth.OIDCConfig != nil
+	hasDeprecatedAuth := cfg.AccessToken != nil
+
+	// If using new auth structure, validate it
+	if hasNewAuth {
+		if cfg.Auth.AccessToken != nil {
+			if err := validateStoreSecretRef(store, cfg.Auth.AccessToken); err != nil {
+				return err
+			}
+		}
+		if cfg.Auth.OIDCConfig != nil {
+			if err := validateOIDCConfig(cfg.Auth.OIDCConfig); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// If using deprecated auth, validate it
+	if hasDeprecatedAuth {
+		return validateStoreSecretRef(store, cfg.AccessToken)
+	}
+
+	return errors.New("no authentication method configured: either auth.accessToken, auth.oidcConfig, or accessToken must be specified")
+}
+
+func validateOIDCConfig(oidcConfig *esv1.PulumiOIDCAuth) error {
+	if oidcConfig.Organization == "" {
+		return errors.New("oidcConfig.organization is required")
+	}
+	if oidcConfig.ServiceAccountRef.Name == "" {
+		return errors.New("oidcConfig.serviceAccountRef.name is required")
+	}
+	return nil
 }
 
 func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.PulumiProviderSecretRef) error {

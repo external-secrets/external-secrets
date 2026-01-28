@@ -6123,7 +6123,9 @@ spec:
                       description: Pulumi configures this store to sync secrets using the Pulumi provider
                       properties:
                         accessToken:
-                          description: AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+                          description: |-
+                            AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+                            Deprecated: Use auth.accessToken instead.
                           properties:
                             secretRef:
                               description: SecretRef is a reference to a secret containing the Pulumi API token.
@@ -6156,6 +6158,90 @@ spec:
                           default: https://api.pulumi.com/api/esc
                           description: APIURL is the URL of the Pulumi API.
                           type: string
+                        auth:
+                          description: |-
+                            Auth configures how the Operator authenticates with the Pulumi API.
+                            Exactly one of accessToken or oidcConfig must be specified.
+                          properties:
+                            accessToken:
+                              description: AccessToken authenticates using a Pulumi access token stored in a Kubernetes Secret.
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the Pulumi API token.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                            oidcConfig:
+                              description: OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.
+                              properties:
+                                expirationSeconds:
+                                  default: 600
+                                  description: |-
+                                    ExpirationSeconds sets the ServiceAccount token validity duration.
+                                    Defaults to 10 minutes.
+                                  format: int64
+                                  type: integer
+                                organization:
+                                  description: Organization is the name of the Pulumi organization configured for OIDC authentication.
+                                  type: string
+                                serviceAccountRef:
+                                  description: ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - organization
+                                - serviceAccountRef
+                              type: object
+                          type: object
+                          x-kubernetes-validations:
+                            - message: Exactly one of 'accessToken' or 'oidcConfig' must be specified
+                              rule: (has(self.accessToken) && !has(self.oidcConfig)) || (!has(self.accessToken) && has(self.oidcConfig))
                         environment:
                           description: |-
                             Environment are YAML documents composed of static key-value pairs, programmatic expressions,
@@ -6172,7 +6258,7 @@ spec:
                           description: Project is the name of the Pulumi ESC project the environment belongs to.
                           type: string
                       required:
-                        - accessToken
+                        - auth
                         - environment
                         - organization
                         - project
@@ -17900,7 +17986,9 @@ spec:
                       description: Pulumi configures this store to sync secrets using the Pulumi provider
                       properties:
                         accessToken:
-                          description: AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+                          description: |-
+                            AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+                            Deprecated: Use auth.accessToken instead.
                           properties:
                             secretRef:
                               description: SecretRef is a reference to a secret containing the Pulumi API token.
@@ -17933,6 +18021,90 @@ spec:
                           default: https://api.pulumi.com/api/esc
                           description: APIURL is the URL of the Pulumi API.
                           type: string
+                        auth:
+                          description: |-
+                            Auth configures how the Operator authenticates with the Pulumi API.
+                            Exactly one of accessToken or oidcConfig must be specified.
+                          properties:
+                            accessToken:
+                              description: AccessToken authenticates using a Pulumi access token stored in a Kubernetes Secret.
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the Pulumi API token.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                            oidcConfig:
+                              description: OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.
+                              properties:
+                                expirationSeconds:
+                                  default: 600
+                                  description: |-
+                                    ExpirationSeconds sets the ServiceAccount token validity duration.
+                                    Defaults to 10 minutes.
+                                  format: int64
+                                  type: integer
+                                organization:
+                                  description: Organization is the name of the Pulumi organization configured for OIDC authentication.
+                                  type: string
+                                serviceAccountRef:
+                                  description: ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - organization
+                                - serviceAccountRef
+                              type: object
+                          type: object
+                          x-kubernetes-validations:
+                            - message: Exactly one of 'accessToken' or 'oidcConfig' must be specified
+                              rule: (has(self.accessToken) && !has(self.oidcConfig)) || (!has(self.accessToken) && has(self.oidcConfig))
                         environment:
                           description: |-
                             Environment are YAML documents composed of static key-value pairs, programmatic expressions,
@@ -17949,7 +18121,7 @@ spec:
                           description: Project is the name of the Pulumi ESC project the environment belongs to.
                           type: string
                       required:
-                        - accessToken
+                        - auth
                         - environment
                         - organization
                         - project

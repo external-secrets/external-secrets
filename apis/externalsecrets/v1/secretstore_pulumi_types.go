@@ -26,8 +26,9 @@ type PulumiProvider struct {
 	// +kubebuilder:default="https://api.pulumi.com/api/esc"
 	APIURL string `json:"apiUrl,omitempty"`
 
-	// AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
-	AccessToken *PulumiProviderSecretRef `json:"accessToken"`
+	// Auth configures how the Operator authenticates with the Pulumi API.
+	// Exactly one of accessToken or oidcConfig must be specified.
+	Auth PulumiAuth `json:"auth"`
 
 	// Organization are a space to collaborate on shared projects and stacks.
 	// To create a new organization, visit https://app.pulumi.com/ and click "New Organization".
@@ -40,10 +41,43 @@ type PulumiProvider struct {
 	// and other Pulumi ESC environments.
 	// To create a new environment, visit https://www.pulumi.com/docs/esc/environments/ for more information.
 	Environment string `json:"environment"`
+
+	// AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+	// Deprecated: Use auth.accessToken instead.
+	// +optional
+	AccessToken *PulumiProviderSecretRef `json:"accessToken,omitempty"`
+}
+
+// PulumiAuth configures authentication with the Pulumi API.
+// Exactly one of accessToken or oidcConfig must be specified.
+// +kubebuilder:validation:XValidation:rule="(has(self.accessToken) && !has(self.oidcConfig)) || (!has(self.accessToken) && has(self.oidcConfig))",message="Exactly one of 'accessToken' or 'oidcConfig' must be specified"
+type PulumiAuth struct {
+	// AccessToken authenticates using a Pulumi access token stored in a Kubernetes Secret.
+	// +optional
+	AccessToken *PulumiProviderSecretRef `json:"accessToken,omitempty"`
+
+	// OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.
+	// +optional
+	OIDCConfig *PulumiOIDCAuth `json:"oidcConfig,omitempty"`
 }
 
 // PulumiProviderSecretRef contains the secret reference for Pulumi authentication.
 type PulumiProviderSecretRef struct {
 	// SecretRef is a reference to a secret containing the Pulumi API token.
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// PulumiOIDCAuth configures OIDC authentication with Pulumi using Kubernetes ServiceAccount tokens.
+type PulumiOIDCAuth struct {
+	// Organization is the name of the Pulumi organization configured for OIDC authentication.
+	Organization string `json:"organization"`
+
+	// ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.
+	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+
+	// ExpirationSeconds sets the ServiceAccount token validity duration.
+	// Defaults to 10 minutes.
+	// +kubebuilder:default=600
+	// +optional
+	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
 }

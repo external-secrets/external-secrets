@@ -36,6 +36,8 @@ type client struct {
 	project      string
 	environment  string
 	organization string
+	oidcManager  *OIDCTokenManager
+	store        *esv1.PulumiProvider
 }
 
 const (
@@ -51,7 +53,22 @@ const (
 
 var _ esv1.SecretsClient = &client{}
 
-func (c *client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *client) refreshAuthIfNeeded(ctx context.Context) error {
+	if c.store != nil && c.store.Auth.OIDCConfig != nil && c.oidcManager != nil {
+		token, err := c.oidcManager.Token(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to refresh OIDC token: %w", err)
+		}
+		// Update the auth context with the new token
+		c.authCtx = esc.NewAuthContext(token)
+	}
+	return nil
+}
+
+func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if err := c.refreshAuthIfNeeded(ctx); err != nil {
+		return nil, err
+	}
 	env, err := c.escClient.OpenEnvironment(c.authCtx, c.organization, c.project, c.environment)
 	if err != nil {
 		return nil, err
@@ -85,7 +102,10 @@ func createSubmaps(input map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func (c *client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	if err := c.refreshAuthIfNeeded(ctx); err != nil {
+		return err
+	}
 	secretKey := data.GetSecretKey()
 	if secretKey == "" {
 		return errors.New(errPushWholeSecret)
@@ -147,7 +167,10 @@ func GetMapFromInterface(i interface{}) (map[string][]byte, error) {
 	return result, nil
 }
 
-func (c *client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	if err := c.refreshAuthIfNeeded(ctx); err != nil {
+		return nil, err
+	}
 	env, err := c.escClient.OpenEnvironment(c.authCtx, c.organization, c.project, c.environment)
 	if err != nil {
 		return nil, err
