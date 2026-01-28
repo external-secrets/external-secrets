@@ -404,22 +404,16 @@ clean:  ## Clean bins
 # ====================================================================================
 # Build Dependencies
 
-ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
-    detected_OS := windows
-    real_OS := windows
-    arch := x86_64
-else
-    detected_OS := $(shell uname -s)
-    real_OS := $(detected_OS)
-    arch := $(shell uname -m)
-    ifeq ($(detected_OS),Darwin)
+detected_OS := $(shell uname -s)
+real_OS := $(detected_OS)
+arch := $(shell uname -m)
+ifeq ($(detected_OS),Darwin)
         detected_OS := mac
         real_OS := darwin
-    endif
-    ifeq ($(detected_OS),Linux)
+endif
+ifeq ($(detected_OS),Linux)
         detected_OS := linux
-        real_OS := linux
-    endif
+	real_OS := linux
 endif
 
 ## Location to install dependencies to
