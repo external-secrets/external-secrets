@@ -17,13 +17,9 @@ limitations under the License.
 package pulumi
 
 import (
-	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -110,46 +106,9 @@ func (e *pulumiTokenExchanger) ExchangeToken(ctx context.Context, saToken string
 		"token":        saToken,
 	}
 
-	jsonBody, err := json.Marshal(requestBody)
+	body, err := oidc.PostJSONRequest(ctx, url, requestBody, "Pulumi", nil)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to marshal request body: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	// Clone http.DefaultTransport to preserve proxy settings, connection pooling, and other defaults
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-
-	client := &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: transport,
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to make request to Pulumi: %w", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", time.Time{}, fmt.Errorf("Pulumi OIDC auth failed with status %d: %s",
-			resp.StatusCode, string(body))
+		return "", time.Time{}, err
 	}
 
 	var response struct {
@@ -165,12 +124,10 @@ func (e *pulumiTokenExchanger) ExchangeToken(ctx context.Context, saToken string
 		return "", time.Time{}, fmt.Errorf("Pulumi OIDC auth failed: no access_token in response")
 	}
 
-	// Validate expires_in to prevent rapid refresh loops
 	if response.ExpiresIn <= 0 {
 		return "", time.Time{}, fmt.Errorf("Pulumi OIDC auth failed: invalid expires_in value %d", response.ExpiresIn)
 	}
 
-	// Calculate expiry time based on expires_in (in seconds)
 	expiresAt := time.Now().Add(time.Duration(response.ExpiresIn) * time.Second)
 
 	return response.AccessToken, expiresAt, nil

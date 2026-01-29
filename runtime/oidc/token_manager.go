@@ -17,8 +17,13 @@ limitations under the License.
 package oidc
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"sync"
 	"time"
 
@@ -169,4 +174,59 @@ func (m *TokenManager) CreateServiceAccountToken(ctx context.Context) (string, e
 	}
 
 	return tokenResponse.Status.Token, nil
+}
+
+// HTTPClientConfig contains configuration for creating an HTTP client for OIDC token exchange.
+type HTTPClientConfig struct {
+	VerifyTLS bool
+}
+
+// PostJSONRequest sends a POST request with JSON body and returns the response body.
+// This is a shared utility for OIDC token exchange implementations.
+func PostJSONRequest(ctx context.Context, url string, requestBody map[string]string, providerName string, config *HTTPClientConfig) ([]byte, error) {
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	if config != nil && !config.VerifyTLS {
+		transport.TLSClientConfig.InsecureSkipVerify = true
+	}
+
+	client := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: transport,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request to %s: %w", providerName, err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s OIDC auth failed with status %d: %s",
+			providerName, resp.StatusCode, string(body))
+	}
+
+	return body, nil
 }

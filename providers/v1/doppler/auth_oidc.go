@@ -17,13 +17,9 @@ limitations under the License.
 package doppler
 
 import (
-	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"time"
 
@@ -112,51 +108,13 @@ func (e *dopplerTokenExchanger) ExchangeToken(ctx context.Context, saToken strin
 		"token":    saToken,
 	}
 
-	jsonBody, err := json.Marshal(requestBody)
+	config := &oidc.HTTPClientConfig{
+		VerifyTLS: e.verifyTLS,
+	}
+
+	body, err := oidc.PostJSONRequest(ctx, url, requestBody, "Doppler", config)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to marshal request body: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-	if !e.verifyTLS {
-		tlsConfig.InsecureSkipVerify = true
-	}
-
-	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-
-	client := &http.Client{
-		Timeout:   10 * time.Second,
-		Transport: transport,
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to make request to Doppler: %w", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return "", time.Time{}, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", time.Time{}, fmt.Errorf("Doppler OIDC auth failed with status %d: %s",
-			resp.StatusCode, string(body))
+		return "", time.Time{}, err
 	}
 
 	var response struct {
