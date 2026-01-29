@@ -196,12 +196,10 @@ func (m *OIDCTokenManager) exchangeTokenWithPulumi(ctx context.Context, saToken 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	tlsConfig := &tls.Config{
+	// Clone http.DefaultTransport to preserve proxy settings, connection pooling, and other defaults
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
 		MinVersion: tls.VersionTLS12,
-	}
-
-	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
 	}
 
 	client := &http.Client{
