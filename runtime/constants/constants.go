@@ -111,6 +111,16 @@ const (
 	CallAKEYLESSSMUpdateSecretVal       = "UpdateSecretVal"
 	CallAKEYLESSSMDeleteItem            = "DeleteItem"
 
+	ProviderOnePasswordSDK          = "1Password/SDK"
+	CallOnePasswordSDKResolve       = "Resolve"
+	CallOnePasswordSDKItemsList     = "ItemsList"
+	CallOnePasswordSDKItemsGet      = "ItemsGet"
+	CallOnePasswordSDKItemsCreate   = "ItemsCreate"
+	CallOnePasswordSDKItemsPut      = "ItemsPut"
+	CallOnePasswordSDKItemsDelete   = "ItemsDelete"
+	CallOnePasswordSDKFilesRead     = "FilesRead"
+	CallOnePasswordSDKVaultsList    = "VaultsList"
+
 	StatusError   = "error"
 	StatusSuccess = "success"
 
