@@ -19,6 +19,7 @@ package ovh
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/google/uuid"
@@ -34,10 +35,17 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 	// List Secret Manager secrets.
 	secrets, err := getSecretsList(ctx, cl.okmsClient, cl.okmsID, ref.Path)
 	if err != nil {
-		return map[string][]byte{}, err
+		return map[string][]byte{}, fmt.Errorf("failed to retrieve multiple secrets: %w", err)
 	}
 	if len(secrets) == 0 {
-		return map[string][]byte{}, errors.New("no secrets found in the secret manager")
+		path := ""
+		if ref.Path != nil {
+			path = *ref.Path
+		}
+		return map[string][]byte{}, fmt.Errorf(
+			"failed to retrieve multiple secrets: no secrets under path %q were found in the secret manager",
+			path,
+		)
 	}
 
 	// Compile the regular expression defined in ref.Name.RegExp, if present.
@@ -45,12 +53,25 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 
 	if ref.Name != nil {
 		regex, err = regexp.Compile(ref.Name.RegExp)
-		if err != nil || regex == nil {
-			return map[string][]byte{}, errors.New("failed to parse regexp")
+		if err != nil {
+			return map[string][]byte{}, fmt.Errorf(
+				"failed to retrieve multiple secrets: could not parse regex: %w", err,
+			)
+		}
+		if regex == nil {
+			return map[string][]byte{}, fmt.Errorf(
+				"failed to retrieve multiple secrets: compiled regex is nil for expression %q",
+				ref.Name.RegExp,
+			)
 		}
 	}
 
-	return filterSecretsListWithRegexp(ctx, cl, secrets, regex, ref)
+	secretsMap, err := filterSecretsListWithRegexp(ctx, cl, secrets, regex, ref)
+	if err != nil {
+		return map[string][]byte{}, fmt.Errorf("failed to retrieve multiple secrets: %w", err)
+	}
+
+	return secretsMap, nil
 }
 
 // Retrieve secrets located under the specified path.
@@ -122,7 +143,7 @@ func recursivelyGetSecretsList(ctx context.Context, okmsClient OkmsClient, okmsI
 		return []string{}, nil
 	}
 	if secrets, err = okmsClient.GetSecretsMetadata(ctx, okmsID, path, true); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not list secrets at path %q: %w", path, err)
 	}
 	if secrets == nil || secrets.Data == nil || secrets.Data.Keys == nil || len(*secrets.Data.Keys) == 0 {
 		return nil, nil
@@ -190,7 +211,15 @@ func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []s
 		}
 	}
 	if len(secretsDataMap) == 0 {
-		return map[string][]byte{}, errors.New("no secrets could be retrieved")
+		expr := ""
+		if ref.Name != nil {
+			expr = ref.Name.RegExp
+		}
+		path := ""
+		if ref.Path != nil {
+			path = *ref.Path
+		}
+		return map[string][]byte{}, fmt.Errorf("regex expression %q did not match any secret at path %q", expr, path)
 	}
 	return secretsDataMap, nil
 }

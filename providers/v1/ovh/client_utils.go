@@ -34,7 +34,7 @@ import (
 func getSecretWithOvhSDK(ctx context.Context, kmsClient OkmsClient, okmsID uuid.UUID, ref esv1.ExternalSecretDataRemoteRef) ([]byte, *uint32, error) {
 	// Check if the remoteRef key is empty.
 	if ref.Key == "" {
-		return []byte{}, nil, errors.New("spec.data.remoteRef.key cannot be empty")
+		return []byte{}, nil, errors.New("remote key cannot be empty (spec.data.remoteRef.key)")
 	}
 
 	// Check MetaDataPolicy (not supported).
@@ -123,7 +123,7 @@ func handleOkmsError(err error) error {
 
 	if okmsError == nil {
 		return fmt.Errorf("failed to parse okms error: %w", err)
-	} else if okmsError.ErrorCode == 17125377 {
+	} else if okmsError.ErrorCode == 17125377 { // 17125377: returned by OKMS when secret was not found
 		return esv1.NoSecretErr
 	}
 	return okmsError

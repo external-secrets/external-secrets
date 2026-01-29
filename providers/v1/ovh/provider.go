@@ -75,14 +75,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	if kube == nil {
-		return nil, errors.New("controller-runtime client is nil")
+		return nil, errors.New("failed to create new ovh provider client: controller-runtime client is nil")
 	}
 
 	ovhStore := store.GetSpec().Provider.Ovh
 	// ovhClient configuration.
 	okmsID, err := uuid.Parse(ovhStore.OkmsID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new ovh provider client: %w", err)
 	}
 
 	cas := false
@@ -114,7 +114,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		err = configureHTTPMTLSClient(ctx, p, cl,
 			ovhStore.Server, ovhStore.Auth.ClientMTLS)
 	}
-	return cl, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new ovh provider client: %w", err)
+	}
+	return cl, nil
 }
 
 // Configure the client to use the provided token for HTTP requests.
