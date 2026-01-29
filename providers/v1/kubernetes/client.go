@@ -308,7 +308,9 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 		}
 		err = json.Unmarshal(decoded, &tmpMap)
 		if err != nil {
-			return nil, err
+			// Do not return the raw error as json.Unmarshal errors may contain
+			// sensitive secret data in the error message
+			return nil, errors.New("failed to unmarshal secret: invalid JSON format")
 		}
 		for k, v := range tmpMap {
 			b, err := esutils.JSONMarshal(v)
