@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretmanager
+package auth
 
 import (
 	"bytes"
@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
@@ -32,9 +33,6 @@ import (
 	"github.com/googleapis/gax-go/v2"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"grpc.go4.org/credentials/oauth"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,6 +49,10 @@ import (
 
 const (
 	gcpSAAnnotation = "iam.gke.io/gcp-service-account"
+
+	// jwtTTL is the time-to-live for generated JWTs and SA tokens.
+	// Used by both k8sSATokenGenerator and SignedJWTForVault.
+	jwtTTL = 15 * time.Minute
 
 	errFetchPodToken  = "unable to fetch pod token: %w"
 	errFetchIBToken   = "unable to fetch identitybindingtoken: %w"
@@ -80,21 +82,27 @@ var (
 
 	// workloadIdentityTokenInfoURL is the STS introspection service endpoint.
 	workloadIdentityTokenInfoURL = "https://sts.googleapis.com/v1/introspect"
+
+	// tokenRefreshBuffer is the time before token expiry when we should refresh.
+	// Tokens are refreshed 1 minute before they expire to avoid race conditions.
+	tokenRefreshBuffer = 1 * time.Minute
 )
 
 // workloadIdentity holds all clients and generators needed
 // to create a gcp oauth token.
 type workloadIdentity struct {
-	iamClient            IamClient
 	metadataClient       MetadataClient
 	idBindTokenGenerator idBindTokenGenerator
 	saTokenGenerator     saTokenGenerator
-	clusterProjectID     string
+	// iamClientCreator allows injection of a custom IAM client creator for testing.
+	// If nil, the default newIAMClient function is used.
+	iamClientCreator func(ctx context.Context, tokenSource oauth2.TokenSource) (IamClient, error)
 }
 
 // IamClient provides an interface to the GCP IAM API.
 type IamClient interface {
 	GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
+	SignJwt(ctx context.Context, req *credentialspb.SignJwtRequest, opts ...gax.CallOption) (*credentialspb.SignJwtResponse, error)
 	Close() error
 }
 
@@ -115,22 +123,91 @@ type saTokenGenerator interface {
 	Generate(context.Context, []string, string, string) (*authenticationv1.TokenRequest, error)
 }
 
-func newWorkloadIdentity(ctx context.Context, projectID string) (*workloadIdentity, error) {
-	satg, err := newSATokenGenerator()
-	if err != nil {
-		return nil, err
+// workloadIdentityOption is a functional option for configuring workloadIdentity.
+type workloadIdentityOption func(*workloadIdentity)
+
+// withSATokenGenerator sets a custom saTokenGenerator (used for testing).
+func withSATokenGenerator(satg saTokenGenerator) workloadIdentityOption {
+	return func(w *workloadIdentity) {
+		w.saTokenGenerator = satg
 	}
-	iamc, err := newIAMClient(ctx)
-	if err != nil {
-		return nil, err
+}
+
+// tokenRefreshTimeout is the timeout for token refresh operations.
+const tokenRefreshTimeout = 30 * time.Second
+
+// refreshableTokenSource is an oauth2.TokenSource that automatically refreshes
+// the token when it's about to expire. This ensures long-running operations
+// don't fail due to token expiration.
+type refreshableTokenSource struct {
+	mu sync.Mutex
+	// refreshFunc is called to generate a new token when needed.
+	refreshFunc func(ctx context.Context) (*oauth2.Token, error)
+	// currentToken holds the current valid token.
+	currentToken *oauth2.Token
+}
+
+// Token returns a valid token, refreshing it if necessary.
+// It implements the oauth2.TokenSource interface.
+// This method is thread-safe.
+//
+// Each refresh operation uses a fresh context.Background() with a bounded timeout,
+// ensuring that token refresh is independent of any original request context.
+func (r *refreshableTokenSource) Token() (*oauth2.Token, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Check if we need to refresh the token
+	if r.currentToken == nil || r.shouldRefresh() {
+		// Use a fresh context with timeout for refresh operations.
+		// This ensures refresh works even if the original request context was canceled.
+		ctx, cancel := context.WithTimeout(context.Background(), tokenRefreshTimeout)
+		defer cancel()
+
+		newToken, err := r.refreshFunc(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to refresh token: %w", err)
+		}
+		r.currentToken = newToken
 	}
-	return &workloadIdentity{
-		iamClient:            iamc,
+	return r.currentToken, nil
+}
+
+// shouldRefresh returns true if the token should be refreshed.
+// A token should be refreshed if it will expire within tokenRefreshBuffer.
+func (r *refreshableTokenSource) shouldRefresh() bool {
+	if r.currentToken == nil {
+		return true
+	}
+	// If token has no expiry, assume it doesn't need refresh
+	if r.currentToken.Expiry.IsZero() {
+		return false
+	}
+	// Refresh if token expires within the buffer time
+	return time.Until(r.currentToken.Expiry) < tokenRefreshBuffer
+}
+
+func newWorkloadIdentity(opts ...workloadIdentityOption) (*workloadIdentity, error) {
+	wi := &workloadIdentity{
 		metadataClient:       newMetadataClient(),
 		idBindTokenGenerator: newIDBindTokenGenerator(),
-		saTokenGenerator:     satg,
-		clusterProjectID:     projectID,
-	}, nil
+	}
+
+	// Apply options first (allows tests to inject mocks)
+	for _, opt := range opts {
+		opt(wi)
+	}
+
+	// Only create real SA token generator if not injected
+	if wi.saTokenGenerator == nil {
+		satg, err := newSATokenGenerator()
+		if err != nil {
+			return nil, err
+		}
+		wi.saTokenGenerator = satg
+	}
+
+	return wi, nil
 }
 
 func (w *workloadIdentity) gcpWorkloadIdentity(ctx context.Context, id *esv1.GCPWorkloadIdentity) (string, string, error) {
@@ -187,6 +264,30 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 		return nil, err
 	}
 
+	gcpSA := sa.Annotations[gcpSAAnnotation]
+
+	// Create a refreshable token source that can regenerate tokens when they expire.
+	// This is important for long-running operations that may outlive the token TTL.
+	refreshFunc := func(refreshCtx context.Context) (*oauth2.Token, error) {
+		return w.generateToken(refreshCtx, wi, saKey, gcpSA)
+	}
+
+	// Generate initial token to validate configuration
+	initialToken, err := refreshFunc(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &refreshableTokenSource{
+		refreshFunc:  refreshFunc,
+		currentToken: initialToken,
+	}, nil
+}
+
+// getIdentityBindingToken obtains an identity binding token from GKE Workload Identity.
+// This is the foundation for both TokenSource (which uses GenerateAccessToken) and
+// SignedJWTForVault (which uses SignJwt).
+func (w *workloadIdentity) getIdentityBindingToken(ctx context.Context, wi *esv1.GCPWorkloadIdentity, saKey types.NamespacedName) (*oauth2.Token, error) {
 	idPool, idProvider, err := w.gcpWorkloadIdentity(ctx, wi)
 	if err != nil {
 		return nil, fmt.Errorf(errLookupIdentity, err)
@@ -196,7 +297,6 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 	if len(wi.ServiceAccountRef.Audiences) > 0 {
 		audiences = append(audiences, wi.ServiceAccountRef.Audiences...)
 	}
-	gcpSA := sa.Annotations[gcpSAAnnotation]
 
 	resp, err := w.saTokenGenerator.Generate(ctx, audiences, saKey.Name, saKey.Namespace)
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateSAToken, err)
@@ -210,41 +310,143 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 		return nil, fmt.Errorf(errFetchIBToken, err)
 	}
 
+	return idBindToken, nil
+}
+
+// generateToken creates a new OAuth2 token using the workload identity flow.
+// This is called both for initial token generation and for token refresh.
+func (w *workloadIdentity) generateToken(ctx context.Context, wi *esv1.GCPWorkloadIdentity, saKey types.NamespacedName, gcpSA string) (*oauth2.Token, error) {
+	idBindToken, err := w.getIdentityBindingToken(ctx, wi, saKey)
+	if err != nil {
+		return nil, err
+	}
+
 	// If no `iam.gke.io/gcp-service-account` annotation is present the
 	// identitybindingtoken will be used directly, allowing bindings on secrets
 	// of the form "serviceAccount:<project>.svc.id.goog[<namespace>/<sa>]".
 	if gcpSA == "" {
-		return oauth2.StaticTokenSource(idBindToken), nil
+		return idBindToken, nil
 	}
-	gcpSAResp, err := w.iamClient.GenerateAccessToken(ctx, &credentialspb.GenerateAccessTokenRequest{
+
+	// Create IAM client with the token source from Workload Identity
+	tokenSource := oauth2.StaticTokenSource(idBindToken)
+	iamClientCreator := w.iamClientCreator
+	if iamClientCreator == nil {
+		iamClientCreator = newIAMClient
+	}
+	iamClient, err := iamClientCreator(ctx, tokenSource)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create IAM client: %w", err)
+	}
+	defer func() {
+		// Close errors are typically not actionable (connection already closed, etc.)
+		// and logging would require injecting a logger into this function.
+		_ = iamClient.Close()
+	}()
+
+	gcpSAResp, err := iamClient.GenerateAccessToken(ctx, &credentialspb.GenerateAccessTokenRequest{
 		Name:  fmt.Sprintf("projects/-/serviceAccounts/%s", gcpSA),
 		Scope: gsmapiv1.DefaultAuthScopes(),
-	}, gax.WithGRPCOptions(grpc.PerRPCCredentials(oauth.TokenSource{TokenSource: oauth2.StaticTokenSource(idBindToken)})))
+	})
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateAccessToken, err)
 	if err != nil {
 		return nil, fmt.Errorf(errGenAccessToken, err)
 	}
-	return oauth2.StaticTokenSource(&oauth2.Token{
+
+	return &oauth2.Token{
 		AccessToken: gcpSAResp.GetAccessToken(),
-	}), nil
+		Expiry:      gcpSAResp.GetExpireTime().AsTime(),
+	}, nil
+}
+
+// SignedJWTForVault generates a signed JWT for Vault GCP IAM authentication.
+// This JWT contains the required claims (sub, aud, exp) and is signed using the
+// GCP service account's private key via the IAM SignJwt API.
+func (w *workloadIdentity) SignedJWTForVault(ctx context.Context, wi *esv1.GCPWorkloadIdentity, role string, isClusterKind bool, kube kclient.Client, namespace string) (string, error) {
+	saKey := types.NamespacedName{
+		Name:      wi.ServiceAccountRef.Name,
+		Namespace: namespace,
+	}
+
+	// only ClusterStore is allowed to set namespace (and then it's required)
+	if isClusterKind && wi.ServiceAccountRef.Namespace != nil {
+		saKey.Namespace = *wi.ServiceAccountRef.Namespace
+	}
+
+	sa := &v1.ServiceAccount{}
+	err := kube.Get(ctx, saKey, sa)
+	if err != nil {
+		return "", err
+	}
+
+	gcpSA := sa.Annotations[gcpSAAnnotation]
+	if gcpSA == "" {
+		return "", fmt.Errorf("service account %s/%s is missing required annotation %s", saKey.Namespace, saKey.Name, gcpSAAnnotation)
+	}
+
+	// Get the identity binding token directly (single IAM client creation)
+	idBindToken, err := w.getIdentityBindingToken(ctx, wi, saKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to get identity binding token: %w", err)
+	}
+
+	// Create IAM client with the identity binding token
+	tokenSource := oauth2.StaticTokenSource(idBindToken)
+	iamClientCreator := w.iamClientCreator
+	if iamClientCreator == nil {
+		iamClientCreator = newIAMClient
+	}
+	iamClient, err := iamClientCreator(ctx, tokenSource)
+	if err != nil {
+		return "", fmt.Errorf("failed to create IAM client: %w", err)
+	}
+	defer func() {
+		// Close errors are typically not actionable (connection already closed, etc.)
+		// and logging would require injecting a logger into this function.
+		_ = iamClient.Close()
+	}()
+
+	// Create JWT payload for Vault IAM auth
+	// The audience must be in the format "vault/{role}"
+	// Reference: https://support.hashicorp.com/hc/en-us/articles/37175601988499
+	// API Docs: https://developer.hashicorp.com/vault/api-docs/auth/gcp
+	now := time.Now()
+	exp := now.Add(jwtTTL).Unix()
+	iat := now.Unix()
+	payload := map[string]interface{}{
+		"sub": gcpSA,
+		"aud": fmt.Sprintf("vault/%s", role),
+		"exp": exp,
+		"iat": iat,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JWT payload: %w", err)
+	}
+
+	// Sign the JWT using the GCP service account
+	signResp, err := iamClient.SignJwt(ctx, &credentialspb.SignJwtRequest{
+		Name:    fmt.Sprintf("projects/-/serviceAccounts/%s", gcpSA),
+		Payload: string(payloadBytes),
+	})
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMSignJwt, err)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign JWT for Vault GCP IAM auth: role=%q, gcpServiceAccount=%q: %w", role, gcpSA, err)
+	}
+
+	return signResp.GetSignedJwt(), nil
 }
 
 func (w *workloadIdentity) Close() error {
-	if w.iamClient != nil {
-		return w.iamClient.Close()
-	}
+	// IAM clients are created on-demand and closed immediately after use,
+	// so there's nothing to close here. This method exists for interface compatibility.
 	return nil
 }
 
-func newIAMClient(ctx context.Context) (IamClient, error) {
+func newIAMClient(ctx context.Context, tokenSource oauth2.TokenSource) (IamClient, error) {
 	iamOpts := []option.ClientOption{
 		option.WithUserAgent("external-secrets-operator"),
-		// tell the secretmanager library to not add transport-level ADC since
-		// we need to override on a per call basis
-		option.WithoutAuthentication(),
-		// grpc oauth TokenSource credentials require transport security, so
-		// this must be set explicitly even though TLS is used
-		option.WithGRPCDialOption(grpc.WithTransportCredentials(credentials.NewTLS(nil))),
+		option.WithTokenSource(tokenSource),
 		option.WithGRPCConnectionPool(5),
 	}
 	return iam.NewIamCredentialsClient(ctx, iamOpts...)
@@ -262,7 +464,7 @@ type k8sSATokenGenerator struct {
 
 func (g *k8sSATokenGenerator) Generate(ctx context.Context, audiences []string, name, namespace string) (*authenticationv1.TokenRequest, error) {
 	// Request a serviceaccount token for the pod
-	ttl := int64((15 * time.Minute).Seconds())
+	ttl := int64(jwtTTL.Seconds())
 	return g.corev1.
 		ServiceAccounts(namespace).
 		CreateToken(ctx, name,
@@ -276,7 +478,15 @@ func (g *k8sSATokenGenerator) Generate(ctx context.Context, audiences []string, 
 		)
 }
 
+// newSATokenGeneratorFunc is a factory function for creating saTokenGenerator.
+// It can be overridden in tests to provide a mock implementation.
+var newSATokenGeneratorFunc = defaultNewSATokenGenerator
+
 func newSATokenGenerator() (saTokenGenerator, error) {
+	return newSATokenGeneratorFunc()
+}
+
+func defaultNewSATokenGenerator() (saTokenGenerator, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -297,7 +507,7 @@ type gcpIDBindTokenGenerator struct {
 
 func newIDBindTokenGenerator() idBindTokenGenerator {
 	return &gcpIDBindTokenGenerator{
-		targetURL: "https://securetoken.googleapis.com/v1/identitybindingtoken",
+		targetURL: workloadIdentityTokenURL,
 	}
 }
 
@@ -324,13 +534,14 @@ func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Cli
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not get idbindtoken token, status: %v", resp.StatusCode)
-	}
-
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("could not get idbindtoken token, status: %v, body: %s", resp.StatusCode, string(body))
+	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
