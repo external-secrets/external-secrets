@@ -19,7 +19,6 @@ package v1
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 // OvhProvider holds the configuration to synchronize secrets with OVHcloud's Secret Manager.
-// +optional
 type OvhProvider struct {
 	// specifies the OKMS server endpoint.
 	// +required
@@ -40,7 +39,6 @@ type OvhProvider struct {
 }
 
 // OvhAuth tells the controller how to authenticate to OVHcloud's Secret Manager, either using mTLS or a token.
-// +required
 type OvhAuth struct {
 	// +optional
 	ClientMTLS *OvhClientMTLS `json:"mtls,omitempty"`
@@ -49,7 +47,6 @@ type OvhAuth struct {
 }
 
 // OvhClientMTLS defines the configuration required to authenticate to OVHcloud's Secret Manager using mTLS.
-// +optional
 type OvhClientMTLS struct {
 	// +required
 	ClientCertificate *esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
@@ -58,7 +55,6 @@ type OvhClientMTLS struct {
 }
 
 // OvhClientToken defines the configuration required to authenticate to OVHcloud's Secret Manager using a token.
-// +optional
 type OvhClientToken struct {
 	// +required
 	ClientTokenSecret *esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`

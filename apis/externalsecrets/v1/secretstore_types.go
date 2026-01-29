@@ -87,6 +87,8 @@ type SecretStoreProvider struct {
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
 
+	// Ovh configures this store to sync secrets using the OVHcloud provider.
+	// +optional
 	Ovh *OvhProvider `json:"ovh,omitempty"`
 
 	// GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
