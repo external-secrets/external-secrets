@@ -18,11 +18,59 @@ This guide assumes:
 
 Token authentication:
 ```yaml
-{% include 'ovh-token-secret-store.yaml' %}
+apiVersion: external-secrets.io/v1 
+kind: SecretStore
+metadata:
+  name: secret-store-ovh
+  namespace: default
+spec:
+  provider:
+    ovh:
+      server: <kms-endpoint>
+      okmsid: <okms-id>
+      auth:
+        token:
+          tokenSecretRef:
+            name: ovh-token
+            key: token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ovh-token
+data:
+  token: BASE64-TOKEN-VALUE-PLACEHOLDER
 ```
 mTLS authentication:
 ```yaml
-{% include 'ovh-mtls-secret-store.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secret-store-ovh
+  namespace: default
+spec:
+  provider:
+    ovh:
+      server: "https://eu-west-rbx.okms.ovh.net"
+      okmsid: "734b9b45-8b1a-469c-b140-b10bd6540017"
+      auth:
+        mtls:
+          certSecretRef:
+            name: ovh-mtls
+            key: tls.crt
+          keySecretRef:
+            name: ovh-mtls
+            key: tls.key
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ovh-mtls
+  namespace: default
+type: kubernetes.io/tls
+data:
+  tls.crt: BASE64_CERT_PLACEHOLDER # "client certificate value"
+  tls.key: BASE64_KEY_PLACEHOLDER  # "client key value"
 ```
 
 !!! note
@@ -50,7 +98,23 @@ For these examples, we will assume you have the following secret in your Secret 
 `path` refers to the secret's path in OVH Secret Manager.
 
 ```yaml
-{% include 'ovh-external-secret-example.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  data:
+    - secretKey: foo
+      remoteRef:
+        key: creds
+        version: version
+        property: property
 ```
 
 | Field      | Description                                                            | Required |
@@ -63,7 +127,21 @@ For these examples, we will assume you have the following secret in your Secret 
 
 - Using `spec.data`
 ```yaml
-{% include 'ovh-external-secret-data.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  data:
+    - secretKey: foo
+      remoteRef:
+        key: creds
 ```
 Resulting Kubernetes Secret data:
 ```json
@@ -83,7 +161,20 @@ Resulting Kubernetes Secret data:
 ```
 - Using `spec.dataFrom.extract`
 ```yaml
-{% include 'ovh-external-secret-dataFrom-extract.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  dataFrom:
+  - extract:
+      key: creds
 ```
 Resulting Kubernetes Secret data:
 ```json
@@ -103,7 +194,22 @@ Resulting Kubernetes Secret data:
 #### Fetch scalar/nested values
 - Scalar value using `data`
 ```yaml
-{% include 'ovh-external-secret-data-property.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  data:
+    - secretKey: foo
+      remoteRef:
+        key: creds
+        property: type
 ```
 Resulting Kubernetes Secret data:
 ```json
@@ -113,7 +219,22 @@ Resulting Kubernetes Secret data:
 ```
 - Nested value using `data`
 ```yaml
-{% include 'ovh-external-secret-data-nested-property.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  data:
+    - secretKey: foo
+      remoteRef:
+        key: creds
+        property: users.kevin.token
 ```
 Resulting Kubernetes Secret data:
 ```json
@@ -123,7 +244,21 @@ Resulting Kubernetes Secret data:
 ```
 - Nested value using `dataFrom.extract`
 ```yaml
-{% include 'ovh-external-secret-dataFrom-extract-property.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  dataFrom:
+  - extract:
+      key: creds
+      property: users
 ```
 Resulting Kubernetes Secret data:
 ```json
@@ -148,7 +283,20 @@ You can filter either by path or/and regular expression. Path filtering occurs f
 For these examples, we will assume you have the following secrets in your Secret Manager: `path/to/secret/secret1`, `path/to/secret/secret2`, `path/to/config/config2`, `path/to/config/config3`, `secret-example2`.
 - Path filtering
 ```yaml
-{% include 'ovh-external-secret-dataFrom-find-bypath.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  dataFrom:
+  - find:
+      path: "path/to/secret"
 ```
 Resulting Kubernetes Secret data:
 ```json
@@ -162,7 +310,21 @@ Resulting Kubernetes Secret data:
 
 - Regular expression filtering
 ```yaml
-{% include 'ovh-external-secret-dataFrom-find-byregexp.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  dataFrom:
+  - find:
+      name:
+        regexp: "[2-3]"
 ```
 Resulting Kubernetes Secret data:
 ```json
@@ -178,7 +340,22 @@ Resulting Kubernetes Secret data:
 
 - Combination of both
 ```yaml
-{% include 'ovh-external-secret-dataFrom-find-byboth.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-ovh
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-ovh
+    kind: SecretStore
+  target:
+    name: secret-example
+  dataFrom:
+  - find:
+      path: "path/to"
+      name:
+        regexp: "2$"
 ```
 Resulting Kubernetes Secret data:
 ```json
@@ -196,19 +373,136 @@ Resulting Kubernetes Secret data:
 #### Check-And-Set
 Check-And-Set can be enabled/disabled (default: disabled), in the Secret Store configuration:
 ```yaml
-{% include 'ovh-secret-store-cas.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secret-store-ovh
+  namespace: default
+spec:
+  provider:
+    ovh:
+      server: <kms-endpoint>
+      okmsid: <okms-id>
+      auth:
+        token:
+          tokenSecretRef:
+            name: ovh-token
+            key: token
+      casRequired: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ovh-token
+data:
+  token: BASE64_TOKEN_PLACEHOLDER # "token value"
 ```
 
 #### Secret Rotation
 ```yaml
-{% include 'ovh-push-secret-rotation.yaml' %}
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: my-password-generator
+spec:
+  length: 32
+  digits: 5
+  symbols: 5
+  symbolCharacters: "-_^$%*ù/;:,?"
+  noUpper: false
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-ovh
+spec:
+  refreshInterval: 6h0m0s
+  secretStoreRefs:
+    - name: secret-store-ovh
+      kind: SecretStore
+  selector:
+    generatorRef:
+      apiVersion: generators.external-secrets.io/v1alpha1
+      kind: Password
+      name: my-password-generator
+  data:
+    - match:
+        secretKey: password # property in the generator output
+        remoteRef:
+          remoteKey: prod/mysql/password
 ```
 
 With this configuration, the secret is automatically rotated every 6 hours in the OVH Secret Manager.
 
 #### Secret migration
 ```yaml
-{% include 'ovh-push-secret-migration.yaml' %}
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secret-store-vault
+  namespace: default
+spec:
+  provider:
+    vault:
+      server: "https://my.vault.server:8200"
+      path: "secret"
+      version: "v2"
+      auth:
+        tokenSecretRef:
+          name: vault-token
+          key: token
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-vault
+  namespace: default
+spec:
+  secretStoreRef:
+    name: secret-store-vault
+    kind: SecretStore
+  refreshPolicy: Periodic
+  refreshInterval: "10s"
+  target:
+    name: creds-secret-vault
+  dataFrom:
+    - extract:
+        key: example
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secret-store-ovh
+  namespace: default
+spec:
+  provider:
+    ovh:
+      server: <kms-endpoint>
+      okmsid: <okms-id>
+      auth:
+        token:
+          tokenSecretRef:
+            name: ovh-token
+            key: token
+---
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-ovh
+spec:
+  secretStoreRefs:
+    - name: secret-store-ovh
+      kind: SecretStore
+  selector:
+    secret:
+      name: creds-secret-vault
+  refreshInterval: 10s
+  data:
+    - match:
+        secretKey: "secretKey"
+        remoteRef:
+          remoteKey: "creds-secret-migrated"
 ```
 
 This example demonstrates how to fetch a secret from a HashiCorp Vault KV secrets engine and sync it into OVH Secret Manager.
