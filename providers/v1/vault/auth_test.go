@@ -204,7 +204,7 @@ func TestCheckTokenErrors(t *testing.T) {
 				},
 			}
 
-			cached, _ := checkToken(context.Background(), token)
+			cached, _, _ := checkToken(context.Background(), token)
 			if cached {
 				t.Errorf("%v", tc.message)
 			}
@@ -272,7 +272,7 @@ func TestCheckTokenTtl(t *testing.T) {
 				},
 			}
 
-			cached, err := checkToken(context.Background(), token)
+			cached, _, err := checkToken(context.Background(), token)
 			if cached != tc.cache || err != nil {
 				t.Errorf("%v: err = %v", tc.message, err)
 			}

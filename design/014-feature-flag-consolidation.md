@@ -184,10 +184,10 @@ Create `docs/flags.md` (or equivalent in documentation site) listing all flags:
 ## Provider Flags
 
 ### Vault
-| Feature name | Flag                                       | Default  | Description          |
-|--------------|--------------------------------------------|----------|----------------------|
-| Token Cache  | `--experimental-enable-vault-token-cache`  | `false`  | Enable token caching |
-| Token Cache  | `--experimental-vault-token-cache-size`    | `1000`   | Cache size           |
+| Feature name | Flag                          | Default  | Description          |
+|--------------|-------------------------------|----------|----------------------|
+| Token Cache  | `--enable-vault-token-cache`  | `false`  | Enable token caching |
+| Token Cache  | `--vault-token-cache-size`    | `262144` | Cache size           |
 
 ### Doppler
 | Feature name | Flag                        | Default  | Description           |
