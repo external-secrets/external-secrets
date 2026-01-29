@@ -784,6 +784,71 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		// Security regression tests: ensure json.Unmarshal errors don't leak secret data
+		"InvalidJSONDoesNotLeakSecretDataKV1": {
+			reason: "json.Unmarshal error should not leak secret data in error message",
+			value:  []byte(`not-valid-json-contains-secret-8019210420527506405`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: errors.New("error unmarshalling vault secret: invalid JSON format"),
+			},
+		},
+		"InvalidJSONDoesNotLeakSecretDataKV2": {
+			reason: "json.Unmarshal error should not leak secret data in error message",
+			value:  []byte(`not-valid-json-contains-secret-8019210420527506405`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: errors.New("error unmarshalling vault secret: invalid JSON format"),
+			},
+		},
+		"InvalidJSONCompareDoesNotLeakSecretDataKV1": {
+			reason: "json.Unmarshal error during comparison should not leak secret data",
+			value:  []byte(`invalid-json-with-api-key-12345`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						fakeKey: fakeValue,
+						"custom_metadata": map[string]any{
+							managedBy: managedByESO,
+						},
+					}, nil),
+				},
+			},
+			want: want{
+				err: errors.New("error unmarshalling incoming secret value: invalid JSON format"),
+			},
+		},
+		"InvalidJSONCompareDoesNotLeakSecretDataKV2": {
+			reason: "json.Unmarshal error during comparison should not leak secret data",
+			value:  []byte(`invalid-json-with-api-key-12345`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
+							fakeKey: fakeValue,
+						},
+						"custom_metadata": map[string]any{
+							managedBy: managedByESO,
+						},
+					}, nil),
+				},
+			},
+			want: want{
+				err: errors.New("error unmarshalling incoming secret value: invalid JSON format"),
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -815,6 +880,14 @@ func TestPushSecret(t *testing.T) {
 			if err != nil && tc.want.err != nil {
 				if !strings.Contains(err.Error(), tc.want.err.Error()) {
 					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
+			}
+
+			// Security regression: ensure error messages don't leak secret data
+			if err != nil && tc.value != nil {
+				secretData := string(tc.value)
+				if strings.Contains(err.Error(), secretData) {
+					t.Errorf("\nSECURITY REGRESSION: Error message contains secret data!\nName: %v\nSecret data: %v\nError: %v", name, secretData, err)
 				}
 			}
 		})

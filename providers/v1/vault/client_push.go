@@ -91,7 +91,9 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			var incomingSecretMap map[string]any
 			err = json.Unmarshal(value, &incomingSecretMap)
 			if err != nil {
-				return fmt.Errorf("error unmarshalling incoming secret value: %w", err)
+				// Do not wrap the original error with %w as json.Unmarshal errors
+				// may contain sensitive secret data in the error message
+				return errors.New("error unmarshalling incoming secret value: invalid JSON format")
 			}
 			// Compare maps instead of raw bytes to handle JSON field ordering and formatting
 			if maps.Equal(vaultSecret, incomingSecretMap) {
@@ -117,7 +119,9 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	} else {
 		err = json.Unmarshal(value, &secretVal)
 		if err != nil {
-			return fmt.Errorf("error unmarshalling vault secret: %w", err)
+			// Do not wrap the original error with %w as json.Unmarshal errors
+			// may contain sensitive secret data in the error message
+			return errors.New("error unmarshalling vault secret: invalid JSON format")
 		}
 	}
 	secretToPush := secretVal

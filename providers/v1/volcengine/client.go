@@ -83,7 +83,9 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataR
 
 	var rawSecretMap map[string]json.RawMessage
 	if err := json.Unmarshal(value, &rawSecretMap); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal secret: %w", err)
+		// Do not wrap the original error as json.Unmarshal errors may contain
+		// sensitive secret data in the error message
+		return nil, errors.New("failed to unmarshal secret: invalid JSON format")
 	}
 
 	secretMap := make(map[string][]byte, len(rawSecretMap))
@@ -138,7 +140,9 @@ func (c *Client) getSecretValue(ctx context.Context, ref esapi.ExternalSecretDat
 func extractProperty(secret []byte, property string) ([]byte, error) {
 	var secretMap map[string]json.RawMessage
 	if err := json.Unmarshal(secret, &secretMap); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal secret: %w", err)
+		// Do not wrap the original error as json.Unmarshal errors may contain
+		// sensitive secret data in the error message
+		return nil, errors.New("failed to unmarshal secret: invalid JSON format")
 	}
 
 	value, ok := secretMap[property]
