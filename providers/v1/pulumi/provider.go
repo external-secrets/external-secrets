@@ -241,30 +241,43 @@ func getConfig(store esv1.GenericStore) (*esv1.PulumiProvider, error) {
 }
 
 func validateAuth(store esv1.GenericStore, cfg *esv1.PulumiProvider) error {
-	hasNewAuth := cfg.Auth != nil && (cfg.Auth.AccessToken != nil || cfg.Auth.OIDCConfig != nil)
+	hasNewAccessToken := cfg.Auth != nil && cfg.Auth.AccessToken != nil
+	hasOIDCConfig := cfg.Auth != nil && cfg.Auth.OIDCConfig != nil
 	hasDeprecatedAuth := cfg.AccessToken != nil
 
-	// If using new auth structure, validate it
-	if hasNewAuth {
-		if cfg.Auth.AccessToken != nil {
-			if err := validateStoreSecretRef(store, cfg.Auth.AccessToken); err != nil {
-				return err
-			}
-		}
-		if cfg.Auth.OIDCConfig != nil {
-			if err := validateOIDCConfig(cfg.Auth.OIDCConfig); err != nil {
-				return err
-			}
-		}
-		return nil
+	// Count how many auth methods are configured
+	authMethodCount := 0
+	if hasNewAccessToken {
+		authMethodCount++
+	}
+	if hasOIDCConfig {
+		authMethodCount++
+	}
+	if hasDeprecatedAuth {
+		authMethodCount++
 	}
 
-	// If using deprecated auth, validate it
+	// Enforce mutual exclusivity
+	if authMethodCount > 1 {
+		return errors.New("only one authentication method may be configured: use either auth.accessToken, auth.oidcConfig, or the deprecated accessToken field")
+	}
+
+	if authMethodCount == 0 {
+		return errors.New("no authentication method configured: either auth.accessToken, auth.oidcConfig, or accessToken must be specified")
+	}
+
+	// Validate the configured auth method
+	if hasNewAccessToken {
+		return validateStoreSecretRef(store, cfg.Auth.AccessToken)
+	}
+	if hasOIDCConfig {
+		return validateOIDCConfig(cfg.Auth.OIDCConfig)
+	}
 	if hasDeprecatedAuth {
 		return validateStoreSecretRef(store, cfg.AccessToken)
 	}
 
-	return errors.New("no authentication method configured: either auth.accessToken, auth.oidcConfig, or accessToken must be specified")
+	return nil
 }
 
 func validateOIDCConfig(oidcConfig *esv1.PulumiOIDCAuth) error {
