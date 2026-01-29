@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go/types"
@@ -29,38 +30,39 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// Create or update a secret.
-//
-// If updatePolicy is set to Replace, the secret will be written, possibly overwriting an existing secret.
-// If set to IfNotExists, it will not overwrite an existing secret.
+// PushSecret pushes a secret to the Secret Manager according to the updatePolicy
+// defined in the PushSecret (create or update).
 func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	remoteKey := data.GetRemoteKey()
+
 	if secret == nil {
-		return errors.New("nil secret")
+		return fmt.Errorf("failed to push secret at path %q: provided secret is nil", remoteKey)
 	}
 	if len(secret.Data) == 0 {
-		return errors.New("cannot push empty secret")
+		return fmt.Errorf("failed to push secret at path %q: provided secret is empty", remoteKey)
 	}
 
 	// Check if the secret already exists.
 	// This determines which method to use: create or update.
 	remoteSecret, currentVersion, err := getSecretWithOvhSDK(ctx, cl.okmsClient, cl.okmsID, esv1.ExternalSecretDataRemoteRef{
-		Key: data.GetRemoteKey(),
+		Key: remoteKey,
 	})
-	if err != nil && !errors.Is(err, esv1.NoSecretErr) {
-		return err
+	noSecretErr := errors.Is(err, esv1.NoSecretErr)
+	if err != nil && !noSecretErr {
+		return fmt.Errorf("failed to push secret at path %q: %w", remoteKey, err)
 	}
-	secretExists := !errors.Is(err, esv1.NoSecretErr)
+	secretExists := !noSecretErr
 
 	// Build the secret to be pushed.
 	secretToPush, err := buildSecretToPush(secret, data)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to push secret at path %q: %w", remoteKey, err)
 	}
 
 	// Compare the data of secretToPush with that of remoteSecret.
 	equal, err := compareSecretsData(secretToPush, remoteSecret)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to push secret at path %q: %w", remoteKey, err)
 	}
 	if equal {
 		return nil
@@ -72,14 +74,11 @@ func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data
 	}
 
 	// Push the secret.
-	return pushNewSecret(
-		ctx,
-		cl.okmsClient,
-		cl.okmsID,
-		secretToPush,
-		data.GetRemoteKey(),
-		currentVersion,
-		secretExists)
+	err = pushNewSecret(ctx, cl.okmsClient, cl.okmsID, secretToPush, remoteKey, currentVersion, secretExists)
+	if err != nil {
+		return fmt.Errorf("failed to push secret at path %q: %w", remoteKey, err)
+	}
+	return nil
 }
 
 // Compare the secret to push with the remote secret.
@@ -91,7 +90,7 @@ func compareSecretsData(secretToPush map[string]any, remoteSecret []byte) (bool,
 
 	secretToPushByte, err := json.Marshal(secretToPush)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("could not compare remote secret with secret to push: %w", err)
 	}
 
 	return bytes.Equal(secretToPushByte, remoteSecret), nil
@@ -143,7 +142,7 @@ func extractAllSecretValues(data map[string][]byte) (map[string]any, error) {
 		}
 		var cleanJSON []byte
 		if cleanJSON, err = json.Marshal(decoded); err != nil {
-			return map[string]any{}, err
+			return map[string]any{}, fmt.Errorf("could not extract secret's values to push: %w", err)
 		}
 
 		secretValueToPush[key] = json.RawMessage(cleanJSON)
@@ -157,7 +156,9 @@ func extractSecretKeyValue(data map[string][]byte, secretKey string) (map[string
 
 	value, ok := data[secretKey]
 	if !ok {
-		return nil, errors.New("secretKey not found in secret data")
+		return nil, fmt.Errorf(
+			"could not extract secret key value to push: secretKey %q not found in secret data", secretKey,
+		)
 	}
 	var decoded any
 	if json.Unmarshal(value, &decoded) != nil {
@@ -172,9 +173,11 @@ func extractSecretKeyValue(data map[string][]byte, secretKey string) (map[string
 // This pushes the created/updated secret.
 func pushNewSecret(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID, secretToPush map[string]any, path string, cas *uint32, secretExists bool) error {
 	var err error
+	var operation string
 
 	if !secretExists {
 		// Create a secret.
+		operation = "create"
 		_, err = okmsClient.PostSecretV2(ctx, okmsID, types.PostSecretV2Request{
 			Path: path,
 			Version: types.SecretV2VersionShort{
@@ -183,6 +186,7 @@ func pushNewSecret(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID,
 		})
 	} else {
 		// Update a secret.
+		operation = "update"
 		_, err = okmsClient.PutSecretV2(ctx, okmsID, path, cas, types.PutSecretV2Request{
 			Version: &types.SecretV2VersionShort{
 				Data: &secretToPush,
@@ -190,5 +194,8 @@ func pushNewSecret(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID,
 		})
 	}
 
-	return err
+	if err != nil {
+		return fmt.Errorf("could not %s remote secret %q: %w", operation, path, err)
+	}
+	return nil
 }

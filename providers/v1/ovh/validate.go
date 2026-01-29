@@ -18,6 +18,7 @@ package ovh
 
 import (
 	"context"
+	"fmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
@@ -28,7 +29,7 @@ import (
 func (cl *ovhClient) Validate() (esv1.ValidationResult, error) {
 	_, err := cl.okmsClient.ListSecretV2(context.Background(), cl.okmsID, nil, nil)
 	if err != nil {
-		return esv1.ValidationResultError, err
+		return esv1.ValidationResultError, fmt.Errorf("failed to validate secret store: %w", err)
 	}
 	return esv1.ValidationResultReady, nil
 }

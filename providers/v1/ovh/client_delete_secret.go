@@ -19,6 +19,7 @@ package ovh
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
@@ -29,8 +30,13 @@ import (
 func (cl *ovhClient) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	err := cl.okmsClient.DeleteSecretV2(ctx, cl.okmsID, remoteRef.GetRemoteKey())
 
-	if err != nil && errors.Is(handleOkmsError(err), esv1.NoSecretErr) {
-		return nil
+	if err != nil {
+		err = handleOkmsError(err)
+		if errors.Is(err, esv1.NoSecretErr) {
+			return nil
+		}
+		return fmt.Errorf("failed to delete secret at path %q: %w", remoteRef.GetRemoteKey(), err)
 	}
-	return err
+
+	return nil
 }

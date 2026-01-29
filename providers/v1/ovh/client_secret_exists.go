@@ -19,19 +19,22 @@ package ovh
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 func (cl *ovhClient) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
+	remoteKey := remoteRef.GetRemoteKey()
+
 	// Check if the secret exists using the OVH SDK.
-	_, err := cl.okmsClient.GetSecretV2(ctx, cl.okmsID, remoteRef.GetRemoteKey(), nil, nil)
+	_, err := cl.okmsClient.GetSecretV2(ctx, cl.okmsID, remoteKey, nil, nil)
 	if err != nil {
 		err = handleOkmsError(err)
 		if errors.Is(err, esv1.NoSecretErr) {
 			return false, nil
 		}
-		return false, err
+		return false, fmt.Errorf("failed to check existence of secret %q: %w", remoteKey, err)
 	}
 
 	return true, nil

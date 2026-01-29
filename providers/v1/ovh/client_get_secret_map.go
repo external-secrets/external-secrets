@@ -19,6 +19,8 @@ package ovh
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
@@ -31,7 +33,9 @@ import (
 func (cl *ovhClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	// Retrieve secret from KMS.
 	secretDataBytes, _, err := getSecretWithOvhSDK(ctx, cl.okmsClient, cl.okmsID, ref)
-	if err != nil {
+	if err != nil && !errors.Is(err, esv1.NoSecretErr) {
+		return map[string][]byte{}, fmt.Errorf("failed to retrieve secret at path %q: %w", ref.Key, err)
+	} else if err != nil {
 		return map[string][]byte{}, err
 	}
 	if len(secretDataBytes) == 0 {
@@ -43,7 +47,7 @@ func (cl *ovhClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDa
 	var rawSecretDataMap map[string]any
 	err = json.Unmarshal(secretDataBytes, &rawSecretDataMap)
 	if err != nil {
-		return map[string][]byte{}, err
+		return map[string][]byte{}, fmt.Errorf("failed to retrieve secret at path %q: %w", ref.Key, err)
 	}
 
 	// Convert the map[string]any into map[string][]byte.
@@ -51,7 +55,7 @@ func (cl *ovhClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDa
 	for key := range rawSecretDataMap {
 		secretDataMap[key], err = esutils.GetByteValueFromMap(rawSecretDataMap, key)
 		if err != nil {
-			return map[string][]byte{}, err
+			return map[string][]byte{}, fmt.Errorf("failed to retrieve secret at path %q: %w", ref.Key, err)
 		}
 	}
 
