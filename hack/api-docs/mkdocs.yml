@@ -162,6 +162,7 @@ nav:
       - Volcengine: provider/volcengine.md
       - ngrok: provider/ngrok.md
       - Devolutions Server: provider/devolutions-server.md
+      - Nebius MysteryBox: provider/nebius-mysterybox.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md

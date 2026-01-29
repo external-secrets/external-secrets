@@ -42,6 +42,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/infisical => ./providers/v1/infisical
 	github.com/external-secrets/external-secrets/providers/v1/keepersecurity => ./providers/v1/keepersecurity
 	github.com/external-secrets/external-secrets/providers/v1/kubernetes => ./providers/v1/kubernetes
+	github.com/external-secrets/external-secrets/providers/v1/nebius => ./providers/v1/nebius
 	github.com/external-secrets/external-secrets/providers/v1/ngrok => ./providers/v1/ngrok
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase => ./providers/v1/onboardbase
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
@@ -265,6 +266,7 @@ require (
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
+	github.com/external-secrets/external-secrets/providers/v1/nebius v0.0.0-00010101000000-000000000000 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fortanix/sdkms-client-go v0.4.1 // indirect

@@ -111,6 +111,11 @@ const (
 	CallAKEYLESSSMUpdateSecretVal       = "UpdateSecretVal"
 	CallAKEYLESSSMDeleteItem            = "DeleteItem"
 
+	ProviderNebiusMysterybox           = "Nebius/Mysterybox"
+	CallNebiusMysteryboxGetSecret      = "GetSecret"
+	CallNebiusMysteryboxGetSecretByKey = "GetSecretByKey"
+	CallNebiusMysteryboxAuth           = "Auth"
+
 	StatusError   = "error"
 	StatusSuccess = "success"
 
