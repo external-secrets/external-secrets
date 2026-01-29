@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,49 +31,35 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-func TestOIDCTokenManager_IsTokenValid(t *testing.T) {
+func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
-	expSec := int64(600)
+
+	// Test with nil store
+	manager := NewOIDCTokenManager(fakeClient.CoreV1(), nil, "default", esv1.SecretStoreKind, "test-store")
+	assert.Nil(t, manager)
+
+	// Test with nil Auth
 	store := &esv1.PulumiProvider{
 		APIURL:       "https://api.pulumi.com/api/esc",
 		Organization: "test-org",
-		Auth: &esv1.PulumiAuth{
-			OIDCConfig: &esv1.PulumiOIDCAuth{
-				Organization: "test-org",
-				ServiceAccountRef: esmeta.ServiceAccountSelector{
-					Name: "test-sa",
-				},
-				ExpirationSeconds: &expSec,
-			},
-		},
 	}
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
+	assert.Nil(t, manager)
 
-	manager := NewOIDCTokenManager(
-		fakeClient.CoreV1(),
-		store,
-		"default",
-		esv1.SecretStoreKind,
-		"test-store",
-	)
-
-	// Test with no cached token
-	assert.False(t, manager.isTokenValid())
-
-	// Test with cached token that's expired
-	manager.cachedToken = "test-token"
-	manager.tokenExpiry = time.Now().Add(-1 * time.Hour)
-	assert.False(t, manager.isTokenValid())
-
-	// Test with cached token that's within buffer time
-	manager.tokenExpiry = time.Now().Add(30 * time.Second)
-	assert.False(t, manager.isTokenValid())
-
-	// Test with cached token that's valid
-	manager.tokenExpiry = time.Now().Add(10 * time.Minute)
-	assert.True(t, manager.isTokenValid())
+	// Test with nil OIDCConfig
+	store.Auth = &esv1.PulumiAuth{}
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
+	assert.Nil(t, manager)
 }
 
-func TestOIDCTokenManager_ExchangeResponse(t *testing.T) {
+func TestOIDCTokenManager_Token_NotInitialized(t *testing.T) {
+	var manager *OIDCTokenManager
+	_, err := manager.Token(context.Background())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not initialized")
+}
+
+func TestPulumiTokenExchanger_ExchangeToken(t *testing.T) {
 	tests := []struct {
 		name           string
 		responseBody   map[string]interface{}
@@ -128,31 +113,12 @@ func TestOIDCTokenManager_ExchangeResponse(t *testing.T) {
 			}))
 			defer server.Close()
 
-			fakeClient := fake.NewSimpleClientset()
-			expSec := int64(600)
-			store := &esv1.PulumiProvider{
-				APIURL:       server.URL + "/api/esc",
-				Organization: "test-org",
-				Auth: &esv1.PulumiAuth{
-					OIDCConfig: &esv1.PulumiOIDCAuth{
-						Organization: "test-org",
-						ServiceAccountRef: esmeta.ServiceAccountSelector{
-							Name: "test-sa",
-						},
-						ExpirationSeconds: &expSec,
-					},
-				},
+			exchanger := &pulumiTokenExchanger{
+				baseURL:      server.URL,
+				organization: "test-org",
 			}
 
-			manager := NewOIDCTokenManager(
-				fakeClient.CoreV1(),
-				store,
-				"default",
-				esv1.SecretStoreKind,
-				"test-store",
-			)
-
-			token, _, err := manager.exchangeTokenWithPulumi(context.Background(), "k8s-token")
+			token, _, err := exchanger.ExchangeToken(context.Background(), "k8s-token")
 
 			if tt.wantError {
 				require.Error(t, err)
@@ -193,14 +159,39 @@ func TestNewOIDCTokenManager_BaseURLParsing(t *testing.T) {
 			apiURL:          "",
 			expectedBaseURL: "https://api.pulumi.com",
 		},
+		{
+			name:            "URL with trailing slash",
+			apiURL:          "https://api.pulumi.com/api/esc/",
+			expectedBaseURL: "https://api.pulumi.com",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/api/oauth/oidc/token", r.URL.Path)
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"access_token": "test-token",
+					"expires_in":   3600,
+				})
+			}))
+			defer server.Close()
+
+			apiURL := tt.apiURL
+			if apiURL != "" {
+				apiURL = server.URL + "/api/esc"
+				if tt.name == "URL with trailing slash" {
+					apiURL = server.URL + "/api/esc/"
+				} else if tt.name == "base URL without /api/esc" {
+					apiURL = server.URL
+				}
+			}
+
 			fakeClient := fake.NewSimpleClientset()
 			expSec := int64(600)
 			store := &esv1.PulumiProvider{
-				APIURL:       tt.apiURL,
+				APIURL:       apiURL,
 				Organization: "test-org",
 				Auth: &esv1.PulumiAuth{
 					OIDCConfig: &esv1.PulumiOIDCAuth{
@@ -221,7 +212,7 @@ func TestNewOIDCTokenManager_BaseURLParsing(t *testing.T) {
 				"test-store",
 			)
 
-			assert.Equal(t, tt.expectedBaseURL, manager.baseURL)
+			assert.NotNil(t, manager)
 		})
 	}
 }

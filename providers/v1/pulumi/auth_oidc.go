@@ -25,34 +25,26 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
-	authv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/oidc"
 )
 
-const (
-	defaultTokenTTL = 600
-	minTokenBuffer  = 60
-	pulumiOIDCPath  = "/api/oauth/oidc/token"
-)
+const pulumiOIDCPath = "/api/oauth/oidc/token"
 
 // OIDCTokenManager manages OIDC token exchange with Pulumi.
+// It wraps the shared oidc.TokenManager with Pulumi-specific token exchange logic.
 type OIDCTokenManager struct {
-	corev1    typedcorev1.CoreV1Interface
-	store     *esv1.PulumiProvider
-	namespace string
-	storeKind string
-	storeName string
-	baseURL   string
+	tokenManager *oidc.TokenManager
+}
 
-	mu          sync.RWMutex
-	cachedToken string
-	tokenExpiry time.Time
+// pulumiTokenExchanger implements oidc.TokenExchanger for Pulumi.
+type pulumiTokenExchanger struct {
+	baseURL      string
+	organization string
 }
 
 // NewOIDCTokenManager creates a new OIDCTokenManager for handling Pulumi OIDC authentication.
@@ -63,123 +55,58 @@ func NewOIDCTokenManager(
 	storeKind string,
 	storeName string,
 ) *OIDCTokenManager {
-	baseURL := strings.TrimSuffix(store.APIURL, "/api/esc")
-	if baseURL == store.APIURL {
-		// APIURL doesn't end with /api/esc, assume it's a base URL
-		baseURL = strings.TrimSuffix(store.APIURL, "/")
+	if store == nil || store.Auth == nil || store.Auth.OIDCConfig == nil {
+		return nil
 	}
+
+	oidcAuth := store.Auth.OIDCConfig
+
+	// Normalize the URL first by trimming trailing slash, then remove /api/esc suffix
+	apiURL := strings.TrimSuffix(store.APIURL, "/")
+	baseURL := strings.TrimSuffix(apiURL, "/api/esc")
 	if baseURL == "" {
 		baseURL = "https://api.pulumi.com"
 	}
 
+	saRef := oidc.ServiceAccountRef{
+		Name:       oidcAuth.ServiceAccountRef.Name,
+		Namespace:  oidcAuth.ServiceAccountRef.Namespace,
+		Audiences:  oidcAuth.ServiceAccountRef.Audiences,
+		Expiration: oidcAuth.ExpirationSeconds,
+	}
+
+	exchanger := &pulumiTokenExchanger{
+		baseURL:      baseURL,
+		organization: oidcAuth.Organization,
+	}
+
 	return &OIDCTokenManager{
-		corev1:    corev1,
-		store:     store,
-		namespace: namespace,
-		storeKind: storeKind,
-		storeName: storeName,
-		baseURL:   baseURL,
+		tokenManager: oidc.NewTokenManager(
+			corev1,
+			namespace,
+			storeKind,
+			storeName,
+			baseURL,
+			saRef,
+			exchanger,
+		),
 	}
 }
 
 // Token returns a valid Pulumi access token, refreshing it if necessary.
 func (m *OIDCTokenManager) Token(ctx context.Context) (string, error) {
-	m.mu.RLock()
-	if m.isTokenValid() {
-		token := m.cachedToken
-		m.mu.RUnlock()
-		return token, nil
+	if m == nil || m.tokenManager == nil {
+		return "", fmt.Errorf("OIDC token manager is not initialized")
 	}
-	m.mu.RUnlock()
-
-	return m.refreshToken(ctx)
+	return m.tokenManager.Token(ctx)
 }
 
-func (m *OIDCTokenManager) isTokenValid() bool {
-	if m.cachedToken == "" {
-		return false
-	}
-	return time.Until(m.tokenExpiry) > minTokenBuffer*time.Second
-}
-
-func (m *OIDCTokenManager) refreshToken(ctx context.Context) (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.isTokenValid() {
-		return m.cachedToken, nil
-	}
-
-	saToken, err := m.createServiceAccountToken(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to create service account token: %w", err)
-	}
-
-	pulumiToken, expiry, err := m.exchangeTokenWithPulumi(ctx, saToken)
-	if err != nil {
-		return "", fmt.Errorf("failed to exchange token with Pulumi: %w", err)
-	}
-
-	m.cachedToken = pulumiToken
-	m.tokenExpiry = expiry
-
-	return pulumiToken, nil
-}
-
-func (m *OIDCTokenManager) createServiceAccountToken(ctx context.Context) (string, error) {
-	oidcAuth := m.store.Auth.OIDCConfig
-
-	audiences := []string{m.baseURL}
-
-	// Add custom audiences from serviceAccountRef
-	if len(oidcAuth.ServiceAccountRef.Audiences) > 0 {
-		audiences = append(audiences, oidcAuth.ServiceAccountRef.Audiences...)
-	}
-
-	// Add resource-specific audience for cryptographic binding
-	if m.storeKind == esv1.ClusterSecretStoreKind {
-		audiences = append(audiences, fmt.Sprintf("clusterSecretStore:%s", m.storeName))
-	} else {
-		audiences = append(audiences, fmt.Sprintf("secretStore:%s:%s", m.namespace, m.storeName))
-	}
-
-	expirationSeconds := oidcAuth.ExpirationSeconds
-	if expirationSeconds == nil {
-		tmp := int64(defaultTokenTTL)
-		expirationSeconds = &tmp
-	}
-
-	tokenRequest := &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: m.namespace,
-		},
-		Spec: authv1.TokenRequestSpec{
-			Audiences:         audiences,
-			ExpirationSeconds: expirationSeconds,
-		},
-	}
-
-	// For ClusterSecretStores, we use the ServiceAccountRef.Namespace if specified
-	if m.storeKind == esv1.ClusterSecretStoreKind && oidcAuth.ServiceAccountRef.Namespace != nil {
-		tokenRequest.Namespace = *oidcAuth.ServiceAccountRef.Namespace
-	}
-
-	tokenResponse, err := m.corev1.ServiceAccounts(tokenRequest.Namespace).
-		CreateToken(ctx, oidcAuth.ServiceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to create token for service account %s: %w",
-			oidcAuth.ServiceAccountRef.Name, err)
-	}
-
-	return tokenResponse.Status.Token, nil
-}
-
-func (m *OIDCTokenManager) exchangeTokenWithPulumi(ctx context.Context, saToken string) (string, time.Time, error) {
-	oidcAuth := m.store.Auth.OIDCConfig
-	url := m.baseURL + pulumiOIDCPath
+// ExchangeToken exchanges a ServiceAccount token for a Pulumi access token.
+func (e *pulumiTokenExchanger) ExchangeToken(ctx context.Context, saToken string) (string, time.Time, error) {
+	url := e.baseURL + pulumiOIDCPath
 
 	requestBody := map[string]string{
-		"organization": oidcAuth.Organization,
+		"organization": e.organization,
 		"token":        saToken,
 	}
 
