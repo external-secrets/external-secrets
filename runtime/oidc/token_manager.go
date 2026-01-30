@@ -184,6 +184,16 @@ type HTTPClientConfig struct {
 // PostJSONRequest sends a POST request with JSON body and returns the response body.
 // This is a shared utility for OIDC token exchange implementations.
 func PostJSONRequest(ctx context.Context, url string, requestBody map[string]string, providerName string, config *HTTPClientConfig) ([]byte, error) {
+	return postJSONRequestInternal(ctx, url, requestBody, providerName, config)
+}
+
+// PostJSONRequestInterface sends a POST request with JSON body (supporting interface{} values) and returns the response body.
+// This is a shared utility for OIDC token exchange implementations that need non-string values in the request body.
+func PostJSONRequestInterface(ctx context.Context, url string, requestBody map[string]interface{}, providerName string, config *HTTPClientConfig) ([]byte, error) {
+	return postJSONRequestInternal(ctx, url, requestBody, providerName, config)
+}
+
+func postJSONRequestInternal(ctx context.Context, url string, requestBody interface{}, providerName string, config *HTTPClientConfig) ([]byte, error) {
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)

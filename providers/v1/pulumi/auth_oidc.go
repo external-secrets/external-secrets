@@ -29,7 +29,14 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/oidc"
 )
 
-const pulumiOIDCPath = "/api/oauth/oidc/token"
+// Pulumi OAuth token exchange endpoint and constants per:
+// https://www.pulumi.com/docs/reference/cloud-rest-api/oauth-token-exchange/
+const (
+	pulumiOAuthPath              = "/api/oauth/token"
+	pulumiGrantType              = "urn:ietf:params:oauth:grant-type:token-exchange"
+	pulumiSubjectTokenType       = "urn:ietf:params:oauth:token-type:id_token"
+	pulumiRequestedTokenTypeOrg  = "urn:pulumi:token-type:access_token:organization"
+)
 
 // OIDCTokenManager manages OIDC token exchange with Pulumi.
 // It wraps the shared oidc.TokenManager with Pulumi-specific token exchange logic.
@@ -41,6 +48,7 @@ type OIDCTokenManager struct {
 type pulumiTokenExchanger struct {
 	baseURL      string
 	organization string
+	expiration   int64
 }
 
 // NewOIDCTokenManager creates a new OIDCTokenManager for handling Pulumi OIDC authentication.
@@ -71,9 +79,16 @@ func NewOIDCTokenManager(
 		Expiration: oidcAuth.ExpirationSeconds,
 	}
 
+	// Get expiration from config, default to 3600 seconds (1 hour) if not set
+	expiration := int64(3600)
+	if oidcAuth.ExpirationSeconds != nil && *oidcAuth.ExpirationSeconds > 0 {
+		expiration = *oidcAuth.ExpirationSeconds
+	}
+
 	exchanger := &pulumiTokenExchanger{
 		baseURL:      baseURL,
 		organization: oidcAuth.Organization,
+		expiration:   expiration,
 	}
 
 	return &OIDCTokenManager{
@@ -97,16 +112,24 @@ func (m *OIDCTokenManager) Token(ctx context.Context) (string, error) {
 	return m.tokenManager.Token(ctx)
 }
 
-// ExchangeToken exchanges a ServiceAccount token for a Pulumi access token.
+// ExchangeToken exchanges a ServiceAccount token for a Pulumi access token using the
+// OAuth 2.0 Token Exchange flow per RFC 8693.
+// See: https://www.pulumi.com/docs/reference/cloud-rest-api/oauth-token-exchange/
 func (e *pulumiTokenExchanger) ExchangeToken(ctx context.Context, saToken string) (string, time.Time, error) {
-	url := e.baseURL + pulumiOIDCPath
+	url := e.baseURL + pulumiOAuthPath
 
-	requestBody := map[string]string{
-		"organization": e.organization,
-		"token":        saToken,
+	// Build the OAuth 2.0 Token Exchange request per Pulumi's API specification
+	requestBody := map[string]interface{}{
+		"audience":             fmt.Sprintf("urn:pulumi:org:%s", e.organization),
+		"grant_type":           pulumiGrantType,
+		"subject_token_type":   pulumiSubjectTokenType,
+		"requested_token_type": pulumiRequestedTokenTypeOrg,
+		"subject_token":        saToken,
+		"expiration":           e.expiration,
+		"scope":                "",
 	}
 
-	body, err := oidc.PostJSONRequest(ctx, url, requestBody, "Pulumi", nil)
+	body, err := oidc.PostJSONRequestInterface(ctx, url, requestBody, "Pulumi", nil)
 	if err != nil {
 		return "", time.Time{}, err
 	}

@@ -116,6 +116,7 @@ func TestPulumiTokenExchanger_ExchangeToken(t *testing.T) {
 			exchanger := &pulumiTokenExchanger{
 				baseURL:      server.URL,
 				organization: "test-org",
+				expiration:   3600,
 			}
 
 			token, _, err := exchanger.ExchangeToken(context.Background(), "k8s-token")
@@ -169,7 +170,7 @@ func TestNewOIDCTokenManager_BaseURLParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "/api/oauth/oidc/token", r.URL.Path)
+				assert.Equal(t, "/api/oauth/token", r.URL.Path)
 				w.WriteHeader(http.StatusOK)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
 					"access_token": "test-token",
