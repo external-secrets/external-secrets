@@ -20,6 +20,23 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// InfisicalProviderSecretRef holds either a direct value or a secret reference.
+type InfisicalProviderSecretRef struct {
+	// Value can be specified directly to set a value without using a secret.
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// SecretRef references a key in a secret that will be used as value.
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// Deprecated: Use SecretRef instead. Inline secret key selector fields are
+	// kept for backward compatibility so that existing YAML using name/key/namespace
+	// directly under identityId continues to work.
+	// +optional
+	esmeta.SecretKeySelector `json:",inline"`
+}
+
 // UniversalAuthCredentials represents the client credentials for universal authentication.
 type UniversalAuthCredentials struct {
 	// +kubebuilder:validation:Required
@@ -96,8 +113,9 @@ type KubernetesAuthCredentials struct {
 
 // AwsAuthCredentials represents the credentials for AWS authentication.
 type AwsAuthCredentials struct {
+	// IdentityID is the Infisical Machine Identity ID.
 	// +kubebuilder:validation:Required
-	IdentityID esmeta.SecretKeySelector `json:"identityId"`
+	IdentityID *InfisicalProviderSecretRef `json:"identityId"`
 }
 
 // TokenAuthCredentials represents the credentials for access token-based authentication.
