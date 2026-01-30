@@ -468,3 +468,297 @@ func TestValidateStoreCAProvider(t *testing.T) {
 		})
 	}
 }
+
+func makeSecretStoreWithAwsAuth(projectSlug, environment, secretsPath string, fn ...storeModifier) *esv1.SecretStore {
+	store := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Infisical: &esv1.InfisicalProvider{
+					Auth: esv1.InfisicalAuth{
+						AwsAuthCredentials: &esv1.AwsAuthCredentials{},
+					},
+					SecretsScope: esv1.MachineIdentityScopeInWorkspace{
+						SecretsPath:     secretsPath,
+						EnvironmentSlug: environment,
+						ProjectSlug:     projectSlug,
+					},
+				},
+			},
+		},
+	}
+	for _, f := range fn {
+		store = f(store)
+	}
+	return store
+}
+
+func withAwsAuthIdentityIDValue(value string) storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{
+			Value: value,
+		}
+		return store
+	}
+}
+
+func withAwsAuthIdentityIDSecretRef(name, key string, namespace *string) storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{
+			SecretRef: &esv1meta.SecretKeySelector{
+				Name:      name,
+				Key:       key,
+				Namespace: namespace,
+			},
+		}
+		return store
+	}
+}
+
+func withAwsAuthIdentityIDBoth(value, name, key string) storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{
+			Value: value,
+			SecretRef: &esv1meta.SecretKeySelector{
+				Name: name,
+				Key:  key,
+			},
+		}
+		return store
+	}
+}
+
+func withAwsAuthIdentityIDInline(name, key string, namespace *string) storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{
+			SecretKeySelector: esv1meta.SecretKeySelector{
+				Name:      name,
+				Key:       key,
+				Namespace: namespace,
+			},
+		}
+		return store
+	}
+}
+
+func withAwsAuthIdentityIDInlineMissingKey(name string) storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{
+			SecretKeySelector: esv1meta.SecretKeySelector{
+				Name: name,
+			},
+		}
+		return store
+	}
+}
+
+func withClusterAwsAuthIdentityIDInline(name, key string, namespace *string) clusterStoreModifier {
+	return func(store *esv1.ClusterSecretStore) *esv1.ClusterSecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{
+			SecretKeySelector: esv1meta.SecretKeySelector{
+				Name:      name,
+				Key:       key,
+				Namespace: namespace,
+			},
+		}
+		return store
+	}
+}
+
+func withAwsAuthIdentityIDNeither() storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{}
+		return store
+	}
+}
+
+func makeClusterSecretStoreWithAwsAuth(projectSlug, environment, secretsPath string, fn ...clusterStoreModifier) *esv1.ClusterSecretStore {
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Infisical: &esv1.InfisicalProvider{
+					Auth: esv1.InfisicalAuth{
+						AwsAuthCredentials: &esv1.AwsAuthCredentials{},
+					},
+					SecretsScope: esv1.MachineIdentityScopeInWorkspace{
+						SecretsPath:     secretsPath,
+						EnvironmentSlug: environment,
+						ProjectSlug:     projectSlug,
+					},
+				},
+			},
+		},
+	}
+	for _, f := range fn {
+		store = f(store)
+	}
+	return store
+}
+
+func withClusterAwsAuthIdentityIDSecretRef(name, key string, namespace *string) clusterStoreModifier {
+	return func(store *esv1.ClusterSecretStore) *esv1.ClusterSecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{
+			SecretRef: &esv1meta.SecretKeySelector{
+				Name:      name,
+				Key:       key,
+				Namespace: namespace,
+			},
+		}
+		return store
+	}
+}
+
+func withClusterAwsAuthIdentityIDValue(value string) clusterStoreModifier {
+	return func(store *esv1.ClusterSecretStore) *esv1.ClusterSecretStore {
+		store.Spec.Provider.Infisical.Auth.AwsAuthCredentials.IdentityID = &esv1.InfisicalProviderSecretRef{
+			Value: value,
+		}
+		return store
+	}
+}
+
+func TestValidateStoreAwsAuth(t *testing.T) {
+	namespace := "my-namespace"
+
+	testCases := []struct {
+		name        string
+		store       esv1.GenericStore
+		assertError func(t *testing.T, err error)
+	}{
+		{
+			name: "AWS auth with inline value should succeed",
+			store: makeSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withAwsAuthIdentityIDValue("my-identity-id"),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "AWS auth with secret ref should succeed",
+			store: makeSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withAwsAuthIdentityIDSecretRef("my-secret", "identityId", nil),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "AWS auth with inline name/key (backward compat) should succeed",
+			store: makeSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withAwsAuthIdentityIDInline("my-secret", "identityId", nil),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "AWS auth with inline name but missing key should fail",
+			store: makeSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withAwsAuthIdentityIDInlineMissingKey("my-secret"),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "key cannot be empty when using inline name/key")
+			},
+		},
+		{
+			name: "AWS auth with both value AND secretRef should fail",
+			store: makeSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withAwsAuthIdentityIDBoth("my-identity-id", "my-secret", "identityId"),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "cannot have multiple sources set")
+			},
+		},
+		{
+			name: "AWS auth with neither value NOR secretRef NOR inline should fail",
+			store: makeSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withAwsAuthIdentityIDNeither(),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "must have either value, secretRef, or inline name/key set")
+			},
+		},
+		{
+			name: "AWS auth with secretRef missing key should fail",
+			store: makeSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withAwsAuthIdentityIDSecretRef("my-secret", "", nil),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "secretRef.key cannot be empty")
+			},
+		},
+		{
+			name: "ClusterSecretStore AWS auth with secretRef missing namespace should fail",
+			store: makeClusterSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClusterAwsAuthIdentityIDSecretRef("my-secret", "identityId", nil),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "secretRef.namespace is required for ClusterSecretStore")
+			},
+		},
+		{
+			name: "ClusterSecretStore AWS auth with secretRef with namespace should succeed",
+			store: makeClusterSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClusterAwsAuthIdentityIDSecretRef("my-secret", "identityId", &namespace),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "ClusterSecretStore AWS auth with inline value should succeed",
+			store: makeClusterSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClusterAwsAuthIdentityIDValue("my-identity-id"),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "ClusterSecretStore AWS auth with inline name/key and namespace should succeed",
+			store: makeClusterSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClusterAwsAuthIdentityIDInline("my-secret", "identityId", &namespace),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "ClusterSecretStore AWS auth with inline name/key missing namespace should fail",
+			store: makeClusterSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClusterAwsAuthIdentityIDInline("my-secret", "identityId", nil),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "namespace is required for ClusterSecretStore when using inline name/key")
+			},
+		},
+	}
+
+	p := Provider{}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := p.ValidateStore(tc.store)
+			tc.assertError(t, err)
+		})
+	}
+}
