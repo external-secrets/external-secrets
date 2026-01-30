@@ -177,10 +177,6 @@ type SecretStoreProvider struct {
 	// +optional
 	Chef *ChefProvider `json:"chef,omitempty"`
 
-	// Pulumi configures this store to sync secrets using the Pulumi provider
-	// +optional
-	Pulumi *PulumiProvider `json:"pulumi,omitempty"`
-
 	// Fortanix configures this store to sync secrets using the Fortanix provider
 	// +optional
 	Fortanix *FortanixProvider `json:"fortanix,omitempty"`
