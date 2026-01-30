@@ -91,6 +91,9 @@ spec:
           - --{{ $key }}
             {{- end }}
           {{- end }}
+          {{- if .Values.webhook.metrics.listen.auth.enabled }}
+          - --metrics-auth=true
+          {{- end }}
           ports:
             - containerPort: {{ .Values.webhook.metrics.listen.port }}
               protocol: TCP

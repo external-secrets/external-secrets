@@ -96,6 +96,9 @@ spec:
           - --{{ $key }}
             {{- end }}
           {{- end }}
+          {{- if .Values.certController.metrics.listen.auth.enabled }}
+          - --metrics-auth=true
+          {{- end }}
           ports:
             - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
