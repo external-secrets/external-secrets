@@ -50,30 +50,38 @@ var _ esv1.SecretsClient = &Client{}
 var _ esv1.Provider = &Provider{}
 
 var (
+	enableCache      bool
 	oidcClientCache  *cache.Cache[esv1.SecretsClient]
 	defaultCacheSize = 2 << 17
 )
 
+func init() {
+	var dopplerOIDCCacheSize int
+	fs := pflag.NewFlagSet("doppler", pflag.ExitOnError)
+	fs.BoolVar(
+		&enableCache,
+		"experimental-enable-doppler-oidc-cache",
+		false,
+		"Enable experimental Doppler OIDC provider cache.",
+	)
+	fs.IntVar(
+		&dopplerOIDCCacheSize,
+		"experimental-doppler-oidc-cache-size",
+		defaultCacheSize,
+		"Maximum size of Doppler OIDC provider cache. Set to 0 to disable caching. Only used if --experimental-enable-doppler-oidc-cache is set.")
+
+	feature.Register(feature.Feature{
+		Flags:      fs,
+		Initialize: func() { initCache(dopplerOIDCCacheSize) },
+	})
+}
+
+// Gating on enableCache to not enable cache out of the blue for new releases.
 func initCache(cacheSize int) {
-	if oidcClientCache == nil && cacheSize > 0 {
+	if oidcClientCache == nil && cacheSize > 0 && enableCache {
 		oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
 			// No cleanup is needed when evicting OIDC clients from cache
 		})
-	}
-}
-
-// InitializeFlags registers Doppler-specific flags with the feature system.
-func InitializeFlags() *feature.Feature {
-	var dopplerOIDCCacheSize int
-	fs := pflag.NewFlagSet("doppler", pflag.ExitOnError)
-	fs.IntVar(&dopplerOIDCCacheSize, "doppler-oidc-cache-size", defaultCacheSize,
-		"Maximum size of Doppler OIDC provider cache. Set to 0 to disable caching.")
-
-	return &feature.Feature{
-		Flags: fs,
-		Initialize: func() {
-			initCache(dopplerOIDCCacheSize)
-		},
 	}
 }
 
