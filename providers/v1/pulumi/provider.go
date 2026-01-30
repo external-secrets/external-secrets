@@ -106,35 +106,57 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		}
 	}
 
-	var accessToken string
-	var oidcManager *OIDCTokenManager
-
-	// Get access token either from secret or OIDC
-	if cfg.Auth != nil && cfg.Auth.AccessToken != nil {
-		accessToken, err = loadAccessTokenSecret(ctx, cfg.Auth.AccessToken, kube, storeKind, namespace)
-		if err != nil {
-			return nil, err
-		}
-	} else if cfg.Auth != nil && cfg.Auth.OIDCConfig != nil {
-		// Setup OIDC authentication
-		oidcManager, err = p.setupOIDCAuth(cfg, store, namespace)
-		if err != nil {
-			return nil, err
-		}
-		accessToken, err = oidcManager.Token(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get OIDC token: %w", err)
-		}
-	} else if cfg.AccessToken != nil {
-		// Fallback to deprecated AccessToken field
-		accessToken, err = loadAccessTokenSecret(ctx, cfg.AccessToken, kube, storeKind, namespace)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, errors.New("no authentication method configured: either auth.accessToken, auth.oidcConfig, or accessToken must be specified")
+	accessToken, oidcManager, err := p.resolveAuthentication(ctx, cfg, store, kube, storeKind, namespace)
+	if err != nil {
+		return nil, err
 	}
 
+	client := p.createClient(cfg, accessToken, oidcManager)
+
+	if useCache {
+		oidcClientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+	}
+
+	return client, nil
+}
+
+// resolveAuthentication determines the authentication method and returns the access token and optional OIDC manager.
+func (p *Provider) resolveAuthentication(ctx context.Context, cfg *esv1.PulumiProvider, store esv1.GenericStore, kube kclient.Client, storeKind, namespace string) (string, *OIDCTokenManager, error) {
+	// New auth structure with access token
+	if cfg.Auth != nil && cfg.Auth.AccessToken != nil {
+		token, err := loadAccessTokenSecret(ctx, cfg.Auth.AccessToken, kube, storeKind, namespace)
+		return token, nil, err
+	}
+
+	// New auth structure with OIDC
+	if cfg.Auth != nil && cfg.Auth.OIDCConfig != nil {
+		return p.resolveOIDCAuthentication(ctx, cfg, store, namespace)
+	}
+
+	// Deprecated AccessToken field
+	if cfg.AccessToken != nil {
+		token, err := loadAccessTokenSecret(ctx, cfg.AccessToken, kube, storeKind, namespace)
+		return token, nil, err
+	}
+
+	return "", nil, errors.New("no authentication method configured: either auth.accessToken, auth.oidcConfig, or accessToken must be specified")
+}
+
+// resolveOIDCAuthentication sets up OIDC authentication and returns the token and manager.
+func (p *Provider) resolveOIDCAuthentication(ctx context.Context, cfg *esv1.PulumiProvider, store esv1.GenericStore, namespace string) (string, *OIDCTokenManager, error) {
+	oidcManager, err := p.setupOIDCAuth(cfg, store, namespace)
+	if err != nil {
+		return "", nil, err
+	}
+	token, err := oidcManager.Token(ctx)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to get OIDC token: %w", err)
+	}
+	return token, oidcManager, nil
+}
+
+// createClient creates a new Pulumi ESC client with the given configuration.
+func (p *Provider) createClient(cfg *esv1.PulumiProvider, accessToken string, oidcManager *OIDCTokenManager) *client {
 	configuration := esc.NewConfiguration()
 	configuration.UserAgent = "external-secrets-operator"
 	configuration.Servers = esc.ServerConfigurations{
@@ -145,7 +167,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	authCtx := esc.NewAuthContext(accessToken)
 	escClient := esc.NewClient(configuration)
 
-	client := &client{
+	return &client{
 		escClient:    *escClient,
 		authCtx:      authCtx,
 		project:      cfg.Project,
@@ -154,12 +176,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		oidcManager:  oidcManager,
 		store:        cfg,
 	}
-
-	if useCache {
-		oidcClientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
-	}
-
-	return client, nil
 }
 
 func (p *Provider) setupOIDCAuth(cfg *esv1.PulumiProvider, store esv1.GenericStore, namespace string) (*OIDCTokenManager, error) {
