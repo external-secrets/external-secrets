@@ -43,6 +43,9 @@
                 "extraVolumes": {
                     "type": "array"
                 },
+                "hostAliases": {
+                    "type": "array"
+                },
                 "hostNetwork": {
                     "type": "boolean"
                 },
@@ -380,6 +383,9 @@
                         }
                     }
                 },
+                "hostAliases": {
+                    "type": "array"
+                },
                 "imagePullSecrets": {
                     "type": "array"
                 },
@@ -422,6 +428,9 @@
                     "type": "string"
                 }
             }
+        },
+        "hostAliases": {
+            "type": "array"
         },
         "hostNetwork": {
             "type": "boolean"
@@ -873,6 +882,9 @@
                 },
                 "failurePolicy": {
                     "type": "string"
+                },
+                "hostAliases": {
+                    "type": "array"
                 },
                 "hostNetwork": {
                     "type": "boolean"
