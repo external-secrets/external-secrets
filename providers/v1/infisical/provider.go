@@ -361,7 +361,7 @@ func performAwsAuthLogin(
 	namespace string,
 ) error {
 	awsAuthCredentials := infisicalSpec.Auth.AwsAuthCredentials
-	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, awsAuthCredentials.IdentityID)
+	identityID, err := loadInfisicalSecretRef(ctx, store.GetObjectKind().GroupVersionKind().Kind, awsAuthCredentials.IdentityID, kube, namespace)
 	if err != nil {
 		return fmt.Errorf(errSecretDataFormat, err)
 	}
@@ -374,6 +374,30 @@ func performAwsAuthLogin(
 	}
 
 	return nil
+}
+
+// loadInfisicalSecretRef resolves an InfisicalProviderSecretRef to its string value.
+// It checks Value first, then SecretRef, then the deprecated inline fields for backward compatibility.
+func loadInfisicalSecretRef(ctx context.Context, storeKind string, ref *esv1.InfisicalProviderSecretRef, kube kclient.Client, namespace string) (string, error) {
+	if ref == nil {
+		return "", errors.New("identity reference is required")
+	}
+	if ref.Value != "" {
+		return ref.Value, nil
+	}
+	if ref.SecretRef != nil {
+		return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
+	}
+	// Backward compatibility: resolve inline name/key fields.
+	if ref.Name != "" {
+		sel := &esmeta.SecretKeySelector{
+			Name:      ref.Name,
+			Key:       ref.Key,
+			Namespace: ref.Namespace,
+		}
+		return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, sel)
+	}
+	return "", fmt.Errorf("identity reference must have value, secretRef, or inline name/key set")
 }
 
 func performTokenAuthLogin(
@@ -546,6 +570,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, err
 	}
 
+	if err := validateAwsAuth(store, infisicalStoreSpec); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -586,6 +614,82 @@ func validateUniversalAuth(store esv1.GenericStore, spec *esv1.InfisicalProvider
 	if uaCredential.ClientID.Key == "" || uaCredential.ClientSecret.Key == "" {
 		return errors.New("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty")
 	}
+	return nil
+}
+
+func validateAwsAuth(store esv1.GenericStore, spec *esv1.InfisicalProvider) error {
+	if spec.Auth.AwsAuthCredentials == nil {
+		return nil
+	}
+
+	awsAuth := spec.Auth.AwsAuthCredentials
+	if err := validateInfisicalSecretRef("awsAuthCredentials.identityId", awsAuth.IdentityID); err != nil {
+		return err
+	}
+
+	if err := validateStoreInfisicalSecretRef(store, "awsAuthCredentials.identityId", awsAuth.IdentityID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateInfisicalSecretRef validates that exactly one of Value, SecretRef, or inline name/key is set.
+func validateInfisicalSecretRef(fieldName string, ref *esv1.InfisicalProviderSecretRef) error {
+	if ref == nil {
+		return fmt.Errorf("%s is required", fieldName)
+	}
+
+	hasValue := ref.Value != ""
+	hasSecretRef := ref.SecretRef != nil
+	hasInline := ref.Name != ""
+
+	sources := 0
+	if hasValue {
+		sources++
+	}
+	if hasSecretRef {
+		sources++
+	}
+	if hasInline {
+		sources++
+	}
+
+	if sources > 1 {
+		return fmt.Errorf("%s cannot have multiple sources set (value, secretRef, inline name/key)", fieldName)
+	}
+
+	if sources == 0 {
+		return fmt.Errorf("%s must have either value, secretRef, or inline name/key set", fieldName)
+	}
+
+	if hasSecretRef && ref.SecretRef.Key == "" {
+		return fmt.Errorf("%s.secretRef.key cannot be empty", fieldName)
+	}
+
+	if hasInline && ref.Key == "" {
+		return fmt.Errorf("%s.key cannot be empty when using inline name/key", fieldName)
+	}
+
+	return nil
+}
+
+// validateStoreInfisicalSecretRef validates secretRef namespace requirements for different store types.
+func validateStoreInfisicalSecretRef(store esv1.GenericStore, fieldName string, ref *esv1.InfisicalProviderSecretRef) error {
+	if ref == nil {
+		return nil
+	}
+
+	storeKind := store.GetObjectKind().GroupVersionKind().Kind
+
+	if ref.SecretRef != nil && storeKind == esv1.ClusterSecretStoreKind && ref.SecretRef.Namespace == nil {
+		return fmt.Errorf("%s.secretRef.namespace is required for ClusterSecretStore", fieldName)
+	}
+
+	if ref.Name != "" && storeKind == esv1.ClusterSecretStoreKind && ref.Namespace == nil {
+		return fmt.Errorf("%s.namespace is required for ClusterSecretStore when using inline name/key", fieldName)
+	}
+
 	return nil
 }
 
