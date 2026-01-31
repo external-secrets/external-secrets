@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/gcp
 
-go 1.25.5
+go 1.25.6
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0

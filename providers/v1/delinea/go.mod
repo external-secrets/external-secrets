@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/delinea
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0
