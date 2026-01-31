@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/barbican
 
-go 1.25.1
+go 1.25.6
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
