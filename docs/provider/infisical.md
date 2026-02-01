@@ -135,6 +135,9 @@ spec:
 ```
 
 !!! note
+    Set only one of `identityId.value` or `identityId.secretRef`. They are mutually exclusive.
+
+!!! note
     For `ClusterSecretStore`, be sure to set `namespace` in `awsAuthCredentials.identityId.secretRef`.
 
 ## Custom CA Certificates
