@@ -18,9 +18,10 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 | ESO Version | Kubernetes Version | Release Date | End of Life           |
 |-------------|--------------------|--------------|-----------------------|
-| 1.2         | 1.34               | Dec 19, 2025 | Release of next minor |
-| 1.1         | 1.34               | Nov 21, 2025 | Release of next minor |
-| 1.0         | 1.34               | Nov 7, 2025  | Release of next minor |
+| 1.3         | 1.34               | Jan 23, 2026 | Release of next minor |
+| 1.2         | 1.34               | Dec 19, 2025 | Jan 23, 2026          |
+| 1.1         | 1.34               | Nov 21, 2025 | Dec 19, 2025          |
+| 1.0         | 1.34               | Nov 7, 2025  | Nov 21, 2025          |
 | 0.20.x      | 1.34               | Sep 22, 2025 | Nov 7, 2025           |
 | 0.19.x      | 1.33               | Aug 2, 2025  | Sep 22, 2025          |
 | 0.18.x      | 1.33               | Jul 17, 2025 | Aug 2, 2025           |
@@ -88,7 +89,7 @@ The following table describes the stability level of each provider and who's res
 | [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     | alpha     | [@btfhernandez](https://github.com/btfhernandez/)                                                   |
 | [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   | beta     | [@gmurugezan](https://github.com/gmurugezan)                                                    |
 | [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           | alpha     | [@dirien](https://github.com/dirien)                                                                |
-| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           | alpha     | **UNMAINTAINED**                                                                                    |
+| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           | alpha     | [@stripthis](https://github.com/stripthis)                                                                                  |
 | [Infisical](https://external-secrets.io/latest/provider/infisical)                                         | alpha     | [@akhilmhdh](https://github.com/akhilmhdh)                                                          |
 | [Device42](https://external-secrets.io/latest/provider/device42)                                           | alpha     | **UNMAINTAINED**                                                                                    |
 | [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         | alpha     | [@skarlso](https://github.com/Skarlso)                                                              |
