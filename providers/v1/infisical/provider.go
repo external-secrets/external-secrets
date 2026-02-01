@@ -663,6 +663,10 @@ func validateInfisicalSecretRef(fieldName string, ref *esv1.InfisicalProviderSec
 		return fmt.Errorf("%s must have either value, secretRef, or inline name/key set", fieldName)
 	}
 
+	if hasSecretRef && ref.SecretRef.Name == "" {
+		return fmt.Errorf("%s.secretRef.name cannot be empty", fieldName)
+	}
+
 	if hasSecretRef && ref.SecretRef.Key == "" {
 		return fmt.Errorf("%s.secretRef.key cannot be empty", fieldName)
 	}

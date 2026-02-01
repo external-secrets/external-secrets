@@ -690,6 +690,17 @@ func TestValidateStoreAwsAuth(t *testing.T) {
 			},
 		},
 		{
+			name: "AWS auth with secretRef missing name should fail",
+			store: makeSecretStoreWithAwsAuth(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withAwsAuthIdentityIDSecretRef("", "identityId", nil),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "secretRef.name cannot be empty")
+			},
+		},
+		{
 			name: "AWS auth with secretRef missing key should fail",
 			store: makeSecretStoreWithAwsAuth(
 				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
