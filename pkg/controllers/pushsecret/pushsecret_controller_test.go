@@ -1417,7 +1417,7 @@ var _ = Describe("PushSecret controller", func() {
 				},
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
-						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "^db-",
 							Target: "app/database/",
 						},
@@ -1455,7 +1455,7 @@ var _ = Describe("PushSecret controller", func() {
 			{
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
-						Transform: &v1alpha1.PushSecretRewriteTransform{
+						Transform: &esv1.ExternalSecretRewriteTransform{
 							Template: "app/{{ .value | upper }}",
 						},
 					},
@@ -1603,7 +1603,7 @@ var _ = Describe("PushSecret controller", func() {
 				},
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
-						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: ".*",
 							Target: "app/config",
 						},
@@ -1616,7 +1616,7 @@ var _ = Describe("PushSecret controller", func() {
 				},
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
-						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: ".*",
 							Target: "app/config",
 						},
@@ -1652,7 +1652,7 @@ var _ = Describe("PushSecret controller", func() {
 				},
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
-						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: ".*",
 							Target: "myapp/config",
 						},
@@ -1699,14 +1699,14 @@ var _ = Describe("PushSecret controller", func() {
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
 						// First rewrite: remove db- prefix
-						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "^db-",
 							Target: "",
 						},
 					},
 					{
 						// Second rewrite: add app/ prefix
-						Regexp: &v1alpha1.PushSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "^",
 							Target: "app/",
 						},
