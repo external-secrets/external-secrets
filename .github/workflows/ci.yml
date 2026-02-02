@@ -67,7 +67,7 @@ jobs:
           egress-policy: audit
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: hashicorp/setup-terraform@dcc3150f6037c0405dd84cb44d1d91ebbaa96514 # v3
+      - uses: hashicorp/setup-terraform@ce70bcf31a3711a1efd50b61e7216b0196b6f4f1 # v3
       - name: Setup Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         id: setup-go
@@ -116,7 +116,7 @@ jobs:
         run: go mod download
 
       - name: Cache envtest binaries
-        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: bin/k8s
           key: ${{ runner.os }}-envtest-${{env.KUBERNETES_VERSION}}
