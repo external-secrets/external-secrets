@@ -725,6 +725,88 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	// When source Secret is deleted and DeletionPolicy=Delete, provider secrets should be cleaned up
+	deleteProviderSecretsOnSourceSecretDeleted := func(tc *testCase) {
+		var deleteCallCount int
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.DeleteSecretFn = func() error {
+			deleteCallCount++
+			return nil
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						Name: PushSecretStore,
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: &v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: defaultKey,
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: defaultPath,
+							},
+						},
+					},
+				},
+			},
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			updatedPS := &v1alpha1.PushSecret{}
+			psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+
+			// Wait for initial sync
+			Eventually(func() bool {
+				By("waiting for initial sync to complete")
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				storeKey := fmt.Sprintf(storePrefixTemplate, PushSecretStore)
+				_, ok := updatedPS.Status.SyncedPushSecrets[storeKey][defaultPath]
+				return ok
+			}, time.Second*10, time.Second).Should(BeTrue())
+
+			// Delete the source Secret
+			By("deleting source Secret")
+			Expect(k8sClient.Delete(context.Background(), secret, &client.DeleteOptions{})).Should(Succeed())
+
+			// Verify provider secrets are cleaned up
+			Eventually(func() bool {
+				By("checking if provider secrets were deleted")
+				return deleteCallCount > 0
+			}, time.Second*10, time.Second).Should(BeTrue())
+
+			// Verify status shows empty synced secrets
+			Eventually(func() bool {
+				By("checking if SyncedPushSecrets is empty")
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				storeKey := fmt.Sprintf(storePrefixTemplate, PushSecretStore)
+				secrets, exists := updatedPS.Status.SyncedPushSecrets[storeKey]
+				return !exists || len(secrets) == 0
+			}, time.Second*10, time.Second).Should(BeTrue())
+
+			return true
+		}
+	}
+
 	failDelete := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
@@ -1771,6 +1853,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
 		Entry("should delete secrets with properties and update status correctly", syncAndDeleteWithProperties),
 		Entry("should delete after DeletionPolicy changed from Delete to None", syncChangePolicyAndDeleteSuccessfully),
+		Entry("should cleanup provider secrets when source Secret is deleted", deleteProviderSecretsOnSourceSecretDeleted),
 		Entry("should track deletion tasks if Delete fails", failDelete),
 		Entry("should track deleted stores if Delete fails", failDeleteStore),
 		Entry("should delete all secrets if SecretStore changes", deleteWholeStore),
