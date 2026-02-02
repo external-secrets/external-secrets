@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/azure
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
