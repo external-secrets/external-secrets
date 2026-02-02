@@ -493,6 +493,9 @@
                         "periodSeconds": {
                             "type": "integer"
                         },
+                        "port": {
+                            "type": "integer"
+                        },
                         "successThreshold": {
                             "type": "integer"
                         },
@@ -828,11 +831,17 @@
                                         }
                                     }
                                 },
+                                "privateKey": {
+                                    "type": "object"
+                                },
                                 "renewBefore": {
                                     "type": "string"
                                 },
                                 "revisionHistoryLimit": {
                                     "type": "integer"
+                                },
+                                "signatureAlgorithm": {
+                                    "type": "string"
                                 }
                             }
                         },

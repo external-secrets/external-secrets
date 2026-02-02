@@ -98,9 +98,12 @@ spec:
             - containerPort: {{ .Values.webhook.port }}
               protocol: TCP
               name: webhook
+            - containerPort: {{ .Values.webhook.readinessProbe.port }}
+              protocol: TCP
+              name: ready
           readinessProbe:
             httpGet:
-              port: {{ .Values.webhook.readinessProbe.port }}
+              port: ready
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5

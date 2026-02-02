@@ -346,6 +346,8 @@ livenessProbe:
   spec:
     # -- Address for liveness probe.
     address: ""
+    # -- Named port for liveness probe.
+    port: 8082
     # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
     timeoutSeconds: 5
     # -- Number of consecutive probe failures that should occur before considering the probe as failed.
@@ -358,9 +360,9 @@ livenessProbe:
     initialDelaySeconds: 10
     # -- Handler for liveness probe.
     httpGet:
-      # -- Set this value to 8082 to active liveness probes.
+      # -- Set this value to 'live' (for named port) or an an integer for liveness probes.
       # @schema type: [string, integer]
-      port: 8082
+      port: live
       # -- Path for liveness probe.
       path: /healthz
 
@@ -474,6 +476,14 @@ webhook:
       # since the webhook will check this far in advance that the certificate is
       # valid.
       renewBefore: ""
+      # -- Specific settings on the privateKey and its generation
+      privateKey: {}
+        # rotationPolicy: Always
+        # algorithm: RSA
+        # size: 2048
+      # -- Specific settings on the signatureAlgorithm used on the cert.
+      # signatureAlgorithm is only valid for cert-manager v1.18.0+
+      signatureAlgorithm: ""
       # -- Add extra annotations to the Certificate resource.
       annotations: {}
 
