@@ -36,8 +36,9 @@ import (
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
-	if k8sSpec.AuthRef == nil && k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
-		return nil, errors.New("a CABundle or CAProvider is required")
+	// CA is required unless Insecure is set or AuthRef is used (which has its own config)
+	if k8sSpec.AuthRef == nil && !k8sSpec.Server.Insecure && k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
+		return nil, errors.New("a CABundle or CAProvider is required (or set insecure: true to skip TLS verification)")
 	}
 	if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind &&
 		k8sSpec.Server.CAProvider != nil &&

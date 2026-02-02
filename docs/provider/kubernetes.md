@@ -106,6 +106,37 @@ spec:
           key: ca.crt
 ```
 
+#### Insecure TLS (Skip Certificate Verification)
+
+In some scenarios, you may need to connect to a Kubernetes API server without verifying its TLS certificate. This is useful when:
+
+- Accessing a cluster through a proxy that uses its own TLS certificates (e.g., Tailscale API server proxy)
+- The API server uses a certificate signed by a CA that is not in the system trust store
+- Testing or development environments with self-signed certificates
+
+!!! warning "Security Notice"
+    Setting `insecure: true` disables TLS certificate verification, which makes the connection vulnerable to man-in-the-middle attacks. **This is NOT RECOMMENDED for production use.** Always prefer providing a proper CA certificate when possible.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: k8s-store-insecure
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: default
+      server:
+        url: "https://my-cluster-proxy.example.com"
+        # Skip TLS certificate verification
+        insecure: true
+      auth:
+        serviceAccount:
+          name: "my-service-account"
+```
+
+When `insecure: true` is set, you do not need to provide a `caBundle` or `caProvider`.
+
 ### Authentication
 
 It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or service account. The operator enforces that exactly one authentication method is used. You can not use the service account that is mounted inside the operator, this is by design to avoid reading secrets across namespaces.

@@ -60,19 +60,24 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		Host: c.store.Server.URL,
 	}
 
-	ca, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
-		CABundle:   c.store.Server.CABundle,
-		CAProvider: c.store.Server.CAProvider,
-		StoreKind:  c.storeKind,
-		Namespace:  c.namespace,
-		Client:     c.ctrlClient,
-	})
-	if err != nil {
-		return nil, err
+	var ca []byte
+	// Only fetch CA if not using insecure mode
+	if !c.store.Server.Insecure {
+		var err error
+		ca, err = esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+			CABundle:   c.store.Server.CABundle,
+			CAProvider: c.store.Server.CAProvider,
+			StoreKind:  c.storeKind,
+			Namespace:  c.namespace,
+			Client:     c.ctrlClient,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cfg.TLSClientConfig = rest.TLSClientConfig{
-		Insecure: false,
+		Insecure: c.store.Server.Insecure,
 		CAData:   ca,
 	}
 
