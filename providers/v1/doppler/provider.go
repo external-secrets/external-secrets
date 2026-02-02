@@ -50,9 +50,9 @@ var _ esv1.SecretsClient = &Client{}
 var _ esv1.Provider = &Provider{}
 
 var (
-	enableCache      bool
-	oidcClientCache  *cache.Cache[esv1.SecretsClient]
-	defaultCacheSize = 2 << 17
+	enableCache          bool
+	oidcClientCache      *cache.Cache[esv1.SecretsClient]
+	defaultOIDCCacheSize = 2 << 17
 )
 
 func init() {
@@ -67,17 +67,17 @@ func init() {
 	fs.IntVar(
 		&dopplerOIDCCacheSize,
 		"experimental-doppler-oidc-cache-size",
-		defaultCacheSize,
+		defaultOIDCCacheSize,
 		"Maximum size of Doppler OIDC provider cache. Set to 0 to disable caching. Only used if --experimental-enable-doppler-oidc-cache is set.")
 
 	feature.Register(feature.Feature{
 		Flags:      fs,
-		Initialize: func() { initCache(dopplerOIDCCacheSize) },
+		Initialize: func() { initOIDCCache(dopplerOIDCCacheSize) },
 	})
 }
 
 // Gating on enableCache to not enable cache out of the blue for new releases.
-func initCache(cacheSize int) {
+func initOIDCCache(cacheSize int) {
 	if oidcClientCache == nil && cacheSize > 0 && enableCache {
 		oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
 			// No cleanup is needed when evicting OIDC clients from cache
