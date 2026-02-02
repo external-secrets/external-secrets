@@ -241,35 +241,8 @@ type PushSecretDataToMatch struct {
 	RegExp string `json:"regexp,omitempty"`
 }
 
-// PushSecretRewrite defines key transformation operations.
-// Exactly one of Regexp or Transform must be specified.
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
-type PushSecretRewrite struct {
-	// Regexp rewrites keys using regular expression replacement.
-	// +optional
-	Regexp *PushSecretRewriteRegexp `json:"regexp,omitempty"`
-
-	// Transform rewrites keys using a Go template.
-	// +optional
-	Transform *PushSecretRewriteTransform `json:"transform,omitempty"`
-}
-
-// PushSecretRewriteRegexp defines regular expression rewrite operation.
-type PushSecretRewriteRegexp struct {
-	// Source is the regular expression pattern to match.
-	Source string `json:"source"`
-
-	// Target is the replacement string. Can use capture groups like $1, $2, etc.
-	Target string `json:"target"`
-}
-
-// PushSecretRewriteTransform defines template-based rewrite operation.
-type PushSecretRewriteTransform struct {
-	// Template is a Go template that transforms the key.
-	// The key name is available as .value in the template.
-	Template string `json:"template"`
-}
+// PushSecretRewrite reuses ExternalSecretRewrite for consistency.
+type PushSecretRewrite = esv1.ExternalSecretRewrite
 
 // PushSecretConditionType indicates the condition of the PushSecret.
 type PushSecretConditionType string

@@ -18,14 +18,12 @@ limitations under the License.
 package pushsecret
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"maps"
 	"regexp"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -51,7 +49,6 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/statemanager"
-	estemplate "github.com/external-secrets/external-secrets/runtime/template/v2"
 	"github.com/external-secrets/external-secrets/runtime/util/locks"
 
 	// Load registered generators.
@@ -760,90 +757,7 @@ func matchKeys(allKeys []string, match *esapi.PushSecretDataToMatch) ([]string, 
 	return matched, nil
 }
 
-// applyDataToRewrites applies sequential rewrite operations to transform keys.
-// Returns a map of source key to remote key.
-func applyDataToRewrites(keys []string, rewrites []esapi.PushSecretRewrite) (map[string]string, error) {
-	if len(rewrites) == 0 {
-		// No rewrites, keys stay the same
-		result := make(map[string]string, len(keys))
-		for _, key := range keys {
-			result[key] = key
-		}
-		return result, nil
-	}
-
-	// Start with original keys as both source and current
-	keyMap := make(map[string]string, len(keys))
-	for _, key := range keys {
-		keyMap[key] = key
-	}
-
-	// Apply each rewrite operation sequentially
-	for i, rewrite := range rewrites {
-		if rewrite.Regexp != nil && rewrite.Transform != nil {
-			return nil, fmt.Errorf("rewrite[%d]: cannot specify both regexp and transform", i)
-		}
-
-		if rewrite.Regexp == nil && rewrite.Transform == nil {
-			return nil, fmt.Errorf("rewrite[%d]: must specify either regexp or transform", i)
-		}
-
-		var err error
-		if rewrite.Regexp != nil {
-			keyMap, err = applyRegexpRewrite(keyMap, *rewrite.Regexp)
-			if err != nil {
-				return nil, fmt.Errorf("rewrite[%d] regexp failed: %w", i, err)
-			}
-		}
-
-		if rewrite.Transform != nil {
-			keyMap, err = applyTransformRewrite(keyMap, *rewrite.Transform)
-			if err != nil {
-				return nil, fmt.Errorf("rewrite[%d] transform failed: %w", i, err)
-			}
-		}
-	}
-
-	return keyMap, nil
-}
-
-// applyRegexpRewrite applies a regular expression rewrite to all keys.
-func applyRegexpRewrite(keyMap map[string]string, rewrite esapi.PushSecretRewriteRegexp) (map[string]string, error) {
-	re, err := regexp.Compile(rewrite.Source)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile regexp %q: %w", rewrite.Source, err)
-	}
-
-	result := make(map[string]string, len(keyMap))
-	for sourceKey, currentKey := range keyMap {
-		newKey := re.ReplaceAllString(currentKey, rewrite.Target)
-		result[sourceKey] = newKey
-	}
-
-	return result, nil
-}
-
-// applyTransformRewrite applies a template transformation to all keys.
-func applyTransformRewrite(keyMap map[string]string, rewrite esapi.PushSecretRewriteTransform) (map[string]string, error) {
-	tmpl, err := template.New("transform").Funcs(estemplate.FuncMap()).Parse(rewrite.Template)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse template %q: %w", rewrite.Template, err)
-	}
-
-	result := make(map[string]string, len(keyMap))
-	for sourceKey, currentKey := range keyMap {
-		var buf bytes.Buffer
-		if err := tmpl.Execute(&buf, map[string]string{"value": currentKey}); err != nil {
-			return nil, fmt.Errorf("failed to execute template for key %q: %w", currentKey, err)
-		}
-		result[sourceKey] = buf.String()
-	}
-
-	return result, nil
-}
-
-// expandDataTo expands dataTo entries into PushSecretData entries.
-// It matches keys from the source secret, applies rewrites, and creates PushSecretData entries.
+// expandDataTo converts dataTo entries into PushSecretData by matching keys and applying rewrites.
 func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]esapi.PushSecretData, error) {
 	if len(ps.Spec.DataTo) == 0 {
 		return nil, nil
@@ -880,11 +794,20 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 			continue
 		}
 
-		// Apply rewrites to get sourceKey -> remoteKey mapping
-		keyMap, err := applyDataToRewrites(matchedKeys, dataTo.Rewrite)
+		// Filter convertedData to only include matched keys
+		matchedData := make(map[string][]byte, len(matchedKeys))
+		for _, key := range matchedKeys {
+			matchedData[key] = convertedData[key]
+		}
+
+		// Apply rewrites using the shared esutils.RewriteMap function
+		rewrittenData, err := esutils.RewriteMap(dataTo.Rewrite, matchedData)
 		if err != nil {
 			return nil, fmt.Errorf("dataTo[%d]: rewrite failed: %w", i, err)
 		}
+
+		// Build sourceKey -> remoteKey mapping by comparing original and rewritten keys
+		keyMap := buildKeyMapping(matchedData, rewrittenData)
 
 		// Validate that no remote key is empty
 		for sourceKey, remoteKey := range keyMap {
@@ -921,6 +844,29 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 	}
 
 	return allData, nil
+}
+
+// buildKeyMapping maps original keys to rewritten keys by matching values.
+func buildKeyMapping(original, rewritten map[string][]byte) map[string]string {
+	result := make(map[string]string, len(original))
+
+	// Reverse lookup: value -> rewritten key (rewrites only change keys, not values)
+	valueToRewrittenKey := make(map[string]string, len(rewritten))
+	for key, value := range rewritten {
+		valueToRewrittenKey[string(value)] = key
+	}
+
+	// Map original keys to their rewritten counterparts by matching values
+	for originalKey, originalValue := range original {
+		if rewrittenKey, exists := valueToRewrittenKey[string(originalValue)]; exists {
+			result[originalKey] = rewrittenKey
+		} else {
+			// If no rewrite happened, key stays the same
+			result[originalKey] = originalKey
+		}
+	}
+
+	return result
 }
 
 // mergeDataEntries merges dataTo-expanded entries with explicit data entries.
