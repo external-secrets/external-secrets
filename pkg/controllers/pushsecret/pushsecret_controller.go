@@ -210,8 +210,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	secrets, err := r.resolveSecrets(ctx, &ps)
 	if err != nil {
+		// Handle source secret deletion with DeletionPolicy=Delete
+		if ps.Spec.DeletionPolicy == esapi.PushSecretDeletionPolicyDelete && len(ps.Status.SyncedPushSecrets) > 0 {
+			return r.handleSourceSecretDeleted(ctx, &ps, mgr, err)
+		}
 		r.markAsFailed(errFailedGetSecret, &ps, nil)
-
 		return ctrl.Result{}, err
 	}
 	secretStores, err := r.GetSecretStores(ctx, ps)
@@ -279,6 +282,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	r.markAsDone(&ps, allSyncedSecrets, start)
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
+}
+
+// handleSourceSecretDeleted cleans up provider secrets when source Secret is unavailable.
+func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.PushSecret, mgr *secretstore.Manager, resolveErr error) (ctrl.Result, error) {
+	log := r.Log.WithValues("pushsecret", client.ObjectKeyFromObject(ps))
+	log.Info("source secret unavailable, cleaning up provider secrets", "syncedSecrets", len(ps.Status.SyncedPushSecrets))
+
+	// Delete all previously synced secrets from providers
+	badState, err := r.DeleteSecretFromProviders(ctx, ps, esapi.SyncedPushSecretsMap{}, mgr)
+	if err != nil {
+		msg := fmt.Sprintf("failed to cleanup provider secrets: %v", err)
+		r.markAsFailed(msg, ps, badState)
+		return ctrl.Result{}, err
+	}
+
+	// Clear synced secrets and mark as failed (source unavailable)
+	r.setSecrets(ps, esapi.SyncedPushSecretsMap{})
+	r.markAsFailed(errFailedGetSecret, ps, nil)
+	return ctrl.Result{}, resolveErr
 }
 
 func shouldRefresh(ps esapi.PushSecret) bool {
