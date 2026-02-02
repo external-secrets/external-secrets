@@ -37,10 +37,10 @@ type Webhook struct {
 
 // Generate creates secrets by making webhook calls to external services.
 func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	w.wh = webhook.Webhook{}
 	w.wh.EnforceLabels = true
 	w.wh.ClusterScoped = false
 	provider, err := parseSpec(jsonSpec.Raw)
-	w.wh = webhook.Webhook{}
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse provider spec: %w", err)
 	}
