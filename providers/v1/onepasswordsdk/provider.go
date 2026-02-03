@@ -84,14 +84,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	p.client = c
-	p.vaultPrefix = "op://" + config.Vault + "/"
+	provider := &Provider{
+		client:      c,
+		vaultPrefix: "op://" + config.Vault + "/",
+	}
 
-	vaultID, err := p.GetVault(ctx, config.Vault)
+	vaultID, err := provider.GetVault(ctx, config.Vault)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store ID: %w", err)
 	}
-	p.vaultID = vaultID
+	provider.vaultID = vaultID
 
 	if config.Cache != nil {
 		ttl := 5 * time.Minute
@@ -104,10 +106,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			maxSize = config.Cache.MaxSize
 		}
 
-		p.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
+		provider.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
 	}
 
-	return p, nil
+	return provider, nil
 }
 
 // ValidateStore validates the 1Password SDK SecretStore resource configuration.
