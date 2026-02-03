@@ -57,18 +57,10 @@ func NewOIDCTokenManager(
 	}
 
 	manager := &OIDCTokenManager{
-		identity: oidcAuth.Identity,
+		identity:         oidcAuth.Identity,
+		BaseTokenManager: oidc.NewBaseTokenManager(corev1, namespace, storeKind, baseURL, oidcAuth.ServiceAccountRef),
 	}
-
-	manager.BaseTokenManager = &oidc.BaseTokenManager{
-		Corev1:    corev1,
-		Namespace: namespace,
-		StoreKind: storeKind,
-		BaseURL:   baseURL,
-		SaRef:     oidcAuth.ServiceAccountRef,
-		Cache:     oidc.NewTokenCache(),
-		Exchanger: manager,
-	}
+	manager.Exchanger = manager
 
 	return manager
 }

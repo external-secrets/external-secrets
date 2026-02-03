@@ -65,6 +65,23 @@ type BaseTokenManager struct {
 	Exchanger TokenExchanger
 }
 
+// NewBaseTokenManager creates a new BaseTokenManager with the given parameters.
+// The exchanger parameter should be set after creation to point to the embedding struct.
+func NewBaseTokenManager(
+	corev1 typedcorev1.CoreV1Interface,
+	namespace, storeKind, baseURL string,
+	saRef esmeta.ServiceAccountSelector,
+) *BaseTokenManager {
+	return &BaseTokenManager{
+		Corev1:    corev1,
+		Namespace: namespace,
+		StoreKind: storeKind,
+		BaseURL:   baseURL,
+		SaRef:     saRef,
+		Cache:     NewTokenCache(),
+	}
+}
+
 // GetToken returns a valid access token, refreshing it if necessary.
 // This is the common implementation used by all OIDC providers.
 func (m *BaseTokenManager) GetToken(ctx context.Context) (string, error) {
