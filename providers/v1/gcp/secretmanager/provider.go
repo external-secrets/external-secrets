@@ -49,6 +49,10 @@ A Mutex was implemented to make sure only one connection can be in place at a ti
 */
 var useMu = sync.Mutex{}
 
+// metadataClientFactory is used to create metadata clients.
+// It can be overridden in tests to inject a fake client.
+var metadataClientFactory = newMetadataClient
+
 // Capabilities returns the provider's capabilities to read/write secrets.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
@@ -77,10 +81,17 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}()
 
 	// this project ID is used for authentication (currently only relevant for workload identity)
-	clusterProjectID, err := clusterProjectID(storeSpec)
+	clusterProjectID, err := clusterProjectID(ctx, storeSpec)
 	if err != nil {
 		return nil, err
 	}
+
+	// If ProjectID is not explicitly set in the spec, use the clusterProjectID
+	// This allows the client to function even when ProjectID is omitted
+	if gcpStore.ProjectID == "" {
+		gcpStore.ProjectID = clusterProjectID
+	}
+
 	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
@@ -148,12 +159,19 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
-func clusterProjectID(spec *esv1.SecretStoreSpec) (string, error) {
+func clusterProjectID(ctx context.Context, spec *esv1.SecretStoreSpec) (string, error) {
 	if spec.Provider.GCPSM.Auth.WorkloadIdentity != nil && spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID != "" {
 		return spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID, nil
 	}
 	if spec.Provider.GCPSM.ProjectID != "" {
 		return spec.Provider.GCPSM.ProjectID, nil
+	}
+	// Fall back to GCP metadata server when running in GKE
+	// This allows SecretStore/ClusterSecretStore to omit projectID
+	// when the secrets are in the same project as the GKE cluster
+	metadataClient := metadataClientFactory()
+	if projectID, err := metadataClient.ProjectIDWithContext(ctx); err == nil && projectID != "" {
+		return projectID, nil
 	}
 	return "", errors.New(errNoProjectID)
 }
