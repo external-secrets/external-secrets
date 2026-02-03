@@ -148,7 +148,7 @@ func (p *Provider) resolveOIDCAuthentication(ctx context.Context, cfg *esv1.Pulu
 	if err != nil {
 		return "", nil, err
 	}
-	token, err := oidcManager.Token(ctx)
+	token, err := oidcManager.GetToken(ctx)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to get OIDC token: %w", err)
 	}
@@ -194,7 +194,6 @@ func (p *Provider) setupOIDCAuth(cfg *esv1.PulumiProvider, store esv1.GenericSto
 		cfg,
 		namespace,
 		store.GetObjectKind().GroupVersionKind().Kind,
-		store.GetObjectMeta().Name,
 	), nil
 }
 

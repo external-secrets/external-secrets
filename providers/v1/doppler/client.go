@@ -89,7 +89,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 		}
 		c.dopplerToken = token
 	} else if c.store.Auth.OIDCConfig != nil {
-		token, err := c.oidcManager.Token(ctx)
+		token, err := c.oidcManager.GetToken(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get OIDC token: %w", err)
 		}
@@ -102,7 +102,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 
 func (c *Client) refreshAuthIfNeeded(ctx context.Context) error {
 	if c.store != nil && c.store.Auth != nil && c.store.Auth.OIDCConfig != nil && c.oidcManager != nil {
-		token, err := c.oidcManager.Token(ctx)
+		token, err := c.oidcManager.GetToken(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to refresh OIDC token: %w", err)
 		}

@@ -26,12 +26,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
-	authv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -39,12 +33,12 @@ const (
 	MinTokenBuffer  = 60
 )
 
-// ServiceAccountRef contains the reference to a Kubernetes ServiceAccount for OIDC authentication.
-type ServiceAccountRef struct {
-	Name       string
-	Namespace  *string
-	Audiences  []string
-	Expiration *int64
+// TokenProvider is the interface that provider-specific OIDC implementations must satisfy.
+// Providers implement this interface to handle their own ServiceAccount token creation
+// and token exchange logic.
+type TokenProvider interface {
+	// GetToken returns a valid access token, refreshing it if necessary.
+	GetToken(ctx context.Context) (string, error)
 }
 
 // TokenExchanger is the interface that provider-specific token exchange implementations must satisfy.
@@ -52,148 +46,53 @@ type TokenExchanger interface {
 	ExchangeToken(ctx context.Context, saToken string) (token string, expiry time.Time, err error)
 }
 
-// TokenManager manages OIDC token exchange with caching and automatic refresh.
-type TokenManager struct {
-	corev1         typedcorev1.CoreV1Interface
-	namespace      string
-	storeKind      string
-	storeName      string
-	baseURL        string
-	saRef          ServiceAccountRef
-	tokenExchanger TokenExchanger
-
+// TokenCache provides thread-safe caching for OIDC tokens.
+type TokenCache struct {
 	mu          sync.RWMutex
 	cachedToken string
 	tokenExpiry time.Time
 }
 
-// NewTokenManager creates a new TokenManager for handling OIDC authentication.
-func NewTokenManager(
-	corev1 typedcorev1.CoreV1Interface,
-	namespace string,
-	storeKind string,
-	storeName string,
-	baseURL string,
-	saRef ServiceAccountRef,
-	exchanger TokenExchanger,
-) *TokenManager {
-	return &TokenManager{
-		corev1:         corev1,
-		namespace:      namespace,
-		storeKind:      storeKind,
-		storeName:      storeName,
-		baseURL:        baseURL,
-		saRef:          saRef,
-		tokenExchanger: exchanger,
-	}
+// NewTokenCache creates a new TokenCache.
+func NewTokenCache() *TokenCache {
+	return &TokenCache{}
 }
 
-// Token returns a valid access token, refreshing it if necessary.
-func (m *TokenManager) Token(ctx context.Context) (string, error) {
-	m.mu.RLock()
-	if m.isTokenValid() {
-		token := m.cachedToken
-		m.mu.RUnlock()
-		return token, nil
-	}
-	m.mu.RUnlock()
+// Get returns the cached token if it's still valid, otherwise returns empty string.
+func (c *TokenCache) Get() (string, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
-	return m.refreshToken(ctx)
+	if c.cachedToken == "" {
+		return "", false
+	}
+	if time.Until(c.tokenExpiry) <= MinTokenBuffer*time.Second {
+		return "", false
+	}
+	return c.cachedToken, true
 }
 
-func (m *TokenManager) isTokenValid() bool {
-	if m.cachedToken == "" {
-		return false
-	}
-	return time.Until(m.tokenExpiry) > MinTokenBuffer*time.Second
-}
-
-func (m *TokenManager) refreshToken(ctx context.Context) (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.isTokenValid() {
-		return m.cachedToken, nil
-	}
-
-	saToken, err := m.CreateServiceAccountToken(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to create service account token: %w", err)
-	}
-
-	token, expiry, err := m.tokenExchanger.ExchangeToken(ctx, saToken)
-	if err != nil {
-		return "", err
-	}
-
-	m.cachedToken = token
-	m.tokenExpiry = expiry
-
-	return token, nil
-}
-
-// CreateServiceAccountToken creates a Kubernetes ServiceAccount token for OIDC authentication.
-func (m *TokenManager) CreateServiceAccountToken(ctx context.Context) (string, error) {
-	audiences := []string{m.baseURL}
-
-	if len(m.saRef.Audiences) > 0 {
-		audiences = append(audiences, m.saRef.Audiences...)
-	}
-
-	if m.storeKind == esv1.ClusterSecretStoreKind {
-		audiences = append(audiences, fmt.Sprintf("clusterSecretStore:%s", m.storeName))
-	} else {
-		audiences = append(audiences, fmt.Sprintf("secretStore:%s:%s", m.namespace, m.storeName))
-	}
-
-	expirationSeconds := m.saRef.Expiration
-	if expirationSeconds == nil {
-		tmp := int64(DefaultTokenTTL)
-		expirationSeconds = &tmp
-	}
-
-	tokenRequest := &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: m.namespace,
-		},
-		Spec: authv1.TokenRequestSpec{
-			Audiences:         audiences,
-			ExpirationSeconds: expirationSeconds,
-		},
-	}
-
-	if m.storeKind == esv1.ClusterSecretStoreKind && m.saRef.Namespace != nil {
-		tokenRequest.Namespace = *m.saRef.Namespace
-	}
-
-	tokenResponse, err := m.corev1.ServiceAccounts(tokenRequest.Namespace).
-		CreateToken(ctx, m.saRef.Name, tokenRequest, metav1.CreateOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to create token for service account %s: %w",
-			m.saRef.Name, err)
-	}
-
-	return tokenResponse.Status.Token, nil
-}
-
-// HTTPClientConfig contains configuration for creating an HTTP client for OIDC token exchange.
-type HTTPClientConfig struct {
-	VerifyTLS bool
+// Set stores a token with its expiry time.
+func (c *TokenCache) Set(token string, expiry time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cachedToken = token
+	c.tokenExpiry = expiry
 }
 
 // PostJSONRequest sends a POST request with JSON body and returns the response body.
 // This is a shared utility for OIDC token exchange implementations.
-func PostJSONRequest(ctx context.Context, url string, requestBody map[string]string, providerName string, config *HTTPClientConfig) ([]byte, error) {
-	return postJSONRequestInternal(ctx, url, requestBody, providerName, config)
+func PostJSONRequest(ctx context.Context, url string, requestBody map[string]string, providerName string) ([]byte, error) {
+	return postJSONRequestInternal(ctx, url, requestBody, providerName)
 }
 
 // PostJSONRequestInterface sends a POST request with JSON body (supporting interface{} values) and returns the response body.
 // This is a shared utility for OIDC token exchange implementations that need non-string values in the request body.
-func PostJSONRequestInterface(ctx context.Context, url string, requestBody map[string]interface{}, providerName string, config *HTTPClientConfig) ([]byte, error) {
-	return postJSONRequestInternal(ctx, url, requestBody, providerName, config)
+func PostJSONRequestInterface(ctx context.Context, url string, requestBody map[string]interface{}, providerName string) ([]byte, error) {
+	return postJSONRequestInternal(ctx, url, requestBody, providerName)
 }
 
-func postJSONRequestInternal(ctx context.Context, url string, requestBody interface{}, providerName string, config *HTTPClientConfig) ([]byte, error) {
+func postJSONRequestInternal(ctx context.Context, url string, requestBody interface{}, providerName string) ([]byte, error) {
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
@@ -210,9 +109,6 @@ func postJSONRequestInternal(ctx context.Context, url string, requestBody interf
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{
 		MinVersion: tls.VersionTLS12,
-	}
-	if config != nil && !config.VerifyTLS {
-		transport.TLSClientConfig.InsecureSkipVerify = true
 	}
 
 	client := &http.Client{

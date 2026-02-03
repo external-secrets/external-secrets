@@ -159,7 +159,6 @@ func (p *Provider) setupOIDCAuth(client *Client, dopplerStoreSpec *esv1.DopplerP
 		dopplerStoreSpec,
 		namespace,
 		store.GetObjectKind().GroupVersionKind().Kind,
-		store.GetObjectMeta().Name,
 	)
 
 	return nil

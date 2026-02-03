@@ -59,7 +59,7 @@ var _ esv1.SecretsClient = &client{}
 // This method is safe for concurrent use as it doesn't mutate shared state.
 func (c *client) getAuthContext(ctx context.Context) (context.Context, error) {
 	if c.store != nil && c.store.Auth != nil && c.store.Auth.OIDCConfig != nil && c.oidcManager != nil {
-		token, err := c.oidcManager.Token(ctx)
+		token, err := c.oidcManager.GetToken(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get OIDC token: %w", err)
 		}
