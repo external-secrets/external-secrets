@@ -52,7 +52,7 @@ type gitlabBase struct {
 
 // Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (g *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient creates a new GitLab client with the given store configuration.

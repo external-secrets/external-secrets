@@ -30,6 +30,7 @@ import (
 	"github.com/tidwall/gjson"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -66,12 +67,18 @@ type ProjectsClient interface {
 type ProjectVariablesClient interface {
 	GetVariable(pid any, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 	ListVariables(pid any, opt *gitlab.ListProjectVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
+	CreateVariable(pid any, opt *gitlab.CreateProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	UpdateVariable(pid any, key string, opt *gitlab.UpdateProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	RemoveVariable(pid any, key string, opt *gitlab.RemoveProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.Response, error)
 }
 
 // GroupVariablesClient is an interface for managing GitLab group variables.
 type GroupVariablesClient interface {
 	GetVariable(gid any, key string, opts *gitlab.GetGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
 	ListVariables(gid any, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
+	CreateVariable(gid any, opt *gitlab.CreateGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	UpdateVariable(gid any, key string, opt *gitlab.UpdateGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	RemoveVariable(gid any, key string, opt *gitlab.RemoveGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.Response, error)
 }
 
 // ProjectGroupPathSorter implements sort.Interface for sorting project groups by path length.
@@ -93,16 +100,510 @@ func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
 		&g.store.Auth.SecretRef.AccessToken)
 }
 
-func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return errors.New(errNotImplemented)
+// PushSecret creates or updates a variable in GitLab.
+func (g *gitlabBase) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
+	if esutils.IsNil(g.projectVariablesClient) && esutils.IsNil(g.groupVariablesClient) {
+		return errors.New(errUninitializedGitlabProvider)
+	}
+
+	value, err := esutils.ExtractSecretData(psd, secret)
+	if err != nil {
+		return fmt.Errorf("failed to extract secret data: %w", err)
+	}
+
+	// Get the remote key and replace hyphens with underscores for GitLab API
+	remoteKey := strings.ReplaceAll(psd.GetRemoteKey(), "-", "_")
+
+	// Extract metadata to check for groupID or projectID overrides
+	metadata := psd.GetMetadata()
+	groupID, projectID := extractTargetFromMetadata(metadata)
+
+	// Determine which type of variable to create/update
+	// Priority: metadata projectID > metadata groupID > store projectID > store groupIDs
+	if projectID != "" {
+		return g.pushProjectVariableWithID(projectID, remoteKey, string(value), psd)
+	}
+
+	if groupID != "" {
+		err := g.pushGroupVariable(groupID, remoteKey, string(value), psd)
+		if err != nil {
+			return fmt.Errorf("failed to push to group %q: %w", groupID, err)
+		}
+		return nil
+	}
+
+	// Fall back to store configuration
+	if g.store.ProjectID != "" {
+		return g.pushProjectVariable(remoteKey, string(value), psd)
+	}
+
+	// If no project ID is set, try to push to the first group
+	if len(g.store.GroupIDs) > 0 {
+		err := g.pushGroupVariable(g.store.GroupIDs[0], remoteKey, string(value), psd)
+		if err != nil {
+			return fmt.Errorf("failed to push to group %q: %w", g.store.GroupIDs[0], err)
+		}
+		return nil
+	}
+
+	return errors.New("no projectID or groupIDs configured for push operation")
 }
 
-func (g *gitlabBase) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New(errNotImplemented)
+// extractTargetFromMetadata extracts groupID and projectID from metadata.
+func extractTargetFromMetadata(metadata *apiextensionsv1.JSON) (groupID, projectID string) {
+	if metadata == nil {
+		return "", ""
+	}
+
+	var metadataMap map[string]interface{}
+	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
+		return "", ""
+	}
+
+	if gid, ok := metadataMap["groupID"].(string); ok {
+		groupID = gid
+	}
+	if pid, ok := metadataMap["projectID"].(string); ok {
+		projectID = pid
+	}
+
+	return groupID, projectID
 }
 
-func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
-	return errors.New(errNotImplemented)
+// pushProjectVariableWithID creates or updates a project-level variable with a specific project ID.
+func (g *gitlabBase) pushProjectVariableWithID(projectID, key, value string, psd esv1.PushSecretData) error {
+	environmentScope := g.store.Environment
+	if environmentScope == "" {
+		environmentScope = "*"
+	}
+
+	// Extract metadata if provided
+	metadata := psd.GetMetadata()
+
+	// Check if variable exists
+	exists, err := g.projectVariableExistsWithID(projectID, key, environmentScope)
+	if err != nil {
+		return fmt.Errorf("failed to check if variable exists: %w", err)
+	}
+
+	if exists {
+		// Update existing variable
+		opts := &gitlab.UpdateProjectVariableOptions{
+			Value:            gitlab.Ptr(value),
+			EnvironmentScope: gitlab.Ptr(environmentScope),
+		}
+
+		// Apply metadata options if provided
+		applyMetadataToUpdateOptions(metadata, opts)
+
+		vopts := &gitlab.GetProjectVariableOptions{
+			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+		}
+
+		_, _, err := g.projectVariablesClient.UpdateVariable(projectID, key, opts, gitlab.WithContext(context.Background()))
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableUpdate, err)
+		if err != nil {
+			// If update fails with 404, the variable might have a different environment scope
+			// Try to get and update with the correct scope
+			if errors.Is(err, gitlab.ErrNotFound) {
+				existingVar, _, getErr := g.projectVariablesClient.GetVariable(projectID, key, vopts)
+				if getErr == nil && existingVar != nil {
+					opts.Filter = &gitlab.VariableFilter{EnvironmentScope: existingVar.EnvironmentScope}
+					_, _, err = g.projectVariablesClient.UpdateVariable(projectID, key, opts)
+					metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableUpdate, err)
+				}
+			}
+		}
+		return err
+	}
+
+	// Create new variable
+	opts := &gitlab.CreateProjectVariableOptions{
+		Key:              gitlab.Ptr(key),
+		Value:            gitlab.Ptr(value),
+		EnvironmentScope: gitlab.Ptr(environmentScope),
+	}
+
+	// Apply metadata options if provided
+	applyMetadataToCreateOptions(metadata, opts)
+
+	_, _, err = g.projectVariablesClient.CreateVariable(projectID, opts)
+	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableCreate, err)
+	return err
+}
+
+// pushProjectVariable creates or updates a project-level variable.
+func (g *gitlabBase) pushProjectVariable(key, value string, psd esv1.PushSecretData) error {
+	environmentScope := g.store.Environment
+	if environmentScope == "" {
+		environmentScope = "*"
+	}
+
+	// Extract metadata if provided
+	metadata := psd.GetMetadata()
+
+	// Check if variable exists
+	exists, err := g.projectVariableExists(key, environmentScope)
+	if err != nil {
+		return fmt.Errorf("failed to check if variable exists: %w", err)
+	}
+
+	if exists {
+		// Update existing variable
+		opts := &gitlab.UpdateProjectVariableOptions{
+			Value:            gitlab.Ptr(value),
+			EnvironmentScope: gitlab.Ptr(environmentScope),
+		}
+
+		// Apply metadata options if provided
+		applyMetadataToUpdateOptions(metadata, opts)
+
+		vopts := &gitlab.GetProjectVariableOptions{
+			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+		}
+
+		_, _, err := g.projectVariablesClient.UpdateVariable(g.store.ProjectID, key, opts, gitlab.WithContext(context.Background()))
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableUpdate, err)
+		if err != nil {
+			// If update fails with 404, the variable might have a different environment scope
+			// Try to get and update with the correct scope
+			if errors.Is(err, gitlab.ErrNotFound) {
+				existingVar, _, getErr := g.projectVariablesClient.GetVariable(g.store.ProjectID, key, vopts)
+				if getErr == nil && existingVar != nil {
+					opts.Filter = &gitlab.VariableFilter{EnvironmentScope: existingVar.EnvironmentScope}
+					_, _, err = g.projectVariablesClient.UpdateVariable(g.store.ProjectID, key, opts)
+					metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableUpdate, err)
+				}
+			}
+		}
+		return err
+	}
+
+	// Create new variable
+	opts := &gitlab.CreateProjectVariableOptions{
+		Key:              gitlab.Ptr(key),
+		Value:            gitlab.Ptr(value),
+		EnvironmentScope: gitlab.Ptr(environmentScope),
+	}
+
+	// Apply metadata options if provided
+	applyMetadataToCreateOptions(metadata, opts)
+
+	_, _, err = g.projectVariablesClient.CreateVariable(g.store.ProjectID, opts)
+	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableCreate, err)
+	return err
+}
+
+// pushGroupVariable creates or updates a group-level variable.
+func (g *gitlabBase) pushGroupVariable(groupID, key, value string, psd esv1.PushSecretData) error {
+	environmentScope := g.store.Environment
+	if environmentScope == "" {
+		environmentScope = "*"
+	}
+
+	// Extract metadata if provided
+	metadata := psd.GetMetadata()
+
+	// Check if variable exists
+	exists, err := g.groupVariableExists(groupID, key, environmentScope)
+	if err != nil {
+		return fmt.Errorf("failed to check if variable %q exists in group %q: %w", key, groupID, err)
+	}
+
+	if exists {
+		// Update existing variable
+		opts := &gitlab.UpdateGroupVariableOptions{
+			Value:            gitlab.Ptr(value),
+			EnvironmentScope: gitlab.Ptr(environmentScope),
+		}
+
+		// Apply metadata options if provided
+		applyMetadataToGroupUpdateOptions(metadata, opts)
+
+		_, _, err := g.groupVariablesClient.UpdateVariable(groupID, key, opts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupVariableUpdate, err)
+		if err != nil {
+			return fmt.Errorf("failed to update variable %q in group %q (env: %q): %w", key, groupID, environmentScope, err)
+		}
+		return nil
+	}
+
+	// Create new variable
+	opts := &gitlab.CreateGroupVariableOptions{
+		Key:              gitlab.Ptr(key),
+		Value:            gitlab.Ptr(value),
+		EnvironmentScope: gitlab.Ptr(environmentScope),
+	}
+
+	// Apply metadata options if provided
+	applyMetadataToGroupCreateOptions(metadata, opts)
+
+	_, _, err = g.groupVariablesClient.CreateVariable(groupID, opts)
+	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupVariableCreate, err)
+	if err != nil {
+		return fmt.Errorf("failed to create variable %q in group %q (env: %q): %w", key, groupID, environmentScope, err)
+	}
+	return nil
+}
+
+// projectVariableExists checks if a project variable exists.
+func (g *gitlabBase) projectVariableExists(key, environmentScope string) (bool, error) {
+	return g.projectVariableExistsWithID(g.store.ProjectID, key, environmentScope)
+}
+
+// projectVariableExistsWithID checks if a project variable exists with a specific project ID.
+func (g *gitlabBase) projectVariableExistsWithID(projectID, key, environmentScope string) (bool, error) {
+	opts := &gitlab.GetProjectVariableOptions{
+		Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+	}
+
+	_, resp, err := g.projectVariablesClient.GetVariable(projectID, key, opts)
+	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
+
+	if err != nil {
+		if errors.Is(err, gitlab.ErrNotFound) || (resp != nil && resp.StatusCode == http.StatusNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
+// groupVariableExists checks if a group variable exists.
+func (g *gitlabBase) groupVariableExists(groupID, key, environmentScope string) (bool, error) {
+	opts := &gitlab.GetGroupVariableOptions{
+		Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+	}
+
+	_, resp, err := g.groupVariablesClient.GetVariable(groupID, key, opts)
+	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
+
+	if err != nil {
+		if errors.Is(err, gitlab.ErrNotFound) || (resp != nil && resp.StatusCode == http.StatusNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
+// applyMetadataToCreateOptions applies metadata to project variable create options.
+func applyMetadataToCreateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.CreateProjectVariableOptions) {
+	if metadata == nil {
+		return
+	}
+
+	var metadataMap map[string]interface{}
+	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
+		return
+	}
+
+	if masked, ok := metadataMap["masked"].(bool); ok {
+		opts.Masked = gitlab.Ptr(masked)
+	}
+	if protected, ok := metadataMap["protected"].(bool); ok {
+		opts.Protected = gitlab.Ptr(protected)
+	}
+	if raw, ok := metadataMap["raw"].(bool); ok {
+		opts.Raw = gitlab.Ptr(raw)
+	}
+	if description, ok := metadataMap["description"].(string); ok {
+		opts.Description = gitlab.Ptr(description)
+	}
+	if variableType, ok := metadataMap["variable_type"].(string); ok {
+		if variableType == "file" {
+			opts.VariableType = gitlab.Ptr(gitlab.FileVariableType)
+		} else {
+			opts.VariableType = gitlab.Ptr(gitlab.EnvVariableType)
+		}
+	}
+}
+
+// applyMetadataToUpdateOptions applies metadata to project variable update options.
+func applyMetadataToUpdateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.UpdateProjectVariableOptions) {
+	if metadata == nil {
+		return
+	}
+
+	var metadataMap map[string]interface{}
+	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
+		return
+	}
+
+	if masked, ok := metadataMap["masked"].(bool); ok {
+		opts.Masked = gitlab.Ptr(masked)
+	}
+	if protected, ok := metadataMap["protected"].(bool); ok {
+		opts.Protected = gitlab.Ptr(protected)
+	}
+	if raw, ok := metadataMap["raw"].(bool); ok {
+		opts.Raw = gitlab.Ptr(raw)
+	}
+	if description, ok := metadataMap["description"].(string); ok {
+		opts.Description = gitlab.Ptr(description)
+	}
+	if variableType, ok := metadataMap["variable_type"].(string); ok {
+		if variableType == "file" {
+			opts.VariableType = gitlab.Ptr(gitlab.FileVariableType)
+		} else {
+			opts.VariableType = gitlab.Ptr(gitlab.EnvVariableType)
+		}
+	}
+}
+
+// applyMetadataToGroupCreateOptions applies metadata to group variable create options.
+func applyMetadataToGroupCreateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.CreateGroupVariableOptions) {
+	if metadata == nil {
+		return
+	}
+
+	var metadataMap map[string]interface{}
+	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
+		return
+	}
+
+	if masked, ok := metadataMap["masked"].(bool); ok {
+		opts.Masked = gitlab.Ptr(masked)
+	}
+	if protected, ok := metadataMap["protected"].(bool); ok {
+		opts.Protected = gitlab.Ptr(protected)
+	}
+	if raw, ok := metadataMap["raw"].(bool); ok {
+		opts.Raw = gitlab.Ptr(raw)
+	}
+	if description, ok := metadataMap["description"].(string); ok {
+		opts.Description = gitlab.Ptr(description)
+	}
+	if variableType, ok := metadataMap["variable_type"].(string); ok {
+		if variableType == "file" {
+			opts.VariableType = gitlab.Ptr(gitlab.FileVariableType)
+		} else {
+			opts.VariableType = gitlab.Ptr(gitlab.EnvVariableType)
+		}
+	}
+}
+
+// applyMetadataToGroupUpdateOptions applies metadata to group variable update options.
+func applyMetadataToGroupUpdateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.UpdateGroupVariableOptions) {
+	if metadata == nil {
+		return
+	}
+
+	var metadataMap map[string]interface{}
+	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
+		return
+	}
+
+	if masked, ok := metadataMap["masked"].(bool); ok {
+		opts.Masked = gitlab.Ptr(masked)
+	}
+	if protected, ok := metadataMap["protected"].(bool); ok {
+		opts.Protected = gitlab.Ptr(protected)
+	}
+	if raw, ok := metadataMap["raw"].(bool); ok {
+		opts.Raw = gitlab.Ptr(raw)
+	}
+	if description, ok := metadataMap["description"].(string); ok {
+		opts.Description = gitlab.Ptr(description)
+	}
+	if variableType, ok := metadataMap["variable_type"].(string); ok {
+		if variableType == "file" {
+			opts.VariableType = gitlab.Ptr(gitlab.FileVariableType)
+		} else {
+			opts.VariableType = gitlab.Ptr(gitlab.EnvVariableType)
+		}
+	}
+}
+
+// SecretExists checks if a secret exists in GitLab.
+// Note: PushSecretRemoteRef doesn't include metadata, so this uses store configuration only.
+func (g *gitlabBase) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
+	if esutils.IsNil(g.projectVariablesClient) && esutils.IsNil(g.groupVariablesClient) {
+		return false, errors.New(errUninitializedGitlabProvider)
+	}
+
+	// Get the remote key and replace hyphens with underscores for GitLab API
+	remoteKey := strings.ReplaceAll(remoteRef.GetRemoteKey(), "-", "_")
+
+	environmentScope := g.store.Environment
+	if environmentScope == "" {
+		environmentScope = "*"
+	}
+
+	// Check project variable first if project ID is set
+	if g.store.ProjectID != "" {
+		exists, err := g.projectVariableExists(remoteKey, environmentScope)
+		if err != nil {
+			return false, err
+		}
+		if exists {
+			return true, nil
+		}
+	}
+
+	// Check group variables if configured
+	if len(g.store.GroupIDs) > 0 {
+		exists, err := g.groupVariableExists(g.store.GroupIDs[0], remoteKey, environmentScope)
+		if err != nil {
+			return false, err
+		}
+		return exists, nil
+	}
+
+	return false, nil
+}
+
+// DeleteSecret deletes a variable from GitLab.
+// LIMITATION: This can only delete from the store's configured projectID or first groupID.
+// Variables pushed with metadata-based groupID/projectID overrides cannot be automatically
+// deleted because the SecretsClient.DeleteSecret interface doesn't provide metadata.
+// Users must either:
+// 1. Not use deletionPolicy: Delete with metadata overrides, OR
+// 2. Manually clean up variables pushed to non-default locations
+func (g *gitlabBase) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
+	if esutils.IsNil(g.projectVariablesClient) && esutils.IsNil(g.groupVariablesClient) {
+		return errors.New(errUninitializedGitlabProvider)
+	}
+
+	// Get the remote key and replace hyphens with underscores for GitLab API
+	remoteKey := strings.ReplaceAll(remoteRef.GetRemoteKey(), "-", "_")
+
+	environmentScope := g.store.Environment
+	if environmentScope == "" {
+		environmentScope = "*"
+	}
+
+	// Only delete from the store's default location (no metadata available)
+	if g.store.ProjectID != "" {
+		opts := &gitlab.RemoveProjectVariableOptions{
+			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+		}
+		_, err := g.projectVariablesClient.RemoveVariable(g.store.ProjectID, remoteKey, opts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableDelete, err)
+
+		if err == nil || errors.Is(err, gitlab.ErrNotFound) {
+			return nil
+		}
+		return fmt.Errorf("failed to delete from project %q: %w", g.store.ProjectID, err)
+	}
+
+	// Delete from first configured group only
+	if len(g.store.GroupIDs) > 0 {
+		opts := &gitlab.RemoveGroupVariableOptions{
+			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+		}
+		_, err := g.groupVariablesClient.RemoveVariable(g.store.GroupIDs[0], remoteKey, opts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupVariableDelete, err)
+
+		if err == nil || errors.Is(err, gitlab.ErrNotFound) {
+			return nil
+		}
+		return fmt.Errorf("failed to delete from group %q: %w", g.store.GroupIDs[0], err)
+	}
+
+	return errors.New("no projectID or groupIDs configured for delete operation")
 }
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
