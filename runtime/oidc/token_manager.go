@@ -106,7 +106,13 @@ func postJSONRequestInternal(ctx context.Context, url string, requestBody interf
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	// Clone the default transport if possible, otherwise create a new one
+	var transport *http.Transport
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		transport = t.Clone()
+	} else {
+		transport = &http.Transport{}
+	}
 	transport.TLSClientConfig = &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}

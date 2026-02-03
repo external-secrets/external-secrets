@@ -107,10 +107,14 @@ func (m *OIDCTokenManager) GetToken(ctx context.Context) (string, error) {
 
 // createServiceAccountToken creates a Kubernetes ServiceAccount token for OIDC authentication.
 func (m *OIDCTokenManager) createServiceAccountToken(ctx context.Context) (string, error) {
+	// Start with baseURL as the primary audience
 	audiences := []string{m.baseURL}
 
-	if len(m.saRef.Audiences) > 0 {
-		audiences = append(audiences, m.saRef.Audiences...)
+	// Add custom audiences from serviceAccountRef, deduplicating against baseURL
+	for _, aud := range m.saRef.Audiences {
+		if aud != m.baseURL {
+			audiences = append(audiences, aud)
+		}
 	}
 
 	expirationSeconds := int64(oidc.DefaultTokenTTL)
