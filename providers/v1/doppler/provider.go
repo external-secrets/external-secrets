@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
@@ -52,12 +53,15 @@ var _ esv1.Provider = &Provider{}
 var (
 	oidcClientCache  *cache.Cache[esv1.SecretsClient]
 	defaultCacheSize = 2 << 17
+	cacheOnce        sync.Once
 )
 
 func initCache(cacheSize int) {
-	if oidcClientCache == nil && cacheSize > 0 {
-		oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
-			// No cleanup is needed when evicting OIDC clients from cache
+	if cacheSize > 0 {
+		cacheOnce.Do(func() {
+			oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
+				// No cleanup is needed when evicting OIDC clients from cache
+			})
 		})
 	}
 }
