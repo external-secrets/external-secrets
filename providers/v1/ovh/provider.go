@@ -33,13 +33,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 // Provider implements the ESO Provider interface for OVHcloud.
 type Provider struct {
-	SecretKeyRef func(ctx context.Context, c kclient.Client, storeKind string, esNamespace string, ref *esmeta.SecretKeySelector) (string, error)
+	secretKeyResolver SecretKeyResolver
 }
 
 // OkmsClient defines an interface for interacting with the OVH OKMS service.
@@ -54,6 +54,15 @@ type OkmsClient interface {
 	GetSecretsMetadata(ctx context.Context, okmsID uuid.UUID, path string, list bool) (*types.GetMetadataResponse, error)
 }
 
+// SecretKeyResolver resolves the value of a key from a Kubernetes Secret.
+// It is defined as an interface to allow different implementations, including mocks for testing.
+type SecretKeyResolver interface {
+	Resolve(ctx context.Context, kube kclient.Client, ovhStoreKind string, ovhStoreNameSpace string, secretRef *v1.SecretKeySelector) (string, error)
+}
+
+// DefaultSecretKeyResolver is the default implementation for resolving keys from Kubernetes Secrets.
+type DefaultSecretKeyResolver struct{}
+
 type ovhClient struct {
 	ovhStoreNameSpace string
 	ovhStoreKind      string
@@ -65,6 +74,11 @@ type ovhClient struct {
 }
 
 var _ esv1.SecretsClient = &ovhClient{}
+
+// Resolve returns the value of the referenced key from a Kubernetes Secret.
+func (r DefaultSecretKeyResolver) Resolve(ctx context.Context, kube kclient.Client, ovhStoreKind string, ovhStoreNameSpace string, secretRef *v1.SecretKeySelector) (string, error) {
+	return resolvers.SecretKeyRef(ctx, kube, ovhStoreKind, ovhStoreNameSpace, secretRef)
+}
 
 // NewClient creates a new Provider client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
@@ -104,8 +118,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	// Authentication configuration: token or mTLS.
-	if p.SecretKeyRef == nil {
-		p.SecretKeyRef = resolvers.SecretKeyRef
+	if p.secretKeyResolver == nil {
+		p.secretKeyResolver = DefaultSecretKeyResolver{}
 	}
 	if ovhStore.Auth.ClientToken != nil {
 		err = configureHTTPTokenClient(ctx, p, cl,
@@ -186,7 +200,7 @@ func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1
 	}
 
 	// Retrieve the token value.
-	token, err := p.SecretKeyRef(ctx, cl.kube,
+	token, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
 		cl.ovhStoreKind, cl.ovhStoreNameSpace, tokenSecretRef)
 	if err != nil {
 		return "", err
@@ -211,7 +225,7 @@ func getMTLS(ctx context.Context, p *Provider, cl *ovhClient, clientMTLS *esv1.O
 		return tls.Certificate{}, errors.New(emptyKeySecretRef)
 	}
 	// Retrieve the value of keySecretRef from the Kubernetes secret.
-	clientKey, err := p.SecretKeyRef(ctx, cl.kube,
+	clientKey, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
 		cl.ovhStoreKind, cl.ovhStoreNameSpace, keyRef)
 	if err != nil {
 		return tls.Certificate{}, err
@@ -227,7 +241,7 @@ func getMTLS(ctx context.Context, p *Provider, cl *ovhClient, clientMTLS *esv1.O
 		return tls.Certificate{}, errors.New(emptyCertSecretRef)
 	}
 	// Retrieve the value of certSecretRef from the Kubernetes secret.
-	clientCert, err := p.SecretKeyRef(ctx, cl.kube,
+	clientCert, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
 		cl.ovhStoreKind, cl.ovhStoreNameSpace, certRef)
 	if err != nil {
 		return tls.Certificate{}, err

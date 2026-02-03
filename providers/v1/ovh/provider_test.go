@@ -18,11 +18,6 @@ package ovh
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"sync"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -33,20 +28,14 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/ovh/fake"
 )
 
-type EphemeralMTLS struct {
-	Once    sync.Once
-	keyPEM  string
-	certPEM string
-}
-
 var (
-	ephemeralMTLS = EphemeralMTLS{}
-	namespace     = "namespace"
-	scheme        = runtime.NewScheme()
-	_             = corev1.AddToScheme(scheme)
-	kube          = fakeBuilder.NewClientBuilder().
+	namespace = "namespace"
+	scheme    = runtime.NewScheme()
+	_         = corev1.AddToScheme(scheme)
+	kube      = fakeBuilder.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(&corev1.Secret{
 			ObjectMeta: v1.ObjectMeta{
@@ -57,65 +46,26 @@ var (
 				"key": []byte("value"),
 			},
 		}).Build()
+	okmsId          = "11111111-1111-1111-1111-111111111111"
+	validTokenAuth  = "Valid token auth"
+	validClientCert = "Valid mtls client certificate"
+	validClientKey  = "Valid mtls client key"
+	fillingStr      = "string"
 )
-
-func (eph *EphemeralMTLS) SecretKeyRef(_ context.Context, _ kclient.Client, _, _ string, ref *esmeta.SecretKeySelector) (string, error) {
-	if ref.Name == "Valid token auth" {
-		return "Valid", nil
-	}
-	if ref.Name == "Valid mtls client certificate" || ref.Name == "Valid mtls client key" {
-		var err error
-		eph.Once.Do(func() {
-			var privKey *rsa.PrivateKey
-			privKey, err = rsa.GenerateKey(rand.Reader, 2048)
-			if err != nil {
-				return
-			}
-			eph.keyPEM = string(pem.EncodeToMemory(&pem.Block{
-				Type:  "RSA PRIVATE KEY",
-				Bytes: x509.MarshalPKCS1PrivateKey(privKey),
-			}))
-
-			template := x509.Certificate{}
-			var cert []byte
-			cert, err = x509.CreateCertificate(rand.Reader, &template, &template, &privKey.PublicKey, privKey)
-			if err != nil {
-				return
-			}
-			eph.certPEM = string(pem.EncodeToMemory(&pem.Block{
-				Type:  "CERTIFICATE",
-				Bytes: cert,
-			}))
-		})
-
-		if err != nil {
-			return "", err
-		}
-
-		if ref.Name == "Valid mtls client certificate" {
-			return eph.certPEM, nil
-		}
-		return eph.keyPEM, nil
-	}
-	return "", nil
-}
 
 func TestNewClient(t *testing.T) {
 	tests := map[string]struct {
-		should string
-		kube   kclient.Client
-		err    bool
-		store  *esv1.SecretStore
+		errshould string
+		kube      kclient.Client
+		store     *esv1.SecretStore
 	}{
 		"Nil store": {
-			should: "store is nil",
-			err:    true,
-			kube:   kube,
+			errshould: "store is nil",
+			kube:      kube,
 		},
 		"Nil provider": {
-			should: "store provider is nil",
-			err:    true,
-			kube:   kube,
+			errshould: "store provider is nil",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: nil,
@@ -123,9 +73,8 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Nil ovh provider": {
-			should: "ovh store provider is nil",
-			err:    true,
-			kube:   kube,
+			errshould: "ovh store provider is nil",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
@@ -135,8 +84,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Nil controller-runtime client": {
-			should: "controller-runtime client is nil",
-			err:    true,
+			errshould: "failed to create new ovh provider client: controller-runtime client is nil",
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
@@ -144,47 +92,46 @@ func TestNewClient(t *testing.T) {
 							Auth: esv1.OvhAuth{
 								ClientToken: &esv1.OvhClientToken{
 									ClientTokenSecret: &esmeta.SecretKeySelector{
-										Name:      "Valid token auth",
+										Name:      validTokenAuth,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
-							Server: "server",
-							OkmsID: "okmsID",
+							Server: fillingStr,
+							OkmsID: okmsId,
 						},
 					},
 				},
 			},
 		},
 		"Authentication method conflict": {
-			should: "only one authentication method allowed (mtls | token)",
-			err:    true,
-			kube:   kube,
+			errshould: "only one authentication method allowed (mtls | token)",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientMTLS: &esv1.OvhClientMTLS{
 									ClientCertificate: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 									ClientKey: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 								ClientToken: &esv1.OvhClientToken{
 									ClientTokenSecret: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -194,15 +141,14 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Authentication method empty": {
-			should: "missing authentication method",
-			err:    true,
-			kube:   kube,
+			errshould: "missing authentication method",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth:   esv1.OvhAuth{},
 						},
 					},
@@ -210,21 +156,20 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Valid token auth": {
-			should: "",
-			err:    false,
-			kube:   kube,
+			errshould: "",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientToken: &esv1.OvhClientToken{
 									ClientTokenSecret: &esmeta.SecretKeySelector{
-										Name:      "Valid token auth",
+										Name:      validTokenAuth,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -234,15 +179,14 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Empty token auth": {
-			should: "ovh store auth.token.tokenSecretRef cannot be empty",
-			err:    true,
-			kube:   kube,
+			errshould: "failed to create new ovh provider client: ovh store auth.token.tokenSecretRef cannot be empty",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientToken: &esv1.OvhClientToken{
 									ClientTokenSecret: &esmeta.SecretKeySelector{},
@@ -254,26 +198,25 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Valid mtls auth": {
-			should: "",
-			err:    false,
-			kube:   kube,
+			errshould: "",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientMTLS: &esv1.OvhClientMTLS{
 									ClientCertificate: &esmeta.SecretKeySelector{
-										Name:      "Valid mtls client certificate",
+										Name:      validClientCert,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 									ClientKey: &esmeta.SecretKeySelector{
-										Name:      "Valid mtls client key",
+										Name:      validClientKey,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -283,21 +226,20 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Empty mtls client certificate": {
-			should: "missing tls certificate or key",
-			err:    true,
-			kube:   kube,
+			errshould: "missing tls certificate or key",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientMTLS: &esv1.OvhClientMTLS{
 									ClientKey: &esmeta.SecretKeySelector{
-										Name:      "Valid mtls client key",
+										Name:      validClientKey,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -307,21 +249,20 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Empty mtls client key": {
-			should: "missing tls certificate or key",
-			err:    true,
-			kube:   kube,
+			errshould: "missing tls certificate or key",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientMTLS: &esv1.OvhClientMTLS{
 									ClientCertificate: &esmeta.SecretKeySelector{
-										Name:      "Valid mtls client certificate",
+										Name:      validClientCert,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -335,17 +276,15 @@ func TestNewClient(t *testing.T) {
 	for name, testCase := range tests {
 		t.Run(name, func(t *testing.T) {
 			provider := Provider{
-				SecretKeyRef: ephemeralMTLS.SecretKeyRef,
+				secretKeyResolver: &fake.FakeSecretKeyResolver{},
 			}
 			_, err := provider.NewClient(ctx, testCase.store, testCase.kube, "namespace")
-			if testCase.err == true {
+			if testCase.errshould != "" {
 				if err == nil {
-					t.Error()
-				} else if err.Error() != testCase.should {
-					t.Error()
+					t.Errorf("\nexpected error: %s\nactual error:   <nil>\n\n", testCase.errshould)
+				} else if err.Error() != testCase.errshould {
+					t.Errorf("\nexpected error: %s\nactual error:   %v\n\n", testCase.errshould, err)
 				}
-			} else if err != nil {
-				t.Error()
 			}
 		})
 	}
@@ -354,15 +293,13 @@ func TestNewClient(t *testing.T) {
 func TestValidateStore(t *testing.T) {
 	var namespace string = "namespace"
 	tests := map[string]struct {
-		should string
-		err    bool
-		kube   kclient.Client
-		store  *esv1.SecretStore
+		errshould string
+		kube      kclient.Client
+		store     *esv1.SecretStore
 	}{
 		"Nil store": {
-			should: "store provider is nil",
-			err:    true,
-			kube:   kube,
+			errshould: "store provider is nil",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: nil,
@@ -370,9 +307,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Nil ovh provider": {
-			should: "ovh store provider is nil",
-			err:    true,
-			kube:   kube,
+			errshould: "ovh store provider is nil",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
@@ -382,33 +318,32 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Authentication method conflict": {
-			should: "only one authentication method allowed (mtls | token)",
-			err:    true,
-			kube:   kube,
+			errshould: "only one authentication method allowed (mtls | token)",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientMTLS: &esv1.OvhClientMTLS{
 									ClientCertificate: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 									ClientKey: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 								ClientToken: &esv1.OvhClientToken{
 									ClientTokenSecret: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -418,21 +353,20 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Valid token auth": {
-			should: "",
-			err:    false,
-			kube:   kube,
+			errshould: "",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientToken: &esv1.OvhClientToken{
 									ClientTokenSecret: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -442,26 +376,25 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Valid mtls auth": {
-			should: "",
-			err:    false,
-			kube:   kube,
+			errshould: "",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientMTLS: &esv1.OvhClientMTLS{
 									ClientCertificate: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 									ClientKey: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -471,21 +404,20 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Invalid mtls auth: missing client certificate": {
-			should: "missing tls certificate or key",
-			err:    true,
-			kube:   kube,
+			errshould: "missing tls certificate or key",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientMTLS: &esv1.OvhClientMTLS{
 									ClientKey: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -495,21 +427,20 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Invalid mtls auth: missing key certificate": {
-			should: "missing tls certificate or key",
-			err:    true,
-			kube:   kube,
+			errshould: "missing tls certificate or key",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 							Auth: esv1.OvhAuth{
 								ClientMTLS: &esv1.OvhClientMTLS{
 									ClientCertificate: &esmeta.SecretKeySelector{
-										Name:      "string",
+										Name:      fillingStr,
 										Namespace: &namespace,
-										Key:       "string",
+										Key:       fillingStr,
 									},
 								},
 							},
@@ -519,15 +450,14 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Empty auth": {
-			should: "missing authentication method",
-			err:    true,
-			kube:   kube,
+			errshould: "missing authentication method",
+			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ovh: &esv1.OvhProvider{
-							Server: "string",
-							OkmsID: "11111111-1111-1111-1111-111111111111",
+							Server: fillingStr,
+							OkmsID: okmsId,
 						},
 					},
 				},
@@ -538,14 +468,12 @@ func TestValidateStore(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			provider := Provider{}
 			_, err := provider.ValidateStore(testCase.store)
-			if testCase.err == true {
+			if testCase.errshould != "" {
 				if err == nil {
-					t.Error()
-				} else if err.Error() != testCase.should {
-					t.Error()
+					t.Errorf("\nexpected error: %s\nactual error:   <nil>\n\n", testCase.errshould)
+				} else if err.Error() != testCase.errshould {
+					t.Errorf("\nexpected error: %s\nactual error:   %v\n\n", testCase.errshould, err)
 				}
-			} else if err != nil {
-				t.Error()
 			}
 		})
 	}

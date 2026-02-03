@@ -18,6 +18,8 @@ package ovh
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,75 +29,83 @@ import (
 )
 
 func TestGetSecret(t *testing.T) {
+	mySecretRemoteKey := "mysecret"
+	myNestedSecretRemoteKey := "nested-secret"
+	nonExistentSecretRemoteKey := "non-existent-secret"
+	emptySecretRemoteKey := "empty-secret"
+	nilSecretRemoteKey := "nil-secret"
+
+	property := "key1"
+	nestedProperty := "users.alice.age"
+	invalidProperty := "invalid-property"
+
 	testCases := map[string]struct {
-		should    string
-		errshould string
-		kube      kclient.Client
-		ref       esv1.ExternalSecretDataRemoteRef
+		should     string
+		errshould  string
+		kube       kclient.Client
+		ref        esv1.ExternalSecretDataRemoteRef
+		okmsClient fake.FakeOkmsClient
 	}{
 		"Valid Secret": {
-			should: "{\"key\":\"value\"}",
+			should: "{\"key1\":\"value1\",\"key2\":\"value2\"}",
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+				Key: mySecretRemoteKey,
 			},
 		},
 		"Non-existent Secret": {
-			errshould: "Secret does not exist",
+			errshould: "failed to parse the following okms error: Secret does not exist",
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+				Key: nonExistentSecretRemoteKey,
 			},
 		},
-		"Secret without data": {
-			errshould: "secret version data is missing",
+		"Secret with nil data": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: secret version data is missing", nilSecretRemoteKey),
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+				Key: nilSecretRemoteKey,
 			},
 		},
-		"MetaDataPolicy: Fetch": {
-			errshould: "fetch metadata policy not supported",
+		"Secret without empty data": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: secret version data is missing", emptySecretRemoteKey),
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key:            "key",
+				Key: emptySecretRemoteKey,
+			},
+		},
+		"Fetch MetaDataPolicy": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: fetch metadata policy not supported", mySecretRemoteKey),
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:            mySecretRemoteKey,
 				MetadataPolicy: "Fetch",
 			},
 		},
-		"Valid property that gets Nested Json": {
-			should: "{\"project1\":\"Name\",\"project2\":\"Name\"}",
+		"Property": {
+			should: "value1",
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key:      "key",
-				Property: "projects",
+				Key:      mySecretRemoteKey,
+				Property: property,
 			},
 		},
-		"Valid property that gets non_Nested Json": {
-			should: "Name",
+		"Nested Property": {
+			should: "23",
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key:      "key",
-				Property: "projects.project1",
+				Key:      myNestedSecretRemoteKey,
+				Property: nestedProperty,
 			},
 		},
-		"Invalid property": {
-			errshould: "secret property \"Invalid Property\" not found",
+		"Invalid Property": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: secret property %q not found", mySecretRemoteKey, invalidProperty),
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key:      "key",
-				Property: "Invalid Property",
+				Key:      mySecretRemoteKey,
+				Property: invalidProperty,
 			},
 		},
-		"Empty property": {
-			should: "{\"key\":\"value\"}",
+		"Error case": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: failed to parse the following okms error: custom error", mySecretRemoteKey),
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key:      "key",
-				Property: "",
+				Key:      mySecretRemoteKey,
+				Property: invalidProperty,
 			},
-		},
-		"Secret Version": {
-			should: "{\"key\":\"value\"}",
-			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
-			},
-		},
-		"Invalid Secret Version": {
-			errshould: "ID=\"\", Request-ID:\"\", Code=17125378, System=CCM, Component=Secret Manager, Category=Not Found",
-			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretV2Fn: fake.NewGetSecretV2Fn(mySecretRemoteKey, errors.New("custom error")),
 			},
 		},
 	}
@@ -103,16 +113,20 @@ func TestGetSecret(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 			cl := &ovhClient{
-				okmsClient: &fake.FakeOkmsClient{
-					TestCase: name,
-				},
-				kube: testCase.kube,
+				okmsClient: testCase.okmsClient,
+				kube:       testCase.kube,
 			}
 			secret, err := cl.GetSecret(ctx, testCase.ref)
-			if testCase.errshould != "" && err != nil && err.Error() != testCase.errshould {
-				t.Error()
-			} else if testCase.should != "" && string(secret) != testCase.should {
-				t.Error()
+			if testCase.errshould != "" {
+				if err == nil {
+					t.Errorf("\nexpected error: %s\nactual error:   <nil>\n\n", testCase.errshould)
+				} else if err.Error() != testCase.errshould {
+					t.Errorf("\nexpected error: %s\nactual error:   %v\n\n", testCase.errshould, err)
+				}
+				return
+			}
+			if testCase.should != "" && string(secret) != testCase.should {
+				t.Errorf("\nexpected value: %q\nactual value:   %q\n\n", testCase.should, string(secret))
 			}
 		})
 	}
