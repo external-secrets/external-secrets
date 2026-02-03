@@ -35,7 +35,7 @@ func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	// Test with nil store
-	manager := NewOIDCTokenManager(fakeClient.CoreV1(), nil, "default", esv1.SecretStoreKind, "test-store")
+	manager := NewOIDCTokenManager(fakeClient.CoreV1(), nil, "default", esv1.SecretStoreKind)
 	assert.Nil(t, manager)
 
 	// Test with nil Auth
@@ -43,23 +43,23 @@ func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
 		APIURL:       "https://api.pulumi.com/api/esc",
 		Organization: "test-org",
 	}
-	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
 	assert.Nil(t, manager)
 
 	// Test with nil OIDCConfig
 	store.Auth = &esv1.PulumiAuth{}
-	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
 	assert.Nil(t, manager)
 }
 
-func TestOIDCTokenManager_Token_NotInitialized(t *testing.T) {
+func TestOIDCTokenManager_GetToken_NotInitialized(t *testing.T) {
 	var manager *OIDCTokenManager
-	_, err := manager.Token(context.Background())
+	_, err := manager.GetToken(context.Background())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not initialized")
 }
 
-func TestPulumiTokenExchanger_ExchangeToken(t *testing.T) {
+func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 	tests := []struct {
 		name           string
 		responseBody   map[string]interface{}
@@ -113,13 +113,26 @@ func TestPulumiTokenExchanger_ExchangeToken(t *testing.T) {
 			}))
 			defer server.Close()
 
-			exchanger := &pulumiTokenExchanger{
-				baseURL:      server.URL,
-				organization: "test-org",
-				expiration:   3600,
+			fakeClient := fake.NewSimpleClientset()
+			expSec := int64(3600)
+			store := &esv1.PulumiProvider{
+				APIURL:       server.URL,
+				Organization: "test-org",
+				Auth: &esv1.PulumiAuth{
+					OIDCConfig: &esv1.PulumiOIDCAuth{
+						Organization: "test-org",
+						ServiceAccountRef: esmeta.ServiceAccountSelector{
+							Name: "test-sa",
+						},
+						ExpirationSeconds: &expSec,
+					},
+				},
 			}
 
-			token, _, err := exchanger.ExchangeToken(context.Background(), "k8s-token")
+			manager := NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
+			require.NotNil(t, manager)
+
+			token, _, err := manager.ExchangeToken(context.Background(), "k8s-token")
 
 			if tt.wantError {
 				require.Error(t, err)
@@ -212,21 +225,14 @@ func TestNewOIDCTokenManager_BaseURLParsing(t *testing.T) {
 				store,
 				"default",
 				esv1.SecretStoreKind,
-				"test-store",
 			)
 
 			require.NotNil(t, manager)
 
-			// For non-empty URLs, verify the exchanger would call the correct OAuth endpoint
+			// For non-empty URLs, verify the manager would call the correct OAuth endpoint
 			// by checking that the URL parsing extracted the base URL correctly
 			if tt.apiURL != "" {
-				// Create an exchanger directly to test the URL construction
-				exchanger := &pulumiTokenExchanger{
-					baseURL:      server.URL,
-					organization: "test-org",
-					expiration:   600,
-				}
-				_, _, _ = exchanger.ExchangeToken(context.Background(), "test-token")
+				_, _, _ = manager.ExchangeToken(context.Background(), "test-token")
 				assert.Equal(t, "/api/oauth/token", calledURL, "OAuth endpoint should be called at /api/oauth/token")
 			}
 		})

@@ -36,28 +36,28 @@ func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	// Test with nil store
-	manager := NewOIDCTokenManager(fakeClient.CoreV1(), nil, "default", esv1.SecretStoreKind, "test-store")
+	manager := NewOIDCTokenManager(fakeClient.CoreV1(), nil, "default", esv1.SecretStoreKind)
 	assert.Nil(t, manager)
 
 	// Test with nil Auth
 	store := &esv1.DopplerProvider{}
-	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
 	assert.Nil(t, manager)
 
 	// Test with nil OIDCConfig
 	store.Auth = &esv1.DopplerAuth{}
-	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
 	assert.Nil(t, manager)
 }
 
-func TestOIDCTokenManager_Token_NotInitialized(t *testing.T) {
+func TestOIDCTokenManager_GetToken_NotInitialized(t *testing.T) {
 	var manager *OIDCTokenManager
-	_, err := manager.Token(context.Background())
+	_, err := manager.GetToken(context.Background())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not initialized")
 }
 
-func TestDopplerTokenExchanger_ExchangeToken(t *testing.T) {
+func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 	tests := []struct {
 		name           string
 		responseBody   map[string]interface{}
@@ -113,13 +113,25 @@ func TestDopplerTokenExchanger_ExchangeToken(t *testing.T) {
 			}))
 			defer server.Close()
 
-			exchanger := &dopplerTokenExchanger{
-				baseURL:   server.URL,
-				identity:  "test-identity",
-				verifyTLS: false,
+			// Set the custom base URL env var to use the test server
+			t.Setenv(customBaseURLEnvVar, server.URL)
+
+			fakeClient := fake.NewSimpleClientset()
+			store := &esv1.DopplerProvider{
+				Auth: &esv1.DopplerAuth{
+					OIDCConfig: &esv1.DopplerOIDCAuth{
+						Identity: "test-identity",
+						ServiceAccountRef: esmeta.ServiceAccountSelector{
+							Name: "test-sa",
+						},
+					},
+				},
 			}
 
-			token, _, err := exchanger.ExchangeToken(context.Background(), "k8s-token")
+			manager := NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
+			require.NotNil(t, manager)
+
+			token, _, err := manager.ExchangeToken(context.Background(), "k8s-token")
 
 			if tt.wantError {
 				require.Error(t, err)
@@ -154,7 +166,6 @@ func TestNewOIDCTokenManager_ValidConfig(t *testing.T) {
 		store,
 		"default",
 		esv1.SecretStoreKind,
-		"test-store",
 	)
 
 	assert.NotNil(t, manager)

@@ -26,6 +26,13 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	authv1 "k8s.io/api/authentication/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const (
@@ -44,6 +51,95 @@ type TokenProvider interface {
 // TokenExchanger is the interface that provider-specific token exchange implementations must satisfy.
 type TokenExchanger interface {
 	ExchangeToken(ctx context.Context, saToken string) (token string, expiry time.Time, err error)
+}
+
+// BaseTokenManager provides common OIDC token management functionality.
+// Provider-specific implementations embed this struct and provide their own TokenExchanger.
+type BaseTokenManager struct {
+	Corev1    typedcorev1.CoreV1Interface
+	Namespace string
+	StoreKind string
+	BaseURL   string
+	SaRef     esmeta.ServiceAccountSelector
+	Cache     *TokenCache
+	Exchanger TokenExchanger
+}
+
+// GetToken returns a valid access token, refreshing it if necessary.
+// This is the common implementation used by all OIDC providers.
+func (m *BaseTokenManager) GetToken(ctx context.Context) (string, error) {
+	if m == nil {
+		return "", fmt.Errorf("OIDC token manager is not initialized")
+	}
+
+	// Check cache first
+	if token, ok := m.Cache.Get(); ok {
+		return token, nil
+	}
+
+	// Create ServiceAccount token
+	saToken, err := m.CreateServiceAccountToken(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to create service account token: %w", err)
+	}
+
+	// Exchange for provider-specific token
+	token, expiry, err := m.Exchanger.ExchangeToken(ctx, saToken)
+	if err != nil {
+		return "", err
+	}
+
+	// Cache the token
+	m.Cache.Set(token, expiry)
+
+	return token, nil
+}
+
+// CreateServiceAccountToken creates a Kubernetes ServiceAccount token for OIDC authentication.
+// This is the common implementation used by all OIDC providers.
+func (m *BaseTokenManager) CreateServiceAccountToken(ctx context.Context) (string, error) {
+	audiences := m.BuildAudiences()
+
+	expirationSeconds := int64(DefaultTokenTTL)
+
+	tokenRequest := &authv1.TokenRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: m.Namespace,
+		},
+		Spec: authv1.TokenRequestSpec{
+			Audiences:         audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}
+
+	// For ClusterSecretStore, use the namespace from the ServiceAccountRef if specified
+	tokenNamespace := m.Namespace
+	if m.StoreKind == esv1.ClusterSecretStoreKind && m.SaRef.Namespace != nil {
+		tokenNamespace = *m.SaRef.Namespace
+	}
+
+	tokenResponse, err := m.Corev1.ServiceAccounts(tokenNamespace).
+		CreateToken(ctx, m.SaRef.Name, tokenRequest, metav1.CreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to create token for service account %s: %w",
+			m.SaRef.Name, err)
+	}
+
+	return tokenResponse.Status.Token, nil
+}
+
+// BuildAudiences builds the audiences list for the ServiceAccount token.
+// It starts with baseURL and adds custom audiences, deduplicating against baseURL.
+func (m *BaseTokenManager) BuildAudiences() []string {
+	audiences := []string{m.BaseURL}
+
+	for _, aud := range m.SaRef.Audiences {
+		if aud != m.BaseURL {
+			audiences = append(audiences, aud)
+		}
+	}
+
+	return audiences
 }
 
 // TokenCache provides thread-safe caching for OIDC tokens.

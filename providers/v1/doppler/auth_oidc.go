@@ -23,27 +23,19 @@ import (
 	"os"
 	"time"
 
-	authv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/oidc"
 )
 
 const dopplerOIDCPath = "/v3/auth/oidc"
 
 // OIDCTokenManager manages OIDC token exchange with Doppler.
-// It implements the oidc.TokenProvider interface.
+// It embeds the shared BaseTokenManager and implements the TokenExchanger interface.
 type OIDCTokenManager struct {
-	corev1    typedcorev1.CoreV1Interface
-	namespace string
-	storeKind string
-	baseURL   string
-	saRef     esmeta.ServiceAccountSelector
-	identity  string
-	cache     *oidc.TokenCache
+	*oidc.BaseTokenManager
+	identity string
 }
 
 // NewOIDCTokenManager creates a new OIDCTokenManager for handling Doppler OIDC authentication.
@@ -64,90 +56,35 @@ func NewOIDCTokenManager(
 		baseURL = customURL
 	}
 
-	return &OIDCTokenManager{
-		corev1:    corev1,
-		namespace: namespace,
-		storeKind: storeKind,
-		baseURL:   baseURL,
-		saRef:     oidcAuth.ServiceAccountRef,
-		identity:  oidcAuth.Identity,
-		cache:     oidc.NewTokenCache(),
+	manager := &OIDCTokenManager{
+		identity: oidcAuth.Identity,
 	}
+
+	manager.BaseTokenManager = &oidc.BaseTokenManager{
+		Corev1:    corev1,
+		Namespace: namespace,
+		StoreKind: storeKind,
+		BaseURL:   baseURL,
+		SaRef:     oidcAuth.ServiceAccountRef,
+		Cache:     oidc.NewTokenCache(),
+		Exchanger: manager,
+	}
+
+	return manager
 }
 
 // GetToken returns a valid Doppler API token, refreshing it if necessary.
-// This implements the oidc.TokenProvider interface.
+// This delegates to the embedded BaseTokenManager.
 func (m *OIDCTokenManager) GetToken(ctx context.Context) (string, error) {
-	if m == nil {
+	if m == nil || m.BaseTokenManager == nil {
 		return "", fmt.Errorf("OIDC token manager is not initialized")
 	}
-
-	// Check cache first
-	if token, ok := m.cache.Get(); ok {
-		return token, nil
-	}
-
-	// Create ServiceAccount token
-	saToken, err := m.createServiceAccountToken(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to create service account token: %w", err)
-	}
-
-	// Exchange for Doppler token
-	token, expiry, err := m.exchangeToken(ctx, saToken)
-	if err != nil {
-		return "", err
-	}
-
-	// Cache the token
-	m.cache.Set(token, expiry)
-
-	return token, nil
+	return m.BaseTokenManager.GetToken(ctx)
 }
 
-// createServiceAccountToken creates a Kubernetes ServiceAccount token for OIDC authentication.
-func (m *OIDCTokenManager) createServiceAccountToken(ctx context.Context) (string, error) {
-	// Start with baseURL as the primary audience
-	audiences := []string{m.baseURL}
-
-	// Add custom audiences from serviceAccountRef, deduplicating against baseURL
-	for _, aud := range m.saRef.Audiences {
-		if aud != m.baseURL {
-			audiences = append(audiences, aud)
-		}
-	}
-
-	expirationSeconds := int64(oidc.DefaultTokenTTL)
-
-	tokenRequest := &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: m.namespace,
-		},
-		Spec: authv1.TokenRequestSpec{
-			Audiences:         audiences,
-			ExpirationSeconds: &expirationSeconds,
-		},
-	}
-
-	// For ClusterSecretStore, use the namespace from the ServiceAccountRef if specified
-	tokenNamespace := m.namespace
-	if m.storeKind == esv1.ClusterSecretStoreKind && m.saRef.Namespace != nil {
-		tokenNamespace = *m.saRef.Namespace
-	}
-
-	tokenResponse, err := m.corev1.ServiceAccounts(tokenNamespace).
-		CreateToken(ctx, m.saRef.Name, tokenRequest, metav1.CreateOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to create token for service account %s: %w",
-			m.saRef.Name, err)
-	}
-
-	return tokenResponse.Status.Token, nil
-}
-
-// exchangeToken exchanges a ServiceAccount token for a Doppler API token.
-func (m *OIDCTokenManager) exchangeToken(ctx context.Context, saToken string) (string, time.Time, error) {
-	url := m.baseURL + dopplerOIDCPath
+// ExchangeToken exchanges a ServiceAccount token for a Doppler API token.
+func (m *OIDCTokenManager) ExchangeToken(ctx context.Context, saToken string) (string, time.Time, error) {
+	url := m.BaseURL + dopplerOIDCPath
 
 	requestBody := map[string]string{
 		"identity": m.identity,
