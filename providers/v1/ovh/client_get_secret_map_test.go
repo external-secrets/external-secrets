@@ -18,6 +18,8 @@ package ovh
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -28,77 +30,100 @@ import (
 )
 
 func TestGetSecretMap(t *testing.T) {
+	mySecretRemoteKey := "mysecret"
+	mySecret2RemoteKey := "mysecret2"
+	myNestedSecretRemoteKey := "nested-secret"
+	nonExistentSecretRemoteKey := "non-existent-secret"
+	emptySecretRemoteKey := "empty-secret"
+	nilSecretRemoteKey := "nil-secret"
+
+	property := "keys"
+	nestedProperty := "users.alice"
+	scalarValueProperty := "users.alice.age"
+	invalidProperty := "invalid-property"
+
 	testCases := map[string]struct {
-		shouldmap map[string][]byte
-		errshould string
-		kube      kclient.Client
-		ref       esv1.ExternalSecretDataRemoteRef
+		should     map[string][]byte
+		errshould  string
+		kube       kclient.Client
+		okmsClient fake.FakeOkmsClient
+		ref        esv1.ExternalSecretDataRemoteRef
 	}{
 		"Valid Secret": {
-			shouldmap: map[string][]byte{
-				"key": []byte("value"),
+			should: map[string][]byte{
+				"key1": []byte("value1"),
+				"key2": []byte("value2"),
 			},
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+				Key: mySecretRemoteKey,
 			},
 		},
 		"Non-existent Secret": {
-			errshould: "Secret does not exist",
+			errshould: "failed to parse the following okms error: Secret does not exist",
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+				Key: nonExistentSecretRemoteKey,
 			},
 		},
-		"Secret without data": {
-			errshould: "secret version data is missing",
+		"Secret with nil data": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: secret version data is missing", nilSecretRemoteKey),
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+				Key: nilSecretRemoteKey,
 			},
 		},
-		"MetaDataPolicy: Fetch": {
-			errshould: "fetch metadata policy not supported",
+		"Secret without empty data": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: secret version data is missing", emptySecretRemoteKey),
 			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: emptySecretRemoteKey,
+			},
+		},
+		"Fetch MetaDataPolicy": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: fetch metadata policy not supported", mySecretRemoteKey),
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:            mySecretRemoteKey,
 				MetadataPolicy: "Fetch",
-				Key:            "key",
 			},
 		},
-		"Valid property that gets Nested Json": {
-			shouldmap: map[string][]byte{
-				"project1": []byte("Name"),
-				"project2": []byte("Name"),
+		"Property": {
+			should: map[string][]byte{
+				"key1": []byte("value1"),
+				"key2": []byte("value2"),
 			},
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Property: "projects",
-				Key:      "key",
+				Key:      mySecret2RemoteKey,
+				Property: property,
 			},
 		},
-		"Invalid property": {
-			errshould: "secret property \"Invalid Property\" not found",
+		"Nested Property": {
+			should: map[string][]byte{
+				"age": []byte("23"),
+			},
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Property: "Invalid Property",
-				Key:      "key",
+				Key:      myNestedSecretRemoteKey,
+				Property: nestedProperty,
 			},
 		},
-		"Empty property": {
-			shouldmap: map[string][]byte{
-				"key": []byte("value"),
-			},
+		"Scalar Value Property": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: json: cannot unmarshal number into Go value of type map[string]interface {}", myNestedSecretRemoteKey),
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Property: "",
-				Key:      "key",
+				Key:      myNestedSecretRemoteKey,
+				Property: scalarValueProperty,
 			},
 		},
-		"Secret Version": {
-			shouldmap: map[string][]byte{
-				"key": []byte("value"),
-			},
+		"Invalid Property": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: secret property %q not found", mySecretRemoteKey, invalidProperty),
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+				Key:      mySecretRemoteKey,
+				Property: invalidProperty,
 			},
 		},
-		"Invalid Secret Version": {
-			errshould: "ID=\"\", Request-ID:\"\", Code=17125378, System=CCM, Component=Secret Manager, Category=Not Found",
+		"Error case": {
+			errshould: fmt.Sprintf("failed to retrieve secret at path %q: failed to parse the following okms error: custom error", mySecretRemoteKey),
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key: "key",
+				Key:      mySecretRemoteKey,
+				Property: invalidProperty,
+			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretV2Fn: fake.NewGetSecretV2Fn(mySecretRemoteKey, errors.New("custom error")),
 			},
 		},
 	}
@@ -107,25 +132,20 @@ func TestGetSecretMap(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 			cl := &ovhClient{
-				okmsClient: &fake.FakeOkmsClient{
-					TestCase: name,
-				},
-				kube: testCase.kube,
+				okmsClient: testCase.okmsClient,
+				kube:       testCase.kube,
 			}
 			secret, err := cl.GetSecretMap(ctx, testCase.ref)
 			if testCase.errshould != "" {
 				if err == nil {
-					t.Error()
+					t.Errorf("\nexpected value: %s\nactual value:   <nil>\n\n", testCase.errshould)
 				} else if err.Error() != testCase.errshould {
-					t.Error()
+					t.Errorf("\nexpected value: %s\nactual value:   %v\n\n", testCase.errshould, err)
 				}
-			} else {
-				if err != nil {
-					t.Error()
-				}
-				if !reflect.DeepEqual(secret, testCase.shouldmap) {
-					t.Error()
-				}
+				return
+			}
+			if !reflect.DeepEqual(testCase.should, secret) {
+				t.Errorf("\nexpected value: %v\nactual value:   %v\n\n", convertByteMapToStringMap(testCase.should), convertByteMapToStringMap(secret))
 			}
 		})
 	}

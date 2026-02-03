@@ -57,7 +57,7 @@ func getSecretWithOvhSDK(ctx context.Context, kmsClient OkmsClient, okmsID uuid.
 	if secret == nil {
 		return []byte{}, nil, esv1.NoSecretErr
 	}
-	if secret.Version == nil || secret.Version.Data == nil {
+	if secret.Version == nil || secret.Version.Data == nil || len(*secret.Version.Data) == 0 {
 		return []byte{}, nil, errors.New("secret version data is missing")
 	}
 
@@ -122,7 +122,7 @@ func handleOkmsError(err error) error {
 	okmsError := okms.AsKmsError(err)
 
 	if okmsError == nil {
-		return fmt.Errorf("failed to parse okms error: %w", err)
+		return fmt.Errorf("failed to parse the following okms error: %w", err)
 	} else if okmsError.ErrorCode == 17125377 { // 17125377: returned by OKMS when secret was not found
 		return esv1.NoSecretErr
 	}

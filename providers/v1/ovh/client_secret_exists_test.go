@@ -18,6 +18,8 @@ package ovh
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,49 +29,54 @@ import (
 )
 
 func TestSecretExists(t *testing.T) {
+	mysecretRef := testingfake.PushSecretData{
+		RemoteKey: "mysecret",
+	}
+	nonExistentSecretRef := testingfake.PushSecretData{
+		RemoteKey: "non-existent-secret",
+	}
+
 	testCases := map[string]struct {
-		should    bool
-		errshould string
-		kube      kclient.Client
-		remoteRef testingfake.PushSecretData
+		should     bool
+		errshould  string
+		remoteRef  testingfake.PushSecretData
+		okmsClient fake.FakeOkmsClient
+		kube       kclient.Client
 	}{
 		"Valid Secret": {
 			should:    true,
-			remoteRef: testingfake.PushSecretData{},
+			remoteRef: mysecretRef,
 		},
 		"Non-existent Secret": {
 			should:    false,
-			remoteRef: testingfake.PushSecretData{},
+			remoteRef: nonExistentSecretRef,
 		},
 		"Error case": {
-			errshould: "failed to parse okms error: SecretExists error",
-			remoteRef: testingfake.PushSecretData{},
+			errshould: fmt.Sprintf("failed to check existence of secret %q: failed to parse the following okms error: custom error", mysecretRef.RemoteKey),
+			remoteRef: mysecretRef,
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretV2Fn: fake.NewGetSecretV2Fn(mysecretRef.RemoteKey, errors.New("custom error")),
+			},
 		},
 	}
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {
 			cl := &ovhClient{
-				kube: testCase.kube,
-				okmsClient: &fake.FakeOkmsClient{
-					TestCase: name,
-				},
+				kube:       testCase.kube,
+				okmsClient: testCase.okmsClient,
 			}
 			ctx := context.Background()
 			exists, err := cl.SecretExists(ctx, testCase.remoteRef)
 			if testCase.errshould != "" {
 				if err == nil {
-					t.Error()
-				}
-				if err.Error() != testCase.errshould {
-					t.Error()
+					t.Errorf("\nexpected error: %s\nactual error:   <nil>\n\n", testCase.errshould)
+				} else if err.Error() != testCase.errshould {
+					t.Errorf("\nexpected error: %s\nactual error:   %v\n\n", testCase.errshould, err)
 				}
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
 			if exists != testCase.should {
-				t.Error()
+				t.Errorf("\nexpected value: %t\nactual value:   %t\n\n", testCase.should, exists)
 			}
 		})
 	}

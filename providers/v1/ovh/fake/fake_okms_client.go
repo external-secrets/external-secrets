@@ -18,411 +18,213 @@ package fake
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
+	"maps"
 	"strings"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go"
 	"github.com/ovh/okms-sdk-go/types"
 )
 
-const str = "string"
+type GetSecretV2Fn func() (*types.GetSecretV2Response, error)
+type ListSecretV2Fn func() (*types.ListSecretV2ResponseWithPagination, error)
+type PostSecretV2Fn func() (*types.PostSecretV2Response, error)
+type PutSecretV2Fn func() (*types.PutSecretV2Response, error)
+type DeleteSecretV2Fn func() error
+type WithCustomHeaderFn func() *okms.Client
+type GetSecretsMetadataFn func() (*types.GetMetadataResponse, error)
 
 type FakeOkmsClient struct {
-	TestCase string
+	GetSecretV2Fn        GetSecretV2Fn
+	ListSecretV2Fn       ListSecretV2Fn
+	PostSecretV2Fn       PostSecretV2Fn
+	PutSecretV2Fn        PutSecretV2Fn
+	DeleteSecretV2Fn     DeleteSecretV2Fn
+	GetSecretsMetadataFn GetSecretsMetadataFn
 }
 
-func (kmsClient FakeOkmsClient) GetSecretV2(_ context.Context, _ uuid.UUID, path string, _ *uint32, _ *bool) (*types.GetSecretV2Response, error) {
-	// Called by GetSecret() & GetSecretMap()
-
-	// Metadata
-	CasRequired := true
-	CreatedAt := str
-	DeactivateVersionAfter := str
-	MaxVersions := uint32(10)
-	UpdatedAt := str
-	var State types.SecretV2State = str
-
-	// Version
-	Data := map[string]any{
-		"key": "value",
-	}
-	NestedData := map[string]any{
-		"projects": map[string]any{
+var fakeSecretStorage = map[string]map[string]any{
+	"mysecret": {
+		"key1": "value1",
+		"key2": "value2",
+	},
+	"mysecret2": {
+		"keys": map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+		},
+		"token": "value",
+	},
+	"nested-secret": {
+		"users": map[string]any{
+			"alice": map[string]string{
+				"age": "23",
+			},
+			"baptist": map[string]string{
+				"age": "27",
+			},
+		},
+	},
+	"pattern1/path1": {
+		"projects": map[string]string{
 			"project1": "Name",
 			"project2": "Name",
 		},
-		"test": "value",
-	}
-	DeactivatedAt := "string"
-	Warnings := []string{}
-	dataSecretV2Response := &types.GetSecretV2Response{
-		Metadata: &types.SecretV2Metadata{
-			CasRequired:            &CasRequired,
-			CreatedAt:              &CreatedAt,
-			DeactivateVersionAfter: &DeactivateVersionAfter,
-			MaxVersions:            &MaxVersions,
-			UpdatedAt:              &UpdatedAt,
-		},
-		Path: &kmsClient.TestCase,
-		Version: &types.SecretV2Version{
-			CreatedAt:     CreatedAt,
-			Data:          &Data,
-			DeactivatedAt: &DeactivatedAt,
-			Id:            1,
-			State:         State,
-			Warnings:      &Warnings,
-		},
-	}
-	nestedDataSecretV2Response := &types.GetSecretV2Response{
-		Metadata: &types.SecretV2Metadata{
-			CasRequired:            &CasRequired,
-			CreatedAt:              &CreatedAt,
-			DeactivateVersionAfter: &DeactivateVersionAfter,
-			MaxVersions:            &MaxVersions,
-			UpdatedAt:              &UpdatedAt,
-		},
-		Path: &kmsClient.TestCase,
-		Version: &types.SecretV2Version{
-			CreatedAt:     CreatedAt,
-			Data:          &NestedData,
-			DeactivatedAt: &DeactivatedAt,
-			Id:            1,
-			State:         State,
-			Warnings:      &Warnings,
-		},
-	}
-
-	// Test Cases
-	switch kmsClient.TestCase {
-	case "Valid Secret":
-		return dataSecretV2Response, nil
-	case "MetaDataPolicy: Fetch":
-		return dataSecretV2Response, nil
-	case "Non-existent Secret":
-		kmsError := okms.NewKmsErrorFromBytes([]byte("{\"error_code\":17125377}"))
-		return nil, kmsError
-	case "Secret without data":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          nil,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "Valid property that gets Nested Json":
-		return nestedDataSecretV2Response, nil
-	case "Valid property that gets non_Nested Json":
-		return nestedDataSecretV2Response, nil
-	case "Invalid property":
-		return dataSecretV2Response, nil
-	case "Empty property":
-		return dataSecretV2Response, nil
-	case "Secret Version":
-		return dataSecretV2Response, nil
-	case "Invalid Secret Version":
-		kmsError := okms.NewKmsErrorFromBytes([]byte("{\"error_code\":17125378}"))
-		return nil, kmsError
-	case "Error case":
-		return &types.GetSecretV2Response{}, errors.New("SecretExists error")
-	}
-
-	if path == "" {
-		return &types.GetSecretV2Response{}, errors.New("unknown case")
-	}
-
-	// Called by GetAllSecrets()
-	data1 := map[string]any{
-		"projects": map[string]any{
-			"project1": "Name",
-			"project2": "Name",
-		},
-	}
-	data2 := map[string]any{
+	},
+	"pattern1/path2": {
 		"key": "value",
-	}
-	data3 := map[string]any{
+	},
+	"pattern1/path3": {
 		"root": map[string]any{
-			"sub1": map[string]any{
+			"sub1": map[string]string{
 				"value": "string",
 			},
 			"sub2": "Name",
 		},
-		"test":  "value",
-		"test1": "value1",
-	}
-	data4 := map[string]any{
-		"test4": "value4",
-	}
-	data5 := map[string]any{
-		"test5": "value5",
-	}
-	data6 := map[string]any{
-		"test6": "value6",
-	}
-	data7 := map[string]any{
-		"test7": "value7",
-	}
-	data8 := map[string]any{
-		"test8": "value8",
-	}
-	switch path {
-	case "pattern1/path1":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          &data1,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "pattern1/path2":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          &data2,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "pattern1/path3":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          &data3,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "pattern2/test/test-secret":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          &data4,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "pattern2/test/test.secret":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          &data5,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "pattern2/secret":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          &data6,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "1secret":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          &data7,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "pattern2/test/test;secret":
-		return &types.GetSecretV2Response{
-			Metadata: &types.SecretV2Metadata{
-				CasRequired:            &CasRequired,
-				CreatedAt:              &CreatedAt,
-				DeactivateVersionAfter: &DeactivateVersionAfter,
-				MaxVersions:            &MaxVersions,
-				UpdatedAt:              &UpdatedAt,
-			},
-			Path: &kmsClient.TestCase,
-			Version: &types.SecretV2Version{
-				CreatedAt:     CreatedAt,
-				Data:          &data8,
-				DeactivatedAt: &DeactivatedAt,
-				Id:            1,
-				State:         State,
-				Warnings:      &Warnings,
-			},
-		}, nil
-	case "non-existent":
-		kmsError := okms.NewKmsErrorFromBytes([]byte("{\"error_code\":17125377}"))
-		return &types.GetSecretV2Response{}, kmsError
-	}
-	return &types.GetSecretV2Response{}, errors.New("unknown path")
+		"test": "value", "test1": "value1",
+	},
+	"pattern2/test/test-secret": {
+		"key4": "value4",
+	},
+	"pattern2/test/test.secret": {
+		"key5": "value5",
+	},
+	"pattern2/secret": {
+		"key6": "value6",
+	},
+	"1secret": {
+		"key7": "value7",
+	},
+	"pattern2/test/test;secret": {
+		"key8": "value8",
+	},
+	"nil-secret":   nil,
+	"empty-secret": {},
 }
 
-func (kmsClient FakeOkmsClient) GetSecretsMetadata(_ context.Context, _ uuid.UUID, path string, _ bool) (*types.GetMetadataResponse, error) {
-	switch path {
-	case "nil resp":
-		return nil, nil
-	case "nil data struct":
-		return &types.GetMetadataResponse{}, nil
-	case "nil secrets list":
-		return &types.GetMetadataResponse{
-			Data: &types.SecretMetadata{},
+func (f FakeOkmsClient) GetSecretV2(ctx context.Context, okmsID uuid.UUID, path string, version *uint32, includeData *bool) (*types.GetSecretV2Response, error) {
+	if f.GetSecretV2Fn != nil {
+		return f.GetSecretV2Fn()
+	}
+	return NewGetSecretV2Fn(path, nil)()
+}
+func NewGetSecretV2Fn(path string, err error) GetSecretV2Fn {
+	return func() (*types.GetSecretV2Response, error) {
+		if err != nil {
+			return nil, err
+		}
+
+		secret, ok := fakeSecretStorage[path]
+		if !ok {
+			return nil, esv1.NoSecretErr
+		}
+		data := maps.Clone(secret)
+
+		return &types.GetSecretV2Response{
+			Version: &types.SecretV2Version{
+				Data: &data,
+			},
 		}, nil
-	case "empty secrets list":
-		return &types.GetMetadataResponse{
+	}
+}
+
+func (f FakeOkmsClient) ListSecretV2(ctx context.Context, okmsID uuid.UUID, pageSize *uint32, pageCursor *string) (*types.ListSecretV2ResponseWithPagination, error) {
+	return f.ListSecretV2Fn()
+}
+func NewListSecretV2Fn(err error) ListSecretV2Fn {
+	return func() (*types.ListSecretV2ResponseWithPagination, error) {
+		if err != nil {
+			return nil, err
+		}
+
+		secretList := &types.ListSecretV2ResponseWithPagination{}
+		for k := range fakeSecretStorage {
+			newPath := types.GetSecretV2Response{
+				Path: &k,
+			}
+			secretList.ListSecretV2Response = append(secretList.ListSecretV2Response, newPath)
+		}
+
+		return secretList, nil
+	}
+}
+
+func (f FakeOkmsClient) PostSecretV2(ctx context.Context, okmsID uuid.UUID, body types.PostSecretV2Request) (*types.PostSecretV2Response, error) {
+	return f.PostSecretV2Fn()
+}
+func NewPostSecretV2Fn(err error) PostSecretV2Fn {
+	return func() (*types.PostSecretV2Response, error) {
+		return nil, err
+	}
+}
+
+func (f FakeOkmsClient) PutSecretV2(ctx context.Context, okmsID uuid.UUID, path string, cas *uint32, body types.PutSecretV2Request) (*types.PutSecretV2Response, error) {
+	return f.PutSecretV2Fn()
+}
+func NewPutSecretV2Fn(err error) PutSecretV2Fn {
+	return func() (*types.PutSecretV2Response, error) {
+		return nil, err
+	}
+}
+
+func (f FakeOkmsClient) DeleteSecretV2(ctx context.Context, okmsID uuid.UUID, path string) error {
+	return f.DeleteSecretV2Fn()
+}
+func NewDeleteSecretV2Fn(err error) DeleteSecretV2Fn {
+	return func() error {
+		return err
+	}
+}
+
+// GetSecretsMetadata is a mock implementation of the OVH SDK GetSecretsMetadata method.
+// It returns metadata for all secrets under the given path.
+//
+// Keys ending with a '/' indicate subpaths, meaning the key represents a folder rather
+// than a final secret value.
+//
+// This implementation returns a list of secrets from fakeSecretStorage variable.
+func (f FakeOkmsClient) GetSecretsMetadata(ctx context.Context, okmsID uuid.UUID, path string, list bool) (*types.GetMetadataResponse, error) {
+	return f.GetSecretsMetadataFn()
+}
+func NewGetSecretsMetadataFn(path string, err error) GetSecretsMetadataFn {
+	return func() (*types.GetMetadataResponse, error) {
+		if err != nil {
+			return nil, errors.New("error response")
+		}
+
+		resp := &types.GetMetadataResponse{
 			Data: &types.SecretMetadata{
 				Keys: &[]string{},
 			},
-		}, nil
-	case "error response":
-		return nil, errors.New("error response")
-	}
+		}
 
-	paths := []string{
-		"pattern1/path1",
-		"pattern1/path2",
-		"pattern1/path3",
-		"pattern2/test/test-secret",
-		"pattern2/test/test.secret",
-		"pattern2/secret",
-		"1secret",
-		"pattern2/test/test;secret",
-	}
-	resp := &types.GetMetadataResponse{
-		Data: &types.SecretMetadata{
-			Keys: &[]string{},
-		},
-	}
-	if path == "" {
-		resp.Data.Keys = &paths
-		return resp, nil
-	}
-
-	for _, path_elem := range paths {
-		posStart := strings.Index(path_elem, path)
-		if posStart == 0 {
-			if len(path) == len(path_elem) {
-				*resp.Data.Keys = append(*resp.Data.Keys, path_elem)
-			} else if len(path) < len(path_elem) && path_elem[len(path)] == '/' {
-				path_elem = path_elem[len(path)+1:]
-				posSlash := strings.Index(path_elem, "/")
-				if posSlash >= 0 {
-					*resp.Data.Keys = append(*resp.Data.Keys, path_elem[:posSlash])
-				} else {
-					*resp.Data.Keys = append(*resp.Data.Keys, path_elem)
+		for key := range fakeSecretStorage {
+			if path == "" && key != "nil-secret" && key != "empty-secret" {
+				*resp.Data.Keys = append(*resp.Data.Keys, key)
+				continue
+			}
+			posStart := strings.Index(key, path)
+			if posStart == 0 {
+				if len(path) == len(key) {
+					*resp.Data.Keys = append(*resp.Data.Keys, key)
+				} else if len(path) < len(key) && key[len(path)] == '/' {
+					key = key[len(path)+1:]
+					before, _, ok := strings.Cut(key, "/")
+					if ok {
+						*resp.Data.Keys = append(*resp.Data.Keys, before+"/")
+					} else {
+						*resp.Data.Keys = append(*resp.Data.Keys, key)
+					}
 				}
 			}
 		}
+
+		return resp, nil
 	}
-
-	return resp, nil
 }
 
-func (kmsClient FakeOkmsClient) ListSecretV2(_ context.Context, _ uuid.UUID, _ *uint32, _ *string) (*types.ListSecretV2ResponseWithPagination, error) {
-	return nil, nil
-}
-
-func (client FakeOkmsClient) WithCustomHeader(_, _ string) *okms.Client {
-	return &okms.Client{}
-}
-
-func (client FakeOkmsClient) PostSecretV2(_ context.Context, _ uuid.UUID, body types.PostSecretV2Request) (*types.PostSecretV2Response, error) {
-	secretDataByte, err := json.Marshal(body.Version.Data)
-	if err != nil {
-		return nil, err
-	}
-	return nil, fmt.Errorf("%s", string(secretDataByte))
-}
-
-func (client FakeOkmsClient) PutSecretV2(_ context.Context, _ uuid.UUID, _ string, _ *uint32, body types.PutSecretV2Request) (*types.PutSecretV2Response, error) {
-	secretDataByte, err := json.Marshal(body.Version.Data)
-	if err != nil {
-		return nil, err
-	}
-	return nil, fmt.Errorf("%s", string(secretDataByte))
-}
-
-func (client FakeOkmsClient) DeleteSecretV2(_ context.Context, _ uuid.UUID, _ string) error {
+func (f FakeOkmsClient) WithCustomHeader(key, value string) *okms.Client {
 	return nil
 }

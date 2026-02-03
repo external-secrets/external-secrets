@@ -17,8 +17,9 @@ limitations under the License.
 package ovh
 
 import (
-	"bytes"
 	"context"
+	"fmt"
+	"reflect"
 	"testing"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,125 +31,134 @@ import (
 func TestGetAllSecrets(t *testing.T) {
 	path1 := "pattern1"
 	path2 := "pattern2/test"
-	path3 := "nil resp"
-	path4 := "nil data struct"
-	path5 := "nil secrets list"
-	path6 := "empty secrets list"
-	path7 := "error response"
+	nonExistentPath := "non-existent-path"
+	emptyPath := ""
+
+	noMatchRegexp := "^noMatch.*$"
+	invalidRegexp := "\\wa\\w([a]"
+
 	testCases := map[string]struct {
-		shouldmap map[string][]byte
-		errshould string
-		kube      kclient.Client
-		refFind   esv1.ExternalSecretFind
+		should     map[string][]byte
+		errshould  string
+		kube       kclient.Client
+		refFind    esv1.ExternalSecretFind
+		okmsClient fake.FakeOkmsClient
 	}{
-		"No secrets found (nil response)": {
-			errshould: "no secrets found in the secret manager",
+		"No secrets found under provided path": {
+			errshould: fmt.Sprintf("failed to retrieve multiple secrets: no secrets under path %q were found in the secret manager", nonExistentPath),
 			refFind: esv1.ExternalSecretFind{
-				Path: &path3,
+				Path: &nonExistentPath,
 			},
-		},
-		"No secrets found (nil Data struct)": {
-			errshould: "no secrets found in the secret manager",
-			refFind: esv1.ExternalSecretFind{
-				Path: &path4,
-			},
-		},
-		"No secrets found (nil secrets list)": {
-			errshould: "no secrets found in the secret manager",
-			refFind: esv1.ExternalSecretFind{
-				Path: &path5,
-			},
-		},
-		"No secrets found (empty secrets list)": {
-			errshould: "no secrets found in the secret manager",
-			refFind: esv1.ExternalSecretFind{
-				Path: &path6,
-			},
-		},
-		"Error response": {
-			errshould: "error response",
-			refFind: esv1.ExternalSecretFind{
-				Path: &path7,
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(nonExistentPath, nil),
 			},
 		},
 		"Invalid Regex": {
-			errshould: "failed to parse regexp",
+			errshould: fmt.Sprintf("failed to retrieve multiple secrets: could not parse regex: error parsing regexp: missing closing ): `%s`", invalidRegexp),
 			refFind: esv1.ExternalSecretFind{
 				Name: &esv1.FindName{
-					RegExp: "\\wa\\w([a]",
+					RegExp: invalidRegexp,
 				},
+			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(emptyPath, nil),
 			},
 		},
 		"Empty Regex": {
-			shouldmap: map[string][]byte{
+			should: map[string][]byte{
+				"mysecret":                  []byte(`{"key1":"value1","key2":"value2"}`),
+				"mysecret2":                 []byte(`{"keys":{"key1":"value1","key2":"value2"},"token":"value"}`),
+				"nested-secret":             []byte(`{"users":{"alice":{"age":"23"},"baptist":{"age":"27"}}}`),
 				"pattern1/path1":            []byte("{\"projects\":{\"project1\":\"Name\",\"project2\":\"Name\"}}"),
 				"pattern1/path2":            []byte("{\"key\":\"value\"}"),
 				"pattern1/path3":            []byte("{\"root\":{\"sub1\":{\"value\":\"string\"},\"sub2\":\"Name\"},\"test\":\"value\",\"test1\":\"value1\"}"),
-				"pattern2/test/test-secret": []byte("{\"test4\":\"value4\"}"),
-				"pattern2/test/test.secret": []byte("{\"test5\":\"value5\"}"),
-				"pattern2/secret":           []byte("{\"test6\":\"value6\"}"),
-				"1secret":                   []byte("{\"test7\":\"value7\"}"),
-				"pattern2/test/test;secret": []byte("{\"test8\":\"value8\"}"),
+				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
+				"pattern2/test/test.secret": []byte("{\"key5\":\"value5\"}"),
+				"pattern2/secret":           []byte("{\"key6\":\"value6\"}"),
+				"1secret":                   []byte("{\"key7\":\"value7\"}"),
+				"pattern2/test/test;secret": []byte("{\"key8\":\"value8\"}"),
 			},
 			refFind: esv1.ExternalSecretFind{
 				Name: &esv1.FindName{
 					RegExp: "",
 				},
 			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(emptyPath, nil),
+			},
 		},
 		"No Regexp Match": {
-			errshould: "no secrets matched the regexp",
+			errshould: fmt.Sprintf("failed to retrieve multiple secrets: regex expression %q did not match any secret at path %q", noMatchRegexp, emptyPath),
 			refFind: esv1.ExternalSecretFind{
 				Name: &esv1.FindName{
-					RegExp: "^noMatch.*$",
+					RegExp: noMatchRegexp,
 				},
+			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(emptyPath, nil),
 			},
 		},
 		"Regex pattern containing '.' or '-' only": {
-			shouldmap: map[string][]byte{
-				"pattern2/test/test-secret": []byte("{\"test4\":\"value4\"}"),
-				"pattern2/test/test.secret": []byte("{\"test5\":\"value5\"}"),
+			should: map[string][]byte{
+				"nested-secret":             []byte(`{"users":{"alice":{"age":"23"},"baptist":{"age":"27"}}}`),
+				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
+				"pattern2/test/test.secret": []byte("{\"key5\":\"value5\"}"),
 			},
 			refFind: esv1.ExternalSecretFind{
 				Name: &esv1.FindName{
 					RegExp: ".*[.|-].*",
 				},
 			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(emptyPath, nil),
+			},
 		},
 		"Regex pattern starting with alphanumeric character": {
-			shouldmap: map[string][]byte{
+			should: map[string][]byte{
+				"mysecret":                  []byte(`{"key1":"value1","key2":"value2"}`),
+				"mysecret2":                 []byte(`{"keys":{"key1":"value1","key2":"value2"},"token":"value"}`),
+				"nested-secret":             []byte(`{"users":{"alice":{"age":"23"},"baptist":{"age":"27"}}}`),
 				"pattern1/path1":            []byte("{\"projects\":{\"project1\":\"Name\",\"project2\":\"Name\"}}"),
 				"pattern1/path2":            []byte("{\"key\":\"value\"}"),
 				"pattern1/path3":            []byte("{\"root\":{\"sub1\":{\"value\":\"string\"},\"sub2\":\"Name\"},\"test\":\"value\",\"test1\":\"value1\"}"),
-				"pattern2/test/test-secret": []byte("{\"test4\":\"value4\"}"),
-				"pattern2/test/test.secret": []byte("{\"test5\":\"value5\"}"),
-				"pattern2/secret":           []byte("{\"test6\":\"value6\"}"),
-				"pattern2/test/test;secret": []byte("{\"test8\":\"value8\"}"),
+				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
+				"pattern2/test/test.secret": []byte("{\"key5\":\"value5\"}"),
+				"pattern2/secret":           []byte("{\"key6\":\"value6\"}"),
+				"pattern2/test/test;secret": []byte("{\"key8\":\"value8\"}"),
 			},
 			refFind: esv1.ExternalSecretFind{
 				Name: &esv1.FindName{
 					RegExp: "^[A-Za-z].*$",
 				},
 			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(emptyPath, nil),
+			},
 		},
 		"Regex pattern without ';' character": {
-			shouldmap: map[string][]byte{
+			should: map[string][]byte{
+				"mysecret":                  []byte(`{"key1":"value1","key2":"value2"}`),
+				"mysecret2":                 []byte(`{"keys":{"key1":"value1","key2":"value2"},"token":"value"}`),
+				"nested-secret":             []byte(`{"users":{"alice":{"age":"23"},"baptist":{"age":"27"}}}`),
 				"pattern1/path1":            []byte("{\"projects\":{\"project1\":\"Name\",\"project2\":\"Name\"}}"),
 				"pattern1/path2":            []byte("{\"key\":\"value\"}"),
 				"pattern1/path3":            []byte("{\"root\":{\"sub1\":{\"value\":\"string\"},\"sub2\":\"Name\"},\"test\":\"value\",\"test1\":\"value1\"}"),
-				"pattern2/test/test-secret": []byte("{\"test4\":\"value4\"}"),
-				"pattern2/test/test.secret": []byte("{\"test5\":\"value5\"}"),
-				"pattern2/secret":           []byte("{\"test6\":\"value6\"}"),
-				"1secret":                   []byte("{\"test7\":\"value7\"}"),
+				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
+				"pattern2/test/test.secret": []byte("{\"key5\":\"value5\"}"),
+				"pattern2/secret":           []byte("{\"key6\":\"value6\"}"),
+				"1secret":                   []byte("{\"key7\":\"value7\"}"),
 			},
 			refFind: esv1.ExternalSecretFind{
 				Name: &esv1.FindName{
 					RegExp: "^[^;]+$",
 				},
 			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(emptyPath, nil),
+			},
 		},
 		"Path pattern1": {
-			shouldmap: map[string][]byte{
+			should: map[string][]byte{
 				"pattern1/path1": []byte("{\"projects\":{\"project1\":\"Name\",\"project2\":\"Name\"}}"),
 				"pattern1/path2": []byte("{\"key\":\"value\"}"),
 				"pattern1/path3": []byte("{\"root\":{\"sub1\":{\"value\":\"string\"},\"sub2\":\"Name\"},\"test\":\"value\",\"test1\":\"value1\"}"),
@@ -156,27 +166,42 @@ func TestGetAllSecrets(t *testing.T) {
 			refFind: esv1.ExternalSecretFind{
 				Path: &path1,
 			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(path1, nil),
+			},
 		},
 		"Path pattern2/test": {
-			shouldmap: map[string][]byte{
-				"pattern2/test/test-secret": []byte("{\"test4\":\"value4\"}"),
-				"pattern2/test/test.secret": []byte("{\"test5\":\"value5\"}"),
-				"pattern2/test/test;secret": []byte("{\"test8\":\"value8\"}"),
+			should: map[string][]byte{
+				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
+				"pattern2/test/test.secret": []byte("{\"key5\":\"value5\"}"),
+				"pattern2/test/test;secret": []byte("{\"key8\":\"value8\"}"),
 			},
 			refFind: esv1.ExternalSecretFind{
 				Path: &path2,
 			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(path2, nil),
+			},
 		},
 		"Secrets found without path": {
-			shouldmap: map[string][]byte{
+			should: map[string][]byte{
+				"mysecret":                  []byte(`{"key1":"value1","key2":"value2"}`),
+				"mysecret2":                 []byte(`{"keys":{"key1":"value1","key2":"value2"},"token":"value"}`),
+				"nested-secret":             []byte(`{"users":{"alice":{"age":"23"},"baptist":{"age":"27"}}}`),
 				"pattern1/path1":            []byte("{\"projects\":{\"project1\":\"Name\",\"project2\":\"Name\"}}"),
 				"pattern1/path2":            []byte("{\"key\":\"value\"}"),
 				"pattern1/path3":            []byte("{\"root\":{\"sub1\":{\"value\":\"string\"},\"sub2\":\"Name\"},\"test\":\"value\",\"test1\":\"value1\"}"),
-				"pattern2/test/test-secret": []byte("{\"test4\":\"value4\"}"),
-				"pattern2/test/test.secret": []byte("{\"test5\":\"value5\"}"),
-				"pattern2/secret":           []byte("{\"test6\":\"value6\"}"),
-				"1secret":                   []byte("{\"test7\":\"value7\"}"),
-				"pattern2/test/test;secret": []byte("{\"test8\":\"value8\"}"),
+				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
+				"pattern2/test/test.secret": []byte("{\"key5\":\"value5\"}"),
+				"pattern2/secret":           []byte("{\"key6\":\"value6\"}"),
+				"1secret":                   []byte("{\"key7\":\"value7\"}"),
+				"pattern2/test/test;secret": []byte("{\"key8\":\"value8\"}"),
+			},
+			refFind: esv1.ExternalSecretFind{
+				Path: nil,
+			},
+			okmsClient: fake.FakeOkmsClient{
+				GetSecretsMetadataFn: fake.NewGetSecretsMetadataFn(emptyPath, nil),
 			},
 		},
 	}
@@ -185,40 +210,32 @@ func TestGetAllSecrets(t *testing.T) {
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {
 			cl := &ovhClient{
-				okmsClient: fake.FakeOkmsClient{
-					TestCase: name,
-				},
-				kube: testCase.kube,
+				okmsClient: testCase.okmsClient,
+				kube:       testCase.kube,
 			}
 			secrets, err := cl.GetAllSecrets(ctx, testCase.refFind)
 
-			if err != nil && (err.Error() == "unknown case" || err.Error() == "unknown path") {
-				t.Fatalf("unexpected fake client case: %v", err)
-			}
 			if testCase.errshould != "" {
 				if err == nil {
-					t.Error()
-				}
-				if err.Error() != testCase.errshould {
-					t.Error()
+					t.Errorf("\nexpected value: %s\nactual value:   <nil>\n\n", testCase.errshould)
+				} else if err.Error() != testCase.errshould {
+					t.Errorf("\nexpected value: %s\nactual value:   %v\n\n", testCase.errshould, err)
 				}
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if len(testCase.shouldmap) != 0 {
-				if len(testCase.shouldmap) != len(secrets) {
-					t.Error()
-				}
-				for key, value := range secrets {
-					if _, ok := testCase.shouldmap[key]; !ok {
-						t.Error()
-					} else if !bytes.Equal(testCase.shouldmap[key], value) {
-						t.Error()
-					}
-				}
+			if !reflect.DeepEqual(testCase.should, secrets) {
+				t.Errorf("\nexpected value: %v\nactual value:   %v\n\n", convertByteMapToStringMap(testCase.should), convertByteMapToStringMap(secrets))
 			}
 		})
 	}
+}
+
+func convertByteMapToStringMap(m map[string][]byte) map[string]string {
+	newMap := make(map[string]string)
+
+	for key, value := range m {
+		newMap[key] = string(value)
+	}
+
+	return newMap
 }
