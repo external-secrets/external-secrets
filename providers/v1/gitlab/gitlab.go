@@ -52,6 +52,7 @@ const (
 	errPathNotImplemented           = "'find.path' is not implemented in the GitLab provider"
 	errJSONSecretUnmarshal          = "unable to unmarshal secret from JSON: %w"
 	errNotImplemented               = "not implemented"
+	errNoProjectOrGroup             = "no projectID or groupIDs configured"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -146,10 +147,11 @@ func (g *gitlabBase) PushSecret(ctx context.Context, secret *corev1.Secret, psd 
 		return nil
 	}
 
-	return errors.New("no projectID or groupIDs configured for push operation")
+	return fmt.Errorf("%s for push operation", errNoProjectOrGroup)
 }
 
-// extractTargetFromMetadata extracts groupID and projectID from metadata.
+// extractTargetFromMetadata extracts groupID and projectID from PushSecret metadata.
+// Returns empty strings if metadata is nil or doesn't contain the fields.
 func extractTargetFromMetadata(metadata *apiextensionsv1.JSON) (groupID, projectID string) {
 	if metadata == nil {
 		return "", ""
@@ -347,11 +349,14 @@ func (g *gitlabBase) pushGroupVariable(groupID, key, value string, psd esv1.Push
 }
 
 // projectVariableExists checks if a project variable exists.
+// projectVariableExists checks if a project variable exists in the default project.
+// Uses the project ID from the store configuration.
 func (g *gitlabBase) projectVariableExists(key, environmentScope string) (bool, error) {
 	return g.projectVariableExistsWithID(g.store.ProjectID, key, environmentScope)
 }
 
 // projectVariableExistsWithID checks if a project variable exists with a specific project ID.
+// Returns true if the variable exists, false if not found, or an error for other API failures.
 func (g *gitlabBase) projectVariableExistsWithID(projectID, key, environmentScope string) (bool, error) {
 	opts := &gitlab.GetProjectVariableOptions{
 		Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
@@ -370,7 +375,8 @@ func (g *gitlabBase) projectVariableExistsWithID(projectID, key, environmentScop
 	return true, nil
 }
 
-// groupVariableExists checks if a group variable exists.
+// groupVariableExists checks if a group variable exists for the specified group.
+// Returns true if the variable exists, false if not found, or an error for other API failures.
 func (g *gitlabBase) groupVariableExists(groupID, key, environmentScope string) (bool, error) {
 	opts := &gitlab.GetGroupVariableOptions{
 		Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
@@ -389,16 +395,27 @@ func (g *gitlabBase) groupVariableExists(groupID, key, environmentScope string) 
 	return true, nil
 }
 
-// applyMetadataToCreateOptions applies metadata to project variable create options.
-func applyMetadataToCreateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.CreateProjectVariableOptions) {
+// metadataOptions holds common GitLab variable options extracted from metadata.
+type metadataOptions struct {
+	Masked       *bool
+	Protected    *bool
+	Raw          *bool
+	Description  *string
+	VariableType *gitlab.VariableTypeValue
+}
+
+// parseMetadata extracts common GitLab variable options from PushSecret metadata.
+func parseMetadata(metadata *apiextensionsv1.JSON) *metadataOptions {
 	if metadata == nil {
-		return
+		return nil
 	}
 
 	var metadataMap map[string]interface{}
 	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
-		return
+		return nil
 	}
+
+	opts := &metadataOptions{}
 
 	if masked, ok := metadataMap["masked"].(bool); ok {
 		opts.Masked = gitlab.Ptr(masked)
@@ -418,102 +435,104 @@ func applyMetadataToCreateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.C
 		} else {
 			opts.VariableType = gitlab.Ptr(gitlab.EnvVariableType)
 		}
+	}
+
+	return opts
+}
+
+// applyMetadataToCreateOptions applies metadata to project variable create options.
+func applyMetadataToCreateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.CreateProjectVariableOptions) {
+	parsed := parseMetadata(metadata)
+	if parsed == nil {
+		return
+	}
+
+	if parsed.Masked != nil {
+		opts.Masked = parsed.Masked
+	}
+	if parsed.Protected != nil {
+		opts.Protected = parsed.Protected
+	}
+	if parsed.Raw != nil {
+		opts.Raw = parsed.Raw
+	}
+	if parsed.Description != nil {
+		opts.Description = parsed.Description
+	}
+	if parsed.VariableType != nil {
+		opts.VariableType = parsed.VariableType
 	}
 }
 
 // applyMetadataToUpdateOptions applies metadata to project variable update options.
 func applyMetadataToUpdateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.UpdateProjectVariableOptions) {
-	if metadata == nil {
+	parsed := parseMetadata(metadata)
+	if parsed == nil {
 		return
 	}
 
-	var metadataMap map[string]interface{}
-	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
-		return
+	if parsed.Masked != nil {
+		opts.Masked = parsed.Masked
 	}
-
-	if masked, ok := metadataMap["masked"].(bool); ok {
-		opts.Masked = gitlab.Ptr(masked)
+	if parsed.Protected != nil {
+		opts.Protected = parsed.Protected
 	}
-	if protected, ok := metadataMap["protected"].(bool); ok {
-		opts.Protected = gitlab.Ptr(protected)
+	if parsed.Raw != nil {
+		opts.Raw = parsed.Raw
 	}
-	if raw, ok := metadataMap["raw"].(bool); ok {
-		opts.Raw = gitlab.Ptr(raw)
+	if parsed.Description != nil {
+		opts.Description = parsed.Description
 	}
-	if description, ok := metadataMap["description"].(string); ok {
-		opts.Description = gitlab.Ptr(description)
-	}
-	if variableType, ok := metadataMap["variable_type"].(string); ok {
-		if variableType == "file" {
-			opts.VariableType = gitlab.Ptr(gitlab.FileVariableType)
-		} else {
-			opts.VariableType = gitlab.Ptr(gitlab.EnvVariableType)
-		}
+	if parsed.VariableType != nil {
+		opts.VariableType = parsed.VariableType
 	}
 }
 
 // applyMetadataToGroupCreateOptions applies metadata to group variable create options.
 func applyMetadataToGroupCreateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.CreateGroupVariableOptions) {
-	if metadata == nil {
+	parsed := parseMetadata(metadata)
+	if parsed == nil {
 		return
 	}
 
-	var metadataMap map[string]interface{}
-	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
-		return
+	if parsed.Masked != nil {
+		opts.Masked = parsed.Masked
 	}
-
-	if masked, ok := metadataMap["masked"].(bool); ok {
-		opts.Masked = gitlab.Ptr(masked)
+	if parsed.Protected != nil {
+		opts.Protected = parsed.Protected
 	}
-	if protected, ok := metadataMap["protected"].(bool); ok {
-		opts.Protected = gitlab.Ptr(protected)
+	if parsed.Raw != nil {
+		opts.Raw = parsed.Raw
 	}
-	if raw, ok := metadataMap["raw"].(bool); ok {
-		opts.Raw = gitlab.Ptr(raw)
+	if parsed.Description != nil {
+		opts.Description = parsed.Description
 	}
-	if description, ok := metadataMap["description"].(string); ok {
-		opts.Description = gitlab.Ptr(description)
-	}
-	if variableType, ok := metadataMap["variable_type"].(string); ok {
-		if variableType == "file" {
-			opts.VariableType = gitlab.Ptr(gitlab.FileVariableType)
-		} else {
-			opts.VariableType = gitlab.Ptr(gitlab.EnvVariableType)
-		}
+	if parsed.VariableType != nil {
+		opts.VariableType = parsed.VariableType
 	}
 }
 
 // applyMetadataToGroupUpdateOptions applies metadata to group variable update options.
 func applyMetadataToGroupUpdateOptions(metadata *apiextensionsv1.JSON, opts *gitlab.UpdateGroupVariableOptions) {
-	if metadata == nil {
+	parsed := parseMetadata(metadata)
+	if parsed == nil {
 		return
 	}
 
-	var metadataMap map[string]interface{}
-	if err := json.Unmarshal(metadata.Raw, &metadataMap); err != nil {
-		return
+	if parsed.Masked != nil {
+		opts.Masked = parsed.Masked
 	}
-
-	if masked, ok := metadataMap["masked"].(bool); ok {
-		opts.Masked = gitlab.Ptr(masked)
+	if parsed.Protected != nil {
+		opts.Protected = parsed.Protected
 	}
-	if protected, ok := metadataMap["protected"].(bool); ok {
-		opts.Protected = gitlab.Ptr(protected)
+	if parsed.Raw != nil {
+		opts.Raw = parsed.Raw
 	}
-	if raw, ok := metadataMap["raw"].(bool); ok {
-		opts.Raw = gitlab.Ptr(raw)
+	if parsed.Description != nil {
+		opts.Description = parsed.Description
 	}
-	if description, ok := metadataMap["description"].(string); ok {
-		opts.Description = gitlab.Ptr(description)
-	}
-	if variableType, ok := metadataMap["variable_type"].(string); ok {
-		if variableType == "file" {
-			opts.VariableType = gitlab.Ptr(gitlab.FileVariableType)
-		} else {
-			opts.VariableType = gitlab.Ptr(gitlab.EnvVariableType)
-		}
+	if parsed.VariableType != nil {
+		opts.VariableType = parsed.VariableType
 	}
 }
 
@@ -603,7 +622,7 @@ func (g *gitlabBase) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecret
 		return fmt.Errorf("failed to delete from group %q: %w", g.store.GroupIDs[0], err)
 	}
 
-	return errors.New("no projectID or groupIDs configured for delete operation")
+	return fmt.Errorf("%s for delete operation", errNoProjectOrGroup)
 }
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
