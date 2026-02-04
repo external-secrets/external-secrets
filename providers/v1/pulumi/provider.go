@@ -193,12 +193,17 @@ func (p *Provider) setupOIDCAuth(cfg *esv1.PulumiProvider, store esv1.GenericSto
 		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
 	}
 
-	return NewOIDCTokenManager(
+	manager := NewOIDCTokenManager(
 		clientset.CoreV1(),
 		cfg,
 		namespace,
 		store.GetObjectKind().GroupVersionKind().Kind,
-	), nil
+	)
+	if manager == nil {
+		return nil, errors.New("failed to create OIDC token manager: invalid OIDC configuration")
+	}
+
+	return manager, nil
 }
 
 func loadAccessTokenSecret(ctx context.Context, ref *esv1.PulumiProviderSecretRef, kube kclient.Client, storeKind, namespace string) (string, error) {
