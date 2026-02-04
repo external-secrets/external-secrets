@@ -201,27 +201,44 @@ func NewGetSecretsMetadataFn(path string, err error) GetSecretsMetadataFn {
 		}
 
 		for key := range fakeSecretStorage {
-			if path == "" && key != "nil-secret" && key != "empty-secret" {
-				*resp.Data.Keys = append(*resp.Data.Keys, key)
-				continue
-			}
-			posStart := strings.Index(key, path)
-			if posStart == 0 {
-				if len(path) == len(key) {
-					*resp.Data.Keys = append(*resp.Data.Keys, key)
-				} else if len(path) < len(key) && key[len(path)] == '/' {
-					key = key[len(path)+1:]
-					before, _, ok := strings.Cut(key, "/")
-					if ok {
-						*resp.Data.Keys = append(*resp.Data.Keys, before+"/")
-					} else {
-						*resp.Data.Keys = append(*resp.Data.Keys, key)
-					}
-				}
+			toAppend, ok := retrieveKeyToAppend(path, key)
+			if ok {
+				*resp.Data.Keys = append(*resp.Data.Keys, toAppend)
 			}
 		}
 
 		return resp, nil
+	}
+}
+func retrieveKeyToAppend(path, key string) (string, bool) {
+	// If no path is specified, append all non-empty secrets.
+	if path == "" && len(fakeSecretStorage[key]) != 0 {
+		return key, true
+	}
+
+	// Append the secret if key exactly matches path.
+	if path == key {
+		return key, true
+	}
+	// Skip the secret if path is not a prefix of key.
+	if !strings.HasPrefix(key, path+"/") {
+		return "", false
+	}
+
+	// The key starts with path.
+	// Return the first segment after path, adding a trailing slash if there are more segments.
+	// Examples:
+	//   path = "foo/bar", key = "foo/bar/baz/qux"
+	//   returns "baz/", because "baz" is the first segment after the path and there are more segments.
+	//
+	//   path = "foo/bar", key = "foo/bar/baz"
+	//   returns "baz", because it's the last segment.
+	key = key[len(path)+1:]
+	before, _, ok := strings.Cut(key, "/")
+	if ok {
+		return before + "/", true
+	} else {
+		return key, true
 	}
 }
 
