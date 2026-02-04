@@ -295,7 +295,7 @@ func validateAuth(store esv1.GenericStore, cfg *esv1.PulumiProvider) error {
 		return validateStoreSecretRef(store, cfg.Auth.AccessToken)
 	}
 	if hasOIDCConfig {
-		return validateOIDCConfig(cfg.Auth.OIDCConfig)
+		return validateOIDCConfig(store, cfg.Auth.OIDCConfig)
 	}
 	if hasDeprecatedAuth {
 		return validateStoreSecretRef(store, cfg.AccessToken)
@@ -304,12 +304,18 @@ func validateAuth(store esv1.GenericStore, cfg *esv1.PulumiProvider) error {
 	return nil
 }
 
-func validateOIDCConfig(oidcConfig *esv1.PulumiOIDCAuth) error {
+func validateOIDCConfig(store esv1.GenericStore, oidcConfig *esv1.PulumiOIDCAuth) error {
 	if oidcConfig.Organization == "" {
 		return errors.New("oidcConfig.organization is required")
 	}
 	if oidcConfig.ServiceAccountRef.Name == "" {
 		return errors.New("oidcConfig.serviceAccountRef.name is required")
+	}
+	// ClusterSecretStore requires namespace to be specified for OIDC ServiceAccountRef
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind {
+		if oidcConfig.ServiceAccountRef.Namespace == nil {
+			return errors.New("oidcConfig.serviceAccountRef.namespace is required for ClusterSecretStore")
+		}
 	}
 	return nil
 }
