@@ -65,15 +65,6 @@ func NewOIDCTokenManager(
 	return manager
 }
 
-// GetToken returns a valid Doppler API token, refreshing it if necessary.
-// This delegates to the embedded BaseTokenManager.
-func (m *OIDCTokenManager) GetToken(ctx context.Context) (string, error) {
-	if m == nil || m.BaseTokenManager == nil {
-		return "", fmt.Errorf("OIDC token manager is not initialized")
-	}
-	return m.BaseTokenManager.GetToken(ctx)
-}
-
 // ExchangeToken exchanges a ServiceAccount token for a Doppler API token.
 func (m *OIDCTokenManager) ExchangeToken(ctx context.Context, saToken string) (string, time.Time, error) {
 	url := m.BaseURL + dopplerOIDCPath

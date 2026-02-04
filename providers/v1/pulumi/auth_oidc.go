@@ -82,15 +82,6 @@ func NewOIDCTokenManager(
 	return manager
 }
 
-// GetToken returns a valid Pulumi access token, refreshing it if necessary.
-// This delegates to the embedded BaseTokenManager.
-func (m *OIDCTokenManager) GetToken(ctx context.Context) (string, error) {
-	if m == nil || m.BaseTokenManager == nil {
-		return "", fmt.Errorf("OIDC token manager is not initialized")
-	}
-	return m.BaseTokenManager.GetToken(ctx)
-}
-
 // ExchangeToken exchanges a ServiceAccount token for a Pulumi access token using the
 // OAuth 2.0 Token Exchange flow per RFC 8693.
 // See: https://www.pulumi.com/docs/reference/cloud-rest-api/oauth-token-exchange/

@@ -52,13 +52,6 @@ func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
 	assert.Nil(t, manager)
 }
 
-func TestOIDCTokenManager_GetToken_NotInitialized(t *testing.T) {
-	var manager *OIDCTokenManager
-	_, err := manager.GetToken(context.Background())
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not initialized")
-}
-
 func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 	tests := []struct {
 		name           string
