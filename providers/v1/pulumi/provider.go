@@ -101,7 +101,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	key := cache.Key{
 		Name:      store.GetObjectMeta().Name,
 		Namespace: namespace,
-		Kind:      store.GetTypeMeta().Kind,
+		Kind:      storeKind,
 	}
 
 	if useCache {
