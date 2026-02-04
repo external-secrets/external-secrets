@@ -197,7 +197,7 @@ func (p *Provider) setupOIDCAuth(cfg *esv1.PulumiProvider, store esv1.GenericSto
 		clientset.CoreV1(),
 		cfg,
 		namespace,
-		store.GetObjectKind().GroupVersionKind().Kind,
+		store.GetKind(),
 	)
 	if manager == nil {
 		return nil, errors.New("failed to create OIDC token manager: invalid OIDC configuration")
@@ -312,7 +312,7 @@ func validateOIDCConfig(store esv1.GenericStore, oidcConfig *esv1.PulumiOIDCAuth
 		return errors.New("oidcConfig.serviceAccountRef.name is required")
 	}
 	// ClusterSecretStore requires namespace to be specified for OIDC ServiceAccountRef
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind {
+	if store.GetKind() == esv1.ClusterSecretStoreKind {
 		if oidcConfig.ServiceAccountRef.Namespace == nil {
 			return errors.New("oidcConfig.serviceAccountRef.namespace is required for ClusterSecretStore")
 		}
