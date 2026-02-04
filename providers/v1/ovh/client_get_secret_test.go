@@ -124,6 +124,9 @@ func TestGetSecret(t *testing.T) {
 					t.Errorf("\nexpected error: %s\nactual error:   %v\n\n", testCase.errshould, err)
 				}
 				return
+			} else if err != nil {
+				t.Errorf("\nunexpected error: %v\n\n", err)
+				return
 			}
 			if testCase.should != "" && string(secret) != testCase.should {
 				t.Errorf("\nexpected value: %q\nactual value:   %q\n\n", testCase.should, string(secret))

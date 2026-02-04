@@ -285,6 +285,8 @@ func TestNewClient(t *testing.T) {
 				} else if err.Error() != testCase.errshould {
 					t.Errorf("\nexpected error: %s\nactual error:   %v\n\n", testCase.errshould, err)
 				}
+			} else if err != nil {
+				t.Errorf("\nunexpected error: %v\n\n", err)
 			}
 		})
 	}
@@ -474,6 +476,8 @@ func TestValidateStore(t *testing.T) {
 				} else if err.Error() != testCase.errshould {
 					t.Errorf("\nexpected error: %s\nactual error:   %v\n\n", testCase.errshould, err)
 				}
+			} else if err != nil {
+				t.Errorf("\nunexpected error: %v\n\n", err)
 			}
 		})
 	}

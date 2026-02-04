@@ -32,6 +32,7 @@ type FakeResolver struct {
 	Once    sync.Once
 	keyPEM  string
 	certPEM string
+	err     error
 }
 
 type FakeSecretKeyResolver struct {
@@ -43,11 +44,10 @@ func (fr *FakeSecretKeyResolver) Resolve(_ context.Context, _ kclient.Client, _,
 		return "Valid", nil
 	}
 	if ref.Name == "Valid mtls client certificate" || ref.Name == "Valid mtls client key" {
-		var err error
 		fr.fakeResolver.Once.Do(func() {
 			var privKey *rsa.PrivateKey
-			privKey, err = rsa.GenerateKey(rand.Reader, 2048)
-			if err != nil {
+			privKey, fr.fakeResolver.err = rsa.GenerateKey(rand.Reader, 2048)
+			if fr.fakeResolver.err != nil {
 				return
 			}
 			fr.fakeResolver.keyPEM = string(pem.EncodeToMemory(&pem.Block{
@@ -57,8 +57,8 @@ func (fr *FakeSecretKeyResolver) Resolve(_ context.Context, _ kclient.Client, _,
 
 			template := x509.Certificate{}
 			var cert []byte
-			cert, err = x509.CreateCertificate(rand.Reader, &template, &template, &privKey.PublicKey, privKey)
-			if err != nil {
+			cert, fr.fakeResolver.err = x509.CreateCertificate(rand.Reader, &template, &template, &privKey.PublicKey, privKey)
+			if fr.fakeResolver.err != nil {
 				return
 			}
 			fr.fakeResolver.certPEM = string(pem.EncodeToMemory(&pem.Block{
@@ -67,8 +67,8 @@ func (fr *FakeSecretKeyResolver) Resolve(_ context.Context, _ kclient.Client, _,
 			}))
 		})
 
-		if err != nil {
-			return "", err
+		if fr.fakeResolver.err != nil {
+			return "", fr.fakeResolver.err
 		}
 
 		if ref.Name == "Valid mtls client certificate" {

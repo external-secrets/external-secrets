@@ -131,7 +131,10 @@ func NewGetSecretV2Fn(path string, err error) GetSecretV2Fn {
 }
 
 func (f FakeOkmsClient) ListSecretV2(ctx context.Context, okmsID uuid.UUID, pageSize *uint32, pageCursor *string) (*types.ListSecretV2ResponseWithPagination, error) {
-	return f.ListSecretV2Fn()
+	if f.ListSecretV2Fn != nil {
+		return f.ListSecretV2Fn()
+	}
+	return NewListSecretV2Fn(nil)()
 }
 func NewListSecretV2Fn(err error) ListSecretV2Fn {
 	return func() (*types.ListSecretV2ResponseWithPagination, error) {
@@ -152,7 +155,10 @@ func NewListSecretV2Fn(err error) ListSecretV2Fn {
 }
 
 func (f FakeOkmsClient) PostSecretV2(ctx context.Context, okmsID uuid.UUID, body types.PostSecretV2Request) (*types.PostSecretV2Response, error) {
-	return f.PostSecretV2Fn()
+	if f.PostSecretV2Fn != nil {
+		return f.PostSecretV2Fn()
+	}
+	return NewPostSecretV2Fn(nil)()
 }
 func NewPostSecretV2Fn(err error) PostSecretV2Fn {
 	return func() (*types.PostSecretV2Response, error) {
@@ -161,7 +167,10 @@ func NewPostSecretV2Fn(err error) PostSecretV2Fn {
 }
 
 func (f FakeOkmsClient) PutSecretV2(ctx context.Context, okmsID uuid.UUID, path string, cas *uint32, body types.PutSecretV2Request) (*types.PutSecretV2Response, error) {
-	return f.PutSecretV2Fn()
+	if f.PutSecretV2Fn != nil {
+		return f.PutSecretV2Fn()
+	}
+	return NewPutSecretV2Fn(nil)()
 }
 func NewPutSecretV2Fn(err error) PutSecretV2Fn {
 	return func() (*types.PutSecretV2Response, error) {
@@ -170,7 +179,10 @@ func NewPutSecretV2Fn(err error) PutSecretV2Fn {
 }
 
 func (f FakeOkmsClient) DeleteSecretV2(ctx context.Context, okmsID uuid.UUID, path string) error {
-	return f.DeleteSecretV2Fn()
+	if f.DeleteSecretV2Fn != nil {
+		return f.DeleteSecretV2Fn()
+	}
+	return NewDeleteSecretV2Fn(nil)()
 }
 func NewDeleteSecretV2Fn(err error) DeleteSecretV2Fn {
 	return func() error {
@@ -186,7 +198,10 @@ func NewDeleteSecretV2Fn(err error) DeleteSecretV2Fn {
 //
 // This implementation returns a list of secrets from fakeSecretStorage variable.
 func (f FakeOkmsClient) GetSecretsMetadata(ctx context.Context, okmsID uuid.UUID, path string, list bool) (*types.GetMetadataResponse, error) {
-	return f.GetSecretsMetadataFn()
+	if f.GetSecretsMetadataFn != nil {
+		return f.GetSecretsMetadataFn()
+	}
+	return NewGetSecretsMetadataFn(path, nil)()
 }
 func NewGetSecretsMetadataFn(path string, err error) GetSecretsMetadataFn {
 	return func() (*types.GetMetadataResponse, error) {

@@ -203,11 +203,11 @@ func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []s
 		// Insert the secret if no regex is provided;
 		// otherwise, insert only matching secrets.
 		secretData, ok, err := fetchSecretData(ctx, cl, secret, regex, ref)
-		if ok {
-			secretsDataMap[secret] = secretData
-		}
 		if err != nil {
 			return map[string][]byte{}, err
+		}
+		if ok {
+			secretsDataMap[secret] = secretData
 		}
 	}
 	if len(secretsDataMap) == 0 {
