@@ -7267,6 +7267,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -7309,7 +7310,7 @@ NebiusAuth
 </em>
 </td>
 <td>
-<p>Auth defines parameters to authenticate in Mysterybox</p>
+<p>Auth defines parameters to authenticate in MysteryBox</p>
 </td>
 </tr>
 <tr>
