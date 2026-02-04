@@ -43,6 +43,7 @@ type NebiusAuth struct {
 
 // NebiusCAProvider The provider for the CA bundle to use to validate Nebius server certificate.
 type NebiusCAProvider struct {
+	// +optional
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 }
 
@@ -52,7 +53,7 @@ type NebiusMysteryboxProvider struct {
 	// NebiusMysterybox API endpoint
 	APIDomain string `json:"apiDomain,omitempty"`
 
-	/* Auth defines parameters to authenticate in Mysterybox */
+	// Auth defines parameters to authenticate in MysteryBox
 	Auth NebiusAuth `json:"auth"`
 
 	// The provider for the CA bundle to use to validate NebiusMysterybox server certificate.

@@ -29,7 +29,7 @@ type Token struct {
 	IssuedAt  time.Time
 }
 
-// TokenExchangerClient is an interface for exchanging credentials to obtain IAM tokens.
-type TokenExchangerClient interface {
-	NewIamToken(ctx context.Context, apiDomain, subjectCreds string, issuedAt time.Time, caCertificate []byte) (*Token, error)
+// TokenExchanger is an interface for exchanging credentials to obtain IAM tokens.
+type TokenExchanger interface {
+	ExchangeIamToken(ctx context.Context, apiDomain, subjectCreds string, issuedAt time.Time, caCertificate []byte) (*Token, error)
 }

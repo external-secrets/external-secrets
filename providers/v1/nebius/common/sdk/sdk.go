@@ -38,7 +38,7 @@ func NewSDK(ctx context.Context, apiDomain string, caCertificate []byte) (*gosdk
 
 	if caCertificate != nil && len(caCertificate) > 0 {
 		certPool := x509.NewCertPool()
-		if ok := certPool.AppendCertsFromPEM(caCertificate); !ok {
+		if certPool.AppendCertsFromPEM(caCertificate) {
 			return nil, errors.New("failed to append CA certificate. PEM parse error")
 		}
 		tlsCfg.RootCAs = certPool

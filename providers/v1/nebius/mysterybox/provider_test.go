@@ -57,7 +57,7 @@ var (
 	logger = ctrl.Log.WithName("provider").WithName("nebius").WithName("mysterybox")
 )
 
-func setupClientWithTokenAuth(t *testing.T, entries []mysterybox.Entry, tokenService TokenService) (context.Context, *SecretsClient, *fake.Secret, k8sclient.Client, *fake.MysteryboxService) {
+func setupClientWithTokenAuth(t *testing.T, entries []mysterybox.Entry, tokenGetter TokenGetter) (context.Context, *SecretsClient, *fake.Secret, k8sclient.Client, *fake.MysteryboxService) {
 	t.Helper()
 	ctx := context.Background()
 	namespace := uuid.NewString()
@@ -71,7 +71,7 @@ func setupClientWithTokenAuth(t *testing.T, entries []mysterybox.Entry, tokenSer
 		func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			return fake.NewFakeMysteryboxClient(mysteryboxService), nil
 		},
-		tokenService,
+		tokenGetter,
 	)
 	createK8sSecret(ctx, t, k8sClient, namespace, tokenSecretName, tokenSecretKey, []byte("token"))
 	store := newNebiusMysteryboxSecretStoreWithAuthTokenKey(apiDomain, namespace, tokenSecretName, tokenSecretKey)
@@ -85,7 +85,7 @@ func setupClientWithTokenAuth(t *testing.T, entries []mysterybox.Entry, tokenSer
 
 func TestNewClient_GetTokenError(t *testing.T) {
 	t.Parallel()
-	tokenService := fakeTokenService{returnError: true}
+	tokenGetter := faketokenGetter{returnError: true}
 
 	ctx := context.Background()
 	namespace := uuid.NewString()
@@ -98,7 +98,7 @@ func TestNewClient_GetTokenError(t *testing.T) {
 		func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			return fake.NewFakeMysteryboxClient(mysteryboxService), nil
 		},
-		&tokenService,
+		&tokenGetter,
 	)
 
 	_, err := provider.NewClient(ctx, newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace, saCredsSecretName, saCredsSecretKey), k8sClient, namespace)
@@ -243,7 +243,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 
 	cache, err := lru.New(10)
 	tassert.NoError(t, err)
-	tokenService := &fakeTokenService{tokenToIssue: tokenToIssue}
+	tokenGetter := &faketokenGetter{tokenToIssue: tokenToIssue}
 
 	newProvider := func() *Provider {
 		return &Provider{
@@ -251,7 +251,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 			NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 				return fake.NewFakeMysteryboxClient(mysteryboxService), nil
 			},
-			TokenService:           tokenService,
+			TokenGetter:            tokenGetter,
 			mysteryboxClientsCache: cache,
 		}
 	}
@@ -393,7 +393,7 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 
 	tokenToIssue := tokenToBeIssued
 
-	tokenService := &fakeTokenService{
+	tokenGetter := &faketokenGetter{
 		tokenToIssue: tokenToIssue,
 	}
 
@@ -407,7 +407,7 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 		},
 		mysteryboxClientsCache: cache,
 	}
-	setTokenServiceWorkaround(tokenService, p)
+	settokenGetterWorkaround(tokenGetter, p)
 
 	createK8sSecret(ctx, t, k8sClient, namespace, authRefName, authRefKey, providedCreds)
 	store := newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace, authRefName, authRefKey)
@@ -417,13 +417,13 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 
 	msc, ok := client.(*SecretsClient)
 	tassert.True(t, ok, "expected *MysteryboxSecretsClient, got %T", client)
-	tassert.Equal(t, tokenToIssue, msc.token, fmt.Sprintf("token mismatch: got %q want %q (issued by TokenService)", msc.token, tokenToIssue))
+	tassert.Equal(t, tokenToIssue, msc.token, fmt.Sprintf("token mismatch: got %q want %q (issued by TokenGetter)", msc.token, tokenToIssue))
 
-	// also ensure TokenService was exercised with the domain and creds we expect
-	tassert.Equal(t, int32(1), tokenService.calls, "expected TokenService to be called once")
-	tassert.Equal(t, apiDomain, tokenService.gotDomain, "expected TokenService to be called with the correct domain")
-	tassert.Equal(t, string(providedCreds), tokenService.gotCreds, "expected TokenService to be called with the correct creds")
-	tassert.Nil(t, tokenService.gotCACert, "expected TokenService to be called without CA cert")
+	// also ensure TokenGetter was exercised with the domain and creds we expect
+	tassert.Equal(t, int32(1), tokenGetter.calls, "expected TokenGetter to be called once")
+	tassert.Equal(t, apiDomain, tokenGetter.gotDomain, "expected TokenGetter to be called with the correct domain")
+	tassert.Equal(t, string(providedCreds), tokenGetter.gotCreds, "expected TokenGetter to be called with the correct creds")
+	tassert.Nil(t, tokenGetter.gotCACert, "expected TokenGetter to be called without CA cert")
 
 	got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k"})
 	tassert.NoError(t, err)
@@ -579,7 +579,7 @@ func TestCreateOrGetMysteryboxClient_CachesByKey(t *testing.T) {
 	_, err = p.createOrGetMysteryboxClient(ctx, "other.nebius.example", []byte("CA1"))
 	tassert.NoError(t, err)
 
-	tassert.Equal(t, int32(3), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d (3 distinct keys)", &factoryCalls, 3))
+	tassert.Equal(t, int32(3), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d", atomic.LoadInt32(&factoryCalls), 3))
 }
 
 func TestCreateOrGetMysteryboxClient_EmptyCA_EqualsNil(t *testing.T) {
@@ -727,7 +727,7 @@ func TestCreateOrGetMysteryboxClient_Concurrent_MultipleClients(t *testing.T) {
 		}
 	}
 
-	tassert.Equal(t, int32(4), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d", &factoryCalls, 3))
+	tassert.Equal(t, int32(4), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d", atomic.LoadInt32(&factoryCalls), 4))
 }
 
 func TestMysteryboxClientsCache_ConcurrentEviction_CloseOnce(t *testing.T) {
@@ -790,7 +790,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 	var factoryCalls int32
 	tokenToIssue := tokenToBeIssued
 
-	tokenService := &fakeTokenService{tokenToIssue: tokenToIssue}
+	tokenGetter := &faketokenGetter{tokenToIssue: tokenToIssue}
 
 	p := &Provider{
 		Logger: logger,
@@ -799,7 +799,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 			return fake.NewFakeMysteryboxClient(mboxSvc), nil
 		},
 	}
-	setTokenServiceWorkaround(tokenService, p)
+	settokenGetterWorkaround(tokenGetter, p)
 
 	creds := []byte(`{"private_key":"KEY","key_id":"id","subject":"sub","issuer":"iss"}`)
 	createK8sSecret(ctx, t, k8sClient, namespace, authRefName, authRefKey, creds)
@@ -833,7 +833,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 		tassert.Equal(t, []byte("v"), got)
 	}
 
-	tassert.Equal(t, int32(goroutines), atomic.LoadInt32(&tokenService.calls), fmt.Sprintf("TokenService.GetToken called %d times, want %d", &factoryCalls, goroutines))
+	tassert.Equal(t, int32(goroutines), atomic.LoadInt32(&tokenGetter.calls), fmt.Sprintf("TokenGetter.GetToken called %d times, want %d", &factoryCalls, goroutines))
 	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("NewMysteryboxClient called %d times, want 1", &factoryCalls))
 }
 
@@ -899,7 +899,7 @@ func unmarshalStringMap(t *testing.T, data []byte) map[string]string {
 	return stringMap
 }
 
-func newProvider(t *testing.T, newMysteryboxClientFunc NewMysteryboxClient, tokenService TokenService) *Provider {
+func newProvider(t *testing.T, newMysteryboxClientFunc NewMysteryboxClient, tokenGetter TokenGetter) *Provider {
 	t.Helper()
 	cache, err := lru.New(10)
 	tassert.NoError(t, err)
@@ -907,11 +907,11 @@ func newProvider(t *testing.T, newMysteryboxClientFunc NewMysteryboxClient, toke
 		Logger:                 logger,
 		NewMysteryboxClient:    newMysteryboxClientFunc,
 		mysteryboxClientsCache: cache,
-		TokenService:           tokenService,
+		TokenGetter:            tokenGetter,
 	}
 }
 
-type fakeTokenService struct {
+type faketokenGetter struct {
 	calls        int32
 	returnError  bool
 	gotDomain    string
@@ -922,7 +922,7 @@ type fakeTokenService struct {
 	mu sync.Mutex
 }
 
-func (f *fakeTokenService) GetToken(_ context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
+func (f *faketokenGetter) GetToken(_ context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
 	atomic.AddInt32(&f.calls, 1)
 
 	f.mu.Lock()
@@ -945,11 +945,11 @@ func setCacheSizeWorkaround(t *testing.T, size int, p *Provider) {
 	p.mysteryboxClientsCache.Resize(size)
 }
 
-func setTokenServiceWorkaround(tokenService TokenService, p *Provider) {
+func settokenGetterWorkaround(tokenGetter TokenGetter, p *Provider) {
 	p.tokenInitMutex.Lock()
 	defer p.tokenInitMutex.Unlock()
 
-	p.TokenService = tokenService
+	p.TokenGetter = tokenGetter
 }
 
 type ClientData struct {

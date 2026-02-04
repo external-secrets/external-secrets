@@ -30,8 +30,8 @@ type FakeTokenExchanger struct {
 	ReturnError bool
 }
 
-// NewIamToken exchanges credentials to generate a new IAM token with a fixed 100-second validity period.
-func (f *FakeTokenExchanger) NewIamToken(_ context.Context, _, _ string, issuedAt time.Time, _ []byte) (*Token, error) {
+// ExchangeIamToken exchanges credentials to generate a new IAM token with a fixed 100-second validity period.
+func (f *FakeTokenExchanger) ExchangeIamToken(_ context.Context, _, _ string, issuedAt time.Time, _ []byte) (*Token, error) {
 	f.Calls++
 	if f.ReturnError {
 		return nil, fmt.Errorf("fake error")

@@ -34,16 +34,16 @@ type tokenTestEnv struct {
 	ctx                context.Context
 	clk                *clocktesting.FakeClock
 	fakeTokenExchanger *iam.FakeTokenExchanger
-	TokenCacheService  *TokenCacheService
+	cachedTokenGetter  *CachedTokenGetter
 }
 
 func newTokenTestEnv(t *testing.T) *tokenTestEnv {
 	t.Helper()
 	clk := clocktesting.NewFakeClock(time.Unix(0, 0))
 	ex := &iam.FakeTokenExchanger{}
-	svc, err := NewTokenCacheService(10, ex, clk)
+	svc, err := NewCachedTokenGetter(10, ex, clk)
 	trequire.NoError(t, err)
-	return &tokenTestEnv{ctx: context.Background(), clk: clk, fakeTokenExchanger: ex, TokenCacheService: svc}
+	return &tokenTestEnv{ctx: context.Background(), clk: clk, fakeTokenExchanger: ex, cachedTokenGetter: svc}
 }
 
 func buildSubjectCredsJSON(t *testing.T, privateKey, keyID, subject string) string {
@@ -67,21 +67,21 @@ func TestGetToken_CachesUntilTenPercentLeft(t *testing.T) {
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 
-	token1, err := env.TokenCacheService.GetToken(ctx, "api.example", creds, nil)
+	token1, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-1", token1)
 	tassert.Equal(t, 1, env.fakeTokenExchanger.Calls)
 
 	// add 5 seconds (remaining > 10%)
 	addSecondsToClock(env.clk, 5)
-	token2, err := env.TokenCacheService.GetToken(ctx, "api.example", creds, nil)
+	token2, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, token1, token2)
 	tassert.Equal(t, 1, env.fakeTokenExchanger.Calls)
 
 	// after >90% elapsed -> should refresh
 	addSecondsToClock(env.clk, 91) // total 96s
-	token3, err := env.TokenCacheService.GetToken(ctx, "api.example", creds, nil)
+	token3, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
 	tassert.NoError(t, err)
 	tassert.NotEqual(t, token1, token3)
 	tassert.Equal(t, 2, env.fakeTokenExchanger.Calls)
@@ -95,11 +95,11 @@ func TestGetToken_SeparateCacheEntriesPerSubjectCreds(t *testing.T) {
 	credsA := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 	credsB := buildSubjectCredsJSON(t, "priv-B", "kid-B", "sa-B")
 
-	tokenA1, err := env.TokenCacheService.GetToken(ctx, "api.example", credsA, nil)
+	tokenA1, err := env.cachedTokenGetter.GetToken(ctx, "api.example", credsA, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-1", tokenA1)
 
-	tokenB1, err := env.TokenCacheService.GetToken(ctx, "api.example", credsB, nil)
+	tokenB1, err := env.cachedTokenGetter.GetToken(ctx, "api.example", credsB, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-2", tokenB1)
 
@@ -107,7 +107,7 @@ func TestGetToken_SeparateCacheEntriesPerSubjectCreds(t *testing.T) {
 
 	// check token cached
 	addSecondsToClock(env.clk, 1)
-	tokA2, err := env.TokenCacheService.GetToken(ctx, "api.example", credsA, nil)
+	tokA2, err := env.cachedTokenGetter.GetToken(ctx, "api.example", credsA, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, tokenA1, tokA2)
 	tassert.Equal(t, 2, env.fakeTokenExchanger.Calls)
@@ -117,7 +117,7 @@ func TestGetToken_InvalidSubjectCreds_ReturnsError(t *testing.T) {
 	t.Parallel()
 	env := newTokenTestEnv(t)
 
-	_, err := env.TokenCacheService.GetToken(env.ctx, "api.example", "not a json", nil)
+	_, err := env.cachedTokenGetter.GetToken(env.ctx, "api.example", "not a json", nil)
 	tassert.Error(t, err)
 }
 
@@ -131,17 +131,17 @@ func TestGetToken_SeparateCacheEntriesPerApiDomain(t *testing.T) {
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 
-	tokA1, err := env.TokenCacheService.GetToken(ctx, "api.one", creds, nil)
+	tokA1, err := env.cachedTokenGetter.GetToken(ctx, "api.one", creds, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-1", tokA1)
 
-	tokB1, err := env.TokenCacheService.GetToken(ctx, "api.two", creds, nil)
+	tokB1, err := env.cachedTokenGetter.GetToken(ctx, "api.two", creds, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-2", tokB1)
 	tassert.NotEqual(t, tokA1, tokB1)
 	tassert.Equal(t, 2, env.fakeTokenExchanger.Calls)
 
-	tokA2, err := env.TokenCacheService.GetToken(ctx, "api.one", creds, nil)
+	tokA2, err := env.cachedTokenGetter.GetToken(ctx, "api.one", creds, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, tokA1, tokA2)
 	tassert.Equal(t, 2, env.fakeTokenExchanger.Calls)
@@ -151,7 +151,7 @@ func TestGetToken_LRUEviction(t *testing.T) {
 	t.Parallel()
 	clk := clocktesting.NewFakeClock(time.Unix(0, 0))
 	ex := &iam.FakeTokenExchanger{}
-	svc, err := NewTokenCacheService(2, ex, clk)
+	svc, err := NewCachedTokenGetter(2, ex, clk)
 	tassert.NoError(t, err)
 	ctx := context.Background()
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
@@ -187,10 +187,10 @@ func TestGetToken_AfterExpiration_Refreshes(t *testing.T) {
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 
-	_, _ = env.TokenCacheService.GetToken(ctx, "api.example", creds, nil)
+	_, _ = env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
 	addSecondsToClock(env.clk, 101)
 
-	tok2, err := env.TokenCacheService.GetToken(ctx, "api.example", creds, nil)
+	tok2, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, 2, env.fakeTokenExchanger.Calls)
 	tassert.Equal(t, "token-2", tok2)
@@ -206,10 +206,10 @@ func TestGetToken_CacheKeyChangesOnKeyRotation(t *testing.T) {
 	rotatedPriv := buildSubjectCredsJSON(t, "priv-B", "kid-A", "sa-A")
 	rotatedSubject := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-B")
 
-	t1, _ := env.TokenCacheService.GetToken(ctx, "api", base, nil)
-	t2, _ := env.TokenCacheService.GetToken(ctx, "api", rotatedKeyID, nil)
-	t3, _ := env.TokenCacheService.GetToken(ctx, "api", rotatedPriv, nil)
-	t4, _ := env.TokenCacheService.GetToken(ctx, "api", rotatedSubject, nil)
+	t1, _ := env.cachedTokenGetter.GetToken(ctx, "api", base, nil)
+	t2, _ := env.cachedTokenGetter.GetToken(ctx, "api", rotatedKeyID, nil)
+	t3, _ := env.cachedTokenGetter.GetToken(ctx, "api", rotatedPriv, nil)
+	t4, _ := env.cachedTokenGetter.GetToken(ctx, "api", rotatedSubject, nil)
 
 	tassert.NotEqual(t, t1, t2)
 	tassert.NotEqual(t, t1, t3)
@@ -220,7 +220,7 @@ func TestGetToken_CacheKeyChangesOnKeyRotation(t *testing.T) {
 func TestGetToken_ExchangerErrorIsWrapped(t *testing.T) {
 	t.Parallel()
 	clk := clocktesting.NewFakeClock(time.Unix(0, 0))
-	svc, err := NewTokenCacheService(10, &iam.FakeTokenExchanger{ReturnError: true}, clk)
+	svc, err := NewCachedTokenGetter(10, &iam.FakeTokenExchanger{ReturnError: true}, clk)
 	trequire.NoError(t, err)
 
 	_, err = svc.GetToken(context.Background(), "api", buildSubjectCredsJSON(t, "p", "k", "s"), nil)
