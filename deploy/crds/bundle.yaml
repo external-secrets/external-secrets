@@ -5548,7 +5548,7 @@ spec:
                           description: NebiusMysterybox API endpoint
                           type: string
                         auth:
-                          description: Auth defines parameters to authenticate in Mysterybox
+                          description: Auth defines parameters to authenticate in MysteryBox
                           properties:
                             serviceAccountCredsSecretRef:
                               description: |-
@@ -17438,7 +17438,7 @@ spec:
                           description: NebiusMysterybox API endpoint
                           type: string
                         auth:
-                          description: Auth defines parameters to authenticate in Mysterybox
+                          description: Auth defines parameters to authenticate in MysteryBox
                           properties:
                             serviceAccountCredsSecretRef:
                               description: |-
