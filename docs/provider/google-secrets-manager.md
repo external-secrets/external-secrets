@@ -221,7 +221,7 @@ spec:
 
 #### Auto-detection of GCP project ID
 
-When creating a `SecretStore` or `ClusterSecretStore` that uses Workload Identity Federation, the `projectID` field is optional. If omitted, the operator will automatically detect the GCP project ID from the [GCP metadata server](https://cloud.google.com/compute/docs/metadata/overview) when running in GKE.
+When creating a `SecretStore` or `ClusterSecretStore` that uses Workload Identity, Workload Identity Federation, or default credentials (ADC), the `projectID` field is optional. If omitted, the operator will automatically detect the GCP project ID from the [GCP metadata server](https://cloud.google.com/compute/docs/metadata/overview) when running in GKE.
 
 This allows you to create portable SecretStore configurations that work across multiple GCP projects without modification:
 
@@ -240,14 +240,79 @@ spec:
             name: demo-secrets-sa
 ```
 
-**Note**: The `projectID` field is still required when:
-- Using static service account credentials (not Workload Identity)
-- Running outside of GKE (unless using GCP Workload Identity Federation with explicit configuration)
-- Accessing secrets in a different GCP project than the one hosting the GKE cluster
+**When is projectID required?**
+
+The `projectID` field must be explicitly specified when:
+- Using static service account credentials
+- Running outside of GKE and metadata server is unavailable
+- Accessing secrets in a different GCP project than your cluster (see "Understanding projectID vs clusterProjectID" below)
+
+The `projectID` field is optional (auto-detected from metadata) when:
+- Using Workload Identity in GKE with secrets in the same project
+- Using Workload Identity Federation in GKE with secrets in the same project
+- Using default credentials (Core Controller) in GKE with secrets in the same project
+
+#### Understanding projectID vs clusterProjectID
+
+The GCP Secret Manager provider uses two project-related fields that serve different purposes:
+
+**`spec.provider.gcpsm.projectID`**
+- **Primary purpose**: Specifies the GCP project where your **secrets are stored**
+- **Secondary purpose**: Fallback for authentication when `clusterProjectID` is not specified (Workload Identity only)
+- **Used in**: Secret resource paths like `projects/{projectID}/secrets/{secretName}`
+- **Can be omitted**: When using Workload Identity or Workload Identity Federation in GKE (auto-detected from metadata)
+- **Must be explicit**: When using static service account credentials
+
+**`spec.provider.gcpsm.auth.workloadIdentity.clusterProjectID`**
+- **Purpose**: Specifies the GCP project where your **GKE cluster is hosted**
+- **Used in**: Constructing Workload Identity pool URLs for authentication
+- **Only relevant for**: Workload Identity authentication method
+- **Can be omitted**: Auto-detected from GCP metadata server in GKE
+- **Not used by**: Static credentials, Workload Identity Federation, or default credentials
+
+**Common Scenarios:**
+
+1. **Same project for cluster and secrets** (most common in GKE):
+   ```yaml
+   spec:
+     provider:
+       gcpsm:
+         # Both omitted - auto-detect from metadata
+         auth:
+           workloadIdentity:
+             serviceAccountRef:
+               name: demo-sa
+   ```
+
+2. **Different projects for cluster and secrets** (cross-project access):
+   ```yaml
+   spec:
+     provider:
+       gcpsm:
+         projectID: "secrets-project-456"  # Where secrets are stored
+         auth:
+           workloadIdentity:
+             clusterProjectID: "cluster-project-123"  # Where cluster runs
+             serviceAccountRef:
+               name: demo-sa
+   ```
+
+3. **Static credentials** (requires explicit projectID):
+   ```yaml
+   spec:
+     provider:
+       gcpsm:
+         projectID: "my-project-123"  # REQUIRED
+         auth:
+           secretRef:
+             secretAccessKeySecretRef:
+               name: gcpsm-secret
+               key: credentials
+   ```
 
 #### Explicitly specifying the GKE cluster's name and location
 
-When creating a `SecretStore` or `ClusterSecretStore` that uses WIF, the GKE cluster's name and location are automatically determined through the [GCP metadata server](https://cloud.google.com/compute/docs/metadata/overview).
+When creating a `SecretStore` or `ClusterSecretStore` that uses Workload Identity, the GKE cluster's name and location are automatically determined through the [GCP metadata server](https://cloud.google.com/compute/docs/metadata/overview).
 Alternatively, you can explicitly specify some or all of these values.
 
 For a fully specified configuration, you'll need to know the following three values:

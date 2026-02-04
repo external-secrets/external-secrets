@@ -87,7 +87,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	// If ProjectID is not explicitly set in the spec, use the clusterProjectID
-	// This allows the client to function even when ProjectID is omitted
+	// This allows the client to function when ProjectID is omitted for Workload Identity,
+	// Workload Identity Federation, or default credentials (not static credentials)
 	if gcpStore.ProjectID == "" {
 		gcpStore.ProjectID = clusterProjectID
 	}
@@ -165,6 +166,11 @@ func clusterProjectID(ctx context.Context, spec *esv1.SecretStoreSpec) (string, 
 	}
 	if spec.Provider.GCPSM.ProjectID != "" {
 		return spec.Provider.GCPSM.ProjectID, nil
+	}
+	// If using static credentials, projectID must be explicitly set
+	// Do NOT fall back to metadata server for static credentials
+	if spec.Provider.GCPSM.Auth.SecretRef != nil {
+		return "", errors.New(errNoProjectID)
 	}
 	// Fall back to GCP metadata server when running in GKE
 	// This allows SecretStore/ClusterSecretStore to omit projectID

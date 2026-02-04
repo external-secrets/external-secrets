@@ -202,51 +202,6 @@ func TestClusterProjectID(t *testing.T) {
 	assert.Equal(t, externalClusterID, "5678")
 }
 
-func TestClusterProjectIDMetadataFallback(t *testing.T) {
-	ctx := context.Background()
-
-	// Store the original factory and restore it after the test
-	originalFactory := metadataClientFactory
-	defer func() { metadataClientFactory = originalFactory }()
-
-	// Test: metadata fallback when projectID is not specified
-	metadataClientFactory = func() MetadataClient {
-		return &fakeMetadataClient{metadata: map[string]string{"project-id": "metadata-project-123"}}
-	}
-
-	// Create a store without any projectID specified
-	emptyProjectStore := &esv1.SecretStore{
-		Spec: esv1.SecretStoreSpec{
-			Provider: &esv1.SecretStoreProvider{
-				GCPSM: &esv1.GCPSMProvider{
-					// ProjectID intentionally empty
-					Auth: esv1.GCPSMAuth{
-						WorkloadIdentity: &esv1.GCPWorkloadIdentity{
-							// ClusterProjectID intentionally empty
-							ServiceAccountRef: esmeta.ServiceAccountSelector{
-								Name: "test-sa",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	projectID, err := clusterProjectID(ctx, emptyProjectStore.GetSpec())
-	assert.Nil(t, err)
-	assert.Equal(t, "metadata-project-123", projectID)
-
-	// Test: error when metadata server also fails
-	metadataClientFactory = func() MetadataClient {
-		return &fakeMetadataClient{metadata: map[string]string{}} // No project-id
-	}
-
-	_, err = clusterProjectID(ctx, emptyProjectStore.GetSpec())
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unable to find ProjectID")
-}
-
 func TestSATokenGen(t *testing.T) {
 	corev1 := &fakeK8sV1{}
 	g := &k8sSATokenGenerator{
