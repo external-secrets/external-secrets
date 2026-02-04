@@ -38,10 +38,10 @@ func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data
 	remoteKey := data.GetRemoteKey()
 
 	if secret == nil {
-		return fmt.Errorf("%s %q: provided secret is nil", pushSecretError, remoteKey)
+		return newPushSecretValidationError(remoteKey, "provided secret is nil")
 	}
 	if len(secret.Data) == 0 {
-		return fmt.Errorf("%s %q: provided secret is empty", pushSecretError, remoteKey)
+		return newPushSecretValidationError(remoteKey, "provided secret is empty")
 	}
 
 	// Check if the secret already exists.
@@ -51,20 +51,20 @@ func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data
 	})
 	noSecretErr := errors.Is(err, esv1.NoSecretErr)
 	if err != nil && !noSecretErr {
-		return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
+		return wrapPushSecretError(remoteKey, err)
 	}
 	secretExists := !noSecretErr
 
 	// Build the secret to be pushed.
 	secretToPush, err := buildSecretToPush(secret, data)
 	if err != nil {
-		return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
+		return wrapPushSecretError(remoteKey, err)
 	}
 
 	// Compare the data of secretToPush with that of remoteSecret.
 	equal, err := compareSecretsData(secretToPush, remoteSecret)
 	if err != nil {
-		return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
+		return wrapPushSecretError(remoteKey, err)
 	}
 	if equal {
 		return nil
@@ -78,9 +78,17 @@ func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data
 	// Push the secret.
 	err = pushNewSecret(ctx, cl.okmsClient, cl.okmsID, secretToPush, remoteKey, currentVersion, secretExists)
 	if err != nil {
-		return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
+		return wrapPushSecretError(remoteKey, err)
 	}
 	return nil
+}
+
+func wrapPushSecretError(remoteKey string, err error) error {
+	return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
+}
+
+func newPushSecretValidationError(remoteKey, msg string) error {
+	return fmt.Errorf("%s %q: %s", pushSecretError, remoteKey, msg)
 }
 
 // Compare the secret to push with the remote secret.

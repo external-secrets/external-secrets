@@ -36,7 +36,7 @@ func (cl *ovhClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDa
 	// Retrieve secret from KMS.
 	secretDataBytes, _, err := getSecretWithOvhSDK(ctx, cl.okmsClient, cl.okmsID, ref)
 	if err != nil && !errors.Is(err, esv1.NoSecretErr) {
-		return map[string][]byte{}, fmt.Errorf("%s %q: %w", retrieveSecretError, ref.Key, err)
+		return map[string][]byte{}, wrapRetrieveSecretError(ref.Key, err)
 	} else if err != nil {
 		return map[string][]byte{}, err
 	}
@@ -49,7 +49,7 @@ func (cl *ovhClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDa
 	var rawSecretDataMap map[string]any
 	err = json.Unmarshal(secretDataBytes, &rawSecretDataMap)
 	if err != nil {
-		return map[string][]byte{}, fmt.Errorf("%s %q: %w", retrieveSecretError, ref.Key, err)
+		return map[string][]byte{}, wrapRetrieveSecretError(ref.Key, err)
 	}
 
 	// Convert the map[string]any into map[string][]byte.
@@ -57,9 +57,13 @@ func (cl *ovhClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDa
 	for key := range rawSecretDataMap {
 		secretDataMap[key], err = esutils.GetByteValueFromMap(rawSecretDataMap, key)
 		if err != nil {
-			return map[string][]byte{}, fmt.Errorf("%s %q: %w", retrieveSecretError, ref.Key, err)
+			return map[string][]byte{}, wrapRetrieveSecretError(ref.Key, err)
 		}
 	}
 
 	return secretDataMap, nil
+}
+
+func wrapRetrieveSecretError(key string, err error) error {
+	return fmt.Errorf("%s %q: %w", retrieveSecretError, key, err)
 }
