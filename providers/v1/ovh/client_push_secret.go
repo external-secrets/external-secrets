@@ -30,16 +30,18 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
+const pushSecretError = "failed to push secret at path"
+
 // PushSecret pushes a secret to the Secret Manager according to the updatePolicy
 // defined in the PushSecret (create or update).
 func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	remoteKey := data.GetRemoteKey()
 
 	if secret == nil {
-		return fmt.Errorf("failed to push secret at path %q: provided secret is nil", remoteKey)
+		return fmt.Errorf("%s %q: provided secret is nil", pushSecretError, remoteKey)
 	}
 	if len(secret.Data) == 0 {
-		return fmt.Errorf("failed to push secret at path %q: provided secret is empty", remoteKey)
+		return fmt.Errorf("%s %q: provided secret is empty", pushSecretError, remoteKey)
 	}
 
 	// Check if the secret already exists.
@@ -49,20 +51,20 @@ func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data
 	})
 	noSecretErr := errors.Is(err, esv1.NoSecretErr)
 	if err != nil && !noSecretErr {
-		return fmt.Errorf("failed to push secret at path %q: %w", remoteKey, err)
+		return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
 	}
 	secretExists := !noSecretErr
 
 	// Build the secret to be pushed.
 	secretToPush, err := buildSecretToPush(secret, data)
 	if err != nil {
-		return fmt.Errorf("failed to push secret at path %q: %w", remoteKey, err)
+		return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
 	}
 
 	// Compare the data of secretToPush with that of remoteSecret.
 	equal, err := compareSecretsData(secretToPush, remoteSecret)
 	if err != nil {
-		return fmt.Errorf("failed to push secret at path %q: %w", remoteKey, err)
+		return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
 	}
 	if equal {
 		return nil
@@ -76,7 +78,7 @@ func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data
 	// Push the secret.
 	err = pushNewSecret(ctx, cl.okmsClient, cl.okmsID, secretToPush, remoteKey, currentVersion, secretExists)
 	if err != nil {
-		return fmt.Errorf("failed to push secret at path %q: %w", remoteKey, err)
+		return fmt.Errorf("%s %q: %w", pushSecretError, remoteKey, err)
 	}
 	return nil
 }

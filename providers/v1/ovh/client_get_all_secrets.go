@@ -28,6 +28,8 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
+const retrieveMultipleSecretsError = "failed to retrieve multiple secrets"
+
 // GetAllSecrets retrieves multiple secrets from the Secret Manager.
 // You can optionally filter secrets by name using a regular expression.
 // When path is set to "/" or left empty, the search starts from the Secret Manager root.
@@ -35,7 +37,7 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 	// List Secret Manager secrets.
 	secrets, err := getSecretsList(ctx, cl.okmsClient, cl.okmsID, ref.Path)
 	if err != nil {
-		return map[string][]byte{}, fmt.Errorf("failed to retrieve multiple secrets: %w", err)
+		return map[string][]byte{}, fmt.Errorf("%s: %w", retrieveMultipleSecretsError, err)
 	}
 	if len(secrets) == 0 {
 		path := ""
@@ -43,7 +45,8 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 			path = *ref.Path
 		}
 		return map[string][]byte{}, fmt.Errorf(
-			"failed to retrieve multiple secrets: no secrets under path %q were found in the secret manager",
+			"%s: no secrets under path %q were found in the secret manager",
+			retrieveMultipleSecretsError,
 			path,
 		)
 	}
@@ -55,12 +58,15 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 		regex, err = regexp.Compile(ref.Name.RegExp)
 		if err != nil {
 			return map[string][]byte{}, fmt.Errorf(
-				"failed to retrieve multiple secrets: could not parse regex: %w", err,
+				"%s: could not parse regex: %w",
+				retrieveMultipleSecretsError,
+				err,
 			)
 		}
 		if regex == nil {
 			return map[string][]byte{}, fmt.Errorf(
-				"failed to retrieve multiple secrets: compiled regex is nil for expression %q",
+				"%s: compiled regex is nil for expression %q",
+				retrieveMultipleSecretsError,
 				ref.Name.RegExp,
 			)
 		}
@@ -68,7 +74,7 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 
 	secretsMap, err := filterSecretsListWithRegexp(ctx, cl, secrets, regex, ref)
 	if err != nil {
-		return map[string][]byte{}, fmt.Errorf("failed to retrieve multiple secrets: %w", err)
+		return map[string][]byte{}, fmt.Errorf("%s: %w", retrieveMultipleSecretsError, err)
 	}
 
 	return secretsMap, nil
@@ -196,30 +202,51 @@ func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []s
 	for _, secret := range secrets {
 		// Insert the secret if no regex is provided;
 		// otherwise, insert only matching secrets.
-		if ref.Name == nil || (regex != nil && regex.MatchString(secret)) {
-			secretToInsert, err := cl.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{
-				Key:                secret,
-				ConversionStrategy: ref.ConversionStrategy,
-				DecodingStrategy:   ref.DecodingStrategy,
-			})
-			if err != nil && !errors.Is(err, esv1.NoSecretErr) {
-				return map[string][]byte{}, err
-			}
-			if !errors.Is(err, esv1.NoSecretErr) {
-				secretsDataMap[secret] = secretToInsert
-			}
+		secretData, ok, err := fetchSecretData(ctx, cl, secret, regex, ref)
+		if ok {
+			secretsDataMap[secret] = secretData
+		}
+		if err != nil {
+			return map[string][]byte{}, err
 		}
 	}
 	if len(secretsDataMap) == 0 {
-		expr := ""
-		if ref.Name != nil {
-			expr = ref.Name.RegExp
-		}
-		path := ""
-		if ref.Path != nil {
-			path = *ref.Path
-		}
-		return map[string][]byte{}, fmt.Errorf("regex expression %q did not match any secret at path %q", expr, path)
+		return map[string][]byte{}, buildNoMatchError(ref.Name, ref.Path)
 	}
 	return secretsDataMap, nil
+}
+
+// fetchSecretData retrieves a secret data if it passes the name/regex filter.
+func fetchSecretData(ctx context.Context, cl *ovhClient, secret string, regex *regexp.Regexp, ref esv1.ExternalSecretFind) ([]byte, bool, error) {
+	// Skip the secret if a name filter is defined but the regex is nil or does not match.
+	if ref.Name != nil && (regex == nil || !regex.MatchString(secret)) {
+		return nil, false, nil
+	}
+
+	// fetch secret data
+	secretData, err := cl.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{
+		Key:                secret,
+		ConversionStrategy: ref.ConversionStrategy,
+		DecodingStrategy:   ref.DecodingStrategy,
+	})
+	if err != nil {
+		if errors.Is(err, esv1.NoSecretErr) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return secretData, true, nil
+}
+
+func buildNoMatchError(findName *esv1.FindName, findPath *string) error {
+	expr := ""
+	if findName != nil {
+		expr = findName.RegExp
+	}
+	path := ""
+	if findPath != nil {
+		path = *findPath
+	}
+	return fmt.Errorf("regex expression %q did not match any secret at path %q", expr, path)
 }
