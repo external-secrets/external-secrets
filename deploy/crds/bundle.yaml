@@ -5616,6 +5616,9 @@ spec:
                                   type: string
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: either serviceAccountCredsSecretRef or tokenSecretRef must be set
+                              rule: has(self.serviceAccountCredsSecretRef) || has(self.tokenSecretRef)
                         caProvider:
                           description: The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
                           properties:
@@ -17503,6 +17506,9 @@ spec:
                                   type: string
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: either serviceAccountCredsSecretRef or tokenSecretRef must be set
+                              rule: has(self.serviceAccountCredsSecretRef) || has(self.tokenSecretRef)
                         caProvider:
                           description: The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
                           properties:

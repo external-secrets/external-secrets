@@ -18,6 +18,7 @@ package fake
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 
 	"github.com/google/uuid"
@@ -37,7 +38,7 @@ func (f *FakeMysteryboxClient) Close() error {
 	return nil
 }
 
-func (f FakeMysteryboxClient) GetSecret(_ context.Context, _, secretId, versionId string) (*mysterybox.Payload, error) {
+func (f *FakeMysteryboxClient) GetSecret(_ context.Context, _, secretId, versionId string) (*mysterybox.Payload, error) {
 	secret, err := f.mysteryboxService.GetSecret(secretId, versionId)
 	if err != nil {
 		return nil, err
@@ -48,7 +49,7 @@ func (f FakeMysteryboxClient) GetSecret(_ context.Context, _, secretId, versionI
 	}, nil
 }
 
-func (f FakeMysteryboxClient) GetSecretByKey(_ context.Context, _, secretID, versionID, key string) (*mysterybox.PayloadEntry, error) {
+func (f *FakeMysteryboxClient) GetSecretByKey(_ context.Context, _, secretID, versionID, key string) (*mysterybox.PayloadEntry, error) {
 	secret, err := f.mysteryboxService.GetSecret(secretID, versionID)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func (f FakeMysteryboxClient) GetSecretByKey(_ context.Context, _, secretID, ver
 	for _, entry := range secret.Entries {
 		if entry.Key == key {
 			return &mysterybox.PayloadEntry{
-				VersionID: versionID,
+				VersionID: secret.VersionId,
 				Entry:     entry,
 			}, nil
 		}
@@ -66,6 +67,7 @@ func (f FakeMysteryboxClient) GetSecretByKey(_ context.Context, _, secretID, ver
 }
 
 type MysteryboxService struct {
+	mu         sync.RWMutex
 	secretData map[string]map[string][]mysterybox.Entry
 }
 
@@ -76,11 +78,14 @@ func InitMysteryboxService() *MysteryboxService {
 }
 
 func (s *MysteryboxService) GetSecret(secretId, versionId string) (*Secret, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	data, ok := s.secretData[secretId]
 	if !ok {
 		return nil, notFoundError()
 	}
-	dataByVersion, ok := data[versionId] // if version is empty -> "" (latest/primary) version will be taken
+	dataByVersion, ok := data[versionId] // if a version is empty -> "" (latest/primary) version will be taken
 	if !ok {
 		return nil, notFoundError()
 	}
@@ -98,6 +103,9 @@ func (s *MysteryboxService) CreateSecret(payloadEntries []mysterybox.Entry) *Sec
 	secretId := uuid.NewString()
 	versionId := uuid.NewString()
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	versionData := make(map[string][]mysterybox.Entry)
 	versionData[versionId] = payloadEntries
 	versionData[""] = payloadEntries // latest version is primary
@@ -111,6 +119,9 @@ func (s *MysteryboxService) CreateSecret(payloadEntries []mysterybox.Entry) *Sec
 }
 
 func (s *MysteryboxService) CreateNewSecretVersion(secretId string, payloadEntries []mysterybox.Entry) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	versions, ok := s.secretData[secretId]
 	if !ok {
 		return "", notFoundError()
