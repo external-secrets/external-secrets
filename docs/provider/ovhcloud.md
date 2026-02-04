@@ -74,7 +74,7 @@ data:
 ```
 
 !!! note
-     A `ClusterSecretStore` configuration is the same except you have to provide the `tokenSecretRef` `namespace`.  
+     A `ClusterSecretStore` configuration is the same except you must provide the `namespace` for `tokenSecretRef`, `certSecretRef` and `keySecretRef` according to your chosen authentication method.  
 
 ### <u>ExternalSecret</u>
  
@@ -206,7 +206,7 @@ spec:
   target:
     name: secret-example
   data:
-    - secretKey: foo
+    - secretKey: type
       remoteRef:
         key: creds
         property: type
@@ -214,7 +214,7 @@ spec:
 Resulting Kubernetes Secret data:
 ```json
 {
-  "foo": "credential"
+  "type": "credential"
 }
 ```
 - Nested value using `data`
@@ -231,7 +231,7 @@ spec:
   target:
     name: secret-example
   data:
-    - secretKey: foo
+    - secretKey: kevin-token
       remoteRef:
         key: creds
         property: users.kevin.token

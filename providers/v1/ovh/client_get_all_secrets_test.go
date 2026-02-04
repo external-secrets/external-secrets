@@ -222,6 +222,9 @@ func TestGetAllSecrets(t *testing.T) {
 					t.Errorf("\nexpected value: %s\nactual value:   %v\n\n", testCase.errshould, err)
 				}
 				return
+			} else if err != nil {
+				t.Errorf("\nunexpected error: %v\n\n", err)
+				return
 			}
 			if !reflect.DeepEqual(testCase.should, secrets) {
 				t.Errorf("\nexpected value: %v\nactual value:   %v\n\n", convertByteMapToStringMap(testCase.should), convertByteMapToStringMap(secrets))

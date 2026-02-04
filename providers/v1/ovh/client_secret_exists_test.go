@@ -74,6 +74,9 @@ func TestSecretExists(t *testing.T) {
 					t.Errorf("\nexpected error: %s\nactual error:   %v\n\n", testCase.errshould, err)
 				}
 				return
+			} else if err != nil {
+				t.Errorf("\nunexpected error: %v\n\n", err)
+				return
 			}
 			if exists != testCase.should {
 				t.Errorf("\nexpected value: %t\nactual value:   %t\n\n", testCase.should, exists)
