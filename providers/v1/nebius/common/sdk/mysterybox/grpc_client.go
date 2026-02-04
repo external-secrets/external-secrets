@@ -62,6 +62,10 @@ func (c *GrpcClient) GetSecretByKey(ctx context.Context, token, secretID, versio
 		return nil, err
 	}
 
+	if entry.GetData() == nil {
+		return nil, fmt.Errorf("received nil data for key: %v", key)
+	}
+
 	payloadEntry := PayloadEntry{
 		VersionID: entry.GetVersionId(),
 		Entry: Entry{

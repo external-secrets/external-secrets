@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebius/gosdk/auth"
@@ -50,6 +51,7 @@ type TokenCacheService struct {
 	TokenExchanger iam.TokenExchangerClient
 	Clock          clock.Clock
 	tokenCache     *lru.Cache
+	getTokenMutex  sync.Mutex
 }
 
 // NewTokenCacheService initializes a TokenCacheService with the specified cache size, token exchanger client, and clock.
@@ -87,6 +89,10 @@ func (c *TokenCacheService) GetToken(ctx context.Context, apiDomain, subjectCred
 	if err != nil {
 		return "", err
 	}
+
+	c.getTokenMutex.Lock()
+	defer c.getTokenMutex.Unlock()
+
 	value, ok := c.tokenCache.Get(*cacheKey)
 	if ok {
 		token := value.(*iam.Token)

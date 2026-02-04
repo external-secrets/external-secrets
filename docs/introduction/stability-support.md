@@ -88,7 +88,7 @@ The following table describes the stability level of each provider and who's res
 | [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 |     alpha | [@jonstacks](https://github.com/jonstacks)                                                          |
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                           |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
-
+| [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
 
 ## Provider Feature Support
 

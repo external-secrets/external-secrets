@@ -19,6 +19,7 @@ package v1
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 // NebiusAuth defines the authentication method for the Nebius provider.
+// +kubebuilder:validation:XValidation:rule="has(self.serviceAccountCredsSecretRef) || has(self.tokenSecretRef)",message="either serviceAccountCredsSecretRef or tokenSecretRef must be set"
 type NebiusAuth struct {
 	// ServiceAccountCreds references a Kubernetes Secret key that contains a JSON
 	// document with service account credentials used to get an IAM token.
@@ -56,5 +57,5 @@ type NebiusMysteryboxProvider struct {
 
 	// The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
 	// +optional
-	CAProvider *NebiusCAProvider `json:"caProvider"`
+	CAProvider *NebiusCAProvider `json:"caProvider,omitempty"`
 }

@@ -34,7 +34,7 @@ import (
 
 const (
 	errNotImplemented             = "not implemented"
-	errJSONUnmarshal              = "failed to unmarshal JSON"
+	errJSONMarshal                = "failed to marshal JSON"
 	errSecretNotFound             = "secret %q not found: %w"
 	errSecretByKeyNotFound        = "key %q not found in secret %q: %w"
 	errSecretVersionByKeyNotFound = "version %q of secret %q not found by key %q: %w"
@@ -64,7 +64,7 @@ func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 		}
 		out, err := json.Marshal(keyToValue)
 		if err != nil {
-			return nil, errors.New(errJSONUnmarshal)
+			return nil, errors.New(errJSONMarshal)
 		}
 		return out, nil
 	}

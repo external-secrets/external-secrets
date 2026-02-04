@@ -14,7 +14,7 @@
 // limitations under the License.
 // */
 
-// Package mysterybox contains the logic to work with Nebius Mysterybox API.
+// Package mysterybox contains the logic to work with Nebius MysteryBox API.
 package mysterybox
 
 import (
@@ -34,7 +34,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/iam"
-	mysterybox2 "github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox"
+	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
@@ -44,13 +44,13 @@ import (
 var (
 	log                                   = ctrl.Log.WithName("provider").WithName("nebius").WithName("mysterybox")
 	mysteryboxTokensCacheSize             int
-	mysteryboxClientsCacheSize            int
+	mysteryboxConnectionsCacheSize        int
 	defaultTokenCacheSize                 = 2 << 11
 	defaultMysteryboxConnectionsCacheSize = 2 << 6
 )
 
-// NewMysteryboxClient is a function that describes how to create a Nebius Mysterybox client to interact within.
-type NewMysteryboxClient func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox2.Client, error)
+// NewMysteryboxClient is a function that describes how to create a Nebius MysteryBox client to interact within.
+type NewMysteryboxClient func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error)
 
 // SecretsClientConfig holds configuration for interacting with.
 type SecretsClientConfig struct {
@@ -60,21 +60,21 @@ type SecretsClientConfig struct {
 	CACertificate       *esmeta.SecretKeySelector
 }
 
-// ClientCacheKey represents a unique key for identifying cached Mysterybox clients.
+// ClientCacheKey represents a unique key for identifying cached MysteryBox clients.
 // It is composed of an API domain and a hash of the CA certificate.
 type ClientCacheKey struct {
 	APIDomain string
 	CAHash    string
 }
 
-// Provider is a struct for managing Mysterybox clients.
+// Provider is a struct for managing MysteryBox clients.
 type Provider struct {
 	Logger                      logr.Logger
 	NewMysteryboxClient         NewMysteryboxClient
 	TokenService                TokenService
 	mysteryboxClientsCache      *lru.Cache
-	tokenOnce                   sync.Once
-	cacheOnce                   sync.Once
+	tokenInitMutex              sync.Mutex
+	cacheInitMutex              sync.Mutex
 	mysteryboxClientsCacheMutex sync.Mutex
 }
 
@@ -85,11 +85,6 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 
 // NewClient creates and returns a new SecretsClient for the specified SecretStore and namespace context.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
-	// lazy initialization with a current flag value
-	if err := p.initTokenService(); err != nil {
-		return nil, fmt.Errorf("init token service: %w", err)
-	}
-
 	clientConfig, err := parseConfig(store)
 	if err != nil {
 		return nil, err
@@ -102,6 +97,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			return nil, fmt.Errorf("read CA certificate %s/%s: %w", namespace, clientConfig.CACertificate.Name, err)
 		}
 	}
+
+	// lazy initialization with a current flag value
+	if err = p.initTokenService(); err != nil {
+		return nil, fmt.Errorf("init token service: %w", err)
+	}
+
 	iamToken, err := p.getIamToken(ctx, clientConfig, store, kube, namespace, caCert)
 	if err != nil {
 		p.Logger.Info("Could not get IAM token", "store", store.GetNamespacedName(), "err", err)
@@ -110,7 +111,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	mysteryboxGrpcClient, err := p.createOrGetMysteryboxClient(ctx, clientConfig.APIDomain, caCert)
 	if err != nil {
-		p.Logger.Info("Could not create or get Mysterybox Client", "store", store.GetNamespacedName(), "err", err)
+		p.Logger.Info("Could not create or get MysteryBox Client", "store", store.GetNamespacedName(), "err", err)
 		return nil, err
 	}
 
@@ -157,8 +158,8 @@ func (p *Provider) getIamToken(ctx context.Context, config *SecretsClientConfig,
 	return "", errors.New(errMissingAuthOptions)
 }
 
-// createOrGetMysteryboxClient initializes or retrieves a cached Mysterybox client for a specified API domain and certificate.
-func (p *Provider) createOrGetMysteryboxClient(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox2.Client, error) {
+// createOrGetMysteryboxClient initializes or retrieves a cached MysteryBox client for a specified API domain and certificate.
+func (p *Provider) createOrGetMysteryboxClient(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 	// lazy initialization with a current flag value
 	if err := p.initMysteryboxClientsCache(); err != nil {
 		return nil, err
@@ -174,10 +175,10 @@ func (p *Provider) createOrGetMysteryboxClient(ctx context.Context, apiDomain st
 	defer p.mysteryboxClientsCacheMutex.Unlock()
 
 	if value, ok := p.mysteryboxClientsCache.Get(cacheKey); ok {
-		p.Logger.V(1).Info("Reusing cached Mysterybox client", "apiDomain", apiDomain)
-		return value.(mysterybox2.Client), nil
+		p.Logger.V(1).Info("Reusing cached MysteryBox client", "apiDomain", apiDomain)
+		return value.(mysterybox.Client), nil
 	}
-	p.Logger.Info("Creating a new Mysterybox client", "apiDomain", apiDomain)
+	p.Logger.Info("Creating a new MysteryBox client", "apiDomain", apiDomain)
 	mysteryboxClient, err := p.NewMysteryboxClient(ctx, apiDomain, caCertificate)
 	if err != nil {
 		return nil, err
@@ -223,50 +224,64 @@ func parseConfig(store esv1.GenericStore) (*SecretsClientConfig, error) {
 	}, nil
 }
 
-func newMysteryboxClient(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox2.Client, error) {
-	return mysterybox2.NewNebiusMysteryboxClientGrpc(ctx, apiDomain, caCertificate)
+func newMysteryboxClient(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+	return mysterybox.NewNebiusMysteryboxClientGrpc(ctx, apiDomain, caCertificate)
 }
 
 func (p *Provider) initMysteryboxClientsCache() error {
+	p.cacheInitMutex.Lock()
+	defer p.cacheInitMutex.Unlock()
+
+	if p.mysteryboxClientsCache != nil {
+		return nil
+	}
+
 	var err error
-	p.cacheOnce.Do(func() {
-		var cache *lru.Cache
-		cache, err = lru.NewWithEvict(
-			mysteryboxClientsCacheSize,
-			func(key, value interface{}) {
-				p.Logger.V(1).Info("Evicting a Nebius Mysterybox client", "apiDomain", key.(ClientCacheKey).APIDomain)
-				err := value.(mysterybox2.Client).Close()
-				if err != nil {
-					p.Logger.Error(err, "Failed to close Nebius Mysterybox client")
-				}
-			})
-		if err == nil {
-			p.mysteryboxClientsCache = cache
-		}
-	})
-	return err
+	var cache *lru.Cache
+	cache, err = lru.NewWithEvict(
+		mysteryboxConnectionsCacheSize,
+		func(key, value interface{}) {
+			p.Logger.V(1).Info("Evicting a Nebius MysteryBox client", "apiDomain", key.(ClientCacheKey).APIDomain)
+			err := value.(mysterybox.Client).Close()
+			if err != nil {
+				p.Logger.Error(err, "Failed to close Nebius MysteryBox client")
+			}
+		},
+	)
+	if err == nil {
+		p.mysteryboxClientsCache = cache
+		return nil
+	}
+	return fmt.Errorf("init clients cache: %w", err)
 }
 
 func (p *Provider) initTokenService() error {
+	p.tokenInitMutex.Lock()
+	defer p.tokenInitMutex.Unlock()
+
+	if p.TokenService != nil {
+		return nil
+	}
+
 	var err error
-	p.tokenOnce.Do(func() {
-		c := clock.RealClock{}
-		tokenExchangerLogger := ctrl.Log.WithName("provider").WithName("nebius").WithName("iam").WithName("grpctokenexchanger")
-		tokenExchangeObserveFunction := func(err error) {
-			metrics.ObserveAPICall(constants.ProviderNebiusMysterybox, constants.CallNebiusMysteryboxAuth, err)
-		}
-		var tokenService TokenService
-		tokenService, err = NewTokenCacheService(
-			mysteryboxTokensCacheSize,
-			iam.NewGrpcTokenExchangerClient(
-				tokenExchangerLogger,
-				tokenExchangeObserveFunction,
-			), c)
-		if err == nil {
-			p.TokenService = tokenService
-		}
-	})
-	return err
+	c := clock.RealClock{}
+	tokenExchangerLogger := ctrl.Log.WithName("provider").WithName("nebius").WithName("iam").WithName("grpctokenexchanger")
+	tokenExchangeObserveFunction := func(err error) {
+		metrics.ObserveAPICall(constants.ProviderNebiusMysterybox, constants.CallNebiusMysteryboxAuth, err)
+	}
+	var tokenService TokenService
+	tokenService, err = NewTokenCacheService(
+		mysteryboxTokensCacheSize,
+		iam.NewGrpcTokenExchangerClient(
+			tokenExchangerLogger,
+			tokenExchangeObserveFunction,
+		), c)
+	if err == nil {
+		p.TokenService = tokenService
+		return nil
+	}
+
+	return fmt.Errorf("init token service: %w", err)
 }
 
 // NewProvider creates a new Provider instance.
@@ -295,23 +310,37 @@ func init() {
 		&mysteryboxTokensCacheSize,
 		"mysterybox-tokens-cache-size",
 		defaultTokenCacheSize,
-		"Size of Nebius Mysterybox token cache. "+
+		"Size of Nebius MysteryBox token cache. "+
 			"External secrets will reuse the Nebius IAM token without requesting a new one on each request.",
 	)
 	fs.IntVar(
-		&mysteryboxClientsCacheSize,
+		&mysteryboxConnectionsCacheSize,
 		"mysterybox-connections-cache-size",
 		defaultMysteryboxConnectionsCacheSize,
-		"Size of Nebius Mysterybox grpc clients cache. External secrets will reuse the "+
-			"connection to mysterybox for the configuration without opening a new one on each request.",
+		"Size of Nebius MysteryBox grpc clients cache. External secrets will reuse the "+
+			"connection to MysteryBox for the configuration without opening a new one on each request.",
 	)
 	feature.Register(feature.Feature{
 		Flags: fs,
 		Initialize: func() {
+			if mysteryboxTokensCacheSize <= 0 {
+				log.Error(nil, "invalid token cache size, use default",
+					"got", mysteryboxTokensCacheSize,
+					"default", defaultTokenCacheSize,
+				)
+				mysteryboxTokensCacheSize = defaultTokenCacheSize
+			}
+			if mysteryboxConnectionsCacheSize <= 0 {
+				log.Error(nil, "invalid connections cache size, use default",
+					"got", mysteryboxConnectionsCacheSize,
+					"default", defaultMysteryboxConnectionsCacheSize,
+				)
+				mysteryboxConnectionsCacheSize = defaultMysteryboxConnectionsCacheSize
+			}
 			log.Info(
-				"Registered Nebius Mysterybox provider",
+				"Registered Nebius MysteryBox provider",
 				"token cache size", mysteryboxTokensCacheSize,
-				"clients cache size", mysteryboxClientsCacheSize,
+				"clients cache size", mysteryboxConnectionsCacheSize,
 			)
 		},
 	})

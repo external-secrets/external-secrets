@@ -558,7 +558,7 @@ func TestCreateOrGetMysteryboxClient_CachesByKey(t *testing.T) {
 	tassert.NoError(t, err)
 	var factoryCalls int32
 	p := &Provider{
-		Logger: log,
+		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			atomic.AddInt32(&factoryCalls, 1)
 			return fake.NewFakeMysteryboxClient(nil), nil
@@ -591,7 +591,7 @@ func TestCreateOrGetMysteryboxClient_EmptyCA_EqualsNil(t *testing.T) {
 
 	var factoryCalls int32
 	p := &Provider{
-		Logger: log,
+		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			atomic.AddInt32(&factoryCalls, 1)
 			return fake.NewFakeMysteryboxClient(nil), nil
@@ -649,7 +649,7 @@ func TestCreateOrGetMysteryboxClient_Concurrent_SingleClient(t *testing.T) {
 
 	var factoryCalls int32
 	p := &Provider{
-		Logger: log,
+		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			atomic.AddInt32(&factoryCalls, 1)
 			return fake.NewFakeMysteryboxClient(nil), nil
@@ -697,7 +697,7 @@ func TestCreateOrGetMysteryboxClient_Concurrent_MultipleClients(t *testing.T) {
 	tassert.NoError(t, err)
 	var factoryCalls int32
 	p := &Provider{
-		Logger: log,
+		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			atomic.AddInt32(&factoryCalls, 1)
 			return fake.NewFakeMysteryboxClient(nil), nil
@@ -737,7 +737,7 @@ func TestMysteryboxClientsCache_ConcurrentEviction_CloseOnce(t *testing.T) {
 	var mu sync.Mutex
 
 	p := &Provider{
-		Logger: log,
+		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			c := &fake.FakeMysteryboxClient{}
 			mu.Lock()
@@ -793,7 +793,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 	tokenService := &fakeTokenService{tokenToIssue: tokenToIssue}
 
 	p := &Provider{
-		Logger: log,
+		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
 			atomic.AddInt32(&factoryCalls, 1)
 			return fake.NewFakeMysteryboxClient(mboxSvc), nil
@@ -946,9 +946,10 @@ func setCacheSizeWorkaround(t *testing.T, size int, p *Provider) {
 }
 
 func setTokenServiceWorkaround(tokenService TokenService, p *Provider) {
-	p.tokenOnce.Do(func() {
-		p.TokenService = tokenService
-	})
+	p.tokenInitMutex.Lock()
+	defer p.tokenInitMutex.Unlock()
+
+	p.TokenService = tokenService
 }
 
 type ClientData struct {

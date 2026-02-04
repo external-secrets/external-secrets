@@ -41,14 +41,18 @@ First, create a SecretStore with a Nebius MysteryBox backend.
 
 You can get a secret by its secretID and key.
 
+```yaml
 {% include 'nebius-mysterybox-external-secret-by-key.yaml' %}
+```
 
 #### Getting a full secret (all keys retrieved)
 
 Another way is to get a full secret that will be imported. When fetching the full secret, each key–value pair from MysteryBox is mapped to a separate entry in the target Kubernetes Secret’s `data` field.
 
 
+```yaml
 {% include 'nebius-mysterybox-external-secret-all.yaml' %}
+```
 
 Example of a target secret:
 ```yaml
