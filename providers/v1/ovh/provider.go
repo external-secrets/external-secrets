@@ -37,6 +37,14 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
+const (
+	emptyTokenSecretRef    = "ovh store auth.token.tokenSecretRef cannot be empty"
+	emptyKeySecretRef      = "ovh store auth.mtls.keySecretRef cannot be empty"
+	emptyCertSecretRef     = "ovh store auth.mtls.certSecretRef cannot be empty"
+	createOvhProviderError = "failed to create new ovh provider client"
+	createOkmsClientError  = "failed to create new okms client"
+)
+
 // Provider implements the ESO Provider interface for OVHcloud.
 type Provider struct {
 	secretKeyResolver SecretKeyResolver
@@ -89,14 +97,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	if kube == nil {
-		return nil, errors.New("failed to create new ovh provider client: controller-runtime client is nil")
+		return nil, fmt.Errorf("%s: controller-runtime client is nil", createOvhProviderError)
 	}
 
 	ovhStore := store.GetSpec().Provider.Ovh
 	// ovhClient configuration.
 	okmsID, err := uuid.Parse(ovhStore.OkmsID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new ovh provider client: %w", err)
+		return nil, fmt.Errorf("%s: %w", createOvhProviderError, err)
 	}
 
 	cas := false
@@ -129,7 +137,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			ovhStore.Server, ovhStore.Auth.ClientMTLS)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new ovh provider client: %w", err)
+		return nil, fmt.Errorf("%s: %w", createOvhProviderError, err)
 	}
 	return cl, nil
 }
@@ -151,7 +159,7 @@ func configureHTTPTokenClient(ctx context.Context, p *Provider, cl *ovhClient, s
 		return err
 	}
 	if cl.okmsClient == nil {
-		return errors.New("failed to get new okms client")
+		return errors.New(createOkmsClientError)
 	}
 
 	// Add a custom header.
@@ -185,7 +193,7 @@ func configureHTTPMTLSClient(ctx context.Context, p *Provider, cl *ovhClient, se
 		return err
 	}
 	if cl.okmsClient == nil {
-		return errors.New("failed to get new okms client")
+		return errors.New(createOkmsClientError)
 	}
 
 	return err
@@ -196,7 +204,7 @@ func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1
 	// ClienTokenSecret refers to the Kubernetes secret that stores the token.
 	tokenSecretRef := clientToken.ClientTokenSecret
 	if tokenSecretRef == nil {
-		return "", errors.New("ovh store auth.token.tokenSecretRef cannot be empty")
+		return "", errors.New(emptyTokenSecretRef)
 	}
 
 	// Retrieve the token value.
@@ -206,7 +214,7 @@ func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1
 		return "", err
 	}
 	if token == "" {
-		return "", errors.New("ovh store auth.token.tokenSecretRef cannot be empty")
+		return "", errors.New(emptyTokenSecretRef)
 	}
 
 	return token, nil
@@ -214,10 +222,6 @@ func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1
 
 // Retrieve the client key and certificate from the Kubernetes secret.
 func getMTLS(ctx context.Context, p *Provider, cl *ovhClient, clientMTLS *esv1.OvhClientMTLS) (tls.Certificate, error) {
-	const (
-		emptyKeySecretRef  = "ovh store auth.mtls.keySecretRef cannot be empty"
-		emptyCertSecretRef = "ovh store auth.mtls.certSecretRef cannot be empty"
-	)
 	// keySecretRef refers to the Kubernetes secret object
 	// containing the client key.
 	keyRef := clientMTLS.ClientKey
