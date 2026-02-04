@@ -35,22 +35,22 @@ const (
 	errSubjectCredsCannotBeSigned = "invalid subject credentials: cannot be signed %w"
 )
 
-// GrpcTokenExchangerClient is a client for exchanging credentials over gRPC to obtain IAM tokens.
-type GrpcTokenExchangerClient struct {
+// GrpcTokenExchanger is a client for exchanging credentials over gRPC to obtain IAM tokens.
+type GrpcTokenExchanger struct {
 	logger                   logr.Logger
 	exchangeTokenObserveCall func(err error)
 }
 
-// NewGrpcTokenExchangerClient creates a new instance of GrpcTokenExchangerClient with the specified logger and callback function.
-func NewGrpcTokenExchangerClient(logger logr.Logger, exchangeTokenObserveCallFunc func(err error)) *GrpcTokenExchangerClient {
-	return &GrpcTokenExchangerClient{
+// NewGrpcTokenExchanger creates a new instance of GrpcTokenExchanger with the specified logger and callback function.
+func NewGrpcTokenExchanger(logger logr.Logger, exchangeTokenObserveCallFunc func(err error)) *GrpcTokenExchanger {
+	return &GrpcTokenExchanger{
 		logger:                   logger,
 		exchangeTokenObserveCall: exchangeTokenObserveCallFunc,
 	}
 }
 
-// NewIamToken exchanges subject credentials for a new IAM token using a gRPC-based token exchange service.
-func (t *GrpcTokenExchangerClient) NewIamToken(ctx context.Context, apiDomain, subjectCreds string, issuedAt time.Time, caCertificate []byte) (*Token, error) {
+// ExchangeIamToken exchanges subject credentials for a new IAM token using a gRPC-based token exchange service.
+func (t *GrpcTokenExchanger) ExchangeIamToken(ctx context.Context, apiDomain, subjectCreds string, issuedAt time.Time, caCertificate []byte) (*Token, error) {
 	parsedSubjectCreds := &auth.ServiceAccountCredentials{}
 	if err := json.Unmarshal([]byte(subjectCreds), parsedSubjectCreds); err != nil {
 		if t.exchangeTokenObserveCall != nil {
@@ -100,4 +100,4 @@ func (t *GrpcTokenExchangerClient) NewIamToken(ctx context.Context, apiDomain, s
 	}, nil
 }
 
-var _ TokenExchangerClient = &GrpcTokenExchangerClient{}
+var _ TokenExchanger = &GrpcTokenExchanger{}

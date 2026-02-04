@@ -34,8 +34,8 @@ const (
 	errInvalidSubjectCreds = "invalid subject credentials: malformed JSON"
 )
 
-// TokenService is an interface for generating and retrieving authentication tokens.
-type TokenService interface {
+// TokenGetter is an interface for generating and retrieving authentication tokens.
+type TokenGetter interface {
 	GetToken(ctx context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error)
 }
 
@@ -46,24 +46,24 @@ type tokenCacheKey struct {
 	PrivateKeyHash   string
 }
 
-// TokenCacheService is responsible for managing Nebius IAM token caching and token exchange processes.
-type TokenCacheService struct {
-	TokenExchanger iam.TokenExchangerClient
+// CachedTokenGetter is responsible for managing Nebius IAM token caching and token exchange processes.
+type CachedTokenGetter struct {
+	TokenExchanger iam.TokenExchanger
 	Clock          clock.Clock
 	tokenCache     *lru.Cache
 	getTokenMutex  sync.Mutex
 }
 
-// NewTokenCacheService initializes a TokenCacheService with the specified cache size, token exchanger client, and clock.
-// Returns a TokenCacheService instance and an error if LRU cache creation fails.
-func NewTokenCacheService(cacheSize int, client iam.TokenExchangerClient, clock clock.Clock) (*TokenCacheService, error) {
+// NewCachedTokenGetter initializes a CachedTokenGetter with the specified cache size, token exchanger, and clock.
+// Returns a CachedTokenGetter instance and an error if LRU cache creation fails.
+func NewCachedTokenGetter(cacheSize int, tokenExchanger iam.TokenExchanger, clock clock.Clock) (*CachedTokenGetter, error) {
 	cache, err := lru.New(cacheSize)
 	if err != nil {
 		return nil, err
 	}
-	return &TokenCacheService{
+	return &CachedTokenGetter{
 		tokenCache:     cache,
-		TokenExchanger: client,
+		TokenExchanger: tokenExchanger,
 		Clock:          clock,
 	}, nil
 }
@@ -82,7 +82,7 @@ func isTokenExpired(token *iam.Token, clk clock.Clock) bool {
 
 // GetToken retrieves an IAM token for the given API domain and subject credentials, using a cache to optimize requests.
 // It exchanges credentials for a new token if no valid cached token exists or the cached token is nearing expiration.
-func (c *TokenCacheService) GetToken(ctx context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
+func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
 	byteCreds := []byte(subjectCreds)
 	cacheKey, err := buildTokenCacheKey(byteCreds, apiDomain)
 
@@ -102,7 +102,7 @@ func (c *TokenCacheService) GetToken(ctx context.Context, apiDomain, subjectCred
 		}
 	}
 
-	newToken, err := c.TokenExchanger.NewIamToken(ctx, apiDomain, subjectCreds, c.Clock.Now(), caCert)
+	newToken, err := c.TokenExchanger.ExchangeIamToken(ctx, apiDomain, subjectCreds, c.Clock.Now(), caCert)
 	if err != nil {
 		return "", fmt.Errorf("could not exchange creds to iam token: %w", MapGrpcErrors("create token", err))
 	}
@@ -124,4 +124,4 @@ func buildTokenCacheKey(subjectCreds []byte, apiDomain string) (*tokenCacheKey, 
 	}, nil
 }
 
-var _ TokenService = &TokenCacheService{}
+var _ TokenGetter = &CachedTokenGetter{}

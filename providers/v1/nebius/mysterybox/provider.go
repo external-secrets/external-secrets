@@ -71,7 +71,7 @@ type ClientCacheKey struct {
 type Provider struct {
 	Logger                      logr.Logger
 	NewMysteryboxClient         NewMysteryboxClient
-	TokenService                TokenService
+	TokenGetter                 TokenGetter
 	mysteryboxClientsCache      *lru.Cache
 	tokenInitMutex              sync.Mutex
 	cacheInitMutex              sync.Mutex
@@ -99,8 +99,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	// lazy initialization with a current flag value
-	if err = p.initTokenService(); err != nil {
-		return nil, fmt.Errorf("init token service: %w", err)
+	if err = p.initTokenGetter(); err != nil {
+		return nil, fmt.Errorf("init token getter: %w", err)
 	}
 
 	iamToken, err := p.getIamToken(ctx, clientConfig, store, kube, namespace, caCert)
@@ -122,7 +122,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 }
 
 // getIamToken retrieves an IAM token based on the provided SecretsClientConfig and authentication options.
-// It supports token retrieval from a predefined secret or via service account credentials with the TokenService.
+// It supports token retrieval from a predefined secret or via service account credentials with the TokenGetter.
 func (p *Provider) getIamToken(ctx context.Context, config *SecretsClientConfig, store esv1.GenericStore, kube client.Client, namespace string, caCert []byte) (string, error) {
 	if config.Token.Name != "" {
 		iamToken, err := resolvers.SecretKeyRef(
@@ -148,7 +148,7 @@ func (p *Provider) getIamToken(ctx context.Context, config *SecretsClientConfig,
 		if err != nil {
 			return "", fmt.Errorf("read service account creds %s/%s: %w", namespace, config.ServiceAccountCreds.Name, err)
 		}
-		token, err := p.TokenService.GetToken(ctx, config.APIDomain, subjectCreds, caCert)
+		token, err := p.TokenGetter.GetToken(ctx, config.APIDomain, subjectCreds, caCert)
 		if err != nil {
 			return "", fmt.Errorf(errFailedToRetrieveToken, err)
 		}
@@ -255,11 +255,11 @@ func (p *Provider) initMysteryboxClientsCache() error {
 	return fmt.Errorf("init clients cache: %w", err)
 }
 
-func (p *Provider) initTokenService() error {
+func (p *Provider) initTokenGetter() error {
 	p.tokenInitMutex.Lock()
 	defer p.tokenInitMutex.Unlock()
 
-	if p.TokenService != nil {
+	if p.TokenGetter != nil {
 		return nil
 	}
 
@@ -269,19 +269,18 @@ func (p *Provider) initTokenService() error {
 	tokenExchangeObserveFunction := func(err error) {
 		metrics.ObserveAPICall(constants.ProviderNebiusMysterybox, constants.CallNebiusMysteryboxAuth, err)
 	}
-	var tokenService TokenService
-	tokenService, err = NewTokenCacheService(
+	var tokenGetter TokenGetter
+	tokenGetter, err = NewCachedTokenGetter(
 		mysteryboxTokensCacheSize,
-		iam.NewGrpcTokenExchangerClient(
+		iam.NewGrpcTokenExchanger(
 			tokenExchangerLogger,
 			tokenExchangeObserveFunction,
 		), c)
 	if err == nil {
-		p.TokenService = tokenService
-		return nil
+		p.TokenGetter = tokenGetter
 	}
 
-	return fmt.Errorf("init token service: %w", err)
+	return err
 }
 
 // NewProvider creates a new Provider instance.
