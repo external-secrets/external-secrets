@@ -66,8 +66,9 @@ func NewOIDCTokenManager(
 		baseURL = "https://api.pulumi.com"
 	}
 
-	// Get expiration from config, default to 3600 seconds (1 hour) if not set
-	expiration := int64(3600)
+	// Get expiration from config, default to 600 seconds (10 minutes) if not set
+	// This matches the CRD default for expirationSeconds
+	expiration := int64(600)
 	if oidcAuth.ExpirationSeconds != nil && *oidcAuth.ExpirationSeconds > 0 {
 		expiration = *oidcAuth.ExpirationSeconds
 	}
