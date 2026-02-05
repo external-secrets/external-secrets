@@ -22,16 +22,14 @@ import (
 
 // SetupWebhookWithManager registers the SecretStore webhook with the controller manager.
 func (c *SecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
-		WithValidator(&GenericStoreValidator{}).
+	return ctrl.NewWebhookManagedBy(mgr, c).
+		WithValidator(&SecretStoreValidator{}).
 		Complete()
 }
 
 // SetupWebhookWithManager registers the ClusterSecretStore webhook with the controller manager.
 func (c *ClusterSecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
-		WithValidator(&GenericStoreValidator{}).
+	return ctrl.NewWebhookManagedBy(mgr, c).
+		WithValidator(&ClusterSecretStoreValidator{}).
 		Complete()
 }

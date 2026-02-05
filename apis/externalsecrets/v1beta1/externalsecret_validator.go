@@ -29,17 +29,17 @@ import (
 type ExternalSecretValidator struct{}
 
 // ValidateCreate validates an ExternalSecret during creation.
-func (esv *ExternalSecretValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (esv *ExternalSecretValidator) ValidateCreate(_ context.Context, obj *ExternalSecret) (admission.Warnings, error) {
 	return validateExternalSecret(obj)
 }
 
 // ValidateUpdate validates an ExternalSecret during update.
-func (esv *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+func (esv *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj *ExternalSecret) (admission.Warnings, error) {
 	return validateExternalSecret(newObj)
 }
 
 // ValidateDelete validates an ExternalSecret during deletion.
-func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ *ExternalSecret) (admission.Warnings, error) {
 	return nil, nil
 }
 

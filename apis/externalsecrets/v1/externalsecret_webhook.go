@@ -18,12 +18,12 @@ package v1
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // SetupWebhookWithManager sets up the webhook for ExternalSecret.
-func (es *ExternalSecret) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(es).
+func (es *ExternalSecret) SetupWebhookWithManager(mgr manager.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr, es).
 		WithValidator(&ExternalSecretValidator{}).
 		Complete()
 }

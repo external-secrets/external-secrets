@@ -207,7 +207,7 @@ either data or dataFrom should be specified`,
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := validateExternalSecret(tt.obj)
+			_, err := validateExternalSecret(tt.obj.(*ExternalSecret))
 			if err != nil {
 				if tt.expectedErr == "" {
 					t.Fatalf("validateExternalSecret() returned an unexpected error: %v", err)

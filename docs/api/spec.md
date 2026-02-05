@@ -3013,6 +3013,11 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.ClusterSecretStoreValidator">ClusterSecretStoreValidator
+</h3>
+<p>
+<p>ClusterSecretStoreValidator provides validation for ClusterSecretStore</p>
+</p>
 <h3 id="external-secrets.io/v1.ConfigMapReference">ConfigMapReference
 </h3>
 <p>
@@ -6135,11 +6140,6 @@ string
 <p>
 <p>GenericStore is a common interface for interacting with ClusterSecretStore
 or a namespaced SecretStore.</p>
-</p>
-<h3 id="external-secrets.io/v1.GenericStoreValidator">GenericStoreValidator
-</h3>
-<p>
-<p>GenericStoreValidator implements webhook validation for SecretStore and ClusterSecretStore resources.</p>
 </p>
 <h3 id="external-secrets.io/v1.GithubAppAuth">GithubAppAuth
 </h3>
@@ -10114,6 +10114,11 @@ Kubernetes meta/v1.Time
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.SecretStoreValidator">SecretStoreValidator
+</h3>
+<p>
+<p>SecretStoreValidator provides validation for SecretStore</p>
+</p>
 <h3 id="external-secrets.io/v1.SecretVersionSelectionPolicy">SecretVersionSelectionPolicy
 (<code>string</code> alias)</p></h3>
 <p>
@@ -16516,6 +16521,11 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.ClusterSecretStoreValidator">ClusterSecretStoreValidator
+</h3>
+<p>
+<p>ClusterSecretStoreValidator provides validation for ClusterSecretStore</p>
+</p>
 <h3 id="external-secrets.io/v1beta1.ConjurAPIKey">ConjurAPIKey
 </h3>
 <p>
@@ -18922,11 +18932,6 @@ string
 <p>
 <p>GenericStore is a common interface for interacting with ClusterSecretStore
 or a namespaced SecretStore.</p>
-</p>
-<h3 id="external-secrets.io/v1beta1.GenericStoreValidator">GenericStoreValidator
-</h3>
-<p>
-<p>GenericStoreValidator provides validation for SecretStore and ClusterSecretStore resources.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.GithubAppAuth">GithubAppAuth
 </h3>
@@ -21980,6 +21985,11 @@ Kubernetes meta/v1.Time
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.SecretStoreValidator">SecretStoreValidator
+</h3>
+<p>
+<p>SecretStoreValidator provides validation for SecretStore</p>
+</p>
 <h3 id="external-secrets.io/v1beta1.SecretsClient">SecretsClient
 </h3>
 <p>

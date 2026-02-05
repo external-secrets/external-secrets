@@ -22,39 +22,46 @@ import (
 	"fmt"
 	"regexp"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-var _ admission.CustomValidator = &GenericStoreValidator{}
+// Ensures SecretStoreValidator and ClusterSecretStoreValidator implement the admission.Validator interface correctly.
+var _ admission.Validator[*SecretStore] = &SecretStoreValidator{}
+var _ admission.Validator[*ClusterSecretStore] = &ClusterSecretStoreValidator{}
 
-const (
-	errInvalidStore = "invalid store"
-)
-
-// GenericStoreValidator provides validation for SecretStore and ClusterSecretStore resources.
-type GenericStoreValidator struct{}
+// SecretStoreValidator provides validation for SecretStore
+type SecretStoreValidator struct{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	st, ok := obj.(GenericStore)
-	if !ok {
-		return nil, errors.New(errInvalidStore)
-	}
-	return validateStore(st)
+func (r *SecretStoreValidator) ValidateCreate(_ context.Context, obj *SecretStore) (admission.Warnings, error) {
+	return validateStore(obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
-	st, ok := newObj.(GenericStore)
-	if !ok {
-		return nil, errors.New(errInvalidStore)
-	}
-	return validateStore(st)
+func (r *SecretStoreValidator) ValidateUpdate(_ context.Context, _, newObj *SecretStore) (admission.Warnings, error) {
+	return validateStore(newObj)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (r *SecretStoreValidator) ValidateDelete(_ context.Context, _ *SecretStore) (admission.Warnings, error) {
+	return nil, nil
+}
+
+// ClusterSecretStoreValidator provides validation for ClusterSecretStore
+type ClusterSecretStoreValidator struct{}
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
+func (r *ClusterSecretStoreValidator) ValidateCreate(_ context.Context, obj *ClusterSecretStore) (admission.Warnings, error) {
+	return validateStore(obj)
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+func (r *ClusterSecretStoreValidator) ValidateUpdate(_ context.Context, _, newObj *ClusterSecretStore) (admission.Warnings, error) {
+	return validateStore(newObj)
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
+func (r *ClusterSecretStoreValidator) ValidateDelete(_ context.Context, _ *ClusterSecretStore) (admission.Warnings, error) {
 	return nil, nil
 }
 

@@ -25,24 +25,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// Ensures ExternalSecretValidator implements the admission.CustomValidator interface correctly.
-var _ admission.CustomValidator = &ExternalSecretValidator{}
+// Ensures ExternalSecretValidator implements the admission.Validator interface correctly.
+var _ admission.Validator[*ExternalSecret] = &ExternalSecretValidator{}
 
 // ExternalSecretValidator implements a validating webhook for ExternalSecrets.
 type ExternalSecretValidator struct{}
 
 // ValidateCreate is called on creation of ExternalSecret resource object.
-func (esv *ExternalSecretValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (esv *ExternalSecretValidator) ValidateCreate(_ context.Context, obj *ExternalSecret) (admission.Warnings, error) {
 	return validateExternalSecret(obj)
 }
 
 // ValidateUpdate is called when updating an ExternalSecret resource object.
-func (esv *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+func (esv *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj *ExternalSecret) (admission.Warnings, error) {
 	return validateExternalSecret(newObj)
 }
 
 // ValidateDelete is called when deleting an ExternalSecret resource object.
-func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ *ExternalSecret) (admission.Warnings, error) {
 	return nil, nil
 }
 
