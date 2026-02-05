@@ -178,6 +178,10 @@ spec:
       dnsConfig:
           {{- toYaml .Values.dnsConfig | nindent 8 }}
       {{- end }}
+      {{- with .Values.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.extraVolumes }}
       volumes:
       {{- toYaml .Values.extraVolumes | nindent 8 }}
