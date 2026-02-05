@@ -18,18 +18,21 @@ limitations under the License.
 package pushsecret
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"maps"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -49,6 +52,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/statemanager"
+	estemplate "github.com/external-secrets/external-secrets/runtime/template/v2"
 	"github.com/external-secrets/external-secrets/runtime/util/locks"
 
 	// Load registered generators.
@@ -208,10 +212,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 
+	// Validate dataTo storeRefs
+	if err := validateDataToStoreRefs(ps.Spec.DataTo, ps.Spec.SecretStoreRefs); err != nil {
+		r.markAsFailed(err.Error(), &ps, nil)
+		return ctrl.Result{}, err
+	}
+
 	secrets, err := r.resolveSecrets(ctx, &ps)
 	if err != nil {
 		// Handle source secret deletion with DeletionPolicy=Delete
-		if ps.Spec.DeletionPolicy == esapi.PushSecretDeletionPolicyDelete && len(ps.Status.SyncedPushSecrets) > 0 {
+		isSecretSelector := ps.Spec.Selector.Secret != nil && ps.Spec.Selector.Secret.Name != ""
+		if apierrors.IsNotFound(err) && isSecretSelector &&
+			ps.Spec.DeletionPolicy == esapi.PushSecretDeletionPolicyDelete &&
+			len(ps.Status.SyncedPushSecrets) > 0 {
 			return r.handleSourceSecretDeleted(ctx, &ps, mgr, err)
 		}
 		r.markAsFailed(errFailedGetSecret, &ps, nil)
@@ -285,6 +298,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 // handleSourceSecretDeleted cleans up provider secrets when source Secret is unavailable.
+//
+//nolint:unparam // Returns (ctrl.Result, error) for consistency with Reconcile pattern.
 func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.PushSecret, mgr *secretstore.Manager, resolveErr error) (ctrl.Result, error) {
 	log := r.Log.WithValues("pushsecret", client.ObjectKeyFromObject(ps))
 	log.Info("source secret unavailable, cleaning up provider secrets", "syncedSecrets", len(ps.Status.SyncedPushSecrets))
@@ -423,7 +438,7 @@ func (r *Reconciler) PushSecretToProviders(
 ) (esapi.SyncedPushSecretsMap, error) {
 	out := make(esapi.SyncedPushSecretsMap)
 	for ref, store := range stores {
-		out, err := r.handlePushSecretDataForStore(ctx, ps, secret, out, mgr, store.GetName(), ref.Kind)
+		out, err := r.handlePushSecretDataForStore(ctx, ps, secret, out, mgr, store.GetName(), ref.Kind, store.GetLabels())
 		if err != nil {
 			return out, err
 		}
@@ -438,6 +453,7 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	out esapi.SyncedPushSecretsMap,
 	mgr *secretstore.Manager,
 	storeName, refKind string,
+	storeLabels map[string]string,
 ) (esapi.SyncedPushSecretsMap, error) {
 	storeKey := fmt.Sprintf("%v/%v", refKind, storeName)
 	out[storeKey] = make(map[string]esapi.PushSecretData)
@@ -453,8 +469,14 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	// Create a copy of the secret for this store to avoid mutating the shared secret
 	storeSecret := secret.DeepCopy()
 
-	// Expand dataTo entries into PushSecretData
-	dataToEntries, err := r.expandDataTo(&ps, storeSecret)
+	// Filter dataTo entries for this specific store
+	filteredDataTo, err := filterDataToForStore(ps.Spec.DataTo, storeName, refKind, storeLabels)
+	if err != nil {
+		return out, fmt.Errorf("failed to filter dataTo: %w", err)
+	}
+
+	// Expand filtered dataTo entries into PushSecretData
+	dataToEntries, err := r.expandDataTo(storeSecret, filteredDataTo)
 	if err != nil {
 		return out, fmt.Errorf("failed to expand dataTo: %w", err)
 	}
@@ -779,9 +801,57 @@ func matchKeys(allKeys []string, match *esapi.PushSecretDataToMatch) ([]string, 
 	return matched, nil
 }
 
-// expandDataTo converts dataTo entries into PushSecretData by matching keys and applying rewrites.
-func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]esapi.PushSecretData, error) {
-	if len(ps.Spec.DataTo) == 0 {
+// filterDataToForStore returns dataTo entries that target the given store.
+func filterDataToForStore(dataToList []esapi.PushSecretDataTo, storeName, storeKind string, storeLabels map[string]string) ([]esapi.PushSecretDataTo, error) {
+	filtered := make([]esapi.PushSecretDataTo, 0, len(dataToList))
+	for i, dataTo := range dataToList {
+		if dataTo.StoreRef == nil {
+			return nil, fmt.Errorf("dataTo[%d]: storeRef is required", i)
+		}
+		refKind := dataTo.StoreRef.Kind
+		if refKind == "" {
+			refKind = esv1.SecretStoreKind
+		}
+		// Match by name
+		if dataTo.StoreRef.Name != "" {
+			if dataTo.StoreRef.Name == storeName && refKind == storeKind {
+				filtered = append(filtered, dataTo)
+			}
+			continue
+		}
+		// Match by label selector (only when kind matches)
+		if dataTo.StoreRef.LabelSelector != nil {
+			selector, err := metav1.LabelSelectorAsSelector(dataTo.StoreRef.LabelSelector)
+			if err != nil {
+				return nil, fmt.Errorf("dataTo[%d]: invalid labelSelector: %w", i, err)
+			}
+			if refKind == storeKind && selector.Matches(labels.Set(storeLabels)) {
+				filtered = append(filtered, dataTo)
+			}
+		}
+	}
+	return filtered, nil
+}
+
+// expandDataTo expands dataTo entries into individual PushSecretData entries.
+//
+// Each matched key becomes a separate entry that is pushed independently. This enables:
+//   - Individual key transformation via rewrite
+//   - Per-key status tracking in SyncedPushSecrets
+//   - Granular deletion when keys are removed (DeletionPolicy=Delete)
+//   - Compatibility with all providers (no bulk API requirement)
+//
+// This mirrors how explicit `data` entries work - each entry maps one source key to
+// one provider secret. The difference is dataTo generates these entries dynamically
+// from patterns rather than requiring explicit configuration.
+//
+// Processing order when template is used:
+//  1. Template is applied to source secret (creates/transforms keys)
+//  2. dataTo matches against the templated secret keys
+//  3. Rewrite transforms matched key names
+//  4. Push to providers
+func (r *Reconciler) expandDataTo(secret *v1.Secret, dataToList []esapi.PushSecretDataTo) ([]esapi.PushSecretData, error) {
+	if len(dataToList) == 0 {
 		return nil, nil
 	}
 
@@ -791,7 +861,7 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 	overallRemoteKeys := make(map[string]string) // remoteKey -> "dataTo[i]:sourceKey"
 
 	// Process each dataTo entry
-	for i, dataTo := range ps.Spec.DataTo {
+	for i, dataTo := range dataToList {
 		// Apply conversion strategy BEFORE matching and rewriting
 		// This ensures that keys are matched against their converted names
 		convertedData, err := esutils.ReverseKeys(dataTo.ConversionStrategy, secret.Data)
@@ -822,14 +892,11 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 			matchedData[key] = convertedData[key]
 		}
 
-		// Apply rewrites using the shared esutils.RewriteMap function
-		rewrittenData, err := esutils.RewriteMap(dataTo.Rewrite, matchedData)
+		// Apply rewrites and get explicit key mapping
+		keyMap, err := rewriteWithKeyMapping(dataTo.Rewrite, matchedData)
 		if err != nil {
 			return nil, fmt.Errorf("dataTo[%d]: rewrite failed: %w", i, err)
 		}
-
-		// Build sourceKey -> remoteKey mapping by comparing original and rewritten keys
-		keyMap := buildKeyMapping(matchedData, rewrittenData)
 
 		// Validate that no remote key is empty
 		for sourceKey, remoteKey := range keyMap {
@@ -868,83 +935,158 @@ func (r *Reconciler) expandDataTo(ps *esapi.PushSecret, secret *v1.Secret) ([]es
 	return allData, nil
 }
 
-// buildKeyMapping maps original keys to rewritten keys by matching values.
-func buildKeyMapping(original, rewritten map[string][]byte) map[string]string {
-	result := make(map[string]string, len(original))
-
-	// Reverse lookup: value -> rewritten key (rewrites only change keys, not values)
-	valueToRewrittenKey := make(map[string]string, len(rewritten))
-	for key, value := range rewritten {
-		valueToRewrittenKey[string(value)] = key
-	}
-
-	// Map original keys to their rewritten counterparts by matching values
-	for originalKey, originalValue := range original {
-		if rewrittenKey, exists := valueToRewrittenKey[string(originalValue)]; exists {
-			result[originalKey] = rewrittenKey
-		} else {
-			// If no rewrite happened, key stays the same
-			result[originalKey] = originalKey
+// validateDataToStoreRefs checks that each dataTo entry has a valid storeRef.
+func validateDataToStoreRefs(dataToList []esapi.PushSecretDataTo, storeRefs []esapi.PushSecretStoreRef) error {
+	for i, d := range dataToList {
+		if d.StoreRef == nil {
+			return fmt.Errorf("dataTo[%d]: storeRef is required", i)
+		}
+		if d.StoreRef.Name == "" && d.StoreRef.LabelSelector == nil {
+			return fmt.Errorf("dataTo[%d]: storeRef must have name or labelSelector", i)
+		}
+		if d.StoreRef.Name != "" && !storeRefExistsInList(d.StoreRef, storeRefs) {
+			return fmt.Errorf("dataTo[%d]: storeRef %q not found in secretStoreRefs", i, d.StoreRef.Name)
 		}
 	}
-
-	return result
+	return nil
 }
 
-// mergeDataEntries merges dataTo-expanded entries with explicit data entries.
-// Explicit data entries override dataTo entries for the same source secret key.
-// Returns an error if duplicate remote keys with the same property are detected.
-func mergeDataEntries(dataToEntries []esapi.PushSecretData, explicitData []esapi.PushSecretData) ([]esapi.PushSecretData, error) {
-	// Create a map of source secretKey -> data from explicit data
-	explicitMap := make(map[string]esapi.PushSecretData)
-	for _, data := range explicitData {
-		key := data.GetSecretKey()
-		explicitMap[key] = data
+// storeRefExistsInList checks if ref matches any entry in storeRefs.
+func storeRefExistsInList(ref *esapi.PushSecretStoreRef, storeRefs []esapi.PushSecretStoreRef) bool {
+	refKind := ref.Kind
+	if refKind == "" {
+		refKind = esv1.SecretStoreKind
+	}
+	for _, sr := range storeRefs {
+		srKind := sr.Kind
+		if srKind == "" {
+			srKind = esv1.SecretStoreKind
+		}
+		// Skip if kinds don't match
+		if srKind != refKind {
+			continue
+		}
+		if sr.Name != "" && sr.Name == ref.Name {
+			return true
+		}
+		// Can't validate labelSelector statically - assume it could match if kinds are compatible
+		if sr.LabelSelector != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// rewriteWithKeyMapping applies rewrites and returns originalKey -> rewrittenKey mapping.
+func rewriteWithKeyMapping(rewrites []esapi.PushSecretRewrite, data map[string][]byte) (map[string]string, error) {
+	// Initialize: each key maps to itself
+	keyMap := make(map[string]string, len(data))
+	for k := range data {
+		keyMap[k] = k
 	}
 
-	// Add dataTo entries that don't conflict with explicit data (based on source key)
+	// Apply each rewrite operation
+	for i, op := range rewrites {
+		newKeyMap := make(map[string]string, len(keyMap))
+		for origKey, currentKey := range keyMap {
+			newKey, err := applyRewriteToKey(op, currentKey)
+			if err != nil {
+				return nil, fmt.Errorf("rewrite[%d] on key %q: %w", i, currentKey, err)
+			}
+			newKeyMap[origKey] = newKey
+		}
+		keyMap = newKeyMap
+	}
+
+	return keyMap, nil
+}
+
+// applyRewriteToKey applies a single rewrite operation to a key.
+func applyRewriteToKey(op esapi.PushSecretRewrite, key string) (string, error) {
+	switch {
+	case op.Regexp != nil:
+		re, err := regexp.Compile(op.Regexp.Source)
+		if err != nil {
+			return "", fmt.Errorf("invalid regexp: %w", err)
+		}
+		return re.ReplaceAllString(key, op.Regexp.Target), nil
+	case op.Transform != nil:
+		tmpl, err := template.New("t").Funcs(estemplate.FuncMap()).Parse(op.Transform.Template)
+		if err != nil {
+			return "", fmt.Errorf("invalid template: %w", err)
+		}
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, map[string]string{"value": key}); err != nil {
+			return "", fmt.Errorf("template exec: %w", err)
+		}
+		return buf.String(), nil
+	default:
+		return key, nil
+	}
+}
+
+// resolveSourceKeyConflicts merges dataTo and explicit data entries.
+// When both reference the same source secret key, explicit data wins.
+func resolveSourceKeyConflicts(dataToEntries, explicitData []esapi.PushSecretData) []esapi.PushSecretData {
+	// Build set of source keys from explicit data
+	explicitSourceKeys := make(map[string]struct{}, len(explicitData))
+	for _, data := range explicitData {
+		explicitSourceKeys[data.GetSecretKey()] = struct{}{}
+	}
+
+	// Keep dataTo entries whose source key is NOT in explicit data
 	result := make([]esapi.PushSecretData, 0, len(dataToEntries)+len(explicitData))
 	for _, data := range dataToEntries {
-		key := data.GetSecretKey()
-		if _, exists := explicitMap[key]; !exists {
+		if _, exists := explicitSourceKeys[data.GetSecretKey()]; !exists {
 			result = append(result, data)
 		}
 	}
 
-	// Add all explicit data entries
-	result = append(result, explicitData...)
+	// Add all explicit data entries (they always take precedence)
+	return append(result, explicitData...)
+}
 
-	// Check for duplicate remote keys with the same property.
-	// Use a struct as the map key to avoid collisions from string concatenation.
-	type compositeKey struct {
+// validateRemoteKeyUniqueness ensures no two entries push to the same remote location.
+// The remote location is defined by (remoteKey, property) tuple.
+func validateRemoteKeyUniqueness(entries []esapi.PushSecretData) error {
+	type remoteLocation struct {
 		remoteKey string
 		property  string
 	}
-	type compositeKeyInfo struct {
-		sourceKey string
-	}
-	remoteKeys := make(map[compositeKey]compositeKeyInfo)
-	for _, data := range result {
-		remoteKey := data.GetRemoteKey()
-		property := data.GetProperty()
+
+	seen := make(map[remoteLocation]string) // location -> source key (for error message)
+
+	for _, data := range entries {
+		loc := remoteLocation{
+			remoteKey: data.GetRemoteKey(),
+			property:  data.GetProperty(),
+		}
 		sourceKey := data.GetSecretKey()
 
-		// Create composite key using struct (collision-free)
-		key := compositeKey{
-			remoteKey: remoteKey,
-			property:  property,
-		}
-
-		if existing, exists := remoteKeys[key]; exists {
-			if property != "" {
-				return nil, fmt.Errorf("duplicate remote key %q with property %q: source keys %q and %q both map to the same remote key and property", remoteKey, property, existing.sourceKey, sourceKey)
+		if existingSource, exists := seen[loc]; exists {
+			if loc.property != "" {
+				return fmt.Errorf(
+					"duplicate remote key %q with property %q: source keys %q and %q both map to the same destination",
+					loc.remoteKey, loc.property, existingSource, sourceKey)
 			}
-			return nil, fmt.Errorf("duplicate remote key %q: source keys %q and %q both map to the same remote key", remoteKey, existing.sourceKey, sourceKey)
+			return fmt.Errorf(
+				"duplicate remote key %q: source keys %q and %q both map to the same destination",
+				loc.remoteKey, existingSource, sourceKey)
 		}
-		remoteKeys[key] = compositeKeyInfo{
-			sourceKey: sourceKey,
-		}
+		seen[loc] = sourceKey
 	}
 
-	return result, nil
+	return nil
+}
+
+// mergeDataEntries combines dataTo and explicit data entries.
+// It resolves source key conflicts (explicit wins) and validates no duplicate remote destinations.
+func mergeDataEntries(dataToEntries, explicitData []esapi.PushSecretData) ([]esapi.PushSecretData, error) {
+	merged := resolveSourceKeyConflicts(dataToEntries, explicitData)
+
+	if err := validateRemoteKeyUniqueness(merged); err != nil {
+		return nil, err
+	}
+
+	return merged, nil
 }

@@ -29,10 +29,15 @@ spec:
     secret:
       name: source-secret
   dataTo:
-    - {}  # Empty object = match all keys
+    - storeRef:
+        name: my-secret-store  # Required: specify target store
 ```
 
 This will push all keys from `source-secret` to the provider with their original names.
+
+!!! note "storeRef is required"
+    Each `dataTo` entry must specify a `storeRef` to target a specific store. This prevents
+    accidental "apply to all stores" behavior which could break multi-provider setups.
 
 ### Match Keys with Pattern
 
@@ -50,7 +55,9 @@ spec:
     secret:
       name: app-secrets
   dataTo:
-    - match:
+    - storeRef:
+        name: my-secret-store
+      match:
         regexp: "^db-.*"  # Only push keys starting with "db-"
 ```
 
@@ -82,7 +89,9 @@ spec:
     secret:
       name: app-secrets
   dataTo:
-    - match:
+    - storeRef:
+        name: aws-secret-store
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp:
@@ -111,7 +120,9 @@ spec:
     secret:
       name: app-secrets
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: vault-store
+      rewrite:
         - transform:
             template: "app/{{ .value | upper }}"
 ```
@@ -139,7 +150,9 @@ spec:
     secret:
       name: app-secrets
   dataTo:
-    - match:
+    - storeRef:
+        name: my-secret-store
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp:
@@ -173,7 +186,8 @@ spec:
       name: app-secrets
   # Push all keys with original names
   dataTo:
-    - {}
+    - storeRef:
+        name: my-secret-store
   # But override how db-host is pushed
   data:
     - match:
@@ -204,7 +218,9 @@ spec:
     secret:
       name: app-secrets
   dataTo:
-    - match:
+    - storeRef:
+        name: aws-secret-store
+      match:
         regexp: "^db-.*"
       metadata:
         labels:
@@ -232,14 +248,18 @@ spec:
       name: app-secrets
   dataTo:
     # Push db-* keys with database/ prefix
-    - match:
+    - storeRef:
+        name: my-secret-store
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp:
             source: "^db-"
             target: "database/"
     # Push api-* keys with api/ prefix
-    - match:
+    - storeRef:
+        name: my-secret-store
+      match:
         regexp: "^api-.*"
       rewrite:
         - regexp:
@@ -255,7 +275,9 @@ If you provide an invalid regexp pattern, the PushSecret will enter an error sta
 
 ```yaml
 dataTo:
-  - match:
+  - storeRef:
+      name: my-store
+    match:
       regexp: "[invalid(regexp"  # Invalid regexp
 ```
 
@@ -270,7 +292,9 @@ If rewrites result in duplicate remote keys, the operation will fail:
 
 ```yaml
 dataTo:
-  - rewrite:
+  - storeRef:
+      name: my-store
+    rewrite:
       - regexp:
           source: ".*"
           target: "same-key"  # All keys map to "same-key" - error!
@@ -300,7 +324,9 @@ spec:
     secret:
       name: legacy-secrets
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: aws-secrets-manager
+      rewrite:
         - regexp:
             source: "^"
             target: "migrated/"  # Add prefix to all keys
@@ -322,7 +348,9 @@ spec:
     secret:
       name: app-secrets
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: vault-store
+      rewrite:
         - regexp:
             source: "^"
             target: "prod/myapp/"
@@ -345,17 +373,23 @@ spec:
       name: app-config
   dataTo:
     # Database credentials
-    - match:
+    - storeRef:
+        name: my-secret-store
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp: {source: "^db-", target: "config/database/"}
     # API keys
-    - match:
+    - storeRef:
+        name: my-secret-store
+      match:
         regexp: "^api-.*"
       rewrite:
         - regexp: {source: "^api-", target: "config/api/"}
     # TLS certificates
-    - match:
+    - storeRef:
+        name: my-secret-store
+      match:
         regexp: "^tls-.*"
       rewrite:
         - regexp: {source: "^tls-", target: "config/tls/"}
@@ -389,7 +423,9 @@ spec:
 ```yaml
 spec:
   dataTo:
-    - match:
+    - storeRef:
+        name: my-secret-store
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp: {source: "^db-", target: "app/db/"}
@@ -400,4 +436,4 @@ spec:
 - [PushSecret Guide](pushsecrets.md) - Basic PushSecret usage
 - [PushSecret API Reference](../api/pushsecret.md) - Complete API specification
 - [Templating Guide](templating.md) - Advanced template usage
-- [ExternalSecret dataTo](datafrom-rewrite.md) - Similar feature for pulling secrets
+- [ExternalSecret dataFrom](datafrom-rewrite.md) - Similar feature for pulling secrets
