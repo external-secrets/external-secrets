@@ -953,6 +953,8 @@ github.com/nats-io/nkeys v0.3.0/go.mod h1:gvUNGjVcM2IPr5rCsRsC6Wb3Hr2CQAm08dsxtV
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nebius/gosdk v0.0.0-20260122112135-b2ef6b4c6a76 h1:1mea6PUvH+v5IPxROSFfGQyVuPLmSRW+s2FMOws3bWY=
 github.com/nebius/gosdk v0.0.0-20260122112135-b2ef6b4c6a76/go.mod h1:8r4EhhGJ+RMUfdiVVpZ8pEb0b+O7hLG8JXDAgGyu89o=
+github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 h1:Lt5HZDEeSNJJbppzFEtlOYMGlGIOVi6YoC9YJMHv60A=
+github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1/go.mod h1:8r4EhhGJ+RMUfdiVVpZ8pEb0b+O7hLG8JXDAgGyu89o=
 github.com/ngrok/ngrok-api-go/v7 v7.6.0 h1:DW9FqEgSN6+Dgl25O8ha1LS49CqX2c9vO0Z53CN8Vqs=
 github.com/ngrok/ngrok-api-go/v7 v7.6.0/go.mod h1:Si/pYAJmbCuo4Fb3xz0MF6N5ubRvPdUixETBwhFvBf0=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=

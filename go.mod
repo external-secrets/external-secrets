@@ -338,7 +338,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
-	github.com/nebius/gosdk v0.0.0-20260122112135-b2ef6b4c6a76 // indirect
+	github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 // indirect
 	github.com/ngrok/ngrok-api-go/v7 v7.6.0 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/passbolt/go-passbolt v0.7.2 // indirect
