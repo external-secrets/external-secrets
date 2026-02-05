@@ -47,7 +47,9 @@ spec:
     secret:
       name: db-credentials
   dataTo:
-    - match:
+    - storeRef:
+        name: aws-secrets-manager
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp:
@@ -96,7 +98,9 @@ spec:
     secret:
       name: app-config
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: vault-dev
+      rewrite:
         - regexp:
             source: "^"
             target: "dev/myapp/"
@@ -116,7 +120,9 @@ spec:
     secret:
       name: app-config
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: vault-prod
+      rewrite:
         - regexp:
             source: "^"
             target: "prod/myapp/"
@@ -158,7 +164,9 @@ spec:
       name: mixed-secrets
   dataTo:
     # Database credentials -> config/database/*
-    - match:
+    - storeRef:
+        name: vault-store
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp:
@@ -166,7 +174,9 @@ spec:
             target: "config/database/"
 
     # API keys -> config/api/*
-    - match:
+    - storeRef:
+        name: vault-store
+      match:
         regexp: "^api-.*"
       rewrite:
         - regexp:
@@ -174,7 +184,9 @@ spec:
             target: "config/api/"
 
     # TLS certificates -> config/tls/*
-    - match:
+    - storeRef:
+        name: vault-store
+      match:
         regexp: "^tls-.*"
       rewrite:
         - regexp:
@@ -222,7 +234,9 @@ spec:
     secret:
       name: service-keys
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: gcp-secret-manager
+      rewrite:
         - transform:
             template: "services/{{ .value | upper | replace \"-\" \"_\" }}"
 ```
@@ -264,7 +278,9 @@ spec:
     secret:
       name: legacy-secrets
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: aws-secrets-manager
+      rewrite:
         # First: Remove "old-" prefix
         - regexp:
             source: "^old-"
@@ -319,7 +335,9 @@ spec:
       name: app-secrets
   # Push all db-* keys to app/database/*
   dataTo:
-    - match:
+    - storeRef:
+        name: vault-store
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp:
@@ -359,7 +377,9 @@ spec:
     secret:
       name: app-config
   dataTo:
-    - match:
+    - storeRef:
+        name: aws-secrets-manager
+      match:
         regexp: "^prod-.*"
       rewrite:
         - regexp:
@@ -408,7 +428,9 @@ spec:
       name: vault-secrets
   dataTo:
     # Service-specific secrets
-    - match:
+    - storeRef:
+        name: vault-kv-v2
+      match:
         regexp: "^service-.*-key$"
       rewrite:
         - regexp:
@@ -416,7 +438,9 @@ spec:
             target: "services/$1/api-key"  # Use capture group
 
     # Shared secrets
-    - match:
+    - storeRef:
+        name: vault-kv-v2
+      match:
         regexp: "^shared-.*"
       rewrite:
         - regexp:
@@ -447,7 +471,9 @@ spec:
     secret:
       name: app-secrets
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: azure-key-vault
+      rewrite:
         # Azure Key Vault only allows alphanumeric and hyphens
         # Convert underscores to hyphens
         - regexp:
@@ -496,7 +522,9 @@ spec:
     secret:
       name: aws-backup-secrets
   dataTo:
-    - rewrite:
+    - storeRef:
+        name: gcp-secret-manager
+      rewrite:
         # Maintain structure but add backup prefix
         - regexp:
             source: "^"
@@ -535,7 +563,7 @@ kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.status.syncedPushSec
 
 ## Best Practices
 
-1. **Start with match-all to verify**: Test with `dataTo: [{}]` first
+1. **Start with match-all to verify**: Test with `dataTo: [{storeRef: {name: your-store}}]` first
 2. **Test regexp patterns**: Use `kubectl get secret -o jsonpath='{.data}' | jq 'keys'`
 3. **Use descriptive patterns**: Make regexp patterns self-documenting
 4. **Monitor status**: Check PushSecret status after creation

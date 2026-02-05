@@ -45,7 +45,9 @@ spec:
     secret:
       name: app-secrets
   dataTo:
-    - match:
+    - storeRef:
+        name: aws-secret-store
+      match:
         regexp: "^db-.*"  # Push all keys starting with "db-"
       rewrite:
         - regexp:
@@ -54,6 +56,32 @@ spec:
 ```
 
 ### Fields
+
+#### `storeRef` (required)
+
+Specifies which SecretStore to push to. Each `dataTo` entry must include a `storeRef` to target a specific store.
+
+- **`name`** (string, optional): Name of the SecretStore to target.
+- **`labelSelector`** (object, optional): Select stores by label. Use either `name` or `labelSelector`, not both.
+- **`kind`** (string, optional): `SecretStore` or `ClusterSecretStore`. Defaults to `SecretStore`.
+
+```yaml
+dataTo:
+  # Target a specific store by name
+  - storeRef:
+      name: aws-secret-store
+
+  # Target stores by label
+  - storeRef:
+      labelSelector:
+        matchLabels:
+          env: production
+```
+
+!!! note "storeRef vs spec.data"
+    Unlike `spec.data` entries which can omit store targeting, every `dataTo` entry requires a `storeRef`.
+    This prevents accidental "push to all stores" behavior. The `storeRef` must reference a store
+    listed in `spec.secretStoreRefs`.
 
 #### `match` (optional)
 
@@ -65,16 +93,21 @@ Defines which keys to select from the source Secret.
 ```yaml
 # Match all keys
 dataTo:
-  - {}
+  - storeRef:
+      name: my-store
 
 # Match keys starting with "db-"
 dataTo:
-  - match:
+  - storeRef:
+      name: my-store
+    match:
       regexp: "^db-.*"
 
 # Match keys ending with "-key"
 dataTo:
-  - match:
+  - storeRef:
+      name: my-store
+    match:
       regexp: ".*-key$"
 ```
 
@@ -112,7 +145,9 @@ Provider-specific metadata to attach to all pushed secrets. Structure depends on
 
 ```yaml
 dataTo:
-  - match:
+  - storeRef:
+      name: my-store
+    match:
       regexp: "^db-.*"
     metadata:
       labels:
@@ -129,7 +164,9 @@ Strategy for converting secret key names before matching and rewriting. The conv
 
 ```yaml
 dataTo:
-  - conversionStrategy: ReverseUnicode
+  - storeRef:
+      name: my-store
+    conversionStrategy: ReverseUnicode
 ```
 
 ### Combining dataTo with data
@@ -138,8 +175,11 @@ You can use both `dataTo` and `data` fields. Explicit `data` entries override `d
 
 ```yaml
 spec:
+  secretStoreRefs:
+    - name: my-store
   dataTo:
-    - {}  # Push all keys with original names
+    - storeRef:
+        name: my-store  # Push all keys with original names
   data:
     - match:
         secretKey: db-host
@@ -147,20 +187,28 @@ spec:
           remoteKey: custom-db-host  # Override for db-host only
 ```
 
+In this example, all keys are pushed via `dataTo`, but `db-host` uses the custom remote key from `data` instead.
+
 ### Multiple dataTo Entries
 
 You can specify multiple `dataTo` entries with different patterns:
 
 ```yaml
 spec:
+  secretStoreRefs:
+    - name: my-store
   dataTo:
     # Push db-* keys with database/ prefix
-    - match:
+    - storeRef:
+        name: my-store
+      match:
         regexp: "^db-.*"
       rewrite:
         - regexp: {source: "^db-", target: "database/"}
     # Push api-* keys with api/ prefix
-    - match:
+    - storeRef:
+        name: my-store
+      match:
         regexp: "^api-.*"
       rewrite:
         - regexp: {source: "^api-", target: "api/"}
