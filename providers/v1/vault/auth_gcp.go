@@ -18,16 +18,20 @@ package vault
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 
 	authgcp "github.com/hashicorp/vault/api/auth/gcp"
 	"golang.org/x/oauth2/google"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	gcpsm "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
 	"github.com/external-secrets/external-secrets/runtime/constants"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	gcpauth "github.com/external-secrets/external-secrets/runtime/gcp/auth"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -64,13 +68,19 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 		return fmt.Errorf("failed to set up GCP authentication: %w", err)
 	}
 
+	// If we have a signed JWT from Workload Identity, use it directly
+	if c.gcpSignedJWT != "" {
+		return c.loginWithSignedJWT(ctx, authMountPath, role, c.gcpSignedJWT)
+	}
+
 	// Determine which GCP auth method to use based on available authentication
 	var gcpAuthClient *authgcp.GCPAuth
-	if gcpAuth.SecretRef != nil || gcpAuth.WorkloadIdentity != nil {
-		// Use IAM auth method when we have explicit credentials (service account key or workload identity)
+	if c.gcpServiceAccountEmail != "" {
+		// Use IAM auth method when we have the service account email
+		// This is used for SecretRef and WorkloadIdentity authentication
 		gcpAuthClient, err = authgcp.NewGCPAuth(role,
 			authgcp.WithMountPath(authMountPath),
-			authgcp.WithIAMAuth(""), // Service account email will be determined automatically from credentials
+			authgcp.WithIAMAuth(c.gcpServiceAccountEmail),
 		)
 	} else {
 		// Use GCE auth method for GCE instances (includes ServiceAccountRef and default ADC scenarios)
@@ -121,7 +131,32 @@ func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) e
 }
 
 func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
-	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
+	// Extract service account credentials from secret
+	credsJSON, err := resolvers.SecretKeyRef(
+		ctx,
+		c.kube,
+		c.storeKind,
+		c.namespace,
+		&gcpAuth.SecretRef.SecretAccessKey,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to get secret key ref: %w", err)
+	}
+
+	// Parse credentials to extract service account email
+	var creds struct {
+		ClientEmail string `json:"client_email"`
+	}
+	if err := json.Unmarshal([]byte(credsJSON), &creds); err != nil {
+		return fmt.Errorf("failed to parse GCP credentials: %w", err)
+	}
+	if creds.ClientEmail == "" {
+		return fmt.Errorf("client_email not found in GCP credentials")
+	}
+	c.gcpServiceAccountEmail = creds.ClientEmail
+
+	// Create token source for authentication
+	tokenSource, err := gcpauth.NewTokenSource(ctx, esv1.GCPSMAuth{
 		SecretRef: gcpAuth.SecretRef,
 	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
 	if err != nil {
@@ -133,25 +168,51 @@ func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.V
 		return fmt.Errorf("failed to retrieve token from secret: %w", err)
 	}
 
-	c.log.V(1).Info("Setting up GCP authentication using service account credentials from secret")
+	c.log.V(1).Info("Setting up GCP authentication using service account credentials from secret", "email", c.gcpServiceAccountEmail)
 	return c.setGCPEnvironment(token.AccessToken)
 }
 
 func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
-	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
-		WorkloadIdentity: gcpAuth.WorkloadIdentity,
-	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
-	if err != nil {
-		return fmt.Errorf("failed to create token source from workload identity: %w", err)
+	// Get the GCP service account email from the WorkloadIdentity configuration
+	saKey := types.NamespacedName{
+		Name:      gcpAuth.WorkloadIdentity.ServiceAccountRef.Name,
+		Namespace: c.namespace,
+	}
+	if c.storeKind == esv1.ClusterSecretStoreKind && gcpAuth.WorkloadIdentity.ServiceAccountRef.Namespace != nil {
+		saKey.Namespace = *gcpAuth.WorkloadIdentity.ServiceAccountRef.Namespace
 	}
 
-	token, err := tokenSource.Token()
-	if err != nil {
-		return fmt.Errorf("failed to retrieve token from workload identity: %w", err)
+	var sa corev1.ServiceAccount
+	if err := c.kube.Get(ctx, saKey, &sa); err != nil {
+		return fmt.Errorf("failed to get service account %s: %w", saKey, err)
 	}
 
-	c.log.V(1).Info("Setting up GCP authentication using workload identity")
-	return c.setGCPEnvironment(token.AccessToken)
+	// Extract GCP service account email from annotation
+	gcpSAEmail, ok := sa.Annotations["iam.gke.io/gcp-service-account"]
+	if !ok || gcpSAEmail == "" {
+		return fmt.Errorf("service account %s missing required annotation 'iam.gke.io/gcp-service-account'", saKey)
+	}
+	c.gcpServiceAccountEmail = gcpSAEmail
+
+	// Generate a signed JWT for Vault GCP IAM authentication
+	// This JWT will contain sub (service account email), aud (vault/role), and exp claims
+	signedJWT, err := gcpauth.GenerateSignedJWTForVault(
+		ctx,
+		gcpAuth.WorkloadIdentity,
+		gcpAuth.Role,
+		c.storeKind,
+		c.kube,
+		c.namespace,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to generate signed JWT for Vault GCP IAM auth: role=%q, gcpServiceAccount=%q: %w", gcpAuth.Role, gcpSAEmail, err)
+	}
+
+	c.log.V(1).Info("Setting up GCP authentication using workload identity with signed JWT", "email", c.gcpServiceAccountEmail)
+
+	// Store the signed JWT so it can be used during the Vault login
+	c.gcpSignedJWT = signedJWT
+	return nil
 }
 
 func (c *client) setupServiceAccountRefAuth(_ context.Context, _ *esv1.VaultGCPAuth) error {
@@ -197,6 +258,35 @@ func (c *client) setEnvVar(key, value string) error {
 		return fmt.Errorf("failed to set environment variable %s: %w", key, err)
 	}
 	c.log.V(1).Info("Set environment variable for GCP authentication", "key", key)
+	return nil
+}
+
+func (c *client) loginWithSignedJWT(ctx context.Context, mountPath, role, jwt string) error {
+	// Login to Vault using the signed JWT
+	// The Vault GCP IAM auth endpoint expects: POST /v1/auth/{mountPath}/login
+	// with body: {"role": "role-name", "jwt": "signed-jwt-token"}
+	loginData := map[string]interface{}{
+		"role": role,
+		"jwt":  jwt,
+	}
+
+	loginPath := fmt.Sprintf("auth/%s/login", mountPath)
+	c.log.V(1).Info("Logging in to Vault using signed JWT", "path", loginPath, "role", role)
+
+	secret, err := c.logical.WriteWithContext(ctx, loginPath, loginData)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	if err != nil {
+		return fmt.Errorf("unable to log in with GCP IAM auth: path=%q, role=%q: %w", loginPath, role, err)
+	}
+
+	if secret == nil || secret.Auth == nil || secret.Auth.ClientToken == "" {
+		return fmt.Errorf("GCP IAM auth login response did not return client token: path=%q, role=%q", loginPath, role)
+	}
+
+	// Set the client token for subsequent requests
+	c.client.SetToken(secret.Auth.ClientToken)
+	c.log.V(1).Info("Successfully authenticated with Vault using GCP Workload Identity")
+
 	return nil
 }
 

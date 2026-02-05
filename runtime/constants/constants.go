@@ -66,6 +66,7 @@ const (
 	CallGCPSMGenerateSAToken     = "GenerateServiceAccountToken"
 	CallGCPSMGenerateIDBindToken = "GenerateIDBindToken"
 	CallGCPSMGenerateAccessToken = "GenerateAccessToken"
+	CallGCPSMSignJwt             = "SignJwt"
 
 	ProviderHCVault            = "HashiCorp/Vault"
 	CallHCVaultLogin           = "Login"
