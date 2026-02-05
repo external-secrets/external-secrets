@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package oidc provides shared OIDC token management utilities for External Secrets providers.
+// It includes token caching, ServiceAccount token creation, and HTTP utilities for token exchange.
 package oidc
 
 import (
@@ -35,9 +37,12 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// Token TTL and buffer constants for OIDC token management.
 const (
+	// DefaultTokenTTL is the default time-to-live in seconds for ServiceAccount tokens.
 	DefaultTokenTTL = 600
-	MinTokenBuffer  = 60
+	// MinTokenBuffer is the minimum buffer time in seconds before token expiry to trigger refresh.
+	MinTokenBuffer = 60
 )
 
 // TokenProvider is the interface that provider-specific OIDC implementations must satisfy.
