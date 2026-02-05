@@ -45,6 +45,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.extraInitContainers | list | `[]` |  |
 | certController.extraVolumeMounts | list | `[]` |  |
 | certController.extraVolumes | list | `[]` |  |
+| certController.hostAliases | list | `[]` | Specifies `hostAliases` to cert-controller deployment |
 | certController.hostNetwork | bool | `false` | Run the certController on the host network |
 | certController.hostUsers | bool | `nil` | Specifies if certController pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | certController.image.flavour | string | `""` |  |
@@ -119,6 +120,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | genericTargets.resources | list | `[]` | List of additional resource types to grant permissions for. Each entry should specify apiGroup, resources, and verbs. Example: resources:   - apiGroup: "argoproj.io"     resources: ["applications"]     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"] |
 | global.affinity | object | `{}` |  |
 | global.compatibility.openshift.adaptSecurityContext | string | `"auto"` | Manages the securityContext properties to make them compatible with OpenShift. Possible values: auto - Apply configurations if it is detected that OpenShift is the target platform. force - Always apply configurations. disabled - No modification applied. |
+| global.hostAliases | list | `[]` | Global hostAliases to be applied to all deployments |
 | global.imagePullSecrets | list | `[]` | Global imagePullSecrets to be applied to all deployments |
 | global.nodeSelector | object | `{}` |  |
 | global.podAnnotations | object | `{}` | Global pod annotations to be applied to all deployments |
@@ -131,6 +133,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | grafanaDashboard.extraLabels | object | `{}` | Extra labels to add to the Grafana dashboard ConfigMap. |
 | grafanaDashboard.sidecarLabel | string | `"grafana_dashboard"` | Label that ConfigMaps should have to be loaded as dashboards. |
 | grafanaDashboard.sidecarLabelValue | string | `"1"` | Label value that ConfigMaps should have to be loaded as dashboards. |
+| hostAliases | list | `[]` | Specifies `hostAliases` to deployment |
 | hostNetwork | bool | `false` | Run the controller on the host network |
 | hostUsers | bool | `nil` | Specifies if controller pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default, the distroless image is used. |
@@ -235,6 +238,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.extraVolumeMounts | list | `[]` |  |
 | webhook.extraVolumes | list | `[]` |  |
 | webhook.failurePolicy | string | `"Fail"` | Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore |
+| webhook.hostAliases | list | `[]` | Specifies `hostAliases` to webhook deployment |
 | webhook.hostNetwork | bool | `false` | Specifies if webhook pod should use hostNetwork or not. |
 | webhook.hostUsers | bool | `nil` | Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | webhook.image.flavour | string | `""` | The flavour of tag you want to use |
