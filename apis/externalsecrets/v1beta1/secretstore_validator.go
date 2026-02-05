@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-var _ admission.CustomValidator = &GenericStoreValidator{}
+var _ admission.Validator[runtime.Object] = &GenericStoreValidator{}
 
 const (
 	errInvalidStore = "invalid store"

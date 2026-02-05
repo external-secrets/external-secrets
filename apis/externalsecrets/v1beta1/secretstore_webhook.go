@@ -17,21 +17,20 @@ limitations under the License.
 package v1beta1
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // SetupWebhookWithManager configures the webhook manager for the SecretStore.
 func (c *SecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+	return ctrl.NewWebhookManagedBy(mgr, runtime.Object(c)).
 		WithValidator(&GenericStoreValidator{}).
 		Complete()
 }
 
 // SetupWebhookWithManager configures the webhook manager for the ClusterSecretStore.
 func (c *ClusterSecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+	return ctrl.NewWebhookManagedBy(mgr, runtime.Object(c)).
 		WithValidator(&GenericStoreValidator{}).
 		Complete()
 }

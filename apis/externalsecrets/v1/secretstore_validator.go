@@ -27,7 +27,7 @@ import (
 )
 
 // Ensures ExternalSecretValidator implements the admission.CustomValidator interface correctly.
-var _ admission.CustomValidator = &GenericStoreValidator{}
+var _ admission.Validator[runtime.Object] = &GenericStoreValidator{}
 
 const (
 	errInvalidStore       = "invalid store"

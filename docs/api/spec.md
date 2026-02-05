@@ -18147,7 +18147,7 @@ map[string]string
 <h3 id="external-secrets.io/v1beta1.ExternalSecretValidator">ExternalSecretValidator
 </h3>
 <p>
-<p>ExternalSecretValidator implements webhook validation for ExternalSecret resources.</p>
+<p>ExternalSecretValidator implements a validating webhook for ExternalSecrets.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.FakeProvider">FakeProvider
 </h3>
