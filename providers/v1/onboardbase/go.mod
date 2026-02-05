@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/onboardbase
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d
