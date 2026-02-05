@@ -211,7 +211,11 @@ func (d PushSecretData) GetProperty() string {
 }
 
 // PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
+// +kubebuilder:validation:XValidation:rule="has(self.storeRef) && (has(self.storeRef.name) || has(self.storeRef.labelSelector))",message="storeRef must specify either name or labelSelector"
 type PushSecretDataTo struct {
+	// StoreRef specifies which SecretStore to push to. Required.
+	StoreRef *PushSecretStoreRef `json:"storeRef,omitempty"`
+
 	// Match pattern for selecting keys from the source Secret.
 	// If not specified, all keys are selected.
 	// +optional
@@ -241,8 +245,17 @@ type PushSecretDataToMatch struct {
 	RegExp string `json:"regexp,omitempty"`
 }
 
-// PushSecretRewrite reuses ExternalSecretRewrite for consistency.
-type PushSecretRewrite = esv1.ExternalSecretRewrite
+// PushSecretRewrite defines how to transform secret keys before pushing.
+// +kubebuilder:validation:XValidation:rule="(has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))",message="exactly one of regexp or transform must be set"
+type PushSecretRewrite struct {
+	// Used to rewrite with regular expressions.
+	// +optional
+	Regexp *esv1.ExternalSecretRewriteRegexp `json:"regexp,omitempty"`
+
+	// Used to apply string transformation on the secrets.
+	// +optional
+	Transform *esv1.ExternalSecretRewriteTransform `json:"transform,omitempty"`
+}
 
 // PushSecretConditionType indicates the condition of the PushSecret.
 type PushSecretConditionType string
