@@ -93,6 +93,9 @@ func (m *BaseTokenManager) GetToken(ctx context.Context) (string, error) {
 	if m == nil {
 		return "", fmt.Errorf("OIDC token manager is not initialized")
 	}
+	if m.Exchanger == nil {
+		return "", fmt.Errorf("OIDC token exchanger is not configured")
+	}
 
 	// Check cache first
 	if token, ok := m.Cache.Get(); ok {
