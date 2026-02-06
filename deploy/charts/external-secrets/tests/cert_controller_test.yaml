@@ -314,3 +314,62 @@ tests:
     asserts:
       - notExists:
           path: spec.template.spec.hostUsers
+  - it: should not have hostAliases by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostAliases
+  - it: should add hostAliases when configured
+    set:
+      certController.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "cert.example.local"
+            - "cert"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "cert.example.local"
+                - "cert"
+  - it: should use global hostAliases when certController level not set
+    set:
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.200"
+              hostnames:
+                - "global.example.com"
+  - it: should prefer certController hostAliases over global
+    set:
+      certController.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "cert.example.com"
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "cert.example.com"
