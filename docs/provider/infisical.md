@@ -85,6 +85,61 @@ To filter secrets by `path` (path prefix) and `name` (regular expression).
 {% include 'infisical-filtered-secrets.yaml' %}
 ```
 
+## AWS IAM Authentication
+
+You can use AWS IAM authentication to authenticate with Infisical using your existing AWS infrastructure (IRSA, EC2 instance roles, ECS task roles, etc.). AWS credentials are automatically discovered from the environment.
+
+### Setup
+
+1. Create a Machine Identity in Infisical with AWS IAM authentication enabled
+2. Configure the Machine Identity to trust your AWS IAM role/user
+3. Create a SecretStore that references the Machine Identity ID
+
+### Using Inline Value (Recommended)
+
+For AWS environments, you can specify the Machine Identity ID directly in the SecretStore. AWS credentials are automatically discovered from the environment:
+
+```yaml
+{% include 'infisical-aws-auth-secret-store.yaml' %}
+```
+
+### Using Secret Reference
+
+If you prefer to store the Machine Identity ID in a Kubernetes secret:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: infisical-aws-auth
+type: Opaque
+stringData:
+  identityId: <machine-identity-id>
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: infisical-aws-auth
+spec:
+  provider:
+    infisical:
+      auth:
+        awsAuthCredentials:
+          identityId:
+            secretRef:
+              name: infisical-aws-auth
+              key: identityId
+      secretsScope:
+        projectSlug: my-project
+        environmentSlug: dev
+```
+
+!!! note
+    Set only one of `identityId.value` or `identityId.secretRef`. They are mutually exclusive.
+
+!!! note
+    For `ClusterSecretStore`, be sure to set `namespace` in `awsAuthCredentials.identityId.secretRef`.
+
 ## Custom CA Certificates
 
 If you are using a self-hosted Infisical instance with a self-signed certificate or a certificate signed by a private CA, you can configure the provider to trust it.
