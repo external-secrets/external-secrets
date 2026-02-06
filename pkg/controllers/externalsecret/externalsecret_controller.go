@@ -275,6 +275,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return ctrl.Result{}, nil // don't requeue as this is a configuration error that is not recoverable
 		}
 
+		if !shouldRefresh(externalSecret) {
+			log.V(1).Info("skipping refresh")
+			return r.getRequeueResult(externalSecret), nil
+		}
+
 		return r.reconcileGenericTarget(ctx, externalSecret, log, start, resourceLabels, syncCallsError)
 	}
 

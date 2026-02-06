@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -113,8 +114,9 @@ func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.
 		return false, fmt.Errorf("queue not initialized, call SetQueue first")
 	}
 
-	// Get or create informer for this GVK
-	informer, err := m.cache.GetInformerForKind(ctx, gvk)
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	informer, err := m.cache.GetInformer(ctx, obj)
 	if err != nil {
 		return false, fmt.Errorf("failed to get informer for %s: %w", key, err)
 	}
