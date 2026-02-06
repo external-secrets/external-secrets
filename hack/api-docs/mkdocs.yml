@@ -128,7 +128,6 @@ nav:
       - Chef: provider/chef.md
       - Cloud.ru Secret Manager: provider/cloudru.md
       - CyberArk Conjur: provider/conjur.md
-      - Device42: provider/device42.md
       - Google Cloud Secret Manager: provider/google-secrets-manager.md
       - HashiCorp Vault: provider/hashicorp-vault.md
       - Kubernetes: provider/kubernetes.md
@@ -136,7 +135,6 @@ nav:
       - Akeyless: provider/akeyless.md
       - Yandex Certificate Manager: provider/yandex-certificate-manager.md
       - Yandex Lockbox: provider/yandex-lockbox.md
-      - Alibaba Cloud: provider/alibaba.md
       - GitLab Variables: provider/gitlab-variables.md
       - Github Actions Secrets: provider/github.md
       - Oracle Vault: provider/oracle-vault.md
