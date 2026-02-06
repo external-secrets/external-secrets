@@ -192,7 +192,7 @@ generate: ## Generate code and crds
 # This is for running out-of-cluster locally, and is for convenience.
 # For more control, try running the binary directly with different arguments.
 run: generate ## Run app locally (without a k8s cluster)
-	go run ./main.go
+	go run -tags $(PROVIDER) ./main.go
 
 manifests: helm.generate ## Generate manifests from helm chart
 	mkdir -p $(OUTPUT_DIR)/deploy/manifests
@@ -217,7 +217,7 @@ tilt-up: tilt manifests ## Generates the local manifests that tilt will use to d
 
 helm.docs: ## Generate helm docs
 	@cd $(HELM_DIR); \
-	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.7.0
+	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.14.2
 
 HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
 
@@ -348,11 +348,11 @@ SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
 	$(DOCKER) manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
-	for digest in $$(jq -r 'if type=="array" then .[].Descriptor.digest else .Descriptor.digest end' < .tagmanifest); do \
+	for digest in $$(jq -r 'if type=="array" then .[] | select(.Descriptor.platform.architecture != "unknown") | .Descriptor.digest else .Descriptor.digest end' < .tagmanifest); do \
 		$(DOCKER) pull $(IMAGE_NAME)@$$digest; \
 	done
 	$(DOCKER) manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
-		$$(jq -j '"--amend $(IMAGE_NAME)@" + if type=="array" then .[].Descriptor.digest else .Descriptor.digest end + " "' < .tagmanifest)
+		$$(jq -j 'if type=="array" then [.[] | select(.Descriptor.platform.architecture != "unknown")] | map("--amend $(IMAGE_NAME)@" + .Descriptor.digest) | join(" ") else "--amend $(IMAGE_NAME)@" + .Descriptor.digest end' < .tagmanifest)
 	$(DOCKER) manifest push $(IMAGE_NAME):$(RELEASE_TAG)
 	@$(OK) $(DOCKER) push $(RELEASE_TAG) \
 
@@ -404,22 +404,16 @@ clean:  ## Clean bins
 # ====================================================================================
 # Build Dependencies
 
-ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
-    detected_OS := windows
-    real_OS := windows
-    arch := x86_64
-else
-    detected_OS := $(shell uname -s)
-    real_OS := $(detected_OS)
-    arch := $(shell uname -m)
-    ifeq ($(detected_OS),Darwin)
+detected_OS := $(shell uname -s)
+real_OS := $(detected_OS)
+arch := $(shell uname -m)
+ifeq ($(detected_OS),Darwin)
         detected_OS := mac
         real_OS := darwin
-    endif
-    ifeq ($(detected_OS),Linux)
+endif
+ifeq ($(detected_OS),Linux)
         detected_OS := linux
-        real_OS := linux
-    endif
+	real_OS := linux
 endif
 
 ## Location to install dependencies to

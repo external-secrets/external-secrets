@@ -46,6 +46,11 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.certController.serviceAccount.automount }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      {{- if kindIs "bool" .Values.certController.hostUsers }}
+      hostUsers: {{ .Values.certController.hostUsers }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.certController.podSecurityContext }}
        {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:
@@ -95,9 +100,17 @@ spec:
             - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
               name: metrics
+            - containerPort: {{ .Values.certController.readinessProbe.port }}
+              protocol: TCP
+              name: ready
+            {{- if and .Values.certController.startupProbe.enabled (not .Values.certController.startupProbe.useReadinessProbePort) }}
+            - containerPort: {{ .Values.certController.startupProbe.port }}
+              protocol: TCP
+              name: startup
+            {{- end }}
           readinessProbe:
             httpGet:
-              port: {{ .Values.certController.readinessProbe.port }}
+              port: ready
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
@@ -105,9 +118,9 @@ spec:
           startupProbe:
             httpGet:
               {{- if .Values.certController.startupProbe.useReadinessProbePort }}
-              port: {{ .Values.certController.readinessProbe.port }}
+              port: ready
               {{- else }}
-              port: {{ .Values.certController.startupProbe.port }}
+              port: startup
               {{- end }}
               path: /readyz
             initialDelaySeconds: 20
@@ -132,6 +145,10 @@ spec:
       {{- if .Values.certController.extraVolumes }}
       volumes:
       {{- toYaml .Values.certController.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.certController.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:

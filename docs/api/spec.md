@@ -584,197 +584,6 @@ CAProvider
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.AlibabaAuth">AlibabaAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaProvider">AlibabaProvider</a>)
-</p>
-<p>
-<p>AlibabaAuth contains a secretRef for credentials.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>secretRef</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaAuthSecretRef">
-AlibabaAuthSecretRef
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-<tr>
-<td>
-<code>rrsa</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaRRSAAuth">
-AlibabaRRSAAuth
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaAuthSecretRef">AlibabaAuthSecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaAuth">AlibabaAuth</a>)
-</p>
-<p>
-<p>AlibabaAuthSecretRef holds secret references for Alibaba credentials.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>accessKeyIDSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>The AccessKeyID is used for authentication</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>accessKeySecretSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>The AccessKeySecret is used for authentication</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaProvider">AlibabaProvider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
-</p>
-<p>
-<p>AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaAuth">
-AlibabaAuth
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>regionID</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Alibaba Region to be used for the provider</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaRRSAAuth">AlibabaRRSAAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaAuth">AlibabaAuth</a>)
-</p>
-<p>
-<p>AlibabaRRSAAuth authenticates against Alibaba using RRSA.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>oidcProviderArn</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>oidcTokenFilePath</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>roleArn</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>sessionName</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
 </h3>
 <p>
@@ -1708,6 +1517,18 @@ string
 </tr>
 <tr>
 <td>
+<code>decrypt</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>verifyCA</code></br>
 <em>
 bool
@@ -2115,6 +1936,53 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <p>The AccessKeySecret is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CacheConfig">CacheConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>CacheConfig configures client-side caching for read operations.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ttl</code></br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TTL is the time-to-live for cached secrets.
+Format: duration string (e.g., &ldquo;5m&rdquo;, &ldquo;1h&rdquo;, &ldquo;30s&rdquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxSize</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxSize is the maximum number of secrets to cache.
+When the cache is full, least-recently-used entries are evicted.</p>
 </td>
 </tr>
 </tbody>
@@ -3267,6 +3135,140 @@ ConjurAuth
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.DVLSAuth">DVLSAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DVLSProvider">DVLSProvider</a>)
+</p>
+<p>
+<p>DVLSAuth defines the authentication method for the DVLS provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.DVLSAuthSecretRef">
+DVLSAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef contains the Application ID and Application Secret for authentication.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DVLSAuthSecretRef">DVLSAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DVLSAuth">DVLSAuth</a>)
+</p>
+<p>
+<p>DVLSAuthSecretRef defines the secret references for DVLS authentication credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>appId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AppID is the reference to the secret containing the Application ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AppSecret is the reference to the secret containing the Application Secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DVLSProvider">DVLSProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>DVLSProvider configures a store to sync secrets using Devolutions Server.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serverUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServerURL is the DVLS instance URL (e.g., <a href="https://dvls.example.com">https://dvls.example.com</a>).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>insecure</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Insecure allows connecting to DVLS over plain HTTP.
+This is NOT RECOMMENDED for production use.
+Set to true only if you understand the security implications.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.DVLSAuth">
+DVLSAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the authentication method to use.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.DelineaProvider">DelineaProvider
 </h3>
 <p>
@@ -3391,113 +3393,6 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>SecretRef references a key in a secret that will be used as value.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.Device42Auth">Device42Auth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.Device42Provider">Device42Provider</a>)
-</p>
-<p>
-<p>Device42Auth defines the authentication method for the Device42 provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>secretRef</code></br>
-<em>
-<a href="#external-secrets.io/v1.Device42SecretRef">
-Device42SecretRef
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.Device42Provider">Device42Provider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
-</p>
-<p>
-<p>Device42Provider configures a store to sync secrets with a Device42 instance.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>host</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>URL configures the Device42 instance URL.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1.Device42Auth">
-Device42Auth
-</a>
-</em>
-</td>
-<td>
-<p>Auth configures how secret-manager authenticates with a Device42 instance.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.Device42SecretRef">Device42SecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.Device42Auth">Device42Auth</a>)
-</p>
-<p>
-<p>Device42SecretRef contains the secret reference for accessing the Device42 instance.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>credentials</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Username / Password is used for authentication.</p>
 </td>
 </tr>
 </tbody>
@@ -7868,6 +7763,24 @@ OnePasswordSDKAuth
 <p>Auth defines the information necessary to authenticate against OnePassword API.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>cache</code></br>
+<em>
+<a href="#external-secrets.io/v1.CacheConfig">
+CacheConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+When enabled, secrets are cached with the specified TTL.
+Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+If omitted, caching is disabled (default).
+cache: {} is a valid option to set.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.OracleAuth">OracleAuth
@@ -9216,20 +9129,6 @@ GitlabProvider
 </tr>
 <tr>
 <td>
-<code>alibaba</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaProvider">
-AlibabaProvider
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Alibaba configures this store to sync secrets using Alibaba Cloud provider</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>onepassword</code></br>
 <em>
 <a href="#external-secrets.io/v1.OnePasswordProvider">
@@ -9496,16 +9395,16 @@ PassboltProvider
 </tr>
 <tr>
 <td>
-<code>device42</code></br>
+<code>dvls</code></br>
 <em>
-<a href="#external-secrets.io/v1.Device42Provider">
-Device42Provider
+<a href="#external-secrets.io/v1.DVLSProvider">
+DVLSProvider
 </a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Device42 configures this store to sync secrets using the Device42 provider</p>
+<p>DVLS configures this store to sync secrets using Devolutions Server provider</p>
 </td>
 </tr>
 <tr>
@@ -15073,6 +14972,18 @@ string
 </td>
 <td>
 <p>A character that separates the folder names.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>decrypt</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.</p>
 </td>
 </tr>
 <tr>

@@ -365,7 +365,7 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 				if err != nil {
 					return out, err
 				}
-				delete(out[storeName], oldRef.Match.RemoteRef.RemoteKey)
+				delete(out[storeName], oldEntry)
 			}
 		}
 	}

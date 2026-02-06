@@ -18,9 +18,10 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 | ESO Version | Kubernetes Version | Release Date | End of Life           |
 |-------------|--------------------|--------------|-----------------------|
-| 1.2         | 1.34               | Dec 19, 2025 | Release of next minor |
-| 1.1         | 1.34               | Nov 21, 2025 | Release of next minor |
-| 1.0         | 1.34               | Nov 7, 2025  | Release of next minor |
+| 1.3         | 1.34               | Jan 23, 2026 | Release of next minor |
+| 1.2         | 1.34               | Dec 19, 2025 | Jan 23, 2026          |
+| 1.1         | 1.34               | Nov 21, 2025 | Dec 19, 2025          |
+| 1.0         | 1.34               | Nov 7, 2025  | Nov 21, 2025          |
 | 0.20.x      | 1.34               | Sep 22, 2025 | Nov 7, 2025           |
 | 0.19.x      | 1.33               | Aug 2, 2025  | Sep 22, 2025          |
 | 0.18.x      | 1.33               | Jul 17, 2025 | Aug 2, 2025           |
@@ -73,7 +74,6 @@ The following table describes the stability level of each provider and who's res
 | [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       | beta      | [external-secrets](https://github.com/external-secrets)                                             |
 | [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              | alpha     | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
 | [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          | alpha     | [@Jabray5](https://github.com/Jabray5)                                                              |
-| Alibaba Cloud KMS                                                                                          | alpha     | **DEPRECATED**                                                                                    |
 | [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   | alpha     | [@anders-swanson](https://github.com/anders-swanson)                                                                                    |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [1Password](https://external-secrets.io/latest/provider/1password-automation)                              | alpha     | [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer)   |
@@ -88,15 +88,15 @@ The following table describes the stability level of each provider and who's res
 | [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     | alpha     | [@btfhernandez](https://github.com/btfhernandez/)                                                   |
 | [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   | beta     | [@gmurugezan](https://github.com/gmurugezan)                                                    |
 | [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           | alpha     | [@dirien](https://github.com/dirien)                                                                |
-| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           | alpha     | **UNMAINTAINED**                                                                                    |
+| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           | alpha     | [@stripthis](https://github.com/stripthis)                                                                                  |
 | [Infisical](https://external-secrets.io/latest/provider/infisical)                                         | alpha     | [@akhilmhdh](https://github.com/akhilmhdh)                                                          |
-| [Device42](https://external-secrets.io/latest/provider/device42)                                           | alpha     | **UNMAINTAINED**                                                                                    |
 | [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         | alpha     | [@skarlso](https://github.com/Skarlso)                                                              |
 | [Previder](https://external-secrets.io/latest/provider/previder)                                           | stable    | [@previder](https://github.com/previder)                                                            |
 | [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            | alpha     | [@default23](https://github.com/default23)                                                          |
 | [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       | alpha     | [@kevinyancn](https://github.com/kevinyancn)                                                        |
 | [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 | alpha     | [@jonstacks](https://github.com/jonstacks)                                                          |
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                           | alpha     | [@rkferreira](https://github.com/rkferreira)                                                        |
+| [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       | alpha     | [@rbstp](https://github.com/rbstp)                                                                  |
 
 
 ## Provider Feature Support
@@ -114,7 +114,6 @@ The following table show the support for features across different providers.
 | IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
-| Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
@@ -131,13 +130,13 @@ The following table show the support for features across different providers.
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 | Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
-| Device42                  |              |              |                      |                         |        x         |             |                             |
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
 | Volcengine                |              |              |                      |                         |        x         |             |                             |
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
+| Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
 
 ## Support Policy
 
