@@ -1178,9 +1178,8 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 	return true
 }
 
-// isGenericTargetValid checks if the generic target exists.
+// isGenericTargetValid checks if the generic target exists and its content matches the stored hash.
 func isGenericTargetValid(existingTarget *unstructured.Unstructured, es *esv1.ExternalSecret) bool {
-	// Secret is always valid with `CreationPolicy=Orphan`
 	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan {
 		return true
 	}
@@ -1189,19 +1188,29 @@ func isGenericTargetValid(existingTarget *unstructured.Unstructured, es *esv1.Ex
 		return false
 	}
 
-	// if the managed label is missing or incorrect, then it's invalid
 	if existingTarget.GetLabels()[esv1.LabelManaged] != esv1.LabelManagedValue {
 		return false
 	}
 
-	// TODO: Figure out what to do here instead for the generic resource.
-	//// if the data-hash annotation is missing or incorrect, then it's invalid
-	//// this is how we know if the data has chanced since we last updated the secret
-	//if existingTarget.GetAnnotations()[esv1.AnnotationDataHash] != esutils.ObjectHash(existingSecret.Data) {
-	//	return false
-	//}
+	if existingTarget.GetAnnotations()[esv1.AnnotationDataHash] != genericTargetContentHash(existingTarget) {
+		return false
+	}
 
 	return true
+}
+
+// genericTargetContentHash computes a hash over the hashable content of an unstructured object.
+// It uses the "spec" field if present, otherwise falls back to "data".
+func genericTargetContentHash(obj *unstructured.Unstructured) string {
+	content := obj.Object
+	switch {
+	case content["spec"] != nil:
+		return esutils.ObjectHash(content["spec"])
+	case content["data"] != nil:
+		return esutils.ObjectHash(content["data"])
+	default:
+		return esutils.ObjectHash(content)
+	}
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

@@ -206,11 +206,25 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	obj.SetLabels(labels)
 	obj.SetAnnotations(annotations)
 
+	var result *unstructured.Unstructured
+	var err error
 	if es.Spec.Target.Template == nil {
-		return r.createSimpleManifest(obj, dataMap)
+		result, err = r.createSimpleManifest(obj, dataMap)
+	} else {
+		result, err = r.renderTemplatedManifest(ctx, es, obj, dataMap)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return r.renderTemplatedManifest(ctx, es, obj, dataMap)
+	ann := result.GetAnnotations()
+	if ann == nil {
+		ann = make(map[string]string)
+	}
+	ann[esv1.AnnotationDataHash] = genericTargetContentHash(result)
+	result.SetAnnotations(ann)
+
+	return result, nil
 }
 
 // createSimpleManifest creates a simple resource without templates (e.g., ConfigMap with data field).
