@@ -1104,7 +1104,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		expiryTime := date.UnixTime(time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC))
 		createdTime := date.UnixTime(time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC))
 		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
-		smtc.ref.Property = "expires"
+		smtc.ref.Property = "attribute.expires"
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &secretString,
 			Attributes: &keyvault.SecretAttributes{
