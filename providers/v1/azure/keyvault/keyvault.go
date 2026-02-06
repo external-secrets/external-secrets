@@ -73,6 +73,11 @@ const (
 	objectTypeCert = "cert"
 	objectTypeKey  = "key"
 
+	attributeExpires   = "expires"
+	attributeCreated   = "created"
+	attributeUpdated   = "updated"
+	attributeNotBefore = "notBefore"
+
 	// AzureDefaultAudience is the default audience used for Azure AD token exchange.
 	AzureDefaultAudience = "api://AzureADTokenExchange"
 
@@ -812,6 +817,31 @@ func (a *Azure) getAllSecretsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	return secretsMap, nil
 }
 
+// getSecretAllMetadata merges tags with time-based attributes into a single metadata map.
+func getSecretAllMetadata(tags map[string]*string, expires, created, updated, notBefore *date.UnixTime) map[string]*string {
+	metadata := make(map[string]*string)
+	for k, v := range tags {
+		metadata[k] = v
+	}
+	if expires != nil {
+		s := time.Time(*expires).UTC().Format(time.RFC3339)
+		metadata[attributeExpires] = &s
+	}
+	if created != nil {
+		s := time.Time(*created).UTC().Format(time.RFC3339)
+		metadata[attributeCreated] = &s
+	}
+	if updated != nil {
+		s := time.Time(*updated).UTC().Format(time.RFC3339)
+		metadata[attributeUpdated] = &s
+	}
+	if notBefore != nil {
+		s := time.Time(*notBefore).UTC().Format(time.RFC3339)
+		metadata[attributeNotBefore] = &s
+	}
+	return metadata
+}
+
 // Retrieves a tag value if specified and all tags in JSON format if not.
 func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	if property == "" {
@@ -913,6 +943,13 @@ func (a *Azure) getSecretTagsWithLegacySDK(ctx context.Context, ref esv1.Externa
 			}
 		}
 	}
+
+	if secretResp.Attributes != nil {
+		secretTagsData = getSecretAllMetadata(secretTagsData,
+			secretResp.Attributes.Expires, secretResp.Attributes.Created,
+			secretResp.Attributes.Updated, secretResp.Attributes.NotBefore)
+	}
+
 	return secretTagsData, nil
 }
 
@@ -1394,12 +1431,15 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
 		secretResp, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, ref.Version)
 		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
-		err = parseError(err)
-		if err != nil {
+		if err := parseError(err); err != nil {
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(secretResp.Tags, ref.Property)
+			var expires, created, updated, notBefore *date.UnixTime
+			if secretResp.Attributes != nil {
+				expires, created, updated, notBefore = secretResp.Attributes.Expires, secretResp.Attributes.Created, secretResp.Attributes.Updated, secretResp.Attributes.NotBefore
+			}
+			return getSecretTag(getSecretAllMetadata(secretResp.Tags, expires, created, updated, notBefore), ref.Property)
 		}
 		return getProperty(*secretResp.Value, ref.Property, ref.Key)
 
@@ -1408,12 +1448,15 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle
 		certResp, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, ref.Version)
 		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
-		err = parseError(err)
-		if err != nil {
+		if err := parseError(err); err != nil {
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(certResp.Tags, ref.Property)
+			var expires, created, updated, notBefore *date.UnixTime
+			if certResp.Attributes != nil {
+				expires, created, updated, notBefore = certResp.Attributes.Expires, certResp.Attributes.Created, certResp.Attributes.Updated, certResp.Attributes.NotBefore
+			}
+			return getSecretTag(getSecretAllMetadata(certResp.Tags, expires, created, updated, notBefore), ref.Property)
 		}
 		return *certResp.Cer, nil
 
@@ -1422,12 +1465,15 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
 		keyResp, err := a.baseClient.GetKey(ctx, *a.provider.VaultURL, secretName, ref.Version)
 		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
-		err = parseError(err)
-		if err != nil {
+		if err := parseError(err); err != nil {
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(keyResp.Tags, ref.Property)
+			var expires, created, updated, notBefore *date.UnixTime
+			if keyResp.Attributes != nil {
+				expires, created, updated, notBefore = keyResp.Attributes.Expires, keyResp.Attributes.Created, keyResp.Attributes.Updated, keyResp.Attributes.NotBefore
+			}
+			return getSecretTag(getSecretAllMetadata(keyResp.Tags, expires, created, updated, notBefore), ref.Property)
 		}
 		keyBytes, err := json.Marshal(keyResp.Key)
 		if err != nil {
