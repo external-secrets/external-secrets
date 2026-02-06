@@ -275,11 +275,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return ctrl.Result{}, nil // don't requeue as this is a configuration error that is not recoverable
 		}
 
-		if !shouldRefresh(externalSecret) {
-			log.V(1).Info("skipping refresh")
-			return r.getRequeueResult(externalSecret), nil
-		}
-
 		return r.reconcileGenericTarget(ctx, externalSecret, log, start, resourceLabels, syncCallsError)
 	}
 
@@ -660,7 +655,7 @@ func (r *Reconciler) reconcileGenericTarget(
 	}
 
 	// Check if we need to fetch existing resource first (for Merge and Owner/Orphan policies)
-	var existing *unstructured.Unstructured
+	existing := &unstructured.Unstructured{}
 	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
 		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan ||
 		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
@@ -670,6 +665,11 @@ func (r *Reconciler) reconcileGenericTarget(
 			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 			return ctrl.Result{}, getErr
 		}
+	}
+
+	if !shouldRefresh(externalSecret) && isGenericTargetValid(existing, externalSecret) {
+		log.V(1).Info("skipping refresh of generic target")
+		return r.getRequeueResult(externalSecret), nil
 	}
 
 	// For Merge policy with existing resource, pass it to applyTemplateToManifest
@@ -1174,6 +1174,32 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 	if existingSecret.Annotations[esv1.AnnotationDataHash] != esutils.ObjectHash(existingSecret.Data) {
 		return false
 	}
+
+	return true
+}
+
+// isGenericTargetValid checks if the generic target exists.
+func isGenericTargetValid(existingTarget *unstructured.Unstructured, es *esv1.ExternalSecret) bool {
+	// Secret is always valid with `CreationPolicy=Orphan`
+	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan {
+		return true
+	}
+
+	if existingTarget.GetUID() == "" {
+		return false
+	}
+
+	// if the managed label is missing or incorrect, then it's invalid
+	if existingTarget.GetLabels()[esv1.LabelManaged] != esv1.LabelManagedValue {
+		return false
+	}
+
+	// TODO: Figure out what to do here instead for the generic resource.
+	//// if the data-hash annotation is missing or incorrect, then it's invalid
+	//// this is how we know if the data has chanced since we last updated the secret
+	//if existingTarget.GetAnnotations()[esv1.AnnotationDataHash] != esutils.ObjectHash(existingSecret.Data) {
+	//	return false
+	//}
 
 	return true
 }
