@@ -3896,22 +3896,494 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#storing-your-machine-identity-secrets" class="md-nav__link">
+  <a href="#universal-auth" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Storing Your Machine Identity Secrets
+        Universal Auth
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Storing Your Machine Identity Secrets">
+    <nav class="md-nav" aria-label="Universal Auth">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#secret-store" class="md-nav__link">
+  <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Secret Store
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubernetes-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kubernetes Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Kubernetes Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aws-iam-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS IAM Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AWS IAM Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#azure-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Azure Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcp-id-token-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCP ID Token Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GCP ID Token Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcp-iam-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCP IAM Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GCP IAM Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JWT Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="JWT Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ldap-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LDAP Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LDAP Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oci-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OCI Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OCI Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#token-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Token Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
       
     </span>
   </a>
@@ -3927,12 +4399,12 @@
   <a href="#fetching-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fetching secrets
+        Fetching Secrets
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Fetching secrets">
+    <nav class="md-nav" aria-label="Fetching Secrets">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3961,7 +4433,7 @@
   <a href="#filtering-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Filtering secrets
+        Filtering Secrets
       
     </span>
   </a>
@@ -4009,6 +4481,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#secrets-scope-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secrets Scope Configuration
+      
+    </span>
+  </a>
   
 </li>
       
@@ -4934,22 +5417,494 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#storing-your-machine-identity-secrets" class="md-nav__link">
+  <a href="#universal-auth" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Storing Your Machine Identity Secrets
+        Universal Auth
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Storing Your Machine Identity Secrets">
+    <nav class="md-nav" aria-label="Universal Auth">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#secret-store" class="md-nav__link">
+  <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Secret Store
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubernetes-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kubernetes Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Kubernetes Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aws-iam-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS IAM Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AWS IAM Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#azure-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Azure Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Azure Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcp-id-token-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCP ID Token Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GCP ID Token Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcp-iam-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCP IAM Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GCP IAM Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jwt-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JWT Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="JWT Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ldap-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LDAP Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LDAP Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oci-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OCI Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OCI Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#token-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token Auth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Token Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storing-credentials_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing Credentials
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-configuration_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretStore Configuration
       
     </span>
   </a>
@@ -4965,12 +5920,12 @@
   <a href="#fetching-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Fetching secrets
+        Fetching Secrets
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Fetching secrets">
+    <nav class="md-nav" aria-label="Fetching Secrets">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -4999,7 +5954,7 @@
   <a href="#filtering-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Filtering secrets
+        Filtering Secrets
       
     </span>
   </a>
@@ -5050,6 +6005,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#secrets-scope-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secrets Scope Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5075,35 +6041,79 @@
 <p><img alt="Infisical k8s Diagram" src="../../pictures/external-secrets-operator.png" /></p>
 <p>Sync secrets from <a href="https://www.infisical.com">Infisical</a> to your Kubernetes cluster using External Secrets Operator.</p>
 <h2 id="authentication">Authentication</h2>
-<p>In order for the operator to fetch secrets from Infisical, it needs to first authenticate with Infisical.</p>
-<p>To authenticate, you can use <a href="https://infisical.com/docs/documentation/platform/identities/universal-auth">Universal Auth</a> from <a href="https://infisical.com/docs/documentation/platform/identities/machine-identities">Machine identities</a>.</p>
-<p>Follow the <a href="https://infisical.com/docs/documentation/platform/identities/universal-auth">guide here</a> to learn how to create and obtain a pair of Client Secret and Client ID.</p>
-<div class="admonition note inline end">
-<p class="admonition-title">Note</p>
-<p>Infisical requires <code>system:auth-delegator</code> for authentication. Please follow the <a href="https://infisical.com/docs/documentation/platform/identities/kubernetes-auth#guide">guide here</a> to add the required role.</p>
-</div>
-<h2 id="storing-your-machine-identity-secrets">Storing Your Machine Identity Secrets</h2>
-<p>Once you have generated a pair of <code>Client ID</code> and <code>Client Secret</code>, you will need to store these credentials in your cluster as a Kubernetes secret.</p>
-<div class="admonition note inline end">
-<p class="admonition-title">Note</p>
-<p>Remember to replace with your own Machine Identity credentials.</p>
-</div>
+<p>In order for the operator to fetch secrets from Infisical, it needs to first authenticate with Infisical using a <a href="https://infisical.com/docs/documentation/platform/identities/machine-identities">Machine Identity</a>.</p>
+<p>The Infisical provider supports multiple authentication methods to accommodate different deployment environments:</p>
+<table>
+<thead>
+<tr>
+<th>Authentication Method</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#universal-auth">Universal Auth</a></td>
+<td>Platform-agnostic authentication using Client ID and Client Secret</td>
+</tr>
+<tr>
+<td><a href="#kubernetes-auth">Kubernetes Auth</a></td>
+<td>Native authentication for Kubernetes workloads using service account tokens</td>
+</tr>
+<tr>
+<td><a href="#aws-iam-auth">AWS Auth</a></td>
+<td>Native authentication for AWS resources (EC2, Lambda, EKS) using IAM</td>
+</tr>
+<tr>
+<td><a href="#azure-auth">Azure Auth</a></td>
+<td>Native authentication for Azure resources using managed identities</td>
+</tr>
+<tr>
+<td><a href="#gcp-id-token-auth">GCP ID Token Auth</a></td>
+<td>Native authentication for GCP resources (GCE, Cloud Functions, Cloud Run)</td>
+</tr>
+<tr>
+<td><a href="#gcp-iam-auth">GCP IAM Auth</a></td>
+<td>Authentication using GCP service account credentials</td>
+</tr>
+<tr>
+<td><a href="#jwt-auth">JWT Auth</a></td>
+<td>Authentication using JSON Web Tokens from any JWT issuer</td>
+</tr>
+<tr>
+<td><a href="#ldap-auth">LDAP Auth</a></td>
+<td>Authentication using LDAP credentials</td>
+</tr>
+<tr>
+<td><a href="#oci-auth">OCI Auth</a></td>
+<td>Native authentication for Oracle Cloud Infrastructure resources</td>
+</tr>
+<tr>
+<td><a href="#token-auth">Token Auth</a></td>
+<td>Simple authentication using a pre-generated access token</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="universal-auth">Universal Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/universal-auth">Universal Auth</a> is a platform-agnostic authentication method that uses a Client ID and Client Secret to authenticate with Infisical.</p>
+<h3 id="prerequisites">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with Universal Auth enabled</li>
+<li>Obtain the Client ID and Client Secret</li>
+<li>Add the identity to your Infisical project with appropriate permissions</li>
+</ol>
+<h3 id="storing-credentials">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your Universal Auth credentials:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">universal-auth-credentials</span>
 <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
-
 <span class="nt">stringData</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">clientId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;machine identity client id&gt;</span>
-<span class="w">  </span><span class="nt">clientSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;machine identity client secret&gt;</span>
+<span class="w">  </span><span class="nt">clientId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-client-id&gt;</span>
+<span class="w">  </span><span class="nt">clientSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-client-secret&gt;</span>
 </code></pre></div>
-<h3 id="secret-store">Secret Store</h3>
-<p>You will then need to create a generic <code>SecretStore</code>. An sample <code>SecretStore</code> has been is shown below.</p>
-<div class="admonition tip inline end">
-<p class="admonition-title">Tip</p>
-<p>To get your project slug from Infisical, head over to the project settings and click the button <code>Copy Project Slug</code>.</p>
-</div>
+<h3 id="secretstore-configuration">SecretStore Configuration</h3>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5111,58 +6121,450 @@
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
-<span class="w">      </span><span class="c1"># Optional (default: https://app.infisical.com).</span>
-<span class="w">      </span><span class="c1">#</span>
-<span class="w">      </span><span class="c1"># Override this if you are using a different Infisical instance.</span>
 <span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
-
-<span class="w">      </span><span class="c1"># Optional: PEM-encoded CA bundle for self-hosted instances with private CAs.</span>
-<span class="w">      </span><span class="c1"># caBundle: &quot;LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t...&quot;</span>
-
-<span class="w">      </span><span class="c1"># Optional: Reference to Secret or ConfigMap containing CA certificate.</span>
-<span class="w">      </span><span class="c1"># Mutually exclusive with caBundle.</span>
-<span class="w">      </span><span class="c1"># caProvider:</span>
-<span class="w">      </span><span class="c1">#   type: Secret  # or ConfigMap</span>
-<span class="w">      </span><span class="c1">#   name: infisical-ca</span>
-<span class="w">      </span><span class="c1">#   key: ca.crt</span>
-<span class="w">      </span><span class="c1">#   # namespace is required for ClusterSecretStore</span>
-<span class="w">      </span><span class="c1">#   # namespace: external-secrets</span>
-
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">universalAuthCredentials</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">clientId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">universal-auth-credentials</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientId</span>
-<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">universal-auth-credentials</span>
 <span class="w">          </span><span class="nt">clientSecret</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientSecret</span>
-<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">universal-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientSecret</span>
 <span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">first-project-fujo</span>
-<span class="w">        </span><span class="c1"># &quot;dev&quot;, &quot;staging&quot;, &quot;prod&quot;, etc.</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
 <span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
-<span class="w">        </span><span class="c1"># Optional (default: `/`).</span>
-<span class="w">        </span><span class="c1">#</span>
-<span class="w">        </span><span class="c1"># Secrets will only be retrieved from this path for `data` and `dataFrom` rules. When a</span>
-<span class="w">        </span><span class="c1"># `data` `remoteRef` uses a path (e.g. `/foo/bar`), that reference will use an absolute</span>
-<span class="w">        </span><span class="c1"># reference and disregard this default.</span>
-<span class="w">        </span><span class="c1">#</span>
-<span class="w">        </span><span class="c1"># If you need to prevent access to secrets outside of this path, rely on instead setting</span>
-<span class="w">        </span><span class="c1"># Access Controls in Infisical.</span>
-<span class="w">        </span><span class="nt">secretsPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/</span>
-<span class="w">        </span><span class="c1"># Optional (default: false).</span>
-<span class="w">        </span><span class="c1">#</span>
-<span class="w">        </span><span class="c1"># When recursive is enabled, secrets retrieved using `dataFrom` patterns will fetch all secrets recursive.</span>
-<span class="w">        </span><span class="nt">recursive</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<span class="w">        </span><span class="c1"># optional</span>
-<span class="w">        </span><span class="nt">expandSecretReferences</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"> </span><span class="c1"># Default is true</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>For <code>ClusterSecretStore</code>, be sure to set <code>namespace</code> in <code>universalAuthCredentials.clientId</code> and <code>universalAuthCredentials.clientSecret</code>.</p>
 </div>
-<h2 id="fetching-secrets">Fetching secrets</h2>
+<hr />
+<h2 id="kubernetes-auth">Kubernetes Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/kubernetes-auth">Kubernetes Auth</a> is a Kubernetes-native authentication method that validates service account tokens to authenticate with Infisical.</p>
+<h3 id="prerequisites_1">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with Kubernetes Auth enabled</li>
+<li>Configure allowed service account names and namespaces in Infisical</li>
+<li>Set up a Token Reviewer service account (or use the client's own token for self-validation)</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Infisical requires access to the Kubernetes TokenReview API for authentication. Follow the <a href="https://infisical.com/docs/documentation/platform/identities/kubernetes-auth">Infisical Kubernetes Auth guide</a> to set up the required <code>system:auth-delegator</code> ClusterRoleBinding.</p>
+</div>
+<h3 id="storing-credentials_1">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your Machine Identity ID:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+</code></pre></div>
+<p>Optionally, if using a custom service account token path:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+<span class="w">  </span><span class="nt">serviceAccountTokenPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/secrets/kubernetes.io/serviceaccount/token</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_1">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">kubernetesAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">          </span><span class="c1"># Optional: specify a custom service account token path</span>
+<span class="w">          </span><span class="c1"># serviceAccountTokenPath:</span>
+<span class="w">          </span><span class="c1">#   name: kubernetes-auth-credentials</span>
+<span class="w">          </span><span class="c1">#   key: serviceAccountTokenPath</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<hr />
+<h2 id="aws-iam-auth">AWS IAM Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/aws-auth">AWS Auth</a> is an AWS-native authentication method for IAM principals like EC2 instances, Lambda functions, or EKS pods to authenticate with Infisical.</p>
+<h3 id="prerequisites_2">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with AWS Auth enabled</li>
+<li>Configure allowed Principal ARNs or Account IDs in Infisical</li>
+<li>Ensure your AWS resource has an IAM role attached</li>
+</ol>
+<h3 id="storing-credentials_2">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your Machine Identity ID:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_2">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">awsAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The operator must run in an AWS environment with IAM credentials available (EC2 instance profile, EKS IRSA, Lambda execution role, etc.). The operator will automatically construct and sign the <code>GetCallerIdentity</code> request.</p>
+</div>
+<hr />
+<h2 id="azure-auth">Azure Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/azure-auth">Azure Auth</a> is an Azure-native authentication method for Azure resources with managed identities to authenticate with Infisical.</p>
+<h3 id="prerequisites_3">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with Azure Auth enabled</li>
+<li>Configure allowed Service Principal IDs in Infisical</li>
+<li>Ensure your Azure resource has a managed identity attached</li>
+</ol>
+<h3 id="storing-credentials_3">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your Machine Identity ID:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+</code></pre></div>
+<p>Optionally, specify a custom resource/audience:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+<span class="w">  </span><span class="nt">resource</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://management.azure.com/</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_3">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">azureAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">          </span><span class="c1"># Optional: specify a custom resource/audience (default: https://management.azure.com/)</span>
+<span class="w">          </span><span class="c1"># resource:</span>
+<span class="w">          </span><span class="c1">#   name: azure-auth-credentials</span>
+<span class="w">          </span><span class="c1">#   key: resource</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The operator must run in an Azure environment with a managed identity attached. The operator will automatically obtain the access token from the Azure Instance Metadata Service (IMDS).</p>
+</div>
+<hr />
+<h2 id="gcp-id-token-auth">GCP ID Token Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/gcp-auth">GCP ID Token Auth</a> is for GCP services like Compute Engine, App Engine, Cloud Functions, Cloud Run, and GKE to authenticate with Infisical using instance identity tokens.</p>
+<h3 id="prerequisites_4">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with GCP Auth (ID Token type) enabled</li>
+<li>Configure allowed service account emails in Infisical</li>
+<li>Ensure your GCP resource has a service account attached</li>
+</ol>
+<h3 id="storing-credentials_4">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your Machine Identity ID:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-id-token-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_4">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">gcpIdTokenAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-id-token-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The operator must run in a GCP environment with access to the metadata server. The operator will automatically obtain the ID token from the GCP metadata service.</p>
+</div>
+<hr />
+<h2 id="gcp-iam-auth">GCP IAM Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/gcp-auth">GCP IAM Auth</a> allows GCP service accounts to authenticate with Infisical by signing a JWT token using the service account's credentials.</p>
+<h3 id="prerequisites_5">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with GCP Auth (IAM type) enabled</li>
+<li>Configure allowed service account emails in Infisical</li>
+<li>Have a GCP service account key file available</li>
+<li>The service account must have the <code>iam.serviceAccounts.signJwt</code> permission</li>
+</ol>
+<h3 id="storing-credentials_5">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your Machine Identity ID and the path to the service account key:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-iam-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+<span class="w">  </span><span class="nt">serviceAccountKeyFilePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/path/to/service-account-key.json</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_5">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">gcpIamAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-iam-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">          </span><span class="nt">serviceAccountKeyFilePath</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-iam-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">serviceAccountKeyFilePath</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<hr />
+<h2 id="jwt-auth">JWT Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/jwt-auth">JWT Auth</a> is a platform-agnostic authentication method that validates JSON Web Tokens from any JWT issuer.</p>
+<h3 id="prerequisites_6">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with JWT Auth enabled</li>
+<li>Configure the JWT validation settings (JWKS URL or public keys, issuer, audience, etc.)</li>
+<li>Have a valid JWT available from your identity provider</li>
+</ol>
+<h3 id="storing-credentials_6">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your Machine Identity ID and the JWT:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jwt-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+<span class="w">  </span><span class="nt">jwt</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-jwt-token&gt;</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_6">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">jwtAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jwt-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">          </span><span class="nt">jwt</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jwt-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jwt</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<hr />
+<h2 id="ldap-auth">LDAP Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/ldap-auth/general">LDAP Auth</a> allows authentication using LDAP credentials (username and password).</p>
+<h3 id="prerequisites_7">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with LDAP Auth enabled</li>
+<li>Configure LDAP settings in Infisical (server, bind DN, etc.)</li>
+</ol>
+<h3 id="storing-credentials_7">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your LDAP credentials:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ldap-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+<span class="w">  </span><span class="nt">ldapUsername</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-ldap-username&gt;</span>
+<span class="w">  </span><span class="nt">ldapPassword</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-ldap-password&gt;</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_7">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">ldapAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ldap-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">          </span><span class="nt">ldapUsername</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ldap-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ldapUsername</span>
+<span class="w">          </span><span class="nt">ldapPassword</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ldap-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ldapPassword</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<hr />
+<h2 id="oci-auth">OCI Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/oci-auth">OCI Auth</a> is an Oracle Cloud Infrastructure-native authentication method that verifies OCI users through signature validation.</p>
+<h3 id="prerequisites_8">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with OCI Auth enabled</li>
+<li>Configure allowed usernames and tenancy OCID in Infisical</li>
+<li>Have OCI user credentials (private key, fingerprint, etc.)</li>
+</ol>
+<h3 id="storing-credentials_8">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your OCI credentials:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-machine-identity-id&gt;</span>
+<span class="w">  </span><span class="nt">privateKey</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">    </span><span class="no">-----BEGIN PRIVATE KEY-----</span>
+<span class="w">    </span><span class="no">...</span>
+<span class="w">    </span><span class="no">-----END PRIVATE KEY-----</span>
+<span class="w">  </span><span class="nt">fingerprint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-api-key-fingerprint&gt;</span>
+<span class="w">  </span><span class="nt">userId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-oci-user-ocid&gt;</span>
+<span class="w">  </span><span class="nt">tenancyId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-oci-tenancy-ocid&gt;</span>
+<span class="w">  </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-oci-region&gt;</span>
+<span class="w">  </span><span class="c1"># Optional: only if the private key is encrypted</span>
+<span class="w">  </span><span class="c1"># privateKeyPassphrase: &lt;your-passphrase&gt;</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_8">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">ociAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">          </span><span class="nt">privateKey</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span>
+<span class="w">          </span><span class="nt">fingerprint</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fingerprint</span>
+<span class="w">          </span><span class="nt">userId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">userId</span>
+<span class="w">          </span><span class="nt">tenancyId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tenancyId</span>
+<span class="w">          </span><span class="nt">region</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">region</span>
+<span class="w">          </span><span class="c1"># Optional: only if the private key is encrypted</span>
+<span class="w">          </span><span class="c1"># privateKeyPassphrase:</span>
+<span class="w">          </span><span class="c1">#   name: oci-auth-credentials</span>
+<span class="w">          </span><span class="c1">#   key: privateKeyPassphrase</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<hr />
+<h2 id="token-auth">Token Auth</h2>
+<p><a href="https://infisical.com/docs/documentation/platform/identities/token-auth">Token Auth</a> is the simplest authentication method that uses a pre-generated access token to authenticate directly with Infisical. This is similar to using an API key.</p>
+<h3 id="prerequisites_9">Prerequisites</h3>
+<ol>
+<li>Create a Machine Identity in Infisical with Token Auth enabled</li>
+<li>Generate an access token from the Infisical UI</li>
+</ol>
+<h3 id="storing-credentials_9">Storing Credentials</h3>
+<p>Create a Kubernetes secret containing your access token:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token-auth-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">accessToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-access-token&gt;</span>
+</code></pre></div>
+<h3 id="secretstore-configuration_9">SecretStore Configuration</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">tokenAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">accessToken</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessToken</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Token Auth tokens do not automatically renew. When the token expires, you will need to generate a new one and update the Kubernetes secret.</p>
+</div>
+<hr />
+<h2 id="fetching-secrets">Fetching Secrets</h2>
 <p>For the following examples, it assumes we have a secret structure in an Infisical project with the following structure:</p>
 <div class="highlight"><pre><span></span><code>/API_KEY
 /DB_PASSWORD
@@ -5204,7 +6606,7 @@
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/my-app/SERVICE_PASSWORD</span>
 </code></pre></div>
 <h3 id="fetch-all-secrets">Fetch All Secrets</h3>
-<p>To sync all secrets from an Infisical , use the following YAML:</p>
+<p>To sync all secrets from an Infisical project, use the following YAML:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5224,8 +6626,8 @@
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.*</span>
 </code></pre></div>
-<h3 id="filtering-secrets">Filtering secrets</h3>
-<p>To filter secrets by <code>path</code> (path prefix) and <code>name</code> (regular expression).</p>
+<h3 id="filtering-secrets">Filtering Secrets</h3>
+<p>To filter secrets by <code>path</code> (path prefix) and <code>name</code> (regular expression):</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5242,6 +6644,7 @@
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DB_</span>
 </code></pre></div>
+<hr />
 <h2 id="custom-ca-certificates">Custom CA Certificates</h2>
 <p>If you are using a self-hosted Infisical instance with a self-signed certificate or a certificate signed by a private CA, you can configure the provider to trust it.</p>
 <h3 id="using-cabundle-inline">Using caBundle (inline)</h3>
@@ -5297,6 +6700,55 @@
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>For <code>ClusterSecretStore</code>, be sure to set <code>namespace</code> in <code>caProvider</code>.</p>
+</div>
+<hr />
+<h2 id="secrets-scope-configuration">Secrets Scope Configuration</h2>
+<p>The <code>secretsScope</code> configuration controls which secrets are accessible:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>projectSlug</code></td>
+<td>Yes</td>
+<td>-</td>
+<td>The slug identifier for your Infisical project</td>
+</tr>
+<tr>
+<td><code>environmentSlug</code></td>
+<td>Yes</td>
+<td>-</td>
+<td>The environment slug (e.g., <code>dev</code>, <code>staging</code>, <code>prod</code>)</td>
+</tr>
+<tr>
+<td><code>secretsPath</code></td>
+<td>No</td>
+<td><code>/</code></td>
+<td>The base path for secrets retrieval</td>
+</tr>
+<tr>
+<td><code>recursive</code></td>
+<td>No</td>
+<td><code>false</code></td>
+<td>When true, fetches secrets recursively from subfolders</td>
+</tr>
+<tr>
+<td><code>expandSecretReferences</code></td>
+<td>No</td>
+<td><code>true</code></td>
+<td>When true, expands secret references (e.g., <code>${SECRET_NAME}</code>)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>To get your project slug from Infisical, head over to the project settings and click the button <code>Copy Project Slug</code>.</p>
 </div>
 
 
