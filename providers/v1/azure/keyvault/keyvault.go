@@ -73,10 +73,10 @@ const (
 	objectTypeCert = "cert"
 	objectTypeKey  = "key"
 
-	attributeExpires   = "expires"
-	attributeCreated   = "created"
-	attributeUpdated   = "updated"
-	attributeNotBefore = "notBefore"
+	attributeExpires   = "attribute.expires"
+	attributeCreated   = "attribute.created"
+	attributeUpdated   = "attribute.updated"
+	attributeNotBefore = "attribute.notBefore"
 
 	// AzureDefaultAudience is the default audience used for Azure AD token exchange.
 	AzureDefaultAudience = "api://AzureADTokenExchange"
@@ -821,6 +821,9 @@ func (a *Azure) getAllSecretsWithLegacySDK(ctx context.Context, ref esv1.Externa
 func getSecretAllMetadata(tags map[string]*string, expires, created, updated, notBefore *date.UnixTime) map[string]*string {
 	metadata := make(map[string]*string)
 	for k, v := range tags {
+		if v == nil {
+			continue
+		}
 		metadata[k] = v
 	}
 	if expires != nil {
@@ -930,6 +933,9 @@ func (a *Azure) getSecretTagsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	secretTagsData := make(map[string]*string)
 
 	for tagname, tagval := range secretResp.Tags {
+		if tagval == nil {
+			continue
+		}
 		name := secretName + "_" + tagname
 		kv := make(map[string]string)
 		err = json.Unmarshal([]byte(*tagval), &kv)
@@ -945,9 +951,22 @@ func (a *Azure) getSecretTagsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	}
 
 	if secretResp.Attributes != nil {
-		secretTagsData = getSecretAllMetadata(secretTagsData,
-			secretResp.Attributes.Expires, secretResp.Attributes.Created,
-			secretResp.Attributes.Updated, secretResp.Attributes.NotBefore)
+		if secretResp.Attributes.Expires != nil {
+			s := time.Time(*secretResp.Attributes.Expires).UTC().Format(time.RFC3339)
+			secretTagsData[secretName+"_"+attributeExpires] = &s
+		}
+		if secretResp.Attributes.Created != nil {
+			s := time.Time(*secretResp.Attributes.Created).UTC().Format(time.RFC3339)
+			secretTagsData[secretName+"_"+attributeCreated] = &s
+		}
+		if secretResp.Attributes.Updated != nil {
+			s := time.Time(*secretResp.Attributes.Updated).UTC().Format(time.RFC3339)
+			secretTagsData[secretName+"_"+attributeUpdated] = &s
+		}
+		if secretResp.Attributes.NotBefore != nil {
+			s := time.Time(*secretResp.Attributes.NotBefore).UTC().Format(time.RFC3339)
+			secretTagsData[secretName+"_"+attributeNotBefore] = &s
+		}
 	}
 
 	return secretTagsData, nil
@@ -1413,7 +1432,7 @@ func okByName(ref esv1.ExternalSecretFind, secretName string) bool {
 func okByTags(ref esv1.ExternalSecretFind, secret keyvault.SecretItem) bool {
 	tagsFound := true
 	for k, v := range ref.Tags {
-		if val, ok := secret.Tags[k]; !ok || *val != v {
+		if val, ok := secret.Tags[k]; !ok || val == nil || *val != v {
 			tagsFound = false
 			break
 		}
