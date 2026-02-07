@@ -667,7 +667,13 @@ func (r *Reconciler) reconcileGenericTarget(
 		}
 	}
 
-	if !shouldRefresh(externalSecret) && isGenericTargetValid(existing, externalSecret) {
+	valid, err := isGenericTargetValid(existing, externalSecret)
+	if err != nil {
+		log.V(1).Info("unable to validate target", "error", err)
+		return ctrl.Result{}, err
+	}
+
+	if !shouldRefresh(externalSecret) && valid {
 		log.V(1).Info("skipping refresh of generic target")
 		return r.getRequeueResult(externalSecret), nil
 	}
@@ -1179,37 +1185,42 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 }
 
 // isGenericTargetValid checks if the generic target exists and its content matches the stored hash.
-func isGenericTargetValid(existingTarget *unstructured.Unstructured, es *esv1.ExternalSecret) bool {
+func isGenericTargetValid(existingTarget *unstructured.Unstructured, es *esv1.ExternalSecret) (bool, error) {
 	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan {
-		return true
+		return true, nil
 	}
 
 	if existingTarget.GetUID() == "" {
-		return false
+		return false, nil
 	}
 
 	if existingTarget.GetLabels()[esv1.LabelManaged] != esv1.LabelManagedValue {
-		return false
+		return false, nil
 	}
 
-	if existingTarget.GetAnnotations()[esv1.AnnotationDataHash] != genericTargetContentHash(existingTarget) {
-		return false
+	hash, err := genericTargetContentHash(existingTarget)
+	if err != nil {
+		return false, fmt.Errorf("failed to hash target: %w", err)
 	}
 
-	return true
+	if existingTarget.GetAnnotations()[esv1.AnnotationDataHash] != hash {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // genericTargetContentHash computes a hash over the hashable content of an unstructured object.
 // It uses the "spec" field if present, otherwise falls back to "data".
-func genericTargetContentHash(obj *unstructured.Unstructured) string {
+func genericTargetContentHash(obj *unstructured.Unstructured) (string, error) {
 	content := obj.Object
 	switch {
 	case content["spec"] != nil:
-		return esutils.ObjectHash(content["spec"])
+		return esutils.ObjectHash(content["spec"]), nil
 	case content["data"] != nil:
-		return esutils.ObjectHash(content["data"])
+		return esutils.ObjectHash(content["data"]), nil
 	default:
-		return esutils.ObjectHash(content)
+		return "", errors.New("generic target content does not have a spec or data field for content hashing")
 	}
 }
 

@@ -327,9 +327,7 @@ func TestCreateSimpleManifest(t *testing.T) {
 			}
 			obj.SetKind(tt.kind)
 
-			result, err := r.createSimpleManifest(obj, tt.dataMap)
-
-			require.NoError(t, err)
+			result := r.createSimpleManifest(obj, tt.dataMap)
 			assert.NotNil(t, result)
 			if tt.validate != nil {
 				tt.validate(t, result)
