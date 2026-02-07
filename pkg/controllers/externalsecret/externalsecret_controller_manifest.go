@@ -187,7 +187,6 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		default:
 			obj.Object["spec"] = map[string]interface{}{}
 		}
-
 	}
 
 	labels := obj.GetLabels()
