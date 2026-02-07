@@ -181,6 +181,13 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		obj.SetGroupVersionKind(gvk)
 		obj.SetName(getTargetName(es))
 		obj.SetNamespace(es.Namespace)
+		switch gvk.Kind {
+		case "ConfigMap", "Secret":
+			obj.Object["data"] = map[string]interface{}{}
+		default:
+			obj.Object["spec"] = map[string]interface{}{}
+		}
+
 	}
 
 	labels := obj.GetLabels()
