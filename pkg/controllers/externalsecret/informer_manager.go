@@ -248,10 +248,10 @@ func (m *DefaultInformerManager) ReleaseInformer(ctx context.Context, gvk schema
 
 	// if no more ExternalSecrets are using this informer, remove it
 	if len(entry.externalSecrets) == 0 {
-		partial := &metav1.PartialObjectMetadata{}
-		partial.SetGroupVersionKind(gvk)
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(gvk)
 
-		if err := m.cache.RemoveInformer(ctx, partial); err != nil {
+		if err := m.cache.RemoveInformer(ctx, obj); err != nil {
 			m.log.Error(err, "failed to remove informer, will clean up tracking anyway",
 				"gvk", key)
 		}
