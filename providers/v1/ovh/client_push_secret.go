@@ -182,30 +182,30 @@ func extractSecretKeyValue(data map[string][]byte, secretKey string) (map[string
 
 // This pushes the created/updated secret.
 func pushNewSecret(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID, secretToPush map[string]any, path string, cas *uint32, secretExists bool) error {
-	var err error
-	var operation string
-
 	if !secretExists {
-		// Create a secret.
-		operation = "create"
-		_, err = okmsClient.PostSecretV2(ctx, okmsID, types.PostSecretV2Request{
+		_, err := okmsClient.PostSecretV2(ctx, okmsID, types.PostSecretV2Request{
 			Path: path,
 			Version: types.SecretV2VersionShort{
 				Data: &secretToPush,
 			},
 		})
-	} else {
-		// Update a secret.
-		operation = "update"
-		_, err = okmsClient.PutSecretV2(ctx, okmsID, path, cas, types.PutSecretV2Request{
-			Version: &types.SecretV2VersionShort{
-				Data: &secretToPush,
-			},
-		})
+
+		if err != nil {
+			return fmt.Errorf("could not create remote secret %q: %w", path, err)
+		}
+
+		return nil
 	}
 
+	_, err := okmsClient.PutSecretV2(ctx, okmsID, path, cas, types.PutSecretV2Request{
+		Version: &types.SecretV2VersionShort{
+			Data: &secretToPush,
+		},
+	})
+
 	if err != nil {
-		return fmt.Errorf("could not %s remote secret %q: %w", operation, path, err)
+		return fmt.Errorf("could not update remote secret %q: %w", path, err)
 	}
+
 	return nil
 }

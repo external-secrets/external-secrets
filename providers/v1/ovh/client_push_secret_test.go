@@ -28,6 +28,15 @@ import (
 	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
+const (
+	mySecretRemoteKey          = "mysecret"
+	mySecret2RemoteKey         = "mysecret2"
+	nonExistentSecretRemoteKey = "non-existent-secret"
+	emptyRemoteKey             = ""
+	emptySecretRemoteKey       = "empty-secret"
+	nilSecretRemoteKey         = "nil-secret"
+)
+
 func TestPushSecret(t *testing.T) {
 	secretData := &v1.Secret{
 		Data: map[string][]byte{
@@ -35,12 +44,6 @@ func TestPushSecret(t *testing.T) {
 			"key2": []byte("value2"),
 		},
 	}
-	mySecretRemoteKey := "mysecret"
-	mySecret2RemoteKey := "mysecret2"
-	nonExistentSecretRemoteKey := "non-existent-secret"
-	emptyRemoteKey := ""
-	emptySecretRemoteKey := "empty-secret"
-	nilSecretRemoteKey := "nil-secret"
 
 	testCases := map[string]struct {
 		errshould  string

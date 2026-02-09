@@ -84,7 +84,7 @@ type ovhClient struct {
 var _ esv1.SecretsClient = &ovhClient{}
 
 // Resolve returns the value of the referenced key from a Kubernetes Secret.
-func (r DefaultSecretKeyResolver) Resolve(ctx context.Context, kube kclient.Client, ovhStoreKind string, ovhStoreNameSpace string, secretRef *v1.SecretKeySelector) (string, error) {
+func (r DefaultSecretKeyResolver) Resolve(ctx context.Context, kube kclient.Client, ovhStoreKind, ovhStoreNameSpace string, secretRef *v1.SecretKeySelector) (string, error) {
 	return resolvers.SecretKeyRef(ctx, kube, ovhStoreKind, ovhStoreNameSpace, secretRef)
 }
 

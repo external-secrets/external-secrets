@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go/types"
@@ -83,25 +84,18 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 // Retrieve secrets located under the specified path.
 // If the path is omitted, all secrets from the Secret Manager are returned.
 func getSecretsList(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID, path *string) ([]string, error) {
-	var formatPath string
-
-	// if path ends with '/' (and is not "/"), returns an empty list.
-	// Secrets are not supposed to begin with '/'.
-	if path == nil || *path == "" {
-		formatPath = ""
-	} else if len(*path) > 1 &&
-		(*path)[len(*path)-1] == '/' &&
-		(*path)[len(*path)-2] == '/' {
+	if path != nil && strings.HasSuffix(*path, "//") {
 		return []string{}, nil
-	} else {
+	}
+
+	formatPath := ""
+	if path != nil && *path != "" {
 		formatPath = *path
 	}
 
 	// Ensure `formatPath` does not end with '/', otherwise, GetSecretsMetadata
 	// will not be able to retrieve secrets as it should.
-	if formatPath != "" && formatPath[len(formatPath)-1] == '/' {
-		formatPath = formatPath[:len(formatPath)-1]
-	}
+	formatPath = strings.TrimSuffix(formatPath, "/")
 
 	return recursivelyGetSecretsList(ctx, okmsClient, okmsID, formatPath)
 }

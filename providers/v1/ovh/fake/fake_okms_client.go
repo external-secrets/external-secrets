@@ -22,10 +22,11 @@ import (
 	"maps"
 	"strings"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go"
 	"github.com/ovh/okms-sdk-go/types"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 type GetSecretV2Fn func() (*types.GetSecretV2Response, error)

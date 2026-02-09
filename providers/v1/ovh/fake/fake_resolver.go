@@ -24,8 +24,9 @@ import (
 	"encoding/pem"
 	"sync"
 
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type FakeResolver struct {
