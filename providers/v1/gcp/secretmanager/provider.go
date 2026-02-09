@@ -113,19 +113,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, fmt.Errorf(errUnableGetCredentials, err)
 	}
 
-	var clientGCPSM *secretmanager.Client
-	if gcpStore.Location != "" {
-		ep := fmt.Sprintf("secretmanager.%s.rep.googleapis.com:443", gcpStore.Location)
-		regional := option.WithEndpoint(ep)
-		clientGCPSM, err = secretmanager.NewClient(ctx, option.WithTokenSource(ts), regional)
-		if err != nil {
-			return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
-		}
-	} else {
-		clientGCPSM, err = secretmanager.NewClient(ctx, option.WithTokenSource(ts))
-		if err != nil {
-			return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
-		}
+	clientGCPSM, err := newSMClient(ctx, ts, gcpStore.Location)
+	if err != nil {
+		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}
 	client.smClient = clientGCPSM
 	return client, nil
@@ -158,6 +148,14 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		}
 	}
 	return nil, nil
+}
+
+func newSMClient(ctx context.Context, ts oauth2.TokenSource, location string) (*secretmanager.Client, error) {
+	if location != "" {
+		ep := fmt.Sprintf("secretmanager.%s.rep.googleapis.com:443", location)
+		return secretmanager.NewClient(ctx, option.WithTokenSource(ts), option.WithEndpoint(ep))
+	}
+	return secretmanager.NewClient(ctx, option.WithTokenSource(ts))
 }
 
 func clusterProjectID(ctx context.Context, spec *esv1.SecretStoreSpec) (string, error) {
