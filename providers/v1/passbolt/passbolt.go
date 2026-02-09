@@ -20,13 +20,12 @@ package passbolt
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/url"
 	"regexp"
 
 	"github.com/passbolt/go-passbolt/api"
+	"github.com/passbolt/go-passbolt/helper"
 	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -50,24 +49,12 @@ const (
 
 // ProviderPassbolt implements the External Secrets provider interface for Passbolt.
 type ProviderPassbolt struct {
-	client Client
+	client *api.Client
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (provider *ProviderPassbolt) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
-}
-
-// Client defines the interface for interacting with the Passbolt API.
-type Client interface {
-	CheckSession(ctx context.Context) bool
-	Login(ctx context.Context) error
-	Logout(ctx context.Context) error
-	GetResource(ctx context.Context, resourceID string) (*api.Resource, error)
-	GetResources(ctx context.Context, opts *api.GetResourcesOptions) ([]api.Resource, error)
-	GetResourceType(ctx context.Context, typeID string) (*api.ResourceType, error)
-	DecryptMessage(message string) (string, error)
-	GetSecret(ctx context.Context, resourceID string) (*api.Secret, error)
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -100,6 +87,15 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1.Gene
 	if err != nil {
 		return nil, err
 	}
+
+	// Login immediately (like CLI does)
+	if err := client.Login(ctx); err != nil {
+		return nil, err
+	}
+
+	// Prefetch caches for V5 metadata decryption performance (CLI pattern)
+	// This caches session keys and metadata keys for fast V5 decryption
+	_, _, _ = client.PreFetchCaches(ctx) // Non-fatal if fails
 
 	provider.client = client
 	return provider, nil
@@ -170,15 +166,21 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 		return nil, err
 	}
 
+	// NOTE: For V5 resources, metadata (including name) is encrypted, so we must
+	// decrypt each resource before filtering. This means all secrets are decrypted
+	// even if they don't match the filter, which may impact performance with large
+	// secret stores.
 	for _, resource := range resources {
-		if !nameRegexp.MatchString(resource.Name) {
-			continue
-		}
-
 		secret, err := provider.getPassboltSecret(ctx, resource.ID)
 		if err != nil {
 			return nil, err
 		}
+
+		// Filter by decrypted name (works for both V4 and V5)
+		if !nameRegexp.MatchString(secret.Name) {
+			continue
+		}
+
 		marshaled, err := esutils.JSONMarshal(secret)
 		if err != nil {
 			return nil, err
@@ -191,6 +193,9 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 
 // Close implements cleanup operations for the Passbolt provider.
 func (provider *ProviderPassbolt) Close(ctx context.Context) error {
+	// Save any pending session keys discovered during decryption (CLI pattern)
+	// This improves performance for future connections
+	_, _ = provider.client.SavePendingSessionKeys(ctx) // Best effort
 	return provider.client.Logout(ctx)
 }
 
@@ -256,55 +261,23 @@ func (ps Secret) GetProp(key string) ([]byte, error) {
 }
 
 func (provider *ProviderPassbolt) getPassboltSecret(ctx context.Context, id string) (*Secret, error) {
-	resource, err := provider.client.GetResource(ctx, id)
+	_, name, username, uri, password, description, err := helper.GetResource(ctx, provider.client, id)
 	if err != nil {
 		return nil, err
 	}
-
-	secret, err := provider.client.GetSecret(ctx, resource.ID)
-	if err != nil {
-		return nil, err
-	}
-	res := Secret{
-		Name:        resource.Name,
-		Username:    resource.Username,
-		URI:         resource.URI,
-		Description: resource.Description,
-	}
-
-	raw, err := provider.client.DecryptMessage(secret.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceType, err := provider.client.GetResourceType(ctx, resource.ResourceTypeID)
-	if err != nil {
-		return nil, err
-	}
-
-	switch resourceType.Slug {
-	case "password-string":
-		res.Password = raw
-	case "password-and-description", "password-description-totp":
-		var pwAndDesc api.SecretDataTypePasswordAndDescription
-		if err := json.Unmarshal([]byte(raw), &pwAndDesc); err != nil {
-			return nil, err
-		}
-		res.Password = pwAndDesc.Password
-		res.Description = pwAndDesc.Description
-	case "totp":
-	default:
-		return nil, fmt.Errorf("UnknownPassboltResourceType: %q", resourceType)
-	}
-
-	return &res, nil
+	return &Secret{
+		Name:        name,
+		Username:    username,
+		URI:         uri,
+		Password:    password,
+		Description: description,
+	}, nil
 }
 
-func assureLoggedIn(ctx context.Context, client Client) error {
+func assureLoggedIn(ctx context.Context, client *api.Client) error {
 	if client.CheckSession(ctx) {
 		return nil
 	}
-
 	return client.Login(ctx)
 }
 
