@@ -34,10 +34,10 @@ const (
 	warnStoreDeprecated   = "store %s is deprecated and will stop working on the next major version. Please plan and prepare accordingly."
 )
 
-// GenericStoreValidator implements webhook validation for SecretStore and ClusterSecretStore resources.
+// GenericStoreValidator implements webhook validation for SecretStore resources.
 type GenericStoreValidator struct{}
 
-// GenericClusterStoreValidator implements webhook validation for SecretStore and ClusterSecretStore resources.
+// GenericClusterStoreValidator implements webhook validation for ClusterSecretStore resources.
 type GenericClusterStoreValidator struct{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.

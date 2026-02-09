@@ -28,7 +28,7 @@ import (
 var _ admission.Validator[*SecretStore] = &GenericStoreValidator{}
 var _ admission.Validator[*ClusterSecretStore] = &GenericClusterStoreValidator{}
 
-// GenericStoreValidator provides validation for SecretStore and ClusterSecretStore resources.
+// GenericStoreValidator provides validation for SecretStore resources.
 type GenericStoreValidator struct{}
 
 // GenericClusterStoreValidator provides validation for ClusterSecretStore resources.

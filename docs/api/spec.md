@@ -5832,6 +5832,11 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.GenericClusterStoreValidator">GenericClusterStoreValidator
+</h3>
+<p>
+<p>GenericClusterStoreValidator implements webhook validation for ClusterSecretStore resources.</p>
+</p>
 <h3 id="external-secrets.io/v1.GenericStore">GenericStore
 </h3>
 <p>
@@ -5841,7 +5846,7 @@ or a namespaced SecretStore.</p>
 <h3 id="external-secrets.io/v1.GenericStoreValidator">GenericStoreValidator
 </h3>
 <p>
-<p>GenericStoreValidator implements webhook validation for SecretStore and ClusterSecretStore resources.</p>
+<p>GenericStoreValidator implements webhook validation for SecretStore resources.</p>
 </p>
 <h3 id="external-secrets.io/v1.GithubAppAuth">GithubAppAuth
 </h3>
@@ -18591,6 +18596,11 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GenericClusterStoreValidator">GenericClusterStoreValidator
+</h3>
+<p>
+<p>GenericClusterStoreValidator provides validation for ClusterSecretStore resources.</p>
+</p>
 <h3 id="external-secrets.io/v1beta1.GenericStore">GenericStore
 </h3>
 <p>
@@ -18600,7 +18610,7 @@ or a namespaced SecretStore.</p>
 <h3 id="external-secrets.io/v1beta1.GenericStoreValidator">GenericStoreValidator
 </h3>
 <p>
-<p>GenericStoreValidator provides validation for SecretStore and ClusterSecretStore resources.</p>
+<p>GenericStoreValidator provides validation for SecretStore resources.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.GithubAppAuth">GithubAppAuth
 </h3>
