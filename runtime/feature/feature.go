@@ -27,7 +27,23 @@ import (
 type Feature struct {
 	Flags      *pflag.FlagSet
 	Initialize func()
+	Maturity   Maturity
+	Safety     Safety
 }
+
+type Maturity string
+type Safety string
+
+const (
+	Experimental    Maturity = "experimental"
+	Stable          Maturity = "stable"
+	Deprecated      Maturity = "deprecated"
+	UnknownMaturity Maturity = "unknown"
+
+	Unsafe        Safety = "insecure"
+	Safe          Safety = "secure"
+	UnknownSafety Safety = "unknown"
+)
 
 var features = make([]Feature, 0)
 

@@ -62,7 +62,9 @@ func init() {
 	fs := pflag.NewFlagSet("gc", pflag.ExitOnError)
 	fs.DurationVar(&gcGracePeriod, "generator-gc-grace-period", time.Minute*2, "Duration after which generated secrets are cleaned up after they have been flagged for gc.")
 	feature.Register(feature.Feature{
-		Flags: fs,
+		Flags:    fs,
+		Maturity: feature.Stable,
+		Safety:   feature.Safe,
 	})
 }
 
