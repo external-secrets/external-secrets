@@ -73,6 +73,8 @@ func init() {
 	feature.Register(feature.Feature{
 		Flags:      fs,
 		Initialize: func() { initCache(dopplerOIDCCacheSize) },
+		Maturity:   feature.Experimental,
+		Safety:     feature.Safe,
 	})
 }
 
