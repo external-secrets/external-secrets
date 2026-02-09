@@ -62,7 +62,7 @@ jobs:
       contents: read  #for checkout
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
     steps:
-    - uses: step-security/harden-runner@e3f713f2d8f53843e71c69a996d56f51aa9adfb9 # v2.14.1
+    - uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
       with:
         egress-policy: audit
 
@@ -83,7 +83,7 @@ jobs:
       pull-requests: write # to publish the status as comments
     if: github.event_name == 'repository_dispatch'
     steps:
-    - uses: step-security/harden-runner@e3f713f2d8f53843e71c69a996d56f51aa9adfb9 # v2.14.1
+    - uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
       with:
         egress-policy: audit
 
