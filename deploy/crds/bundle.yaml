@@ -6066,6 +6066,7 @@ spec:
                                     ExpirationSeconds sets the ServiceAccount token validity duration.
                                     Defaults to 10 minutes.
                                   format: int64
+                                  minimum: 600
                                   type: integer
                                 organization:
                                   description: Organization is the name of the Pulumi organization configured for OIDC authentication.
@@ -6126,6 +6127,9 @@ spec:
                         - organization
                         - project
                       type: object
+                      x-kubernetes-validations:
+                        - message: Exactly one of 'auth' or deprecated 'accessToken' must be specified
+                          rule: (has(self.auth) && !has(self.accessToken)) || (!has(self.auth) && has(self.accessToken))
                     scaleway:
                       description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:
@@ -17792,6 +17796,7 @@ spec:
                                     ExpirationSeconds sets the ServiceAccount token validity duration.
                                     Defaults to 10 minutes.
                                   format: int64
+                                  minimum: 600
                                   type: integer
                                 organization:
                                   description: Organization is the name of the Pulumi organization configured for OIDC authentication.
@@ -17852,6 +17857,9 @@ spec:
                         - organization
                         - project
                       type: object
+                      x-kubernetes-validations:
+                        - message: Exactly one of 'auth' or deprecated 'accessToken' must be specified
+                          rule: (has(self.auth) && !has(self.accessToken)) || (!has(self.auth) && has(self.accessToken))
                     scaleway:
                       description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:

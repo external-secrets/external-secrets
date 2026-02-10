@@ -21,6 +21,7 @@ import (
 )
 
 // PulumiProvider defines configuration for accessing secrets from Pulumi ESC.
+// +kubebuilder:validation:XValidation:rule="(has(self.auth) && !has(self.accessToken)) || (!has(self.auth) && has(self.accessToken))",message="Exactly one of 'auth' or deprecated 'accessToken' must be specified"
 type PulumiProvider struct {
 	// APIURL is the URL of the Pulumi API.
 	// +kubebuilder:default="https://api.pulumi.com/api/esc"
@@ -79,6 +80,7 @@ type PulumiOIDCAuth struct {
 	// ExpirationSeconds sets the ServiceAccount token validity duration.
 	// Defaults to 10 minutes.
 	// +kubebuilder:default=600
+	// +kubebuilder:validation:Minimum=600
 	// +optional
 	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
 }
