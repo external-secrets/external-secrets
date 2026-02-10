@@ -35,10 +35,11 @@ const retrieveSecretError = "failed to retrieve secret at path"
 func (cl *ovhClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	// Retrieve secret from KMS.
 	secretDataBytes, _, err := getSecretWithOvhSDK(ctx, cl.okmsClient, cl.okmsID, ref)
-	if err != nil && !errors.Is(err, esv1.NoSecretErr) {
+	if err != nil {
+		if errors.Is(err, esv1.NoSecretErr) {
+			return map[string][]byte{}, err
+		}
 		return map[string][]byte{}, wrapRetrieveSecretError(ref.Key, err)
-	} else if err != nil {
-		return map[string][]byte{}, err
 	}
 	if len(secretDataBytes) == 0 {
 		return map[string][]byte{}, nil

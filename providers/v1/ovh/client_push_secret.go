@@ -116,12 +116,7 @@ func buildSecretToPush(secret *corev1.Secret, data esv1.PushSecretData) (map[str
 	var secretValueToPush map[string]any
 	var err error
 
-	secretKey := data.GetSecretKey()
-	if secretKey == "" {
-		secretValueToPush, err = extractAllSecretValues(secret.Data)
-	} else {
-		secretValueToPush, err = extractSecretKeyValue(secret.Data, secretKey)
-	}
+	secretValueToPush, err = extractSecretValue(secret.Data, data.GetSecretKey())
 
 	if err != nil {
 		return map[string]any{}, err
@@ -140,33 +135,29 @@ func buildSecretToPush(secret *corev1.Secret, data esv1.PushSecretData) (map[str
 	return secretToPush, nil
 }
 
-func extractAllSecretValues(data map[string][]byte) (map[string]any, error) {
+func extractSecretValue(data map[string][]byte, secretKey string) (map[string]any, error) {
 	var err error
 	secretValueToPush := make(map[string]any)
 
-	for key, value := range data {
-		var decoded any
-		if json.Unmarshal(value, &decoded) != nil {
-			secretValueToPush[key] = string(value)
-			continue
-		}
-		var cleanJSON []byte
-		if cleanJSON, err = json.Marshal(decoded); err != nil {
-			return map[string]any{}, fmt.Errorf("could not extract secret's values to push: %w", err)
-		}
+	if secretKey != "" {
+		err = extractSecretKeyValue(data, secretValueToPush, secretKey)
+		return secretValueToPush, err
+	}
 
-		secretValueToPush[key] = json.RawMessage(cleanJSON)
+	for key := range data {
+		err = extractSecretKeyValue(data, secretValueToPush, key)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return secretValueToPush, nil
 }
 
-func extractSecretKeyValue(data map[string][]byte, secretKey string) (map[string]any, error) {
-	secretValueToPush := make(map[string]any)
-
+func extractSecretKeyValue(data map[string][]byte, secretValueToPush map[string]any, secretKey string) error {
 	value, ok := data[secretKey]
 	if !ok {
-		return nil, fmt.Errorf(
+		return fmt.Errorf(
 			"could not extract secret key value to push: secretKey %q not found in secret data", secretKey,
 		)
 	}
@@ -177,35 +168,35 @@ func extractSecretKeyValue(data map[string][]byte, secretKey string) (map[string
 		secretValueToPush[secretKey] = json.RawMessage(value)
 	}
 
-	return secretValueToPush, nil
+	return nil
 }
 
 // This pushes the created/updated secret.
 func pushNewSecret(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID, secretToPush map[string]any, path string, cas *uint32, secretExists bool) error {
 	var err error
-	var operation string
 
 	if !secretExists {
 		// Create a secret.
-		operation = "create"
 		_, err = okmsClient.PostSecretV2(ctx, okmsID, types.PostSecretV2Request{
 			Path: path,
 			Version: types.SecretV2VersionShort{
 				Data: &secretToPush,
 			},
 		})
-	} else {
-		// Update a secret.
-		operation = "update"
-		_, err = okmsClient.PutSecretV2(ctx, okmsID, path, cas, types.PutSecretV2Request{
-			Version: &types.SecretV2VersionShort{
-				Data: &secretToPush,
-			},
-		})
+		if err != nil {
+			return fmt.Errorf("could not create remote secret: %w", err)
+		}
+		return nil
 	}
 
+	// Update a secret.
+	_, err = okmsClient.PutSecretV2(ctx, okmsID, path, cas, types.PutSecretV2Request{
+		Version: &types.SecretV2VersionShort{
+			Data: &secretToPush,
+		},
+	})
 	if err != nil {
-		return fmt.Errorf("could not %s remote secret %q: %w", operation, path, err)
+		return fmt.Errorf("could not update remote secret: %w", err)
 	}
 	return nil
 }

@@ -20,7 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ppath "path"
 	"regexp"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go/types"
@@ -83,25 +85,19 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 // Retrieve secrets located under the specified path.
 // If the path is omitted, all secrets from the Secret Manager are returned.
 func getSecretsList(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID, path *string) ([]string, error) {
-	var formatPath string
-
-	// if path ends with '/' (and is not "/"), returns an empty list.
-	// Secrets are not supposed to begin with '/'.
-	if path == nil || *path == "" {
-		formatPath = ""
-	} else if len(*path) > 1 &&
-		(*path)[len(*path)-1] == '/' &&
-		(*path)[len(*path)-2] == '/' {
+	// Ignore invalid path
+	if path != nil && (strings.HasPrefix(*path, "/") || strings.Contains(*path, "//")) {
 		return []string{}, nil
-	} else {
+	}
+
+	formatPath := ""
+	if path != nil && *path != "" {
 		formatPath = *path
 	}
 
 	// Ensure `formatPath` does not end with '/', otherwise, GetSecretsMetadata
 	// will not be able to retrieve secrets as it should.
-	if formatPath != "" && formatPath[len(formatPath)-1] == '/' {
-		formatPath = formatPath[:len(formatPath)-1]
-	}
+	formatPath = strings.TrimSuffix(formatPath, "/")
 
 	return recursivelyGetSecretsList(ctx, okmsClient, okmsID, formatPath)
 }
@@ -140,15 +136,10 @@ func getSecretsList(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID
 //
 //	["to/", "secret2", "secrets/"]
 func recursivelyGetSecretsList(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID, path string) ([]string, error) {
-	var secrets *types.GetMetadataResponse
-	var err error
-
 	// Retrieve the list of KMS secrets for the given path.
 	// If no path is provided, retrieve all existing secrets from KMS.
-	if path != "" && path[0] == '/' {
-		return []string{}, nil
-	}
-	if secrets, err = okmsClient.GetSecretsMetadata(ctx, okmsID, path, true); err != nil {
+	secrets, err := okmsClient.GetSecretsMetadata(ctx, okmsID, path, true)
+	if err != nil {
 		return nil, fmt.Errorf("could not list secrets at path %q: %w", path, err)
 	}
 	if secrets == nil || secrets.Data == nil || secrets.Data.Keys == nil || len(*secrets.Data.Keys) == 0 {
@@ -164,36 +155,25 @@ func recursivelyGetSecretsList(ctx context.Context, okmsClient OkmsClient, okmsI
 // a recursive call is made.
 // Otherwise, the key is a secret and is added to the result list.
 func secretListLoop(ctx context.Context, secrets *types.GetMetadataResponse, okmsClient OkmsClient, okmsID uuid.UUID, path string) ([]string, error) {
-	var secretsList []string
+	secretsList := make([]string, 0, len(*secrets.Data.Keys))
 
 	for _, key := range *secrets.Data.Keys {
-		if key == "" || key[0] == '/' {
+		if key == "" || strings.HasPrefix(key, "/") {
 			continue
 		}
 
-		var toAppend []string
-		var err error
-		if key[len(key)-1] == '/' {
-			toAppend, err = recursivelyGetSecretsList(ctx, okmsClient, okmsID, joinPath(key[:len(key)-1], path))
+		if before, ok := strings.CutSuffix(key, "/"); ok {
+			toAppend, err := recursivelyGetSecretsList(ctx, okmsClient, okmsID, ppath.Join(path, before))
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			toAppend = []string{
-				joinPath(key, path),
-			}
+			secretsList = append(secretsList, toAppend...)
+			continue
 		}
-		secretsList = append(secretsList, toAppend...)
+		secretsList = append(secretsList, ppath.Join(path, key))
 	}
 
 	return secretsList, nil
-}
-
-func joinPath(key, path string) string {
-	if path != "" {
-		return path + "/" + key
-	}
-	return key
 }
 
 // Filter the list of secrets using a regular expression.
@@ -202,7 +182,7 @@ func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []s
 	for _, secret := range secrets {
 		// Insert the secret if no regex is provided;
 		// otherwise, insert only matching secrets.
-		secretData, ok, err := fetchSecretData(ctx, cl, secret, regex, ref)
+		secretData, ok, err := fetchSecretData(ctx, cl, secret, regex)
 		if err != nil {
 			return map[string][]byte{}, err
 		}
@@ -217,17 +197,15 @@ func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []s
 }
 
 // fetchSecretData retrieves a secret data if it passes the name/regex filter.
-func fetchSecretData(ctx context.Context, cl *ovhClient, secret string, regex *regexp.Regexp, ref esv1.ExternalSecretFind) ([]byte, bool, error) {
+func fetchSecretData(ctx context.Context, cl *ovhClient, secret string, regex *regexp.Regexp) ([]byte, bool, error) {
 	// Skip the secret if a name filter is defined but the regex is nil or does not match.
-	if ref.Name != nil && (regex == nil || !regex.MatchString(secret)) {
+	if regex != nil && !regex.MatchString(secret) {
 		return nil, false, nil
 	}
 
 	// fetch secret data
 	secretData, err := cl.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{
-		Key:                secret,
-		ConversionStrategy: ref.ConversionStrategy,
-		DecodingStrategy:   ref.DecodingStrategy,
+		Key: secret,
 	})
 	if err != nil {
 		if errors.Is(err, esv1.NoSecretErr) {

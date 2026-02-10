@@ -30,10 +30,11 @@ import (
 func (cl *ovhClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	// Retrieve the KMS secret using the OVH SDK.
 	secretData, _, err := getSecretWithOvhSDK(ctx, cl.okmsClient, cl.okmsID, ref)
-	if err != nil && !errors.Is(err, esv1.NoSecretErr) {
+	if err != nil {
+		if errors.Is(err, esv1.NoSecretErr) {
+			return []byte{}, err
+		}
 		return []byte{}, fmt.Errorf("failed to retrieve secret at path %q: %w", ref.Key, err)
-	} else if err != nil {
-		return []byte{}, err
 	}
 
 	return secretData, nil
