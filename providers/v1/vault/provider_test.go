@@ -737,8 +737,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						},
 					}
 				}),
-				ns:   "default",
-				kube: clientfake.NewClientBuilder().Build(),
+				ns:     "default",
+				kube:   clientfake.NewClientBuilder().Build(),
 				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
 				newClientFunc: fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
 					cl.MockAddHeader = func(key, value string) {}
@@ -797,7 +797,13 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: fmt.Errorf(errHeaderSecretRef, "CF-Access-Client-Id", fmt.Errorf(`cannot get Kubernetes secret "cf-secrets" from namespace "default": %w`, errors.New(`secrets "cf-secrets" not found`))),
+				err: fmt.Errorf(
+					errHeaderSecretRef, "CF-Access-Client-Id",
+					fmt.Errorf(
+						`cannot get Kubernetes secret "cf-secrets" from namespace "default": %w`,
+						errors.New(`secrets "cf-secrets" not found`),
+					),
+				),
 			},
 		},
 		"VaultStoreWithHeadersSecretRefKeyNotFound": {
