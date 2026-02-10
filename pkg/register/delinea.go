@@ -1,3 +1,5 @@
+//go:build delinea || all_providers
+
 /*
 Copyright © 2025 ESO Maintainer Team
 
@@ -14,14 +16,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// The binary entry point for the controller manager.
-package main
+// Package register provides explicit registration of all providers and generators.
+package register
 
 import (
-	"github.com/external-secrets/external-secrets/cmd/controller"
-	_ "github.com/external-secrets/external-secrets/pkg/register" // Register all providers and generators
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	delinea "github.com/external-secrets/external-secrets/providers/v1/delinea"
 )
 
-func main() {
-	controller.Execute()
+func init() {
+	// Register delinea provider
+	esv1.Register(delinea.NewProvider(), delinea.ProviderSpec(), delinea.MaintenanceStatus())
 }
