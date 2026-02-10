@@ -16,7 +16,7 @@ jobs:
   fossa-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: step-security/harden-runner@e3f713f2d8f53843e71c69a996d56f51aa9adfb9 # v2.14.1
+      - uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         if: ${{ env.HAS_FOSSA_KEY == 'true' }}
         with:
           egress-policy: audit
@@ -25,13 +25,13 @@ jobs:
         if: ${{ env.HAS_FOSSA_KEY == 'true' }}
 
       - name: "Run FOSSA Scan"
-        uses: fossas/fossa-action@3ebcea1862c6ffbd5cf1b4d0bd6b3fe7bd6f2cac # main
+        uses: fossas/fossa-action@c414b9ad82eaad041e47a7cf62a4f02411f427a0 # main
         if: ${{ env.HAS_FOSSA_KEY == 'true' }}
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
 
       - name: "Run FOSSA Test"
-        uses: fossas/fossa-action@3ebcea1862c6ffbd5cf1b4d0bd6b3fe7bd6f2cac # main
+        uses: fossas/fossa-action@c414b9ad82eaad041e47a7cf62a4f02411f427a0 # main
         if: ${{ env.HAS_FOSSA_KEY == 'true' }}
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
