@@ -182,13 +182,7 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 		$(OK) Finished linting all modules; \
 	fi
 
-.PHONY: generate.providers
-generate.providers: ## Generate provider import file
-	@$(INFO) generating provider imports
-	@./hack/generate-provider-imports.sh
-	@$(OK) generated provider imports
-
-generate: generate.providers ## Generate code and crds
+generate: ## Generate code and crds
 	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 

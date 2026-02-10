@@ -63,95 +63,6 @@ func ForceRegister(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus
 	ForceRegisterMaintenanceStatus(maintenanceStatus, storeSpec)
 }
 
-// RegisterWithCapabilities registers a provider with full capability information.
-// This extends the basic Register() function by also storing provider metadata
-// including the capability matrix (which operations are supported and at what maturity level).
-func RegisterWithCapabilities(
-	s Provider,
-	storeSpec *SecretStoreProvider,
-	maintenanceStatus MaintenanceStatus,
-	capabilities ProviderCapabilities,
-) {
-	storeName, err := getProviderName(storeSpec)
-	if err != nil {
-		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
-	}
-
-	// Call existing Register function for backward compatibility
-	Register(s, storeSpec, maintenanceStatus)
-
-	// Register metadata with capabilities
-	metadataLock.Lock()
-	defer metadataLock.Unlock()
-
-	if _, exists := providerMetadata[storeName]; exists {
-		panic(fmt.Sprintf("provider metadata for %q already registered", storeName))
-	}
-
-	providerMetadata[storeName] = &ProviderMetadata{
-		Name:              storeName,
-		Provider:          s,
-		ProviderSpec:      storeSpec,
-		MaintenanceStatus: maintenanceStatus,
-		Capabilities:      capabilities,
-	}
-}
-
-// GetProviderCapabilities returns the capability matrix for a provider.
-// Returns false if the provider is not found or has no capability metadata.
-func GetProviderCapabilities(providerName string) (ProviderCapabilities, bool) {
-	metadataLock.RLock()
-	defer metadataLock.RUnlock()
-
-	metadata, ok := providerMetadata[providerName]
-	if !ok {
-		return ProviderCapabilities{}, false
-	}
-
-	return metadata.Capabilities, true
-}
-
-// GetProviderMetadata returns complete metadata for a provider including
-// capabilities, maintenance status, and provider spec.
-func GetProviderMetadata(providerName string) (*ProviderMetadata, bool) {
-	metadataLock.RLock()
-	defer metadataLock.RUnlock()
-
-	metadata, ok := providerMetadata[providerName]
-	return metadata, ok
-}
-
-// ListProviders returns all registered provider names.
-// This includes all providers that have been registered via Register() or
-// RegisterWithCapabilities().
-func ListProviders() []string {
-	metadataLock.RLock()
-	defer metadataLock.RUnlock()
-
-	providers := make([]string, 0, len(providerMetadata))
-	for name := range providerMetadata {
-		providers = append(providers, name)
-	}
-	return providers
-}
-
-// HasCapability checks if a provider supports a specific capability.
-// Returns true and the maturity level if the capability is supported,
-// false and UnknownMaturity otherwise.
-func HasCapability(providerName string, capability ProviderCapability) (bool, feature.Maturity) {
-	caps, ok := GetProviderCapabilities(providerName)
-	if !ok {
-		return false, feature.UnknownMaturity
-	}
-
-	for _, cap := range caps.Capabilities {
-		if cap.Capability == capability {
-			return true, cap.Maturity
-		}
-	}
-	return false, feature.UnknownMaturity
-}
-
 // GetProviderByName returns the provider implementation by name.
 func GetProviderByName(name string) (Provider, bool) {
 	buildlock.RLock()
@@ -211,4 +122,14 @@ func getProviderName(storeSpec *SecretStoreProvider) (string, error) {
 	}
 
 	return "", errors.New("failed to find registered store backend")
+}
+
+func List() map[string]Provider {
+	buildlock.RLock()
+	deepCopy := make(map[string]Provider, len(builder))
+	for k, v := range builder {
+		deepCopy[k] = v
+	}
+	buildlock.RUnlock()
+	return deepCopy
 }
