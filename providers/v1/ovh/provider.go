@@ -20,6 +20,7 @@ package ovh
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -34,6 +35,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
@@ -142,7 +144,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return cl, nil
 }
 
-// Configure the client to use the provided token for HTTP requests.
+// configureHTTPTokenClient clientConfigure the client to use the provided token for HTTP requests.
 func configureHTTPTokenClient(ctx context.Context, p *Provider, cl *ovhClient, server string, clientToken *esv1.OvhClientToken) error {
 	token, err := getToken(ctx, p, cl, clientToken)
 	if err != nil {
@@ -169,37 +171,7 @@ func configureHTTPTokenClient(ctx context.Context, p *Provider, cl *ovhClient, s
 	return nil
 }
 
-// Configure the client to use mTLS for HTTP requests.
-func configureHTTPMTLSClient(ctx context.Context, p *Provider, cl *ovhClient, server string, clientMTLS *esv1.OvhClientMTLS) error {
-	tlsCert, err := getMTLS(ctx, p, cl, clientMTLS)
-	if err != nil {
-		return err
-	}
-
-	// HTTP client configuration using mTLS.
-	httpClient := http.Client{
-		Timeout: cl.okmsTimeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion:   tls.VersionTLS12,
-				Certificates: []tls.Certificate{tlsCert},
-			},
-		},
-	}
-
-	// Request a new OKMS client from the OVH SDK (mTLS configured).
-	cl.okmsClient, err = okms.NewRestAPIClientWithHttp(server, &httpClient)
-	if err != nil {
-		return err
-	}
-	if cl.okmsClient == nil {
-		return errors.New(createOkmsClientError)
-	}
-
-	return err
-}
-
-// Retrieve the token value from the Kubernetes secret.
+// getToken retrieves the token value from the Kubernetes secret.
 func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1.OvhClientToken) (string, error) {
 	// ClienTokenSecret refers to the Kubernetes secret that stores the token.
 	tokenSecretRef := clientToken.ClientTokenSecret
@@ -220,43 +192,97 @@ func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1
 	return token, nil
 }
 
-// Retrieve the client key and certificate from the Kubernetes secret.
-func getMTLS(ctx context.Context, p *Provider, cl *ovhClient, clientMTLS *esv1.OvhClientMTLS) (tls.Certificate, error) {
-	// keySecretRef refers to the Kubernetes secret object
-	// containing the client key.
-	keyRef := clientMTLS.ClientKey
-	if keyRef == nil {
-		return tls.Certificate{}, errors.New(emptyKeySecretRef)
+// configureHTTPMTLSClient configures the client to use mTLS for HTTP requests.
+func configureHTTPMTLSClient(ctx context.Context, p *Provider, cl *ovhClient, server string, clientMTLS *esv1.OvhClientMTLS) error {
+	httpClient, err := newHTTPClientWithMTLS(ctx, p, cl, clientMTLS)
+	if err != nil {
+		return err
 	}
-	// Retrieve the value of keySecretRef from the Kubernetes secret.
-	clientKey, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
-		cl.ovhStoreKind, cl.ovhStoreNameSpace, keyRef)
+
+	// Request a new OKMS client from the OVH SDK (mTLS configured).
+	cl.okmsClient, err = okms.NewRestAPIClientWithHttp(server, httpClient)
+	if err != nil {
+		return err
+	}
+	if cl.okmsClient == nil {
+		return errors.New(createOkmsClientError)
+	}
+
+	return err
+}
+
+// getClientConfig creates an HTTP client configured for MTLS using the provided
+// client certificate and key, and optionally adds a custom CA from CAProvider or CABundle.
+func newHTTPClientWithMTLS(ctx context.Context, p *Provider, cl *ovhClient, clientMTLS *esv1.OvhClientMTLS) (*http.Client, error) {
+	cert, err := buildX509Certificate(ctx, cl, p, clientMTLS)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create an HTTP transport for mTLS, enforcing TLS 1.2+ and using the client certificate.
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			Certificates: []tls.Certificate{cert},
+		},
+	}
+	// Configure custom CA for the TLS client if provided via CAProvider or CABundle.
+	if clientMTLS.CAProvider != nil || len(clientMTLS.CABundle) != 0 {
+		caCertPool := x509.NewCertPool()
+		ca, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+			CABundle:   clientMTLS.CABundle,
+			CAProvider: clientMTLS.CAProvider,
+			StoreKind:  cl.ovhStoreKind,
+			Namespace:  cl.ovhStoreNameSpace,
+			Client:     cl.kube,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if ok := caCertPool.AppendCertsFromPEM(ca); !ok {
+			return nil, fmt.Errorf("failed to append CA")
+		}
+		transport.TLSClientConfig.RootCAs = caCertPool
+	}
+	// Build the HTTP client with configured transport and timeout.
+	httpClient := http.Client{
+		Timeout:   cl.okmsTimeout,
+		Transport: transport,
+	}
+	return &httpClient, nil
+}
+
+// buildX509Certificate retrieves client certificate and key to build X509 Certificate.
+func buildX509Certificate(ctx context.Context, cl *ovhClient, p *Provider, clientMTLS *esv1.OvhClientMTLS) (tls.Certificate, error) {
+	clientKey, err := resolveSecretValue(ctx, cl, p, clientMTLS.ClientKey, emptyKeySecretRef)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	if clientKey == "" {
-		return tls.Certificate{}, errors.New(emptyKeySecretRef)
-	}
-
-	// certSecretRef refers to the Kubernetes secret object
-	// containing the client certificate.
-	certRef := clientMTLS.ClientCertificate
-	if certRef == nil {
-		return tls.Certificate{}, errors.New(emptyCertSecretRef)
-	}
-	// Retrieve the value of certSecretRef from the Kubernetes secret.
-	clientCert, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
-		cl.ovhStoreKind, cl.ovhStoreNameSpace, certRef)
+	clientCert, err := resolveSecretValue(ctx, cl, p, clientMTLS.ClientCertificate, emptyCertSecretRef)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	if clientCert == "" {
-		return tls.Certificate{}, errors.New(emptyCertSecretRef)
-	}
-
 	cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
 
 	return cert, err
+}
+
+// resolveSecret retrieves the value of the client certificate and key.
+func resolveSecretValue(ctx context.Context, cl *ovhClient, p *Provider, ref *v1.SecretKeySelector, errMsg string) (string, error) {
+	// ref refers to the Kubernetes secret object.
+	if ref == nil {
+		return "", errors.New(errMsg)
+	}
+	// Retrieve the value of ref.
+	secret, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
+		cl.ovhStoreKind, cl.ovhStoreNameSpace, ref)
+	if err != nil {
+		return "", err
+	}
+	if secret == "" {
+		return "", errors.New(errMsg)
+	}
+	return secret, nil
 }
 
 // ValidateStore statically validate the Secret Store specification.

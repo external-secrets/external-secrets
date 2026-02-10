@@ -5815,14 +5815,52 @@ spec:
                         - vault
                       type: object
                     ovh:
-                      description: OvhProvider holds the configuration to synchronize secrets with OVHcloud's Secret Manager.
+                      description: Ovh configures this store to sync secrets using the OVHcloud provider.
                       properties:
                         auth:
-                          description: Authentication method (mtls or token)
+                          description: Authentication method (mtls or token).
                           properties:
                             mtls:
                               description: OvhClientMTLS defines the configuration required to authenticate to OVHcloud's Secret Manager using mTLS.
                               properties:
+                                caBundle:
+                                  format: byte
+                                  type: string
+                                caProvider:
+                                  description: |-
+                                    CAProvider provides a custom certificate authority for accessing the provider's store.
+                                    The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+                                  properties:
+                                    key:
+                                      description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the object located at the provider type.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace the Provider type is in.
+                                        Can only be defined when used in a ClusterSecretStore.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                    type:
+                                      description: The type of provider to use such as "Secret", or "ConfigMap".
+                                      enum:
+                                        - Secret
+                                        - ConfigMap
+                                      type: string
+                                  required:
+                                    - name
+                                    - type
+                                  type: object
                                 certSecretRef:
                                   description: |-
                                     SecretKeySelector is a reference to a specific 'key' within a Secret resource.
@@ -5919,18 +5957,18 @@ spec:
                               type: object
                           type: object
                         casRequired:
-                          description: 'Enables or disables check-and-set (CAS) (default: false)'
+                          description: 'Enables or disables check-and-set (CAS) (default: false).'
                           type: boolean
                         okmsTimeout:
                           default: 30
-                          description: 'Setup a timeout in seconds when requests to the KMS are made (default: 30)'
+                          description: 'Setup a timeout in seconds when requests to the KMS are made (default: 30).'
                           format: int32
                           type: integer
                         okmsid:
-                          description: specifies the OKMS ID
+                          description: specifies the OKMS ID.
                           type: string
                         server:
-                          description: specifies the OKMS server endpoint
+                          description: specifies the OKMS server endpoint.
                           type: string
                       required:
                         - auth
@@ -17579,14 +17617,52 @@ spec:
                         - vault
                       type: object
                     ovh:
-                      description: OvhProvider holds the configuration to synchronize secrets with OVHcloud's Secret Manager.
+                      description: Ovh configures this store to sync secrets using the OVHcloud provider.
                       properties:
                         auth:
-                          description: Authentication method (mtls or token)
+                          description: Authentication method (mtls or token).
                           properties:
                             mtls:
                               description: OvhClientMTLS defines the configuration required to authenticate to OVHcloud's Secret Manager using mTLS.
                               properties:
+                                caBundle:
+                                  format: byte
+                                  type: string
+                                caProvider:
+                                  description: |-
+                                    CAProvider provides a custom certificate authority for accessing the provider's store.
+                                    The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+                                  properties:
+                                    key:
+                                      description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the object located at the provider type.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace the Provider type is in.
+                                        Can only be defined when used in a ClusterSecretStore.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                    type:
+                                      description: The type of provider to use such as "Secret", or "ConfigMap".
+                                      enum:
+                                        - Secret
+                                        - ConfigMap
+                                      type: string
+                                  required:
+                                    - name
+                                    - type
+                                  type: object
                                 certSecretRef:
                                   description: |-
                                     SecretKeySelector is a reference to a specific 'key' within a Secret resource.
@@ -17683,18 +17759,18 @@ spec:
                               type: object
                           type: object
                         casRequired:
-                          description: 'Enables or disables check-and-set (CAS) (default: false)'
+                          description: 'Enables or disables check-and-set (CAS) (default: false).'
                           type: boolean
                         okmsTimeout:
                           default: 30
-                          description: 'Setup a timeout in seconds when requests to the KMS are made (default: 30)'
+                          description: 'Setup a timeout in seconds when requests to the KMS are made (default: 30).'
                           format: int32
                           type: integer
                         okmsid:
-                          description: specifies the OKMS ID
+                          description: specifies the OKMS ID.
                           type: string
                         server:
-                          description: specifies the OKMS server endpoint
+                          description: specifies the OKMS server endpoint.
                           type: string
                       required:
                         - auth

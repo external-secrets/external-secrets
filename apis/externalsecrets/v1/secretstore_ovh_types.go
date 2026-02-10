@@ -52,6 +52,10 @@ type OvhClientMTLS struct {
 	ClientCertificate *esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 	// +required
 	ClientKey *esmeta.SecretKeySelector `json:"keySecretRef,omitempty"`
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
 // OvhClientToken defines the configuration required to authenticate to OVHcloud's Secret Manager using a token.
