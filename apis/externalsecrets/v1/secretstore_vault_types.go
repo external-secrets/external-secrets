@@ -90,9 +90,10 @@ type VaultProvider struct {
 	// +optional
 	ForwardInconsistent bool `json:"forwardInconsistent,omitempty"`
 
-	// Headers to be added in Vault request
+	// Headers to be added in Vault request.
+	// Values can be provided directly or referenced from a Secret.
 	// +optional
-	Headers map[string]string `json:"headers,omitempty"`
+	Headers map[string]VaultCustomHeader `json:"headers,omitempty"`
 
 	// CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
 	// Only applies to Vault KV v2 stores. When enabled, write operations must include
@@ -437,4 +438,18 @@ type VaultCheckAndSet struct {
 	// This helps prevent unintentional overwrites of secrets.
 	// +optional
 	Required bool `json:"required,omitempty"`
+}
+
+// VaultCustomHeader defines a custom header to be added to Vault requests.
+// Either value or secretKeyRef must be specified, but not both.
+// +kubebuilder:validation:MinProperties:=1
+// +kubebuilder:validation:MaxProperties:=1
+type VaultCustomHeader struct {
+	// Value is the header value provided directly as a string.
+	// +optional
+	Value *string `json:"value,omitempty"`
+
+	// SecretKeyRef is a reference to a key in a Secret resource containing the header value.
+	// +optional
+	SecretKeyRef *esmeta.SecretKeySelector `json:"secretKeyRef,omitempty"`
 }
