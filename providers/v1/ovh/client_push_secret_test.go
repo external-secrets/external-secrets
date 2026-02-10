@@ -29,18 +29,20 @@ import (
 )
 
 func TestPushSecret(t *testing.T) {
+	const (
+		mySecretRemoteKey          = "mysecret"
+		nonExistentSecretRemoteKey = "non-existent-secret"
+		emptySecretRemoteKey       = "empty-secret"
+		nilSecretRemoteKey         = "nil-secret"
+	)
 	secretData := &v1.Secret{
 		Data: map[string][]byte{
 			"key1": []byte("value1"),
 			"key2": []byte("value2"),
 		},
 	}
-	mySecretRemoteKey := "mysecret"
 	mySecret2RemoteKey := "mysecret2"
-	nonExistentSecretRemoteKey := "non-existent-secret"
 	emptyRemoteKey := ""
-	emptySecretRemoteKey := "empty-secret"
-	nilSecretRemoteKey := "nil-secret"
 
 	testCases := map[string]struct {
 		errshould  string
@@ -130,7 +132,7 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		"Custom PostSecretV2 Error": {
-			errshould: fmt.Sprintf("failed to push secret at path %q: could not create remote secret \"mysecret\": custom error", mySecretRemoteKey),
+			errshould: fmt.Sprintf("failed to push secret at path %q: could not create remote secret: custom error", mySecretRemoteKey),
 			secret:    secretData,
 			data: testingfake.PushSecretData{
 				RemoteKey: mySecretRemoteKey,
@@ -143,7 +145,7 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		"Custom PutSecretV2 Error": {
-			errshould: fmt.Sprintf("failed to push secret at path %q: could not update remote secret \"mysecret\": custom error", mySecretRemoteKey),
+			errshould: fmt.Sprintf("failed to push secret at path %q: could not update remote secret: custom error", mySecretRemoteKey),
 			secret:    secretData,
 			data: testingfake.PushSecretData{
 				RemoteKey: mySecretRemoteKey,

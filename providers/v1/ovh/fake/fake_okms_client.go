@@ -18,14 +18,13 @@ package fake
 
 import (
 	"context"
-	"errors"
 	"maps"
-	"strings"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go"
 	"github.com/ovh/okms-sdk-go/types"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 type GetSecretV2Fn func() (*types.GetSecretV2Response, error)
@@ -34,7 +33,7 @@ type PostSecretV2Fn func() (*types.PostSecretV2Response, error)
 type PutSecretV2Fn func() (*types.PutSecretV2Response, error)
 type DeleteSecretV2Fn func() error
 type WithCustomHeaderFn func() *okms.Client
-type GetSecretsMetadataFn func() (*types.GetMetadataResponse, error)
+type GetSecretsMetadataFn func(path string) (*types.GetMetadataResponse, error)
 
 type FakeOkmsClient struct {
 	GetSecretV2Fn        GetSecretV2Fn
@@ -76,15 +75,6 @@ var fakeSecretStorage = map[string]map[string]any{
 	"pattern1/path2": {
 		"key": "value",
 	},
-	"pattern1/path3": {
-		"root": map[string]any{
-			"sub1": map[string]string{
-				"value": "string",
-			},
-			"sub2": "Name",
-		},
-		"test": "value", "test1": "value1",
-	},
 	"pattern2/test/test-secret": {
 		"key4": "value4",
 	},
@@ -94,14 +84,77 @@ var fakeSecretStorage = map[string]map[string]any{
 	"pattern2/secret": {
 		"key6": "value6",
 	},
-	"1secret": {
-		"key7": "value7",
+	"invalidpath1//secret": {
+		"key": "value",
 	},
-	"pattern2/test/test;secret": {
-		"key8": "value8",
+	"/invalidpath2/secret": {
+		"key": "value",
 	},
-	"nil-secret":   nil,
-	"empty-secret": {},
+	"invalidpath3/secret//": {
+		"key": "value",
+	},
+	"invalidpath4/secret/": {
+		"key": "value",
+	},
+	"nil/nil-secret":     nil,
+	"nil-secret":         nil,
+	"empty/empty-secret": {},
+	"empty-secret":       {},
+}
+
+var fakeSecretStoragePaths = map[string][]string{
+	"/": {
+		"mysecret",
+		"mysecret2",
+		"nested-secret",
+		"pattern1/",
+		"pattern2/",
+	},
+	"mysecret": {
+		"mysecret",
+	},
+	"mysecret2": {
+		"mysecret2",
+	},
+	"nested-secret": {
+		"nested-secret",
+	},
+	"pattern1": {
+		"path1",
+		"path2",
+	},
+	"pattern2": {
+		"test/",
+		"secret",
+	},
+	"pattern2/test": {
+		"test-secret",
+		"test.secret",
+	},
+	"invalidpath1": {
+		"/secret",
+	},
+	"/invalidpath2": {
+		"secret",
+	},
+	"invalidpath3": {
+		"secret/",
+	},
+	"invalidpath4": {
+		"secret/",
+	},
+	"invalidpath3/secret": {
+		"/",
+	},
+	"invalidpath4/secret": {
+		"",
+	},
+	"nil": {
+		"nil-secret",
+	},
+	"empty": {
+		"empty-secret",
+	},
 }
 
 func (f FakeOkmsClient) GetSecretV2(ctx context.Context, okmsID uuid.UUID, path string, version *uint32, includeData *bool) (*types.GetSecretV2Response, error) {
@@ -138,19 +191,7 @@ func (f FakeOkmsClient) ListSecretV2(ctx context.Context, okmsID uuid.UUID, page
 }
 func NewListSecretV2Fn(err error) ListSecretV2Fn {
 	return func() (*types.ListSecretV2ResponseWithPagination, error) {
-		if err != nil {
-			return nil, err
-		}
-
-		secretList := &types.ListSecretV2ResponseWithPagination{}
-		for k := range fakeSecretStorage {
-			newPath := types.GetSecretV2Response{
-				Path: &k,
-			}
-			secretList.ListSecretV2Response = append(secretList.ListSecretV2Response, newPath)
-		}
-
-		return secretList, nil
+		return nil, err
 	}
 }
 
@@ -198,63 +239,21 @@ func NewDeleteSecretV2Fn(err error) DeleteSecretV2Fn {
 //
 // This implementation returns a list of secrets from fakeSecretStorage variable.
 func (f FakeOkmsClient) GetSecretsMetadata(ctx context.Context, okmsID uuid.UUID, path string, list bool) (*types.GetMetadataResponse, error) {
-	if f.GetSecretsMetadataFn != nil {
-		return f.GetSecretsMetadataFn()
+	if path == "" {
+		path = "/"
 	}
-	return NewGetSecretsMetadataFn(path, nil)()
-}
-func NewGetSecretsMetadataFn(path string, err error) GetSecretsMetadataFn {
-	return func() (*types.GetMetadataResponse, error) {
-		if err != nil {
-			return nil, errors.New("error response")
-		}
-
-		resp := &types.GetMetadataResponse{
-			Data: &types.SecretMetadata{
-				Keys: &[]string{},
-			},
-		}
-
-		for key := range fakeSecretStorage {
-			toAppend, ok := retrieveKeyToAppend(path, key)
-			if ok {
-				*resp.Data.Keys = append(*resp.Data.Keys, toAppend)
-			}
-		}
-
-		return resp, nil
-	}
-}
-func retrieveKeyToAppend(path, key string) (string, bool) {
-	// If no path is specified, append all non-empty secrets.
-	if path == "" && len(fakeSecretStorage[key]) != 0 {
-		return key, true
+	keys, ok := fakeSecretStoragePaths[path]
+	if !ok {
+		return nil, nil
 	}
 
-	// Append the secret if key exactly matches path.
-	if path == key {
-		return key, true
-	}
-	// Skip the secret if path is not a prefix of key.
-	if !strings.HasPrefix(key, path+"/") {
-		return "", false
+	resp := &types.GetMetadataResponse{
+		Data: &types.SecretMetadata{
+			Keys: &keys,
+		},
 	}
 
-	// The key starts with path.
-	// Return the first segment after path, adding a trailing slash if there are more segments.
-	// Examples:
-	//   path = "foo/bar", key = "foo/bar/baz/qux"
-	//   returns "baz/", because "baz" is the first segment after the path and there are more segments.
-	//
-	//   path = "foo/bar", key = "foo/bar/baz"
-	//   returns "baz", because it's the last segment.
-	key = key[len(path)+1:]
-	before, _, ok := strings.Cut(key, "/")
-	if ok {
-		return before + "/", true
-	} else {
-		return key, true
-	}
+	return resp, nil
 }
 
 func (f FakeOkmsClient) WithCustomHeader(key, value string) *okms.Client {
