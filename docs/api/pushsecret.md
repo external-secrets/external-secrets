@@ -126,11 +126,13 @@ rewrite:
 ```
 
 **Transform Rewrite (Go Template):**
+{% raw %}
 ```yaml
 rewrite:
   - transform:
       template: "secrets/{{ .value | upper }}"  # .value contains the key name
 ```
+{% endraw %}
 
 **Chained Rewrites:**
 ```yaml
