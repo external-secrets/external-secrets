@@ -108,6 +108,7 @@ spec:
 
 Use Go templates with sprig functions for advanced transformations:
 
+{% raw %}
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -126,6 +127,7 @@ spec:
         - transform:
             template: "app/{{ .value | upper }}"
 ```
+{% endraw %}
 
 **Transformation example:**
 - `username` → `app/USERNAME`

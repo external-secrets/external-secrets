@@ -4551,7 +4551,8 @@ list during merge operations.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
 <p>ExternalSecretRewriteRegexp defines configuration for rewriting secrets using regular expressions.</p>
@@ -4592,7 +4593,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
 <p>ExternalSecretRewriteTransform defines configuration for transforming secrets using templates.</p>
@@ -13358,6 +13360,21 @@ PushSecretSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>Secret Data that should be pushed to providers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataTo</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">
+[]PushSecretDataTo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 <p>Secret Data that should be pushed to providers</p>
 </td>
 </tr>
@@ -13417,7 +13434,8 @@ PushSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>)
+<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
 </p>
 <p>
 <p>PushSecretConversionStrategy defines how secret values are converted when pushed to providers.</p>
@@ -13492,6 +13510,127 @@ PushSecretConversionStrategy
 <td>
 <em>(Optional)</em>
 <p>Used to define a conversion Strategy for the secret keys</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
+</p>
+<p>
+<p>PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretStoreRef">
+PushSecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<p>StoreRef specifies which SecretStore to push to. Required.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>match</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataToMatch">
+PushSecretDataToMatch
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Match pattern for selecting keys from the source Secret.
+If not specified, all keys are selected.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rewrite</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">
+[]PushSecretRewrite
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Rewrite operations to transform keys before pushing to the provider.
+Operations are applied sequentially.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Metadata is metadata attached to the secret.
+The structure of metadata is provider specific, please look it up in the provider documentation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conversionStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretConversionStrategy">
+PushSecretConversionStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a conversion Strategy for the secret keys</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretDataToMatch">PushSecretDataToMatch
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
+</p>
+<p>
+<p>PushSecretDataToMatch defines pattern matching for key selection.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Regexp matches keys by regular expression.
+If not specified, all keys are matched.</p>
 </td>
 </tr>
 </tbody>
@@ -13643,6 +13782,53 @@ string
 <td>
 <em>(Optional)</em>
 <p>Name of the property in the resulting secret</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
+</p>
+<p>
+<p>PushSecretRewrite defines how to transform secret keys before pushing.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteRegexp">
+ExternalSecretRewriteRegexp
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to rewrite with regular expressions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transform</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteTransform">
+ExternalSecretRewriteTransform
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to apply string transformation on the secrets.</p>
 </td>
 </tr>
 </tbody>
@@ -13834,6 +14020,21 @@ PushSecretSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>Secret Data that should be pushed to providers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataTo</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">
+[]PushSecretDataTo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 <p>Secret Data that should be pushed to providers</p>
 </td>
 </tr>
@@ -14008,6 +14209,7 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
 </p>
 <p>

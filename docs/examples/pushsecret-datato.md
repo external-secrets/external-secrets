@@ -221,6 +221,7 @@ stringData:
 ```
 
 **PushSecret with Template:**
+{% raw %}
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -240,6 +241,7 @@ spec:
         - transform:
             template: "services/{{ .value | upper | replace \"-\" \"_\" }}"
 ```
+{% endraw %}
 
 **Result:**
 - `services/PAYMENT_GATEWAY_KEY`
