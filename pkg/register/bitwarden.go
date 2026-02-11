@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	bitwarden "github.com/external-secrets/external-secrets/providers/v1/bitwarden"
+	_ "github.com/external-secrets/external-secrets/providers/v1/bitwarden"
 )
-
-func init() {
-	// Register bitwarden provider
-	esv1.Register(bitwarden.NewProvider(), bitwarden.ProviderSpec(), bitwarden.MaintenanceStatus())
-}
