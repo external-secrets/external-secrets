@@ -20,41 +20,48 @@ import (
 	"sync"
 )
 
-// Registry
-var (
-	registry     = make(map[Name]Metadata)
-	registryLock sync.RWMutex
-)
-
-// Register stores provider metadata
-func Register(providerName string, metadata Metadata) {
-	registryLock.Lock()
-	defer registryLock.Unlock()
-	registry[Name(providerName)] = metadata
+// Registry holds provider metadata and provides thread-safe access
+type Registry struct {
+	providers map[Name]Metadata
+	mu        sync.RWMutex
 }
 
-// Get returns metadata for a provider
-func Get(providerName string) (Metadata, bool) {
-	registryLock.RLock()
-	defer registryLock.RUnlock()
-	meta, ok := registry[Name(providerName)]
+// NewRegistry creates a new empty registry for testing or isolated use
+func NewRegistry() *Registry {
+	return &Registry{
+		providers: make(map[Name]Metadata),
+	}
+}
+
+// Register stores provider metadata in the registry
+func (r *Registry) Register(providerName string, metadata Metadata) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.providers[Name(providerName)] = metadata
+}
+
+// Get returns metadata for a provider from the registry
+func (r *Registry) Get(providerName string) (Metadata, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	meta, ok := r.providers[Name(providerName)]
 	return meta, ok
 }
 
-// List returns all registered provider metadata
-func List() map[Name]Metadata {
-	registryLock.RLock()
-	defer registryLock.RUnlock()
-	result := make(map[Name]Metadata, len(registry))
-	for name, meta := range registry {
+// List returns all registered provider metadata from the registry
+func (r *Registry) List() map[Name]Metadata {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	result := make(map[Name]Metadata, len(r.providers))
+	for name, meta := range r.providers {
 		result[name] = meta
 	}
 	return result
 }
 
-// HasCapability checks if a provider supports a capability
-func HasCapability(providerName string, capability CapabilityName) bool {
-	providerMeta, ok := Get(providerName)
+// HasCapability checks if a provider supports a capability in the registry
+func (r *Registry) HasCapability(providerName string, capability CapabilityName) bool {
+	providerMeta, ok := r.Get(providerName)
 	if !ok {
 		return false
 	}
@@ -64,4 +71,27 @@ func HasCapability(providerName string, capability CapabilityName) bool {
 		}
 	}
 	return false
+}
+
+// Global registry instance for production use
+var globalRegistry = NewRegistry()
+
+// Register stores provider metadata in the global registry
+func Register(providerName string, metadata Metadata) {
+	globalRegistry.Register(providerName, metadata)
+}
+
+// Get returns metadata for a provider from the global registry
+func Get(providerName string) (Metadata, bool) {
+	return globalRegistry.Get(providerName)
+}
+
+// List returns all registered provider metadata from the global registry
+func List() map[Name]Metadata {
+	return globalRegistry.List()
+}
+
+// HasCapability checks if a provider supports a capability in the global registry
+func HasCapability(providerName string, capability CapabilityName) bool {
+	return globalRegistry.HasCapability(providerName, capability)
 }

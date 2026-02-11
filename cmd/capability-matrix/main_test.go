@@ -469,10 +469,12 @@ func Test_newProviderTable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Create a local registry for this test to avoid global state pollution
+			localRegistry := runtimeprovider.NewRegistry()
 			for i, provider := range tt.args {
-				runtimeprovider.Register(fmt.Sprintf("provider%d", i), provider)
+				localRegistry.Register(fmt.Sprintf("provider%d", i), provider)
 			}
-			table := newProviderTable(runtimeprovider.List())
+			table := newProviderTable(localRegistry.List())
 			gotProviders := len(table)
 			if gotProviders != tt.wantProviders {
 				t.Errorf("newProviderTable() gotProviders = %v, want %v", gotProviders, tt.wantProviders)
