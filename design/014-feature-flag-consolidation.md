@@ -263,16 +263,16 @@ No CRD or API changes.
 ### Acceptance Criteria
 
 **Phase 1 (Bug Fixes)**:
-- [ ] Doppler `--doppler-oidc-cache-size` flag is functional
-- [ ] AWS deprecated flag removed
-- [ ] No other flags affected
+- [X] Doppler `--doppler-oidc-cache-size` flag is updated with new pattern
+- [X] AWS deprecated flag removed
+- [X] No other flags affected
 
 **Phase 2 (Standardization)**:
-- [ ] All provider flags use `init()` + `feature.Register()` pattern
-- [ ] Linting rule added to prevent `InitializeFlags()` pattern
+- [X] All provider flags use `init()` + `feature.Register()` pattern
+- [X] Linting rule added to prevent `InitializeFlags()` pattern
 
 **Phase 3 (Naming)**:
-- [ ] Naming convention documented in CONTRIBUTING.md or other poolicy document (depending on diataxis progress)
+- [ ] Naming convention documented in CONTRIBUTING.md or other policy document (depending on diataxis progress)
 - [ ] New flags follow convention (enforced in PR review)
 
 **Phase 4 (Documentation)**:
@@ -280,8 +280,9 @@ No CRD or API changes.
 - [ ] Documentation linked from README and CLI help
 
 **Phase 5 (Automation)**:
-- [ ] Feature struct extended with metadata
-- [ ] Generated documentation from code
+- [X] Feature struct extended with metadata
+- [X] Generated documentation from code
+- [ ] Introspection of documentation from code
 - [ ] Existing startup logs show which features are enabled, and their maturity/safety level
 
 **Rollout:**
