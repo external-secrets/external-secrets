@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	akeyless "github.com/external-secrets/external-secrets/providers/v1/akeyless"
+	_ "github.com/external-secrets/external-secrets/providers/v1/akeyless"
 )
-
-func init() {
-	// Register akeyless provider
-	esv1.Register(akeyless.NewProvider(), akeyless.ProviderSpec(), akeyless.MaintenanceStatus())
-}
