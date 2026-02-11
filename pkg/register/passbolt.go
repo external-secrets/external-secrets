@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	passbolt "github.com/external-secrets/external-secrets/providers/v1/passbolt"
+	_ "github.com/external-secrets/external-secrets/providers/v1/passbolt"
 )
-
-func init() {
-	// Register passbolt provider
-	esv1.Register(passbolt.NewProvider(), passbolt.ProviderSpec(), passbolt.MaintenanceStatus())
-}
