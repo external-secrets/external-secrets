@@ -25,7 +25,7 @@ import (
 
 func init() {
 	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("azure", Metadata())
+	provider.Register("azurekv", Metadata())
 }
 
 func Metadata() provider.Metadata {
