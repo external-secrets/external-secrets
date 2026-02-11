@@ -472,7 +472,7 @@ func (h *VaultCustomHeader) UnmarshalJSON(data []byte) error {
 
 	// If that fails, try to unmarshal as a plain string for backwards compatibility.
 	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
+	if json.Unmarshal(data, &str) == nil {
 		h.Value = &str
 		h.SecretKeyRef = nil
 		return nil
