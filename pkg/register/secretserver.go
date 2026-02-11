@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	secretserver "github.com/external-secrets/external-secrets/providers/v1/secretserver"
+	_ "github.com/external-secrets/external-secrets/providers/v1/secretserver"
 )
-
-func init() {
-	// Register secretserver provider
-	esv1.Register(secretserver.NewProvider(), secretserver.ProviderSpec(), secretserver.MaintenanceStatus())
-}
