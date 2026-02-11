@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	conjur "github.com/external-secrets/external-secrets/providers/v1/conjur"
+	_ "github.com/external-secrets/external-secrets/providers/v1/conjur"
 )
-
-func init() {
-	// Register conjur provider
-	esv1.Register(conjur.NewProvider(), conjur.ProviderSpec(), conjur.MaintenanceStatus())
-}
