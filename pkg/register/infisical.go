@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	infisical "github.com/external-secrets/external-secrets/providers/v1/infisical"
+	_ "github.com/external-secrets/external-secrets/providers/v1/infisical"
 )
-
-func init() {
-	// Register infisical provider
-	esv1.Register(infisical.NewProvider(), infisical.ProviderSpec(), infisical.MaintenanceStatus())
-}
