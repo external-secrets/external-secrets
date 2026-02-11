@@ -32,9 +32,8 @@ func Metadata() provider.Metadata {
 	return provider.Metadata{
 		Stability: provider.StabilityAlpha,
 		Capabilities: []provider.Capability{
-			{
-				Name: provider.CapabilityGetSecret,
-			},
+			{Name: provider.CapabilityGetSecret},
+			{Name: provider.CapabilityValidateStore},
 		},
 		Comment: "TODO Yandexlock metadata",
 	}
