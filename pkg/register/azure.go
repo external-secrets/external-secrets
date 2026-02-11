@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	azure "github.com/external-secrets/external-secrets/providers/v1/azure/keyvault"
+	_ "github.com/external-secrets/external-secrets/providers/v1/azure/keyvault"
 )
-
-func init() {
-	// Register azure provider
-	esv1.Register(azure.NewProvider(), azure.ProviderSpec(), azure.MaintenanceStatus())
-}
