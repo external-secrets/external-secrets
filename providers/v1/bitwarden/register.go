@@ -25,7 +25,7 @@ import (
 
 func init() {
 	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("bitwarden", Metadata())
+	provider.Register("bitwardensecretsmanager", Metadata())
 }
 
 func Metadata() provider.Metadata {
