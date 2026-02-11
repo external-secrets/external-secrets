@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	doppler "github.com/external-secrets/external-secrets/providers/v1/doppler"
+	_ "github.com/external-secrets/external-secrets/providers/v1/doppler"
 )
-
-func init() {
-	// Register doppler provider
-	esv1.Register(doppler.NewProvider(), doppler.ProviderSpec(), doppler.MaintenanceStatus())
-}
