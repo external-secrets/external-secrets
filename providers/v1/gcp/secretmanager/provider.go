@@ -174,9 +174,11 @@ func clusterProjectID(ctx context.Context, spec *esv1.SecretStoreSpec) (string, 
 	// This allows SecretStore/ClusterSecretStore to omit projectID
 	// when the secrets are in the same project as the GKE cluster
 	metadataClient := metadataClientFactory()
-	if projectID, err := metadataClient.ProjectIDWithContext(ctx); err == nil && projectID != "" {
+	projectID, err := metadataClient.ProjectIDWithContext(ctx)
+	if err == nil && projectID != "" {
 		return projectID, nil
 	}
+	log.V(1).Info("failed to get projectID from metadata server", "error", err)
 	return "", errors.New(errNoProjectID)
 }
 
