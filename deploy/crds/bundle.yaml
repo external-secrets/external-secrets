@@ -7142,6 +7142,8 @@ spec:
                             x-kubernetes-validations:
                               - message: must set exactly one of value or secretKeyRef
                                 rule: has(self.value) != has(self.secretKeyRef)
+                              - message: secretKeyRef must have both key and name specified
+                                rule: '!has(self.secretKeyRef) || (has(self.secretKeyRef.key) && has(self.secretKeyRef.name))'
                           description: |-
                             Headers to be added in Vault request.
                             Values can be provided directly or referenced from a Secret.
@@ -18821,6 +18823,8 @@ spec:
                             x-kubernetes-validations:
                               - message: must set exactly one of value or secretKeyRef
                                 rule: has(self.value) != has(self.secretKeyRef)
+                              - message: secretKeyRef must have both key and name specified
+                                rule: '!has(self.secretKeyRef) || (has(self.secretKeyRef.key) && has(self.secretKeyRef.name))'
                           description: |-
                             Headers to be added in Vault request.
                             Values can be provided directly or referenced from a Secret.
@@ -25880,6 +25884,8 @@ spec:
                                 x-kubernetes-validations:
                                   - message: must set exactly one of value or secretKeyRef
                                     rule: has(self.value) != has(self.secretKeyRef)
+                                  - message: secretKeyRef must have both key and name specified
+                                    rule: '!has(self.secretKeyRef) || (has(self.secretKeyRef.key) && has(self.secretKeyRef.name))'
                               description: |-
                                 Headers to be added in Vault request.
                                 Values can be provided directly or referenced from a Secret.
@@ -28603,6 +28609,8 @@ spec:
                         x-kubernetes-validations:
                           - message: must set exactly one of value or secretKeyRef
                             rule: has(self.value) != has(self.secretKeyRef)
+                          - message: secretKeyRef must have both key and name specified
+                            rule: '!has(self.secretKeyRef) || (has(self.secretKeyRef.key) && has(self.secretKeyRef.name))'
                       description: |-
                         Headers to be added in Vault request.
                         Values can be provided directly or referenced from a Secret.

@@ -445,6 +445,7 @@ type VaultCheckAndSet struct {
 // VaultCustomHeader defines a custom header to be added to Vault requests.
 // Either value or secretKeyRef must be specified, but not both.
 // +kubebuilder:validation:XValidation:rule="has(self.value) != has(self.secretKeyRef)",message="must set exactly one of value or secretKeyRef"
+// +kubebuilder:validation:XValidation:rule="!has(self.secretKeyRef) || (has(self.secretKeyRef.key) && has(self.secretKeyRef.name))",message="secretKeyRef must have both key and name specified"
 type VaultCustomHeader struct {
 	// Value is the header value provided directly as a string.
 	// +optional
