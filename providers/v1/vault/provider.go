@@ -165,6 +165,17 @@ func (p *Provider) initClient(ctx context.Context, c *client, client vaultutil.C
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
 
+	c.client = client
+	c.auth = client.Auth()
+	c.logical = client.Logical()
+	c.token = client.AuthToken()
+
+	// allow SecretStore controller validation to pass
+	// when using referent namespace.
+	if c.storeKind == esv1.ClusterSecretStoreKind && c.namespace == "" && isReferentSpec(vaultSpec) {
+		return c, nil
+	}
+
 	if vaultSpec.Headers != nil {
 		for hKey, hValue := range vaultSpec.Headers {
 			headerValue, err := p.resolveHeaderValue(ctx, c, hKey, &hValue)
@@ -179,16 +190,6 @@ func (p *Provider) initClient(ctx context.Context, c *client, client vaultutil.C
 		client.AddHeader("X-Vault-Inconsistent", "forward-active-node")
 	}
 
-	c.client = client
-	c.auth = client.Auth()
-	c.logical = client.Logical()
-	c.token = client.AuthToken()
-
-	// allow SecretStore controller validation to pass
-	// when using referent namespace.
-	if c.storeKind == esv1.ClusterSecretStoreKind && c.namespace == "" && isReferentSpec(vaultSpec) {
-		return c, nil
-	}
 	if err := c.setAuth(ctx, cfg); err != nil {
 		return nil, err
 	}

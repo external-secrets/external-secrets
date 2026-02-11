@@ -7108,8 +7108,6 @@ spec:
                             description: |-
                               VaultCustomHeader defines a custom header to be added to Vault requests.
                               Either value or secretKeyRef must be specified, but not both.
-                            maxProperties: 1
-                            minProperties: 1
                             properties:
                               secretKeyRef:
                                 description: SecretKeyRef is a reference to a key in a Secret resource containing the header value.
@@ -18786,8 +18784,6 @@ spec:
                             description: |-
                               VaultCustomHeader defines a custom header to be added to Vault requests.
                               Either value or secretKeyRef must be specified, but not both.
-                            maxProperties: 1
-                            minProperties: 1
                             properties:
                               secretKeyRef:
                                 description: SecretKeyRef is a reference to a key in a Secret resource containing the header value.
@@ -25844,8 +25840,6 @@ spec:
                                 description: |-
                                   VaultCustomHeader defines a custom header to be added to Vault requests.
                                   Either value or secretKeyRef must be specified, but not both.
-                                maxProperties: 1
-                                minProperties: 1
                                 properties:
                                   secretKeyRef:
                                     description: SecretKeyRef is a reference to a key in a Secret resource containing the header value.
@@ -28566,8 +28560,6 @@ spec:
                         description: |-
                           VaultCustomHeader defines a custom header to be added to Vault requests.
                           Either value or secretKeyRef must be specified, but not both.
-                        maxProperties: 1
-                        minProperties: 1
                         properties:
                           secretKeyRef:
                             description: SecretKeyRef is a reference to a key in a Secret resource containing the header value.

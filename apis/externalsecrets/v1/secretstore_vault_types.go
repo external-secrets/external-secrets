@@ -17,6 +17,8 @@ limitations under the License.
 package v1
 
 import (
+	"encoding/json"
+
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -442,8 +444,6 @@ type VaultCheckAndSet struct {
 
 // VaultCustomHeader defines a custom header to be added to Vault requests.
 // Either value or secretKeyRef must be specified, but not both.
-// +kubebuilder:validation:MinProperties:=1
-// +kubebuilder:validation:MaxProperties:=1
 type VaultCustomHeader struct {
 	// Value is the header value provided directly as a string.
 	// +optional
@@ -452,4 +452,28 @@ type VaultCustomHeader struct {
 	// SecretKeyRef is a reference to a key in a Secret resource containing the header value.
 	// +optional
 	SecretKeyRef *esmeta.SecretKeySelector `json:"secretKeyRef,omitempty"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshalling for VaultCustomHeader.
+// This provides backwards compatibility with existing manifests that specify
+// headers as plain strings (e.g., {"X-Key": "value"}) by treating them
+// as VaultCustomHeader{Value: &str}.
+func (h *VaultCustomHeader) UnmarshalJSON(data []byte) error {
+	// First, try to unmarshal as the struct type.
+	type vaultCustomHeaderAlias VaultCustomHeader
+	var obj vaultCustomHeaderAlias
+	if err := json.Unmarshal(data, &obj); err == nil {
+		*h = VaultCustomHeader(obj)
+		return nil
+	}
+
+	// If that fails, try to unmarshal as a plain string for backwards compatibility.
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		h.Value = &str
+		h.SecretKeyRef = nil
+		return nil
+	}
+
+	return json.Unmarshal(data, (*vaultCustomHeaderAlias)(h))
 }
