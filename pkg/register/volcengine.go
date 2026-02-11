@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	volcengine "github.com/external-secrets/external-secrets/providers/v1/volcengine"
+	_ "github.com/external-secrets/external-secrets/providers/v1/volcengine"
 )
-
-func init() {
-	// Register volcengine provider
-	esv1.Register(volcengine.NewProvider(), volcengine.ProviderSpec(), volcengine.MaintenanceStatus())
-}
