@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	delinea "github.com/external-secrets/external-secrets/providers/v1/delinea"
+	_ "github.com/external-secrets/external-secrets/providers/v1/delinea"
 )
-
-func init() {
-	// Register delinea provider
-	esv1.Register(delinea.NewProvider(), delinea.ProviderSpec(), delinea.MaintenanceStatus())
-}
