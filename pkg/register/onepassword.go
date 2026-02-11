@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	onepassword "github.com/external-secrets/external-secrets/providers/v1/onepassword"
+	_ "github.com/external-secrets/external-secrets/providers/v1/onepassword"
 )
-
-func init() {
-	// Register onepassword provider
-	esv1.Register(onepassword.NewProvider(), onepassword.ProviderSpec(), onepassword.MaintenanceStatus())
-}
