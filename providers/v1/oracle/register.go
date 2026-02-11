@@ -1,7 +1,7 @@
 //go:build oracle || all_providers
 
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © 2026 ESO Maintainer Team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,9 +16,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package register provides explicit registration of all providers and generators.
-package register
+package oracle
 
 import (
-	_ "github.com/external-secrets/external-secrets/providers/v1/oracle"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
+
+func init() {
+	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
+	provider.Register("oracle", Metadata())
+}
+
+func Metadata() provider.Metadata {
+	return provider.Metadata{
+		Stability: provider.StabilityAlpha,
+		Capabilities: []provider.Capability{
+			{Name: provider.CapabilityGetSecret},
+			{Name: provider.CapabilityValidateStore},
+		},
+	}
+}
