@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	gcp "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
+	_ "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
 )
-
-func init() {
-	// Register gcp provider
-	esv1.Register(gcp.NewProvider(), gcp.ProviderSpec(), gcp.MaintenanceStatus())
-}
