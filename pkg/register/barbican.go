@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	barbican "github.com/external-secrets/external-secrets/providers/v1/barbican"
+	_ "github.com/external-secrets/external-secrets/providers/v1/barbican"
 )
-
-func init() {
-	// Register barbican provider
-	esv1.Register(barbican.NewProvider(), barbican.ProviderSpec(), barbican.MaintenanceStatus())
-}
