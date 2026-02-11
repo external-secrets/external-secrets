@@ -30,15 +30,15 @@ import (
 )
 
 const markdownTemplate = `---
-title: Provider CapabilityName Matrix
+title: Provider Capabilities Matrix
 description: Auto-generated documentation of provider capabilities
 ---
 
-# Provider CapabilityName Matrix
+# Provider Capabilities Matrix
 
 This page lists all External Secrets Operator providers and their supported capabilities.
 
-## CapabilityName Matrix
+## Capabilities Matrix
 
 | Provider | Stability | GetSecret | FindByName | FindByTag | PushSecret | DeleteSecret | ReferentAuth | MetadataPolicy | ValidateStore |
 |----------|-----------|-----------|------------|-----------|------------|--------------|--------------|----------------|---------------|
@@ -47,21 +47,16 @@ This page lists all External Secrets Operator providers and their supported capa
 
 ## Extra Capabilities per provider
 {{range .}}
-### {{.Name}}
 
 {{if .ExtraCapabilities}}
+### {{.Name}} provider capabilities
 
-**Supported Extra Capabilities:**
 {{range .ExtraCapabilities}}
 - ` + "`{{.Name}}`" + `{{if .Notes}}: {{.Notes}}{{end}}
 {{- end}}
-{{else}}
 
-*No extra capabilities declared*
 {{end}}
-
----
-{{end -}}
+{{end }}
 `
 
 var (
@@ -123,8 +118,8 @@ func (p providerTable) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
-func generateMarkdown(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) string {
-	var unsortedTable providerTable
+func newProviderTable(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) providerTable {
+	var table providerTable
 	for pn, metadata := range matrix {
 		line := providerInfo{}
 		line.Name = string(pn)
@@ -140,9 +135,14 @@ func generateMarkdown(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) 
 				line.ExtraCapabilities = append(line.ExtraCapabilities, providerCapability)
 			}
 		}
-		unsortedTable = append(unsortedTable, line)
+		table = append(table, line)
 	}
-	sort.Sort(unsortedTable)
+	sort.Sort(table)
+	return table
+}
+
+func generateMarkdown(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) string {
+	sortedTable := newProviderTable(matrix)
 
 	// Execute template
 	tmpl, err := template.New("markdown").Parse(markdownTemplate)
@@ -151,7 +151,7 @@ func generateMarkdown(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) 
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, unsortedTable); err != nil {
+	if err := tmpl.Execute(&buf, sortedTable); err != nil {
 		log.Fatalf("Failed to execute template: %v", err)
 	}
 
