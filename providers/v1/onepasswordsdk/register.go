@@ -25,7 +25,7 @@ import (
 
 func init() {
 	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("onepasswordsdk", Metadata())
+	provider.Register("onepasswordSDK", Metadata())
 }
 
 func Metadata() provider.Metadata {
