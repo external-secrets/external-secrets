@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	gitlab "github.com/external-secrets/external-secrets/providers/v1/gitlab"
+	_ "github.com/external-secrets/external-secrets/providers/v1/gitlab"
 )
-
-func init() {
-	// Register gitlab provider
-	esv1.Register(gitlab.NewProvider(), gitlab.ProviderSpec(), gitlab.MaintenanceStatus())
-}
