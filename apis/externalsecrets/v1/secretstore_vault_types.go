@@ -18,6 +18,7 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
@@ -471,11 +472,12 @@ func (h *VaultCustomHeader) UnmarshalJSON(data []byte) error {
 
 	// If that fails, try to unmarshal as a plain string for backwards compatibility.
 	var str string
-	if json.Unmarshal(data, &str) == nil {
+	if err := json.Unmarshal(data, &str); err == nil {
 		h.Value = &str
 		h.SecretKeyRef = nil
 		return nil
 	}
 
-	return json.Unmarshal(data, (*vaultCustomHeaderAlias)(h))
+	// Return the struct-level error for unsupported types.
+	return fmt.Errorf("cannot unmarshal header value: expected object or string, got: %s", string(data))
 }
