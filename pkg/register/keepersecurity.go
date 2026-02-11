@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	keepersecurity "github.com/external-secrets/external-secrets/providers/v1/keepersecurity"
+	_ "github.com/external-secrets/external-secrets/providers/v1/keepersecurity"
 )
-
-func init() {
-	// Register keepersecurity provider
-	esv1.Register(keepersecurity.NewProvider(), keepersecurity.ProviderSpec(), keepersecurity.MaintenanceStatus())
-}
