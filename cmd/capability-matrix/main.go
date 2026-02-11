@@ -125,8 +125,16 @@ func newProviderTable(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) 
 		line.Name = string(pn)
 		line.Stability = string(metadata.Stability)
 		line.DisplayedCapabilities = make(map[string]bool)
+
+		// Build a map of provider capabilities for quick lookup
+		providerCapabilities := make(map[runtimeprovider.CapabilityName]bool)
+		for _, capability := range metadata.Capabilities {
+			providerCapabilities[capability.Name] = true
+		}
+
+		// Check which short-list capabilities this provider has
 		for _, capability := range capabilityShortList {
-			line.DisplayedCapabilities[string(capability)] = runtimeprovider.HasCapability(string(pn), capability)
+			line.DisplayedCapabilities[string(capability)] = providerCapabilities[capability]
 		}
 
 		// Extend the info with data outside the short list
