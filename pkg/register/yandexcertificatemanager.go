@@ -1,4 +1,4 @@
-//go:build yandexcert || all_providers
+//go:build yandexcertificatemanager || all_providers
 
 /*
 Copyright © 2025 ESO Maintainer Team
@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	yandexcert "github.com/external-secrets/external-secrets/providers/v1/yandex/certificatemanager"
+	_ "github.com/external-secrets/external-secrets/providers/v1/yandex/certificatemanager"
 )
-
-func init() {
-	// Register yandexcert provider
-	esv1.Register(yandexcert.NewProvider(), yandexcert.ProviderSpec(), yandexcert.MaintenanceStatus())
-}
