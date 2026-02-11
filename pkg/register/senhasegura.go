@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	senhasegura "github.com/external-secrets/external-secrets/providers/v1/senhasegura"
+	_ "github.com/external-secrets/external-secrets/providers/v1/senhasegura"
 )
-
-func init() {
-	// Register senhasegura provider
-	esv1.Register(senhasegura.NewProvider(), senhasegura.ProviderSpec(), senhasegura.MaintenanceStatus())
-}
