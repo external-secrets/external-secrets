@@ -1,4 +1,4 @@
-//go:build yandexcert || all_providers
+//go:build yandexcertificatemanager || all_providers
 
 /*
 Copyright © 2025 ESO Maintainer Team

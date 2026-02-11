@@ -1,4 +1,4 @@
-//go:build yandexcert || all_providers
+//go:build yandexcertificatemanager || all_providers
 
 /*
 Copyright © 2026 ESO Maintainer Team
@@ -25,7 +25,7 @@ import (
 
 func init() {
 	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("yandexcert", Metadata())
+	provider.Register("yandexcertificatemanager", Metadata())
 }
 
 func Metadata() provider.Metadata {
