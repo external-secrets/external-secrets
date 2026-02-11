@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	ibm "github.com/external-secrets/external-secrets/providers/v1/ibm"
+	_ "github.com/external-secrets/external-secrets/providers/v1/ibm"
 )
-
-func init() {
-	// Register ibm provider
-	esv1.Register(ibm.NewProvider(), ibm.ProviderSpec(), ibm.MaintenanceStatus())
-}
