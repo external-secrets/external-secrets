@@ -25,7 +25,7 @@ import (
 
 func init() {
 	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("gcp", Metadata())
+	provider.Register("gcpsm", Metadata())
 }
 
 func Metadata() provider.Metadata {
