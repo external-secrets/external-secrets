@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	vault "github.com/external-secrets/external-secrets/providers/v1/vault"
+	_ "github.com/external-secrets/external-secrets/providers/v1/vault"
 )
-
-func init() {
-	// Register vault provider
-	esv1.Register(vault.NewProvider(), vault.ProviderSpec(), vault.MaintenanceStatus())
-}
