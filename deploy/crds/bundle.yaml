@@ -7139,6 +7139,9 @@ spec:
                                 description: Value is the header value provided directly as a string.
                                 type: string
                             type: object
+                            x-kubernetes-validations:
+                              - message: must set exactly one of value or secretKeyRef
+                                rule: has(self.value) != has(self.secretKeyRef)
                           description: |-
                             Headers to be added in Vault request.
                             Values can be provided directly or referenced from a Secret.
@@ -18815,6 +18818,9 @@ spec:
                                 description: Value is the header value provided directly as a string.
                                 type: string
                             type: object
+                            x-kubernetes-validations:
+                              - message: must set exactly one of value or secretKeyRef
+                                rule: has(self.value) != has(self.secretKeyRef)
                           description: |-
                             Headers to be added in Vault request.
                             Values can be provided directly or referenced from a Secret.
@@ -25871,6 +25877,9 @@ spec:
                                     description: Value is the header value provided directly as a string.
                                     type: string
                                 type: object
+                                x-kubernetes-validations:
+                                  - message: must set exactly one of value or secretKeyRef
+                                    rule: has(self.value) != has(self.secretKeyRef)
                               description: |-
                                 Headers to be added in Vault request.
                                 Values can be provided directly or referenced from a Secret.
@@ -28591,6 +28600,9 @@ spec:
                             description: Value is the header value provided directly as a string.
                             type: string
                         type: object
+                        x-kubernetes-validations:
+                          - message: must set exactly one of value or secretKeyRef
+                            rule: has(self.value) != has(self.secretKeyRef)
                       description: |-
                         Headers to be added in Vault request.
                         Values can be provided directly or referenced from a Secret.

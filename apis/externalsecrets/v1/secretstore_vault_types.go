@@ -444,6 +444,7 @@ type VaultCheckAndSet struct {
 
 // VaultCustomHeader defines a custom header to be added to Vault requests.
 // Either value or secretKeyRef must be specified, but not both.
+// +kubebuilder:validation:XValidation:rule="has(self.value) != has(self.secretKeyRef)",message="must set exactly one of value or secretKeyRef"
 type VaultCustomHeader struct {
 	// Value is the header value provided directly as a string.
 	// +optional
@@ -462,14 +463,14 @@ func (h *VaultCustomHeader) UnmarshalJSON(data []byte) error {
 	// First, try to unmarshal as the struct type.
 	type vaultCustomHeaderAlias VaultCustomHeader
 	var obj vaultCustomHeaderAlias
-	if err := json.Unmarshal(data, &obj); err == nil {
+	if json.Unmarshal(data, &obj) == nil {
 		*h = VaultCustomHeader(obj)
 		return nil
 	}
 
 	// If that fails, try to unmarshal as a plain string for backwards compatibility.
 	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
+	if json.Unmarshal(data, &str) == nil {
 		h.Value = &str
 		h.SecretKeyRef = nil
 		return nil
