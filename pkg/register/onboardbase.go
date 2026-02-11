@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	onboardbase "github.com/external-secrets/external-secrets/providers/v1/onboardbase"
+	_ "github.com/external-secrets/external-secrets/providers/v1/onboardbase"
 )
-
-func init() {
-	// Register onboardbase provider
-	esv1.Register(onboardbase.NewProvider(), onboardbase.ProviderSpec(), onboardbase.MaintenanceStatus())
-}
