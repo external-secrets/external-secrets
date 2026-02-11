@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	scaleway "github.com/external-secrets/external-secrets/providers/v1/scaleway"
+	_ "github.com/external-secrets/external-secrets/providers/v1/scaleway"
 )
-
-func init() {
-	// Register scaleway provider
-	esv1.Register(scaleway.NewProvider(), scaleway.ProviderSpec(), scaleway.MaintenanceStatus())
-}
