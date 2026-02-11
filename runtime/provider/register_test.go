@@ -60,15 +60,14 @@ func TestAllProvidersRegisteredInAPI(t *testing.T) {
 	}
 }
 
-// Temporarily disabled until this is all migrated.
-//func TestAllProvidersRegisteredInMetadata(t *testing.T) {
-//	ProvidersRegisteredInAPI := esv1.List()
-//	assert.NotEmpty(t, ProvidersRegisteredInAPI, "No providers registered in API")
-//	for providerName := range ProvidersRegisteredInAPI {
-//		_, ok := provider.Get(providerName)
-//		assert.True(t, ok, "Provider %s is in API but has no registered metadata", providerName)
-//	}
-//}
+func TestAllProvidersRegisteredInMetadata(t *testing.T) {
+	ProvidersRegisteredInAPI := esv1.List()
+	assert.NotEmpty(t, ProvidersRegisteredInAPI, "No providers registered in API")
+	for providerName := range ProvidersRegisteredInAPI {
+		_, ok := provider.Get(providerName)
+		assert.True(t, ok, "Provider %s is in API but has no registered metadata", providerName)
+	}
+}
 
 func TestProvidersHaveStability(t *testing.T) {
 	providers := provider.List()
