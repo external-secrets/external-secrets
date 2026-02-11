@@ -25,7 +25,8 @@ import (
 	"sort"
 	"text/template"
 
-	provider2 "github.com/external-secrets/external-secrets/runtime/provider"
+	_ "github.com/external-secrets/external-secrets/pkg/register"
+	runtimeprovider "github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const markdownTemplate = `---
@@ -65,22 +66,22 @@ This page lists all External Secrets Operator providers and their supported capa
 
 var (
 	outputFormat        = flag.String("format", "md", "Output format: json or md")
-	capabilityShortList = []provider2.CapabilityName{
-		provider2.CapabilityGetSecret,
-		provider2.CapabilityFindByName,
-		provider2.CapabilityFindByTag,
-		provider2.CapabilityPushSecret,
-		provider2.CapabilityDeleteSecret,
-		provider2.CapabilityReferentAuthentication,
-		provider2.CapabilityMetadataPolicyFetch,
-		provider2.CapabilityValidateStore,
+	capabilityShortList = []runtimeprovider.CapabilityName{
+		runtimeprovider.CapabilityGetSecret,
+		runtimeprovider.CapabilityFindByName,
+		runtimeprovider.CapabilityFindByTag,
+		runtimeprovider.CapabilityPushSecret,
+		runtimeprovider.CapabilityDeleteSecret,
+		runtimeprovider.CapabilityReferentAuthentication,
+		runtimeprovider.CapabilityMetadataPolicyFetch,
+		runtimeprovider.CapabilityValidateStore,
 	}
 )
 
 func main() {
 	flag.Parse()
 
-	matrix := provider2.List()
+	matrix := runtimeprovider.List()
 
 	var output string
 	switch *outputFormat {
@@ -95,7 +96,7 @@ func main() {
 	fmt.Print(output)
 }
 
-func generateJSON(matrix map[provider2.Name]provider2.Metadata) string {
+func generateJSON(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) string {
 	data, err := json.MarshalIndent(matrix, "", "  ")
 	if err != nil {
 		log.Fatalf("Failed to marshal JSON: %v", err)
@@ -107,7 +108,7 @@ type providerInfo struct {
 	Name                  string
 	Stability             string
 	DisplayedCapabilities map[string]bool
-	ExtraCapabilities     []provider2.Capability
+	ExtraCapabilities     []runtimeprovider.Capability
 }
 
 type providerTable []providerInfo
@@ -122,7 +123,7 @@ func (p providerTable) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
-func generateMarkdown(matrix map[provider2.Name]provider2.Metadata) string {
+func generateMarkdown(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) string {
 	var unsortedTable providerTable
 	for pn, metadata := range matrix {
 		line := providerInfo{}
@@ -130,7 +131,7 @@ func generateMarkdown(matrix map[provider2.Name]provider2.Metadata) string {
 		line.Stability = string(metadata.Stability)
 		line.DisplayedCapabilities = make(map[string]bool)
 		for _, capability := range capabilityShortList {
-			line.DisplayedCapabilities[string(capability)] = provider2.HasCapability(string(pn), capability)
+			line.DisplayedCapabilities[string(capability)] = runtimeprovider.HasCapability(string(pn), capability)
 		}
 
 		// Extend the info with data outside the short list
