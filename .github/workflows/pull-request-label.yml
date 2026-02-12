@@ -8,6 +8,9 @@ on:
       - synchronize
       - reopened
 
+permissions:
+  contents: read
+
 jobs:
   conventional-commit-labeler:
     name: Label PR based on Conventional Commit Specification
@@ -109,7 +112,7 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5
         with:
           sparse-checkout: |
             .github/config/labeler.yml
@@ -144,6 +147,9 @@ jobs:
     needs: [labeler, size-labeler, conventional-commit-labeler]
     name: verify labels
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: PRs should have at least one qualifying label
         uses: docker://agilepathway/pull-request-label-checker:latest@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61

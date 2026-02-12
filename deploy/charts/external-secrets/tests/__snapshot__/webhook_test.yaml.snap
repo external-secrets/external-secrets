@@ -7,8 +7,8 @@ should match snapshot of default values:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets-webhook
-        app.kubernetes.io/version: v1.2.1
-        helm.sh/chart: external-secrets-1.2.1
+        app.kubernetes.io/version: v2.0.0
+        helm.sh/chart: external-secrets-2.0.0
       name: RELEASE-NAME-external-secrets-webhook
       namespace: NAMESPACE
     spec:
@@ -24,8 +24,8 @@ should match snapshot of default values:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/managed-by: Helm
             app.kubernetes.io/name: external-secrets-webhook
-            app.kubernetes.io/version: v1.2.1
-            helm.sh/chart: external-secrets-1.2.1
+            app.kubernetes.io/version: v2.0.0
+            helm.sh/chart: external-secrets-2.0.0
         spec:
           automountServiceAccountToken: true
           containers:
@@ -39,7 +39,7 @@ should match snapshot of default values:
                 - --healthz-addr=:8081
                 - --loglevel=info
                 - --zap-time-encoding=epoch
-              image: ghcr.io/external-secrets/external-secrets:v1.2.1
+              image: ghcr.io/external-secrets/external-secrets:v2.0.0
               imagePullPolicy: IfNotPresent
               name: webhook
               ports:
@@ -49,10 +49,13 @@ should match snapshot of default values:
                 - containerPort: 10250
                   name: webhook
                   protocol: TCP
+                - containerPort: 8081
+                  protocol: TCP
+                  name: ready
               readinessProbe:
                 httpGet:
                   path: /readyz
-                  port: 8081
+                  port: ready
                 initialDelaySeconds: 20
                 periodSeconds: 5
               securityContext:
@@ -83,8 +86,8 @@ should match snapshot of default values:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets-webhook
-        app.kubernetes.io/version: v1.2.1
+        app.kubernetes.io/version: v2.0.0
         external-secrets.io/component: webhook
-        helm.sh/chart: external-secrets-1.2.1
+        helm.sh/chart: external-secrets-2.0.0
       name: RELEASE-NAME-external-secrets-webhook
       namespace: NAMESPACE
