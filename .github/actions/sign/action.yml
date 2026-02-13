@@ -95,7 +95,7 @@ runs:
 
         echo "::group::Verify image SBOM attestation"
         echo "Using certificate-identity-regexp: https://github.com/$GITHUB_REPOSITORY/.*"
-        cosign verify-attestation --new-bundle-format=false --use-signing-config=false --type spdx ${IMAGE_NAME}@${CONTAINER_DIGEST} \
+        cosign verify-attestation --new-bundle-format=false  --type spdx ${IMAGE_NAME}@${CONTAINER_DIGEST} \
             --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com | jq '.payload |= @base64d | .payload | fromjson'
         echo "::endgroup::"
@@ -111,7 +111,7 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Verify Go modules SBOM attestation"
-        cosign verify-attestation --new-bundle-format=false --use-signing-config=false --type spdx ${IMAGE_NAME}@${CONTAINER_DIGEST} \
+        cosign verify-attestation --new-bundle-format=false --type spdx ${IMAGE_NAME}@${CONTAINER_DIGEST} \
             --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com | jq '.payload |= @base64d | .payload | fromjson'
         echo "::endgroup::"
@@ -144,7 +144,7 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Verify provenance attestation"
-        cosign verify-attestation --new-bundle-format=false --use-signing-config=false --type slsaprovenance ${IMAGE_NAME}@${CONTAINER_DIGEST} \
+        cosign verify-attestation --new-bundle-format=false --type slsaprovenance ${IMAGE_NAME}@${CONTAINER_DIGEST} \
             --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com
         echo "::endgroup::"
