@@ -60,7 +60,6 @@ runs:
     - name: Sign image
       shell: bash
       env:
-        COSIGN_EXPERIMENTAL: "1"
         IMAGE_NAME: ${{ inputs.image-name }}
         CONTAINER_DIGEST: ${{ steps.container_info.outputs.digest }}
         GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
@@ -70,7 +69,6 @@ runs:
       shell: bash
       id: sbom
       env:
-        COSIGN_EXPERIMENTAL: "1"
         IMAGE_NAME: ${{ inputs.image-name }}
         IMAGE_TAG: ${{ inputs.image-tag }}
         CONTAINER_DIGEST: ${{ steps.container_info.outputs.digest }}
@@ -81,15 +79,15 @@ runs:
         cosign attest --yes --predicate sbom.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
         # cosign verify-attestation --type spdx ${IMAGE_NAME}@${CONTAINER_DIGEST} | jq '.payload |= @base64d | .payload | fromjson'
         cosign verify-attestation --type spdx ${IMAGE_NAME}@${CONTAINER_DIGEST} \
-            --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/*" \
+            --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com | jq '.payload |= @base64d | .payload | fromjson'
         # Go modules SBOM (dependencies from the source tree)
         # Requires repository to be checked out before this composite action runs.
         syft dir:. -o spdx-json=sbom.gomod.${IMAGE_TAG}.spdx.json
         # cosign attest --predicate sbom.gomod.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
-        cosign attest --yes --predicate sbom.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
+        cosign attest --yes --predicate sbom.gomod.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
         cosign verify-attestation --type spdx ${IMAGE_NAME}@${CONTAINER_DIGEST} \
-            --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/*" \
+            --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com | jq '.payload |= @base64d | .payload | fromjson'
 
     - name: Generate provenance
@@ -107,7 +105,6 @@ runs:
       shell: bash
       id: provenance
       env:
-        COSIGN_EXPERIMENTAL: "1"
         IMAGE_NAME: ${{ inputs.image-name }}
         IMAGE_TAG: ${{ inputs.image-tag }}
         CONTAINER_DIGEST: ${{ steps.container_info.outputs.digest }}
@@ -117,5 +114,5 @@ runs:
         cosign attest --yes --predicate provenance-predicate.att --type slsaprovenance "${IMAGE_NAME}@${CONTAINER_DIGEST}"
         # cosign verify-attestation --type slsaprovenance ${IMAGE_NAME}@${CONTAINER_DIGEST}
         cosign verify-attestation --type slsaprovenance ${IMAGE_NAME}@${CONTAINER_DIGEST} \
-            --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/*" \
+            --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com
