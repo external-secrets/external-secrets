@@ -137,6 +137,9 @@ spec:
           - --metrics-cert-name={{ .Values.metrics.listen.secure.certFile }}
           - --metrics-key-name={{ .Values.metrics.listen.secure.keyFile }}
           {{- end }}
+          {{- if .Values.metrics.listen.auth.enabled }}
+          - --metrics-auth=true
+          {{- end }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP

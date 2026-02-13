@@ -211,6 +211,20 @@ rules:
     - "update"
     - "delete"
   {{- end }}
+  {{- if .Values.metrics.listen.auth.enabled }}
+  - apiGroups:
+    - "authentication.k8s.io"
+    resources: 
+    - "tokenreviews"
+    verbs:
+    - "create"
+  - apiGroups:
+    - "authorization.k8s.io"
+    resources: 
+    - "subjectaccessreviews"
+    verbs:
+    - "create"
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}

@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -78,6 +79,10 @@ var certcontrollerCmd = &cobra.Command{
 		// Configure metrics server options
 		metricsServerOpts := server.Options{
 			BindAddress: metricsAddr,
+		}
+
+		if metricsAuth {
+			metricsServerOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
 		}
 
 		// Disable HTTP/2 if not explicitly enabled
@@ -189,6 +194,7 @@ func init() {
 
 	certcontrollerCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	certcontrollerCmd.Flags().StringVar(&healthzAddr, "healthz-addr", ":8081", "The address the health endpoint binds to.")
+	certcontrollerCmd.Flags().BoolVar(&metricsAuth, "metrics-auth", false, "Enable Kubernetes RBAC-based authentication and authorization for the metrics endpoint.")
 	certcontrollerCmd.Flags().StringVar(&serviceName, "service-name", "external-secrets-webhook", "Webhook service name")
 	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
 	certcontrollerCmd.Flags().StringVar(&secretName, "secret-name", "external-secrets-webhook", "Secret to store certs for webhook")
