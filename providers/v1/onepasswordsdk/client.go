@@ -78,6 +78,9 @@ func (p *Provider) Close(_ context.Context) error {
 // DeleteSecret implements Secret Deletion on the provider when PushSecret.spec.DeletionPolicy=Delete.
 func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
 	providerItem, err := p.findItem(ctx, ref.GetRemoteKey())
+	if errors.Is(err, ErrKeyNotFound) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
