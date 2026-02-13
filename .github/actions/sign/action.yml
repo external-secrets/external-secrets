@@ -117,15 +117,19 @@ runs:
         echo "::endgroup::"
 
     - name: Generate provenance
-      # https://github.com/philips-labs/slsa-provenance-action/releases/tag/v0.9.0
-      uses: philips-labs/slsa-provenance-action@6b2fd198d38ba72fb3cc08fbc52da2ebaef2efad # v0.9.0
-      with:
-        command: generate
-        subcommand: container
-        arguments: --repository "${{ inputs.image-name }}" --output-path provenance.${{ inputs.image-tag }}.intoto.jsonl --digest "${{ steps.container_info.outputs.digest }}" --tags "${{ inputs.image-tag }}"
+      shell: bash
       env:
-        COSIGN_EXPERIMENTAL: "0"
-        GITHUB_TOKEN: "${{ github.token }}"
+        IMAGE_NAME: ${{ inputs.image-name }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        CONTAINER_DIGEST: ${{ steps.container_info.outputs.digest }}
+      run: |
+        echo "::group::Generate provenance"
+        ./hack/generate-provenance.sh \
+          --repository "${IMAGE_NAME}" \
+          --digest "${CONTAINER_DIGEST}" \
+          --tags "${IMAGE_TAG}" \
+          --output-path "provenance.${IMAGE_TAG}.intoto.jsonl"
+        echo "::endgroup::"
 
     - name: Attach provenance
       shell: bash
