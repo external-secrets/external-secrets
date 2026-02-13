@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	fake "github.com/external-secrets/external-secrets/providers/v1/fake"
+	_ "github.com/external-secrets/external-secrets/providers/v1/fake"
 )
-
-func init() {
-	// Register fake provider
-	esv1.Register(fake.NewProvider(), fake.ProviderSpec(), fake.MaintenanceStatus())
-}

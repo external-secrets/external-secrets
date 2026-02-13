@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	chef "github.com/external-secrets/external-secrets/providers/v1/chef"
+	_ "github.com/external-secrets/external-secrets/providers/v1/chef"
 )
-
-func init() {
-	// Register chef provider
-	esv1.Register(chef.NewProvider(), chef.ProviderSpec(), chef.MaintenanceStatus())
-}

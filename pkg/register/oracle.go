@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	oracle "github.com/external-secrets/external-secrets/providers/v1/oracle"
+	_ "github.com/external-secrets/external-secrets/providers/v1/oracle"
 )
-
-func init() {
-	// Register oracle provider
-	esv1.Register(oracle.NewProvider(), oracle.ProviderSpec(), oracle.MaintenanceStatus())
-}

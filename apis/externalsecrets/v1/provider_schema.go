@@ -123,3 +123,13 @@ func getProviderName(storeSpec *SecretStoreProvider) (string, error) {
 
 	return "", errors.New("failed to find registered store backend")
 }
+
+func List() map[string]Provider {
+	buildlock.RLock()
+	deepCopy := make(map[string]Provider, len(builder))
+	for k, v := range builder {
+		deepCopy[k] = v
+	}
+	buildlock.RUnlock()
+	return deepCopy
+}

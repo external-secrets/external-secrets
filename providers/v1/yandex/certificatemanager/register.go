@@ -1,7 +1,7 @@
-//go:build yandexcert || all_providers
+//go:build yandexcertificatemanager || all_providers
 
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © 2026 ESO Maintainer Team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,15 +16,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package register provides explicit registration of all providers and generators.
-package register
+package certificatemanager
 
 import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	yandexcert "github.com/external-secrets/external-secrets/providers/v1/yandex/certificatemanager"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 func init() {
-	// Register yandexcert provider
-	esv1.Register(yandexcert.NewProvider(), yandexcert.ProviderSpec(), yandexcert.MaintenanceStatus())
+	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
+	provider.Register("yandexcertificatemanager", Metadata())
+}
+
+func Metadata() provider.Metadata {
+	return provider.Metadata{
+		Stability: provider.StabilityAlpha,
+		Capabilities: []provider.Capability{
+			{
+				Name: provider.CapabilityGetSecret,
+			},
+		},
+		Comment: "TODO Yandexcert metadata",
+	}
 }

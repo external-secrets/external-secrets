@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	fortanix "github.com/external-secrets/external-secrets/providers/v1/fortanix"
+	_ "github.com/external-secrets/external-secrets/providers/v1/fortanix"
 )
-
-func init() {
-	// Register fortanix provider
-	esv1.Register(fortanix.NewProvider(), fortanix.ProviderSpec(), fortanix.MaintenanceStatus())
-}

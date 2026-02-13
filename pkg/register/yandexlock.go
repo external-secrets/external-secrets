@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	yandexlock "github.com/external-secrets/external-secrets/providers/v1/yandex/lockbox"
+	_ "github.com/external-secrets/external-secrets/providers/v1/yandex/lockbox"
 )
-
-func init() {
-	// Register yandexlock provider
-	esv1.Register(yandexlock.NewProvider(), yandexlock.ProviderSpec(), yandexlock.MaintenanceStatus())
-}

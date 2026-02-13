@@ -350,7 +350,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 	}
-	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
+	esv1.ForceRegister(NewProvider(), ProviderSpec(), MaintenanceStatus())
 	provider, err := esv1.GetProvider(store)
 	tassert.Nil(t, err)
 

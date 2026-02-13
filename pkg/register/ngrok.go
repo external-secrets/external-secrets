@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	ngrok "github.com/external-secrets/external-secrets/providers/v1/ngrok"
+	_ "github.com/external-secrets/external-secrets/providers/v1/ngrok"
 )
-
-func init() {
-	// Register ngrok provider
-	esv1.Register(ngrok.NewProvider(), ngrok.ProviderSpec(), ngrok.MaintenanceStatus())
-}

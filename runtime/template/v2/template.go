@@ -93,7 +93,9 @@ func init() {
 	fs.StringVar(&leftDelim, "template-left-delimiter", "{{", "templating left delimiter")
 	fs.StringVar(&rightDelim, "template-right-delimiter", "}}", "templating right delimiter")
 	feature.Register(feature.Feature{
-		Flags: fs,
+		Flags:    fs,
+		Maturity: feature.Stable,
+		Safety:   feature.Safe,
 	})
 }
 

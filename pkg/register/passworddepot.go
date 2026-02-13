@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	passworddepot "github.com/external-secrets/external-secrets/providers/v1/passworddepot"
+	_ "github.com/external-secrets/external-secrets/providers/v1/passworddepot"
 )
-
-func init() {
-	// Register passworddepot provider
-	esv1.Register(passworddepot.NewProvider(), passworddepot.ProviderSpec(), passworddepot.MaintenanceStatus())
-}

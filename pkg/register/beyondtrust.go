@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	beyondtrust "github.com/external-secrets/external-secrets/providers/v1/beyondtrust"
+	_ "github.com/external-secrets/external-secrets/providers/v1/beyondtrust"
 )
-
-func init() {
-	// Register beyondtrust provider
-	esv1.Register(beyondtrust.NewProvider(), beyondtrust.ProviderSpec(), beyondtrust.MaintenanceStatus())
-}

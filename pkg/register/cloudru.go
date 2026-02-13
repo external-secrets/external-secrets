@@ -20,11 +20,5 @@ limitations under the License.
 package register
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	cloudru "github.com/external-secrets/external-secrets/providers/v1/cloudru/secretmanager"
+	_ "github.com/external-secrets/external-secrets/providers/v1/cloudru/secretmanager"
 )
-
-func init() {
-	// Register cloudru provider
-	esv1.Register(cloudru.NewProvider(), cloudru.ProviderSpec(), cloudru.MaintenanceStatus())
-}
