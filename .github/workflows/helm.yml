@@ -157,8 +157,8 @@ jobs:
             echo "$helm_push_output"
 
             artifact_digest_uri="${chart_registry}/${chart_name}@${digest}"
-            cosign sign --yes --new-bundle-format=false "$artifact_digest_uri"
-            cosign verify "$artifact_digest_uri" \
+            cosign sign --yes --new-bundle-format=false --use-signing-config=false "$artifact_digest_uri"
+            cosign verify --new-bundle-format=false --use-signing-config=false "$artifact_digest_uri" \
                 --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
                 --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
