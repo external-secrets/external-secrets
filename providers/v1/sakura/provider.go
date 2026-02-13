@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	sakuraclient "github.com/sacloud/api-client-go"
-	"github.com/sacloud/iaas-api-go"
+	"github.com/sacloud/saclient-go"
+	"github.com/sacloud/secretmanager-api-go"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -46,15 +48,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	// Set the zone to is1a
-	// 	The zone doesn't matter for Sakura Cloud Secret Manager as it is a global resource
-	baseURL := fmt.Sprintf("https://secure.sakura.ad.jp/cloud/zone/%s/api/cloud/1.1/secretmanager/vaults/%s/secrets", "is1a", provider.VaultResourceID)
-
-	opt, err := sakuraclient.DefaultOption()
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve DefaultOption: %w", err)
-	}
-
 	accessToken, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &provider.Auth.SecretRef.AccessToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve auth.secretRef.accessToken: %w", err)
@@ -63,16 +56,20 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve auth.secretRef.accessTokenSecret: %w", err)
 	}
-	opt = sakuraclient.MergeOptions(opt, &sakuraclient.Options{
-		AccessToken:       accessToken,
-		AccessTokenSecret: accessTokenSecret,
+
+	var theClient saclient.Client
+	theClient.SetEnviron([]string{
+		fmt.Sprintf("SAKURA_ACCESS_TOKEN=%s", accessToken),
+		fmt.Sprintf("SAKURA_ACCESS_TOKEN_SECRET=%s", accessTokenSecret),
 	})
 
-	c := iaas.NewClientWithOptions(opt)
+	client, err := secretmanager.NewClient(&theClient)
+	if err != nil {
+		panic(err)
+	}
 
 	return &Client{
-		baseURL: baseURL,
-		client:  c,
+		client: secretmanager.NewSecretOp(client, provider.VaultResourceID),
 	}, nil
 }
 
