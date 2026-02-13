@@ -51,6 +51,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot => ./providers/v1/passworddepot
 	github.com/external-secrets/external-secrets/providers/v1/previder => ./providers/v1/previder
 	github.com/external-secrets/external-secrets/providers/v1/pulumi => ./providers/v1/pulumi
+	github.com/external-secrets/external-secrets/providers/v1/sakura => ./providers/v1/sakura
 	github.com/external-secrets/external-secrets/providers/v1/scaleway => ./providers/v1/scaleway
 	github.com/external-secrets/external-secrets/providers/v1/secretserver => ./providers/v1/secretserver
 	github.com/external-secrets/external-secrets/providers/v1/senhasegura => ./providers/v1/senhasegura
@@ -164,6 +165,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/pulumi v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/sakura v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/scaleway v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/secretserver v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/senhasegura v0.0.0-00010101000000-000000000000
@@ -223,6 +225,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.40.1 // indirect
 	github.com/aws/smithy-go v1.23.2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/bradleyfalzon/ghinstallation/v2 v2.17.0 // indirect
@@ -248,6 +251,7 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
+	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fortanix/sdkms-client-go v0.4.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
@@ -333,6 +337,11 @@ require (
 	github.com/pulumi/pulumi/sdk/v3 v3.205.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/sacloud/api-client-go v0.3.5 // indirect
+	github.com/sacloud/go-http v0.1.9 // indirect
+	github.com/sacloud/iaas-api-go v1.25.0 // indirect
+	github.com/sacloud/packages-go v0.0.12 // indirect
+	github.com/sacloud/saclient-go v0.2.7 // indirect
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.35 // indirect
@@ -361,6 +370,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.39.0 // indirect
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.8.0 // indirect
+	go.uber.org/ratelimit v0.3.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
