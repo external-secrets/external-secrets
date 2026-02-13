@@ -17,6 +17,7 @@
 - [Heureka Group](https://heureka.group)
 - [Hostinger](https://www.hostinger.com/)
 - [K8S Website Infra](https://k8s.io/)
+- [Loblaw](https://www.loblaw.ca/en/digital-and-technology/)
 - [Mercedes-Benz Tech Innovation](https://www.mercedes-benz-techinnovation.com/)
 - [Mixpanel](https://mixpanel.com)
 - [OpenClassrooms](https://openclassrooms.com)
