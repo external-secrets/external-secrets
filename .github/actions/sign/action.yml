@@ -21,7 +21,7 @@ runs:
       # https://github.com/sigstore/cosign-installer/releases/tag/v4.0.0
       uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
       with:
-        cosign-release: 'v3.0.4'
+        cosign-release: 'v3.0.2'
 
     - name: Install Syft
       # https://github.com/anchore/sbom-action/releases/tag/v0.22.2
