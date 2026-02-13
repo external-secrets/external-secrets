@@ -90,7 +90,7 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Attest image SBOM"
-        cosign attest --yes --predicate sbom.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
+        cosign attest --yes --new-bundle-format=false --predicate sbom.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
         echo "::endgroup::"
 
         echo "::group::Verify image SBOM attestation"
@@ -107,7 +107,7 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Attest Go modules SBOM"
-        cosign attest --yes --predicate sbom.gomod.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
+        cosign attest --yes --new-bundle-format=false --predicate sbom.gomod.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
         echo "::endgroup::"
 
         echo "::group::Verify Go modules SBOM attestation"
@@ -140,7 +140,7 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Attest provenance"
-        cosign attest --yes --predicate provenance-predicate.att --type slsaprovenance "${IMAGE_NAME}@${CONTAINER_DIGEST}"
+        cosign attest --yes --new-bundle-format=false --predicate provenance-predicate.att --type slsaprovenance "${IMAGE_NAME}@${CONTAINER_DIGEST}"
         echo "::endgroup::"
 
         echo "::group::Verify provenance attestation"
