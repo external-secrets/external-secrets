@@ -222,6 +222,10 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1.Pu
 		return fmt.Errorf(errUpdateItem, err)
 	}
 
+	if len(providerItem.Sections) == 1 && providerItem.Sections[0].ID == "" && providerItem.Sections[0].Label == "" {
+		providerItem.Sections = nil
+	}
+
 	if len(providerItem.Fields) == 0 && len(providerItem.Files) == 0 && len(providerItem.Sections) == 0 {
 		// Delete the item if there are no fields, files or sections
 		if err = provider.client.DeleteItem(providerItem, providerItem.Vault.ID); err != nil {
