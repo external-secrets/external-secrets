@@ -378,7 +378,14 @@ set of AWS Programmatic access credentials stored in a `Kind=Secret` and referen
 
 #### TLS certificates authentication
 
-[TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert)  allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
+[TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert) allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
+
+The client certificate and private key should be stored in a Kubernetes secret (typically of type `kubernetes.io/tls`). Certificate chains can be included in the certificate file.
+
+```yaml
+{% include 'vault-cert-store.yaml' %}
+```
+**NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` in `clientCert` and `secretRef` with the namespace where the secret resides.
 
 ### Mutual authentication (mTLS)
 
