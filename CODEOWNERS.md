@@ -2,6 +2,9 @@
 # This file maps repository paths to GitHub teams for review.
 # Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
+# --- Docs ---
+docs/                         @external-secrets/docs-reviewers
+
 # --- CI / Infrastructure ---
 .github/                      @external-secrets/ci-reviewers
 scripts/                      @external-secrets/ci-reviewers

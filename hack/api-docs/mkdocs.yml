@@ -34,7 +34,8 @@ markdown_extensions:
   - pymdownx.superfences
   - admonition
   - pymdownx.snippets:
-      base_path: docs
+      base_path:
+        - docs
 plugins:
   - search:
       lang: en
@@ -56,11 +57,9 @@ nav:
       - Introduction: index.md
       - Overview: introduction/overview.md
       - Glossary: introduction/glossary.md
-      - Prerequisites: introduction/prerequisites.md
       - Getting started: introduction/getting-started.md
       - FAQ: introduction/faq.md
       - Stability and Support: introduction/stability-support.md
-      - Deprecation Policy: introduction/deprecation-policy.md
   - API:
       - Components: api/components.md
       - Core Resources:
@@ -167,14 +166,22 @@ nav:
       - Bitwarden: examples/bitwarden.md
   - Community:
       - Contributing:
-          - Developer guide: contributing/devguide.md
-          - Contributing Process: contributing/process.md
-          - Release Process: contributing/release.md
-          - Code of Conduct: contributing/coc.md
-          - Community meetings calendar: contributing/calendar.md
-          - Roadmap: contributing/roadmap.md
-          - Burnout Prevention: contributing/burnout-mitigation.md
-          - LLM Policy: contributing/llm-policy.md
+          - HOW-TO Guides:
+              - Contribute to ESO: contributing/CONTRIBUTING.md
+              - Releasing ESO: contributing/release_howto.md
+              - Report security incidents: contributing/SECURITY.md
+              - Reacting to a security incident: contributing/SECURITY_RESPONSE.md
+          - Tutorials:
+              - Contributor journey: contributing/journey.md
+              - Contributor Burnout Prevention: contributing/burnout_mitigation_tutorial.md
+          - Reference information:
+              - Deprecation policy: contributing/deprecation_policy.md
+              - Security policy: contributing/security_policy.md
+              - Labels policy: contributing/labels_reference.md
+              - Contributor ladder policy: contributing/contributor_ladder.md
+              - Code of Conduct: contributing/CODE_OF_CONDUCT.md
+          - Deep dive explanations:
+              - Our policy: contributing/GOVERNANCE.md
       - External Resources:
           - Talks: eso-talks.md
           - Demos: eso-demos.md

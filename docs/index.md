@@ -50,7 +50,7 @@ How to get involved:
   ([agenda](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA), [jitsi call](https://meet.jit.si/eso-community-meeting))
 - [Kubernetes Slack
   #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
-- [Contributing Process](contributing/process.md)
+- [Contributing Journey](contributing/journey.md)
 - [Twitter](https://twitter.com/ExtSecretsOptr)
 
 ### Kicked off by
