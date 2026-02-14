@@ -34,6 +34,13 @@ type KubernetesServer struct {
 	// see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
+
+	// Insecure skips TLS certificate verification when connecting to the Kubernetes API server.
+	// This is useful when the server uses a certificate signed by a CA that is not in the
+	// system trust store (e.g., when accessing through a proxy with its own certificates).
+	// This is NOT RECOMMENDED for production use.
+	// +optional
+	Insecure bool `json:"insecure,omitempty"`
 }
 
 // KubernetesProvider configures a store to sync secrets with a Kubernetes instance.

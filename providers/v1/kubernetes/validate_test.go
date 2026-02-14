@@ -77,6 +77,27 @@ func TestValidateStore(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "insecure mode without ca is valid",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
+								URL:      "https://my-cluster.example.com",
+								Insecure: true,
+							},
+							Auth: &esv1.KubernetesAuth{
+								ServiceAccount: &v1.ServiceAccountSelector{
+									Name: "foobar",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "invalid client cert name",
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
