@@ -107,7 +107,12 @@ type PushSecretSpec struct {
 	Selector PushSecretSelector `json:"selector"`
 
 	// Secret Data that should be pushed to providers
+	// +optional
 	Data []PushSecretData `json:"data,omitempty"`
+
+	// Secret Data that should be pushed to providers
+	// +optional
+	DataTo []PushSecretDataTo `json:"dataTo,omitempty"`
 
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
@@ -203,6 +208,53 @@ func (d PushSecretData) GetRemoteKey() string {
 // GetProperty returns the property from the PushSecretData match.
 func (d PushSecretData) GetProperty() string {
 	return d.Match.RemoteRef.Property
+}
+
+// PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
+// +kubebuilder:validation:XValidation:rule="has(self.storeRef) && (has(self.storeRef.name) || has(self.storeRef.labelSelector))",message="storeRef must specify either name or labelSelector"
+type PushSecretDataTo struct {
+	// StoreRef specifies which SecretStore to push to. Required.
+	StoreRef *PushSecretStoreRef `json:"storeRef,omitempty"`
+
+	// Match pattern for selecting keys from the source Secret.
+	// If not specified, all keys are selected.
+	// +optional
+	Match *PushSecretDataToMatch `json:"match,omitempty"`
+
+	// Rewrite operations to transform keys before pushing to the provider.
+	// Operations are applied sequentially.
+	// +optional
+	Rewrite []PushSecretRewrite `json:"rewrite,omitempty"`
+
+	// Metadata is metadata attached to the secret.
+	// The structure of metadata is provider specific, please look it up in the provider documentation.
+	// +optional
+	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
+
+	// Used to define a conversion Strategy for the secret keys
+	// +kubebuilder:default="None"
+	// +optional
+	ConversionStrategy PushSecretConversionStrategy `json:"conversionStrategy,omitempty"`
+}
+
+// PushSecretDataToMatch defines pattern matching for key selection.
+type PushSecretDataToMatch struct {
+	// Regexp matches keys by regular expression.
+	// If not specified, all keys are matched.
+	// +optional
+	RegExp string `json:"regexp,omitempty"`
+}
+
+// PushSecretRewrite defines how to transform secret keys before pushing.
+// +kubebuilder:validation:XValidation:rule="(has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))",message="exactly one of regexp or transform must be set"
+type PushSecretRewrite struct {
+	// Used to rewrite with regular expressions.
+	// +optional
+	Regexp *esv1.ExternalSecretRewriteRegexp `json:"regexp,omitempty"`
+
+	// Used to apply string transformation on the secrets.
+	// +optional
+	Transform *esv1.ExternalSecretRewriteTransform `json:"transform,omitempty"`
 }
 
 // PushSecretConditionType indicates the condition of the PushSecret.
