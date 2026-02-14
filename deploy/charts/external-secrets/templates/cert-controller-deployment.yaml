@@ -89,6 +89,9 @@ spec:
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
           {{- end }}
+          {{- if .Values.leaderElect }}
+          - --enable-leader-election=true
+          {{- end }}
           {{- range $key, $value := .Values.certController.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
