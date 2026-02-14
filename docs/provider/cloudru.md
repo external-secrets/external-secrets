@@ -191,3 +191,83 @@ curl --location 'https://secretmanager.api.cloud.ru/v1/secrets' \
             name:
               regexp: "my.*secret"
     ```
+  * Search the secrets by path:
+    ```yaml
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: csm-ext-secret
+    spec:
+      refreshInterval: 10s
+      secretStoreRef:
+        name: csm
+        kind: SecretStore
+      target:
+        name: my-awesome-secret
+        creationPolicy: Owner
+      dataFrom:
+        - find: # Get all secrets from the specified path
+            path: "oss/snmp-auths"
+    ```
+  * Search the secrets by path with name filter:
+    ```yaml
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: csm-ext-secret
+    spec:
+      refreshInterval: 10s
+      secretStoreRef:
+        name: csm
+        kind: SecretStore
+      target:
+        name: my-awesome-secret
+        creationPolicy: Owner
+      dataFrom:
+        - find: # Get secrets from path matching the name pattern
+            path: "oss/snmp-auths"
+            name:
+              regexp: ".*"
+    ```
+  * Search the secrets by path with tags:
+    ```yaml
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: csm-ext-secret
+    spec:
+      refreshInterval: 10s
+      secretStoreRef:
+        name: csm
+        kind: SecretStore
+      target:
+        name: my-awesome-secret
+        creationPolicy: Owner
+      dataFrom:
+        - find: # Get secrets from path with specific tags
+            path: "oss/snmp-auths"
+            tags:
+              env: production
+    ```
+  * Search the secrets by path with name and tags:
+    ```yaml
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: csm-ext-secret
+    spec:
+      refreshInterval: 10s
+      secretStoreRef:
+        name: csm
+        kind: SecretStore
+      target:
+        name: my-awesome-secret
+        creationPolicy: Owner
+      dataFrom:
+        - find: # Get secrets from path matching name pattern and tags
+            path: "oss/snmp-auths"
+            name:
+              regexp: "auth.*"
+            tags:
+              env: production
+    ```
