@@ -138,6 +138,7 @@ nav:
       - GitLab Variables: provider/gitlab-variables.md
       - Github Actions Secrets: provider/github.md
       - Oracle Vault: provider/oracle-vault.md
+      - OVHcloud: provider/ovhcloud.md
       - 1Password Connect Server: provider/1password-automation.md
       - 1Password SDK: provider/1password-sdk.md
       - Webhook: provider/webhook.md
