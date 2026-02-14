@@ -11031,6 +11031,52 @@ If no key for the Secret is specified, external-secret will default to &lsquo;tl
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.VaultCustomHeader">VaultCustomHeader
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+<p>VaultCustomHeader defines a custom header to be added to Vault requests.
+Either value or secretKeyRef must be specified, but not both.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value is the header value provided directly as a string.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretKeyRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretKeyRef is a reference to a key in a Secret resource containing the header value.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth
 </h3>
 <p>
@@ -11727,12 +11773,15 @@ the option is enabled serverside.
 <td>
 <code>headers</code></br>
 <em>
-map[string]string
+<a href="#external-secrets.io/v1.VaultCustomHeader">
+map[string]github.com/external-secrets/external-secrets/apis/externalsecrets/v1.VaultCustomHeader
+</a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Headers to be added in Vault request</p>
+<p>Headers to be added in Vault request.
+Values can be provided directly or referenced from a Secret.</p>
 </td>
 </tr>
 <tr>
