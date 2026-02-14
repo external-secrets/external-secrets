@@ -64,8 +64,8 @@ Until we reach v1.0, please treat minor version upgrades with the same caution y
 
 The following table describes the stability level of each provider and who's responsible.
 
-| Provider | Stability | Maintainer                                                                                                                                                                                            |
-| -------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Provider                                                                                                   | Stability | Maintainer                                                                                                                                                                                            |
+|------------------------------------------------------------------------------------------------------------| --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            | stable    | [external-secrets](https://github.com/external-secrets)                                             |
@@ -98,14 +98,14 @@ The following table describes the stability level of each provider and who's res
 | [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 | alpha     | [@jonstacks](https://github.com/jonstacks)                                                          |
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                           | alpha     | [@rkferreira](https://github.com/rkferreira)                                                        |
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       | alpha     | [@rbstp](https://github.com/rbstp)                                                                  |
-
+| [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
 
 ## Provider Feature Support
 
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
+|---------------------------| :----------: | :----------: | :------------------: | :---------------------: | :--------------: |:-----------:| :-------------------------: |
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -138,6 +138,7 @@ The following table show the support for features across different providers.
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
+| Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 
