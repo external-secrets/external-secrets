@@ -82,7 +82,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: "100",
 				},
 				{
-					Key:   "extraArgs.experimental-enable-vault-token-cache",
+					Key:   "extraArgs.enable-vault-token-cache",
 					Value: "true",
 				},
 			},

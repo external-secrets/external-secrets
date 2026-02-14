@@ -216,6 +216,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | systemAuthDelegator | bool | `false` | If true the system:auth-delegator ClusterRole will be added to RBAC |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` |  |
+| vault | object | `{"enableTokenCache":false,"tokenCacheSize":262144}` | Vault token cache configuration |
+| vault.enableTokenCache | bool | `false` | Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request. |
+| vault.tokenCacheSize | int | `262144` | Maximum size of Vault token cache. Only used if enableTokenCache is true. |
 | webhook.affinity | object | `{}` |  |
 | webhook.annotations | object | `{}` | Annotations to place on validating webhook configuration. |
 | webhook.certCheckInterval | string | `"5m"` | Specifies the time to check if the cert is valid |
