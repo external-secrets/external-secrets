@@ -10,7 +10,6 @@ name: e2e tests
 
 env:
   # Common versions
-  DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.30.0'
   KIND_IMAGE: 'kindest/node:v1.33.4'
 
