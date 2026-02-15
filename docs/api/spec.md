@@ -584,197 +584,6 @@ CAProvider
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.AlibabaAuth">AlibabaAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaProvider">AlibabaProvider</a>)
-</p>
-<p>
-<p>AlibabaAuth contains a secretRef for credentials.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>secretRef</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaAuthSecretRef">
-AlibabaAuthSecretRef
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-<tr>
-<td>
-<code>rrsa</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaRRSAAuth">
-AlibabaRRSAAuth
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaAuthSecretRef">AlibabaAuthSecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaAuth">AlibabaAuth</a>)
-</p>
-<p>
-<p>AlibabaAuthSecretRef holds secret references for Alibaba credentials.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>accessKeyIDSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>The AccessKeyID is used for authentication</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>accessKeySecretSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>The AccessKeySecret is used for authentication</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaProvider">AlibabaProvider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
-</p>
-<p>
-<p>AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaAuth">
-AlibabaAuth
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>regionID</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Alibaba Region to be used for the provider</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaRRSAAuth">AlibabaRRSAAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaAuth">AlibabaAuth</a>)
-</p>
-<p>
-<p>AlibabaRRSAAuth authenticates against Alibaba using RRSA.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>oidcProviderArn</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>oidcTokenFilePath</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>roleArn</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>sessionName</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
 </h3>
 <p>
@@ -1275,8 +1084,11 @@ AzureCustomCloudConfig
 </td>
 <td>
 <em>(Optional)</em>
-<p>CustomCloudConfig defines custom Azure Stack Hub or Azure Stack Edge endpoints.
+<p>CustomCloudConfig defines custom Azure endpoints for non-standard clouds.
 Required when EnvironmentType is AzureStackCloud.
+Optional for other environment types - useful for Azure China when using Workload Identity
+with AKS, where the OIDC issuer (login.partner.microsoftonline.cn) differs from the
+standard China Cloud endpoint (login.chinacloudapi.cn).
 IMPORTANT: This feature REQUIRES UseAzureSDK to be set to true. Custom cloud
 configuration is not supported with the legacy go-autorest SDK.</p>
 </td>
@@ -1705,6 +1517,18 @@ string
 </tr>
 <tr>
 <td>
+<code>decrypt</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>verifyCA</code></br>
 <em>
 bool
@@ -1948,6 +1772,7 @@ string
 <a href="#external-secrets.io/v1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
 <a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>, 
 <a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
+<a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
@@ -2111,6 +1936,53 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <p>The AccessKeySecret is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CacheConfig">CacheConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>CacheConfig configures client-side caching for read operations.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ttl</code></br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TTL is the time-to-live for cached secrets.
+Format: duration string (e.g., &ldquo;5m&rdquo;, &ldquo;1h&rdquo;, &ldquo;30s&rdquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxSize</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxSize is the maximum number of secrets to cache.
+When the cache is full, least-recently-used entries are evicted.</p>
 </td>
 </tr>
 </tbody>
@@ -2846,7 +2718,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -2872,7 +2744,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -3263,6 +3135,140 @@ ConjurAuth
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.DVLSAuth">DVLSAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DVLSProvider">DVLSProvider</a>)
+</p>
+<p>
+<p>DVLSAuth defines the authentication method for the DVLS provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.DVLSAuthSecretRef">
+DVLSAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef contains the Application ID and Application Secret for authentication.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DVLSAuthSecretRef">DVLSAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DVLSAuth">DVLSAuth</a>)
+</p>
+<p>
+<p>DVLSAuthSecretRef defines the secret references for DVLS authentication credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>appId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AppID is the reference to the secret containing the Application ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AppSecret is the reference to the secret containing the Application Secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DVLSProvider">DVLSProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>DVLSProvider configures a store to sync secrets using Devolutions Server.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serverUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServerURL is the DVLS instance URL (e.g., <a href="https://dvls.example.com">https://dvls.example.com</a>).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>insecure</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Insecure allows connecting to DVLS over plain HTTP.
+This is NOT RECOMMENDED for production use.
+Set to true only if you understand the security implications.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.DVLSAuth">
+DVLSAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the authentication method to use.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.DelineaProvider">DelineaProvider
 </h3>
 <p>
@@ -3391,113 +3397,6 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.Device42Auth">Device42Auth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.Device42Provider">Device42Provider</a>)
-</p>
-<p>
-<p>Device42Auth defines the authentication method for the Device42 provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>secretRef</code></br>
-<em>
-<a href="#external-secrets.io/v1.Device42SecretRef">
-Device42SecretRef
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.Device42Provider">Device42Provider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
-</p>
-<p>
-<p>Device42Provider configures a store to sync secrets with a Device42 instance.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>host</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>URL configures the Device42 instance URL.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1.Device42Auth">
-Device42Auth
-</a>
-</em>
-</td>
-<td>
-<p>Auth configures how secret-manager authenticates with a Device42 instance.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.Device42SecretRef">Device42SecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.Device42Auth">Device42Auth</a>)
-</p>
-<p>
-<p>Device42SecretRef contains the secret reference for accessing the Device42 instance.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>credentials</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Username / Password is used for authentication.</p>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1.DopplerAuth">DopplerAuth
 </h3>
 <p>
@@ -3505,7 +3404,8 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.DopplerProvider">DopplerProvider</a>)
 </p>
 <p>
-<p>DopplerAuth defines the authentication method for the Doppler provider.</p>
+<p>DopplerAuth configures authentication with the Doppler API.
+Exactly one of secretRef or oidcConfig must be specified.</p>
 </p>
 <table>
 <thead>
@@ -3525,6 +3425,22 @@ DopplerAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>SecretRef authenticates using a Doppler service token stored in a Kubernetes Secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1.DopplerOIDCAuth">
+DopplerOIDCAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.</p>
 </td>
 </tr>
 </tbody>
@@ -3559,6 +3475,62 @@ External Secrets meta/v1.SecretKeySelector
 <p>The DopplerToken is used for authentication.
 See <a href="https://docs.doppler.com/reference/api#authentication">https://docs.doppler.com/reference/api#authentication</a> for auth token types.
 The Key attribute defaults to dopplerToken if not specified.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.DopplerOIDCAuth">DopplerOIDCAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.DopplerAuth">DopplerAuth</a>)
+</p>
+<p>
+<p>DopplerOIDCAuth configures OIDC authentication with Doppler using Kubernetes ServiceAccount tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identity</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Identity is the Doppler Service Account Identity ID configured for OIDC authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpirationSeconds sets the ServiceAccount token validity duration.
+Defaults to 10 minutes.</p>
 </td>
 </tr>
 </tbody>
@@ -5860,6 +5832,11 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.GenericClusterStoreValidator">GenericClusterStoreValidator
+</h3>
+<p>
+<p>GenericClusterStoreValidator implements webhook validation for ClusterSecretStore resources.</p>
+</p>
 <h3 id="external-secrets.io/v1.GenericStore">GenericStore
 </h3>
 <p>
@@ -5869,7 +5846,7 @@ or a namespaced SecretStore.</p>
 <h3 id="external-secrets.io/v1.GenericStoreValidator">GenericStoreValidator
 </h3>
 <p>
-<p>GenericStoreValidator implements webhook validation for SecretStore and ClusterSecretStore resources.</p>
+<p>GenericStoreValidator implements webhook validation for SecretStore resources.</p>
 </p>
 <h3 id="external-secrets.io/v1.GithubAppAuth">GithubAppAuth
 </h3>
@@ -6576,6 +6553,35 @@ string
 <p>HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to &ldquo;<a href="https://app.infisical.com/api&quot;">https://app.infisical.com/api&rdquo;</a>.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CABundle is a PEM-encoded CA certificate bundle used to validate
+the Infisical server&rsquo;s TLS certificate. Mutually exclusive with CAProvider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CAProvider is a reference to a Secret or ConfigMap that contains a CA certificate.
+The certificate is used to validate the Infisical server&rsquo;s TLS certificate.
+Mutually exclusive with CABundle.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.IntegrationInfo">IntegrationInfo
@@ -7071,7 +7077,7 @@ bool
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.MaintenanceStatus">MaintenanceStatus
-(<code>bool</code> alias)</p></h3>
+(<code>string</code> alias)</p></h3>
 <p>
 <p>MaintenanceStatus defines a type for different maintenance states of a provider schema.</p>
 </p>
@@ -7082,9 +7088,11 @@ bool
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>true</p></td>
+<tbody><tr><td><p>&#34;Deprecated&#34;</p></td>
 <td></td>
-</tr><tr><td><p>false</p></td>
+</tr><tr><td><p>&#34;Maintained&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;NotMaintained&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -7758,6 +7766,24 @@ OnePasswordSDKAuth
 </td>
 <td>
 <p>Auth defines the information necessary to authenticate against OnePassword API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cache</code></br>
+<em>
+<a href="#external-secrets.io/v1.CacheConfig">
+CacheConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cache configures client-side caching for read operations (GetSecret, GetSecretMap).
+When enabled, secrets are cached with the specified TTL.
+Write operations (PushSecret, DeleteSecret) automatically invalidate relevant cache entries.
+If omitted, caching is disabled (default).
+cache: {} is a valid option to set.</p>
 </td>
 </tr>
 </tbody>
@@ -8826,7 +8852,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -8852,7 +8878,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -9004,7 +9030,7 @@ VaultProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Vault configures this store to sync secrets using Hashi provider</p>
+<p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
 </td>
 </tr>
 <tr>
@@ -9088,7 +9114,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push GitHub Action secrets using GitHub API provider.
+<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.
 Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
@@ -9104,20 +9130,6 @@ GitlabProvider
 <td>
 <em>(Optional)</em>
 <p>GitLab configures this store to sync secrets using GitLab Variables provider</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>alibaba</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaProvider">
-AlibabaProvider
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Alibaba configures this store to sync secrets using Alibaba Cloud provider</p>
 </td>
 </tr>
 <tr>
@@ -9215,7 +9227,7 @@ ScalewayProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Scaleway</p>
+<p>Scaleway configures this store to sync secrets using the Scaleway provider.</p>
 </td>
 </tr>
 <tr>
@@ -9388,16 +9400,16 @@ PassboltProvider
 </tr>
 <tr>
 <td>
-<code>device42</code></br>
+<code>dvls</code></br>
 <em>
-<a href="#external-secrets.io/v1.Device42Provider">
-Device42Provider
+<a href="#external-secrets.io/v1.DVLSProvider">
+DVLSProvider
 </a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Device42 configures this store to sync secrets using the Device42 provider</p>
+<p>DVLS configures this store to sync secrets using Devolutions Server provider</p>
 </td>
 </tr>
 <tr>
@@ -9626,7 +9638,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -9652,7 +9664,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </tbody>
@@ -14969,6 +14981,18 @@ string
 </tr>
 <tr>
 <td>
+<code>decrypt</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>verifyCA</code></br>
 <em>
 bool
@@ -16067,7 +16091,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -16093,7 +16117,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -18128,7 +18152,7 @@ map[string]string
 <h3 id="external-secrets.io/v1beta1.ExternalSecretValidator">ExternalSecretValidator
 </h3>
 <p>
-<p>ExternalSecretValidator implements webhook validation for ExternalSecret resources.</p>
+<p>ExternalSecretValidator implements a validating webhook for ExternalSecrets.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.FakeProvider">FakeProvider
 </h3>
@@ -18572,6 +18596,11 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GenericClusterStoreValidator">GenericClusterStoreValidator
+</h3>
+<p>
+<p>GenericClusterStoreValidator provides validation for ClusterSecretStore resources.</p>
+</p>
 <h3 id="external-secrets.io/v1beta1.GenericStore">GenericStore
 </h3>
 <p>
@@ -18581,7 +18610,7 @@ or a namespaced SecretStore.</p>
 <h3 id="external-secrets.io/v1beta1.GenericStoreValidator">GenericStoreValidator
 </h3>
 <p>
-<p>GenericStoreValidator provides validation for SecretStore and ClusterSecretStore resources.</p>
+<p>GenericStoreValidator provides validation for SecretStore resources.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.GithubAppAuth">GithubAppAuth
 </h3>
@@ -20736,7 +20765,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -20762,7 +20791,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </table>
@@ -20914,7 +20943,7 @@ VaultProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Vault configures this store to sync secrets using Hashi provider</p>
+<p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
 </td>
 </tr>
 <tr>
@@ -20998,7 +21027,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push Github Action secrets using Github API provider</p>
+<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.</p>
 </td>
 </tr>
 <tr>
@@ -21110,7 +21139,7 @@ ScalewayProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Scaleway</p>
+<p>Scaleway configures this store to sync secrets using the Scaleway provider.</p>
 </td>
 </tr>
 <tr>
@@ -21480,7 +21509,7 @@ SecretStoreRetrySettings
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
+<p>Used to configure HTTP retries on failures.</p>
 </td>
 </tr>
 <tr>
@@ -21506,7 +21535,7 @@ int
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+<p>Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.</p>
 </td>
 </tr>
 </tbody>

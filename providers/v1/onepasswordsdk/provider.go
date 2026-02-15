@@ -22,8 +22,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/1password/onepassword-sdk-go"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -49,6 +51,7 @@ type Provider struct {
 	client      *onepassword.Client
 	vaultPrefix string
 	vaultID     string
+	cache       *expirable.LRU[string, []byte] // nil if caching is disabled
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -81,16 +84,32 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	p.client = c
-	p.vaultPrefix = "op://" + config.Vault + "/"
+	provider := &Provider{
+		client:      c,
+		vaultPrefix: "op://" + config.Vault + "/",
+	}
 
-	vaultID, err := p.GetVault(ctx, config.Vault)
+	vaultID, err := provider.GetVault(ctx, config.Vault)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store ID: %w", err)
 	}
-	p.vaultID = vaultID
+	provider.vaultID = vaultID
 
-	return p, nil
+	if config.Cache != nil {
+		ttl := 5 * time.Minute
+		if config.Cache.TTL.Duration > 0 {
+			ttl = config.Cache.TTL.Duration
+		}
+
+		maxSize := 100
+		if config.Cache.MaxSize > 0 {
+			maxSize = config.Cache.MaxSize
+		}
+
+		provider.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
+	}
+
+	return provider, nil
 }
 
 // ValidateStore validates the 1Password SDK SecretStore resource configuration.

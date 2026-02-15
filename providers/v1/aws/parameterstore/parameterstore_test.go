@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
-	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +35,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakeps "github.com/external-secrets/external-secrets/providers/v1/aws/parameterstore/fake"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
@@ -514,7 +514,9 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: errors.New(`failed to parse metadata: failed to parse kubernetes.external-secrets.io/v1alpha1 PushSecretMetadata: error unmarshaling JSON: while decoding JSON: json: unknown field "fakeMetadataKey"`),
+				err: errors.New(
+					`failed to parse metadata: failed to parse kubernetes.external-secrets.io/v1alpha1 PushSecretMetadata: error unmarshaling JSON: while decoding JSON: json: unknown field "fakeMetadataKey"`,
+				),
 			},
 		},
 		"GetRemoteSecretWithoutDecryption": {

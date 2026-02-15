@@ -120,6 +120,7 @@ nav:
   - Provider:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
+      - AWS Access: provider/aws-access.md
       - Azure Key Vault: provider/azure-key-vault.md
       - Barbican: provider/barbican.md
       - BeyondTrust: provider/beyondtrust.md
@@ -127,7 +128,6 @@ nav:
       - Chef: provider/chef.md
       - Cloud.ru Secret Manager: provider/cloudru.md
       - CyberArk Conjur: provider/conjur.md
-      - Device42: provider/device42.md
       - Google Cloud Secret Manager: provider/google-secrets-manager.md
       - HashiCorp Vault: provider/hashicorp-vault.md
       - Kubernetes: provider/kubernetes.md
@@ -135,7 +135,6 @@ nav:
       - Akeyless: provider/akeyless.md
       - Yandex Certificate Manager: provider/yandex-certificate-manager.md
       - Yandex Lockbox: provider/yandex-lockbox.md
-      - Alibaba Cloud: provider/alibaba.md
       - GitLab Variables: provider/gitlab-variables.md
       - Github Actions Secrets: provider/github.md
       - Oracle Vault: provider/oracle-vault.md
@@ -160,6 +159,7 @@ nav:
       - OpenBao: provider/openbao.md
       - Volcengine: provider/volcengine.md
       - ngrok: provider/ngrok.md
+      - Devolutions Server: provider/devolutions-server.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
@@ -174,6 +174,7 @@ nav:
           - Community meetings calendar: contributing/calendar.md
           - Roadmap: contributing/roadmap.md
           - Burnout Prevention: contributing/burnout-mitigation.md
+          - LLM Policy: contributing/llm-policy.md
       - External Resources:
           - Talks: eso-talks.md
           - Demos: eso-demos.md

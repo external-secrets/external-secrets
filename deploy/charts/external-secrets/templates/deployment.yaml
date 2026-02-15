@@ -23,22 +23,35 @@ spec:
   {{- end }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- if .Values.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- else if .Values.global.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.global.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
         {{- include "external-secrets.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-          {{- toYaml . | nindent 8 }}
+        {{- if .Values.podLabels }}
+        {{- toYaml .Values.podLabels | nindent 8 }}
+        {{- else if .Values.global.podLabels }}
+        {{- toYaml .Values.global.podLabels | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- else if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "external-secrets.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      {{- if kindIs "bool" .Values.hostUsers }}
+      hostUsers: {{ .Values.hostUsers }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.podSecurityContext }}
       {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:
@@ -54,7 +67,7 @@ spec:
             {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 12 }}
           {{- end }}
           {{- end }}
-          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image) | trim }}
+          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image "context" .) | trim }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.processClusterStore) (.Values.processClusterExternalSecret) (.Values.processClusterPushSecret) (.Values.concurrent) (.Values.extraArgs) }}
           args:
@@ -112,7 +125,11 @@ spec:
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
           {{- if .Values.livenessProbe.enabled }}
+          {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
+          - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.port }}
+          {{- else }}
           - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.httpGet.port }}
+          {{- end }}
           {{- end }}
           {{- if .Values.metrics.listen.secure.enabled }}
           - --metrics-secure=true
@@ -124,9 +141,18 @@ spec:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
+            {{- if .Values.livenessProbe.enabled }}
+            - name: live
+              protocol: TCP
+              {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
+              containerPort: {{ .Values.livenessProbe.spec.port }}
+              {{- else }}
+              containerPort: {{ .Values.livenessProbe.spec.httpGet.port }}
+              {{- end }}
+            {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
-          {{- toYaml (omit .Values.livenessProbe.spec "address") | nindent 12 }}
+          {{- toYaml (omit .Values.livenessProbe.spec "address" "port") | nindent 12 }}
           {{- end }}
           {{- with .Values.extraEnv }}
           env:
@@ -151,6 +177,10 @@ spec:
       {{- if .Values.dnsConfig }}
       dnsConfig:
           {{- toYaml .Values.dnsConfig | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.extraVolumes }}
       volumes:

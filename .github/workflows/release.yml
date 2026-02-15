@@ -26,15 +26,37 @@ jobs:
       contents: read
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve and validate ref
+        id: resolve_ref
+        env:
+          SOURCE_REF: ${{ github.event.inputs.source_ref }}
+        run: |
+          set -e
+          # Try to fetch the ref from remote
+          if git fetch origin "$SOURCE_REF"; then
+            # Remote ref exists, use it
+            RESOLVED_SHA=$(git rev-parse "origin/$SOURCE_REF")
+          elif git rev-parse --verify "$SOURCE_REF" >/dev/null 2>&1; then
+            # Local ref exists (e.g., a tag)
+            RESOLVED_SHA=$(git rev-parse "$SOURCE_REF")
+          else
+            echo "Error: ref '$SOURCE_REF' not found"
+            exit 1
+          fi
+          echo "Resolved to SHA: $RESOLVED_SHA"
+          echo "sha=$RESOLVED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout validated ref
+        run: git checkout ${{ steps.resolve_ref.outputs.sha }}
       - name: check-docs
         env:
           DOCS_VERSION: ${{ github.event.inputs.version }}
@@ -47,15 +69,37 @@ jobs:
       contents: write # to create a release and push new docs
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Resolve and validate ref
+        id: resolve_ref
+        env:
+          SOURCE_REF: ${{ github.event.inputs.source_ref }}
+        run: |
+          set -e
+          # Try to fetch the ref from remote
+          if git fetch origin "$SOURCE_REF"; then
+            # Remote ref exists, use it
+            RESOLVED_SHA=$(git rev-parse "origin/$SOURCE_REF")
+          elif git rev-parse --verify "$SOURCE_REF" >/dev/null 2>&1; then
+            # Local ref exists (e.g., a tag)
+            RESOLVED_SHA=$(git rev-parse "$SOURCE_REF")
+          else
+            echo "Error: ref '$SOURCE_REF' not found"
+            exit 1
+          fi
+          echo "Resolved to SHA: $RESOLVED_SHA"
+          echo "sha=$RESOLVED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout validated ref
+        run: git checkout ${{ steps.resolve_ref.outputs.sha }}
 
       - name: Create Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
@@ -71,9 +115,12 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Configure Git
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ env.TOKEN }}@github.com/${{ github.repository }}.git"
 
       - name: Update Docs
         if: github.ref == 'refs/heads/main'
@@ -102,26 +149,25 @@ jobs:
       RELEASE_TAG: ${{ github.event.inputs.version }}${{ matrix.tag_suffix }}
 
     steps:
-      - uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+      - uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         id: setup-go
         with:
           go-version-file: "go.mod"
 
       - name: Download Go modules
-        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
       - name: Login to Docker
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

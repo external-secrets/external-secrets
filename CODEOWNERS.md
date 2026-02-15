@@ -21,7 +21,6 @@ pkg/controllers/              @external-secrets/core-reviewers
 # --- Providers ---
 pkg/provider/                 @external-secrets/providers-reviewers
 pkg/provider/akeyless/        @external-secrets/provider-akeyless-reviewers
-pkg/provider/alibaba/         @external-secrets/provider-alibaba-reviewers
 pkg/provider/aws/             @external-secrets/provider-aws-reviewers
 pkg/provider/azure/           @external-secrets/provider-azure-reviewers
 pkg/provider/beyondtrust/     @external-secrets/provider-beyondtrust-reviewers
@@ -30,7 +29,6 @@ pkg/provider/chef/            @external-secrets/provider-chef-reviewers
 pkg/provider/cloudru/         @external-secrets/provider-cloudru-reviewers
 pkg/provider/conjur/          @external-secrets/provider-conjur-reviewers
 pkg/provider/delinea/         @external-secrets/provider-delinea-reviewers
-pkg/provider/device42/        @external-secrets/provider-device42-reviewers
 pkg/provider/doppler/         @external-secrets/provider-doppler-reviewers
 pkg/provider/fake/            @external-secrets/provider-fake-reviewers
 pkg/provider/fortanix/        @external-secrets/provider-fortanix-reviewers

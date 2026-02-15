@@ -31,7 +31,7 @@ type SecretStoreSpec struct {
 	// Used to configure the provider. Only one provider may be set
 	Provider *SecretStoreProvider `json:"provider"`
 
-	// Used to configure http retries if failed
+	// Used to configure HTTP retries on failures.
 	// +optional
 	RetrySettings *SecretStoreRetrySettings `json:"retrySettings,omitempty"`
 
@@ -39,7 +39,7 @@ type SecretStoreSpec struct {
 	// +optional
 	RefreshInterval int `json:"refreshInterval,omitempty"`
 
-	// Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+	// Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
 	// +optional
 	Conditions []ClusterSecretStoreCondition `json:"conditions,omitempty"`
 }
@@ -83,7 +83,7 @@ type SecretStoreProvider struct {
 	// +optional
 	BitwardenSecretsManager *BitwardenSecretsManagerProvider `json:"bitwardensecretsmanager,omitempty"`
 
-	// Vault configures this store to sync secrets using Hashi provider
+	// Vault configures this store to sync secrets using the HashiCorp Vault provider.
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
 
@@ -107,7 +107,7 @@ type SecretStoreProvider struct {
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
 
-	// Github configures this store to push GitHub Action secrets using GitHub API provider.
+	// Github configures this store to push GitHub Actions secrets using the GitHub API provider.
 	// Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
 	// +optional
 	Github *GithubProvider `json:"github,omitempty"`
@@ -115,10 +115,6 @@ type SecretStoreProvider struct {
 	// GitLab configures this store to sync secrets using GitLab Variables provider
 	// +optional
 	Gitlab *GitlabProvider `json:"gitlab,omitempty"`
-
-	// Alibaba configures this store to sync secrets using Alibaba Cloud provider
-	// +optional
-	Alibaba *AlibabaProvider `json:"alibaba,omitempty"`
 
 	// OnePassword configures this store to sync secrets using the 1Password Cloud provider
 	// +optional
@@ -144,7 +140,7 @@ type SecretStoreProvider struct {
 	// +optional
 	Senhasegura *SenhaseguraProvider `json:"senhasegura,omitempty"`
 
-	// Scaleway
+	// Scaleway configures this store to sync secrets using the Scaleway provider.
 	// +optional
 	Scaleway *ScalewayProvider `json:"scaleway,omitempty"`
 
@@ -196,9 +192,9 @@ type SecretStoreProvider struct {
 	// +optional
 	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
 
-	// Device42 configures this store to sync secrets using the Device42 provider
+	// DVLS configures this store to sync secrets using Devolutions Server provider
 	// +optional
-	Device42 *Device42Provider `json:"device42,omitempty"`
+	DVLS *DVLSProvider `json:"dvls,omitempty"`
 
 	// Infisical configures this store to sync secrets using the Infisical provider
 	// +optional
@@ -285,6 +281,7 @@ const (
 	ReasonValidationUnknown     = "ValidationUnknown"
 	ReasonStoreValid            = "Valid"
 	StoreUnmaintained           = "StoreUnmaintained"
+	StoreDeprecated             = "StoreDeprecated"
 )
 
 // SecretStoreStatusCondition contains condition information for a SecretStore.

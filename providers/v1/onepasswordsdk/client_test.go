@@ -19,9 +19,12 @@ package onepasswordsdk
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/1password/onepassword-sdk-go"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -102,7 +105,7 @@ func TestProviderGetSecret(t *testing.T) {
 				client:      tt.client(),
 				vaultPrefix: "op://vault/",
 			}
-			got, err := p.GetSecret(context.Background(), tt.ref)
+			got, err := p.GetSecret(t.Context(), tt.ref)
 			tt.assertError(t, err)
 			require.Equal(t, string(got), string(tt.want))
 		})
@@ -272,7 +275,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 				client:      tt.client(),
 				vaultPrefix: "op://vault/",
 			}
-			got, err := p.GetSecretMap(context.Background(), tt.ref)
+			got, err := p.GetSecretMap(t.Context(), tt.ref)
 			tt.assertError(t, err)
 			require.Equal(t, tt.want, got)
 		})
@@ -415,7 +418,7 @@ func TestPushSecret(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			lister := tt.lister()
 			p := &Provider{
 				client: &onepassword.Client{
@@ -541,7 +544,7 @@ func TestDeleteItemField(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			lister := testCase.lister()
 			p := &Provider{
 				client: &onepassword.Client{
@@ -577,7 +580,7 @@ func TestGetVault(t *testing.T) {
 
 	for _, titleOrUuid := range titleOrUuids {
 		t.Run(titleOrUuid, func(t *testing.T) {
-			vaultID, err := p.GetVault(context.Background(), titleOrUuid)
+			vaultID, err := p.GetVault(t.Context(), titleOrUuid)
 			require.NoError(t, err)
 			require.Equal(t, fc.listAllResult[0].ID, vaultID)
 		})
@@ -650,6 +653,69 @@ func (f *fakeFileLister) ReplaceDocument(ctx context.Context, item onepassword.I
 
 var _ onepassword.ItemsFilesAPI = (*fakeFileLister)(nil)
 
+type statefulFakeLister struct {
+	listAllResult []onepassword.ItemOverview
+	items         map[string]onepassword.Item
+	deletedItems  map[string]bool
+	createCalled  bool
+	putCalled     bool
+	deleteCalled  bool
+	fileLister    onepassword.ItemsFilesAPI
+}
+
+func (f *statefulFakeLister) Create(ctx context.Context, params onepassword.ItemCreateParams) (onepassword.Item, error) {
+	f.createCalled = true
+	return onepassword.Item{}, nil
+}
+
+func (f *statefulFakeLister) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
+	if f.deletedItems != nil && f.deletedItems[itemID] {
+		return onepassword.Item{}, fmt.Errorf("item not found")
+	}
+	if item, ok := f.items[itemID]; ok {
+		return item, nil
+	}
+	return onepassword.Item{}, fmt.Errorf("item not found")
+}
+
+func (f *statefulFakeLister) Put(ctx context.Context, item onepassword.Item) (onepassword.Item, error) {
+	f.putCalled = true
+	if f.items == nil {
+		f.items = make(map[string]onepassword.Item)
+	}
+	f.items[item.ID] = item
+	return item, nil
+}
+
+func (f *statefulFakeLister) Delete(ctx context.Context, vaultID, itemID string) error {
+	f.deleteCalled = true
+	if f.deletedItems == nil {
+		f.deletedItems = make(map[string]bool)
+	}
+	f.deletedItems[itemID] = true
+	delete(f.items, itemID)
+	f.listAllResult = nil
+	return nil
+}
+
+func (f *statefulFakeLister) Archive(ctx context.Context, vaultID, itemID string) error {
+	return nil
+}
+
+func (f *statefulFakeLister) List(ctx context.Context, vaultID string, opts ...onepassword.ItemListFilter) ([]onepassword.ItemOverview, error) {
+	return f.listAllResult, nil
+}
+
+func (f *statefulFakeLister) Shares() onepassword.ItemsSharesAPI {
+	return nil
+}
+
+func (f *statefulFakeLister) Files() onepassword.ItemsFilesAPI {
+	return f.fileLister
+}
+
+var _ onepassword.ItemsAPI = (*statefulFakeLister)(nil)
+
 type fakeClient struct {
 	resolveResult   string
 	resolveError    error
@@ -671,6 +737,455 @@ func (f *fakeClient) ResolveAll(ctx context.Context, secretReferences []string) 
 	return f.resolveAll, f.resolveAllError
 }
 
+func TestDeleteMultipleFieldsFromSameItem(t *testing.T) {
+	fc := &fakeClient{
+		listAllResult: []onepassword.VaultOverview{
+			{
+				ID:    "test",
+				Title: "test",
+			},
+		},
+	}
+
+	t.Run("deleting second field after item was deleted should not error", func(t *testing.T) {
+		fl := &statefulFakeLister{
+			listAllResult: []onepassword.ItemOverview{
+				{
+					ID:       "test-item-id",
+					Title:    "key",
+					Category: "login",
+					VaultID:  "vault-id",
+				},
+			},
+			items: map[string]onepassword.Item{
+				"test-item-id": {
+					ID:       "test-item-id",
+					Title:    "key",
+					Category: "login",
+					VaultID:  "vault-id",
+					Fields: []onepassword.ItemField{
+						{
+							ID:        "field-1",
+							Title:     "username",
+							FieldType: onepassword.ItemFieldTypeConcealed,
+							Value:     "testuser",
+						},
+						{
+							ID:        "field-2",
+							Title:     "password",
+							FieldType: onepassword.ItemFieldTypeConcealed,
+							Value:     "testpass",
+						},
+					},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+		}
+
+		ctx := t.Context()
+
+		err := p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "username",
+		})
+		require.NoError(t, err, "first field deletion should succeed")
+		assert.True(t, fl.putCalled, "Put should have been called to update the item")
+		assert.False(t, fl.deleteCalled, "Delete should not have been called yet")
+
+		fl.putCalled = false
+
+		err = p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "password",
+		})
+		require.NoError(t, err, "second field deletion should succeed")
+		assert.True(t, fl.deleteCalled, "Delete should have been called to remove the item")
+
+		fl.listAllResult = nil
+
+		err = p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "some-other-field",
+		})
+		require.NoError(t, err, "deleting a field from an already-deleted item should not error (this is the bug!)")
+	})
+}
+
+func TestCachingGetSecret(t *testing.T) {
+	t.Run("cache hit returns cached value", func(t *testing.T) {
+		fcWithCounter := &fakeClientWithCounter{
+			fakeClient: &fakeClient{
+				resolveResult: "secret-value",
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fcWithCounter,
+				VaultsAPI:  fcWithCounter.fakeClient,
+			},
+			vaultPrefix: "op://vault/",
+		}
+
+		// Initialize cache
+		p.cache = expirable.NewLRU[string, []byte](100, nil, time.Minute)
+
+		ref := v1.ExternalSecretDataRemoteRef{Key: "item/field"}
+
+		// First call - cache miss
+		val1, err := p.GetSecret(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("secret-value"), val1)
+		assert.Equal(t, 1, fcWithCounter.resolveCallCount)
+
+		// Second call - cache hit, should not call API
+		val2, err := p.GetSecret(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("secret-value"), val2)
+		assert.Equal(t, 1, fcWithCounter.resolveCallCount, "API should not be called on cache hit")
+	})
+
+	t.Run("cache disabled works normally", func(t *testing.T) {
+		fcWithCounter := &fakeClientWithCounter{
+			fakeClient: &fakeClient{
+				resolveResult: "secret-value",
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fcWithCounter,
+				VaultsAPI:  fcWithCounter.fakeClient,
+			},
+			vaultPrefix: "op://vault/",
+			cache:       nil, // Cache disabled
+		}
+
+		ref := v1.ExternalSecretDataRemoteRef{Key: "item/field"}
+
+		// Multiple calls should always hit API
+		_, err := p.GetSecret(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, 1, fcWithCounter.resolveCallCount)
+
+		_, err = p.GetSecret(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, 2, fcWithCounter.resolveCallCount)
+	})
+}
+
+func TestCachingGetSecretMap(t *testing.T) {
+	t.Run("cache hit returns cached map", func(t *testing.T) {
+		fc := &fakeClient{}
+		flWithCounter := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{
+						ID:       "item-id",
+						Title:    "item",
+						Category: "login",
+						VaultID:  "vault-id",
+					},
+				},
+				getResult: onepassword.Item{
+					ID:       "item-id",
+					Title:    "item",
+					Category: "login",
+					VaultID:  "vault-id",
+					Fields: []onepassword.ItemField{
+						{Title: "username", Value: "user1"},
+						{Title: "password", Value: "pass1"},
+					},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   flWithCounter,
+			},
+			vaultPrefix: "op://vault/",
+			vaultID:     "vault-id",
+			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
+		}
+
+		ref := v1.ExternalSecretDataRemoteRef{Key: "item"}
+
+		// First call - cache miss
+		val1, err := p.GetSecretMap(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, map[string][]byte{
+			"username": []byte("user1"),
+			"password": []byte("pass1"),
+		}, val1)
+		assert.Equal(t, 1, flWithCounter.getCallCount)
+
+		// Second call - cache hit
+		val2, err := p.GetSecretMap(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, val1, val2)
+		assert.Equal(t, 1, flWithCounter.getCallCount, "API should not be called on cache hit")
+	})
+}
+
+func TestCacheInvalidationPushSecret(t *testing.T) {
+	t.Run("push secret invalidates cache", func(t *testing.T) {
+		fcWithCounter := &fakeClientWithCounter{
+			fakeClient: &fakeClient{
+				resolveResult: "secret-value",
+			},
+		}
+
+		fl := &fakeLister{
+			listAllResult: []onepassword.ItemOverview{
+				{ID: "item-id", Title: "item", VaultID: "vault-id"},
+			},
+			getResult: onepassword.Item{
+				ID:      "item-id",
+				Title:   "item",
+				VaultID: "vault-id",
+				Fields:  []onepassword.ItemField{{Title: "password", Value: "old"}},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fcWithCounter,
+				VaultsAPI:  fcWithCounter.fakeClient,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix: "op://vault/",
+			vaultID:     "vault-id",
+			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
+		}
+
+		ref := v1.ExternalSecretDataRemoteRef{Key: "item/password"}
+
+		// Populate cache
+		val1, err := p.GetSecret(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("secret-value"), val1)
+		assert.Equal(t, 1, fcWithCounter.resolveCallCount)
+
+		// Push new value (should invalidate cache)
+		pushRef := v1alpha1.PushSecretData{
+			Match: v1alpha1.PushSecretMatch{
+				SecretKey: "key",
+				RemoteRef: v1alpha1.PushSecretRemoteRef{
+					RemoteKey: "item",
+					Property:  "password",
+				},
+			},
+		}
+		secret := &corev1.Secret{
+			Data: map[string][]byte{"key": []byte("new-value")},
+		}
+		err = p.PushSecret(t.Context(), secret, pushRef)
+		require.NoError(t, err)
+
+		// Next GetSecret should fetch fresh value (cache was invalidated)
+		val2, err := p.GetSecret(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("secret-value"), val2)
+		assert.Equal(t, 2, fcWithCounter.resolveCallCount, "Cache should have been invalidated")
+	})
+}
+
+func TestCacheInvalidationDeleteSecret(t *testing.T) {
+	t.Run("delete secret invalidates cache", func(t *testing.T) {
+		fcWithCounter := &fakeClientWithCounter{
+			fakeClient: &fakeClient{
+				resolveResult: "cached-value",
+			},
+		}
+
+		fl := &fakeLister{
+			listAllResult: []onepassword.ItemOverview{
+				{ID: "item-id", Title: "item", VaultID: "vault-id"},
+			},
+			getResult: onepassword.Item{
+				ID:      "item-id",
+				Title:   "item",
+				VaultID: "vault-id",
+				Fields: []onepassword.ItemField{
+					{Title: "field1", Value: "val1"},
+					{Title: "field2", Value: "val2"},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fcWithCounter,
+				VaultsAPI:  fcWithCounter.fakeClient,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix: "op://vault/",
+			vaultID:     "vault-id",
+			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
+		}
+
+		ref := v1.ExternalSecretDataRemoteRef{Key: "item/field1"}
+
+		// Populate cache
+		_, err := p.GetSecret(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, 1, fcWithCounter.resolveCallCount)
+
+		// Delete field (should invalidate cache)
+		deleteRef := v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "item",
+			Property:  "field1",
+		}
+		err = p.DeleteSecret(t.Context(), deleteRef)
+		require.NoError(t, err)
+
+		// Next GetSecret should miss cache
+		_, err = p.GetSecret(t.Context(), ref)
+		require.NoError(t, err)
+		assert.Equal(t, 2, fcWithCounter.resolveCallCount, "Cache should have been invalidated")
+	})
+}
+
+func TestInvalidateCacheByPrefix(t *testing.T) {
+	t.Run("invalidates all entries with prefix", func(t *testing.T) {
+		p := &Provider{
+			vaultPrefix: "op://vault/",
+			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
+		}
+
+		// Add multiple cache entries
+		p.cache.Add("op://vault/item1/field1", []byte("val1"))
+		p.cache.Add("op://vault/item1/field2", []byte("val2"))
+		p.cache.Add("op://vault/item2/field1", []byte("val3"))
+
+		// Invalidate item1 entries
+		p.invalidateCacheByPrefix("op://vault/item1")
+
+		// item1 entries should be gone
+		_, ok1 := p.cache.Get("op://vault/item1/field1")
+		assert.False(t, ok1)
+		_, ok2 := p.cache.Get("op://vault/item1/field2")
+		assert.False(t, ok2)
+
+		// item2 entry should still exist
+		val3, ok3 := p.cache.Get("op://vault/item2/field1")
+		assert.True(t, ok3)
+		assert.Equal(t, []byte("val3"), val3)
+	})
+
+	t.Run("handles nil cache gracefully", func(t *testing.T) {
+		p := &Provider{
+			vaultPrefix: "op://vault/",
+			cache:       nil,
+		}
+
+		// Should not panic
+		p.invalidateCacheByPrefix("op://vault/item1")
+	})
+
+	t.Run("does not invalidate entries with similar prefixes", func(t *testing.T) {
+		p := &Provider{
+			vaultPrefix: "op://vault/",
+			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
+		}
+
+		p.cache.Add("op://vault/item/field1", []byte("val1"))
+		p.cache.Add("op://vault/item/field2", []byte("val2"))
+		p.cache.Add("op://vault/item|property", []byte("val3"))
+		p.cache.Add("op://vault/item-backup/field1", []byte("val4"))
+		p.cache.Add("op://vault/prod-db/secret", []byte("val5"))
+		p.cache.Add("op://vault/prod-db-replica/secret", []byte("val6"))
+		p.cache.Add("op://vault/prod-db-replica/secret|property", []byte("val7"))
+
+		p.invalidateCacheByPrefix("op://vault/item")
+
+		_, ok1 := p.cache.Get("op://vault/item/field1")
+		assert.False(t, ok1)
+		_, ok2 := p.cache.Get("op://vault/item/field2")
+		assert.False(t, ok2)
+		_, ok3 := p.cache.Get("op://vault/item|property")
+		assert.False(t, ok3)
+
+		val4, ok4 := p.cache.Get("op://vault/item-backup/field1")
+		assert.True(t, ok4, "item-backup should not be invalidated")
+		assert.Equal(t, []byte("val4"), val4)
+
+		p.invalidateCacheByPrefix("op://vault/prod-db")
+		_, ok5 := p.cache.Get("op://vault/prod-db/secret")
+		assert.False(t, ok5)
+
+		val6, ok6 := p.cache.Get("op://vault/prod-db-replica/secret")
+		assert.True(t, ok6, "prod-db-replica/secret should not be invalidated")
+		assert.Equal(t, []byte("val6"), val6)
+
+		val7, ok7 := p.cache.Get("op://vault/prod-db-replica/secret|property")
+		assert.True(t, ok7, "prod-db-replica/secret|property should not be invalidated")
+		assert.Equal(t, []byte("val7"), val7)
+	})
+}
+
+// fakeClientWithCounter wraps fakeClient and tracks Resolve call count.
+type fakeClientWithCounter struct {
+	*fakeClient
+	resolveCallCount int
+}
+
+func (f *fakeClientWithCounter) Resolve(ctx context.Context, secretReference string) (string, error) {
+	f.resolveCallCount++
+	return f.fakeClient.Resolve(ctx, secretReference)
+}
+
+// fakeListerWithCounter wraps fakeLister and tracks Get call count.
+type fakeListerWithCounter struct {
+	*fakeLister
+	getCallCount int
+}
+
+func (f *fakeListerWithCounter) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
+	f.getCallCount++
+	return f.fakeLister.Get(ctx, vaultID, itemID)
+}
+
+func (f *fakeListerWithCounter) Put(ctx context.Context, item onepassword.Item) (onepassword.Item, error) {
+	return f.fakeLister.Put(ctx, item)
+}
+
+func (f *fakeListerWithCounter) Delete(ctx context.Context, vaultID, itemID string) error {
+	return f.fakeLister.Delete(ctx, vaultID, itemID)
+}
+
+func (f *fakeListerWithCounter) Archive(ctx context.Context, vaultID, itemID string) error {
+	return f.fakeLister.Archive(ctx, vaultID, itemID)
+}
+
+func (f *fakeListerWithCounter) List(ctx context.Context, vaultID string, opts ...onepassword.ItemListFilter) ([]onepassword.ItemOverview, error) {
+	return f.fakeLister.List(ctx, vaultID, opts...)
+}
+
+func (f *fakeListerWithCounter) Shares() onepassword.ItemsSharesAPI {
+	return f.fakeLister.Shares()
+}
+
+func (f *fakeListerWithCounter) Files() onepassword.ItemsFilesAPI {
+	return f.fakeLister.Files()
+}
+
+func (f *fakeListerWithCounter) Create(ctx context.Context, item onepassword.ItemCreateParams) (onepassword.Item, error) {
+	return f.fakeLister.Create(ctx, item)
+}
+
 var _ onepassword.SecretsAPI = &fakeClient{}
 var _ onepassword.VaultsAPI = &fakeClient{}
 var _ onepassword.ItemsAPI = &fakeLister{}
+var _ onepassword.SecretsAPI = &fakeClientWithCounter{}
+var _ onepassword.ItemsAPI = &fakeListerWithCounter{}

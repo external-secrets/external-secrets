@@ -31,8 +31,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	fake "github.com/external-secrets/external-secrets/providers/v1/chef/fake"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (

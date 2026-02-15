@@ -13,12 +13,14 @@ permissions:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+      - uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -30,7 +32,7 @@ jobs:
         with:
           version: v3.14.2 # remember to also update for the second job (release)
 
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: 3.12
 
@@ -68,12 +70,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -121,7 +123,7 @@ jobs:
           version: v3.17.3 # remember to also update for the first job (lint-and-test)
 
       - name: Login to GHCR
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -130,7 +132,7 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
         with:
-          cosign-release: 'v2.4.1'
+          cosign-release: 'v3.0.2'
 
       - name: Push chart to GHCR
         id: push_chart
@@ -155,9 +157,9 @@ jobs:
             echo "$helm_push_output"
 
             artifact_digest_uri="${chart_registry}/${chart_name}@${digest}"
-            cosign sign --yes "$artifact_digest_uri"
-            cosign verify "$artifact_digest_uri" \
-                --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/*" \
+            cosign sign --yes --new-bundle-format=false --use-signing-config=false "$artifact_digest_uri"
+            cosign verify --new-bundle-format=false --use-signing-config=false "$artifact_digest_uri" \
+                --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
                 --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
             echo "digest=${digest}" >> "$GITHUB_OUTPUT"
@@ -168,7 +170,7 @@ jobs:
 
       - name: Generate provenance attestation and push to OCI registry
         if: steps.push_chart.outputs.push_status == 'pushed'
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
         with:
           push-to-registry: true
           subject-name: ${{ steps.push_chart.outputs.registry }}/${{ steps.push_chart.outputs.chart_name }}

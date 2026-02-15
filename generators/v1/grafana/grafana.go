@@ -211,7 +211,6 @@ func parseStatus(data []byte) (*genv1alpha1.GrafanaServiceAccountTokenState, err
 	return &state, err
 }
 
-
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {
 	return &Grafana{}

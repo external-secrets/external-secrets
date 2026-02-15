@@ -352,12 +352,12 @@ func TestGetSecretMap(t *testing.T) {
 		Namespace    string
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		ref    esv1.ExternalSecretDataRemoteRef
-
-		want    map[string][]byte
-		wantErr bool
+		name       string
+		fields     fields
+		ref        esv1.ExternalSecretDataRemoteRef
+		want       map[string][]byte
+		wantErr    bool
+		wantErrMsg string
 	}{
 		{
 			name: "successful case metadata without property",
@@ -427,6 +427,31 @@ func TestGetSecretMap(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			// Security regression test: ensure json.Unmarshal errors don't leak secret data
+			name: "invalid JSON in property does not leak secret data in error message",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								// Base64 encoded invalid JSON containing sensitive data
+								// "secret-api-key-8019210420527506405" base64 encoded
+								"nested": []byte("c2VjcmV0LWFwaS1rZXktODAxOTIxMDQyMDUyNzUwNjQwNQ=="),
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "mysec",
+				Property: "nested",
+			},
+			wantErr:    true,
+			wantErrMsg: "failed to unmarshal secret: invalid JSON format",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -439,6 +464,16 @@ func TestGetSecretMap(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.GetSecretMap() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if tt.wantErrMsg != "" && err != nil {
+				if !strings.Contains(err.Error(), tt.wantErrMsg) {
+					t.Errorf("ProviderKubernetes.GetSecretMap() error = %v, wantErrMsg %v", err, tt.wantErrMsg)
+				}
+				// Security regression: ensure error doesn't contain sensitive data
+				sensitiveData := "secret-api-key-8019210420527506405"
+				if strings.Contains(err.Error(), sensitiveData) {
+					t.Errorf("SECURITY REGRESSION: Error message contains secret data! error = %v", err)
+				}
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ProviderKubernetes.GetSecretMap() = %v, want %v", got, tt.want)
@@ -589,21 +624,21 @@ func TestDeleteSecret(t *testing.T) {
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
 			},
-			wantErr: false,
+			wantErr:       false,
 			wantSecretMap: map[string]*v1.Secret{},
 		},
 		{
 			name: "delete whole secret if no property specified and empty properties",
 			fields: fields{
 				Client: &fakeClient{
-					t: t,
+					t:         t,
 					secretMap: map[string]*v1.Secret{},
 				},
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
 			},
-			wantErr: false,
+			wantErr:       false,
 			wantSecretMap: map[string]*v1.Secret{},
 		},
 		{
@@ -1181,7 +1216,9 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "mysec",
 				Property:  "secret",
 				Metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", spec: { "sourceMergePolicy": "Replace", "annotations": {"another-field": "from-remote-ref"}, "labels": {"other-label": "from-remote-ref"}}}`),
+					Raw: []byte(
+						`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", spec: { "sourceMergePolicy": "Replace", "annotations": {"another-field": "from-remote-ref"}, "labels": {"other-label": "from-remote-ref"}}}`,
+					),
 				},
 			},
 			wantErr: false,

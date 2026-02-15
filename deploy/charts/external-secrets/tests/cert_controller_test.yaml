@@ -100,6 +100,17 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].args[7]
           value: "--healthz-addr=:8082"
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].name
+          value: ready
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].protocol
+          value: TCP
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].containerPort
+          value: 8082
+      - notExists:
+          path: spec.template.spec.containers[0].ports[2]
   - it: should override metrics port
     set:
       certController.metrics.listen.port: 8888
@@ -228,9 +239,14 @@ tests:
           value:
             httpGet:
               path: /readyz
-              port: 8081
+              port: ready
             initialDelaySeconds: 20
             periodSeconds: 5
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].name
+          value: ready
+      - notExists:
+          path: spec.template.spec.containers[0].ports[2]
   - it: should override the startup Probe port
     set:
       certController.startupProbe.enabled: true
@@ -240,10 +256,120 @@ tests:
       - cert-controller-deployment.yaml
     asserts:
       - equal:
+          path: spec.template.spec.containers[0].ports[2]
+          value:
+            containerPort: 8083
+            protocol: TCP
+            name: startup
+      - equal:
           path: spec.template.spec.containers[0].startupProbe
           value:
             httpGet:
-              port: 8083
+              port: startup
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].name
+          value: startup
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].protocol
+          value: TCP
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].containerPort
+          value: 8083
+  - it: should default to hostUsers absent
+    set:
+      certController.create: true
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should permit override of hostUsers
+    set:
+      certController.create: true
+      certController.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostUsers
+          value: false
+  - it: should ignore hostUsers on older k8s
+    set:
+      certController.create: true
+      certController.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '32'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should not have hostAliases by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostAliases
+  - it: should add hostAliases when configured
+    set:
+      certController.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "cert.example.local"
+            - "cert"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "cert.example.local"
+                - "cert"
+  - it: should use global hostAliases when certController level not set
+    set:
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.200"
+              hostnames:
+                - "global.example.com"
+  - it: should prefer certController hostAliases over global
+    set:
+      certController.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "cert.example.com"
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "cert.example.com"

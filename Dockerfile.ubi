@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi@sha256:75937d9d75e976023814c7b8418016148c70b53fdbd7493636980a0de2126bdc AS minimal-ubi
+FROM registry.access.redhat.com/ubi9/ubi@sha256:b8923f58ef6aebe2b8f543f8f6c5af15c6f9aeeef34ba332f33bf7610012de0c AS minimal-ubi
 
 # Add metadata
 LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
@@ -6,7 +6,7 @@ LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
 
 ARG TARGETOS
 ARG TARGETARCH
-RUN dnf update -y --allowerasing && dnf install -y binutils
+RUN dnf update -y --allowerasing
 # prep target rootfs for scratch container
 WORKDIR /
 RUN mkdir /image && \
@@ -16,15 +16,12 @@ RUN mkdir /image && \
 	ln -s usr/lib /image/lib && \
 	mkdir -p /image/{usr/bin,usr/lib64,usr/lib,root,home,proc,etc,sys,var,dev}
 
-COPY ubi-build-files-${TARGETARCH}.txt /tmp
-# Copy all the required files from the base UBI image into the image directory
-# As the go binary is not statically compiled this includes everything needed for CGO to work, cacerts, tzdata and RH release files
-RUN tar cf /tmp/files.tar -T /tmp/ubi-build-files-${TARGETARCH}.txt && tar xf /tmp/files.tar -C /image/ \
-  && rpm --root /image --initdb \
-  && PACKAGES=$(rpm -qf $(cat /tmp/ubi-build-files-${TARGETARCH}.txt) | grep -v "is not owned by any package" | sort -u) \
-  && echo dnf install -y 'dnf-command(download)' \
-  && dnf download --destdir / ${PACKAGES} \
-  && rpm --root /image -ivh --justdb --nodeps `for i in ${PACKAGES}; do echo $i.rpm; done`
+# Install required packages directly into /image root - more robust under QEMU emulation
+RUN rpm --root /image --initdb \
+  && dnf install -y --installroot=/image --releasever=9 --setopt=install_weak_deps=false --nodocs \
+     glibc tzdata ca-certificates \
+  && dnf clean all --installroot=/image \
+  && rm -rf /image/var/cache/dnf /image/var/log/*
 
 FROM scratch
 # Copy all required files + rpm database so the image is scannable

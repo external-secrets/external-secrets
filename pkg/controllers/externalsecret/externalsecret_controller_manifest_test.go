@@ -28,12 +28,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestIsGenericTarget(t *testing.T) {
@@ -327,9 +329,7 @@ func TestCreateSimpleManifest(t *testing.T) {
 			}
 			obj.SetKind(tt.kind)
 
-			result, err := r.createSimpleManifest(obj, tt.dataMap)
-
-			require.NoError(t, err)
+			result := r.createSimpleManifest(obj, tt.dataMap)
 			assert.NotNil(t, result)
 			if tt.validate != nil {
 				tt.validate(t, result)
@@ -369,7 +369,7 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
 
 	// Verify
 	require.NoError(t, err)
@@ -431,7 +431,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
 
 	// Verify
 	require.NoError(t, err)
@@ -600,7 +600,7 @@ template:
 		"version":  []byte("1.21"),
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
 
 	require.NoError(t, err)
 	assert.NotNil(t, result)
@@ -626,4 +626,248 @@ template:
 	assert.Equal(t, "nginx:1.21", container["image"])
 
 	t.Logf("Result spec: %+v", spec)
+}
+
+func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+
+	r := &Reconciler{
+		Client: fakeClient,
+	}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-slack-config",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "notification.toolkit.fluxcd.io/v1beta1",
+					Kind:       "Provider",
+				},
+				Template: &esv1.ExternalSecretTemplate{
+					EngineVersion: esv1.TemplateEngineV2,
+					TemplateFrom: []esv1.TemplateFrom{
+						{
+							Target:  "spec.slack",
+							Literal: ptr.To(`api_url: {{ .url }}`),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	existingResource := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "notification.toolkit.fluxcd.io/v1beta1",
+			"kind":       "Provider",
+			"metadata": map[string]interface{}{
+				"name":            "test-slack-config",
+				"namespace":       "default",
+				"resourceVersion": "12345",
+				"uid":             "test-uid-123",
+			},
+			"spec": map[string]interface{}{
+				"type": "slack",
+				"slack": map[string]interface{}{
+					"channel":  "general",
+					"username": "bot",
+				},
+			},
+		},
+	}
+
+	dataMap := map[string][]byte{
+		"url": []byte("https://hooks.slack.com/services/XXX"),
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, existingResource)
+
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "Provider", result.GetKind())
+	assert.Equal(t, "test-slack-config", result.GetName())
+
+	specType, found, err := unstructured.NestedString(result.Object, "spec", "type")
+	require.NoError(t, err)
+	require.True(t, found, "spec.type should be preserved")
+	assert.Equal(t, "slack", specType, "spec.type should be preserved from existing resource")
+
+	slackChannel, found, err := unstructured.NestedString(result.Object, "spec", "slack", "channel")
+	require.NoError(t, err)
+	require.True(t, found, "spec.slack.channel should be preserved")
+	assert.Equal(t, "general", slackChannel, "spec.slack.channel should be preserved from existing resource")
+
+	slackUsername, found, err := unstructured.NestedString(result.Object, "spec", "slack", "username")
+	require.NoError(t, err)
+	require.True(t, found, "spec.slack.username should be preserved")
+	assert.Equal(t, "bot", slackUsername, "spec.slack.username should be preserved from existing resource")
+
+	apiURL, found, err := unstructured.NestedString(result.Object, "spec", "slack", "api_url")
+	require.NoError(t, err)
+	require.True(t, found, "spec.slack.api_url should be added from template")
+	assert.Equal(t, "https://hooks.slack.com/services/XXX", apiURL, "spec.slack.api_url should come from template")
+	assert.Equal(t, "12345", result.GetResourceVersion(), "resourceVersion should be preserved")
+	assert.Equal(t, "test-uid-123", string(result.GetUID()), "uid should be preserved")
+	t.Logf("Result spec: %+v", result.Object["spec"])
+}
+
+func TestGenericTargetContentHash(t *testing.T) {
+	tests := []struct {
+		name    string
+		obj     *unstructured.Unstructured
+		wantErr bool
+	}{
+		{
+			name: "hashes spec field",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{"key": "val"},
+				},
+			},
+		},
+		{
+			name: "hashes data field when no spec",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"data": map[string]interface{}{"key": "val"},
+				},
+			},
+		},
+		{
+			name: "prefers spec over data",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{"a": "1"},
+					"data": map[string]interface{}{"b": "2"},
+				},
+			},
+		},
+		{
+			name: "errors when neither spec nor data",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"status": map[string]interface{}{"ready": true},
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hash, err := genericTargetContentHash(tt.obj)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Empty(t, hash)
+				return
+			}
+			require.NoError(t, err)
+			assert.NotEmpty(t, hash)
+		})
+	}
+
+	t.Run("spec preferred over data produces spec hash", func(t *testing.T) {
+		specData := map[string]interface{}{"a": "1"}
+		obj := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"spec": specData,
+				"data": map[string]interface{}{"b": "2"},
+			},
+		}
+		hash, err := genericTargetContentHash(obj)
+		require.NoError(t, err)
+		assert.Equal(t, esutils.ObjectHash(specData), hash)
+	})
+}
+
+func TestIsGenericTargetValid(t *testing.T) {
+	makeES := func(policy esv1.ExternalSecretCreationPolicy) *esv1.ExternalSecret {
+		return &esv1.ExternalSecret{
+			Spec: esv1.ExternalSecretSpec{
+				Target: esv1.ExternalSecretTarget{
+					CreationPolicy: policy,
+				},
+			},
+		}
+	}
+
+	makeTarget := func(uid string, labels map[string]string, annotations map[string]string, obj map[string]interface{}) *unstructured.Unstructured {
+		u := &unstructured.Unstructured{Object: obj}
+		if uid != "" {
+			u.SetUID(types.UID(uid))
+		}
+		u.SetLabels(labels)
+		u.SetAnnotations(annotations)
+		return u
+	}
+
+	t.Run("orphan policy always valid", func(t *testing.T) {
+		valid, err := isGenericTargetValid(nil, makeES(esv1.CreatePolicyOrphan))
+		require.NoError(t, err)
+		assert.True(t, valid)
+	})
+
+	t.Run("nil target is invalid", func(t *testing.T) {
+		valid, err := isGenericTargetValid(nil, makeES(esv1.CreatePolicyOwner))
+		require.NoError(t, err)
+		assert.False(t, valid)
+	})
+
+	t.Run("empty UID is invalid", func(t *testing.T) {
+		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		valid, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
+		require.NoError(t, err)
+		assert.False(t, valid)
+	})
+
+	t.Run("not managed is invalid", func(t *testing.T) {
+		obj := makeTarget("some-uid", map[string]string{}, nil, map[string]interface{}{
+			"spec": map[string]interface{}{"key": "val"},
+		})
+		valid, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
+		require.NoError(t, err)
+		assert.False(t, valid)
+	})
+
+	t.Run("hash mismatch is invalid", func(t *testing.T) {
+		obj := makeTarget(
+			"some-uid",
+			map[string]string{esv1.LabelManaged: esv1.LabelManagedValue},
+			map[string]string{esv1.AnnotationDataHash: "wrong-hash"},
+			map[string]interface{}{"spec": map[string]interface{}{"key": "val"}},
+		)
+		valid, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
+		require.NoError(t, err)
+		assert.False(t, valid)
+	})
+
+	t.Run("matching hash is valid", func(t *testing.T) {
+		specData := map[string]interface{}{"key": "val"}
+		hash := esutils.ObjectHash(specData)
+		obj := makeTarget(
+			"some-uid",
+			map[string]string{esv1.LabelManaged: esv1.LabelManagedValue},
+			map[string]string{esv1.AnnotationDataHash: hash},
+			map[string]interface{}{"spec": specData},
+		)
+		valid, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
+		require.NoError(t, err)
+		assert.True(t, valid)
+	})
+
+	t.Run("errors when target has no spec or data", func(t *testing.T) {
+		obj := makeTarget(
+			"some-uid",
+			map[string]string{esv1.LabelManaged: esv1.LabelManagedValue},
+			nil,
+			map[string]interface{}{"status": map[string]interface{}{}},
+		)
+		_, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
+		assert.Error(t, err)
+	})
 }
