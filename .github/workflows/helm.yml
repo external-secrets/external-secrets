@@ -16,7 +16,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: step-security/harden-runner@e3f713f2d8f53843e71c69a996d56f51aa9adfb9 # v2.14.1
+      - uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
       - name: Checkout
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e3f713f2d8f53843e71c69a996d56f51aa9adfb9 # v2.14.1
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
           egress-policy: audit
 
@@ -132,7 +132,7 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
         with:
-          cosign-release: 'v2.4.1'
+          cosign-release: 'v3.0.2'
 
       - name: Push chart to GHCR
         id: push_chart
@@ -157,9 +157,9 @@ jobs:
             echo "$helm_push_output"
 
             artifact_digest_uri="${chart_registry}/${chart_name}@${digest}"
-            cosign sign --yes "$artifact_digest_uri"
-            cosign verify "$artifact_digest_uri" \
-                --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/*" \
+            cosign sign --yes --new-bundle-format=false --use-signing-config=false "$artifact_digest_uri"
+            cosign verify --new-bundle-format=false --use-signing-config=false "$artifact_digest_uri" \
+                --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/.*" \
                 --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
             echo "digest=${digest}" >> "$GITHUB_OUTPUT"
