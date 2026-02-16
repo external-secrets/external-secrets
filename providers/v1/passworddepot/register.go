@@ -24,8 +24,9 @@ import (
 )
 
 func init() {
-	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("passworddepot", Metadata())
+	md := Metadata()
+	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
+	provider.Register("passworddepot", md)
 }
 
 func Metadata() provider.Metadata {

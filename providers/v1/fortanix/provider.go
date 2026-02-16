@@ -136,8 +136,3 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 		Fortanix: &esv1.FortanixProvider{},
 	}
 }
-
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}

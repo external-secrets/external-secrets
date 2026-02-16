@@ -24,8 +24,9 @@ import (
 )
 
 func init() {
-	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("github", Metadata())
+	md := Metadata()
+	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
+	provider.Register("github", md)
 }
 
 func Metadata() provider.Metadata {

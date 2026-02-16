@@ -60,6 +60,7 @@ func Metadata() provider.Metadata {
 }
 
 func init() {
-	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("fake", Metadata())
+	md := Metadata()
+	provider.Register("fake", md)
+	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
 }

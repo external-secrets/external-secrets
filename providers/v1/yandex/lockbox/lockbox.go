@@ -106,8 +106,3 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 		YandexLockbox: &esv1.YandexLockboxProvider{},
 	}
 }
-
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}

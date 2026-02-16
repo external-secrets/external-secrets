@@ -432,11 +432,6 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 	}
 }
 
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}
-
 // PushSecret implements v1beta1.SecretsClient.
 func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.PushSecretData) error {
 	ESOLogger.Info("Pushing secret to BeyondTrust Password Safe")

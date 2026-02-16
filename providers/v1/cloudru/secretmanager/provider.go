@@ -45,11 +45,6 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 	return &esv1.SecretStoreProvider{CloudruSM: &esv1.CloudruSMProvider{}}
 }
 
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}
-
 var _ esv1.Provider = &Provider{}
 var _ esv1.SecretsClient = &Client{}
 

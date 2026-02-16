@@ -51,11 +51,6 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 	return &esv1.SecretStoreProvider{BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{}}
 }
 
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}
-
 // NewClient creates a new Bitwarden Secret Manager client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()

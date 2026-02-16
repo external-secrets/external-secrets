@@ -16,6 +16,8 @@ limitations under the License.
 
 package provider
 
+import v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
 // Name contains the name of the provider in the feature registry
 type Name string
 
@@ -24,32 +26,6 @@ type Metadata struct {
 	Stability    Stability    `json:"stability"`
 	Capabilities []Capability `json:"capabilities,omitempty"`
 	Comment      string       `json:"comment,omitempty"`
-}
-
-// CapabilityName represents a specific operation a provider can perform
-type CapabilityName string
-
-// A series of capability Names for standard implementations.
-const (
-	CapabilityGetSecret              CapabilityName = "GetSecret"
-	CapabilityGetSecretMap           CapabilityName = "GetSecretMap"
-	CapabilityGetAllSecrets          CapabilityName = "GetAllSecrets"
-	CapabilityPushSecret             CapabilityName = "PushSecret"
-	CapabilityDeleteSecret           CapabilityName = "DeleteSecret"
-	CapabilitySecretExists           CapabilityName = "SecretExists"
-	CapabilityValidate               CapabilityName = "Validate"
-	CapabilityValidateStore          CapabilityName = "ValidateStore"
-	CapabilityFindByName             CapabilityName = "FindByName"
-	CapabilityFindByTag              CapabilityName = "FindByTag"
-	CapabilityMetadataPolicyFetch    CapabilityName = "MetadataPolicyFetch"
-	CapabilityReferentAuthentication CapabilityName = "ReferentAuthentication"
-	CapabilityDeletionPolicy         CapabilityName = "DeletionPolicy"
-)
-
-// Capability describes a capability with optional notes
-type Capability struct {
-	Name  CapabilityName `json:"name"`
-	Notes string         `json:"notes,omitempty"`
 }
 
 // Stability represents the maturity level of a provider
@@ -62,3 +38,14 @@ const (
 	StabilityUnmaintained Stability = "Unmaintained"
 	StabilityDeprecated   Stability = "Deprecated"
 )
+
+// Maintained https://github.com/external-secrets/external-secrets/issues/5494
+func (m Metadata) MaintenanceStatus() v1.MaintenanceStatus {
+	if m.Stability == StabilityUnmaintained {
+		return v1.MaintenanceStatusNotMaintained
+	}
+	if m.Stability == StabilityDeprecated {
+		return v1.MaintenanceStatusDeprecated
+	}
+	return v1.MaintenanceStatusMaintained
+}

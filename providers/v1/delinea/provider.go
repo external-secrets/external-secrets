@@ -200,8 +200,3 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 		Delinea: &esv1.DelineaProvider{},
 	}
 }
-
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}

@@ -44,6 +44,7 @@ func Metadata() provider.Metadata {
 }
 
 func init() {
-	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("aws", Metadata())
+	md := Metadata()
+	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
+	provider.Register("aws", md)
 }

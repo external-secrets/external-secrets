@@ -824,8 +824,3 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 		OnePassword: &esv1.OnePasswordProvider{},
 	}
 }
-
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}

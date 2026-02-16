@@ -357,8 +357,3 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 		Vault: &esv1.VaultProvider{},
 	}
 }
-
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}

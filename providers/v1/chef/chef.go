@@ -369,8 +369,3 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 		Chef: &esv1.ChefProvider{},
 	}
 }
-
-// MaintenanceStatus returns the maintenance status of the provider.
-func MaintenanceStatus() esv1.MaintenanceStatus {
-	return esv1.MaintenanceStatusMaintained
-}
