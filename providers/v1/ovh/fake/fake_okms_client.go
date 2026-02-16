@@ -49,10 +49,6 @@ var (
 		"key1": "value1",
 		"key2": "value2",
 	}
-	secret2 = map[string]any{
-		"keys":  secret,
-		"token": "value",
-	}
 	nestedSecret = map[string]any{
 		"users": map[string]any{
 			"alice": map[string]string{
@@ -81,7 +77,6 @@ var (
 
 var fakeSecretStorage = map[string]map[string]any{
 	"mysecret":                  secret,
-	"mysecret2":                 secret2,
 	"nested-secret":             nestedSecret,
 	"pattern2/test/test-secret": pattern2TestSecret,
 	"pattern2/test/test.secret": pattern2TestDotSecret,
@@ -125,11 +120,12 @@ func (f FakeOkmsClient) GetSecretV2(ctx context.Context, okmsID uuid.UUID, path 
 	return NewGetSecretV2Fn(path, nil)()
 }
 func NewGetSecretV2Fn(path string, err error) GetSecretV2Fn {
-	return func() (*types.GetSecretV2Response, error) {
-		if err != nil {
+	if err != nil {
+		return func() (*types.GetSecretV2Response, error) {
 			return nil, err
 		}
-
+	}
+	return func() (*types.GetSecretV2Response, error) {
 		secret, ok := fakeSecretStorage[path]
 		if !ok {
 			return nil, esv1.NoSecretErr

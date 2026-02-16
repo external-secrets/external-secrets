@@ -41,7 +41,6 @@ func TestPushSecret(t *testing.T) {
 			"key2": []byte("value2"),
 		},
 	}
-	mySecret2RemoteKey := "mysecret2"
 	emptyRemoteKey := ""
 
 	testCases := map[string]struct {
@@ -56,10 +55,6 @@ func TestPushSecret(t *testing.T) {
 			data: testingfake.PushSecretData{
 				RemoteKey: nilSecretRemoteKey,
 			},
-			okmsClient: fake.FakeOkmsClient{
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
-			},
 		},
 		"Empty Secret Data": {
 			errshould: fmt.Sprintf("failed to push secret at path %q: provided secret is empty", emptySecretRemoteKey),
@@ -69,20 +64,12 @@ func TestPushSecret(t *testing.T) {
 			data: testingfake.PushSecretData{
 				RemoteKey: emptySecretRemoteKey,
 			},
-			okmsClient: fake.FakeOkmsClient{
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
-			},
 		},
 		"Empty Remote Key": {
 			errshould: fmt.Sprintf("failed to push secret at path %q: remote key cannot be empty (spec.data.remoteRef.key)", emptyRemoteKey),
 			secret:    secretData,
 			data: testingfake.PushSecretData{
 				RemoteKey: emptyRemoteKey,
-			},
-			okmsClient: fake.FakeOkmsClient{
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
 			},
 		},
 		"Non-Existent Remote Key": {
@@ -91,20 +78,12 @@ func TestPushSecret(t *testing.T) {
 			data: testingfake.PushSecretData{
 				RemoteKey: nonExistentSecretRemoteKey,
 			},
-			okmsClient: fake.FakeOkmsClient{
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
-			},
 		},
 		"Existing Remote Key": {
 			errshould: "",
 			secret:    secretData,
 			data: testingfake.PushSecretData{
 				RemoteKey: mySecretRemoteKey,
-			},
-			okmsClient: fake.FakeOkmsClient{
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
 			},
 		},
 		"Secret Key": {
@@ -114,10 +93,6 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: mySecretRemoteKey,
 				SecretKey: "key1",
 			},
-			okmsClient: fake.FakeOkmsClient{
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
-			},
 		},
 		"Property": {
 			errshould: "",
@@ -125,10 +100,6 @@ func TestPushSecret(t *testing.T) {
 			data: testingfake.PushSecretData{
 				RemoteKey: mySecretRemoteKey,
 				Property:  "property",
-			},
-			okmsClient: fake.FakeOkmsClient{
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
 			},
 		},
 		"Custom PostSecretV2 Error": {
@@ -141,7 +112,6 @@ func TestPushSecret(t *testing.T) {
 				// A non-existent secret is referenced to trigger Post instead of Put
 				GetSecretV2Fn:  fake.NewGetSecretV2Fn(nonExistentSecretRemoteKey, nil),
 				PostSecretV2Fn: fake.NewPostSecretV2Fn(errors.New("custom error")),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
 			},
 		},
 		"Custom PutSecretV2 Error": {
@@ -152,9 +122,8 @@ func TestPushSecret(t *testing.T) {
 			},
 			okmsClient: fake.FakeOkmsClient{
 				// An existing secret is referenced to trigger Put instead of Post
-				GetSecretV2Fn:  fake.NewGetSecretV2Fn(mySecret2RemoteKey, nil),
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(errors.New("custom error")),
+				GetSecretV2Fn: fake.NewGetSecretV2Fn("nested-secret", nil),
+				PutSecretV2Fn: fake.NewPutSecretV2Fn(errors.New("custom error")),
 			},
 		},
 		"Custom GetSecretV2 Error": {
@@ -164,9 +133,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: mySecretRemoteKey,
 			},
 			okmsClient: fake.FakeOkmsClient{
-				GetSecretV2Fn:  fake.NewGetSecretV2Fn(mySecretRemoteKey, errors.New("custom error")),
-				PostSecretV2Fn: fake.NewPostSecretV2Fn(nil),
-				PutSecretV2Fn:  fake.NewPutSecretV2Fn(nil),
+				GetSecretV2Fn: fake.NewGetSecretV2Fn("", errors.New("custom error")),
 			},
 		},
 	}

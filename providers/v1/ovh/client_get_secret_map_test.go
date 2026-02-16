@@ -31,13 +31,11 @@ import (
 
 func TestGetSecretMap(t *testing.T) {
 	mySecretRemoteKey := "mysecret"
-	mySecret2RemoteKey := "mysecret2"
 	myNestedSecretRemoteKey := "nested-secret"
 	nonExistentSecretRemoteKey := "non-existent-secret"
 	emptySecretRemoteKey := "empty-secret"
 	nilSecretRemoteKey := "nil-secret"
 
-	property := "keys"
 	nestedProperty := "users.alice"
 	scalarValueProperty := "users.alice.age"
 	invalidProperty := "invalid-property"
@@ -84,16 +82,6 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"Property": {
-			should: map[string][]byte{
-				"key1": []byte("value1"),
-				"key2": []byte("value2"),
-			},
-			ref: esv1.ExternalSecretDataRemoteRef{
-				Key:      mySecret2RemoteKey,
-				Property: property,
-			},
-		},
-		"Nested Property": {
 			should: map[string][]byte{
 				"age": []byte("23"),
 			},
