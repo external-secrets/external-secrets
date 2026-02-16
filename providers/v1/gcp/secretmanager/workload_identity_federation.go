@@ -172,9 +172,9 @@ func (w *workloadIdentityFederation) TokenSource(ctx context.Context) (oauth2.To
 	return externalaccount.NewTokenSource(ctx, *config)
 }
 
-func (w *workloadIdentityFederation) getGCPServiceAccount(ctx context.Context, cfg *externalaccount.Config) (*externalaccount.Config, error) {
+func (w *workloadIdentityFederation) getGCPServiceAccountFromAnnotation(ctx context.Context, cfg *externalaccount.Config) error {
 	if w.config.ServiceAccountRef == nil {
-		return cfg, nil
+		return nil
 	}
 	// look up the service account and check if it has a well-known GCP WI annotation.
 	// If so, use that GCP service account for impersonation.
@@ -189,14 +189,14 @@ func (w *workloadIdentityFederation) getGCPServiceAccount(ctx context.Context, c
 	}
 	sa := &corev1.ServiceAccount{}
 	if err := w.kubeClient.Get(ctx, key, sa); err != nil {
-		return nil, fmt.Errorf("failed to fetch serviceaccount %q: %w", key, err)
+		return fmt.Errorf("failed to fetch serviceaccount %q: %w", key, err)
 	}
 
 	gcpSA := sa.Annotations[gcpSAAnnotation]
 	if gcpSA != "" {
 		cfg.ServiceAccountImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, gcpSA)
 	}
-	return cfg, nil
+	return nil
 }
 
 // readCredConfig is for loading the json cred config stored in the provided configmap.
@@ -206,7 +206,7 @@ func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*exter
 		if err != nil {
 			return nil, err
 		}
-		return w.getGCPServiceAccount(ctx, cfg)
+		return cfg, nil
 	}
 
 	key := types.NamespacedName{
@@ -246,6 +246,9 @@ func (w *workloadIdentityFederation) generateExternalAccountConfig(ctx context.C
 	}
 	w.updateExternalAccountConfigWithSubjectTokenSupplier(config)
 	if err := w.updateExternalAccountConfigWithAWSCredentialsSupplier(ctx, config); err != nil {
+		return nil, err
+	}
+	if err := w.getGCPServiceAccountFromAnnotation(ctx, config); err != nil {
 		return nil, err
 	}
 	w.updateExternalAccountConfigWithDefaultValues(config)
