@@ -5147,21 +5147,12 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 </tbody>
 </table>
 <h2 id="upgrading">Upgrading</h2>
-<p>External Secrets Operator has not reached stable 1.0 yet. This means that <strong>we treat each minor version bump as a potentially breaking change</strong>. Breaking changes may include:</p>
-<ul>
-<li>API schema changes</li>
-<li>Default behavior modifications</li>
-<li>Deprecated feature removals</li>
-<li>Provider authentication changes</li>
-<li>Configuration format updates</li>
-</ul>
 <p><strong>Important upgrade recommendations:</strong></p>
 <ol>
 <li><strong>Plan your upgrades carefully</strong> - Always review release notes before upgrading, it could contain breaking changes information</li>
 <li><strong>Upgrade version by version</strong> - We strongly recommend upgrading one minor version at a time (e.g., 0.18.x → 0.19.x → 0.20.x) rather than skipping versions</li>
 <li><strong>Test in non-production first</strong> - Always validate upgrades in development/staging environments</li>
 </ol>
-<p>Until we reach v1.0, please treat minor version upgrades with the same caution you would give to major version upgrades in other projects.</p>
 <h2 id="provider-stability-and-support-level">Provider Stability and Support Level</h2>
 <p>The following table describes the stability level of each provider and who's responsible.</p>
 <table>
