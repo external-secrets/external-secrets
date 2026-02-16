@@ -32,51 +32,56 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
+const (
+	warnNoCAConfigured = "No caBundle or caProvider specified; TLS connections will use system certificate roots."
+)
+
 // ValidateStore validates the Kubernetes SecretStore configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
+	var warnings admission.Warnings
 	if k8sSpec.AuthRef == nil && k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
-		return nil, errors.New("a CABundle or CAProvider is required")
+		warnings = append(warnings, warnNoCAConfigured)
 	}
 	if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind &&
 		k8sSpec.Server.CAProvider != nil &&
 		k8sSpec.Server.CAProvider.Namespace == nil {
-		return nil, errors.New("CAProvider.namespace must not be empty with ClusterSecretStore")
+		return warnings, errors.New("CAProvider.namespace must not be empty with ClusterSecretStore")
 	}
 	if store.GetObjectKind().GroupVersionKind().Kind == esv1.SecretStoreKind &&
 		k8sSpec.Server.CAProvider != nil &&
 		k8sSpec.Server.CAProvider.Namespace != nil {
-		return nil, errors.New("CAProvider.namespace must be empty with SecretStore")
+		return warnings, errors.New("CAProvider.namespace must be empty with SecretStore")
 	}
 	if k8sSpec.Auth != nil && k8sSpec.Auth.Cert != nil {
 		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
-			return nil, errors.New("ClientCert.Name cannot be empty")
+			return warnings, errors.New("ClientCert.Name cannot be empty")
 		}
 		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
-			return nil, errors.New("ClientCert.Key cannot be empty")
+			return warnings, errors.New("ClientCert.Key cannot be empty")
 		}
 		if err := esutils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
-			return nil, err
+			return warnings, err
 		}
 	}
 	if k8sSpec.Auth != nil && k8sSpec.Auth.Token != nil {
 		if k8sSpec.Auth.Token.BearerToken.Name == "" {
-			return nil, errors.New("BearerToken.Name cannot be empty")
+			return warnings, errors.New("BearerToken.Name cannot be empty")
 		}
 		if k8sSpec.Auth.Token.BearerToken.Key == "" {
-			return nil, errors.New("BearerToken.Key cannot be empty")
+			return warnings, errors.New("BearerToken.Key cannot be empty")
 		}
 		if err := esutils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
-			return nil, err
+			return warnings, err
 		}
 	}
 	if k8sSpec.Auth != nil && k8sSpec.Auth.ServiceAccount != nil {
 		if err := esutils.ValidateReferentServiceAccountSelector(store, *k8sSpec.Auth.ServiceAccount); err != nil {
-			return nil, err
+			return warnings, err
 		}
 	}
-	return nil, nil
+	return warnings, nil
 }
 
 // Validate checks if the client has the necessary permissions to access secrets in the target namespace.

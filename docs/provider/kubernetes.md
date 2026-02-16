@@ -82,7 +82,7 @@ spec:
 
 ### Target API-Server Configuration
 
-The servers `url` can be omitted and defaults to `kubernetes.default`. You **have to** provide a CA certificate in order to connect to the API Server securely.
+The servers `url` can be omitted and defaults to `kubernetes.default`. If no `caBundle` or `caProvider` is specified, the operator uses the system certificate roots from the container image. Both the default (`distroless/static`) and UBI images include standard CA certificates, so connections to servers using well-known CAs (e.g., Let's Encrypt) work without explicit CA configuration.
 For your convenience, each namespace has a ConfigMap `kube-root-ca.crt` that contains the CA certificate of the internal API Server (see `RootCAConfigMap` [feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/)).
 Use that if you want to connect to the same API server.
 If you want to connect to a remote API Server you need to fetch it and store it inside the cluster as ConfigMap or Secret.
@@ -104,6 +104,30 @@ spec:
           type: ConfigMap
           name: kube-root-ca.crt
           key: ca.crt
+```
+
+!!! note
+    System CA roots only cover certificates signed by well-known CAs. Internal Kubernetes API servers typically use self-signed or cluster-internal CAs — you still need to provide explicit `caBundle` or `caProvider` for those.
+
+If the remote server uses a certificate from a well-known CA, you can omit CA configuration entirely:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: k8s-store-system-ca
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: default
+      server:
+        url: "https://my-proxy.example.com"
+        # No caBundle or caProvider — uses system CA roots
+      auth:
+        token:
+          bearerToken:
+            name: my-token
+            key: token
 ```
 
 ### Authentication
