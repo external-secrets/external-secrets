@@ -49,9 +49,9 @@ type OvhAuth struct {
 // OvhClientMTLS defines the configuration required to authenticate to OVHcloud's Secret Manager using mTLS.
 type OvhClientMTLS struct {
 	// +required
-	ClientCertificate *esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
+	ClientCertificate esmeta.SecretKeySelector `json:"certSecretRef"`
 	// +required
-	ClientKey *esmeta.SecretKeySelector `json:"keySecretRef,omitempty"`
+	ClientKey esmeta.SecretKeySelector `json:"keySecretRef"`
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 	// +optional
@@ -61,5 +61,5 @@ type OvhClientMTLS struct {
 // OvhClientToken defines the configuration required to authenticate to OVHcloud's Secret Manager using a token.
 type OvhClientToken struct {
 	// +required
-	ClientTokenSecret *esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+	ClientTokenSecret esmeta.SecretKeySelector `json:"tokenSecretRef"`
 }

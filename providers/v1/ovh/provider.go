@@ -67,7 +67,7 @@ type OkmsClient interface {
 // SecretKeyResolver resolves the value of a key from a Kubernetes Secret.
 // It is defined as an interface to allow different implementations, including mocks for testing.
 type SecretKeyResolver interface {
-	Resolve(ctx context.Context, kube kclient.Client, ovhStoreKind string, ovhStoreNameSpace string, secretRef *v1.SecretKeySelector) (string, error)
+	Resolve(ctx context.Context, kube kclient.Client, ovhStoreKind string, ovhStoreNameSpace string, secretRef v1.SecretKeySelector) (string, error)
 }
 
 // DefaultSecretKeyResolver is the default implementation for resolving keys from Kubernetes Secrets.
@@ -86,8 +86,8 @@ type ovhClient struct {
 var _ esv1.SecretsClient = &ovhClient{}
 
 // Resolve returns the value of the referenced key from a Kubernetes Secret.
-func (r DefaultSecretKeyResolver) Resolve(ctx context.Context, kube kclient.Client, ovhStoreKind, ovhStoreNameSpace string, secretRef *v1.SecretKeySelector) (string, error) {
-	return resolvers.SecretKeyRef(ctx, kube, ovhStoreKind, ovhStoreNameSpace, secretRef)
+func (r DefaultSecretKeyResolver) Resolve(ctx context.Context, kube kclient.Client, ovhStoreKind, ovhStoreNameSpace string, secretRef v1.SecretKeySelector) (string, error) {
+	return resolvers.SecretKeyRef(ctx, kube, ovhStoreKind, ovhStoreNameSpace, &secretRef)
 }
 
 // NewClient creates a new Provider client.
@@ -128,9 +128,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	// Authentication configuration: token or mTLS.
-	if p.secretKeyResolver == nil {
-		p.secretKeyResolver = DefaultSecretKeyResolver{}
-	}
 	if ovhStore.Auth.ClientToken != nil {
 		err = configureHTTPTokenClient(ctx, p, cl,
 			ovhStore.Server, ovhStore.Auth.ClientToken)
@@ -175,9 +172,6 @@ func configureHTTPTokenClient(ctx context.Context, p *Provider, cl *ovhClient, s
 func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1.OvhClientToken) (string, error) {
 	// ClienTokenSecret refers to the Kubernetes secret that stores the token.
 	tokenSecretRef := clientToken.ClientTokenSecret
-	if tokenSecretRef == nil {
-		return "", errors.New(emptyTokenSecretRef)
-	}
 
 	// Retrieve the token value.
 	token, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
@@ -239,7 +233,7 @@ func newHTTPClientWithMTLS(ctx context.Context, p *Provider, cl *ovhClient, clie
 		if err != nil {
 			return nil, err
 		}
-		if ok := caCertPool.AppendCertsFromPEM(ca); !ok {
+		if !caCertPool.AppendCertsFromPEM(ca) {
 			return nil, fmt.Errorf("failed to append CA")
 		}
 		transport.TLSClientConfig.RootCAs = caCertPool
@@ -268,11 +262,8 @@ func buildX509Certificate(ctx context.Context, cl *ovhClient, p *Provider, clien
 }
 
 // resolveSecret retrieves the value of the client certificate and key.
-func resolveSecretValue(ctx context.Context, cl *ovhClient, p *Provider, ref *v1.SecretKeySelector, errMsg string) (string, error) {
+func resolveSecretValue(ctx context.Context, cl *ovhClient, p *Provider, ref v1.SecretKeySelector, errMsg string) (string, error) {
 	// ref refers to the Kubernetes secret object.
-	if ref == nil {
-		return "", errors.New(errMsg)
-	}
 	// Retrieve the value of ref.
 	secret, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
 		cl.ovhStoreKind, cl.ovhStoreNameSpace, ref)
@@ -315,10 +306,6 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, errors.New("missing authentication method")
 	} else if auth.ClientMTLS != nil && auth.ClientToken != nil {
 		return nil, errors.New("only one authentication method allowed (mtls | token)")
-	} else if auth.ClientMTLS != nil &&
-		(auth.ClientMTLS.ClientCertificate == nil ||
-			auth.ClientMTLS.ClientKey == nil) {
-		return nil, errors.New("missing tls certificate or key")
 	}
 
 	return nil, nil
@@ -331,7 +318,9 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
-	return &Provider{}
+	return &Provider{
+		secretKeyResolver: DefaultSecretKeyResolver{},
+	}
 }
 
 // ProviderSpec returns the provider specification for registration.

@@ -17,11 +17,11 @@ limitations under the License.
 package ovh
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go/types"
@@ -98,12 +98,20 @@ func compareSecretsData(secretToPush map[string]any, remoteSecret []byte) (bool,
 		return false, nil
 	}
 
-	secretToPushByte, err := json.Marshal(secretToPush)
+	localBytes, err := json.Marshal(secretToPush)
 	if err != nil {
 		return false, fmt.Errorf("could not compare remote secret with secret to push: %w", err)
 	}
 
-	return bytes.Equal(secretToPushByte, remoteSecret), nil
+	var localSecretMap, remoteSecretMap any
+	if err := json.Unmarshal(localBytes, &localSecretMap); err != nil {
+		return false, fmt.Errorf("could not normalize local secret for comparison: %w", err)
+	}
+	if err := json.Unmarshal(remoteSecret, &remoteSecretMap); err != nil {
+		return false, fmt.Errorf("could not normalize remote secret for comparison: %w", err)
+	}
+
+	return reflect.DeepEqual(localSecretMap, remoteSecretMap), nil
 }
 
 // Build the secret to be pushed.

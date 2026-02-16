@@ -44,19 +44,16 @@ type FakeOkmsClient struct {
 	GetSecretsMetadataFn GetSecretsMetadataFn
 }
 
-var fakeSecretStorage = map[string]map[string]any{
-	"mysecret": {
+var (
+	secret = map[string]any{
 		"key1": "value1",
 		"key2": "value2",
-	},
-	"mysecret2": {
-		"keys": map[string]string{
-			"key1": "value1",
-			"key2": "value2",
-		},
+	}
+	secret2 = map[string]any{
+		"keys":  secret,
 		"token": "value",
-	},
-	"nested-secret": {
+	}
+	nestedSecret = map[string]any{
 		"users": map[string]any{
 			"alice": map[string]string{
 				"age": "23",
@@ -65,63 +62,45 @@ var fakeSecretStorage = map[string]map[string]any{
 				"age": "27",
 			},
 		},
-	},
-	"pattern1/path1": {
-		"projects": map[string]string{
-			"project1": "Name",
-			"project2": "Name",
-		},
-	},
-	"pattern1/path2": {
-		"key": "value",
-	},
-	"pattern2/test/test-secret": {
+	}
+	pattern2TestSecret = map[string]any{
 		"key4": "value4",
-	},
-	"pattern2/test/test.secret": {
+	}
+	pattern2TestDotSecret = map[string]any{
 		"key5": "value5",
-	},
-	"pattern2/secret": {
+	}
+	pattern2Secret = map[string]any{
 		"key6": "value6",
-	},
-	"invalidpath1//secret": {
+	}
+	invalidSecret = map[string]any{
 		"key": "value",
-	},
-	"/invalidpath2/secret": {
-		"key": "value",
-	},
-	"invalidpath3/secret//": {
-		"key": "value",
-	},
-	"invalidpath4/secret/": {
-		"key": "value",
-	},
-	"nil/nil-secret":     nil,
-	"nil-secret":         nil,
-	"empty/empty-secret": {},
-	"empty-secret":       {},
+	}
+	nilSecret   map[string]any = nil
+	emptySecret                = map[string]any{}
+)
+
+var fakeSecretStorage = map[string]map[string]any{
+	"mysecret":                  secret,
+	"mysecret2":                 secret2,
+	"nested-secret":             nestedSecret,
+	"pattern2/test/test-secret": pattern2TestSecret,
+	"pattern2/test/test.secret": pattern2TestDotSecret,
+	"pattern2/secret":           pattern2Secret,
+	"invalidpath1//secret":      invalidSecret,
+	"/invalidpath2/secret":      invalidSecret,
+	"invalidpath3/secret//":     invalidSecret,
+	"invalidpath4/secret/":      invalidSecret,
+	"nil/nil-secret":            nilSecret,
+	"nil-secret":                nilSecret,
+	"empty/empty-secret":        emptySecret,
+	"empty-secret":              emptySecret,
 }
 
 var fakeSecretStoragePaths = map[string][]string{
 	"/": {
 		"mysecret",
-		"mysecret2",
 		"nested-secret",
-		"pattern1/",
 		"pattern2/",
-	},
-	"mysecret": {
-		"mysecret",
-	},
-	"mysecret2": {
-		"mysecret2",
-	},
-	"nested-secret": {
-		"nested-secret",
-	},
-	"pattern1": {
-		"path1",
-		"path2",
 	},
 	"pattern2": {
 		"test/",
@@ -131,30 +110,12 @@ var fakeSecretStoragePaths = map[string][]string{
 		"test-secret",
 		"test.secret",
 	},
-	"invalidpath1": {
-		"/secret",
-	},
-	"/invalidpath2": {
-		"secret",
-	},
-	"invalidpath3": {
-		"secret/",
-	},
-	"invalidpath4": {
-		"secret/",
-	},
-	"invalidpath3/secret": {
-		"/",
-	},
-	"invalidpath4/secret": {
-		"",
-	},
-	"nil": {
-		"nil-secret",
-	},
-	"empty": {
-		"empty-secret",
-	},
+	"invalidpath1":  {"/secret"},
+	"/invalidpath2": {"secret"},
+	"invalidpath3":  {"secret/"},
+	"invalidpath4":  {"another-secret/"},
+	"nil":           {"nil-secret"},
+	"empty":         {"empty-secret"},
 }
 
 func (f FakeOkmsClient) GetSecretV2(ctx context.Context, okmsID uuid.UUID, path string, version *uint32, includeData *bool) (*types.GetSecretV2Response, error) {

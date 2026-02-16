@@ -26,7 +26,7 @@ import (
 
 type FakeSecretKeyResolver struct{}
 
-func (fr *FakeSecretKeyResolver) Resolve(_ context.Context, _ kclient.Client, _, _ string, ref *esmeta.SecretKeySelector) (string, error) {
+func (fr *FakeSecretKeyResolver) Resolve(_ context.Context, _ kclient.Client, _, _ string, ref esmeta.SecretKeySelector) (string, error) {
 	switch ref.Name {
 	case "Valid token auth":
 		return "Valid", nil

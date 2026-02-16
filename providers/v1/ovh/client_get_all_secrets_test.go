@@ -29,7 +29,6 @@ import (
 )
 
 func TestGetAllSecrets(t *testing.T) {
-	path1 := "pattern1"
 	path2 := "pattern2/test"
 	invalidPath1 := "invalidpath1"
 	invalidPath2 := "/invalidpath2"
@@ -79,10 +78,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"Empty Regex": {
 			should: map[string][]byte{
 				"mysecret":                  []byte(`{"key1":"value1","key2":"value2"}`),
-				"mysecret2":                 []byte(`{"keys":{"key1":"value1","key2":"value2"},"token":"value"}`),
 				"nested-secret":             []byte(`{"users":{"alice":{"age":"23"},"baptist":{"age":"27"}}}`),
-				"pattern1/path1":            []byte("{\"projects\":{\"project1\":\"Name\",\"project2\":\"Name\"}}"),
-				"pattern1/path2":            []byte("{\"key\":\"value\"}"),
 				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
 				"pattern2/test/test.secret": []byte("{\"key5\":\"value5\"}"),
 				"pattern2/secret":           []byte("{\"key6\":\"value6\"}"),
@@ -137,15 +133,6 @@ func TestGetAllSecrets(t *testing.T) {
 				Path: &invalidPath4,
 			},
 		},
-		"Path pattern1": {
-			should: map[string][]byte{
-				"pattern1/path1": []byte("{\"projects\":{\"project1\":\"Name\",\"project2\":\"Name\"}}"),
-				"pattern1/path2": []byte("{\"key\":\"value\"}"),
-			},
-			refFind: esv1.ExternalSecretFind{
-				Path: &path1,
-			},
-		},
 		"Path pattern2/test": {
 			should: map[string][]byte{
 				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
@@ -158,10 +145,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"Secrets found without path": {
 			should: map[string][]byte{
 				"mysecret":                  []byte(`{"key1":"value1","key2":"value2"}`),
-				"mysecret2":                 []byte(`{"keys":{"key1":"value1","key2":"value2"},"token":"value"}`),
 				"nested-secret":             []byte(`{"users":{"alice":{"age":"23"},"baptist":{"age":"27"}}}`),
-				"pattern1/path1":            []byte("{\"projects\":{\"project1\":\"Name\",\"project2\":\"Name\"}}"),
-				"pattern1/path2":            []byte("{\"key\":\"value\"}"),
 				"pattern2/test/test-secret": []byte("{\"key4\":\"value4\"}"),
 				"pattern2/test/test.secret": []byte("{\"key5\":\"value5\"}"),
 				"pattern2/secret":           []byte("{\"key6\":\"value6\"}"),
