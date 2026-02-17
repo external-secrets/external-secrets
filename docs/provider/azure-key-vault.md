@@ -1,50 +1,75 @@
 
 ![aws sm](../pictures/eso-az-kv-azure-kv.png)
 
-## Azure Key vault
+## Azure Key Vault
 
-External Secrets Operator integrates with [Azure Key vault](https://azure.microsoft.com/en-us/services/key-vault/) for secrets, certificates and Keys management.
-
-### Authentication
-
-We support authentication with Microsoft Entra identities that can be used as Workload Identity or [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) as well as with Service Principal credentials.
-
-Since the [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) is deprecated, it is recommended to use the [Workload Identity](https://azure.github.io/azure-workload-identity) authentication.
+External Secrets Operator integrates with [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/). We support both `SecretStore` and `ClusterSecretStore` resources to connect to Azure Key Vault. The operator can fetch secrets, keys and certificates stored in Azure Key Vault and synchronize them as Kubernetes secrets using an `ExternalSecret`. Vice versa, it can also push secrets from Kubernetes into Azure Key Vault as secrets, keys and certificates by using a `PushSecret`.
 
 We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud`, `GermanCloud` and `AzureStackCloud` (for Azure Stack Hub/Edge). You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
 
 For environments with non-standard endpoints (Azure Stack, Azure China with AKS Workload Identity, etc.), you can provide custom cloud configuration to override the default endpoints. See the [Custom Cloud Configuration](#custom-cloud-configuration) section below.
 
+### Configure SecretStore
+
+The Azure Key Vault provider is fully compatible with both namespaced `SecretStore` and cluster-wide `ClusterSecretStore` resources. For simplicity, this article refers only to `SecretStore`, but the same is applicable also for `ClusterSecretStore`. To establish the integration with Azure Key Vault, specify `azurekv` as the provider and provide the vault URL and authentication details. The vault URL is the URL of your Key Vault instance, which typically looks like `https://<your-keyvault-name>.vault.azure.net`. For Azure Stack, it may have a different format, so make sure to use the correct URL for your environment. See below for different authentication methods.
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
-  name: azure-backend
+  name: azure-store
 spec:
   provider:
     azurekv:
-      # PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
-      environmentType: PublicCloud # default
+      # URL of your Key Vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates
+      vaultUrl: "https://xx-xxxx-xx.vault.azure.net"
 ```
 
-Minimum required permissions are `Get` over secret and certificate permissions. This can be done by adding a Key Vault access policy:
-
-```sh
-KUBELET_IDENTITY_OBJECT_ID=$(az aks show --resource-group <AKS_CLUSTER_RG_NAME> --name <AKS_CLUSTER_NAME> --query 'identityProfile.kubeletidentity.objectId' -o tsv)
-az keyvault set-policy --name kv-name-with-certs --object-id "$KUBELET_IDENTITY_OBJECT_ID" --certificate-permissions get --secret-permissions get
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: azure-store
+spec:
+  provider:
+    azurekv:
+      # URL of your Key Vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates
+      vaultUrl: "https://xx-xxxx-xx.vault.azure.net"
 ```
 
-#### Service Principal key authentication
+### Authentication
 
-A service Principal client and Secret is created and the JSON keyfile is stored in a `Kind=Secret`. The `ClientID` and `ClientSecret` or `ClientCertificate` (in PEM format) should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator.
+We support multiple authentication methods to connect to Azure Key Vault:
 
-#### Managed Identity authentication
+- Service Principal
+- Managed Identity (AAD Pod Identity)
+- Workload Identity
 
-A Managed Identity should be created in Azure, and that Identity should have proper rights to the keyvault to be managed by the operator.
+Regardless which authentication method is used to authenticate to Azure Key Vault, the identity which is assigned to External Secrets Operator needs to have proper permissions to access the Key Vault. We support both [RBAC](https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide) and [Access Policy](https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy) based Key Vaults. RBAC is the recommended approach, but Access Policies are still supported for backward compatibility.
 
-Use [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/) to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use `podLabels` in your values.yaml in case of Helm installation of external-secrets.
+The required permissions depend on the type of objects you want to manage (secrets, keys, certificates) and the operations you want to perform (read, write, delete, etc.). For example, to grant External Secrets Operator permissions to synchronize secrets and certificates using an `ExternalSecret`, the minimum required permissions are either the [Key Vault Secrets User](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-user) and [Key Vault Certificates User](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-certificates-user) RBAC roles, alternatively for Access Policy based Key Vaults, the `Get` permission over secrets and certificates.
 
-If there are multiple Managed Identities for different keyvaults, the operator should have been assigned all identities via [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/), then the SecretStore configuration should include the Id of the identity to be used via the `identityId` field.
+#### Service Principal
+
+To use a Service Principal's credentials for authentication, you need to create a Service Principal in Entra ID and grant it the necessary permissions to access the Key Vault. Then, you can create a Kubernetes Secret containing the Service Principal's credentials:
+
+- Client ID
+- **Either** Client Secret **or** Client Certificate (in PEM format)
+
+Reference this secret in your `SecretStore` configuration.
+
+```yaml
+{% include 'azkv-secret-store.yaml' %}
+```
+
+#### Managed Identity (AAD Pod Identity)
+
+!!! warning
+    This authentication option uses [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) which is deprecated, it is recommended to use the [Workload Identity](https://azure.github.io/azure-workload-identity) authentication instead.
+
+To use a Managed Identity with AAD Pod Identity for authentication, you need to create a Managed Identity in Azure and grant it the necessary permissions to access the Key Vault. Then, assign that Managed Identity to the External Secrets Operator using [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/). Finally, you can reference that identity in your `SecretStore` configuration.
+
+If you have multiple identities assigned to External Secrets Operator, you can specify which of them to use by providing its client ID in the field `spec.provider.azurekv.identityId` on the `SecretStore`. If only one identity is assigned, you can omit the `identityId` field.
 
 ```yaml
 {% include 'azkv-secret-store-mi.yaml' %}
@@ -52,9 +77,9 @@ If there are multiple Managed Identities for different keyvaults, the operator s
 
 #### Workload Identity
 
-In Microsoft Entra, Workload Identity can be Application, user-assigned Managed Identity and Service Principal.
+Workload Identity is the recommended authentication method for Azure Key Vault. It allows the External Secrets Operator to authenticate to Azure Key Vault using the identity of a Kubernetes Service Account, without needing to manage secrets or credentials. This is achieved by creating a trust relationship between your Kubernetes cluster and the Entra ID identity you want to use. This process is known as [Workload Identity Federation](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation). The identity in Entra ID can be either an Application, a user-assigned Managed Identity or a Service Principal.
 
-You can use [Azure AD Workload Identity Federation](https://docs.microsoft.com/en-us/azure/active-directory/develop/workload-identity-federation) to access Azure managed services like Key Vault **without needing to manage secrets**. You need to configure a trust relationship between your Kubernetes Cluster and Azure AD. This can be done in various ways, for instance using `terraform`, the Azure Portal or the `az` cli. We found the [azwi](https://azure.github.io/azure-workload-identity/docs/installation/azwi.html) cli very helpful. The Azure [Workload Identity Quick Start Guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html) is also good place to get started.
+The Workload Identity Federation can be done in various ways, for instance using Terraform, the Azure Portal or Azure CLI. We found the [azwi](https://azure.github.io/azure-workload-identity/docs/installation/azwi.html) CLI very helpful. The Azure [Workload Identity Quick Start Guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html) is a good place to get started.
 
 This is basically a two step process:
 
@@ -76,7 +101,7 @@ azwi serviceaccount create phase federated-identity \
   --service-account-issuer-url "${SERVICE_ACCOUNT_ISSUER}"
 ```
 
-With these prerequisites met you can configure `ESO` to use that Service Account. You have two options:
+With these prerequisites met you can configure External Secrets Operator to use that Service Account. You have two options:
 
 ##### Mounted Service Account
 You run the controller and mount that particular service account into the pod by adding the label `azure.workload.identity/use: "true"`to the pod. That grants _everyone_ who is able to create a secret store or reference a correctly configured one the ability to read secrets. **This approach is usually not recommended**. But may make sense when you want to share an identity with multiple namespaces. Also see our [Multi-Tenancy Guide](../guides/multi-tenancy.md) for design considerations.
@@ -168,47 +193,32 @@ spec:
           key: client-secret
 ```
 
-**Important Notes:**
-- `useAzureSDK: true` is mandatory when using `customCloudConfig`
-- `customCloudConfig` can be used with any `environmentType` (PublicCloud, ChinaCloud, etc.)
-- For AzureStackCloud, `customCloudConfig` is required
-- Contact your Azure Stack administrator for the correct endpoint URLs
+!!! note
 
-### Update secret store
-Be sure the `azurekv` provider is listed in the `Kind=SecretStore`
-
-```yaml
-{% include 'azkv-secret-store.yaml' %}
-```
-**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `clientId` and `clientSecret`  with the namespaces where the secrets reside.
-
-Or in case of Managed Identity authentication:
-
-```yaml
-{% include 'azkv-secret-store-mi.yaml' %}
-```
+    - `useAzureSDK: true` is mandatory when using `customCloudConfig`
+    - `customCloudConfig` can be used with any `environmentType` (PublicCloud, ChinaCloud, etc.)
+    - For AzureStackCloud, `customCloudConfig` is required
+    - Contact your Azure Stack administrator for the correct endpoint URLs
 
 ### Object Types
 
-Azure Key Vault manages different [object types](https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types), we support `keys`, `secrets` and `certificates`. Simply prefix the key with `key`, `secret` or `cert` to retrieve the desired type (defaults to secret).
+Azure Key Vault has different [object types](https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types); Secrets, Keys and Certificates, all of which are supported. To explicitly select which object type to fetch via an `ExternalSecret` or push via a `PushSecret`, prefix the `spec.data[].remoteRef.key` field with either `key`, `secret` or `cert`. If no prefix is provided, the operator defaults to `secret`.
 
-| Object Type   | Return Value                                                                                                                                                                                                                      |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `secret`      | the raw secret value.                                                                                                                                                                                                             |
-| `key`         | A JWK which contains the public key. Azure Key Vault does **not** export the private key. You may want to use [template functions](../guides/templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
-| `certificate` | The raw CER contents of the x509 certificate. You may want to use [template functions](../guides/templating.md) to transform this into your desired encoding                                                             |
+| Object Type | Prefix | Description
+| ----------- | ------ | ------------------------- |
+| Secret      | `secret` (default) | Generic secrets, such as passwords and database connection strings. |
+| Key         | `key`    | Cryptographic keys represented as JSON Web Key [JWK] objects. Azure Key Vault does **not** export the private key. You may want to use [template functions](../guides/templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
+| Certificate | `cert`   | X509 certificates, for example TLS certificates. You may want to use [template functions](../guides/templating.md) to transform this into your desired encoding. |
 
-### Creating external secret
+### Creating an ExternalSecret
 
-To create a Kubernetes secret from the Azure Key vault secret a `Kind=ExternalSecret` is needed.
-
-You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name, the default type is a `secret`. Other supported values are `cert` and `key`.
+To synchronize secrets from Azure Key Vault into Kubernetes, you need to create an `ExternalSecret` which references the `SecretStore` or `ClusterSecretStore` you configured. You specify the name of the secret in Azure Key Vault that you want to synchronize and the name of the Kubernetes secret that should be created.
 
 ```yaml
 {% include 'azkv-external-secret.yaml' %}
 ```
 
-The operator will fetch the Azure Key vault secret and inject it as a `Kind=Secret`. Then the Kubernetes secret can be fetched by issuing:
+The operator will fetch the Azure Key Vault secret and inject it as a `Secret`. View the created secret by running the following command:
 
 ```sh
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.dev-secret-test}' | base64 -d
@@ -220,38 +230,56 @@ To select all secrets inside the key vault or all tags inside a secret, you can 
 {% include 'azkv-datafrom-external-secret.yaml' %}
 ```
 
-To get a PKCS#12 certificate from Azure Key Vault and inject it as a `Kind=Secret` of type `kubernetes.io/tls`:
+To fetch a P12 certificate (also known as PKCS12 or PFX) from Azure Key Vault and inject it as a `Secret` of type `kubernetes.io/tls`, you can use the following configuration. Note that template functions are used to transform the certificate from its original format into a PEM encoded format that Kubernetes expects for TLS secrets.
 
 ```yaml
 {% include 'azkv-pkcs12-cert-external-secret.yaml' %}
 ```
 
 ### Creating a PushSecret
-You can push secrets to Azure Key Vault into the different `secret`, `key` and `certificate` APIs.
+You can push secrets from Kubernetes into Azure Key Vault as secrets, keys or certificates by using a `PushSecret`. A `PushSecret` references a Kubernetes Secret as the source of the data. The operator can create, update or delete the corresponding secret in Azure Key Vault to match the desired state defined in the `PushSecret`.
 
 #### Pushing to a Secret
-Pushing to a Secret requires no previous setup. with the secret available in Kubernetes, you can simply refer it to a PushSecret object to have it created on Azure Key Vault:
+Pushing to a Secret requires no previous setup. Provided you have a Kubernetes Secret available, you can create a `PushSecret` which references it to have it created on Azure Key Vault. You can optionally set metadata such as content type or tags. The operator will read the data from the Kubernetes Secret and push it to Azure Key Vault as a secret.
+
 ```yaml
 {% include 'azkv-pushsecret-secret.yaml' %}
 ```
+
 !!! note
-      In order to create a PushSecret targeting keys, `CreateSecret` and `DeleteSecret` actions must be granted to the Service Principal/Identity configured on the SecretStore.
+    In order to create a PushSecret targeting Secrets, the [Key Vault Secrets Officer](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-officer) role, alternatively Access Policy permissions `Set` and `Delete` for Secrets must be granted to the identity configured on the SecretStore.
 
 #### Pushing to a Key
-The first step is to generate a valid Private Key. Supported Formats include `PRIVATE KEY`, `RSA PRIVATE KEY` AND `EC PRIVATE KEY` (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:
+The first step is to generate a valid Private Key. Supported formats include `PRIVATE KEY`, `RSA PRIVATE KEY` AND `EC PRIVATE KEY` (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:
 
 ```yaml
 {% include 'azkv-pushsecret-key.yaml' %}
 ```
 
 !!! note
-      In order to create a PushSecret targeting keys, `ImportKey` and `DeleteKey` actions must be granted to the Service Principal/Identity configured on the SecretStore.
-#### Pushing to a Certificate
-The first step is to generate a valid P12 certificate. Currently, only PKCS1/PKCS8 types are supported. Currently only password-less P12 certificates are supported.
+    In order to create a PushSecret targeting keys, the [Key Vault Crypto Officer](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-crypto-officer) role, alternatively Access Policy permissions `Import` and `Delete` for Keys must be granted to the identity configured on the SecretStore.
 
-After uploading your P12 certificate to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration
+#### Pushing to a Certificate
+
+The P12 format (also known as PKCS12 or PFX) is the most stable format for importing certificates to Azure Key Vault. The P12 file must contain both the certificate and the private key. Make sure to use PKCS8 format for the private key, as Azure Key Vault does not support PKCS1 format. Additionally, only password-less P12 files are supported.
+
+Provided you have a Kubernetes Secret with a P12 certificate, you can push it to Azure Key Vault by creating a `PushSecret` with the following configuration. The operator will read the P12 file from the Kubernetes Secret and import it into Azure Key Vault as a certificate.
+
 ```yaml
-{% include 'azkv-pushsecret-certificate.yaml' %}
+{% include 'azkv-pushsecret-certificate-p12.yaml' %}
 ```
+
+Provided you have a Kubernetes Secret with the certificate and private key in PEM format, you can use the following configuration to transform it into a P12 file and push it to Azure Key Vault. The operator will read the certificate and private key from the Kubernetes Secret, convert them into a P12 file using template functions, and import it into Azure Key Vault as a certificate.
+
+```yaml
+{% include 'azkv-pushsecret-certificate-pem.yaml' %}
+```
+
+If you are using [cert-manager](https://cert-manager.io/) and its `Certificate` resource to generate the Kubernetes Secret in a PEM format as shown above, make sure to set `spec.privateKey.encoding` to `PKCS8`. By default, cert-manager generates private keys with PKCS1 encoding, which is not supported by Azure Key Vault.
+
+```yaml hl_lines="14"
+{% include 'azkv-pushsecret-certificate-cert-manager.yaml' %}
+```
+
 !!! note
-       In order to create a PushSecret targeting keys, `ImportCertificate` and `DeleteCertificate` actions must be granted to the Service Principal/Identity configured on the SecretStore.
+    In order to create a PushSecret targeting certificates, the [Key Vault Certificates Officer](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-certificates-officer) role, alternatively Access Policy permissions `Import` and `Delete` for Certificates must be granted to the identity configured on the SecretStore.
