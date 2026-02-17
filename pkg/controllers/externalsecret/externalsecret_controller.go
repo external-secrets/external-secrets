@@ -616,18 +616,38 @@ func (r *Reconciler) reconcileGenericTarget(
 	resourceLabels map[string]string,
 	syncCallsError *prometheus.CounterVec,
 ) (ctrl.Result, error) {
-	// retrieve the provider secret data
+	var existing *unstructured.Unstructured
+	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan ||
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		var getErr error
+		existing, getErr = r.getGenericResource(ctx, log, externalSecret)
+		if getErr != nil && !apierrors.IsNotFound(getErr) {
+			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+			return ctrl.Result{}, getErr
+		}
+	}
+
+	valid, err := isGenericTargetValid(existing, externalSecret)
+	if err != nil {
+		log.V(1).Info("unable to validate target", "error", err)
+		return ctrl.Result{}, err
+	}
+
+	if !shouldRefresh(externalSecret) && valid {
+		log.V(1).Info("skipping refresh of generic target")
+		return r.getRequeueResult(externalSecret), nil
+	}
+
 	dataMap, err := r.GetProviderSecretData(ctx, externalSecret)
 	if err != nil {
 		r.markAsFailed(msgErrorGetSecretData, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 		return ctrl.Result{}, err
 	}
 
-	// if no data was found, handle it according to deletion policy
 	if len(dataMap) == 0 {
 		switch externalSecret.Spec.Target.DeletionPolicy {
 		case esv1.DeletionPolicyDelete:
-			// safeguard that we only can delete resources we own
 			creationPolicy := externalSecret.Spec.Target.CreationPolicy
 			if creationPolicy != esv1.CreatePolicyOwner {
 				err = fmt.Errorf("unable to delete resource: creationPolicy=%s is not Owner", creationPolicy)
@@ -635,7 +655,6 @@ func (r *Reconciler) reconcileGenericTarget(
 				return ctrl.Result{}, nil
 			}
 
-			// delete the resource if it exists
 			err = r.deleteGenericResource(ctx, log, externalSecret)
 			if err != nil {
 				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
@@ -650,20 +669,6 @@ func (r *Reconciler) reconcileGenericTarget(
 			return r.getRequeueResult(externalSecret), nil
 
 		case esv1.DeletionPolicyMerge:
-			// continue to process with empty data
-		}
-	}
-
-	// Check if we need to fetch existing resource first (for Merge and Owner/Orphan policies)
-	var existing *unstructured.Unstructured
-	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
-		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan ||
-		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
-		var getErr error
-		existing, getErr = r.getGenericResource(ctx, log, externalSecret)
-		if getErr != nil && !apierrors.IsNotFound(getErr) {
-			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
-			return ctrl.Result{}, getErr
 		}
 	}
 
@@ -720,15 +725,15 @@ func (r *Reconciler) reconcileGenericTarget(
 		return ctrl.Result{}, err
 	}
 
-	// Ensure an informer exists for this GVK to enable drift detection (only if not already managed)
-	gvk := getTargetGVK(externalSecret)
-	esName := types.NamespacedName{Name: externalSecret.Name, Namespace: externalSecret.Namespace}
-	if _, err := r.informerManager.EnsureInformer(ctx, gvk, esName); err != nil {
-		// Log the error but don't fail reconciliation - the resource was successfully created/updated
-		log.Error(err, "failed to register informer for generic target, drift detection may not work",
-			"group", gvk.Group,
-			"version", gvk.Version,
-			"kind", gvk.Kind)
+	if externalSecret.Spec.Target.CreationPolicy != esv1.CreatePolicyNone {
+		gvk := getTargetGVK(externalSecret)
+		esName := types.NamespacedName{Name: externalSecret.Name, Namespace: externalSecret.Namespace}
+		if _, err := r.informerManager.EnsureInformer(ctx, gvk, esName); err != nil {
+			log.Error(err, "failed to register informer for generic target, drift detection may not work",
+				"group", gvk.Group,
+				"version", gvk.Version,
+				"kind", gvk.Kind)
+		}
 	}
 
 	r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceSynced, msgSynced)
@@ -1171,6 +1176,45 @@ func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
 	}
 
 	return true
+}
+
+func isGenericTargetValid(existingTarget *unstructured.Unstructured, es *esv1.ExternalSecret) (bool, error) {
+	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan {
+		return true, nil
+	}
+
+	if existingTarget == nil || existingTarget.GetUID() == "" {
+		return false, nil
+	}
+
+	if existingTarget.GetLabels()[esv1.LabelManaged] != esv1.LabelManagedValue {
+		return false, nil
+	}
+
+	hash, err := genericTargetContentHash(existingTarget)
+	if err != nil {
+		return false, fmt.Errorf("failed to hash target: %w", err)
+	}
+
+	if existingTarget.GetAnnotations()[esv1.AnnotationDataHash] != hash {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// genericTargetContentHash computes a hash over the hashable content of an unstructured object.
+// It uses the "spec" field if present, otherwise falls back to "data".
+func genericTargetContentHash(obj *unstructured.Unstructured) (string, error) {
+	content := obj.Object
+	switch {
+	case content["spec"] != nil:
+		return esutils.ObjectHash(content["spec"]), nil
+	case content["data"] != nil:
+		return esutils.ObjectHash(content["data"]), nil
+	default:
+		return "", errors.New("generic target content does not have a spec or data field for content hashing")
+	}
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
