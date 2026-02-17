@@ -23,27 +23,24 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
-func init() {
-	md := Metadata()
-	provider.Register("akeyless", md)
-	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
+var metadata = provider.Metadata{
+	Stability: provider.StabilityStable,
+	Capabilities: []provider.Capability{
+		{Name: provider.CapabilityGetSecret},
+		{Name: provider.CapabilityGetSecretMap},
+		{Name: provider.CapabilityGetAllSecrets},
+		{Name: provider.CapabilitySecretExists},
+		{Name: provider.CapabilityValidate},
+		{Name: provider.CapabilityValidateStore},
+		{Name: provider.CapabilityFindByName},
+		{Name: provider.CapabilityFindByTag},
+		{Name: provider.CapabilityPushSecret},
+		{Name: provider.CapabilityDeletionPolicy},
+		{Name: provider.CapabilityReferentAuthentication},
+	},
 }
 
-func Metadata() provider.Metadata {
-	return provider.Metadata{
-		Stability: provider.StabilityStable,
-		Capabilities: []provider.Capability{
-			{Name: provider.CapabilityGetSecret},
-			{Name: provider.CapabilityGetSecretMap},
-			{Name: provider.CapabilityGetAllSecrets},
-			{Name: provider.CapabilitySecretExists},
-			{Name: provider.CapabilityValidate},
-			{Name: provider.CapabilityValidateStore},
-			{Name: provider.CapabilityFindByName},
-			{Name: provider.CapabilityFindByTag},
-			{Name: provider.CapabilityPushSecret},
-			{Name: provider.CapabilityDeletionPolicy},
-			{Name: provider.CapabilityReferentAuthentication},
-		},
-	}
+func init() {
+	provider.Register("akeyless", metadata)
+	esv1.Register(NewProvider(), ProviderSpec(), metadata.MaintenanceStatus())
 }

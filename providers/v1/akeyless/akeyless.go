@@ -99,7 +99,7 @@ type akeylessVaultInterface interface {
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return metadata.APICapabilities()
 }
 
 // NewClient constructs a new secrets client based on the provided store.
