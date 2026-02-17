@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/providers/v1/doppler/client"
 	"github.com/external-secrets/external-secrets/providers/v1/doppler/fake"
@@ -234,6 +235,92 @@ func TestGetAllSecretsUsesCache(t *testing.T) {
 
 	if callCount.Load() != 2 {
 		t.Errorf("expected 2 API calls, got %d", callCount.Load())
+	}
+}
+
+func TestGetSecretUsesCache(t *testing.T) {
+	etagCache = newSecretsCache(testCacheSize)
+
+	fakeClient := &fake.DopplerClient{}
+
+	var callCount atomic.Int32
+	apiKeyETag := "etag-api-key"
+	dbPassETag := "etag-db-pass"
+
+	fakeClient.WithSecretFunc(func(request client.SecretRequest) (*client.SecretResponse, error) {
+		callCount.Add(1)
+
+		secretName := request.Name
+		var expectedETag string
+		var secretValue string
+
+		switch secretName {
+		case "API_KEY":
+			expectedETag = apiKeyETag
+			secretValue = testAPIKeyValue
+		case "DB_PASS":
+			expectedETag = dbPassETag
+			secretValue = testDBPassValue
+		default:
+			t.Errorf("unexpected secret requested: %s", secretName)
+			return nil, nil
+		}
+
+		if request.ETag == expectedETag {
+			return &client.SecretResponse{Modified: false, ETag: expectedETag}, nil
+		}
+
+		return &client.SecretResponse{
+			Name:     secretName,
+			Value:    secretValue,
+			Modified: true,
+			ETag:     expectedETag,
+		}, nil
+	})
+
+	c := &Client{
+		doppler:   fakeClient,
+		project:   "test-project",
+		config:    "test-config",
+		namespace: "test-namespace",
+		storeName: "test-store",
+		storeKind: "SecretStore",
+	}
+
+	secret, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "API_KEY"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(secret) != testAPIKeyValue {
+		t.Errorf("expected %s, got %s", testAPIKeyValue, secret)
+	}
+
+	secret, err = c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "API_KEY"})
+	if err != nil {
+		t.Fatalf("unexpected error on second call: %v", err)
+	}
+	if string(secret) != testAPIKeyValue {
+		t.Errorf("expected %s on second call, got %s", testAPIKeyValue, secret)
+	}
+
+	secret, err = c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "DB_PASS"})
+	if err != nil {
+		t.Fatalf("unexpected error for DB_PASS: %v", err)
+	}
+	if string(secret) != testDBPassValue {
+		t.Errorf("expected %s, got %s", testDBPassValue, secret)
+	}
+
+	secret, err = c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "DB_PASS"})
+	if err != nil {
+		t.Fatalf("unexpected error on second DB_PASS call: %v", err)
+	}
+	if string(secret) != testDBPassValue {
+		t.Errorf("expected %s on second call, got %s", testDBPassValue, secret)
+	}
+
+	if callCount.Load() != 4 {
+		t.Errorf("expected 4 API calls, got %d", callCount.Load())
 	}
 }
 

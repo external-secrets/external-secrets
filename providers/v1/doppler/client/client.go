@@ -76,6 +76,7 @@ type SecretRequest struct {
 	Name    string
 	Project string
 	Config  string
+	ETag    string
 }
 
 // SecretsRequest represents a request to retrieve multiple secrets.
@@ -95,20 +96,12 @@ type UpdateSecretsRequest struct {
 	Config         string   `json:"config,omitempty"`
 }
 
-type secretResponseBody struct {
-	Name  string `json:"name,omitempty"`
-	Value struct {
-		Raw      *string `json:"raw"`
-		Computed *string `json:"computed"`
-	} `json:"value,omitempty"`
-	Messages *[]string `json:"messages,omitempty"`
-	Success  bool      `json:"success"`
-}
-
 // SecretResponse represents the response from retrieving a secret.
 type SecretResponse struct {
-	Name  string
-	Value string
+	Name     string
+	Value    string
+	Modified bool
+	ETag     string
 }
 
 // SecretsResponse represents the response from retrieving multiple secrets.
@@ -168,22 +161,42 @@ func (c *DopplerClient) Authenticate() error {
 
 // GetSecret retrieves a secret from Doppler.
 func (c *DopplerClient) GetSecret(request SecretRequest) (*SecretResponse, error) {
-	params := request.buildQueryParams(request.Name)
-	response, err := c.performRequest("/v3/configs/config/secret", "GET", headers{}, params, httpRequestBody{})
+	hdrs := headers{}
+	if request.ETag != "" {
+		hdrs["if-none-match"] = request.ETag
+	}
+
+	params := queryParams{}
+	if request.Project != "" {
+		params["project"] = request.Project
+	}
+	if request.Config != "" {
+		params["config"] = request.Config
+	}
+	params["secrets"] = request.Name
+
+	response, err := c.performRequest("/v3/configs/config/secrets/download", "GET", hdrs, params, httpRequestBody{})
 	if err != nil {
 		return nil, err
 	}
 
-	var data secretResponseBody
-	if err := json.Unmarshal(response.Body, &data); err != nil {
+	if response.HTTPResponse.StatusCode == 304 {
+		return &SecretResponse{Modified: false, ETag: request.ETag}, nil
+	}
+
+	eTag := response.HTTPResponse.Header.Get("etag")
+
+	var secrets Secrets
+	if err := json.Unmarshal(response.Body, &secrets); err != nil {
 		return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: string(response.Body)}
 	}
 
-	if data.Value.Computed == nil {
+	value, ok := secrets[request.Name]
+	if !ok {
 		return nil, &APIError{Message: fmt.Sprintf("secret '%s' not found", request.Name)}
 	}
 
-	return &SecretResponse{Name: data.Name, Value: *data.Value.Computed}, nil
+	return &SecretResponse{Name: request.Name, Value: value, Modified: true, ETag: eTag}, nil
 }
 
 // GetSecrets should only have an ETag supplied if Secrets are cached as SecretsResponse.Secrets will be nil if 304 (not modified) returned.
@@ -231,21 +244,6 @@ func (c *DopplerClient) UpdateSecrets(request UpdateSecretsRequest) error {
 		return err
 	}
 	return nil
-}
-
-func (r *SecretRequest) buildQueryParams(name string) queryParams {
-	params := queryParams{}
-	params["name"] = name
-
-	if r.Project != "" {
-		params["project"] = r.Project
-	}
-
-	if r.Config != "" {
-		params["config"] = r.Config
-	}
-
-	return params
 }
 
 func (r *SecretsRequest) buildQueryParams() queryParams {

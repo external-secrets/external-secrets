@@ -198,18 +198,35 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	if err := c.refreshAuthIfNeeded(ctx); err != nil {
 		return nil, err
 	}
+
+	var etag string
+	cached, hasCached := etagCache.get(c.storeIdentity(), ref.Key)
+	if hasCached {
+		etag = cached.etag
+	}
+
 	request := dclient.SecretRequest{
 		Name:    ref.Key,
 		Project: c.project,
 		Config:  c.config,
+		ETag:    etag,
 	}
 
-	secret, err := c.doppler.GetSecret(request)
+	response, err := c.doppler.GetSecret(request)
 	if err != nil {
 		return nil, fmt.Errorf(errGetSecret, ref.Key, err)
 	}
 
-	return []byte(secret.Value), nil
+	if !response.Modified && hasCached {
+		return []byte(cached.secrets[ref.Key]), nil
+	}
+
+	etagCache.set(c.storeIdentity(), ref.Key, &cacheEntry{
+		etag:    response.ETag,
+		secrets: dclient.Secrets{response.Name: response.Value},
+	})
+
+	return []byte(response.Value), nil
 }
 
 // GetSecretMap retrieves a secret from Doppler and returns it as a map.
