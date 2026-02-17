@@ -28,12 +28,13 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // Provider implements the esv1.Provider interface for Pulumi ESC.
 type Provider struct{}
 
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 const (
 	errClusterStoreRequiresNamespace = "cluster store requires namespace"
@@ -151,13 +152,13 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, err
 }
 
-// Capabilities returns the provider's esv1.SecretStoreCapabilities.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

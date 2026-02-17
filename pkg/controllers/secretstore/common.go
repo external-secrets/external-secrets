@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/external-secrets/external-secrets/runtime/provider"
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -115,10 +116,6 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		}
 		return ctrl.Result{}, err
 	}
-	storeProvider, err := esapi.GetProvider(ss)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	isMaintained, err := esapi.GetMaintenanceStatus(ss)
 	if err != nil {
@@ -138,8 +135,12 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		}
 	}
 
+	capabilities, found := provider.GetCapabilities(ss.GetName())
+	if !found {
+		return ctrl.Result{}, fmt.Errorf("provider capabilities not found in registry")
+	}
 	capStatus := esapi.SecretStoreStatus{
-		Capabilities: storeProvider.Capabilities(),
+		Capabilities: capabilities,
 		Conditions:   ss.GetStatus().Conditions,
 	}
 	ss.SetStatus(capStatus)

@@ -59,9 +59,6 @@ type Provider interface {
 	// The intended use of the warning to indicate a deprecation of behavior
 	// or other type of message that is NOT a validation failure but should be noticed by the user.
 	ValidateStore(store GenericStore) (admission.Warnings, error)
-
-	// Capabilities returns the provider Capabilities (Read, Write, ReadWrite)
-	Capabilities() SecretStoreCapabilities
 }
 
 // +kubebuilder:object:root=false

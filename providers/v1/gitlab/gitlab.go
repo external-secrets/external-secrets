@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -55,7 +56,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &gitlabBase{}
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // ProjectsClient is an interface for interacting with GitLab project APIs.
 type ProjectsClient interface {

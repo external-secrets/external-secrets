@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -41,11 +42,11 @@ const (
 type Provider struct {
 }
 
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreWriteOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -129,7 +130,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

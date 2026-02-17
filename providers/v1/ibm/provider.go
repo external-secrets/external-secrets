@@ -40,6 +40,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -71,7 +72,7 @@ var contextTimeout = time.Minute * 2
 // https://github.com/external-secrets/external-secrets/issues/644
 var (
 	_ esv1.SecretsClient = &providerIBM{}
-	_ esv1.Provider      = &providerIBM{}
+	_ provider.Provider  = &providerIBM{}
 )
 
 // SecretManagerClient defines the interface for interacting with IBM Cloud Secrets Manager.
@@ -649,9 +650,9 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (ibm *providerIBM) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (ibm *providerIBM) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
@@ -769,7 +770,7 @@ func formSecretMap(secretData any) (map[string]any, error) {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &providerIBM{}
 }
 

@@ -31,6 +31,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 var (
@@ -59,9 +60,9 @@ type Provider struct {
 	validationResult *esv1.ValidationResult
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
@@ -260,7 +261,7 @@ func mapKey(key, version string) string {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

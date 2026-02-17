@@ -34,6 +34,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -53,9 +54,9 @@ type ProviderPassbolt struct {
 	client Client
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (provider *ProviderPassbolt) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *ProviderPassbolt) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // Client defines the interface for interacting with the Passbolt API.
@@ -309,7 +310,7 @@ func assureLoggedIn(ctx context.Context, client Client) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &ProviderPassbolt{}
 }
 

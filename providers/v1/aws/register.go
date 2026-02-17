@@ -19,7 +19,6 @@ limitations under the License.
 package aws
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
@@ -44,7 +43,5 @@ func Metadata() provider.Metadata {
 }
 
 func init() {
-	md := Metadata()
-	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
-	provider.Register("aws", md)
+	provider.Register("aws", NewProvider(), ProviderSpec())
 }

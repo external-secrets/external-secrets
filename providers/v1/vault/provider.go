@@ -35,10 +35,11 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 var (
-	_           esv1.Provider = &Provider{}
+	_           provider.Provider = &Provider{}
 	enableCache bool
 	logger      = ctrl.Log.WithName("provider").WithName("vault")
 	clientCache *cache.Cache[vaultutil.Client]
@@ -82,9 +83,9 @@ func NewVaultClient(config *vault.Config) (vaultutil.Client, error) {
 	}, nil
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient implements the Client interface.
@@ -345,7 +346,7 @@ func init() {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{
 		NewVaultClient: NewVaultClient,
 	}

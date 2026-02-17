@@ -33,13 +33,14 @@ import (
 // PP is a minimal test provider that satisfies esv1.Provider.
 type PP struct{}
 
-func (p *PP) Capabilities() esv1.SecretStoreCapabilities { return esv1.SecretStoreReadOnly }
 func (p *PP) NewClient(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 	return p, nil
 }
 func (p *PP) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error { return nil }
 func (p *PP) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error            { return nil }
-func (p *PP) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error)    { return false, nil }
+func (p *PP) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
+	return false, nil
+}
 func (p *PP) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return []byte("NOOP"), nil
 }
@@ -49,8 +50,8 @@ func (p *PP) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef)
 func (p *PP) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return map[string][]byte{}, nil
 }
-func (p *PP) Close(_ context.Context) error                      { return nil }
-func (p *PP) Validate() (esv1.ValidationResult, error)           { return esv1.ValidationResultReady, nil }
+func (p *PP) Close(_ context.Context) error                                 { return nil }
+func (p *PP) Validate() (esv1.ValidationResult, error)                      { return esv1.ValidationResultReady, nil }
 func (p *PP) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) { return nil, nil }
 
 const shouldBeRegistered = "provider should be registered"

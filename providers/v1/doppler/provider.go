@@ -34,6 +34,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/feature"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -47,7 +48,7 @@ type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 var (
 	enableCache      bool
@@ -85,9 +86,9 @@ func initCache(cacheSize int) {
 	}
 }
 
-// Capabilities returns the provider's supported capabilities.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient creates a new Doppler client.
@@ -237,7 +238,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

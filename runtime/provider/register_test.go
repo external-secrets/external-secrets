@@ -22,59 +22,58 @@ import (
 	"testing"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	_ "github.com/external-secrets/external-secrets/pkg/register" // to register all built providers
+	_ "github.com/external-secrets/external-secrets/pkg/register" // registers all built providers
 	"github.com/external-secrets/external-secrets/runtime/provider"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSelectiveBuild(t *testing.T) {
-	// This test verifies that build tags work correctly
-	// When run with specific tags, only those providers should be registered
-
 	providers := provider.List()
 	t.Logf("Registered providers: %d", len(providers))
-
-	// Should have at least one provider
 	assert.NotEmpty(t, providers, "No providers registered - check build tags")
-
-	// Log what we got
 	for name := range providers {
 		t.Logf("  - %s", name)
 	}
 }
 
-func TestAllProvidersRegisteredInAPIRegistry(t *testing.T) {
-	// Test that metadata and provider registration are in sync
-	// This test is future-proof: it works with any set of providers
-	// based on the build tags used.
-
+// TestSingleRegistrySync verifies the single registry backs both provider.List()
+// and esv1.GetProviderByName() / esv1.List() via hooks.
+func TestSingleRegistrySync(t *testing.T) {
 	providers := provider.List()
-	assert.NotEmpty(t, providers, "No providers registered metadata")
+	require.NotEmpty(t, providers, "No providers registered")
 
-	for providerName := range providers {
-		// Verify provider is also registered in API
+	for providerName, entry := range providers {
 		pName := string(providerName)
-		_, ok := esv1.GetProviderByName(pName)
-		assert.True(t, ok,
-			"Provider %s has metadata but is not registered in API", providerName)
+
+		// The esv1 stubs must resolve to the same provider instance via hooks.
+		p, ok := esv1.GetProviderByName(pName)
+		assert.True(t, ok, "Provider %s is in runtime registry but esv1.GetProviderByName() returned false", pName)
+		assert.Equal(t, entry.Provider, p, "Provider %s: esv1.GetProviderByName() returned different instance than registry", pName)
 	}
+
+	// esv1.List() must also return the same set.
+	apiProviders := esv1.List()
+	assert.Equal(t, len(providers), len(apiProviders),
+		"provider.List() and esv1.List() have different lengths — single registry out of sync")
 }
 
-func TestAllProvidersRegisteredInProviderRegistry(t *testing.T) {
-	ProvidersRegisteredInAPI := esv1.List()
-	assert.NotEmpty(t, ProvidersRegisteredInAPI, "No providers registered in API")
-	for providerName := range ProvidersRegisteredInAPI {
-		_, ok := provider.Get(providerName)
-		assert.True(t, ok, "Provider %s is in API but has no registered metadata", providerName)
-	}
-}
-
-func TestProvidersHaveStability(t *testing.T) {
+func TestAllProvidersHaveStability(t *testing.T) {
 	providers := provider.List()
-	assert.NotEmpty(t, providers, "No providers registered in API")
+	require.NotEmpty(t, providers, "No providers registered")
 
-	for pName := range providers {
-		meta, _ := provider.Get(string(pName))
-		assert.NotEmpty(t, meta.Stability, "Provider %s has no stability", string(pName))
+	for pName, entry := range providers {
+		assert.NotEmpty(t, entry.Metadata.Stability,
+			"Provider %s has no stability set", string(pName))
+	}
+}
+
+func TestAllProvidersHaveProviderInstance(t *testing.T) {
+	providers := provider.List()
+	require.NotEmpty(t, providers, "No providers registered")
+
+	for pName, entry := range providers {
+		assert.NotNil(t, entry.Provider,
+			"Provider %s has a registry entry but nil Provider instance", string(pName))
 	}
 }

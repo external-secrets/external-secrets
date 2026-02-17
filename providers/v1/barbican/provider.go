@@ -28,6 +28,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -37,14 +38,14 @@ const (
 	errClientInit   = "barbican provider client initialization failed: %w"
 )
 
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // Provider implements the Barbican provider.
 type Provider struct{}
 
-// Capabilities returns the capabilities of the Barbican provider.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // ValidateStore validates the Barbican store configuration.
@@ -120,7 +121,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 }
 
 // NewProvider constructs a new Barbican provider.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

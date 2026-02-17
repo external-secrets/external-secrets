@@ -110,20 +110,6 @@ func (r *Registry) List() map[Name]RegistryEntry {
 	return result
 }
 
-// HasCapability checks if a provider supports a capability.
-func (r *Registry) HasCapability(providerName string, capability CapabilityName) bool {
-	entry, ok := r.Get(providerName)
-	if !ok {
-		return false
-	}
-	for _, c := range entry.Metadata.Capabilities {
-		if c.Name == capability {
-			return true
-		}
-	}
-	return false
-}
-
 // Global registry instance for production use.
 var globalRegistry = NewRegistry()
 
@@ -232,11 +218,6 @@ func List() map[Name]RegistryEntry {
 	return globalRegistry.List()
 }
 
-// HasCapability checks if a provider supports a capability in the global registry.
-func HasCapability(providerName string, capability CapabilityName) bool {
-	return globalRegistry.HasCapability(providerName, capability)
-}
-
 // getProviderName returns the name of the configured provider
 // by marshaling the SecretStoreProvider spec to JSON and finding the single non-null key.
 func getProviderName(storeSpec *esv1.SecretStoreProvider) (string, error) {
@@ -260,4 +241,12 @@ func getProviderName(storeSpec *esv1.SecretStoreProvider) (string, error) {
 	}
 
 	return "", errors.New("failed to find registered store backend")
+}
+
+func GetCapabilities(providerName string) (esv1.SecretStoreCapabilities, bool) {
+	entry, ok := globalRegistry.Get(providerName)
+	if !ok {
+		return esv1.SecretStoreReadOnly, false
+	}
+	return entry.Metadata.APICapabilities(), true
 }

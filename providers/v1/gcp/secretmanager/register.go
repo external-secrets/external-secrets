@@ -19,14 +19,11 @@ limitations under the License.
 package secretmanager
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 func init() {
-	md := Metadata()
-	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
-	provider.Register("gcpsm", md)
+	provider.Register("gcpsm", NewProvider(), ProviderSpec())
 }
 
 func Metadata() provider.Metadata {

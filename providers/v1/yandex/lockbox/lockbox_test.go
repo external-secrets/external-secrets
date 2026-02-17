@@ -38,6 +38,7 @@ import (
 	ydxcommon "github.com/external-secrets/external-secrets/providers/v1/yandex/common"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/common/clock"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/lockbox/client"
+	rtprovider "github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -70,7 +71,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 	}
-	esv1.ForceRegister(NewProvider(), ProviderSpec(), MaintenanceStatus())
+	rtprovider.ForceRegister("yandexlockbox", NewProvider(), ProviderSpec())
 	provider, err := esv1.GetProvider(store)
 	tassert.Nil(t, err)
 

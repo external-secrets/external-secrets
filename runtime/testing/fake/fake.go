@@ -181,11 +181,6 @@ func (v *Client) WithNew(f func(context.Context, esv1.GenericStore, client.Clien
 	return v
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (v *Client) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
-}
-
 // NewClient returns a new fake provider.
 func (v *Client) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	c, err := v.NewFn(ctx, store, kube, namespace)

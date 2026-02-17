@@ -30,6 +30,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 var (
@@ -60,10 +61,9 @@ var getSecretsClient secretsClientFactory = func(cfg *ngrok.ClientConfig) Secret
 // Provider implements the ngrok provider for External Secrets Operator.
 type Provider struct{}
 
-// Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite). Currently,
-// ngrok only supports WriteOnly capabilities.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreWriteOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient implements the Client interface.
@@ -177,7 +177,7 @@ func getConfig(store esv1.GenericStore) (*esv1.NgrokProvider, error) {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

@@ -19,7 +19,6 @@ limitations under the License.
 package fake
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
@@ -60,7 +59,5 @@ func Metadata() provider.Metadata {
 }
 
 func init() {
-	md := Metadata()
-	provider.Register("fake", md)
-	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
+	provider.Register("fake", NewProvider(), ProviderSpec())
 }

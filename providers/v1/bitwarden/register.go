@@ -19,14 +19,11 @@ limitations under the License.
 package bitwarden
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 func init() {
-	md := Metadata()
-	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
-	provider.Register("bitwardensecretsmanager", md)
+	provider.Register("bitwardensecretsmanager", NewProvider(), ProviderSpec())
 }
 
 func Metadata() provider.Metadata {

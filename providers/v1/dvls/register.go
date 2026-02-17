@@ -19,14 +19,11 @@ limitations under the License.
 package dvls
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 func init() {
-	md := Metadata()
-	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
-	provider.Register("dvls", md)
+	provider.Register("dvls", NewProvider(), ProviderSpec())
 }
 
 func Metadata() provider.Metadata {

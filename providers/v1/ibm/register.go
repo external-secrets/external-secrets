@@ -19,13 +19,11 @@ limitations under the License.
 package ibm
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 func init() {
-	esv1.Register(NewProvider(), ProviderSpec(), MaintenanceStatus())
-	provider.Register("ibm", Metadata())
+	provider.Register("ibm", NewProvider(), ProviderSpec())
 }
 
 func Metadata() provider.Metadata {

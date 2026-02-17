@@ -288,5 +288,5 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 func TestProvider_Capabilities(t *testing.T) {
 	p := &Provider{}
-	assert.Equal(t, esv1.SecretStoreReadOnly, p.Capabilities())
+	assert.Equal(t, esv1.SecretStoreReadOnly, p.Metadata().APICapabilities())
 }

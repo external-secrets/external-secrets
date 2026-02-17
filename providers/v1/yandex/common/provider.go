@@ -41,7 +41,7 @@ import (
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.Provider = &YandexCloudProvider{}
+var _ rtprovider.Provider = &YandexCloudProvider{}
 
 // YandexCloudProvider implements the Provider interface for Yandex.Cloud services.
 type YandexCloudProvider struct {
@@ -138,11 +138,6 @@ const (
 	// ResourceKeyTypeName indicates the resource key is a name.
 	ResourceKeyTypeName ResourceKeyType = iota
 )
-
-// Capabilities returns the esv1.SecretStoreCapabilities of the Yandex.Cloud provider.
-func (p *YandexCloudProvider) Capabilities() esv1.SecretStoreCapabilities {
-	return p.meta.APICapabilities()
-}
 
 // NewClient constructs a Yandex.Cloud Provider.
 func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {

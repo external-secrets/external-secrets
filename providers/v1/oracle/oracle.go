@@ -46,6 +46,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -71,7 +72,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &VaultManagementService{}
-var _ esv1.Provider = &VaultManagementService{}
+var _ provider.Provider = &VaultManagementService{}
 
 // VaultManagementService implements the External Secrets provider interface for Oracle Cloud Infrastructure Vault.
 type VaultManagementService struct {
@@ -287,9 +288,9 @@ func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1.Ex
 	return secretData, nil
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (vms *VaultManagementService) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (vms *VaultManagementService) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -718,7 +719,7 @@ func sanitizeOCISDKErr(err error) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &VaultManagementService{}
 }
 

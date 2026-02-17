@@ -19,14 +19,11 @@ limitations under the License.
 package pulumi
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 func init() {
-	md := Metadata()
-	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
-	provider.Register("pulumi", md)
+	provider.Register("pulumi", NewProvider(), ProviderSpec())
 }
 
 func Metadata() provider.Metadata {

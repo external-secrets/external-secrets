@@ -373,7 +373,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 func TestProvider_Capabilities(t *testing.T) {
 	p := &Provider{}
-	assert.Equal(t, esv1.SecretStoreReadWrite, p.Capabilities())
+	assert.Equal(t, esv1.SecretStoreReadWrite, p.Metadata().APICapabilities())
 }
 
 func TestNewProvider(t *testing.T) {
@@ -387,9 +387,4 @@ func TestProviderSpec(t *testing.T) {
 	spec := ProviderSpec()
 	assert.NotNil(t, spec)
 	assert.NotNil(t, spec.DVLS)
-}
-
-func TestMaintenanceStatus(t *testing.T) {
-	status := MaintenanceStatus()
-	assert.Equal(t, esv1.MaintenanceStatusMaintained, status)
 }

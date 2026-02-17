@@ -551,11 +551,6 @@ func (sm *SecretsManager) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-// Capabilities returns the provider's esv1.SecretStoreCapabilities.
-func (sm *SecretsManager) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
-}
-
 func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretName string, psd esv1.PushSecretData, value []byte) error {
 	mdata, err := sm.constructMetadataWithDefaults(psd.GetMetadata())
 	if err != nil {

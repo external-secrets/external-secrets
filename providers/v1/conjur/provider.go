@@ -26,6 +26,7 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // Provider implements the External Secrets provider interface for Conjur.
@@ -51,10 +52,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return p.NewConjurProvider(ctx, store, kube, namespace, clientset.CoreV1(), &ClientAPIImpl{})
 }
 
-// Capabilities returns the provider's supported capabilities.
-// Conjur provider supports read-only access to secrets.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // newConjurProvider creates and returns a new Conjur client with the specified configuration.
@@ -77,7 +77,7 @@ func newConjurProvider(
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{
 		NewConjurProvider: newConjurProvider,
 	}

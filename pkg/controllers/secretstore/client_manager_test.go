@@ -429,10 +429,6 @@ func (f *WrapProvider) NewClient(
 	return f.newClientFunc(ctx, store, kube, namespace)
 }
 
-func (f *WrapProvider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
-}
-
 // ValidateStore checks if the provided store is valid.
 func (f *WrapProvider) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) {
 	return nil, nil

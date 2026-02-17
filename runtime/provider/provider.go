@@ -22,6 +22,6 @@ import esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v
 // It unifies the API-level esv1.Provider interface with MetadataReporter,
 // ensuring every provider exposes its metadata alongside its secrets operations.
 type Provider interface {
-	esv1.Provider    // NewClient(), ValidateStore(), Capabilities()
+	esv1.Provider    // NewClient(), ValidateStore()
 	MetadataReporter // Metadata() Metadata
 }

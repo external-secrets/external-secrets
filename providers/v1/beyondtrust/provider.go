@@ -41,6 +41,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esutils "github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -98,9 +99,9 @@ type AuthenticatorInput struct {
 	RetryMaxElapsedTimeMinutes int
 }
 
-// Capabilities implements v1beta1.Provider.
-func (*Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // Close implements v1beta1.SecretsClient.
@@ -421,7 +422,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

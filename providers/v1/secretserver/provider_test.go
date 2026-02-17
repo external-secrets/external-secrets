@@ -642,13 +642,13 @@ func TestCapabilities(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			p := &Provider{}
-			got := p.Capabilities()
+			got := p.Metadata().APICapabilities()
 			assert.Equal(t, tc.want, got)
 
 			// Edge: call Capabilities on nil Provider
 			var nilP *Provider
 			if nilP != nil {
-				assert.Equal(t, esv1.SecretStoreReadOnly, nilP.Capabilities())
+				assert.Equal(t, esv1.SecretStoreReadOnly, nilP.Metadata().APICapabilities())
 			}
 		})
 	}

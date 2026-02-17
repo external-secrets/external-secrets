@@ -27,9 +27,10 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // Provider implements the external-secrets Provider interface for DVLS.
 type Provider struct{}
@@ -86,9 +87,9 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
-// Capabilities returns the provider's capabilities.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // validateAuthSecretRef validates the authentication secret references.
@@ -131,7 +132,7 @@ func getDVLSProvider(store esv1.GenericStore) (*esv1.DVLSProvider, error) {
 }
 
 // NewProvider creates a new DVLS Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

@@ -33,6 +33,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // Provider satisfies the provider interface.
@@ -50,9 +51,9 @@ type gitlabBase struct {
 	groupVariablesClient   GroupVariablesClient
 }
 
-// Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (g *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (g *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient creates a new GitLab client with the given store configuration.
@@ -190,7 +191,7 @@ func (g *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

@@ -30,6 +30,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // Provider is a secrets provider for GCP Secret Manager.
@@ -38,7 +39,7 @@ type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 /*
 Currently, GCPSM client has a limitation around how concurrent connections work
@@ -49,9 +50,9 @@ A Mutex was implemented to make sure only one connection can be in place at a ti
 */
 var useMu = sync.Mutex{}
 
-// Capabilities returns the provider's capabilities to read/write secrets.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient constructs a GCP Provider.
@@ -171,7 +172,7 @@ func isReferentSpec(prov *esv1.GCPSMProvider) bool {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

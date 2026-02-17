@@ -38,6 +38,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -353,13 +354,13 @@ func (providerchef *Providerchef) SecretExists(_ context.Context, _ esv1.PushSec
 	return false, errors.New(errNotImplemented)
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (providerchef *Providerchef) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (providerchef *Providerchef) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Providerchef{}
 }
 

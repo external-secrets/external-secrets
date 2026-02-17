@@ -29,6 +29,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // Requires PASSWORDDEPOT_TOKEN and PASSWORDDEPOT_PROJECT_ID to be set in environment variables
@@ -58,9 +59,9 @@ func (p *PasswordDepot) ValidateStore(esv1.GenericStore) (admission.Warnings, er
 	return nil, nil
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *PasswordDepot) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *PasswordDepot) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // Client for interacting with kubernetes cluster...?
@@ -199,7 +200,7 @@ func (p *PasswordDepot) Close(_ context.Context) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &PasswordDepot{}
 }
 

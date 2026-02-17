@@ -30,6 +30,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // Provider implements provider interface for Fortanix Key Management.
@@ -45,11 +46,11 @@ const (
 	errAPIKeySecretRefKeyIsRequired  = "apiKey.secretRef.key is required"
 )
 
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
-// Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient creates a new Fortanix Key Management client.
@@ -126,7 +127,7 @@ func validateSecretStoreRef(store esv1.GenericStore, ref *esv1.FortanixProviderS
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

@@ -38,6 +38,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/cloudru/secretmanager/adapter"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // ProviderSpec returns the provider specification for registration.
@@ -45,7 +46,7 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 	return &esv1.SecretStoreProvider{CloudruSM: &esv1.CloudruSMProvider{}}
 }
 
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 var _ esv1.SecretsClient = &Client{}
 
 // Provider is a secrets provider for Cloud.ru Secret Manager.
@@ -177,9 +178,9 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
-// Capabilities returns the provider Capabilities (ReadOnly).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 func provideEndpoints() (discoveryURL, tokenURL, smURL string, err error) {

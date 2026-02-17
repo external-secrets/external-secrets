@@ -37,10 +37,11 @@ import (
 	"github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // Provider satisfies the provider interface.
 type Provider struct{}
@@ -53,9 +54,9 @@ const (
 	errInvalidSecretsManager  = "invalid SecretsManager settings: %s"
 )
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -230,7 +231,7 @@ func (f fixedDelayer) BackoffDelay(int, error) (time.Duration, error) {
 }
 
 // NewProvider creates a new AWS Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

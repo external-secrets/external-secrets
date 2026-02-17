@@ -29,10 +29,11 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	senhaseguraAuth "github.com/external-secrets/external-secrets/providers/v1/senhasegura/auth"
 	"github.com/external-secrets/external-secrets/providers/v1/senhasegura/dsm"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // Provider struct that satisfier ESO interface.
 type Provider struct{}
@@ -48,9 +49,9 @@ const (
 	errMissingClientID            = "missing senhasegura authentication Client ID"
 )
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient construct a new secrets client based on provided store.
@@ -119,7 +120,7 @@ func validateStore(store esv1.GenericStore) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

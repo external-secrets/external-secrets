@@ -31,6 +31,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 var (
@@ -38,14 +39,14 @@ var (
 	log           = ctrl.Log.WithName("provider").WithName("scaleway")
 )
 
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // Provider is a Scaleway provider implementation that satisfies the esv1.Provider interface.
 type Provider struct{}
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient creates a new secrets client based on provided store.
@@ -174,7 +175,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

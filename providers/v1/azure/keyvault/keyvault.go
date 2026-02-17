@@ -66,6 +66,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -115,7 +116,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Azure{}
-var _ esv1.Provider = &Azure{}
+var _ provider.Provider = &Azure{}
 
 // SecretClient is an interface to keyvault.BaseClient.
 type SecretClient interface {
@@ -155,9 +156,9 @@ type PushSecretMetadataSpec struct {
 	Tags           map[string]string `json:"tags,omitempty"`
 }
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (a *Azure) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (a *Azure) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -1440,7 +1441,7 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Azure{}
 }
 

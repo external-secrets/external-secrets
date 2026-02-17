@@ -38,6 +38,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakegitlab "github.com/external-secrets/external-secrets/providers/v1/gitlab/fake"
+	rtprovider "github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -350,7 +351,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 	}
-	esv1.ForceRegister(NewProvider(), ProviderSpec(), MaintenanceStatus())
+	rtprovider.ForceRegisterProvider(NewProvider(), ProviderSpec())
 	provider, err := esv1.GetProvider(store)
 	tassert.Nil(t, err)
 

@@ -25,7 +25,7 @@ import (
 
 func TestSecretManagerCapabilities(t *testing.T) {
 	previderProvider := &SecretManager{}
-	if previderProvider.Capabilities() != esv1.SecretStoreReadOnly {
+	if previderProvider.Metadata().APICapabilities() != esv1.SecretStoreReadOnly {
 		t.Errorf("Store does not return correct value for capabilities")
 	}
 }

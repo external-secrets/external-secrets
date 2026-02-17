@@ -32,11 +32,12 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // KClient defines the interface for interacting with Kubernetes Secrets.
 type KClient interface {
@@ -89,9 +90,9 @@ type Client struct {
 	namespace string
 }
 
-// Capabilities returns the provider's supported capabilities (ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient constructs a Kubernetes Provider.
@@ -174,7 +175,7 @@ func (p *Provider) Close(_ context.Context) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

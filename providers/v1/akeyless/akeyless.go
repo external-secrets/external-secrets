@@ -58,7 +58,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Akeyless{}
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // Provider satisfies the provider interface.
 type Provider struct{}
@@ -100,12 +100,7 @@ type akeylessVaultInterface interface {
 
 // Metadata returns the provider metadata.
 func (p *Provider) Metadata() provider.Metadata {
-	return metadata
-}
-
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return p.Metadata().APICapabilities()
+	return Metadata()
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -576,7 +571,7 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

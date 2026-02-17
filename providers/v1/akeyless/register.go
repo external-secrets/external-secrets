@@ -39,7 +39,11 @@ var metadata = provider.Metadata{
 	},
 }
 
+// Metadata returns the package-level metadata for the akeyless provider.
+func Metadata() provider.Metadata {
+	return metadata
+}
+
 func init() {
-	provider.Register("akeyless", metadata)
-	esv1.Register(NewProvider(), ProviderSpec(), metadata.MaintenanceStatus())
+	provider.Register("akeyless", NewProvider(), ProviderSpec())
 }

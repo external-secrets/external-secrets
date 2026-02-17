@@ -19,14 +19,11 @@ limitations under the License.
 package infisical
 
 import (
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 func init() {
-	md := Metadata()
-	esv1.Register(NewProvider(), ProviderSpec(), md.MaintenanceStatus())
-	provider.Register("infisical", md)
+	provider.Register("infisical", NewProvider(), ProviderSpec())
 }
 
 func Metadata() provider.Metadata {

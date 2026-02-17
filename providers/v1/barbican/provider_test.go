@@ -49,7 +49,7 @@ type validateStoreTestCase struct {
 
 func TestProviderCapabilities(t *testing.T) {
 	provider := &Provider{}
-	capabilities := provider.Capabilities()
+	capabilities := provider.Metadata().APICapabilities()
 
 	assert.Equal(t, esv1.SecretStoreReadOnly, capabilities)
 }

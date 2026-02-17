@@ -93,7 +93,7 @@ var _ = Describe("Provider", func() {
 
 	Describe("Capabilities", func() {
 		It("should return write-only capability", func() {
-			cap := provider.Capabilities()
+			cap := provider.Metadata().APICapabilities()
 			Expect(cap).To(Equal(esv1.SecretStoreWriteOnly))
 		})
 	})

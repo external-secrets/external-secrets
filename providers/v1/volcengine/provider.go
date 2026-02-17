@@ -27,9 +27,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
-var _ esv1.Provider = &Provider{}
+var _ provider.Provider = &Provider{}
 
 // Provider implements the actual SecretsClient interface.
 type Provider struct{}
@@ -69,9 +70,9 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, validateAuthSecretRef(store, volcengineProvider.Auth.SecretRef)
 }
 
-// Capabilities implements v1.Provider.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // validateAuthSecretRef validates the SecretRef for static credentials.
@@ -103,7 +104,7 @@ func getVolcengineProvider(store esv1.GenericStore) (*esv1.VolcengineProvider, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &Provider{}
 }
 

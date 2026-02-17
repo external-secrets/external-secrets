@@ -399,12 +399,6 @@ func TestValidate(t *testing.T) {
 	t.Log("Error: ", err)
 }
 
-func TestCapabilities(t *testing.T) {
-	pc := Providerchef{}
-	capabilities := pc.Capabilities()
-	t.Log(capabilities)
-}
-
 // Test Cases To be added when Close function is implemented.
 func TestClose(_ *testing.T) {
 	pc := Providerchef{}

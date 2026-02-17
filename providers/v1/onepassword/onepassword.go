@@ -40,6 +40,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
+	provider "github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -103,14 +104,12 @@ type PushSecretMetadataSpec struct {
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var (
-	_ esv1.SecretsClient = &ProviderOnePassword{}
-	_ esv1.Provider      = &ProviderOnePassword{}
-)
+var _ esv1.SecretsClient = &ProviderOnePassword{}
+var _ provider.Provider = &ProviderOnePassword{}
 
-// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (provider *ProviderOnePassword) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadWrite
+// Metadata returns the provider metadata.
+func (p *ProviderOnePassword) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // NewClient constructs a 1Password Provider.
@@ -814,7 +813,7 @@ func hasUniqueVaultNumbers(vaults map[string]int) bool {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &ProviderOnePassword{}
 }
 

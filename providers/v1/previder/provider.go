@@ -29,6 +29,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const (
@@ -93,9 +94,9 @@ func (s *SecretManager) ValidateStore(store esv1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-// Capabilities returns the capabilities of the Previder Vault provider.
-func (s *SecretManager) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+// Metadata returns the provider metadata.
+func (s *SecretManager) Metadata() provider.Metadata {
+	return Metadata()
 }
 
 // GetSecret retrieves a secret from Previder Vault.
@@ -153,7 +154,7 @@ func (s *SecretManager) Close(context.Context) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() provider.Provider {
 	return &SecretManager{}
 }
 
