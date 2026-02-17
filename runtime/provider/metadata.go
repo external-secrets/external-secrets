@@ -49,3 +49,26 @@ func (m Metadata) MaintenanceStatus() v1.MaintenanceStatus {
 	}
 	return v1.MaintenanceStatusMaintained
 }
+
+// APICapabilities derives the SecretStore capabilities (ReadOnly/WriteOnly/ReadWrite)
+// from the provider's capability list in metadata.
+func (m Metadata) APICapabilities() v1.SecretStoreCapabilities {
+	var canRead, canWrite bool
+
+	for _, capability := range m.Capabilities {
+		switch capability.Name {
+		case CapabilityGetSecret, CapabilityGetSecretMap, CapabilityGetAllSecrets:
+			canRead = true
+		case CapabilityPushSecret, CapabilityDeleteSecret:
+			canWrite = true
+		}
+	}
+
+	if canRead && canWrite {
+		return v1.SecretStoreReadWrite
+	}
+	if canWrite {
+		return v1.SecretStoreWriteOnly
+	}
+	return v1.SecretStoreReadOnly
+}
