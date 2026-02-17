@@ -18,10 +18,10 @@ package provider
 
 import v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 
-// Name contains the name of the provider in the feature registry
+// Name contains the name of the provider in the Provider (feature) registry
 type Name string
 
-// Metadata represents the complete view of provider supportability state
+// Metadata represents the complete view of provider supportability state. It must be implemented in each provider.
 type Metadata struct {
 	Stability    Stability    `json:"stability"`
 	Capabilities []Capability `json:"capabilities,omitempty"`
@@ -39,7 +39,7 @@ const (
 	StabilityDeprecated   Stability = "Deprecated"
 )
 
-// Maintained https://github.com/external-secrets/external-secrets/issues/5494
+// MaintenanceStatus derives the MaintenanceStatus reporter to the user based on Provider Metadata, see https://github.com/external-secrets/external-secrets/issues/5494
 func (m Metadata) MaintenanceStatus() v1.MaintenanceStatus {
 	if m.Stability == StabilityUnmaintained {
 		return v1.MaintenanceStatusNotMaintained
@@ -51,7 +51,7 @@ func (m Metadata) MaintenanceStatus() v1.MaintenanceStatus {
 }
 
 // APICapabilities derives the SecretStore capabilities (ReadOnly/WriteOnly/ReadWrite)
-// from the provider's capability list in metadata.
+// from the provider's full capability list in their metadata, to be used in API.
 func (m Metadata) APICapabilities() v1.SecretStoreCapabilities {
 	var canRead, canWrite bool
 
@@ -71,4 +71,9 @@ func (m Metadata) APICapabilities() v1.SecretStoreCapabilities {
 		return v1.SecretStoreWriteOnly
 	}
 	return v1.SecretStoreReadOnly
+}
+
+// MetadataReporter is a way to guarantee each provider will report their metadata.
+type MetadataReporter interface {
+	Metadata() Metadata
 }

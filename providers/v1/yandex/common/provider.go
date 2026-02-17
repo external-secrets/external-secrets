@@ -35,6 +35,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/yandex/common/clock"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	rtprovider "github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
@@ -44,6 +45,7 @@ var _ esv1.Provider = &YandexCloudProvider{}
 
 // YandexCloudProvider implements the Provider interface for Yandex.Cloud services.
 type YandexCloudProvider struct {
+	meta                rtprovider.Metadata
 	logger              logr.Logger
 	clock               clock.Clock
 	adaptInputFunc      AdaptInputFunc
@@ -56,6 +58,11 @@ type YandexCloudProvider struct {
 	iamTokenMapMutex     sync.Mutex
 }
 
+// Metadata returns the provider metadata for this Yandex.Cloud provider instance.
+func (p *YandexCloudProvider) Metadata() rtprovider.Metadata {
+	return p.meta
+}
+
 type iamTokenKey struct {
 	authorizedKeyID  string
 	serviceAccountID string
@@ -64,6 +71,7 @@ type iamTokenKey struct {
 
 // InitYandexCloudProvider creates and initializes a new YandexCloudProvider instance.
 func InitYandexCloudProvider(
+	meta rtprovider.Metadata,
 	logger logr.Logger,
 	clock clock.Clock,
 	adaptInputFunc AdaptInputFunc,
@@ -72,6 +80,7 @@ func InitYandexCloudProvider(
 	iamTokenCleanupDelay time.Duration,
 ) *YandexCloudProvider {
 	provider := &YandexCloudProvider{
+		meta:                meta,
 		logger:              logger,
 		clock:               clock,
 		adaptInputFunc:      adaptInputFunc,
@@ -132,7 +141,7 @@ const (
 
 // Capabilities returns the esv1.SecretStoreCapabilities of the Yandex.Cloud provider.
 func (p *YandexCloudProvider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return p.meta.APICapabilities()
 }
 
 // NewClient constructs a Yandex.Cloud Provider.

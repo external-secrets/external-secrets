@@ -44,6 +44,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 // Ctx is a type used for context keys in Akeyless provider implementations.
@@ -97,9 +98,14 @@ type akeylessVaultInterface interface {
 	DeleteSecret(ctx context.Context, remoteKey string) error
 }
 
+// Metadata returns the provider metadata.
+func (p *Provider) Metadata() provider.Metadata {
+	return metadata
+}
+
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return metadata.APICapabilities()
+	return p.Metadata().APICapabilities()
 }
 
 // NewClient constructs a new secrets client based on the provided store.

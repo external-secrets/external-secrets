@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 var _ esv1.Provider = &Client{}
@@ -80,8 +81,8 @@ func New() *Client {
 }
 
 // RegisterAs registers the fake client in the schema.
-func (v *Client) RegisterAs(provider *esv1.SecretStoreProvider) {
-	esv1.ForceRegister(v, provider, esv1.MaintenanceStatusMaintained)
+func (v *Client) RegisterAs(spec *esv1.SecretStoreProvider) {
+	provider.ForceRegisterProvider(v, spec)
 }
 
 // GetAllSecrets implements the provider.Provider interface.

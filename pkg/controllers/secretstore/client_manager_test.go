@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
 func TestManagerGet(t *testing.T) {
@@ -49,9 +50,9 @@ func TestManagerGet(t *testing.T) {
 	// We have a test provider to control
 	// the behavior of the NewClient func.
 	fakeProvider := &WrapProvider{}
-	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
+	provider.ForceRegisterProvider(fakeProvider, &esv1.SecretStoreProvider{
 		AWS: &esv1.AWSProvider{},
-	}, esv1.MaintenanceStatusMaintained)
+	})
 
 	// fake clients are re-used to compare the
 	// in-memory reference

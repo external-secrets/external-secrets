@@ -43,7 +43,7 @@ func TestSelectiveBuild(t *testing.T) {
 	}
 }
 
-func TestAllProvidersRegisteredInAPI(t *testing.T) {
+func TestAllProvidersRegisteredInAPIRegistry(t *testing.T) {
 	// Test that metadata and provider registration are in sync
 	// This test is future-proof: it works with any set of providers
 	// based on the build tags used.
@@ -60,7 +60,7 @@ func TestAllProvidersRegisteredInAPI(t *testing.T) {
 	}
 }
 
-func TestAllProvidersRegisteredInMetadata(t *testing.T) {
+func TestAllProvidersRegisteredInProviderRegistry(t *testing.T) {
 	ProvidersRegisteredInAPI := esv1.List()
 	assert.NotEmpty(t, ProvidersRegisteredInAPI, "No providers registered in API")
 	for providerName := range ProvidersRegisteredInAPI {

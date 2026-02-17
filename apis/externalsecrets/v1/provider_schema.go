@@ -17,119 +17,64 @@ limitations under the License.
 package v1
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 )
 
-var builder map[string]Provider
-var buildlock sync.RWMutex
+// Registry lookup hooks, set by runtime/provider to avoid circular imports.
+// runtime/provider imports esv1; esv1 must NOT import runtime/provider.
+var (
+	hookMu                   sync.RWMutex
+	getProviderHook          func(GenericStore) (Provider, error)
+	getProviderByNameHook    func(string) (Provider, bool)
+	listProvidersHook        func() map[string]Provider
+	getMaintenanceStatusHook func(GenericStore) (MaintenanceStatus, error)
+)
 
-func init() {
-	builder = make(map[string]Provider)
-}
-
-// Register a store backend type. Register panics if a
-// backend with the same store is already registered.
-func Register(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus MaintenanceStatus) {
-	storeName, err := getProviderName(storeSpec)
-	if err != nil {
-		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
-	}
-
-	RegisterMaintenanceStatus(maintenanceStatus, storeSpec)
-	buildlock.Lock()
-	defer buildlock.Unlock()
-	_, exists := builder[storeName]
-	if exists {
-		panic(fmt.Sprintf("store %q already registered", storeName))
-	}
-
-	builder[storeName] = s
-}
-
-// ForceRegister adds to store schema, overwriting a store if
-// already registered. Should only be used for testing.
-func ForceRegister(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus MaintenanceStatus) {
-	storeName, err := getProviderName(storeSpec)
-	if err != nil {
-		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
-	}
-
-	buildlock.Lock()
-	builder[storeName] = s
-	buildlock.Unlock()
-	ForceRegisterMaintenanceStatus(maintenanceStatus, storeSpec)
-}
-
-// GetProviderByName returns the provider implementation by name.
-func GetProviderByName(name string) (Provider, bool) {
-	buildlock.RLock()
-	f, ok := builder[name]
-	buildlock.RUnlock()
-	return f, ok
+// SetRegistryHooks is called once by runtime/provider's init() to wire up lookups.
+func SetRegistryHooks(
+	getProvider func(GenericStore) (Provider, error),
+	getProviderByName func(string) (Provider, bool),
+	listProviders func() map[string]Provider,
+	getMaintenanceStatus func(GenericStore) (MaintenanceStatus, error),
+) {
+	hookMu.Lock()
+	defer hookMu.Unlock()
+	getProviderHook = getProvider
+	getProviderByNameHook = getProviderByName
+	listProvidersHook = listProviders
+	getMaintenanceStatusHook = getMaintenanceStatus
 }
 
 // GetProvider returns the provider from the generic store.
 func GetProvider(s GenericStore) (Provider, error) {
-	if s == nil {
-		return nil, nil
+	hookMu.RLock()
+	fn := getProviderHook
+	hookMu.RUnlock()
+	if fn == nil {
+		return nil, errors.New("provider registry not initialized — ensure runtime/provider is imported")
 	}
-	spec := s.GetSpec()
-	if spec == nil {
-		// Note, this condition can never be reached, because
-		// the Spec is not a pointer in Kubernetes. It will
-		// always exist.
-		return nil, fmt.Errorf("no spec found in %#v", s)
-	}
-	storeName, err := getProviderName(spec.Provider)
-	if err != nil {
-		return nil, fmt.Errorf("store error for %s: %w", s.GetName(), err)
-	}
-
-	buildlock.RLock()
-	f, ok := builder[storeName]
-	buildlock.RUnlock()
-
-	if !ok {
-		return nil, fmt.Errorf("failed to find registered store backend for type: %s, name: %s", storeName, s.GetName())
-	}
-
-	return f, nil
+	return fn(s)
 }
 
-// getProviderName returns the name of the configured provider
-// or an error if the provider is not configured.
-func getProviderName(storeSpec *SecretStoreProvider) (string, error) {
-	storeBytes, err := json.Marshal(storeSpec)
-	if err != nil || storeBytes == nil {
-		return "", fmt.Errorf("failed to marshal store spec: %w", err)
+// GetProviderByName returns the provider implementation by name.
+func GetProviderByName(name string) (Provider, bool) {
+	hookMu.RLock()
+	fn := getProviderByNameHook
+	hookMu.RUnlock()
+	if fn == nil {
+		return nil, false
 	}
-
-	storeMap := make(map[string]any)
-	err = json.Unmarshal(storeBytes, &storeMap)
-	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal store spec: %w", err)
-	}
-
-	if len(storeMap) != 1 {
-		return "", fmt.Errorf("secret stores must only have exactly one backend specified, found %d", len(storeMap))
-	}
-
-	for k := range storeMap {
-		return k, nil
-	}
-
-	return "", errors.New("failed to find registered store backend")
+	return fn(name)
 }
 
+// List returns all registered provider implementations.
 func List() map[string]Provider {
-	buildlock.RLock()
-	deepCopy := make(map[string]Provider, len(builder))
-	for k, v := range builder {
-		deepCopy[k] = v
+	hookMu.RLock()
+	fn := listProvidersHook
+	hookMu.RUnlock()
+	if fn == nil {
+		return nil
 	}
-	buildlock.RUnlock()
-	return deepCopy
+	return fn()
 }

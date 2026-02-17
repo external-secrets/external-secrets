@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	runtimeprovider "github.com/external-secrets/external-secrets/runtime/provider"
@@ -396,7 +395,7 @@ func Test_providerTable_Swap(t *testing.T) {
 }
 
 func Test_newProviderTable(t *testing.T) {
-	awsMetadata := runtimeprovider.Metadata{
+	firstProviderMetadata := runtimeprovider.Metadata{
 		Stability: runtimeprovider.StabilityStable,
 		Capabilities: []runtimeprovider.Capability{
 			{Name: runtimeprovider.CapabilityGetSecret, Notes: "Supports Secrets Manager and Parameter Store"},
@@ -404,77 +403,77 @@ func Test_newProviderTable(t *testing.T) {
 			{Name: runtimeprovider.CapabilityPushSecret},
 			{Name: runtimeprovider.CapabilityDeleteSecret},
 		},
-		Comment: "AWS Secrets Manager and Parameter Store provider",
+		Comment: "Provider A",
 	}
 	anotherProviderMetadata := runtimeprovider.Metadata{
 		Stability: runtimeprovider.StabilityAlpha,
 		Capabilities: []runtimeprovider.Capability{
 			{Name: runtimeprovider.CapabilityGetSecretMap},
 		},
-		Comment: "Provider 2",
+		Comment: "Provider B",
 	}
 	thirdProviderMetadata := runtimeprovider.Metadata{
 		Stability: runtimeprovider.StabilityAlpha,
 		Capabilities: []runtimeprovider.Capability{
 			{Name: runtimeprovider.CapabilityGetSecret},
 		},
-		Comment: "Provider 3",
+		Comment: "Provider C",
+	}
+	providersEmpty := map[runtimeprovider.Name]runtimeprovider.Metadata{}
+	providersAB := map[runtimeprovider.Name]runtimeprovider.Metadata{
+		runtimeprovider.Name("providerA"): firstProviderMetadata,
+		runtimeprovider.Name("providerB"): anotherProviderMetadata,
+	}
+	providersAA := map[runtimeprovider.Name]runtimeprovider.Metadata{
+		runtimeprovider.Name("providerA"): firstProviderMetadata,
+		runtimeprovider.Name("providerB"): firstProviderMetadata,
+	}
+	providersABC := map[runtimeprovider.Name]runtimeprovider.Metadata{
+		runtimeprovider.Name("providerA"): firstProviderMetadata,
+		runtimeprovider.Name("providerB"): anotherProviderMetadata,
+		runtimeprovider.Name("providerC"): thirdProviderMetadata,
 	}
 	tests := []struct {
 		name                    string
-		args                    []runtimeprovider.Metadata
+		args                    map[runtimeprovider.Name]runtimeprovider.Metadata
 		wantProviders           int
 		wantMatrixLinesWithTick int
 		wantExtraCapabilities   int
 	}{
 		{
 			name:                    "empty table",
-			args:                    []runtimeprovider.Metadata{},
+			args:                    providersEmpty,
 			wantProviders:           0,
 			wantMatrixLinesWithTick: 0,
 			wantExtraCapabilities:   0,
 		},
 		{
-			name: "two providers but only one in matrix",
-			args: []runtimeprovider.Metadata{
-				awsMetadata,
-				anotherProviderMetadata,
-			},
+			name:                    "two providers but only one in matrix",
+			args:                    providersAB,
 			wantProviders:           2,
-			wantMatrixLinesWithTick: 1,
-			wantExtraCapabilities:   2,
+			wantMatrixLinesWithTick: 1, //Only A has tick with CapabilityGetSecret
+			wantExtraCapabilities:   2, //CapabilityGetSecretMap should appear here
 		},
 		{
-			name: "two providers in matrix",
-			args: []runtimeprovider.Metadata{
-				awsMetadata,
-				awsMetadata,
-			},
+			name:                    "two providers in matrix",
+			args:                    providersAA,
 			wantProviders:           2,
 			wantMatrixLinesWithTick: 2,
 			wantExtraCapabilities:   2,
 		},
 		{
-			name: "three providers, mixed",
-			args: []runtimeprovider.Metadata{
-				awsMetadata,
-				anotherProviderMetadata,
-				thirdProviderMetadata,
-			},
+			name:                    "three providers, mixed",
+			args:                    providersABC,
 			wantProviders:           3,
-			wantMatrixLinesWithTick: 2,
-			wantExtraCapabilities:   2,
+			wantMatrixLinesWithTick: 2, //A and C
+			wantExtraCapabilities:   2, //A and B
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a local registry for this test to avoid global state pollution
-			localRegistry := runtimeprovider.NewRegistry()
-			for i, provider := range tt.args {
-				localRegistry.Register(fmt.Sprintf("provider%d", i), provider)
-			}
-			table := newProviderTable(localRegistry.List())
+			table := newProviderTable(tt.args)
 			gotProviders := len(table)
 			if gotProviders != tt.wantProviders {
 				t.Errorf("newProviderTable() gotProviders = %v, want %v", gotProviders, tt.wantProviders)

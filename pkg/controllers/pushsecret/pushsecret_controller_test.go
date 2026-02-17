@@ -35,6 +35,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -60,9 +61,9 @@ type testCase struct {
 
 func init() {
 	fakeProvider = fake.New()
-	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
+	provider.ForceRegisterProvider(fakeProvider, &esv1.SecretStoreProvider{
 		Fake: &esv1.FakeProvider{},
-	}, esv1.MaintenanceStatusMaintained)
+	})
 	psmetrics.SetUpMetrics()
 }
 

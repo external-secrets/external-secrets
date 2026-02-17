@@ -76,7 +76,12 @@ var (
 func main() {
 	flag.Parse()
 
-	matrix := runtimeprovider.List()
+	providers := runtimeprovider.List()
+	matrix := make(map[runtimeprovider.Name]runtimeprovider.Metadata, len(providers))
+
+	for providerName, providerData := range providers {
+		matrix[providerName] = providerData.Metadata
+	}
 
 	var output string
 	switch *outputFormat {
@@ -137,7 +142,7 @@ func newProviderTable(matrix map[runtimeprovider.Name]runtimeprovider.Metadata) 
 			line.DisplayedCapabilities[string(capability)] = providerCapabilities[capability]
 		}
 
-		// Extend the info with data outside the short list
+		// Extend the info with metadata outside the short list
 		for _, providerCapability := range metadata.Capabilities {
 			if _, ok := line.DisplayedCapabilities[string(providerCapability.Name)]; !ok {
 				line.ExtraCapabilities = append(line.ExtraCapabilities, providerCapability)

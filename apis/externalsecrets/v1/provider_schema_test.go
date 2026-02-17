@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+// Package v1_test exercises the esv1 provider lookup stubs via the runtime/provider registry.
+package v1_test
 
 import (
 	"context"
@@ -24,185 +25,76 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 )
 
+// PP is a minimal test provider that satisfies esv1.Provider.
 type PP struct{}
+
+func (p *PP) Capabilities() esv1.SecretStoreCapabilities { return esv1.SecretStoreReadOnly }
+func (p *PP) NewClient(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+	return p, nil
+}
+func (p *PP) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error { return nil }
+func (p *PP) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error            { return nil }
+func (p *PP) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error)    { return false, nil }
+func (p *PP) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	return []byte("NOOP"), nil
+}
+func (p *PP) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	return map[string][]byte{}, nil
+}
+func (p *PP) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
+	return map[string][]byte{}, nil
+}
+func (p *PP) Close(_ context.Context) error                      { return nil }
+func (p *PP) Validate() (esv1.ValidationResult, error)           { return esv1.ValidationResultReady, nil }
+func (p *PP) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) { return nil, nil }
 
 const shouldBeRegistered = "provider should be registered"
 
-func (p *PP) Capabilities() SecretStoreCapabilities {
-	return SecretStoreReadOnly
-}
-
-// New constructs a SecretsManager Provider.
-func (p *PP) NewClient(_ context.Context, _ GenericStore, _ client.Client, _ string) (SecretsClient, error) {
-	return p, nil
-}
-
-// PushSecret writes a single secret into a provider.
-func (p *PP) PushSecret(_ context.Context, _ *corev1.Secret, _ PushSecretData) error {
-	return nil
-}
-
-// DeleteSecret deletes a single secret from a provider.
-func (p *PP) DeleteSecret(_ context.Context, _ PushSecretRemoteRef) error {
-	return nil
-}
-
-// Exists checks if a secret is already present in the provider at the given location.
-func (p *PP) SecretExists(_ context.Context, _ PushSecretRemoteRef) (bool, error) {
-	return false, nil
-}
-
-// GetSecret returns a single secret from the provider.
-func (p *PP) GetSecret(_ context.Context, _ ExternalSecretDataRemoteRef) ([]byte, error) {
-	return []byte("NOOP"), nil
-}
-
-// GetSecretMap returns multiple k/v pairs from the provider.
-func (p *PP) GetSecretMap(_ context.Context, _ ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return map[string][]byte{}, nil
-}
-
-// Empty GetAllSecrets.
-func (p *PP) GetAllSecrets(_ context.Context, _ ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return map[string][]byte{}, nil
-}
-
-func (p *PP) Close(_ context.Context) error {
-	return nil
-}
-
-func (p *PP) Validate() (ValidationResult, error) {
-	return ValidationResultReady, nil
-}
-
-func (p *PP) ValidateStore(_ GenericStore) (admission.Warnings, error) {
-	return nil, nil
-}
-
-// TestRegister tests if the Register function
-// (1) panics if it tries to register something invalid
-// (2) stores the correct provider.
-func TestRegister(t *testing.T) {
-	tbl := []struct {
-		test      string
-		name      string
-		expPanic  bool
-		expExists bool
-		provider  *SecretStoreProvider
-	}{
-		{
-			test:      "should panic when given an invalid provider",
-			name:      "aws",
-			expPanic:  true,
-			expExists: false,
-			provider:  &SecretStoreProvider{},
-		},
-		{
-			test:      "should register an correct provider",
-			name:      "aws",
-			expExists: false,
-			provider: &SecretStoreProvider{
-				AWS: &AWSProvider{
-					Service: AWSServiceSecretsManager,
-				},
-			},
-		},
-		{
-			test:      "should panic if already exists",
-			name:      "aws",
-			expPanic:  true,
-			expExists: true,
-			provider: &SecretStoreProvider{
-				AWS: &AWSProvider{
-					Service: AWSServiceSecretsManager,
-				},
-			},
-		},
-	}
-	for i := range tbl {
-		row := tbl[i]
-		t.Run(row.test, func(t *testing.T) {
-			runTest(t,
-				row.name,
-				row.provider,
-				row.expPanic,
-			)
-		})
-	}
-}
-
-func runTest(t *testing.T, name string, provider *SecretStoreProvider, expPanic bool) {
+func TestGetProviderByName(t *testing.T) {
 	testProvider := &PP{}
-	secretStore := &SecretStore{
-		Spec: SecretStoreSpec{
-			Provider: provider,
+	provider.ForceRegisterProvider(testProvider, &esv1.SecretStoreProvider{
+		AWS: &esv1.AWSProvider{
+			Service: esv1.AWSServiceSecretsManager,
 		},
-	}
-	if expPanic {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Errorf("Register should panic")
-			}
-		}()
-	}
-	Register(testProvider, secretStore.Spec.Provider, MaintenanceStatusMaintained)
-	p1, ok := GetProviderByName(name)
+	})
+
+	p1, ok := esv1.GetProviderByName("aws")
 	assert.True(t, ok, shouldBeRegistered)
 	assert.Equal(t, testProvider, p1)
-	p2, err := GetProvider(secretStore)
+}
+
+func TestGetProvider(t *testing.T) {
+	testProvider := &PP{}
+	spec := &esv1.SecretStoreProvider{
+		GCPSM: &esv1.GCPSMProvider{},
+	}
+	provider.ForceRegisterProvider(testProvider, spec)
+
+	secretStore := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: spec,
+		},
+	}
+	p2, err := esv1.GetProvider(secretStore)
 	assert.Nil(t, err)
 	assert.Equal(t, testProvider, p2)
 }
 
-// ForceRegister is used by other tests, we should ensure it works as expected.
-func TestForceRegister(t *testing.T) {
+func TestListProviders(t *testing.T) {
 	testProvider := &PP{}
-	provider := &SecretStoreProvider{
-		AWS: &AWSProvider{
-			Service: AWSServiceParameterStore,
+	provider.ForceRegisterProvider(testProvider, &esv1.SecretStoreProvider{
+		AWS: &esv1.AWSProvider{
+			Service: esv1.AWSServiceParameterStore,
 		},
-	}
-	secretStore := &SecretStore{
-		Spec: SecretStoreSpec{
-			Provider: provider,
-		},
-	}
-	ForceRegister(testProvider, &SecretStoreProvider{
-		AWS: &AWSProvider{
-			Service: AWSServiceParameterStore,
-		},
-	}, MaintenanceStatusMaintained)
-	p1, ok := GetProviderByName("aws")
-	assert.True(t, ok, shouldBeRegistered)
-	assert.Equal(t, testProvider, p1)
-	p2, err := GetProvider(secretStore)
-	assert.Nil(t, err)
-	assert.Equal(t, testProvider, p2)
-}
+	})
 
-func TestRegisterGCP(t *testing.T) {
-	p, ok := GetProviderByName("gcpsm")
-	assert.Nil(t, p)
-	assert.False(t, ok, "provider should not be registered")
-
-	testProvider := &PP{}
-	secretStore := &SecretStore{
-		Spec: SecretStoreSpec{
-			Provider: &SecretStoreProvider{
-				GCPSM: &GCPSMProvider{},
-			},
-		},
-	}
-
-	ForceRegister(testProvider, secretStore.Spec.Provider, MaintenanceStatusMaintained)
-	p1, ok := GetProviderByName("gcpsm")
-	assert.True(t, ok, shouldBeRegistered)
-	assert.Equal(t, testProvider, p1)
-
-	p2, err := GetProvider(secretStore)
-	assert.Nil(t, err)
-	assert.Equal(t, testProvider, p2)
+	providers := esv1.List()
+	assert.NotNil(t, providers)
+	_, ok := providers["aws"]
+	assert.True(t, ok, "aws provider should be in list")
 }

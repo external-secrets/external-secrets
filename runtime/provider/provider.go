@@ -1,5 +1,3 @@
-//go:build yandexcertificatemanager || all_providers
-
 /*
 Copyright © 2026 ESO Maintainer Team
 
@@ -16,23 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package certificatemanager
+package provider
 
-import (
-	"github.com/external-secrets/external-secrets/runtime/provider"
-)
+import esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 
-func init() {
-	provider.Register("yandexcertificatemanager", NewProvider(), ProviderSpec())
-}
-
-func Metadata() provider.Metadata {
-	return provider.Metadata{
-		Stability: provider.StabilityAlpha,
-		Capabilities: []provider.Capability{
-			{
-				Name: provider.CapabilityGetSecret,
-			},
-		},
-	}
+// Provider is the combined interface every provider struct must satisfy.
+// It unifies the API-level esv1.Provider interface with MetadataReporter,
+// ensuring every provider exposes its metadata alongside its secrets operations.
+type Provider interface {
+	esv1.Provider    // NewClient(), ValidateStore(), Capabilities()
+	MetadataReporter // Metadata() Metadata
 }

@@ -20,6 +20,7 @@ package provider
 type CapabilityName string
 
 // A series of capability Names for standard implementations.
+// This can _later_ be moved to more interfaces in this package, guaranteeing an easy observation
 const (
 	CapabilityGetSecret              CapabilityName = "GetSecret"
 	CapabilityGetSecretMap           CapabilityName = "GetSecretMap"

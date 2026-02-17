@@ -45,6 +45,7 @@ import (
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -3058,11 +3059,11 @@ func externalSecretConditionShouldBe(name, ns string, ct esv1.ExternalSecretCond
 
 func init() {
 	fakeProvider = fake.New()
-	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
+	provider.ForceRegisterProvider(fakeProvider, &esv1.SecretStoreProvider{
 		AWS: &esv1.AWSProvider{
 			Service: esv1.AWSServiceSecretsManager,
 		},
-	}, esv1.MaintenanceStatusMaintained)
+	})
 
 	ctrlmetrics.SetUpLabelNames(false)
 	esmetrics.SetUpMetrics()

@@ -16,10 +16,7 @@ limitations under the License.
 
 package v1
 
-import (
-	"fmt"
-	"sync"
-)
+import "errors"
 
 // MaintenanceStatus defines a type for different maintenance states of a provider schema.
 type MaintenanceStatus string
@@ -31,69 +28,14 @@ const (
 	MaintenanceStatusDeprecated    MaintenanceStatus = "Deprecated"
 )
 
-var maintenance map[string]MaintenanceStatus
-var mlock sync.RWMutex
-
-func init() {
-	maintenance = make(map[string]MaintenanceStatus)
-}
-
-// RegisterMaintenanceStatus registers the maintenance status of the provider from the generic store.
-// It panics if the provider is already registered or if there is an error getting the provider name.
-func RegisterMaintenanceStatus(status MaintenanceStatus, storeSpec *SecretStoreProvider) {
-	storeName, err := getProviderName(storeSpec)
-	if err != nil {
-		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
-	}
-
-	mlock.Lock()
-	defer mlock.Unlock()
-	_, exists := maintenance[storeName]
-	if exists {
-		panic(fmt.Sprintf("store %q already registered", storeName))
-	}
-
-	maintenance[storeName] = status
-}
-
-// ForceRegisterMaintenanceStatus registers the maintenance status of the provider from the generic store.
-// It panics if there is an error getting the provider name, it overwrites existing provider status or
-// stores new status for a provider if it exists.
-func ForceRegisterMaintenanceStatus(status MaintenanceStatus, storeSpec *SecretStoreProvider) {
-	storeName, err := getProviderName(storeSpec)
-	if err != nil {
-		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
-	}
-
-	mlock.Lock()
-	defer mlock.Unlock()
-	maintenance[storeName] = status
-}
-
 // GetMaintenanceStatus returns the maintenance status of the provider from the generic store.
+// It delegates to the hook set by runtime/provider to avoid circular imports.
 func GetMaintenanceStatus(s GenericStore) (MaintenanceStatus, error) {
-	if s == nil {
-		return MaintenanceStatusNotMaintained, nil
+	hookMu.RLock()
+	fn := getMaintenanceStatusHook
+	hookMu.RUnlock()
+	if fn == nil {
+		return MaintenanceStatusNotMaintained, errors.New("provider registry not initialized — ensure runtime/provider is imported")
 	}
-	spec := s.GetSpec()
-	if spec == nil {
-		// Note, this condition can never be reached, because
-		// the Spec is not a pointer in Kubernetes. It will
-		// always exist.
-		return MaintenanceStatusNotMaintained, fmt.Errorf("no spec found in %#v", s)
-	}
-	storeName, err := getProviderName(spec.Provider)
-	if err != nil {
-		return MaintenanceStatusNotMaintained, fmt.Errorf("store error for %s: %w", s.GetName(), err)
-	}
-
-	mlock.RLock()
-	status, ok := maintenance[storeName]
-	mlock.RUnlock()
-
-	if !ok {
-		return MaintenanceStatusNotMaintained, fmt.Errorf("failed to find registered store backend for type: %s, name: %s", storeName, s.GetName())
-	}
-
-	return status, nil
+	return fn(s)
 }

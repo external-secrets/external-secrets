@@ -32,6 +32,7 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/runtime/provider"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -42,9 +43,9 @@ func init() {
 	ctrlmetrics.SetUpLabelNames(false)
 	cpsmetrics.SetUpMetrics()
 	fakeProvider = fake.New()
-	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
+	provider.ForceRegisterProvider(fakeProvider, &esv1.SecretStoreProvider{
 		Fake: &esv1.FakeProvider{},
-	}, esv1.MaintenanceStatusMaintained)
+	})
 }
 
 var (
