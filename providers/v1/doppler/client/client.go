@@ -84,7 +84,7 @@ type SecretsRequest struct {
 	Config          string
 	NameTransformer string
 	Format          string
-	ETag            string // Specifying an ETag implies that the caller has implemented response caching
+	ETag            string
 }
 
 // UpdateSecretsRequest represents a request to update secrets in Doppler.

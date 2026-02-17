@@ -53,10 +53,12 @@ var (
 	enableCache          bool
 	oidcClientCache      *cache.Cache[esv1.SecretsClient]
 	defaultOIDCCacheSize = 2 << 17
+	defaultETagCacheSize = 1 << 14
 )
 
 func init() {
 	var dopplerOIDCCacheSize int
+	var dopplerETagCacheSize int
 	fs := pflag.NewFlagSet("doppler", pflag.ExitOnError)
 	fs.BoolVar(
 		&enableCache,
@@ -69,10 +71,18 @@ func init() {
 		"experimental-doppler-oidc-cache-size",
 		defaultOIDCCacheSize,
 		"Maximum size of Doppler OIDC provider cache. Set to 0 to disable caching. Only used if --experimental-enable-doppler-oidc-cache is set.")
+	fs.IntVar(
+		&dopplerETagCacheSize,
+		"doppler-etag-cache-size",
+		defaultETagCacheSize,
+		"Maximum size of Doppler ETag-based secrets cache. Set to 0 to disable caching.")
 
 	feature.Register(feature.Feature{
-		Flags:      fs,
-		Initialize: func() { initOIDCCache(dopplerOIDCCacheSize) },
+		Flags: fs,
+		Initialize: func() {
+			initOIDCCache(dopplerOIDCCacheSize)
+			initETagCache(dopplerETagCacheSize)
+		},
 	})
 }
 
@@ -82,6 +92,12 @@ func initOIDCCache(cacheSize int) {
 		oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
 			// No cleanup is needed when evicting OIDC clients from cache
 		})
+	}
+}
+
+func initETagCache(cacheSize int) {
+	if etagCache == nil {
+		etagCache = newSecretsCache(cacheSize)
 	}
 }
 
@@ -119,6 +135,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		store:     dopplerStoreSpec,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+		storeName: store.GetObjectMeta().Name,
 	}
 
 	if err := p.setupClientAuth(ctx, client, dopplerStoreSpec, store, namespace); err != nil {
