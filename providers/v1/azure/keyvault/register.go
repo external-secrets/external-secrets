@@ -25,19 +25,3 @@ import (
 func init() {
 	provider.Register("azurekv", NewProvider(), ProviderSpec())
 }
-
-func Metadata() provider.Metadata {
-	return provider.Metadata{
-		Stability: provider.StabilityStable,
-		Capabilities: []provider.Capability{
-			{Name: provider.CapabilityGetSecret},
-			{Name: provider.CapabilityFindByName},
-			{Name: provider.CapabilityFindByTag},
-			{Name: provider.CapabilityMetadataPolicyFetch},
-			{Name: provider.CapabilityReferentAuthentication},
-			{Name: provider.CapabilityValidateStore},
-			{Name: provider.CapabilityPushSecret},
-			{Name: provider.CapabilityDeletionPolicy},
-		},
-	}
-}

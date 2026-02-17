@@ -63,7 +63,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
-	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
+	metadatautils "github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/provider"
@@ -154,11 +154,6 @@ type Azure struct {
 type PushSecretMetadataSpec struct {
 	ExpirationDate string            `json:"expirationDate,omitempty"`
 	Tags           map[string]string `json:"tags,omitempty"`
-}
-
-// Metadata returns the provider metadata.
-func (a *Azure) Metadata() provider.Metadata {
-	return Metadata()
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -720,13 +715,13 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		return err
 	}
 
-	metadata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
+	secretMetadata, err := metadatautils.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
 
-	if metadata != nil && metadata.Spec.ExpirationDate != "" {
-		t, err := time.Parse(time.RFC3339, metadata.Spec.ExpirationDate)
+	if secretMetadata != nil && secretMetadata.Spec.ExpirationDate != "" {
+		t, err := time.Parse(time.RFC3339, secretMetadata.Spec.ExpirationDate)
 		if err != nil {
 			return fmt.Errorf("error parsing expiration date in metadata: %w. Expected format: YYYY-MM-DDTHH:MM:SSZ (RFC3339). Example: 2024-12-31T20:00:00Z", err)
 		}
@@ -734,11 +729,11 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		expires = &unixTime
 	}
 
-	if metadata != nil && metadata.Spec.Tags != nil {
-		if _, exists := metadata.Spec.Tags[managedBy]; exists {
+	if secretMetadata != nil && secretMetadata.Spec.Tags != nil {
+		if _, exists := secretMetadata.Spec.Tags[managedBy]; exists {
 			return fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
 		}
-		tags = metadata.Spec.Tags
+		tags = secretMetadata.Spec.Tags
 	}
 
 	objectType, secretName := getObjType(esv1.ExternalSecretDataRemoteRef{Key: data.GetRemoteKey()})

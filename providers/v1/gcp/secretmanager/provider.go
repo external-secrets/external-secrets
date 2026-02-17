@@ -50,11 +50,6 @@ A Mutex was implemented to make sure only one connection can be in place at a ti
 */
 var useMu = sync.Mutex{}
 
-// Metadata returns the provider metadata.
-func (p *Provider) Metadata() provider.Metadata {
-	return Metadata()
-}
-
 // NewClient constructs a GCP Provider.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()

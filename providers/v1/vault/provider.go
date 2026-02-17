@@ -83,11 +83,6 @@ func NewVaultClient(config *vault.Config) (vaultutil.Client, error) {
 	}, nil
 }
 
-// Metadata returns the provider metadata.
-func (p *Provider) Metadata() provider.Metadata {
-	return Metadata()
-}
-
 // NewClient implements the Client interface.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs

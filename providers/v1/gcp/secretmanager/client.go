@@ -43,7 +43,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
-	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
+	metadatautils "github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/util/locks"
@@ -198,7 +198,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		if pushSecretData.GetMetadata() != nil {
 			replica := &secretmanagerpb.Replication_UserManaged_Replica{}
 			var err error
-			meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
+			meta, err := metadatautils.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
 			if err != nil {
 				return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
 			}

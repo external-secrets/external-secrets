@@ -25,23 +25,3 @@ import (
 func init() {
 	provider.Register("gcpsm", NewProvider(), ProviderSpec())
 }
-
-func Metadata() provider.Metadata {
-	return provider.Metadata{
-		Stability: provider.StabilityStable,
-		Capabilities: []provider.Capability{
-			{Name: provider.CapabilityGetSecret},
-			{Name: provider.CapabilityGetSecretMap},
-			{Name: provider.CapabilityGetAllSecrets},
-			{Name: provider.CapabilitySecretExists},
-			{Name: provider.CapabilityValidate},
-			{Name: provider.CapabilityValidateStore},
-			{Name: provider.CapabilityFindByName},
-			{Name: provider.CapabilityFindByTag},
-			{Name: provider.CapabilityMetadataPolicyFetch},
-			{Name: provider.CapabilityPushSecret},
-			{Name: provider.CapabilityDeletionPolicy},
-			{Name: provider.CapabilityReferentAuthentication},
-		},
-	}
-}
