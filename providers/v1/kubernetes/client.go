@@ -105,9 +105,20 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 }
 
 // SecretExists checks if a secret exists in Kubernetes.
-// This method is not implemented and always returns an error.
-func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	secret, err := c.userSecretClient.Get(ctx, ref.GetRemoteKey(), metav1.GetOptions{})
+	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if ref.GetProperty() != "" {
+		_, ok := secret.Data[ref.GetProperty()]
+		return ok, nil
+	}
+	return true, nil
 }
 
 // PushSecret creates or updates a secret in Kubernetes.
