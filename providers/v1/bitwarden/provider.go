@@ -89,11 +89,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}, nil
 }
 
-// Metadata returns the provider metadata.
-func (p *Provider) Metadata() provider.Metadata {
-	return Metadata()
-}
-
 // ValidateStore validates the store.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()

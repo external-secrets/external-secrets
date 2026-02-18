@@ -17,15 +17,13 @@ limitations under the License.
 package provider
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// RegistryEntry holds both the provider implementation and its metadata.
+// RegistryEntry holds both the provider Information and its metadata.
 type RegistryEntry struct {
 	Provider esv1.Provider
 	Metadata Metadata
@@ -44,59 +42,67 @@ func NewRegistry() *Registry {
 	}
 }
 
-func (r *Registry) store(name string, p esv1.Provider, md Metadata) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.providers[Name(name)] = RegistryEntry{Provider: p, Metadata: md}
+func (r *Registry) Add(spec *esv1.SecretStoreProvider, p *esv1.Provider, md *Metadata) error {
+	return r.createOrUpdateStore(spec, p, md, true)
 }
 
-func (r *Registry) storeName(spec *esv1.SecretStoreProvider, p esv1.Provider, md Metadata) error {
-	name, err := getProviderName(spec)
+func (r *Registry) Replace(spec *esv1.SecretStoreProvider, p *esv1.Provider, md *Metadata) error {
+	return r.createOrUpdateStore(spec, p, md, false)
+}
+
+func (r *Registry) createOrUpdateStore(spec *esv1.SecretStoreProvider, p *esv1.Provider, md *Metadata, createOnly bool) error {
+	name, err := esv1.GetProviderName(spec)
 	if err != nil {
 		return err
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	_, exists := r.providers[Name(name)]
-	if exists {
+	if exists && createOnly {
 		return fmt.Errorf("store %q already registered", name)
 	}
-	r.providers[Name(name)] = RegistryEntry{Provider: p, Metadata: md}
-	return nil
-}
-
-func (r *Registry) forceName(spec *esv1.SecretStoreProvider, p esv1.Provider, md Metadata) error {
-	name, err := getProviderName(spec)
-	if err != nil {
-		return err
+	if md == nil {
+		return fmt.Errorf("store %q does not have a metadata", name)
 	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.providers[Name(name)] = RegistryEntry{Provider: p, Metadata: md}
+	r.providers[Name(name)] = RegistryEntry{Provider: *p, Metadata: *md}
 	return nil
 }
 
-// Get returns the registry entry for a provider by name.
-func (r *Registry) Get(providerName string) (RegistryEntry, bool) {
+//
+//// GetProviderByName returns the registry entry for a provider and whether it was found.
+//func (r *Registry) GetProviderByName(providerName string) (esv1.Provider, error) {
+//	provider, found := r.fetch(providerName)
+//	if !found {
+//		return nil, fmt.Errorf("provider %q not found", providerName)
+//	}
+//	return provider, nil
+//}
+//
+//// GetProviderBySpec looks up a provider by its SecretStoreProvider spec.
+//func (r *Registry) GetProviderBySpec(spec *esv1.SecretStoreProvider) (esv1.Provider, error) {
+//	name, err := getProviderName(spec)
+//	if err != nil {
+//		return nil, err
+//	}
+//	entry, found := r.fetch(name)
+//	if !found {
+//		return nil, fmt.Errorf("failed to find registered store backend for type: %s", name)
+//	}
+//	return entry, nil
+//}
+
+func (r *Registry) Fetch(name string) (esv1.Provider, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	entry, ok := r.providers[Name(providerName)]
-	return entry, ok
+	entry, ok := r.providers[Name(name)]
+	return entry.Provider, ok
 }
 
-// GetBySpec looks up a provider by its SecretStoreProvider spec.
-func (r *Registry) GetBySpec(spec *esv1.SecretStoreProvider) (esv1.Provider, error) {
-	name, err := getProviderName(spec)
-	if err != nil {
-		return nil, err
-	}
+func (r *Registry) FetchMetadata(name string) (Metadata, bool) {
 	r.mu.RLock()
+	defer r.mu.RUnlock()
 	entry, ok := r.providers[Name(name)]
-	r.mu.RUnlock()
-	if !ok {
-		return nil, fmt.Errorf("failed to find registered store backend for type: %s", name)
-	}
-	return entry.Provider, nil
+	return entry.Metadata, ok
 }
 
 // List returns a copy of all registered entries.
@@ -117,41 +123,44 @@ func init() {
 	// Wire up esv1 lookup stubs to delegate to this registry.
 	// This avoids circular imports: runtime/provider imports esv1, not vice versa.
 	esv1.SetRegistryHooks(
-		func(store esv1.GenericStore) (esv1.Provider, error) {
-			return GetProvider(store)
+		func(providerName string) (esv1.Provider, error) {
+			return GetProviderFromRegistry(providerName, globalRegistry)
 		},
-		func(name string) (esv1.Provider, bool) {
-			return GetProviderByName(name)
-		},
-		func() map[string]esv1.Provider {
-			entries := globalRegistry.List()
-			result := make(map[string]esv1.Provider, len(entries))
-			for name, entry := range entries {
-				result[string(name)] = entry.Provider
-			}
-			return result
-		},
-		func(store esv1.GenericStore) (esv1.MaintenanceStatus, error) {
-			return GetMaintenanceStatus(store)
+		func(providerName string) (esv1.MaintenanceStatus, error) {
+			return GetMaintenanceStatusFromRegistry(providerName, globalRegistry)
 		},
 	)
 }
 
-// Register stores provider + metadata in the single global registry.
-// It panics if a provider with the same name is already registered.
-func Register(name string, p Provider, spec *esv1.SecretStoreProvider) {
-	md := p.Metadata()
-	if err := globalRegistry.storeName(spec, p, md); err != nil {
-		panic(fmt.Sprintf("store error registering provider: %s", err.Error()))
+// GetProviderFromRegistry returns the provider implementation for the given store from the given registry.
+func GetProviderFromRegistry(providerName string, registry *Registry) (esv1.Provider, error) {
+	if registry == nil {
+		return nil, fmt.Errorf("registry is nil")
 	}
+	p, found := registry.Fetch(providerName)
+	if !found {
+		return nil, fmt.Errorf("provider %s not found in the registry", providerName)
+	}
+	return p, nil
 }
 
-// ForceRegister registers a provider, overwriting any existing entry.
-// For use in tests where the provider implements the combined Provider interface.
-func ForceRegister(name string, p Provider, spec *esv1.SecretStoreProvider) {
-	md := p.Metadata()
-	if err := globalRegistry.forceName(spec, p, md); err != nil {
-		panic(fmt.Sprintf("store error force-registering provider: %s", err.Error()))
+// GetMaintenanceStatusFromRegistry derives the maintenance status from the stored Metadata.
+func GetMaintenanceStatusFromRegistry(providerName string, registry *Registry) (esv1.MaintenanceStatus, error) {
+	if registry == nil {
+		return esv1.MaintenanceStatusUnknown, fmt.Errorf("registry is nil")
+	}
+	p, found := registry.FetchMetadata(providerName)
+	if !found {
+		return esv1.MaintenanceStatusUnknown, fmt.Errorf("provider %s not found in the registry", providerName)
+	}
+	return p.MaintenanceStatus(), nil
+}
+
+// Register stores provider + metadata in the single global registry.
+// It panics if a provider with the same name is already registered.
+func Register(p *esv1.Provider, spec *esv1.SecretStoreProvider, md *Metadata, registry *Registry) {
+	if err := registry.Add(spec, p, md); err != nil {
+		panic(fmt.Sprintf("store error registering provider: %s", err.Error()))
 	}
 }
 
@@ -168,22 +177,6 @@ func Get(providerName string) (RegistryEntry, bool) {
 	return globalRegistry.Get(providerName)
 }
 
-// GetProvider returns the provider implementation for the given store.
-func GetProvider(store esv1.GenericStore) (esv1.Provider, error) {
-	if store == nil {
-		return nil, nil
-	}
-	spec := store.GetSpec()
-	if spec == nil {
-		return nil, fmt.Errorf("no spec found in %#v", store)
-	}
-	p, err := globalRegistry.GetBySpec(spec.Provider)
-	if err != nil {
-		return nil, fmt.Errorf("store error for %s: %w", store.GetName(), err)
-	}
-	return p, nil
-}
-
 // GetProviderByName returns the provider implementation by name.
 func GetProviderByName(name string) (esv1.Provider, bool) {
 	entry, ok := globalRegistry.Get(name)
@@ -193,54 +186,9 @@ func GetProviderByName(name string) (esv1.Provider, bool) {
 	return entry.Provider, true
 }
 
-// GetMaintenanceStatus derives the maintenance status from the stored Metadata.
-func GetMaintenanceStatus(store esv1.GenericStore) (esv1.MaintenanceStatus, error) {
-	if store == nil {
-		return esv1.MaintenanceStatusNotMaintained, nil
-	}
-	spec := store.GetSpec()
-	if spec == nil {
-		return esv1.MaintenanceStatusNotMaintained, fmt.Errorf("no spec found in %#v", store)
-	}
-	name, err := getProviderName(spec.Provider)
-	if err != nil {
-		return esv1.MaintenanceStatusNotMaintained, fmt.Errorf("store error for %s: %w", store.GetName(), err)
-	}
-	entry, ok := globalRegistry.Get(name)
-	if !ok {
-		return esv1.MaintenanceStatusNotMaintained, fmt.Errorf("failed to find registered store backend for type: %s, name: %s", name, store.GetName())
-	}
-	return entry.Metadata.MaintenanceStatus(), nil
-}
-
 // List returns all registered provider entries from the global registry.
 func List() map[Name]RegistryEntry {
 	return globalRegistry.List()
-}
-
-// getProviderName returns the name of the configured provider
-// by marshaling the SecretStoreProvider spec to JSON and finding the single non-null key.
-func getProviderName(storeSpec *esv1.SecretStoreProvider) (string, error) {
-	storeBytes, err := json.Marshal(storeSpec)
-	if err != nil || storeBytes == nil {
-		return "", fmt.Errorf("failed to marshal store spec: %w", err)
-	}
-
-	storeMap := make(map[string]any)
-	err = json.Unmarshal(storeBytes, &storeMap)
-	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal store spec: %w", err)
-	}
-
-	if len(storeMap) != 1 {
-		return "", fmt.Errorf("secret stores must only have exactly one backend specified, found %d", len(storeMap))
-	}
-
-	for k := range storeMap {
-		return k, nil
-	}
-
-	return "", errors.New("failed to find registered store backend")
 }
 
 func GetCapabilities(providerName string) (esv1.SecretStoreCapabilities, bool) {

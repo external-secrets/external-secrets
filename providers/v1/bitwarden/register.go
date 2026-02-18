@@ -25,21 +25,3 @@ import (
 func init() {
 	provider.Register("bitwardensecretsmanager", NewProvider(), ProviderSpec())
 }
-
-func Metadata() provider.Metadata {
-	return provider.Metadata{
-		Stability: provider.StabilityAlpha,
-		Capabilities: []provider.Capability{
-			{Name: provider.CapabilityGetSecret},
-			{Name: provider.CapabilityGetSecretMap},
-			{Name: provider.CapabilityGetAllSecrets},
-			{Name: provider.CapabilitySecretExists},
-			{Name: provider.CapabilityValidate},
-			{Name: provider.CapabilityValidateStore},
-			{Name: provider.CapabilityFindByName},
-			{Name: provider.CapabilityPushSecret},
-			{Name: provider.CapabilityDeleteSecret},
-			{Name: provider.CapabilityDeletionPolicy},
-		},
-	}
-}

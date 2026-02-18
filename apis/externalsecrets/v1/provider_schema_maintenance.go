@@ -16,8 +16,6 @@ limitations under the License.
 
 package v1
 
-import "errors"
-
 // MaintenanceStatus defines a type for different maintenance states of a provider schema.
 type MaintenanceStatus string
 
@@ -26,16 +24,5 @@ const (
 	MaintenanceStatusMaintained    MaintenanceStatus = "Maintained"
 	MaintenanceStatusNotMaintained MaintenanceStatus = "NotMaintained"
 	MaintenanceStatusDeprecated    MaintenanceStatus = "Deprecated"
+	MaintenanceStatusUnknown       MaintenanceStatus = "Unknown"
 )
-
-// GetMaintenanceStatus returns the maintenance status of the provider from the generic store.
-// It delegates to the hook set by runtime/provider to avoid circular imports.
-func GetMaintenanceStatus(s GenericStore) (MaintenanceStatus, error) {
-	hookMu.RLock()
-	fn := getMaintenanceStatusHook
-	hookMu.RUnlock()
-	if fn == nil {
-		return MaintenanceStatusNotMaintained, errors.New("provider registry not initialized — ensure runtime/provider is imported")
-	}
-	return fn(s)
-}
