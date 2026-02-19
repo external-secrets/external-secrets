@@ -1016,8 +1016,8 @@ github.com/sacloud/go-http v0.1.9 h1:Xa5PY8/pb7XWhwG9nAeXSrYXPbtfBWqawgzxD5co3VE
 github.com/sacloud/go-http v0.1.9/go.mod h1:DpDG+MSyxYaBwPJ7l3aKLMzwYdTVtC5Bo63HActcgoE=
 github.com/sacloud/packages-go v0.0.12 h1:MKeZNN3FQn1heqUSRBrbZw89YusZA1n4kammjMFZYvQ=
 github.com/sacloud/packages-go v0.0.12/go.mod h1:XNF5MCTWcHo9NiqWnYctVbASSSZR3ZOmmQORIzcurJ8=
-github.com/sacloud/saclient-go v0.2.7 h1:oUduqQhlD5KBAWRCza3vc3Mhp1aFZCgr6/IKtVe3KIc=
-github.com/sacloud/saclient-go v0.2.7/go.mod h1:ptSkxJdkQxTROIWUHP4WCeHzltXahj0bWxwwfUxxftI=
+github.com/sacloud/saclient-go v0.3.1 h1:s9Yx4arEgsoIWkULO9s3gNv03XRGR0eNOQ9z6iI1iWE=
+github.com/sacloud/saclient-go v0.3.1/go.mod h1:OLit87m1GmGwFwlaoQwF2UWyaad4Pa2jfPeVgx91s4s=
 github.com/sacloud/secretmanager-api-go v0.3.1 h1:71Bxt/WxtYfilkj35pD5pauy9zYYEQkF09bturYq1jM=
 github.com/sacloud/secretmanager-api-go v0.3.1/go.mod h1:eSMKWniJrPbaOWWv66AJgubXOoR6ZAOt8uIZo/5BJF8=
 github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 h1:lZUw3E0/J3roVtGQ+SCrUrg3ON6NgVqpn3+iol9aGu4=
