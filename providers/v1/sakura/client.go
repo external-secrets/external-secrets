@@ -41,7 +41,7 @@ var _ esv1.SecretsClient = &Client{}
 
 // ----------------- Utilities -----------------
 
-// Retrieve the value of a secret
+// unveilSecret retrieves the secret value.
 func (c *Client) unveilSecret(ctx context.Context, name string, version string) ([]byte, error) {
 	versionOpt := v1.OptNilInt{}
 	if version != "" {
@@ -64,7 +64,7 @@ func (c *Client) unveilSecret(ctx context.Context, name string, version string) 
 	return []byte(res.GetValue()), nil
 }
 
-// Check if a secret with the given name exists
+// secretExists checks if a secret with the given name exists.
 func (c *Client) secretExists(ctx context.Context, name string) (bool, error) {
 	secrets, err := c.api.List(ctx)
 	if err != nil {

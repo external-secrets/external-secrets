@@ -33,7 +33,8 @@ import (
 type Provider struct{}
 
 // Check if the Provider satisfies the esv1.Provider interface.
-// https://github.com/external-secrets/external-secrets/issues/644
+//
+//	https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.Provider = &Provider{}
 
 // Capabilities returns the provider's esv1.SecretStoreCapabilities.
