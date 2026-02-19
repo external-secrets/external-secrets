@@ -132,6 +132,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		return nil, fmt.Errorf("failed to get secret: %w", err)
 	}
 
+	// Unmarshal the secret value as JSON
 	kv := make(map[string]json.RawMessage)
 	if err = json.Unmarshal(data, &kv); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal secret %s as JSON: %w", ref.Key, err)
@@ -139,6 +140,8 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
+		// Try to unmarshal each value as a string
+		// 	If it fails, return the raw value
 		var strVal string
 		if err = json.Unmarshal(v, &strVal); err == nil {
 			secretData[k] = []byte(strVal)
