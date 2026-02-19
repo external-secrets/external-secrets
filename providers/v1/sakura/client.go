@@ -39,6 +39,13 @@ type Client struct {
 // Check if the Client satisfies the esv1.SecretsClient interface.
 var _ esv1.SecretsClient = &Client{}
 
+// NewClient creates a new Client with the given SecretAPI.
+func NewClient(api secretmanager.SecretAPI) *Client {
+	return &Client{
+		api: api,
+	}
+}
+
 // ----------------- Utilities -----------------
 
 // unveilSecret retrieves the secret value.

@@ -68,9 +68,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, fmt.Errorf("failed to create Sakura Cloud client: %w", err)
 	}
 
-	return &Client{
-		api: secretmanager.NewSecretOp(client, provider.VaultResourceID),
-	}, nil
+	return NewClient(secretmanager.NewSecretOp(client, provider.VaultResourceID)), nil
 }
 
 // ValidateStore validates the store's configuration.
