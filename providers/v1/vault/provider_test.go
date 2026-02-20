@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
@@ -871,4 +872,63 @@ func TestCacheWithReferentSpec(t *testing.T) {
 func resetCache() {
 	enableCache = false
 	clientCache = nil
+}
+
+func TestValidateTokenExpiry(t *testing.T) {
+	t.Run("skip checkToken when token expiry is in the future", func(t *testing.T) {
+		futureExpiry := time.Now().Add(1 * time.Hour)
+		c := &client{
+			store:           makeValidSecretStore().Spec.Provider.Vault,
+			storeKind:       esv1.SecretStoreKind,
+			tokenExpiryTime: &futureExpiry,
+		}
+		result, err := c.Validate()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result != esv1.ValidationResultReady {
+			t.Fatalf("expected ValidationResultReady, got %v", result)
+		}
+	})
+
+	t.Run("call checkToken when token expiry is in the past", func(t *testing.T) {
+		pastExpiry := time.Now().Add(-1 * time.Hour)
+		c := &client{
+			store:           makeValidSecretStore().Spec.Provider.Vault,
+			storeKind:       esv1.SecretStoreKind,
+			tokenExpiryTime: &pastExpiry,
+			token: fake.Token{
+				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+					return nil, errors.New("token expired")
+				},
+			},
+		}
+		result, err := c.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if result != esv1.ValidationResultError {
+			t.Fatalf("expected ValidationResultError, got %v", result)
+		}
+	})
+
+	t.Run("call checkToken when token expiry is nil", func(t *testing.T) {
+		c := &client{
+			store:           makeValidSecretStore().Spec.Provider.Vault,
+			storeKind:       esv1.SecretStoreKind,
+			tokenExpiryTime: nil,
+			token: fake.Token{
+				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+					return nil, errors.New("lookup failed")
+				},
+			},
+		}
+		result, err := c.Validate()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if result != esv1.ValidationResultError {
+			t.Fatalf("expected ValidationResultError, got %v", result)
+		}
+	})
 }
