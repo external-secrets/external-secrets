@@ -60,48 +60,38 @@ func (mc *MockSecretAPIClient) Delete(ctx context.Context, params v1.DeleteSecre
 	return mc.deleteFn(ctx, params)
 }
 
-// WithUnveil configures the mock Unveil method.
-func (mc *MockSecretAPIClient) WithUnveil(response *v1.Unveil, err error) {
+// WithUnveilFunc sets a custom Unveil function.
+func (mc *MockSecretAPIClient) WithUnveilFunc(fn func(ctx context.Context, params v1.Unveil) (*v1.Unveil, error)) {
 	if mc != nil {
-		mc.unveilFn = func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
-			return response, err
-		}
+		mc.unveilFn = fn
 	}
 }
 
-// WithList configures the mock List method.
-func (mc *MockSecretAPIClient) WithList(secrets []v1.Secret, err error) {
+// WithListFunc sets a custom List function.
+func (mc *MockSecretAPIClient) WithListFunc(fn func(ctx context.Context) ([]v1.Secret, error)) {
 	if mc != nil {
-		mc.listFn = func(_ context.Context) ([]v1.Secret, error) {
-			return secrets, err
-		}
+		mc.listFn = fn
 	}
 }
 
-// WithCreate configures the mock Create method.
-func (mc *MockSecretAPIClient) WithCreate(secret *v1.Secret, err error) {
+// WithCreateFunc sets a custom Create function.
+func (mc *MockSecretAPIClient) WithCreateFunc(fn func(ctx context.Context, params v1.CreateSecret) (*v1.Secret, error)) {
 	if mc != nil {
-		mc.createFn = func(_ context.Context, _ v1.CreateSecret) (*v1.Secret, error) {
-			return secret, err
-		}
+		mc.createFn = fn
 	}
 }
 
-// WithUpdate configures the mock Update method.
-func (mc *MockSecretAPIClient) WithUpdate(secret *v1.Secret, err error) {
+// WithUpdateFunc sets a custom Update function.
+func (mc *MockSecretAPIClient) WithUpdateFunc(fn func(ctx context.Context, params v1.CreateSecret) (*v1.Secret, error)) {
 	if mc != nil {
-		mc.updateFn = func(_ context.Context, _ v1.CreateSecret) (*v1.Secret, error) {
-			return secret, err
-		}
+		mc.updateFn = fn
 	}
 }
 
-// WithDelete configures the mock Delete method.
-func (mc *MockSecretAPIClient) WithDelete(err error) {
+// WithDeleteFunc sets a custom Delete function.
+func (mc *MockSecretAPIClient) WithDeleteFunc(fn func(ctx context.Context, params v1.DeleteSecret) error) {
 	if mc != nil {
-		mc.deleteFn = func(_ context.Context, _ v1.DeleteSecret) error {
-			return err
-		}
+		mc.deleteFn = fn
 	}
 }
 

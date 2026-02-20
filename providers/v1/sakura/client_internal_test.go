@@ -45,7 +45,9 @@ func TestUnveilSecret(t *testing.T) {
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
 				response := &v1.Unveil{}
 				response.SetValue("secret-value")
-				mc.WithUnveil(response, nil)
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					return response, nil
+				})
 			},
 			wantData: []byte("secret-value"),
 			wantErr:  false,
@@ -57,7 +59,9 @@ func TestUnveilSecret(t *testing.T) {
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
 				response := &v1.Unveil{}
 				response.SetValue("secret-value-v2")
-				mc.WithUnveil(response, nil)
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					return response, nil
+				})
 			},
 			wantData: []byte("secret-value-v2"),
 			wantErr:  false,
@@ -75,7 +79,9 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret",
 			version:    "",
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
-				mc.WithUnveil(nil, errors.New("API error"))
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					return nil, errors.New("API error")
+				})
 			},
 			wantData: nil,
 			wantErr:  true,
@@ -88,9 +94,7 @@ func TestUnveilSecret(t *testing.T) {
 
 			mockClient := fake.NewMockSecretAPIClient()
 			tt.mockSetup(mockClient)
-			client := &Client{
-				api: mockClient,
-			}
+			client := NewClient(mockClient)
 
 			data, err := client.unveilSecret(context.Background(), tt.secretName, tt.version)
 			if tt.wantErr {
@@ -122,7 +126,9 @@ func TestSecretExists(t *testing.T) {
 					{Name: "existing-secret"},
 					{Name: "another-secret"},
 				}
-				mc.WithList(secrets, nil)
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return secrets, nil
+				})
 			},
 			wantExists: true,
 			wantErr:    false,
@@ -135,7 +141,9 @@ func TestSecretExists(t *testing.T) {
 					{Name: "other-secret"},
 					{Name: "another-secret"},
 				}
-				mc.WithList(secrets, nil)
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return secrets, nil
+				})
 			},
 			wantExists: false,
 			wantErr:    false,
@@ -144,7 +152,9 @@ func TestSecretExists(t *testing.T) {
 			name:       "empty list",
 			secretName: "any-secret",
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
-				mc.WithList([]v1.Secret{}, nil)
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{}, nil
+				})
 			},
 			wantExists: false,
 			wantErr:    false,
@@ -153,7 +163,9 @@ func TestSecretExists(t *testing.T) {
 			name:       "list API error",
 			secretName: "test-secret",
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
-				mc.WithList(nil, errors.New("API error"))
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return nil, errors.New("API error")
+				})
 			},
 			wantExists: false,
 			wantErr:    true,
@@ -166,9 +178,7 @@ func TestSecretExists(t *testing.T) {
 
 			mockClient := fake.NewMockSecretAPIClient()
 			tt.mockSetup(mockClient)
-			client := &Client{
-				api: mockClient,
-			}
+			client := NewClient(mockClient)
 
 			exists, err := client.secretExists(context.Background(), tt.secretName)
 			if tt.wantErr {
