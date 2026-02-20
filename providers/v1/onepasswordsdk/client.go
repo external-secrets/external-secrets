@@ -380,7 +380,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 
 	providerItem.Fields, err = updateFieldValue(providerItem.Fields, label, string(val))
 	if err != nil {
-		return fmt.Errorf("failed to update field: %w", err)
+		return fmt.Errorf("failed to update field with label: %s: %w", label, err)
 	}
 
 	_, err = p.client.Items().Put(ctx, providerItem)
