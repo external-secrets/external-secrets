@@ -100,7 +100,7 @@ func TestProviderGetSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Provider{
+			p := &SecretsClient{
 				client:      tt.client(),
 				vaultPrefix: "op://vault/",
 			}
@@ -270,7 +270,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Provider{
+			p := &SecretsClient{
 				client:      tt.client(),
 				vaultPrefix: "op://vault/",
 			}
@@ -315,7 +315,7 @@ func TestProviderValidate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Provider{
+			p := &SecretsClient{
 				client:      tt.client(),
 				vaultPrefix: tt.vaultPrefix,
 			}
@@ -419,7 +419,7 @@ func TestPushSecret(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
 			lister := tt.lister()
-			p := &Provider{
+			p := &SecretsClient{
 				client: &onepassword.Client{
 					SecretsAPI: fc,
 					VaultsAPI:  fc,
@@ -545,7 +545,7 @@ func TestDeleteItemField(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := t.Context()
 			lister := testCase.lister()
-			p := &Provider{
+			p := &SecretsClient{
 				client: &onepassword.Client{
 					SecretsAPI: fc,
 					VaultsAPI:  fc,
@@ -569,7 +569,7 @@ func TestGetVault(t *testing.T) {
 		},
 	}
 
-	p := &Provider{
+	p := &SecretsClient{
 		client: &onepassword.Client{
 			VaultsAPI: fc,
 		},
@@ -681,7 +681,7 @@ func TestCachingGetSecret(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fcWithCounter,
 				VaultsAPI:  fcWithCounter.fakeClient,
@@ -714,7 +714,7 @@ func TestCachingGetSecret(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fcWithCounter,
 				VaultsAPI:  fcWithCounter.fakeClient,
@@ -762,7 +762,7 @@ func TestCachingGetSecretMap(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fc,
 				VaultsAPI:  fc,
@@ -812,7 +812,7 @@ func TestCacheInvalidationPushSecret(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fcWithCounter,
 				VaultsAPI:  fcWithCounter.fakeClient,
@@ -878,7 +878,7 @@ func TestCacheInvalidationDeleteSecret(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fcWithCounter,
 				VaultsAPI:  fcWithCounter.fakeClient,
@@ -913,7 +913,7 @@ func TestCacheInvalidationDeleteSecret(t *testing.T) {
 
 func TestInvalidateCacheByPrefix(t *testing.T) {
 	t.Run("invalidates all entries with prefix", func(t *testing.T) {
-		p := &Provider{
+		p := &SecretsClient{
 			vaultPrefix: "op://vault/",
 			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
 		}
@@ -939,7 +939,7 @@ func TestInvalidateCacheByPrefix(t *testing.T) {
 	})
 
 	t.Run("handles nil cache gracefully", func(t *testing.T) {
-		p := &Provider{
+		p := &SecretsClient{
 			vaultPrefix: "op://vault/",
 			cache:       nil,
 		}
@@ -949,7 +949,7 @@ func TestInvalidateCacheByPrefix(t *testing.T) {
 	})
 
 	t.Run("does not invalidate entries with similar prefixes", func(t *testing.T) {
-		p := &Provider{
+		p := &SecretsClient{
 			vaultPrefix: "op://vault/",
 			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
 		}

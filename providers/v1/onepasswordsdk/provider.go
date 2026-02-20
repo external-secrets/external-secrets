@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/1password/onepassword-sdk-go"
@@ -47,11 +48,18 @@ const (
 )
 
 // Provider implements the External Secrets provider interface for 1Password SDK.
+// The cache lives here so it persists across reconciliation loops.
 type Provider struct {
+	cache   *expirable.LRU[string, []byte]
+	cacheMu sync.Mutex
+}
+
+// SecretsClient wraps a 1Password SDK client for a specific vault.
+type SecretsClient struct {
 	client      *onepassword.Client
 	vaultPrefix string
 	vaultID     string
-	cache       *expirable.LRU[string, []byte] // nil if caching is disabled
+	cache       *expirable.LRU[string, []byte]
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -84,32 +92,37 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	provider := &Provider{
+	sc := &SecretsClient{
 		client:      c,
 		vaultPrefix: "op://" + config.Vault + "/",
 	}
 
-	vaultID, err := provider.GetVault(ctx, config.Vault)
+	vaultID, err := sc.GetVault(ctx, config.Vault)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store ID: %w", err)
 	}
-	provider.vaultID = vaultID
+	sc.vaultID = vaultID
 
 	if config.Cache != nil {
-		ttl := 5 * time.Minute
-		if config.Cache.TTL.Duration > 0 {
-			ttl = config.Cache.TTL.Duration
-		}
+		p.cacheMu.Lock()
+		if p.cache == nil {
+			ttl := 5 * time.Minute
+			if config.Cache.TTL.Duration > 0 {
+				ttl = config.Cache.TTL.Duration
+			}
 
-		maxSize := 100
-		if config.Cache.MaxSize > 0 {
-			maxSize = config.Cache.MaxSize
-		}
+			maxSize := 100
+			if config.Cache.MaxSize > 0 {
+				maxSize = config.Cache.MaxSize
+			}
 
-		provider.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
+			p.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
+		}
+		p.cacheMu.Unlock()
+		sc.cache = p.cache
 	}
 
-	return provider, nil
+	return sc, nil
 }
 
 // ValidateStore validates the 1Password SDK SecretStore resource configuration.

@@ -53,7 +53,7 @@ type PushSecretMetadataSpec struct {
 
 // GetSecret returns a single secret from 1Password provider.
 // Follows syntax is used for the ref key: https://developer.1password.com/docs/cli/secret-reference-syntax/
-func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
 	}
@@ -76,12 +76,12 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 }
 
 // Close closes the client connection.
-func (p *Provider) Close(_ context.Context) error {
+func (p *SecretsClient) Close(_ context.Context) error {
 	return nil
 }
 
 // DeleteSecret implements Secret Deletion on the provider when PushSecret.spec.DeletionPolicy=Delete.
-func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
 	providerItem, err := p.findItem(ctx, ref.GetRemoteKey())
 	if err != nil {
 		return err
@@ -142,12 +142,12 @@ func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.It
 }
 
 // GetAllSecrets Not Implemented.
-func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *SecretsClient) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *SecretsClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
 	}
@@ -185,7 +185,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 	return result, nil
 }
 
-func (p *Provider) getFields(item onepassword.Item, property string) (map[string][]byte, error) {
+func (p *SecretsClient) getFields(item onepassword.Item, property string) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	for _, field := range item.Fields {
 		if property != "" && field.Title != property {
@@ -202,7 +202,7 @@ func (p *Provider) getFields(item onepassword.Item, property string) (map[string
 	return secretData, nil
 }
 
-func (p *Provider) getFiles(ctx context.Context, item onepassword.Item, property string) (map[string][]byte, error) {
+func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, property string) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	for _, file := range item.Files {
 		if property != "" && file.Attributes.Name != property {
@@ -256,7 +256,7 @@ func getObjType(documentType onepassword.ItemCategory, property string) (string,
 }
 
 // createItem creates a new item in the first vault. If no vaults exist, it returns an error.
-func (p *Provider) createItem(ctx context.Context, val []byte, ref esv1.PushSecretData) error {
+func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.PushSecretData) error {
 	mdata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
@@ -336,7 +336,7 @@ func generateNewItemField(title, newVal string) onepassword.ItemField {
 }
 
 // PushSecret creates or updates a secret in 1Password.
-func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1.PushSecretData) error {
+func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1.PushSecretData) error {
 	val, ok := secret.Data[ref.GetSecretKey()]
 	if !ok {
 		return fmt.Errorf("secret %s/%s does not contain a key", secret.Namespace, secret.Name)
@@ -388,7 +388,7 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref es
 }
 
 // GetVault retrieves a vault by its title or UUID from 1Password.
-func (p *Provider) GetVault(ctx context.Context, titleOrUUID string) (string, error) {
+func (p *SecretsClient) GetVault(ctx context.Context, titleOrUUID string) (string, error) {
 	vaults, err := p.client.VaultsAPI.List(ctx)
 	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKVaultsList, err)
 	if err != nil {
@@ -405,7 +405,7 @@ func (p *Provider) GetVault(ctx context.Context, titleOrUUID string) (string, er
 	return "", fmt.Errorf("vault %s not found", titleOrUUID)
 }
 
-func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item, error) {
+func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.Item, error) {
 	cacheKey := itemCachePrefix + p.vaultID + ":" + name
 	if cached, ok := p.cacheGet(cacheKey); ok {
 		var item onepassword.Item
@@ -459,23 +459,23 @@ func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item,
 }
 
 // SecretExists checks if a secret exists in 1Password.
-func (p *Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
+func (p *SecretsClient) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf("not implemented")
 }
 
 // Validate does nothing here. It would be possible to ping the SDK to prove we're healthy, but
 // since the 1password SDK rate-limit is pretty aggressive, we prefer to do nothing.
-func (p *Provider) Validate() (esv1.ValidationResult, error) {
+func (p *SecretsClient) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-func (p *Provider) constructRefKey(key string) string {
+func (p *SecretsClient) constructRefKey(key string) string {
 	// remove any possible leading slashes because the vaultPrefix already contains it.
 	return p.vaultPrefix + strings.TrimPrefix(key, "/")
 }
 
 // cacheGet retrieves a value from the cache. Returns false if cache is disabled or key not found.
-func (p *Provider) cacheGet(key string) ([]byte, bool) {
+func (p *SecretsClient) cacheGet(key string) ([]byte, bool) {
 	if p.cache == nil {
 		return nil, false
 	}
@@ -483,7 +483,7 @@ func (p *Provider) cacheGet(key string) ([]byte, bool) {
 }
 
 // cacheAdd stores a value in the cache. No-op if cache is disabled.
-func (p *Provider) cacheAdd(key string, value []byte) {
+func (p *SecretsClient) cacheAdd(key string, value []byte) {
 	if p.cache == nil {
 		return
 	}
@@ -495,7 +495,7 @@ func (p *Provider) cacheAdd(key string, value []byte) {
 // No-op if cache is disabled.
 // Why are we using a Prefix? Because items and properties are stored via prefixes using 1Password SDK.
 // This means when an item is deleted we delete the fields and properties that belong to the item as well.
-func (p *Provider) invalidateCacheByPrefix(prefix string) {
+func (p *SecretsClient) invalidateCacheByPrefix(prefix string) {
 	if p.cache == nil {
 		return
 	}
@@ -512,7 +512,7 @@ func (p *Provider) invalidateCacheByPrefix(prefix string) {
 
 // invalidateItemCache removes cached item entries for the given item name.
 // No-op if cache is disabled.
-func (p *Provider) invalidateItemCache(name string) {
+func (p *SecretsClient) invalidateItemCache(name string) {
 	if p.cache == nil {
 		return
 	}
