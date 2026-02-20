@@ -90,9 +90,14 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 		return err
 	}
 
-	providerItem.Fields, err = deleteField(providerItem.Fields, ref.GetProperty())
+	var deleted bool
+	providerItem.Fields, deleted, err = deleteField(providerItem.Fields, ref.GetProperty())
 	if err != nil {
 		return fmt.Errorf("failed to delete fields: %w", err)
+	}
+
+	if !deleted {
+		return nil
 	}
 
 	// There is a chance that there is an empty item left in the section like this: [{ID: Title:}].
@@ -123,7 +128,7 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 	return nil
 }
 
-func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.ItemField, error) {
+func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.ItemField, bool, error) {
 	// This will always iterate over all items,
 	// but it's done to ensure that two fields with the same label
 	// exist resulting in undefined behavior
@@ -134,14 +139,14 @@ func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.It
 	for _, item := range fields {
 		if item.Title == title {
 			if found {
-				return nil, fmt.Errorf("found multiple labels on item %q", title)
+				return nil, false, fmt.Errorf("found multiple labels on item %q", title)
 			}
 			found = true
 			continue
 		}
 		fieldsF = append(fieldsF, item)
 	}
-	return fieldsF, nil
+	return fieldsF, found, nil
 }
 
 // GetAllSecrets Not Implemented.
@@ -375,7 +380,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 
 	providerItem.Fields, err = updateFieldValue(providerItem.Fields, label, string(val))
 	if err != nil {
-		return fmt.Errorf("failed to update field with value %s: %w", string(val), err)
+		return fmt.Errorf("failed to update field: %w", err)
 	}
 
 	_, err = p.client.Items().Put(ctx, providerItem)
@@ -400,7 +405,6 @@ func (p *SecretsClient) GetVault(ctx context.Context, titleOrUUID string) (strin
 
 	for _, v := range vaults {
 		if v.Title == titleOrUUID || v.ID == titleOrUUID {
-			p.vaultID = v.ID
 			return v.ID, nil
 		}
 	}
@@ -424,7 +428,7 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 		item, err = p.client.Items().Get(ctx, p.vaultID, name)
 		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
 		if err != nil {
-			return onepassword.Item{}, err
+			return onepassword.Item{}, fmt.Errorf("%w: %w", ErrKeyNotFound, err)
 		}
 	} else {
 		items, err := p.client.Items().List(ctx, p.vaultID)

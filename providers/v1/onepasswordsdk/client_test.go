@@ -781,7 +781,7 @@ func TestDeleteMultipleFieldsFromSameItem(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fc,
 				VaultsAPI:  fc,
