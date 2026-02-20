@@ -19,6 +19,7 @@ package onepasswordsdk
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -652,6 +653,69 @@ func (f *fakeFileLister) ReplaceDocument(ctx context.Context, item onepassword.I
 
 var _ onepassword.ItemsFilesAPI = (*fakeFileLister)(nil)
 
+type statefulFakeLister struct {
+	listAllResult []onepassword.ItemOverview
+	items         map[string]onepassword.Item
+	deletedItems  map[string]bool
+	createCalled  bool
+	putCalled     bool
+	deleteCalled  bool
+	fileLister    onepassword.ItemsFilesAPI
+}
+
+func (f *statefulFakeLister) Create(ctx context.Context, params onepassword.ItemCreateParams) (onepassword.Item, error) {
+	f.createCalled = true
+	return onepassword.Item{}, nil
+}
+
+func (f *statefulFakeLister) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
+	if f.deletedItems != nil && f.deletedItems[itemID] {
+		return onepassword.Item{}, fmt.Errorf("item not found")
+	}
+	if item, ok := f.items[itemID]; ok {
+		return item, nil
+	}
+	return onepassword.Item{}, fmt.Errorf("item not found")
+}
+
+func (f *statefulFakeLister) Put(ctx context.Context, item onepassword.Item) (onepassword.Item, error) {
+	f.putCalled = true
+	if f.items == nil {
+		f.items = make(map[string]onepassword.Item)
+	}
+	f.items[item.ID] = item
+	return item, nil
+}
+
+func (f *statefulFakeLister) Delete(ctx context.Context, vaultID, itemID string) error {
+	f.deleteCalled = true
+	if f.deletedItems == nil {
+		f.deletedItems = make(map[string]bool)
+	}
+	f.deletedItems[itemID] = true
+	delete(f.items, itemID)
+	f.listAllResult = nil
+	return nil
+}
+
+func (f *statefulFakeLister) Archive(ctx context.Context, vaultID, itemID string) error {
+	return nil
+}
+
+func (f *statefulFakeLister) List(ctx context.Context, vaultID string, opts ...onepassword.ItemListFilter) ([]onepassword.ItemOverview, error) {
+	return f.listAllResult, nil
+}
+
+func (f *statefulFakeLister) Shares() onepassword.ItemsSharesAPI {
+	return nil
+}
+
+func (f *statefulFakeLister) Files() onepassword.ItemsFilesAPI {
+	return f.fileLister
+}
+
+var _ onepassword.ItemsAPI = (*statefulFakeLister)(nil)
+
 type fakeClient struct {
 	resolveResult   string
 	resolveError    error
@@ -671,6 +735,87 @@ func (f *fakeClient) Resolve(ctx context.Context, secretReference string) (strin
 
 func (f *fakeClient) ResolveAll(ctx context.Context, secretReferences []string) (onepassword.ResolveAllResponse, error) {
 	return f.resolveAll, f.resolveAllError
+}
+
+func TestDeleteMultipleFieldsFromSameItem(t *testing.T) {
+	fc := &fakeClient{
+		listAllResult: []onepassword.VaultOverview{
+			{
+				ID:    "test",
+				Title: "test",
+			},
+		},
+	}
+
+	t.Run("deleting second field after item was deleted should not error", func(t *testing.T) {
+		fl := &statefulFakeLister{
+			listAllResult: []onepassword.ItemOverview{
+				{
+					ID:       "test-item-id",
+					Title:    "key",
+					Category: "login",
+					VaultID:  "vault-id",
+				},
+			},
+			items: map[string]onepassword.Item{
+				"test-item-id": {
+					ID:       "test-item-id",
+					Title:    "key",
+					Category: "login",
+					VaultID:  "vault-id",
+					Fields: []onepassword.ItemField{
+						{
+							ID:        "field-1",
+							Title:     "username",
+							FieldType: onepassword.ItemFieldTypeConcealed,
+							Value:     "testuser",
+						},
+						{
+							ID:        "field-2",
+							Title:     "password",
+							FieldType: onepassword.ItemFieldTypeConcealed,
+							Value:     "testpass",
+						},
+					},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+		}
+
+		ctx := t.Context()
+
+		err := p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "username",
+		})
+		require.NoError(t, err, "first field deletion should succeed")
+		assert.True(t, fl.putCalled, "Put should have been called to update the item")
+		assert.False(t, fl.deleteCalled, "Delete should not have been called yet")
+
+		fl.putCalled = false
+
+		err = p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "password",
+		})
+		require.NoError(t, err, "second field deletion should succeed")
+		assert.True(t, fl.deleteCalled, "Delete should have been called to remove the item")
+
+		fl.listAllResult = nil
+
+		err = p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "some-other-field",
+		})
+		require.NoError(t, err, "deleting a field from an already-deleted item should not error (this is the bug!)")
+	})
 }
 
 func TestCachingGetSecret(t *testing.T) {

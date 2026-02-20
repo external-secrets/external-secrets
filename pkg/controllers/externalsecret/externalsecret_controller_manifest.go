@@ -181,6 +181,12 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		obj.SetGroupVersionKind(gvk)
 		obj.SetName(getTargetName(es))
 		obj.SetNamespace(es.Namespace)
+		switch gvk.Kind {
+		case "ConfigMap", "Secret":
+			obj.Object["data"] = map[string]interface{}{}
+		default:
+			obj.Object["spec"] = map[string]interface{}{}
+		}
 	}
 
 	labels := obj.GetLabels()
@@ -206,15 +212,35 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	obj.SetLabels(labels)
 	obj.SetAnnotations(annotations)
 
+	var result *unstructured.Unstructured
+	var err error
 	if es.Spec.Target.Template == nil {
-		return r.createSimpleManifest(obj, dataMap)
+		result = r.createSimpleManifest(obj, dataMap)
+	} else {
+		result, err = r.renderTemplatedManifest(ctx, es, obj, dataMap)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return r.renderTemplatedManifest(ctx, es, obj, dataMap)
+	ann := result.GetAnnotations()
+	if ann == nil {
+		ann = make(map[string]string)
+	}
+
+	hash, err := genericTargetContentHash(result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash target %q content: %w", es.Spec.Target.Name, err)
+	}
+
+	ann[esv1.AnnotationDataHash] = hash
+	result.SetAnnotations(ann)
+
+	return result, nil
 }
 
 // createSimpleManifest creates a simple resource without templates (e.g., ConfigMap with data field).
-func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMap map[string][]byte) *unstructured.Unstructured {
 	// For ConfigMaps and similar resources, put data in .data field
 	if obj.GetKind() == "ConfigMap" {
 		data := make(map[string]string)
@@ -223,7 +249,7 @@ func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMa
 		}
 		obj.Object["data"] = data
 
-		return obj, nil
+		return obj
 	}
 
 	// For other resources, put in spec.data or just data
@@ -237,7 +263,7 @@ func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMa
 	spec := obj.Object["spec"].(map[string]any)
 	spec["data"] = data
 
-	return obj, nil
+	return obj
 }
 
 // renderTemplatedManifest renders templates for a custom resource.

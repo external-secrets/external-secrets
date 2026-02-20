@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -113,8 +114,9 @@ func (m *DefaultInformerManager) EnsureInformer(ctx context.Context, gvk schema.
 		return false, fmt.Errorf("queue not initialized, call SetQueue first")
 	}
 
-	// Get or create informer for this GVK
-	informer, err := m.cache.GetInformerForKind(ctx, gvk)
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	informer, err := m.cache.GetInformer(ctx, obj)
 	if err != nil {
 		return false, fmt.Errorf("failed to get informer for %s: %w", key, err)
 	}
@@ -246,10 +248,10 @@ func (m *DefaultInformerManager) ReleaseInformer(ctx context.Context, gvk schema
 
 	// if no more ExternalSecrets are using this informer, remove it
 	if len(entry.externalSecrets) == 0 {
-		partial := &metav1.PartialObjectMetadata{}
-		partial.SetGroupVersionKind(gvk)
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(gvk)
 
-		if err := m.cache.RemoveInformer(ctx, partial); err != nil {
+		if err := m.cache.RemoveInformer(ctx, obj); err != nil {
 			m.log.Error(err, "failed to remove informer, will clean up tracking anyway",
 				"gvk", key)
 		}

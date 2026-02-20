@@ -251,3 +251,60 @@ tests:
     asserts:
       - notExists:
           path: spec.template.spec.hostUsers
+  - it: should not have hostAliases by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostAliases
+  - it: should add hostAliases when configured
+    set:
+      hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "example.local"
+            - "example"
+        - ip: "10.0.0.1"
+          hostnames:
+            - "internal.example.com"
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "example.local"
+                - "example"
+            - ip: "10.0.0.1"
+              hostnames:
+                - "internal.example.com"
+  - it: should use global hostAliases when root level not set
+    set:
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.200"
+              hostnames:
+                - "global.example.com"
+  - it: should prefer root level hostAliases over global
+    set:
+      hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "root.example.com"
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "root.example.com"
