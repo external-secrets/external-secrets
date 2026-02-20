@@ -217,7 +217,7 @@ func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, pro
 			continue
 		}
 
-		cacheKey := fileCachePrefix + p.vaultID + ":" + file.FieldID + ":" + file.Attributes.Name
+		cacheKey := fileCachePrefix + p.vaultID + ":" + item.ID + ":" + file.FieldID + ":" + file.Attributes.Name
 		if cached, ok := p.cacheGet(cacheKey); ok {
 			secretData[file.Attributes.Name] = cached
 			continue
@@ -428,7 +428,10 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 		item, err = p.client.Items().Get(ctx, p.vaultID, name)
 		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
 		if err != nil {
-			return onepassword.Item{}, fmt.Errorf("%w: %w", ErrKeyNotFound, err)
+			if isNotFoundError(err) {
+				return onepassword.Item{}, ErrKeyNotFound
+			}
+			return onepassword.Item{}, err
 		}
 	} else {
 		items, err := p.client.Items().List(ctx, p.vaultID)
@@ -526,4 +529,9 @@ func (p *SecretsClient) invalidateItemCache(name string) {
 
 	cacheKey := itemCachePrefix + p.vaultID + ":" + name
 	p.cache.Remove(cacheKey)
+}
+
+func isNotFoundError(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "couldn't be found") || strings.Contains(msg, "resource not found")
 }
