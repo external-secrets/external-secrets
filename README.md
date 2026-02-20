@@ -32,7 +32,7 @@ External Secrets Operator guides and reference documentation is available at [ex
 
 We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/main/contributing/devguide/) and [Contribution process](https://www.external-secrets.io/main/contributing/process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/main/contributing/coc/) and adhere to its guidelines.
 
-Also, please take a look our [Contribution Ladder](CONTRIBUTOR_LADDER.md) for a _very_ detailed explanation of what roles and tracks are available for people to try and help this project.
+Also, please take a look our [Contribution Ladder](docs/contributing/contributor_ladder.md) for a _very_ detailed explanation of what roles and tracks are available for people to try and help this project.
 
 ### Sponsoring
 

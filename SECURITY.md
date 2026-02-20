@@ -1,34 +1,22 @@
-# Security Policy
+# Reporting Security Issues
 
-- [Security Policy](#security-policy)
-  - [Reporting security problems](#reporting-security-problems)
-  - [Vulnerability Management Plans](#vulnerability-management-plans)
-    - [Critical Updates And Security Notices](#critical-updates-and-security-notices)
+Our team takes security bugs in external-secrets seriously.
+We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.
 
-<a name="reporting"></a>
-## Reporting security problems
+To report a security issue, email `cncf-ExternalSecretsOp-maintainers@lists.cncf.io`.
+**DO NOT CREATE A PUBLIC ISSUE on GitHub** to report a security problem.
 
-**DO NOT CREATE AN ISSUE** to report a security problem. Instead, please
-send an email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io
+## Escalation
 
-<a name="vulnerability-management"></a>
-## Vulnerability Management Plans
+In case of no answer, please contact our maintainers or `security-reviewers` individually.
+If they do not respond, contact their ad-interim equivalent individually.
 
-### Critical Updates And Security Notices
+You should expect an answer in a two-weeks timeframe (14 calendar days).
 
-We learn about critical software updates and security threats from these sources
+## Our response process
 
-1. GitHub Security Alerts
-2. [Dependabot](https://dependabot.com/) Dependency Updates
+Our response process is described in [SECURITY_RESPONSE](SECURITY_RESPONSE.md).
 
-## Helm Chart Security
+## Learn more about our security policy
 
-Our Helm charts are designed for ease of use and general-purpose scenarios. We strongly recommend that you review the default configuration and harden it to fit your security requirements. 
-
-You can do this by customizing the chart values, or by using our chart as a dependency and extending it with your own security measures, such as NetworkPolicies, Admission Control logic, or other controls.
-
-Any misconfiguration caused by using the provided helm charts is not covered by our support policy - even if it leads to a security incident.
-
-## Security Incident Response
-
-Please follow the guide [SECURITY_RESPONSE.md](SECURITY_RESPONSE.md).
+Read our [Security policy](security_policy.md) for further details
