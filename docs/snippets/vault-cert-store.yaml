@@ -1,0 +1,40 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+  namespace: example
+spec:
+  provider:
+    vault:
+      server: "https://vault.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        # VaultCertAuth authenticates with Vault using TLS
+        # client certificates.
+        # https://developer.hashicorp.com/vault/docs/auth/cert
+        cert:
+          # Path where the Certificate auth method is mounted, e.g. "cert"
+          # Defaults to "cert" if not specified.
+          # path: "cert"
+          clientCert:
+            name: "vault-tls"
+            key: "tls.crt"
+          secretRef:
+            name: "vault-tls"
+            key: "tls.key"
+---
+# Example TLS secret (kubernetes.io/tls type)
+# The secret must contain tls.crt and tls.key keys.
+# Certificate chains can be included in tls.crt.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-tls
+  namespace: example
+type: kubernetes.io/tls
+data:
+  # Base64 encoded TLS certificate
+  tls.crt: LS0tLS1CRUdJTi...
+  # Base64 encoded TLS private key
+  tls.key: LS0tLS1CRUdJTi...
