@@ -964,6 +964,53 @@ func TestPushSecret(t *testing.T) {
 			},
 			secret: &corev1.Secret{Data: map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}},
 		},
+		{
+			desc: "successfully pushes a secret when replicationLocation is not defined",
+			args: args{
+				store: &esv1.GCPSMProvider{ProjectID: smtc.projectID},
+				mock:  smtc.mockClient,
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata"
+					}`),
+				},
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
+				CreateSecretMockReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
+					Name: "projects/default/secrets/baz",
+					Replication: &secretmanagerpb.Replication{
+						Replication: &secretmanagerpb.Replication_Automatic_{
+							Automatic: &secretmanagerpb.Replication_Automatic{},
+						},
+					},
+					Labels: map[string]string{
+						managedBy:    externalSecrets,
+						"label-key1": "label-value1",
+					},
+					Annotations: map[string]string{
+						"annotation-key1": "annotation-value1",
+					},
+				}, Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
+			want: want{
+				err: nil,
+				req: func(m *fakesm.MockSMClient) error {
+					req, ok := m.CreateSecretCalledWithN[0]
+					if !ok {
+						return errors.New(errCallNotFoundAtIndex0)
+					}
+					if req.Secret.Replication == nil {
+						return errors.New("expected replication - found nil")
+					}
+					if _, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_Automatic_); !ok {
+						return fmt.Errorf(errInvalidReplicationType, req.Secret.Replication.Replication)
+					}
+					return nil
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {

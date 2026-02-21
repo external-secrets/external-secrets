@@ -210,14 +210,19 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 					KmsKeyName: meta.Spec.CMEKKeyName,
 				}
 			}
-			replication = &secretmanagerpb.Replication{
-				Replication: &secretmanagerpb.Replication_UserManaged_{
-					UserManaged: &secretmanagerpb.Replication_UserManaged{
-						Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
-							replica,
+
+			// Use UserManaged replication only if a location is specified, otherwise default to Automatic.
+			// GCP will handle replication automatically in that case.
+			if replica.Location != "" {
+				replication = &secretmanagerpb.Replication{
+					Replication: &secretmanagerpb.Replication_UserManaged_{
+						UserManaged: &secretmanagerpb.Replication_UserManaged{
+							Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
+								replica,
+							},
 						},
 					},
-				},
+				}
 			}
 		}
 		parent := getParentName(c.store.ProjectID, c.store.Location)
