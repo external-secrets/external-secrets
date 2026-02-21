@@ -50,6 +50,37 @@ var (
 	ErrTokenNotExists = errors.New("token does not exist")
 )
 
+// ErrAccessDenied is returned when the authenticated identity lacks permission to access a secret.
+var ErrAccessDenied = errors.New("access denied")
+
+// isAccessDeniedError checks if an Akeyless API error body indicates an
+// authorization failure rather than a missing item. The Akeyless API returns
+// generic error messages that can be misleading; this function detects common
+// access-denied patterns so callers can surface a more helpful error message.
+func isAccessDeniedError(errBody string) bool {
+	lower := strings.ToLower(errBody)
+	accessDeniedPatterns := []string{
+		"unauthorized",
+		"forbidden",
+		"not allowed",
+		"not_allowed",
+		"access denied",
+		"access_denied",
+		"permission denied",
+		"permission_denied",
+		"no access",
+		"not authorized",
+		"authorization failed",
+		"you don't have permission",
+	}
+	for _, pattern := range accessDeniedPatterns {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
 // DefServiceAccountFile is the default path to the Kubernetes service account token.
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
@@ -149,11 +180,12 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
 	if errors.As(err, &apiErr) {
-		var item *Item
-		err = json.Unmarshal(apiErr.Body(), &item)
-		if err != nil {
-			return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body()))
+		errBody := string(apiErr.Body())
+		if isAccessDeniedError(errBody) {
+			return nil, fmt.Errorf("access denied for item %v: the authenticated identity does not have permission to access this secret. "+
+				"Verify that the role permissions and any namespace-based sub-claims are configured correctly. API response: %v", itemName, errBody)
 		}
+		return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, errBody)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("can't describe item: %w", err)
