@@ -40,6 +40,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/infisical => ./providers/v1/infisical
 	github.com/external-secrets/external-secrets/providers/v1/keepersecurity => ./providers/v1/keepersecurity
 	github.com/external-secrets/external-secrets/providers/v1/kubernetes => ./providers/v1/kubernetes
+	github.com/external-secrets/external-secrets/providers/v1/nebius => ./providers/v1/nebius
 	github.com/external-secrets/external-secrets/providers/v1/ngrok => ./providers/v1/ngrok
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase => ./providers/v1/onboardbase
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
@@ -152,6 +153,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/infisical v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/keepersecurity v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/kubernetes v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/nebius v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/ngrok v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-00010101000000-000000000000
@@ -175,6 +177,7 @@ require (
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0 // indirect
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.10-20250912141014-52f32327d4b0.1 // indirect
 	cloud.google.com/go/auth v0.17.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
@@ -287,6 +290,7 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/gophercloud/gophercloud/v2 v2.8.0 // indirect
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250925215610-d92957c70d5c // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.0 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.3.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
@@ -312,6 +316,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
+	github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 // indirect
 	github.com/ngrok/ngrok-api-go/v7 v7.6.0 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/passbolt/go-passbolt v0.7.2 // indirect
