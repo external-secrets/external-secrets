@@ -8344,6 +8344,110 @@ string
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
+<h3 id="external-secrets.io/v1.PulumiAuth">PulumiAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiProvider">PulumiProvider</a>)
+</p>
+<p>
+<p>PulumiAuth configures authentication with the Pulumi API.
+Exactly one of accessToken or oidcConfig must be specified.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
+PulumiProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessToken authenticates using a Pulumi access token stored in a Kubernetes Secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiOIDCAuth">
+PulumiOIDCAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.PulumiOIDCAuth">PulumiOIDCAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiAuth">PulumiAuth</a>)
+</p>
+<p>
+<p>PulumiOIDCAuth configures OIDC authentication with Pulumi using Kubernetes ServiceAccount tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>organization</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Organization is the name of the Pulumi organization configured for OIDC authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpirationSeconds sets the ServiceAccount token validity duration.
+Defaults to 10 minutes.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.PulumiProvider">PulumiProvider
 </h3>
 <p>
@@ -8374,15 +8478,16 @@ string
 </tr>
 <tr>
 <td>
-<code>accessToken</code></br>
+<code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
-PulumiProviderSecretRef
+<a href="#external-secrets.io/v1.PulumiAuth">
+PulumiAuth
 </a>
 </em>
 </td>
 <td>
-<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.</p>
+<p>Auth configures how the Operator authenticates with the Pulumi API.
+Exactly one of accessToken or oidcConfig must be specified.</p>
 </td>
 </tr>
 <tr>
@@ -8422,12 +8527,28 @@ and other Pulumi ESC environments.
 To create a new environment, visit <a href="https://www.pulumi.com/docs/esc/environments/">https://www.pulumi.com/docs/esc/environments/</a> for more information.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
+PulumiProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+Deprecated: Use auth.accessToken instead.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.PulumiProviderSecretRef">PulumiProviderSecretRef
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiAuth">PulumiAuth</a>, 
 <a href="#external-secrets.io/v1.PulumiProvider">PulumiProvider</a>)
 </p>
 <p>
