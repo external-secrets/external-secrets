@@ -45,11 +45,14 @@ var (
 )
 
 const (
-	errVaultStore    = "received invalid Vault SecretStore resource: %w"
-	errVaultClient   = "cannot setup new vault client: %w"
-	errVaultCert     = "cannot set Vault CA certificate: %w"
-	errClientTLSAuth = "error from Client TLS Auth: %q"
-	errCANamespace   = "missing namespace on caProvider secret"
+	errVaultStore       = "received invalid Vault SecretStore resource: %w"
+	errVaultClient      = "cannot setup new vault client: %w"
+	errVaultCert        = "cannot set Vault CA certificate: %w"
+	errClientTLSAuth    = "error from Client TLS Auth: %q"
+	errCANamespace      = "missing namespace on caProvider secret"
+	errHeaderSecretRef  = "cannot resolve header %q secretKeyRef: %w"
+	errHeaderNoValue    = "header %q must have either value or secretKeyRef specified"
+	errHeaderBothValues = "header %q cannot have both value and secretKeyRef specified"
 )
 
 const (
@@ -162,16 +165,6 @@ func (p *Provider) initClient(ctx context.Context, c *client, client vaultutil.C
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
 
-	if vaultSpec.Headers != nil {
-		for hKey, hValue := range vaultSpec.Headers {
-			client.AddHeader(hKey, hValue)
-		}
-	}
-
-	if vaultSpec.ReadYourWrites && vaultSpec.ForwardInconsistent {
-		client.AddHeader("X-Vault-Inconsistent", "forward-active-node")
-	}
-
 	c.client = client
 	c.auth = client.Auth()
 	c.logical = client.Logical()
@@ -182,11 +175,47 @@ func (p *Provider) initClient(ctx context.Context, c *client, client vaultutil.C
 	if c.storeKind == esv1.ClusterSecretStoreKind && c.namespace == "" && isReferentSpec(vaultSpec) {
 		return c, nil
 	}
+
+	if vaultSpec.Headers != nil {
+		for hKey, hValue := range vaultSpec.Headers {
+			headerValue, err := p.resolveHeaderValue(ctx, c, hKey, &hValue)
+			if err != nil {
+				return nil, err
+			}
+			client.AddHeader(hKey, headerValue)
+		}
+	}
+
+	if vaultSpec.ReadYourWrites && vaultSpec.ForwardInconsistent {
+		client.AddHeader("X-Vault-Inconsistent", "forward-active-node")
+	}
+
 	if err := c.setAuth(ctx, cfg); err != nil {
 		return nil, err
 	}
 
 	return c, nil
+}
+
+// resolveHeaderValue resolves the header value from either the direct value or a secretKeyRef.
+func (p *Provider) resolveHeaderValue(ctx context.Context, c *client, headerName string, header *esv1.VaultCustomHeader) (string, error) {
+	if header.Value != nil && header.SecretKeyRef != nil {
+		return "", fmt.Errorf(errHeaderBothValues, headerName)
+	}
+	if header.Value == nil && header.SecretKeyRef == nil {
+		return "", fmt.Errorf(errHeaderNoValue, headerName)
+	}
+
+	if header.Value != nil {
+		return *header.Value, nil
+	}
+
+	// Resolve the secretKeyRef
+	value, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, header.SecretKeyRef)
+	if err != nil {
+		return "", fmt.Errorf(errHeaderSecretRef, headerName, err)
+	}
+	return value, nil
 }
 
 func (p *Provider) prepareConfig(
@@ -309,6 +338,14 @@ func isReferentSpec(prov *esv1.VaultProvider) bool {
 			(prov.Auth.Iam.SecretRef.SessionToken != nil && prov.Auth.Iam.SecretRef.SessionToken.Namespace == nil)) {
 		return true
 	}
+
+	// Check if any headers use secretKeyRef without namespace
+	for _, header := range prov.Headers {
+		if header.SecretKeyRef != nil && header.SecretKeyRef.Namespace == nil {
+			return true
+		}
+	}
+
 	return false
 }
 

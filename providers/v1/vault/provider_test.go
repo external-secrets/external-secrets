@@ -727,6 +727,155 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: errors.New(errNoAWSAuthMethodFound),
 			},
 		},
+		"SuccessfulVaultStoreWithHeadersValue": {
+			reason: "Should return a Vault provider with custom headers using direct value",
+			args: args{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.Headers = map[string]esv1.VaultCustomHeader{
+						"X-Custom-Header": {
+							Value: ptr.To("custom-value"),
+						},
+					}
+				}),
+				ns:     "default",
+				kube:   clientfake.NewClientBuilder().Build(),
+				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
+				newClientFunc: fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+					cl.MockAddHeader = func(key, value string) {}
+				}),
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SuccessfulVaultStoreWithHeadersSecretRef": {
+			reason: "Should return a Vault provider with custom headers using secretKeyRef",
+			args: args{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.Headers = map[string]esv1.VaultCustomHeader{
+						"CF-Access-Client-Id": {
+							SecretKeyRef: &esmeta.SecretKeySelector{
+								Name: "cf-secrets",
+								Key:  "client-id",
+							},
+						},
+					}
+				}),
+				ns: "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cf-secrets",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"client-id": []byte("my-client-id"),
+					},
+				}).Build(),
+				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
+				newClientFunc: fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+					cl.MockAddHeader = func(key, value string) {}
+				}),
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"VaultStoreWithHeadersSecretRefNotFound": {
+			reason: "Should return error when secretKeyRef secret is not found",
+			args: args{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.Headers = map[string]esv1.VaultCustomHeader{
+						"CF-Access-Client-Id": {
+							SecretKeyRef: &esmeta.SecretKeySelector{
+								Name: "cf-secrets",
+								Key:  "client-id",
+							},
+						},
+					}
+				}),
+				ns:   "default",
+				kube: clientfake.NewClientBuilder().Build(),
+			},
+			want: want{
+				err: fmt.Errorf(
+					errHeaderSecretRef, "CF-Access-Client-Id",
+					fmt.Errorf(
+						`cannot get Kubernetes secret "cf-secrets" from namespace "default": %w`,
+						errors.New(`secrets "cf-secrets" not found`),
+					),
+				),
+			},
+		},
+		"VaultStoreWithHeadersSecretRefKeyNotFound": {
+			reason: "Should return error when secretKeyRef key is not found in secret",
+			args: args{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.Headers = map[string]esv1.VaultCustomHeader{
+						"CF-Access-Client-Id": {
+							SecretKeyRef: &esmeta.SecretKeySelector{
+								Name: "cf-secrets",
+								Key:  "client-id",
+							},
+						},
+					}
+				}),
+				ns: "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cf-secrets",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"wrong-key": []byte("my-client-id"),
+					},
+				}).Build(),
+			},
+			want: want{
+				err: fmt.Errorf(errHeaderSecretRef, "CF-Access-Client-Id", errors.New(`cannot find secret data for key: "client-id"`)),
+			},
+		},
+		"VaultStoreWithHeaderBothValueAndSecretKeyRef": {
+			reason: "Should return error when header has both value and secretKeyRef",
+			args: args{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.Headers = map[string]esv1.VaultCustomHeader{
+						"X-Custom-Header": {
+							Value: ptr.To("direct-value"),
+							SecretKeyRef: &esmeta.SecretKeySelector{
+								Name: "my-secret",
+								Key:  "header-key",
+							},
+						},
+					}
+				}),
+				ns:   "default",
+				kube: clientfake.NewClientBuilder().Build(),
+				newClientFunc: fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+					cl.MockAddHeader = func(key, value string) {}
+				}),
+			},
+			want: want{
+				err: fmt.Errorf(errHeaderBothValues, "X-Custom-Header"),
+			},
+		},
+		"VaultStoreWithHeaderNeitherValueNorSecretKeyRef": {
+			reason: "Should return error when header has neither value nor secretKeyRef",
+			args: args{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.Headers = map[string]esv1.VaultCustomHeader{
+						"X-Custom-Header": {},
+					}
+				}),
+				ns:   "default",
+				kube: clientfake.NewClientBuilder().Build(),
+				newClientFunc: fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+					cl.MockAddHeader = func(key, value string) {}
+				}),
+			},
+			want: want{
+				err: fmt.Errorf(errHeaderNoValue, "X-Custom-Header"),
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -871,4 +1020,82 @@ func TestCacheWithReferentSpec(t *testing.T) {
 func resetCache() {
 	enableCache = false
 	clientCache = nil
+}
+
+func TestIsReferentSpecWithHeaders(t *testing.T) {
+	tests := []struct {
+		name     string
+		headers  map[string]esv1.VaultCustomHeader
+		expected bool
+	}{
+		{
+			name:     "nil headers",
+			headers:  nil,
+			expected: false,
+		},
+		{
+			name: "headers with value only",
+			headers: map[string]esv1.VaultCustomHeader{
+				"X-Custom-Header": {Value: ptr.To("value")},
+			},
+			expected: false,
+		},
+		{
+			name: "headers with secretKeyRef with namespace",
+			headers: map[string]esv1.VaultCustomHeader{
+				"X-Custom-Header": {
+					SecretKeyRef: &esmeta.SecretKeySelector{
+						Name:      "secret",
+						Key:       "key",
+						Namespace: ptr.To("default"),
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "headers with secretKeyRef without namespace",
+			headers: map[string]esv1.VaultCustomHeader{
+				"X-Custom-Header": {
+					SecretKeyRef: &esmeta.SecretKeySelector{
+						Name: "secret",
+						Key:  "key",
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "mixed headers - one with namespace, one without",
+			headers: map[string]esv1.VaultCustomHeader{
+				"X-Header-1": {
+					SecretKeyRef: &esmeta.SecretKeySelector{
+						Name:      "secret1",
+						Key:       "key1",
+						Namespace: ptr.To("default"),
+					},
+				},
+				"X-Header-2": {
+					SecretKeyRef: &esmeta.SecretKeySelector{
+						Name: "secret2",
+						Key:  "key2",
+					},
+				},
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prov := &esv1.VaultProvider{
+				Auth:    &esv1.VaultAuth{},
+				Headers: tt.headers,
+			}
+			result := isReferentSpec(prov)
+			if result != tt.expected {
+				t.Errorf("isReferentSpec() = %v, expected %v", result, tt.expected)
+			}
+		})
+	}
 }
