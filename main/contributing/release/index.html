@@ -4907,6 +4907,7 @@
 <p>⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
 Otherwise the <code>latest</code> documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).</p>
 <ol>
+<li>Make sure there is no pending CI jobs running. This is to avoid promoting a stale image to a new version (we need to rely on <em>existing</em> pushed images for release).</li>
 <li>Run <code>Create Release</code> Action to create a new release, pass in the desired version number to release.<ol>
 <li>choose the right <code>branch</code> to execute the action: use <code>main</code> when creating a new release.</li>
 <li>⚠️ make sure that CI on the relevant branch has completed the docker build/push jobs. Otherwise an old image will be promoted.</li>
