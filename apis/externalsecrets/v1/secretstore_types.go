@@ -219,6 +219,10 @@ type SecretStoreProvider struct {
 	// Barbican configures this store to sync secrets using the OpenStack Barbican provider
 	// +optional
 	Barbican *BarbicanProvider `json:"barbican,omitempty"`
+
+	// ProtonPass configures this store to sync secrets using the Proton Pass provider
+	// +optional
+	ProtonPass *ProtonPassProvider `json:"protonpass,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

@@ -88,6 +88,7 @@ The following table describes the stability level of each provider and who's res
 | [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 |     alpha | [@jonstacks](https://github.com/jonstacks)                                                          |
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                           |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
+| [Proton Pass](https://external-secrets.io/latest/provider/protonpass)                                      |     alpha | [@Joibel](https://github.com/Joibel)                                                                |
 
 
 ## Provider Feature Support
@@ -128,6 +129,7 @@ The following table show the support for features across different providers.
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
+| Proton Pass               |      x       |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 

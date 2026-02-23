@@ -55,6 +55,9 @@ pkg/provider/vault/           @external-secrets/provider-vault-reviewers
 pkg/provider/webhook/         @external-secrets/provider-webhook-reviewers
 pkg/provider/yandex/          @external-secrets/provider-yandex-reviewers
 
+# --- Providers (v1) ---
+providers/v1/protonpass/      @external-secrets/provider-protonpass-reviewers
+
 
 # --- Maintainers (project-wide) ---
 *                            @external-secrets/maintainers @external-secrets/interim-maintainers
