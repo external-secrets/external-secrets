@@ -100,14 +100,19 @@ func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRe
 		if err = p.client.Items().Delete(ctx, providerItem.VaultID, providerItem.ID); err != nil {
 			return fmt.Errorf("failed to delete item: %w", err)
 		}
+		p.removeFromItemListCache(p.vaultID, providerItem.ID)
+		p.invalidateItemCache(p.vaultID, providerItem.ID)
 		p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
 		return nil
 	}
 
-	if _, err = p.client.Items().Put(ctx, providerItem); err != nil {
+	updatedItem, err := p.client.Items().Put(ctx, providerItem)
+	if err != nil {
 		return fmt.Errorf("failed to update item: %w", err)
 	}
 
+	p.updateInItemListCache(p.vaultID, updatedItem)
+	p.invalidateItemCache(p.vaultID, providerItem.ID)
 	p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
 
 	return nil
@@ -258,7 +263,7 @@ func (p *Provider) createItem(ctx context.Context, val []byte, ref esv1.PushSecr
 	}
 
 	// Create the item
-	_, err = p.client.Items().Create(ctx, onepassword.ItemCreateParams{
+	createdItem, err := p.client.Items().Create(ctx, onepassword.ItemCreateParams{
 		Category: onepassword.ItemCategoryServer,
 		VaultID:  p.vaultID,
 		Title:    ref.GetRemoteKey(),
@@ -271,6 +276,7 @@ func (p *Provider) createItem(ctx context.Context, val []byte, ref esv1.PushSecr
 		return fmt.Errorf("failed to create item: %w", err)
 	}
 
+	p.addToItemListCache(p.vaultID, createdItem)
 	p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
 
 	return nil
@@ -359,10 +365,13 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref es
 		return fmt.Errorf("failed to update field with value %s: %w", string(val), err)
 	}
 
-	if _, err = p.client.Items().Put(ctx, providerItem); err != nil {
+	updatedItem, err := p.client.Items().Put(ctx, providerItem)
+	if err != nil {
 		return fmt.Errorf("failed to update item: %w", err)
 	}
 
+	p.updateInItemListCache(p.vaultID, updatedItem)
+	p.invalidateItemCache(p.vaultID, providerItem.ID)
 	p.invalidateCacheByPrefix(p.constructRefKey(title))
 
 	return nil
@@ -388,12 +397,24 @@ func (p *Provider) GetVault(ctx context.Context, titleOrUUID string) (string, er
 
 func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item, error) {
 	if strfmt.IsUUID(name) {
-		return p.client.Items().Get(ctx, p.vaultID, name)
+		if cached, ok := p.getItemCache(p.vaultID, name); ok {
+			return cached, nil
+		}
+		item, err := p.client.Items().Get(ctx, p.vaultID, name)
+		if err != nil {
+			return onepassword.Item{}, err
+		}
+		p.setItemCache(item)
+		return item, nil
 	}
 
-	items, err := p.client.Items().List(ctx, p.vaultID)
-	if err != nil {
-		return onepassword.Item{}, fmt.Errorf("failed to list items: %w", err)
+	items, fromCache := p.getItemListCache(p.vaultID)
+	if !fromCache {
+		var err error
+		items, err = p.client.Items().List(ctx, p.vaultID)
+		if err != nil {
+			return onepassword.Item{}, fmt.Errorf("failed to list items: %w", err)
+		}
 	}
 
 	// We don't stop
@@ -408,10 +429,26 @@ func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item,
 	}
 
 	if itemUUID == "" {
+		// Do NOT cache the list on miss — prevents PushSecret from creating
+		// duplicates when an item was created externally.
 		return onepassword.Item{}, ErrKeyNotFound
 	}
 
-	return p.client.Items().Get(ctx, p.vaultID, itemUUID)
+	// Name was found; cache the list if it came from the API.
+	if !fromCache {
+		p.setItemListCache(p.vaultID, items)
+	}
+
+	if cached, ok := p.getItemCache(p.vaultID, itemUUID); ok {
+		return cached, nil
+	}
+
+	item, err := p.client.Items().Get(ctx, p.vaultID, itemUUID)
+	if err != nil {
+		return onepassword.Item{}, err
+	}
+	p.setItemCache(item)
+	return item, nil
 }
 
 // SecretExists checks if a secret exists in 1Password.
@@ -444,6 +481,107 @@ func (p *Provider) cacheAdd(key string, value []byte) {
 		return
 	}
 	p.cache.Add(key, value)
+}
+
+// getItemListCache retrieves the cached item list for a vault. Returns false if cache is disabled or key not found.
+func (p *Provider) getItemListCache(vaultID string) ([]onepassword.ItemOverview, bool) {
+	if p.itemListCache == nil {
+		return nil, false
+	}
+	return p.itemListCache.Get(vaultID)
+}
+
+// setItemListCache stores the item list for a vault in the cache. No-op if cache is disabled.
+func (p *Provider) setItemListCache(vaultID string, items []onepassword.ItemOverview) {
+	if p.itemListCache == nil {
+		return
+	}
+	p.itemListCache.Add(vaultID, items)
+}
+
+// addToItemListCache appends an item overview to the cached list for a vault. No-op if cache is disabled or no cached list exists.
+func (p *Provider) addToItemListCache(vaultID string, item onepassword.Item) {
+	if p.itemListCache == nil {
+		return
+	}
+	items, ok := p.itemListCache.Get(vaultID)
+	if !ok {
+		return
+	}
+	p.itemListCache.Add(vaultID, append(items, itemToOverview(item)))
+}
+
+// removeFromItemListCache removes an item by ID from the cached list. No-op if cache is disabled or no cached list exists.
+func (p *Provider) removeFromItemListCache(vaultID string, itemID string) {
+	if p.itemListCache == nil {
+		return
+	}
+	items, ok := p.itemListCache.Get(vaultID)
+	if !ok {
+		return
+	}
+	filtered := make([]onepassword.ItemOverview, 0, len(items))
+	for _, v := range items {
+		if v.ID != itemID {
+			filtered = append(filtered, v)
+		}
+	}
+	p.itemListCache.Add(vaultID, filtered)
+}
+
+// updateInItemListCache updates the matching entry in the cached list. No-op if cache is disabled or no cached list exists.
+func (p *Provider) updateInItemListCache(vaultID string, item onepassword.Item) {
+	if p.itemListCache == nil {
+		return
+	}
+	items, ok := p.itemListCache.Get(vaultID)
+	if !ok {
+		return
+	}
+	overview := itemToOverview(item)
+	for i, v := range items {
+		if v.ID == item.ID {
+			items[i] = overview
+			p.itemListCache.Add(vaultID, items)
+			return
+		}
+	}
+}
+
+// getItemCache retrieves a cached item by vault and item ID. Returns false if cache is disabled or key not found.
+func (p *Provider) getItemCache(vaultID, itemID string) (onepassword.Item, bool) {
+	if p.itemCache == nil {
+		return onepassword.Item{}, false
+	}
+	return p.itemCache.Get(vaultID + "/" + itemID)
+}
+
+// setItemCache stores an item in the cache. No-op if cache is disabled.
+func (p *Provider) setItemCache(item onepassword.Item) {
+	if p.itemCache == nil {
+		return
+	}
+	p.itemCache.Add(item.VaultID+"/"+item.ID, item)
+}
+
+// invalidateItemCache removes a single item from the item cache. No-op if cache is disabled.
+func (p *Provider) invalidateItemCache(vaultID, itemID string) {
+	if p.itemCache == nil {
+		return
+	}
+	p.itemCache.Remove(vaultID + "/" + itemID)
+}
+
+// itemToOverview converts an Item to an ItemOverview, keeping only overview-level fields.
+func itemToOverview(item onepassword.Item) onepassword.ItemOverview {
+	return onepassword.ItemOverview{
+		ID:       item.ID,
+		Title:    item.Title,
+		Category: item.Category,
+		VaultID:  item.VaultID,
+		Tags:     item.Tags,
+		Websites: item.Websites,
+	}
 }
 
 // invalidateCacheByPrefix removes all cache entries that start with the given prefix.

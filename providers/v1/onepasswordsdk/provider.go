@@ -48,10 +48,12 @@ const (
 
 // Provider implements the External Secrets provider interface for 1Password SDK.
 type Provider struct {
-	client      *onepassword.Client
-	vaultPrefix string
-	vaultID     string
-	cache       *expirable.LRU[string, []byte] // nil if caching is disabled
+	client        *onepassword.Client
+	vaultPrefix   string
+	vaultID       string
+	cache         *expirable.LRU[string, []byte]                        // nil if caching is disabled
+	itemListCache *expirable.LRU[string, []onepassword.ItemOverview]    // nil if caching is disabled; keyed by vaultID
+	itemCache     *expirable.LRU[string, onepassword.Item]              // nil if caching is disabled; keyed by vaultID/itemID
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -107,6 +109,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		}
 
 		provider.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
+		provider.itemListCache = expirable.NewLRU[string, []onepassword.ItemOverview](maxSize, nil, ttl)
+		provider.itemCache = expirable.NewLRU[string, onepassword.Item](maxSize, nil, ttl)
 	}
 
 	return provider, nil

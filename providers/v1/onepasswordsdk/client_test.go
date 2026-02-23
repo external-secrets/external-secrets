@@ -1145,10 +1145,11 @@ func (f *fakeClientWithCounter) Resolve(ctx context.Context, secretReference str
 	return f.fakeClient.Resolve(ctx, secretReference)
 }
 
-// fakeListerWithCounter wraps fakeLister and tracks Get call count.
+// fakeListerWithCounter wraps fakeLister and tracks Get and List call counts.
 type fakeListerWithCounter struct {
 	*fakeLister
-	getCallCount int
+	getCallCount  int
+	listCallCount int
 }
 
 func (f *fakeListerWithCounter) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
@@ -1169,6 +1170,7 @@ func (f *fakeListerWithCounter) Archive(ctx context.Context, vaultID, itemID str
 }
 
 func (f *fakeListerWithCounter) List(ctx context.Context, vaultID string, opts ...onepassword.ItemListFilter) ([]onepassword.ItemOverview, error) {
+	f.listCallCount++
 	return f.fakeLister.List(ctx, vaultID, opts...)
 }
 
@@ -1182,6 +1184,464 @@ func (f *fakeListerWithCounter) Files() onepassword.ItemsFilesAPI {
 
 func (f *fakeListerWithCounter) Create(ctx context.Context, item onepassword.ItemCreateParams) (onepassword.Item, error) {
 	return f.fakeLister.Create(ctx, item)
+}
+
+func TestItemListCaching(t *testing.T) {
+	t.Run("multiple findItem calls reuse cached list", func(t *testing.T) {
+		fc := &fakeClient{}
+		fl := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "id-1", Title: "item-a", Category: "login", VaultID: "vault-id"},
+					{ID: "id-2", Title: "item-b", Category: "login", VaultID: "vault-id"},
+				},
+				getResult: onepassword.Item{
+					ID: "id-1", Title: "item-a", Category: "login", VaultID: "vault-id",
+					Fields: []onepassword.ItemField{{Title: "f", Value: "v"}},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix:   "op://vault/",
+			vaultID:       "vault-id",
+			cache:         expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			itemListCache: expirable.NewLRU[string, []onepassword.ItemOverview](100, nil, time.Minute),
+			itemCache:     expirable.NewLRU[string, onepassword.Item](100, nil, time.Minute),
+		}
+
+		ctx := t.Context()
+
+		// First call — cache miss, calls List + Get
+		_, err := p.findItem(ctx, "item-a")
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.listCallCount)
+		assert.Equal(t, 1, fl.getCallCount)
+
+		// Second call same name — list cached, item cached
+		_, err = p.findItem(ctx, "item-a")
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.listCallCount, "List should not be called again")
+		assert.Equal(t, 1, fl.getCallCount, "Get should not be called again")
+
+		// Third call different name — list cached, but needs Get for new item
+		fl.fakeLister.getResult = onepassword.Item{
+			ID: "id-2", Title: "item-b", Category: "login", VaultID: "vault-id",
+			Fields: []onepassword.ItemField{{Title: "f2", Value: "v2"}},
+		}
+		_, err = p.findItem(ctx, "item-b")
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.listCallCount, "List should still not be called again")
+		assert.Equal(t, 2, fl.getCallCount, "Get should be called for new item")
+	})
+}
+
+func TestItemCachingByUUID(t *testing.T) {
+	t.Run("UUID lookups cache Items.Get results", func(t *testing.T) {
+		fc := &fakeClient{}
+		fl := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				getResult: onepassword.Item{
+					ID: "550e8400-e29b-41d4-a716-446655440000", Title: "my-item",
+					Category: "login", VaultID: "vault-id",
+					Fields: []onepassword.ItemField{{Title: "pw", Value: "secret"}},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix:   "op://vault/",
+			vaultID:       "vault-id",
+			cache:         expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			itemListCache: expirable.NewLRU[string, []onepassword.ItemOverview](100, nil, time.Minute),
+			itemCache:     expirable.NewLRU[string, onepassword.Item](100, nil, time.Minute),
+		}
+
+		ctx := t.Context()
+		uuid := "550e8400-e29b-41d4-a716-446655440000"
+
+		item1, err := p.findItem(ctx, uuid)
+		require.NoError(t, err)
+		assert.Equal(t, "my-item", item1.Title)
+		assert.Equal(t, 1, fl.getCallCount)
+
+		item2, err := p.findItem(ctx, uuid)
+		require.NoError(t, err)
+		assert.Equal(t, "my-item", item2.Title)
+		assert.Equal(t, 1, fl.getCallCount, "Get should not be called again for cached UUID")
+		assert.Equal(t, 0, fl.listCallCount, "List should never be called for UUID lookups")
+	})
+}
+
+func TestItemListCacheSurvivesCreate(t *testing.T) {
+	t.Run("after PushSecret creates an item, cached list is updated, next findItem does NOT re-list", func(t *testing.T) {
+		fc := &fakeClient{}
+		fl := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "id-existing", Title: "existing-item", Category: "login", VaultID: "vault-id"},
+				},
+				getResult: onepassword.Item{
+					ID: "id-existing", Title: "existing-item", Category: "login", VaultID: "vault-id",
+					Fields: []onepassword.ItemField{{Title: "password", Value: "old"}},
+				},
+			},
+		}
+
+		// Wrap with a Create that returns a proper Item
+		cl := &createReturningLister{
+			fakeListerWithCounter: fl,
+			createResult: onepassword.Item{
+				ID: "id-new", Title: "new-item", Category: onepassword.ItemCategoryServer, VaultID: "vault-id",
+				Fields: []onepassword.ItemField{{Title: "password", Value: "new-value"}},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   cl,
+			},
+			vaultPrefix:   "op://vault/",
+			vaultID:       "vault-id",
+			cache:         expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			itemListCache: expirable.NewLRU[string, []onepassword.ItemOverview](100, nil, time.Minute),
+			itemCache:     expirable.NewLRU[string, onepassword.Item](100, nil, time.Minute),
+		}
+
+		ctx := t.Context()
+
+		// Populate the list cache by finding an existing item
+		_, err := p.findItem(ctx, "existing-item")
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.listCallCount)
+
+		// PushSecret for a new item — findItem uses cached list, returns ErrKeyNotFound, calls createItem
+		secret := &corev1.Secret{
+			Data: map[string][]byte{"key": []byte("new-value")},
+		}
+		pushRef := v1alpha1.PushSecretData{
+			Match: v1alpha1.PushSecretMatch{
+				SecretKey: "key",
+				RemoteRef: v1alpha1.PushSecretRemoteRef{
+					RemoteKey: "new-item",
+				},
+			},
+		}
+		err = p.PushSecret(ctx, secret, pushRef)
+		require.NoError(t, err)
+		assert.True(t, cl.createCalled)
+		assert.Equal(t, 1, fl.listCallCount, "List should not be called again — list was already cached")
+
+		// Now find the newly created item — it should be in the cached list from the surgical add
+		fl.fakeLister.getResult = onepassword.Item{
+			ID: "id-new", Title: "new-item", Category: onepassword.ItemCategoryServer, VaultID: "vault-id",
+			Fields: []onepassword.ItemField{{Title: "password", Value: "new-value"}},
+		}
+		item, err := p.findItem(ctx, "new-item")
+		require.NoError(t, err)
+		assert.Equal(t, "new-item", item.Title)
+		assert.Equal(t, 1, fl.listCallCount, "List should still not be called — list cache was surgically updated")
+	})
+}
+
+// createReturningLister wraps fakeListerWithCounter to return a configured Item from Create.
+type createReturningLister struct {
+	*fakeListerWithCounter
+	createResult onepassword.Item
+	createCalled bool
+}
+
+func (c *createReturningLister) Create(_ context.Context, _ onepassword.ItemCreateParams) (onepassword.Item, error) {
+	c.createCalled = true
+	return c.createResult, nil
+}
+
+func TestItemListCacheSurvivesDelete(t *testing.T) {
+	t.Run("after DeleteSecret, item is removed from cached list, next findItem does NOT re-list", func(t *testing.T) {
+		fc := &fakeClient{}
+		fl := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "id-1", Title: "item-a", Category: "login", VaultID: "vault-id"},
+					{ID: "id-2", Title: "item-b", Category: "login", VaultID: "vault-id"},
+				},
+				getResult: onepassword.Item{
+					ID: "id-1", Title: "item-a", Category: "login", VaultID: "vault-id",
+					Fields: []onepassword.ItemField{{Title: "password", Value: "secret"}},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix:   "op://vault/",
+			vaultID:       "vault-id",
+			cache:         expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			itemListCache: expirable.NewLRU[string, []onepassword.ItemOverview](100, nil, time.Minute),
+			itemCache:     expirable.NewLRU[string, onepassword.Item](100, nil, time.Minute),
+		}
+
+		ctx := t.Context()
+
+		// Populate list cache
+		_, err := p.findItem(ctx, "item-a")
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.listCallCount)
+
+		// Delete item-a (only one field, will trigger full delete)
+		err = p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "item-a",
+			Property:  "password",
+		})
+		require.NoError(t, err)
+		assert.True(t, fl.fakeLister.deleteCalled)
+
+		// The list cache should have item-a removed, item-b still present
+		// findItem for item-b should NOT call List again
+		fl.fakeLister.getResult = onepassword.Item{
+			ID: "id-2", Title: "item-b", Category: "login", VaultID: "vault-id",
+			Fields: []onepassword.ItemField{{Title: "pw", Value: "val"}},
+		}
+		_, err = p.findItem(ctx, "item-b")
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.listCallCount, "List should not be called again — cache survived the delete")
+
+		// findItem for deleted item-a should return ErrKeyNotFound (it was removed from list cache)
+		_, err = p.findItem(ctx, "item-a")
+		assert.ErrorIs(t, err, ErrKeyNotFound)
+		assert.Equal(t, 1, fl.listCallCount, "List should still not be called — item was removed from cached list")
+	})
+}
+
+func TestItemCacheInvalidationOnPut(t *testing.T) {
+	t.Run("Items.Put invalidates item cache so next findItem re-fetches the full item", func(t *testing.T) {
+		fc := &fakeClient{}
+		fl := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "id-1", Title: "item", Category: "login", VaultID: "vault-id"},
+				},
+				getResult: onepassword.Item{
+					ID: "id-1", Title: "item", Category: "login", VaultID: "vault-id",
+					Fields: []onepassword.ItemField{{Title: "password", Value: "old-value"}},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix:   "op://vault/",
+			vaultID:       "vault-id",
+			cache:         expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			itemListCache: expirable.NewLRU[string, []onepassword.ItemOverview](100, nil, time.Minute),
+			itemCache:     expirable.NewLRU[string, onepassword.Item](100, nil, time.Minute),
+		}
+
+		ctx := t.Context()
+
+		// First findItem populates both list and item caches
+		item, err := p.findItem(ctx, "item")
+		require.NoError(t, err)
+		assert.Equal(t, "old-value", item.Fields[0].Value)
+		assert.Equal(t, 1, fl.getCallCount)
+
+		// PushSecret updates the item (calls Put)
+		secret := &corev1.Secret{
+			Data: map[string][]byte{"key": []byte("new-value")},
+		}
+		pushRef := v1alpha1.PushSecretData{
+			Match: v1alpha1.PushSecretMatch{
+				SecretKey: "key",
+				RemoteRef: v1alpha1.PushSecretRemoteRef{
+					RemoteKey: "item",
+					Property:  "password",
+				},
+			},
+		}
+		err = p.PushSecret(ctx, secret, pushRef)
+		require.NoError(t, err)
+		// findItem inside PushSecret used cached item (no additional Get)
+		assert.Equal(t, 1, fl.getCallCount, "findItem within PushSecret should use item cache")
+
+		// Now update the fake to return new value
+		fl.fakeLister.getResult = onepassword.Item{
+			ID: "id-1", Title: "item", Category: "login", VaultID: "vault-id",
+			Fields: []onepassword.ItemField{{Title: "password", Value: "new-value"}},
+		}
+
+		// Next findItem should call Get again because item cache was invalidated by Put
+		item, err = p.findItem(ctx, "item")
+		require.NoError(t, err)
+		assert.Equal(t, "new-value", item.Fields[0].Value)
+		assert.Equal(t, 2, fl.getCallCount, "Get should be called again after item cache invalidation")
+		assert.Equal(t, 1, fl.listCallCount, "List should still not be called — list cache survived")
+	})
+}
+
+func TestCacheDisabledWorks(t *testing.T) {
+	t.Run("nil caches means every call hits API", func(t *testing.T) {
+		fc := &fakeClient{}
+		fl := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "id-1", Title: "item", Category: "login", VaultID: "vault-id"},
+				},
+				getResult: onepassword.Item{
+					ID: "id-1", Title: "item", Category: "login", VaultID: "vault-id",
+					Fields: []onepassword.ItemField{{Title: "f", Value: "v"}},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix: "op://vault/",
+			vaultID:     "vault-id",
+			// All caches nil
+		}
+
+		ctx := t.Context()
+
+		_, err := p.findItem(ctx, "item")
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.listCallCount)
+		assert.Equal(t, 1, fl.getCallCount)
+
+		_, err = p.findItem(ctx, "item")
+		require.NoError(t, err)
+		assert.Equal(t, 2, fl.listCallCount, "List should be called again with no cache")
+		assert.Equal(t, 2, fl.getCallCount, "Get should be called again with no cache")
+	})
+}
+
+func TestItemListCacheNotCachedOnNotFound(t *testing.T) {
+	t.Run("ErrKeyNotFound does NOT cache the item list", func(t *testing.T) {
+		fc := &fakeClient{}
+		fl := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "id-1", Title: "existing-item", Category: "login", VaultID: "vault-id"},
+				},
+			},
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix:   "op://vault/",
+			vaultID:       "vault-id",
+			cache:         expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			itemListCache: expirable.NewLRU[string, []onepassword.ItemOverview](100, nil, time.Minute),
+			itemCache:     expirable.NewLRU[string, onepassword.Item](100, nil, time.Minute),
+		}
+
+		ctx := t.Context()
+
+		// Search for non-existent item
+		_, err := p.findItem(ctx, "no-such-item")
+		assert.ErrorIs(t, err, ErrKeyNotFound)
+		assert.Equal(t, 1, fl.listCallCount)
+
+		// Search again — list should NOT be cached, so List is called again
+		_, err = p.findItem(ctx, "no-such-item")
+		assert.ErrorIs(t, err, ErrKeyNotFound)
+		assert.Equal(t, 2, fl.listCallCount, "List should be called again because not-found does not cache the list")
+	})
+}
+
+func TestItemCacheNotCachedOnGetError(t *testing.T) {
+	t.Run("Items.Get error does NOT cache, next call retries", func(t *testing.T) {
+		fc := &fakeClient{}
+		getErr := errors.New("temporary API error")
+		callCount := 0
+		fl := &fakeListerWithCounter{
+			fakeLister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "id-1", Title: "item", Category: "login", VaultID: "vault-id"},
+				},
+			},
+		}
+
+		// We need to override Get to return an error on first call and succeed on second.
+		// Use a custom wrapper.
+		errorOnFirstGet := &errorOnFirstGetLister{
+			fakeListerWithCounter: fl,
+			getErr:                getErr,
+			callCount:             &callCount,
+		}
+
+		p := &Provider{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   errorOnFirstGet,
+			},
+			vaultPrefix:   "op://vault/",
+			vaultID:       "vault-id",
+			cache:         expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			itemListCache: expirable.NewLRU[string, []onepassword.ItemOverview](100, nil, time.Minute),
+			itemCache:     expirable.NewLRU[string, onepassword.Item](100, nil, time.Minute),
+		}
+
+		ctx := t.Context()
+
+		// First call — Get fails
+		_, err := p.findItem(ctx, "item")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "temporary API error")
+		assert.Equal(t, 1, callCount)
+
+		// Second call — Get succeeds, proves nothing was cached from the error
+		item, err := p.findItem(ctx, "item")
+		require.NoError(t, err)
+		assert.Equal(t, "item", item.Title)
+		assert.Equal(t, 2, callCount)
+	})
+}
+
+// errorOnFirstGetLister wraps fakeListerWithCounter to return an error on the first Get call.
+type errorOnFirstGetLister struct {
+	*fakeListerWithCounter
+	getErr    error
+	callCount *int
+}
+
+func (e *errorOnFirstGetLister) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
+	*e.callCount++
+	if *e.callCount == 1 {
+		return onepassword.Item{}, e.getErr
+	}
+	return onepassword.Item{
+		ID: itemID, Title: "item", Category: "login", VaultID: vaultID,
+		Fields: []onepassword.ItemField{{Title: "f", Value: "v"}},
+	}, nil
 }
 
 var _ onepassword.SecretsAPI = &fakeClient{}
