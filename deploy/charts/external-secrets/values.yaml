@@ -69,6 +69,38 @@ crds:
   createClusterPushSecret: true
   # -- If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false.
   createPushSecret: true
+
+  createExternalSecret: true 
+
+  createAcrAccessToken: true
+
+  createCloudSmithAccessToken: true
+
+  createEcrAuthorizationToken: true 
+
+  createFake: true
+
+  createGcrAccessToken: true 
+
+  createGeneratorState: true 
+
+  createGitHubAccessToken: true 
+
+  createGrafana: true
+
+  createMfa: true
+
+  createPassword: true
+
+  createQuayAccessToken: true
+
+  createSshKey: true
+
+  createStsSessionToken: true
+
+  createUuid: true
+  createVaultDynamicSecret: true
+  createWebhook: true
   annotations: {}
   conversion:
     # -- Conversion is disabled by default as we stopped supporting v1alpha1.
@@ -131,6 +163,11 @@ processClusterGenerator: true
 
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
+
+# -- if true, the operator will process generator state. Else, it will ignore them.
+processGeneratorState: true
+
+processExternalSecret: true 
 
 # -- Enable support for generic targets (ConfigMaps, Custom Resources).
 # Warning: Using generic target. Make sure access policies and encryption are properly configured.
