@@ -38,6 +38,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
+	eswebhookv1 "github.com/external-secrets/external-secrets/pkg/webhook/v1"
 )
 
 const (
@@ -148,15 +149,15 @@ var webhookCmd = &cobra.Command{
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
 		}
-		if err = (&esv1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = eswebhookv1.SetupExternalSecretWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1")
 			os.Exit(1)
 		}
-		if err = (&esv1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = eswebhookv1.SetupSecretStoreWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1")
 			os.Exit(1)
 		}
-		if err = (&esv1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = eswebhookv1.SetupClusterSecretStoreWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1")
 			os.Exit(1)
 		}

@@ -22,41 +22,43 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 // ValidationProvider is a simple provider that we can use without cyclic import.
 type ValidationProvider struct {
-	Provider
+	esv1beta1.Provider
 }
 
-func (v *ValidationProvider) ValidateStore(_ GenericStore) (admission.Warnings, error) {
+func (v *ValidationProvider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
 func TestValidateSecretStore(t *testing.T) {
 	tests := []struct {
 		name      string
-		obj       *SecretStore
+		obj       *esv1beta1.SecretStore
 		mock      func()
 		assertErr func(t *testing.T, err error)
 	}{
 		{
 			name: "valid regex",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Conditions: []esv1beta1.ClusterSecretStoreCondition{
 						{
 							NamespaceRegexes: []string{`.*`},
 						},
 					},
-					Provider: &SecretStoreProvider{
-						AWS: &AWSProvider{},
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{},
 					},
 				},
 			},
 			mock: func() {
-				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
-					AWS: &AWSProvider{},
+				esv1beta1.ForceRegister(&ValidationProvider{}, &esv1beta1.SecretStoreProvider{
+					AWS: &esv1beta1.AWSProvider{},
 				})
 			},
 			assertErr: func(t *testing.T, err error) {
@@ -65,21 +67,21 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "invalid regex",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Conditions: []esv1beta1.ClusterSecretStoreCondition{
 						{
 							NamespaceRegexes: []string{`\1`},
 						},
 					},
-					Provider: &SecretStoreProvider{
-						AWS: &AWSProvider{},
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{},
 					},
 				},
 			},
 			mock: func() {
-				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
-					AWS: &AWSProvider{},
+				esv1beta1.ForceRegister(&ValidationProvider{}, &esv1beta1.SecretStoreProvider{
+					AWS: &esv1beta1.AWSProvider{},
 				})
 			},
 			assertErr: func(t *testing.T, err error) {
@@ -88,21 +90,21 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "multiple errors",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Conditions: []esv1beta1.ClusterSecretStoreCondition{
 						{
 							NamespaceRegexes: []string{`\1`, `\2`},
 						},
 					},
-					Provider: &SecretStoreProvider{
-						AWS: &AWSProvider{},
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{},
 					},
 				},
 			},
 			mock: func() {
-				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
-					AWS: &AWSProvider{},
+				esv1beta1.ForceRegister(&ValidationProvider{}, &esv1beta1.SecretStoreProvider{
+					AWS: &esv1beta1.AWSProvider{},
 				})
 			},
 			assertErr: func(t *testing.T, err error) {
@@ -115,11 +117,11 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "secret store must have only a single backend",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Provider: &SecretStoreProvider{
-						AWS:   &AWSProvider{},
-						GCPSM: &GCPSMProvider{},
+			obj: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS:   &esv1beta1.AWSProvider{},
+						GCPSM: &esv1beta1.GCPSMProvider{},
 					},
 				},
 			},
@@ -129,9 +131,9 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "no registered store backend",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Conditions: []esv1beta1.ClusterSecretStoreCondition{
 						{
 							Namespaces: []string{"default"},
 						},

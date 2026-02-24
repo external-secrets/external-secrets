@@ -23,10 +23,12 @@ import (
 	"regexp"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-var _ admission.Validator[*SecretStore] = &GenericStoreValidator{}
-var _ admission.Validator[*ClusterSecretStore] = &GenericClusterStoreValidator{}
+var _ admission.Validator[*esv1beta1.SecretStore] = &GenericStoreValidator{}
+var _ admission.Validator[*esv1beta1.ClusterSecretStore] = &GenericClusterStoreValidator{}
 
 // GenericStoreValidator provides validation for SecretStore resources.
 type GenericStoreValidator struct{}
@@ -35,41 +37,41 @@ type GenericStoreValidator struct{}
 type GenericClusterStoreValidator struct{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericClusterStoreValidator) ValidateCreate(_ context.Context, obj *ClusterSecretStore) (admission.Warnings, error) {
+func (r *GenericClusterStoreValidator) ValidateCreate(_ context.Context, obj *esv1beta1.ClusterSecretStore) (admission.Warnings, error) {
 	return validateStore(obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericClusterStoreValidator) ValidateUpdate(_ context.Context, _, newObj *ClusterSecretStore) (admission.Warnings, error) {
+func (r *GenericClusterStoreValidator) ValidateUpdate(_ context.Context, _, newObj *esv1beta1.ClusterSecretStore) (admission.Warnings, error) {
 	return validateStore(newObj)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericClusterStoreValidator) ValidateDelete(_ context.Context, _ *ClusterSecretStore) (admission.Warnings, error) {
+func (r *GenericClusterStoreValidator) ValidateDelete(_ context.Context, _ *esv1beta1.ClusterSecretStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateCreate(_ context.Context, obj *SecretStore) (admission.Warnings, error) {
+func (r *GenericStoreValidator) ValidateCreate(_ context.Context, obj *esv1beta1.SecretStore) (admission.Warnings, error) {
 	return validateStore(obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateUpdate(_ context.Context, _, newObj *SecretStore) (admission.Warnings, error) {
+func (r *GenericStoreValidator) ValidateUpdate(_ context.Context, _, newObj *esv1beta1.SecretStore) (admission.Warnings, error) {
 	return validateStore(newObj)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateDelete(_ context.Context, _ *SecretStore) (admission.Warnings, error) {
+func (r *GenericStoreValidator) ValidateDelete(_ context.Context, _ *esv1beta1.SecretStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func validateStore(store GenericStore) (admission.Warnings, error) {
+func validateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if err := validateConditions(store); err != nil {
 		return nil, err
 	}
 
-	provider, err := GetProvider(store)
+	provider, err := esv1beta1.GetProvider(store)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +79,7 @@ func validateStore(store GenericStore) (admission.Warnings, error) {
 	return provider.ValidateStore(store)
 }
 
-func validateConditions(store GenericStore) error {
+func validateConditions(store esv1beta1.GenericStore) error {
 	var errs error
 	for ci, condition := range store.GetSpec().Conditions {
 		for ri, r := range condition.NamespaceRegexes {

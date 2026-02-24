@@ -23,43 +23,45 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // ValidationProvider is a simple provider that we can use without cyclic import.
 type ValidationProvider struct {
-	Provider
+	esv1.Provider
 }
 
-func (v *ValidationProvider) ValidateStore(_ GenericStore) (admission.Warnings, error) {
+func (v *ValidationProvider) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
 func TestValidateSecretStore(t *testing.T) {
 	tests := []struct {
 		name        string
-		obj         *SecretStore
+		obj         *esv1.SecretStore
 		mock        func()
 		assertWarns func(t *testing.T, warns admission.Warnings)
 		assertErr   func(t *testing.T, err error)
 	}{
 		{
 			name: "valid regex",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Conditions: []esv1.ClusterSecretStoreCondition{
 						{
 							NamespaceRegexes: []string{`.*`},
 						},
 					},
-					Provider: &SecretStoreProvider{
-						AWS: &AWSProvider{},
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{},
 					},
 				},
 			},
 			mock: func() {
-				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
-					AWS: &AWSProvider{},
-				}, MaintenanceStatusMaintained)
+				esv1.ForceRegister(&ValidationProvider{}, &esv1.SecretStoreProvider{
+					AWS: &esv1.AWSProvider{},
+				}, esv1.MaintenanceStatusMaintained)
 			},
 			assertErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
@@ -70,22 +72,22 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "invalid regex",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Conditions: []esv1.ClusterSecretStoreCondition{
 						{
 							NamespaceRegexes: []string{`\1`},
 						},
 					},
-					Provider: &SecretStoreProvider{
-						AWS: &AWSProvider{},
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{},
 					},
 				},
 			},
 			mock: func() {
-				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
-					AWS: &AWSProvider{},
-				}, MaintenanceStatusMaintained)
+				esv1.ForceRegister(&ValidationProvider{}, &esv1.SecretStoreProvider{
+					AWS: &esv1.AWSProvider{},
+				}, esv1.MaintenanceStatusMaintained)
 			},
 			assertErr: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "failed to compile 0th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\1`")
@@ -96,15 +98,15 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "multiple errors",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Conditions: []esv1.ClusterSecretStoreCondition{
 						{
 							NamespaceRegexes: []string{`\1`, `\2`},
 						},
 					},
-					Provider: &SecretStoreProvider{
-						AWS: &AWSProvider{},
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{},
 					},
 				},
 			},
@@ -113,9 +115,9 @@ func TestValidateSecretStore(t *testing.T) {
 			},
 
 			mock: func() {
-				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
-					AWS: &AWSProvider{},
-				}, MaintenanceStatusMaintained)
+				esv1.ForceRegister(&ValidationProvider{}, &esv1.SecretStoreProvider{
+					AWS: &esv1.AWSProvider{},
+				}, esv1.MaintenanceStatusMaintained)
 			},
 			assertErr: func(t *testing.T, err error) {
 				assert.EqualError(
@@ -127,11 +129,11 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "secret store must have only a single backend",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Provider: &SecretStoreProvider{
-						AWS:   &AWSProvider{},
-						GCPSM: &GCPSMProvider{},
+			obj: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						AWS:   &esv1.AWSProvider{},
+						GCPSM: &esv1.GCPSMProvider{},
 					},
 				},
 			},
@@ -144,9 +146,9 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "no registered store backend",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Conditions: []esv1.ClusterSecretStoreCondition{
 						{
 							Namespaces: []string{"default"},
 						},
@@ -162,22 +164,22 @@ func TestValidateSecretStore(t *testing.T) {
 		},
 		{
 			name: "unmaintained warning",
-			obj: &SecretStore{
-				Spec: SecretStoreSpec{
-					Conditions: []ClusterSecretStoreCondition{
+			obj: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Conditions: []esv1.ClusterSecretStoreCondition{
 						{
 							NamespaceRegexes: []string{`.*`},
 						},
 					},
-					Provider: &SecretStoreProvider{
-						AWS: &AWSProvider{},
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{},
 					},
 				},
 			},
 			mock: func() {
-				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
-					AWS: &AWSProvider{},
-				}, MaintenanceStatusNotMaintained)
+				esv1.ForceRegister(&ValidationProvider{}, &esv1.SecretStoreProvider{
+					AWS: &esv1.AWSProvider{},
+				}, esv1.MaintenanceStatusNotMaintained)
 			},
 			assertErr: func(t *testing.T, err error) {
 				require.NoError(t, err)

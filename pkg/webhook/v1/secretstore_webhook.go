@@ -14,22 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// SetupWebhookWithManager configures the webhook manager for the SecretStore.
-func (c *SecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr, c).
+// SetupSecretStoreWebhookWithManager registers the SecretStore webhook with the controller manager.
+func SetupSecretStoreWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr, &esv1.SecretStore{}).
 		WithValidator(&GenericStoreValidator{}).
 		Complete()
 }
 
-// SetupWebhookWithManager configures the webhook manager for the ClusterSecretStore.
-func (c *ClusterSecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr, c).
+// SetupClusterSecretStoreWebhookWithManager registers the ClusterSecretStore webhook with the controller manager.
+func SetupClusterSecretStoreWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr, &esv1.ClusterSecretStore{}).
 		WithValidator(&GenericClusterStoreValidator{}).
 		Complete()
 }

@@ -18,11 +18,13 @@ package v1
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// SetupWebhookWithManager sets up the webhook for ExternalSecret.
-func (es *ExternalSecret) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr, es).
+// SetupExternalSecretWebhookWithManager sets up the webhook for ExternalSecret.
+func SetupExternalSecretWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr, &esv1.ExternalSecret{}).
 		WithValidator(&ExternalSecretValidator{}).
 		Complete()
 }

@@ -18,6 +18,8 @@ package v1beta1
 
 import (
 	"testing"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -27,7 +29,7 @@ const (
 func TestValidateExternalSecret(t *testing.T) {
 	tests := []struct {
 		name        string
-		obj         *ExternalSecret
+		obj         *esv1beta1.ExternalSecret
 		expectedErr string
 	}{
 		{
@@ -37,13 +39,13 @@ func TestValidateExternalSecret(t *testing.T) {
 		},
 		{
 			name: "deletion policy delete",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					Target: ExternalSecretTarget{
-						DeletionPolicy: DeletionPolicyDelete,
-						CreationPolicy: CreatePolicyMerge,
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					Target: esv1beta1.ExternalSecretTarget{
+						DeletionPolicy: esv1beta1.DeletionPolicyDelete,
+						CreationPolicy: esv1beta1.CreatePolicyMerge,
 					},
-					Data: []ExternalSecretData{
+					Data: []esv1beta1.ExternalSecretData{
 						{},
 					},
 				},
@@ -52,13 +54,13 @@ func TestValidateExternalSecret(t *testing.T) {
 		},
 		{
 			name: "deletion policy merge",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					Target: ExternalSecretTarget{
-						DeletionPolicy: DeletionPolicyMerge,
-						CreationPolicy: CreatePolicyNone,
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					Target: esv1beta1.ExternalSecretTarget{
+						DeletionPolicy: esv1beta1.DeletionPolicyMerge,
+						CreationPolicy: esv1beta1.CreatePolicyNone,
 					},
-					Data: []ExternalSecretData{
+					Data: []esv1beta1.ExternalSecretData{
 						{},
 					},
 				},
@@ -67,19 +69,19 @@ func TestValidateExternalSecret(t *testing.T) {
 		},
 		{
 			name: "both data and data_from are empty",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{},
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{},
 			},
 			expectedErr: "either data or dataFrom should be specified",
 		},
 		{
 			name: "find with extract",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					DataFrom: []ExternalSecretDataFromRemoteRef{
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					DataFrom: []esv1beta1.ExternalSecretDataFromRemoteRef{
 						{
-							Find:    &ExternalSecretFind{},
-							Extract: &ExternalSecretDataRemoteRef{},
+							Find:    &esv1beta1.ExternalSecretFind{},
+							Extract: &esv1beta1.ExternalSecretDataRemoteRef{},
 						},
 					},
 				},
@@ -88,13 +90,13 @@ func TestValidateExternalSecret(t *testing.T) {
 		},
 		{
 			name: "generator with find",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					DataFrom: []ExternalSecretDataFromRemoteRef{
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					DataFrom: []esv1beta1.ExternalSecretDataFromRemoteRef{
 						{
-							Find: &ExternalSecretFind{},
-							SourceRef: &StoreGeneratorSourceRef{
-								GeneratorRef: &GeneratorRef{},
+							Find: &esv1beta1.ExternalSecretFind{},
+							SourceRef: &esv1beta1.StoreGeneratorSourceRef{
+								GeneratorRef: &esv1beta1.GeneratorRef{},
 							},
 						},
 					},
@@ -104,13 +106,13 @@ func TestValidateExternalSecret(t *testing.T) {
 		},
 		{
 			name: "generator with extract",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					DataFrom: []ExternalSecretDataFromRemoteRef{
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					DataFrom: []esv1beta1.ExternalSecretDataFromRemoteRef{
 						{
-							Extract: &ExternalSecretDataRemoteRef{},
-							SourceRef: &StoreGeneratorSourceRef{
-								GeneratorRef: &GeneratorRef{},
+							Extract: &esv1beta1.ExternalSecretDataRemoteRef{},
+							SourceRef: &esv1beta1.StoreGeneratorSourceRef{
+								GeneratorRef: &esv1beta1.GeneratorRef{},
 							},
 						},
 					},
@@ -120,9 +122,9 @@ func TestValidateExternalSecret(t *testing.T) {
 		},
 		{
 			name: "empty dataFrom",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					DataFrom: []ExternalSecretDataFromRemoteRef{
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					DataFrom: []esv1beta1.ExternalSecretDataFromRemoteRef{
 						{},
 					},
 				},
@@ -131,11 +133,11 @@ func TestValidateExternalSecret(t *testing.T) {
 		},
 		{
 			name: "empty sourceRef",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					DataFrom: []ExternalSecretDataFromRemoteRef{
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					DataFrom: []esv1beta1.ExternalSecretDataFromRemoteRef{
 						{
-							SourceRef: &StoreGeneratorSourceRef{},
+							SourceRef: &esv1beta1.StoreGeneratorSourceRef{},
 						},
 					},
 				},
@@ -144,11 +146,11 @@ func TestValidateExternalSecret(t *testing.T) {
 		},
 		{
 			name: "multiple errors",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					Target: ExternalSecretTarget{
-						DeletionPolicy: DeletionPolicyMerge,
-						CreationPolicy: CreatePolicyNone,
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					Target: esv1beta1.ExternalSecretTarget{
+						DeletionPolicy: esv1beta1.DeletionPolicyMerge,
+						CreationPolicy: esv1beta1.CreatePolicyNone,
 					},
 				},
 			},
@@ -157,12 +159,12 @@ either data or dataFrom should be specified`,
 		},
 		{
 			name: "valid",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					DataFrom: []ExternalSecretDataFromRemoteRef{
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					DataFrom: []esv1beta1.ExternalSecretDataFromRemoteRef{
 						{
-							SourceRef: &StoreGeneratorSourceRef{
-								GeneratorRef: &GeneratorRef{},
+							SourceRef: &esv1beta1.StoreGeneratorSourceRef{
+								GeneratorRef: &esv1beta1.GeneratorRef{},
 							},
 						},
 					},
@@ -171,12 +173,12 @@ either data or dataFrom should be specified`,
 		},
 		{
 			name: "duplicate secretKeys",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					Target: ExternalSecretTarget{
-						DeletionPolicy: DeletionPolicyRetain,
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					Target: esv1beta1.ExternalSecretTarget{
+						DeletionPolicy: esv1beta1.DeletionPolicyRetain,
 					},
-					Data: []ExternalSecretData{
+					Data: []esv1beta1.ExternalSecretData{
 						{SecretKey: "SERVICE_NAME"},
 						{SecretKey: "SERVICE_NAME"},
 						{SecretKey: "SERVICE_NAME-2"},
@@ -189,12 +191,12 @@ either data or dataFrom should be specified`,
 		},
 		{
 			name: "duplicate secretKey",
-			obj: &ExternalSecret{
-				Spec: ExternalSecretSpec{
-					Target: ExternalSecretTarget{
-						DeletionPolicy: DeletionPolicyRetain,
+			obj: &esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					Target: esv1beta1.ExternalSecretTarget{
+						DeletionPolicy: esv1beta1.DeletionPolicyRetain,
 					},
-					Data: []ExternalSecretData{
+					Data: []esv1beta1.ExternalSecretData{
 						{SecretKey: "SERVICE_NAME"},
 						{SecretKey: "SERVICE_NAME"},
 					},

@@ -22,30 +22,32 @@ import (
 	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 // Ensures ExternalSecretValidator implements the admission.CustomValidator interface correctly.
-var _ admission.Validator[*ExternalSecret] = &ExternalSecretValidator{}
+var _ admission.Validator[*esv1beta1.ExternalSecret] = &ExternalSecretValidator{}
 
 // ExternalSecretValidator implements a validating webhook for ExternalSecrets.
 type ExternalSecretValidator struct{}
 
 // ValidateCreate validates the creation of an external secret object.
-func (in *ExternalSecretValidator) ValidateCreate(_ context.Context, obj *ExternalSecret) (warnings admission.Warnings, err error) {
+func (in *ExternalSecretValidator) ValidateCreate(_ context.Context, obj *esv1beta1.ExternalSecret) (warnings admission.Warnings, err error) {
 	return validateExternalSecret(obj)
 }
 
 // ValidateUpdate validates the update of an external secret object.
-func (in *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj *ExternalSecret) (warnings admission.Warnings, err error) {
+func (in *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj *esv1beta1.ExternalSecret) (warnings admission.Warnings, err error) {
 	return validateExternalSecret(newObj)
 }
 
 // ValidateDelete validates the deletion of an external secret object.
-func (in *ExternalSecretValidator) ValidateDelete(_ context.Context, _ *ExternalSecret) (warnings admission.Warnings, err error) {
+func (in *ExternalSecretValidator) ValidateDelete(_ context.Context, _ *esv1beta1.ExternalSecret) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
-func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
+func validateExternalSecret(es *esv1beta1.ExternalSecret) (admission.Warnings, error) {
 	if es == nil {
 		return nil, errors.New("external secret cannot be nil during validation")
 	}
@@ -77,7 +79,7 @@ func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 	return nil, errs
 }
 
-func validateSourceRef(ref ExternalSecretDataFromRemoteRef) error {
+func validateSourceRef(ref esv1beta1.ExternalSecretDataFromRemoteRef) error {
 	if ref.SourceRef != nil && ref.SourceRef.GeneratorRef == nil && ref.SourceRef.SecretStoreRef == nil {
 		return errors.New("generatorRef or storeRef must be set when using sourceRef in dataFrom")
 	}
@@ -85,7 +87,7 @@ func validateSourceRef(ref ExternalSecretDataFromRemoteRef) error {
 	return nil
 }
 
-func validateFindExtractSourceRef(ref ExternalSecretDataFromRemoteRef) error {
+func validateFindExtractSourceRef(ref esv1beta1.ExternalSecretDataFromRemoteRef) error {
 	if ref.Find == nil && ref.Extract == nil && ref.SourceRef == nil {
 		return errors.New("either extract, find, or sourceRef must be set to dataFrom")
 	}
@@ -93,7 +95,7 @@ func validateFindExtractSourceRef(ref ExternalSecretDataFromRemoteRef) error {
 	return nil
 }
 
-func validateExtractFindGenerator(ref ExternalSecretDataFromRemoteRef) error {
+func validateExtractFindGenerator(ref esv1beta1.ExternalSecretDataFromRemoteRef) error {
 	generatorRef := ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil
 	if (ref.Find != nil && (ref.Extract != nil || generatorRef)) || (ref.Extract != nil && (ref.Find != nil || generatorRef)) || (generatorRef && (ref.Find != nil || ref.Extract != nil)) {
 		return errors.New("extract, find, or generatorRef cannot be set at the same time")
@@ -102,22 +104,22 @@ func validateExtractFindGenerator(ref ExternalSecretDataFromRemoteRef) error {
 	return nil
 }
 
-func validatePolicies(es *ExternalSecret) error {
+func validatePolicies(es *esv1beta1.ExternalSecret) error {
 	var errs error
-	if (es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyMerge) ||
-		(es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyNone) {
+	if (es.Spec.Target.DeletionPolicy == esv1beta1.DeletionPolicyDelete && es.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyMerge) ||
+		(es.Spec.Target.DeletionPolicy == esv1beta1.DeletionPolicyDelete && es.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyNone) {
 		errs = errors.Join(errs, errors.New("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner"))
 	}
 
-	if es.Spec.Target.DeletionPolicy == DeletionPolicyMerge && es.Spec.Target.CreationPolicy == CreatePolicyNone {
+	if es.Spec.Target.DeletionPolicy == esv1beta1.DeletionPolicyMerge && es.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyNone {
 		errs = errors.Join(errs, errors.New("deletionPolicy=Merge must not be used with creationPolicy=None. There is no Secret to merge with"))
 	}
 
 	return errs
 }
 
-func validateDuplicateKeys(es *ExternalSecret, errs error) error {
-	if es.Spec.Target.DeletionPolicy == DeletionPolicyRetain {
+func validateDuplicateKeys(es *esv1beta1.ExternalSecret, errs error) error {
+	if es.Spec.Target.DeletionPolicy == esv1beta1.DeletionPolicyRetain {
 		seenKeys := make(map[string]struct{})
 		for _, data := range es.Spec.Data {
 			secretKey := data.SecretKey
