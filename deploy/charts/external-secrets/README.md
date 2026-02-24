@@ -184,6 +184,18 @@ The command removes all the Kubernetes components associated with the chart and 
 | rbac.aggregateToView | bool | `true` | Specifies whether permissions are aggregated to the view ClusterRole |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | rbac.servicebindings.create | bool | `true` | Specifies whether a clusterrole to give servicebindings read access should be created. |
+| readinessProbe.enabled | bool | `false` | Note: Enabling this will auto-start the health server (--live-addr) even if livenessProbe.enabled is false. |
+| readinessProbe.spec | object | `{"address":"","failureThreshold":3,"httpGet":{"path":"/healthz","port":"live"},"initialDelaySeconds":10,"periodSeconds":10,"port":8082,"successThreshold":1,"timeoutSeconds":5}` | The body of the readiness probe settings. |
+| readinessProbe.spec.address | string | `""` | Address for readiness probe. |
+| readinessProbe.spec.failureThreshold | int | `3` | Number of consecutive probe failures that should occur before considering the probe as failed. |
+| readinessProbe.spec.httpGet | object | `{"path":"/healthz","port":"live"}` | Handler for readiness probe. |
+| readinessProbe.spec.httpGet.path | string | `"/healthz"` | Path for readiness probe. |
+| readinessProbe.spec.httpGet.port | string | `"live"` | Set this value to 'live' (for named port) or an integer for readiness probes. @schema type: [string, integer] |
+| readinessProbe.spec.initialDelaySeconds | int | `10` | Delay in seconds for the container to start before performing the initial probe. |
+| readinessProbe.spec.periodSeconds | int | `10` | Period in seconds for K8s to start performing probes. |
+| readinessProbe.spec.port | int | `8082` | Named port for readiness probe. |
+| readinessProbe.spec.successThreshold | int | `1` | Number of successful probes to mark probe successful. |
+| readinessProbe.spec.timeoutSeconds | int | `5` | Specify the maximum amount of time to wait for a probe to respond before considering it fails. |
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
 | revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
