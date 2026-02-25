@@ -189,6 +189,22 @@ async function lgtmProcessor({ core, github, context }) {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
 
+  // Verify the LGTM label exists in the repository before proceeding
+  try {
+    await github.rest.issues.getLabel({
+      owner, repo, name: LGTM_LABEL,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      core.setFailed(
+        `Label "${LGTM_LABEL}" does not exist in ${owner}/${repo}. ` +
+        `Please create the label before using /lgtm.`
+      );
+      return;
+    }
+    core.warning(`Failed to check label existence: ${error.message}`);
+  }
+
   // Parse CODEOWNERS.md file
   let codeownersContent;
   try {
