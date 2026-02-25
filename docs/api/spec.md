@@ -8486,8 +8486,9 @@ PulumiAuth
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Auth configures how the Operator authenticates with the Pulumi API.
-Exactly one of accessToken or oidcConfig must be specified.</p>
+Either auth or the deprecated accessToken field must be specified.</p>
 </td>
 </tr>
 <tr>
