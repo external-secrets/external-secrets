@@ -21,10 +21,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sync"
-
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebius/gosdk/auth"
+	"golang.org/x/sync/singleflight"
 	"k8s.io/utils/clock"
 
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/iam"
@@ -46,12 +45,16 @@ type tokenCacheKey struct {
 	PrivateKeyHash   string
 }
 
+func (k *tokenCacheKey) String() string {
+	return k.APIDomain + "|" + k.PublicKeyID + "|" + k.ServiceAccountID + "|" + k.PrivateKeyHash
+}
+
 // CachedTokenGetter is responsible for managing Nebius IAM token caching and token exchange processes.
 type CachedTokenGetter struct {
 	TokenExchanger iam.TokenExchanger
 	Clock          clock.Clock
 	tokenCache     *lru.Cache
-	getTokenMutex  sync.Mutex
+	sf             singleflight.Group
 }
 
 // NewCachedTokenGetter initializes a CachedTokenGetter with the specified cache size, token exchanger, and clock.
@@ -90,9 +93,6 @@ func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCred
 		return "", err
 	}
 
-	c.getTokenMutex.Lock()
-	defer c.getTokenMutex.Unlock()
-
 	value, ok := c.tokenCache.Get(*cacheKey)
 	if ok {
 		token := value.(*iam.Token)
@@ -102,12 +102,29 @@ func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCred
 		}
 	}
 
-	newToken, err := c.TokenExchanger.ExchangeIamToken(ctx, apiDomain, subjectCreds, c.Clock.Now(), caCert)
+	tokenCacheKeyString := cacheKey.String()
+
+	token, err, _ := c.sf.Do(tokenCacheKeyString, func() (any, error) {
+		if v, ok := c.tokenCache.Get(*cacheKey); ok {
+			tok := v.(*iam.Token)
+			if !isTokenExpired(tok, c.Clock) {
+				return tok.Token, nil
+			}
+		}
+
+		newToken, err := c.TokenExchanger.ExchangeIamToken(ctx, apiDomain, subjectCreds, c.Clock.Now(), caCert)
+		if err != nil {
+			return "", fmt.Errorf("could not exchange creds to iam token: %w", MapGrpcErrors("create token", err))
+		}
+
+		c.tokenCache.Add(*cacheKey, newToken)
+		return newToken.Token, nil
+	})
+
 	if err != nil {
-		return "", fmt.Errorf("could not exchange creds to iam token: %w", MapGrpcErrors("create token", err))
+		return "", err
 	}
-	c.tokenCache.Add(*cacheKey, newToken)
-	return newToken.Token, nil
+	return token.(string), nil
 }
 
 func buildTokenCacheKey(subjectCreds []byte, apiDomain string) (*tokenCacheKey, error) {

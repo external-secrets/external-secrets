@@ -19,6 +19,7 @@ package iam
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 )
 
@@ -26,18 +27,18 @@ import (
 // Calls keeps track of how many times the token exchange method has been invoked.
 // ReturnError, when set to true, forces the token exchange method to return an error.
 type FakeTokenExchanger struct {
-	Calls       int
+	Calls       atomic.Int64
 	ReturnError bool
 }
 
 // ExchangeIamToken exchanges credentials to generate a new IAM token with a fixed 100-second validity period.
 func (f *FakeTokenExchanger) ExchangeIamToken(_ context.Context, _, _ string, issuedAt time.Time, _ []byte) (*Token, error) {
-	f.Calls++
+	f.Calls.Add(1)
 	if f.ReturnError {
 		return nil, fmt.Errorf("fake error")
 	}
 	return &Token{
-		Token:     fmt.Sprintf("token-%d", f.Calls),
+		Token:     fmt.Sprintf("token-%d", f.Calls.Load()),
 		ExpiresAt: issuedAt.Add(100 * time.Second), // lifetime is 100 seconds
 		IssuedAt:  issuedAt,
 	}, nil
