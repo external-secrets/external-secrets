@@ -161,12 +161,11 @@ func handleGetSecretByKeyError(err error, ref esv1.ExternalSecretDataRemoteRef) 
 		return err // not a grpc error
 	}
 	if st.Code() == codes.NotFound {
-		if ref.Property != "" {
-			if ref.Version != "" {
-				return fmt.Errorf(errSecretVersionByKeyNotFound, ref.Version, ref.Key, ref.Property, esv1.NoSecretErr)
-			}
-			return fmt.Errorf(errSecretByKeyNotFound, ref.Property, ref.Key, esv1.NoSecretErr)
+		if ref.Version != "" {
+			return fmt.Errorf(errSecretVersionByKeyNotFound, ref.Version, ref.Key, ref.Property, esv1.NoSecretErr)
 		}
+		return fmt.Errorf(errSecretByKeyNotFound, ref.Property, ref.Key, esv1.NoSecretErr)
+
 	}
 	return MapGrpcErrors("get secret by key", err)
 }
