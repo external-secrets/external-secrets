@@ -302,6 +302,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.MFASpec,
 		}, nil
+	case genv1alpha1.GeneratorKindBeyondtrustSecretsDynamicSecret:
+		if gen.Spec.Generator.BeyondtrustSecretsDynamicSecretSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, BeyondtrustSecretsDynamicSecretSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.BeyondtrustSecretsDynamicSecret{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.BeyondtrustSecretsDynamicSecretKind,
+			},
+			Spec: *gen.Spec.Generator.BeyondtrustSecretsDynamicSecretSpec,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown kind %s", gen.Spec.Kind)
 	}
