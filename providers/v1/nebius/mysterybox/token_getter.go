@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebius/gosdk/auth"
 	"golang.org/x/sync/singleflight"

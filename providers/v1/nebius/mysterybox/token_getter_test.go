@@ -248,7 +248,6 @@ func TestGetToken_Singleflight_DedupesConcurrentSameKey(t *testing.T) {
 	errs := make([]error, n)
 
 	for i := 0; i < n; i++ {
-		i := i
 		go func() {
 			defer wg.Done()
 			<-start
@@ -283,7 +282,6 @@ func TestGetToken_ConcurrentDifferentKeys_NoRaceAndWorks(t *testing.T) {
 	wg.Add(n)
 
 	for i := 0; i < n; i++ {
-		i := i
 		go func() {
 			defer wg.Done()
 			<-start

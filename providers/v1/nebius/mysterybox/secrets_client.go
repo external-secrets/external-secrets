@@ -165,7 +165,6 @@ func handleGetSecretByKeyError(err error, ref esv1.ExternalSecretDataRemoteRef) 
 			return fmt.Errorf(errSecretVersionByKeyNotFound, ref.Version, ref.Key, ref.Property, esv1.NoSecretErr)
 		}
 		return fmt.Errorf(errSecretByKeyNotFound, ref.Property, ref.Key, esv1.NoSecretErr)
-
 	}
 	return MapGrpcErrors("get secret by key", err)
 }
