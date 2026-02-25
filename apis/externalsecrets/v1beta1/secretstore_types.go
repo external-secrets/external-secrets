@@ -203,6 +203,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
 
+	// BeyondtrustSecrets configures this store to sync secrets using the BeyondTrust Secrets provider.
+	// +optional
+	BeyondtrustSecrets *BeyondtrustSecretsProvider `json:"beyondtrustsecrets,omitempty"`
+
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
