@@ -69,6 +69,9 @@ type Client struct {
 	// ctrlClientset is a client-go CoreV1() client
 	// with RBAC scope of the controller (privileged!)
 	ctrlClientset typedcorev1.CoreV1Interface
+	// userCoreV1 is a client-go CoreV1() interface
+	// with user-defined scope, used for dynamic namespace resolution.
+	userCoreV1 typedcorev1.CoreV1Interface
 	// userSecretClient is a client-go CoreV1().Secrets() client
 	// with user-defined scope.
 	userSecretClient KClient
@@ -136,10 +139,18 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, ctrlC
 	if err != nil {
 		return nil, fmt.Errorf("error configuring clientset: %w", err)
 	}
-	client.userSecretClient = userClientset.CoreV1().Secrets(client.store.RemoteNamespace)
+	client.userCoreV1 = userClientset.CoreV1()
+	client.userSecretClient = client.userCoreV1.Secrets(client.store.RemoteNamespace)
 	client.userReviewClient = userClientset.AuthorizationV1().SelfSubjectRulesReviews()
 	client.userAccessReviewClient = userClientset.AuthorizationV1().SelfSubjectAccessReviews()
 	return client, nil
+}
+
+func (c *Client) secretsClientFor(namespace string) KClient {
+	if c.userCoreV1 != nil && namespace != "" && namespace != c.store.RemoteNamespace {
+		return c.userCoreV1.Secrets(namespace)
+	}
+	return c.userSecretClient
 }
 
 func isReferentSpec(prov *esv1.KubernetesProvider) bool {

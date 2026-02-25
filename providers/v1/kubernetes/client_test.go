@@ -30,6 +30,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -788,10 +789,11 @@ func TestPushSecret(t *testing.T) {
 		Client KClient
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		data   testingfake.PushSecretData
-		secret *v1.Secret
+		name      string
+		fields    fields
+		storeKind string
+		data      testingfake.PushSecretData
+		secret    *v1.Secret
 
 		wantSecretMap map[string]*v1.Secret
 		wantErr       bool
@@ -1408,6 +1410,7 @@ func TestPushSecret(t *testing.T) {
 					secretMap: map[string]*v1.Secret{},
 				},
 			},
+			storeKind: esv1.ClusterSecretStoreKind,
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mysec",
@@ -1445,6 +1448,7 @@ func TestPushSecret(t *testing.T) {
 			p := &Client{
 				userSecretClient: tt.fields.Client,
 				store:            &esv1.KubernetesProvider{},
+				storeKind:        tt.storeKind,
 			}
 			err := p.PushSecret(context.Background(), tt.secret, tt.data)
 			if (err != nil) != tt.wantErr {
@@ -1457,5 +1461,76 @@ func TestPushSecret(t *testing.T) {
 				t.Errorf("Unexpected resulting secrets map:  -want, +got :\n%s\n", diff)
 			}
 		})
+	}
+}
+
+func TestPushSecretRemoteNamespaceRouting(t *testing.T) {
+	secretKey := "secret-key"
+	storeNamespace := "store-ns"
+	targetNamespace := "target-ns"
+
+	fakeClientset := fake.NewSimpleClientset()
+	coreV1 := fakeClientset.CoreV1()
+
+	p := &Client{
+		userCoreV1:       coreV1,
+		userSecretClient: coreV1.Secrets(storeNamespace),
+		storeKind:        esv1.ClusterSecretStoreKind,
+		store: &esv1.KubernetesProvider{
+			RemoteNamespace: storeNamespace,
+		},
+	}
+
+	localSecret := &v1.Secret{
+		Data: map[string][]byte{secretKey: []byte("bar")},
+	}
+	data := testingfake.PushSecretData{
+		SecretKey: secretKey,
+		RemoteKey: "mysec",
+		Property:  "secret",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {"remoteNamespace": "` + targetNamespace + `"}}`),
+		},
+	}
+
+	err := p.PushSecret(t.Context(), localSecret, data)
+	if err != nil {
+		t.Fatalf("PushSecret failed: %v", err)
+	}
+
+	got, err := coreV1.Secrets(targetNamespace).Get(t.Context(), "mysec", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("secret not found in target namespace %q: %v", targetNamespace, err)
+	}
+	if got.Namespace != targetNamespace {
+		t.Errorf("secret namespace = %q, want %q", got.Namespace, targetNamespace)
+	}
+
+	_, err = coreV1.Secrets(storeNamespace).Get(t.Context(), "mysec", metav1.GetOptions{})
+	if !apierrors.IsNotFound(err) {
+		t.Errorf("secret should not exist in store namespace %q, got err: %v", storeNamespace, err)
+	}
+}
+
+func TestPushSecretRemoteNamespaceRejectedForSecretStore(t *testing.T) {
+	p := &Client{
+		userSecretClient: &fakeClient{t: t, secretMap: map[string]*v1.Secret{}},
+		storeKind:        esv1.SecretStoreKind,
+		store:            &esv1.KubernetesProvider{},
+	}
+
+	data := testingfake.PushSecretData{
+		RemoteKey: "mysec",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {"remoteNamespace": "other-ns"}}`),
+		},
+	}
+
+	err := p.PushSecret(t.Context(), &v1.Secret{Data: map[string][]byte{"k": []byte("v")}}, data)
+	if err == nil {
+		t.Fatal("expected error for remoteNamespace with SecretStore, got nil")
+	}
+	if !strings.Contains(err.Error(), "ClusterSecretStore") {
+		t.Errorf("error should mention ClusterSecretStore, got: %v", err)
 	}
 }
