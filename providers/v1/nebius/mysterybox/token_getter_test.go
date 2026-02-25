@@ -189,7 +189,8 @@ func TestGetToken_AfterExpiration_Refreshes(t *testing.T) {
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 
-	_, _ = env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
+	_, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
+	tassert.NoError(t, err)
 	addSecondsToClock(env.clk, 101)
 
 	tok2, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
@@ -286,7 +287,8 @@ func TestGetToken_ConcurrentDifferentKeys_NoRaceAndWorks(t *testing.T) {
 			defer wg.Done()
 			<-start
 			domain := "api." + strconv.Itoa(i%5)
-			_, _ = svc.GetToken(context.Background(), domain, creds, nil)
+			_, err := svc.GetToken(context.Background(), domain, creds, nil)
+			tassert.NoError(t, err)
 		}()
 	}
 
