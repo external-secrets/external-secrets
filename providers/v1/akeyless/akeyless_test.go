@@ -487,6 +487,41 @@ func TestIsAccessDeniedError(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "access_denied underscore variant",
+			errBody:  `{"error":"access_denied"}`,
+			expected: true,
+		},
+		{
+			name:     "not_allowed underscore variant",
+			errBody:  `{"error":"operation not_allowed"}`,
+			expected: true,
+		},
+		{
+			name:     "permission_denied underscore variant",
+			errBody:  `{"error":"permission_denied"}`,
+			expected: true,
+		},
+		{
+			name:     "no access response",
+			errBody:  `{"error":"no access to resource"}`,
+			expected: true,
+		},
+		{
+			name:     "not authorized response",
+			errBody:  `{"error":"not authorized"}`,
+			expected: true,
+		},
+		{
+			name:     "authorization failed response",
+			errBody:  `{"error":"authorization failed"}`,
+			expected: true,
+		},
+		{
+			name:     "you don't have permission response",
+			errBody:  `{"error":"you don't have permission to perform this action"}`,
+			expected: true,
+		},
+		{
 			name:     "item not found is not access denied",
 			errBody:  `{"error":"item not found"}`,
 			expected: false,
