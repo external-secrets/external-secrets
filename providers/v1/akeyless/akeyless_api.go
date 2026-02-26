@@ -183,7 +183,7 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 		errBody := string(apiErr.Body())
 		if isAccessDeniedError(errBody) {
 			return nil, fmt.Errorf("access denied for item %v: the authenticated identity does not have permission to access this secret. "+
-				"Verify that the role permissions and any namespace-based sub-claims are configured correctly. API response: %v", itemName, errBody)
+				"Verify that the role permissions and any namespace-based sub-claims are configured correctly. API response: %v: %w", itemName, errBody, ErrAccessDenied)
 		}
 		return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, errBody)
 	}
