@@ -288,6 +288,12 @@
                         }
                     }
                 },
+                "createAcrAccessToken": {
+                    "type": "boolean"
+                },
+                "createCloudSmithAccessToken": {
+                    "type": "boolean"
+                },
                 "createClusterExternalSecret": {
                     "type": "boolean"
                 },
@@ -300,10 +306,55 @@
                 "createClusterSecretStore": {
                     "type": "boolean"
                 },
+                "createEcrAuthorizationToken": {
+                    "type": "boolean"
+                },
+                "createExternalSecret": {
+                    "type": "boolean"
+                },
+                "createFake": {
+                    "type": "boolean"
+                },
+                "createGcrAccessToken": {
+                    "type": "boolean"
+                },
+                "createGeneratorState": {
+                    "type": "boolean"
+                },
+                "createGitHubAccessToken": {
+                    "type": "boolean"
+                },
+                "createGrafana": {
+                    "type": "boolean"
+                },
+                "createMfa": {
+                    "type": "boolean"
+                },
+                "createPassword": {
+                    "type": "boolean"
+                },
                 "createPushSecret": {
                     "type": "boolean"
                 },
+                "createQuayAccessToken": {
+                    "type": "boolean"
+                },
                 "createSecretStore": {
+                    "type": "boolean"
+                },
+                "createSshKey": {
+                    "type": "boolean"
+                },
+                "createStsSessionToken": {
+                    "type": "boolean"
+                },
+                "createUuid": {
+                    "type": "boolean"
+                },
+                "createVaultDynamicSecret": {
+                    "type": "boolean"
+                },
+                "createWebhook": {
                     "type": "boolean"
                 },
                 "unsafeServeV1Beta1": {
@@ -629,6 +680,12 @@
             "type": "boolean"
         },
         "processClusterStore": {
+            "type": "boolean"
+        },
+        "processExternalSecret": {
+            "type": "boolean"
+        },
+        "processGeneratorState": {
             "type": "boolean"
         },
         "processPushSecret": {
