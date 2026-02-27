@@ -23,7 +23,6 @@ import (
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
-	corev1 "k8s.io/api/core/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -93,11 +92,6 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	}
 	// Should not happen because validate func should catch this
 	return nil, errors.New("no authentication method provided")
-}
-
-// PushSecret will write a single secret into the provider.
-func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
-	return errors.New("pushing secrets is not implemented for the Conjur provider")
 }
 
 // DeleteSecret removes a secret from the provider.

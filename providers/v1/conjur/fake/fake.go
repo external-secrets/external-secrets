@@ -19,12 +19,21 @@ package fake
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 )
 
 type ConjurMockClient struct {
+}
+
+func (mc *ConjurMockClient) AddSecret(variable, secret string) error {
+	return nil
+}
+
+func (mc *ConjurMockClient) LoadPolicy(policyMode conjurapi.PolicyMode, policyID string, policy io.Reader) (*conjurapi.PolicyResponse, error) {
+	return nil, nil
 }
 
 func (mc *ConjurMockClient) RetrieveSecret(secret string) (result []byte, err error) {

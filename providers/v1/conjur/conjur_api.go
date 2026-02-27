@@ -17,12 +17,16 @@ limitations under the License.
 package conjur
 
 import (
+	"io"
+
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
 )
 
 // SecretsClient is an interface for the Conjur client.
 type SecretsClient interface {
+	AddSecret(variable, secret string) error
+	LoadPolicy(policyMode conjurapi.PolicyMode, policyID string, policy io.Reader) (*conjurapi.PolicyResponse, error)
 	RetrieveSecret(secret string) (result []byte, err error)
 	RetrieveBatchSecrets(variableIDs []string) (map[string][]byte, error)
 	Resources(filter *conjurapi.ResourceFilter) (resources []map[string]any, err error)
