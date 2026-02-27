@@ -216,6 +216,14 @@ type PushSecretDataTo struct {
 	// StoreRef specifies which SecretStore to push to. Required.
 	StoreRef *PushSecretStoreRef `json:"storeRef,omitempty"`
 
+	// RemoteKey is the name of the single provider secret that will receive ALL
+	// matched keys bundled as a JSON object (e.g. {"DB_HOST":"...","DB_USER":"..."}).
+	// When set, per-key expansion is skipped and a single push is performed.
+	// The provider's store prefix (if any) is still prepended to this value.
+	// When not set, each matched key is pushed as its own individual provider secret.
+	// +optional
+	RemoteKey string `json:"remoteKey,omitempty"`
+
 	// Match pattern for selecting keys from the source Secret.
 	// If not specified, all keys are selected.
 	// +optional
