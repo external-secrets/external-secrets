@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -304,10 +305,7 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 
 	if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
 		paramMeta, err := pm.fetchParameterMetadata(ctx, secretName)
-		if err != nil {
-			return fmt.Errorf("error fetching metadata for parameter %v: %w", secretName, err)
-		}
-		if paramMeta == nil || !hasParameterMetadataChanged(paramMeta, &secretRequest) {
+		if err == nil && paramMeta != nil && !hasParameterMetadataChanged(paramMeta, &secretRequest) {
 			return nil
 		}
 	}
@@ -373,7 +371,7 @@ func (pm *ParameterStore) fetchParameterMetadata(ctx context.Context, name strin
 }
 
 // hasParameterMetadataChanged returns true if the desired PutParameterInput differs from
-// the current ParameterMetadata in any mutable metadata field (Type, Description, Tier, KeyId).
+// the current ParameterMetadata in any mutable metadata field (Type, Description, Tier, KeyId, Policies).
 func hasParameterMetadataChanged(meta *ssmTypes.ParameterMetadata, req *ssm.PutParameterInput) bool {
 	if meta.Type != req.Type {
 		return true
@@ -386,6 +384,34 @@ func hasParameterMetadataChanged(meta *ssmTypes.ParameterMetadata, req *ssm.PutP
 	}
 	if req.Type == ssmTypes.ParameterTypeSecureString {
 		if aws.ToString(meta.KeyId) != aws.ToString(req.KeyId) {
+			return true
+		}
+	}
+	if aws.ToString(req.Policies) != "" {
+		if policiesChanged(aws.ToString(req.Policies), meta.Policies) {
+			return true
+		}
+	}
+	return false
+}
+
+// policiesChanged reports whether the desired policies (a JSON array string) differ from
+// the current inline policies returned by DescribeParameters.
+// Comparison is JSON-normalized and order-sensitive; parse errors are treated as changed.
+func policiesChanged(desired string, current []ssmTypes.ParameterInlinePolicy) bool {
+	var desiredPolicies []map[string]any
+	if err := json.Unmarshal([]byte(desired), &desiredPolicies); err != nil {
+		return true
+	}
+	if len(desiredPolicies) != len(current) {
+		return true
+	}
+	for i, p := range current {
+		var currentPolicy map[string]any
+		if err := json.Unmarshal([]byte(aws.ToString(p.PolicyText)), &currentPolicy); err != nil {
+			return true
+		}
+		if !reflect.DeepEqual(desiredPolicies[i], currentPolicy) {
 			return true
 		}
 	}
