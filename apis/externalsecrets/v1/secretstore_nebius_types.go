@@ -51,7 +51,7 @@ type NebiusCAProvider struct {
 type NebiusMysteryboxProvider struct {
 
 	// NebiusMysterybox API endpoint
-	APIDomain string `json:"apiDomain,omitempty"`
+	APIDomain string `json:"apiDomain"`
 
 	// Auth defines parameters to authenticate in MysteryBox
 	Auth NebiusAuth `json:"auth"`

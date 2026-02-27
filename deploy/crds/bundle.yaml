@@ -5516,6 +5516,7 @@ spec:
                               type: object
                           type: object
                       required:
+                        - apiDomain
                         - auth
                       type: object
                     ngrok:
@@ -17270,6 +17271,7 @@ spec:
                               type: object
                           type: object
                       required:
+                        - apiDomain
                         - auth
                       type: object
                     ngrok:
