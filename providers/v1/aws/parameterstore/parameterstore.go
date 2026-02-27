@@ -303,7 +303,13 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 	}
 
 	if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
-		return nil
+		paramMeta, err := pm.fetchParameterMetadata(ctx, secretName)
+		if err != nil {
+			return fmt.Errorf("error fetching metadata for parameter %v: %w", secretName, err)
+		}
+		if paramMeta == nil || !hasParameterMetadataChanged(paramMeta, &secretRequest) {
+			return nil
+		}
 	}
 
 	err = pm.setManagedRemoteParameter(ctx, secretRequest, []ssmTypes.Tag{}, false)
@@ -342,6 +348,48 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 
 func isManagedByESO(tags map[string]string) bool {
 	return tags[managedBy] == externalSecrets
+}
+
+// fetchParameterMetadata retrieves the ParameterMetadata for a single parameter by name.
+// Returns nil, nil when no matching parameter is found.
+func (pm *ParameterStore) fetchParameterMetadata(ctx context.Context, name string) (*ssmTypes.ParameterMetadata, error) {
+	out, err := pm.client.DescribeParameters(ctx, &ssm.DescribeParametersInput{
+		ParameterFilters: []ssmTypes.ParameterStringFilter{
+			{
+				Key:    aws.String("Name"),
+				Option: aws.String("Equals"),
+				Values: []string{name},
+			},
+		},
+	})
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSDescribeParameter, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(out.Parameters) == 0 {
+		return nil, nil
+	}
+	return &out.Parameters[0], nil
+}
+
+// hasParameterMetadataChanged returns true if the desired PutParameterInput differs from
+// the current ParameterMetadata in any mutable metadata field (Type, Description, Tier, KeyId).
+func hasParameterMetadataChanged(meta *ssmTypes.ParameterMetadata, req *ssm.PutParameterInput) bool {
+	if meta.Type != req.Type {
+		return true
+	}
+	if aws.ToString(meta.Description) != aws.ToString(req.Description) {
+		return true
+	}
+	if req.Tier != "" && meta.Tier != req.Tier {
+		return true
+	}
+	if req.Type == ssmTypes.ParameterTypeSecureString {
+		if aws.ToString(meta.KeyId) != aws.ToString(req.KeyId) {
+			return true
+		}
+	}
+	return false
 }
 
 func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, tags []ssmTypes.Tag, createManagedByTags bool) error {
