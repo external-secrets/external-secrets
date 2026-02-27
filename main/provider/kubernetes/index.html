@@ -5165,7 +5165,7 @@
 <span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;nginx&quot;</span>
 </code></pre></div>
 <h3 id="target-api-server-configuration">Target API-Server Configuration</h3>
-<p>The servers <code>url</code> can be omitted and defaults to <code>kubernetes.default</code>. You <strong>have to</strong> provide a CA certificate in order to connect to the API Server securely.
+<p>The servers <code>url</code> can be omitted and defaults to <code>kubernetes.default</code>. If no <code>caBundle</code> or <code>caProvider</code> is specified, the operator uses the system certificate roots from the container image. Both the default (<code>distroless/static</code>) and UBI images include standard CA certificates, so connections to servers using well-known CAs (e.g., Let's Encrypt) work without explicit CA configuration.
 For your convenience, each namespace has a ConfigMap <code>kube-root-ca.crt</code> that contains the CA certificate of the internal API Server (see <code>RootCAConfigMap</code> <a href="https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/">feature gate</a>).
 Use that if you want to connect to the same API server.
 If you want to connect to a remote API Server you need to fetch it and store it inside the cluster as ConfigMap or Secret.
@@ -5185,6 +5185,28 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kube-root-ca.crt</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>System CA roots only cover certificates signed by well-known CAs. Internal Kubernetes API servers typically use self-signed or cluster-internal CAs — you still need to provide explicit <code>caBundle</code> or <code>caProvider</code> for those.</p>
+</div>
+<p>If the remote server uses a certificate from a well-known CA, you can omit CA configuration entirely:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-store-system-ca</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://my-proxy.example.com&quot;</span>
+<span class="w">        </span><span class="c1"># No caBundle or caProvider — uses system CA roots</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">token</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">bearerToken</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-token</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
 </code></pre></div>
 <h3 id="authentication">Authentication</h3>
 <p>It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or service account. The operator enforces that exactly one authentication method is used. You can not use the service account that is mounted inside the operator, this is by design to avoid reading secrets across namespaces.</p>
