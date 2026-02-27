@@ -288,10 +288,10 @@
                         }
                     }
                 },
-                "createAcrAccessToken": {
+                "createACRAccessToken": {
                     "type": "boolean"
                 },
-                "createCloudSmithAccessToken": {
+                "createCloudsmithAccessToken": {
                     "type": "boolean"
                 },
                 "createClusterExternalSecret": {
@@ -306,7 +306,7 @@
                 "createClusterSecretStore": {
                     "type": "boolean"
                 },
-                "createEcrAuthorizationToken": {
+                "createECRAuthorizationToken": {
                     "type": "boolean"
                 },
                 "createExternalSecret": {
@@ -315,19 +315,19 @@
                 "createFake": {
                     "type": "boolean"
                 },
-                "createGcrAccessToken": {
+                "createGCRAccessToken": {
                     "type": "boolean"
                 },
                 "createGeneratorState": {
                     "type": "boolean"
                 },
-                "createGitHubAccessToken": {
+                "createGithubAccessToken": {
                     "type": "boolean"
                 },
                 "createGrafana": {
                     "type": "boolean"
                 },
-                "createMfa": {
+                "createMFA": {
                     "type": "boolean"
                 },
                 "createPassword": {
@@ -339,16 +339,16 @@
                 "createQuayAccessToken": {
                     "type": "boolean"
                 },
+                "createSSHKey": {
+                    "type": "boolean"
+                },
+                "createSTSSessionToken": {
+                    "type": "boolean"
+                },
                 "createSecretStore": {
                     "type": "boolean"
                 },
-                "createSshKey": {
-                    "type": "boolean"
-                },
-                "createStsSessionToken": {
-                    "type": "boolean"
-                },
-                "createUuid": {
+                "createUUID": {
                     "type": "boolean"
                 },
                 "createVaultDynamicSecret": {

@@ -94,27 +94,27 @@ The command removes all the Kubernetes components associated with the chart and 
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
 | crds.annotations | object | `{}` |  |
 | crds.conversion.enabled | bool | `false` | Conversion is disabled by default as we stopped supporting v1alpha1. |
-| crds.createAcrAccessToken | bool | `true` | If true, create CRDs for Arc Access Token |
-| crds.createCloudSmithAccessToken | bool | `true` | If true, create CRDs for Cloud Smith Access Token |
+| crds.createACRAccessToken | bool | `true` | If true, create CRDs for Arc Access Token |
+| crds.createCloudsmithAccessToken | bool | `true` | If true, create CRDs for Cloud Smith Access Token |
 | crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false. |
 | crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false. |
 | crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false. |
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false. |
-| crds.createEcrAuthorizationToken | bool | `true` | If true, create CRDs for Ecr Authorization Token |
+| crds.createECRAuthorizationToken | bool | `true` | If true, create CRDs for Ecr Authorization Token |
 | crds.createExternalSecret | bool | `true` | If true, create CRDs for External Secret. If set to false you must also set processExternalSecret: false. |
 | crds.createFake | bool | `true` | If true, create CRDs for Fake |
-| crds.createGcrAccessToken | bool | `true` | If true, create CRDs for Gcr Access Token |
+| crds.createGCRAccessToken | bool | `true` | If true, create CRDs for Gcr Access Token |
 | crds.createGeneratorState | bool | `true` | If true, create CRDs for Generator State. If set to false you must also set processGeneratorState: false. |
-| crds.createGitHubAccessToken | bool | `true` | If true, create CRDs for Github Access Token |
+| crds.createGithubAccessToken | bool | `true` | If true, create CRDs for Github Access Token |
 | crds.createGrafana | bool | `true` | If true, create CRDs for Grafana |
-| crds.createMfa | bool | `true` | If true, create CRDs for Mfa |
+| crds.createMFA | bool | `true` | If true, create CRDs for Mfa |
 | crds.createPassword | bool | `true` | If true, create CRDs for Password |
 | crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false. |
 | crds.createQuayAccessToken | bool | `true` | If true, create CRDs for Quay Access Token |
+| crds.createSSHKey | bool | `true` | If true, create CRDs for Ssh Key |
+| crds.createSTSSessionToken | bool | `true` | If true, create CRDs for Sts Session token |
 | crds.createSecretStore | bool | `true` | If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false. |
-| crds.createSshKey | bool | `true` | If true, create CRDs for Ssh Key |
-| crds.createStsSessionToken | bool | `true` | If true, create CRDs for Sts Session token |
-| crds.createUuid | bool | `true` | If true, create CRDs for Uuid |
+| crds.createUUID | bool | `true` | If true, create CRDs for Uuid |
 | crds.createVaultDynamicSecret | bool | `true` | If true, create CRDs for Vault Dynamic Secret |
 | crds.createWebhook | bool | `true` | If true, create CRDs for Webhook |
 | crds.unsafeServeV1Beta1 | bool | `false` | If true, enable v1beta1 API version serving for ExternalSecret, ClusterExternalSecret, SecretStore, and ClusterSecretStore CRDs. v1beta1 is deprecated. Only enable this for backward compatibility if you have existing v1beta1 resources. Warning: This flag will be removed on 2026.05.01. |
