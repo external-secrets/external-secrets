@@ -101,13 +101,48 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Go modules SBOM generation"
-        # Go modules SBOM (dependencies from the source tree)
-        # Requires repository to be checked out before this composite action runs.
-        syft dir:. -o spdx-json=sbom.gomod.${IMAGE_TAG}.spdx.json
+        # Go modules SBOMs (one per go.mod). This avoids a single very large
+        # monolithic predicate when the repo contains many modules.
+        mapfile -t GO_MOD_FILES < <(find . -type f -name go.mod -not -path "./vendor/*" | sort)
+        if [[ ${#GO_MOD_FILES[@]} -eq 0 ]]; then
+          echo "No go.mod files found. Cannot create Go modules SBOMs."
+          exit 1
+        fi
+
+        echo "Found ${#GO_MOD_FILES[@]} Go modules"
+        for GO_MOD_FILE in "${GO_MOD_FILES[@]}"; do
+          MODULE_DIR="$(dirname "${GO_MOD_FILE}")"
+          MODULE_PATH="${MODULE_DIR#./}"
+          if [[ "${MODULE_PATH}" == "." ]]; then
+            MODULE_PATH="root"
+          fi
+          MODULE_PATH_SAFE="${MODULE_PATH//\//-}"
+          SBOM_FILE="sbom.gomod.${MODULE_PATH_SAFE}.${IMAGE_TAG}.spdx.json"
+          TMP_DIR="$(mktemp -d)"
+
+          cp "${GO_MOD_FILE}" "${TMP_DIR}/go.mod"
+          if [[ -f "${MODULE_DIR}/go.sum" ]]; then
+            cp "${MODULE_DIR}/go.sum" "${TMP_DIR}/go.sum"
+          fi
+
+          echo "Generating ${SBOM_FILE} from ${GO_MOD_FILE}"
+          syft "dir:${TMP_DIR}" \
+            --override-default-catalogers go-module-file-cataloger \
+            --source-name "${MODULE_PATH}" \
+            -o "spdx-json=${SBOM_FILE}"
+
+          rm -rf "${TMP_DIR}"
+          SBOM_SIZE="$(wc -c < "${SBOM_FILE}")"
+          echo "Generated ${SBOM_FILE} (${SBOM_SIZE} bytes)"
+        done
         echo "::endgroup::"
 
-        echo "::group::Attest Go modules SBOM"
-        cosign attest --yes --new-bundle-format=false --use-signing-config=false --predicate sbom.gomod.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
+        echo "::group::Attest Go modules SBOMs"
+        shopt -s nullglob
+        for SBOM_FILE in sbom.gomod.*.${IMAGE_TAG}.spdx.json; do
+          echo "Attesting ${SBOM_FILE}"
+          cosign attest --yes --new-bundle-format=false --use-signing-config=false --predicate "${SBOM_FILE}" --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
+        done
         echo "::endgroup::"
 
         echo "::group::Verify Go modules SBOM attestation"
