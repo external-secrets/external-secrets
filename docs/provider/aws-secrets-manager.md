@@ -75,7 +75,7 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
 }
 ```
 
-**Note:** `UpdateSecret` is required to update a secret's `Description` or `KMSKeyID` when the secret value itself has not changed. The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are only required if you're using the `resourcePolicy` metadata option to manage resource-based policies on secrets.
+**Note:** `UpdateSecret` is required to update a secret's `description` or `kmsKeyID` when the secret value itself has not changed. The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are only required if you're using the `resourcePolicy` metadata option to manage resource-based policies on secrets.
 
 Here's a more restrictive version of the IAM policy:
 
