@@ -483,7 +483,7 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	}
 
 	// Expand filtered dataTo entries into PushSecretData
-	dataToEntries, err := r.expandDataTo(storeSecret, filteredDataTo)
+	dataToEntries, bundleOverrides, err := r.expandDataTo(storeSecret, filteredDataTo)
 	if err != nil {
 		return out, fmt.Errorf("failed to expand dataTo: %w", err)
 	}
@@ -499,7 +499,16 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	originalStoreSecretData := storeSecret.Data
 
 	for _, data := range allData {
-		if err := r.pushSecretEntry(ctx, secretClient, storeSecret, data, ps.Spec.UpdatePolicy, originalStoreSecretData, si.Name); err != nil {
+		// For bundle entries (remoteKey mode), use only the filtered matched keys
+		// instead of the full original secret data.
+		params := pushEntryParams{
+			data:         data,
+			updatePolicy: ps.Spec.UpdatePolicy,
+			originalData: originalStoreSecretData,
+			dataOverride: bundleOverrides[statusRef(data)],
+			storeName:    si.Name,
+		}
+		if err := r.pushSecretEntry(ctx, secretClient, storeSecret, params); err != nil {
 			return out, err
 		}
 		out[storeKey][statusRef(data)] = data
@@ -507,30 +516,44 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	return out, nil
 }
 
+// pushEntryParams groups the parameters for pushSecretEntry to keep the
+// function signature within the recommended parameter count.
+type pushEntryParams struct {
+	data         esapi.PushSecretData
+	updatePolicy esapi.PushSecretUpdatePolicy
+	originalData map[string][]byte
+	dataOverride map[string][]byte
+	storeName    string
+}
+
 // pushSecretEntry converts, validates, and pushes a single data entry to the provider.
 // If the update policy is IfNotExists and the secret already exists, the push is skipped.
+// params.dataOverride, when non-nil, replaces params.originalData for the conversion step —
+// used by bundle entries (dataTo with remoteKey) to restrict the pushed payload to matched keys only.
 func (r *Reconciler) pushSecretEntry(
 	ctx context.Context,
 	secretClient esv1.SecretsClient,
 	storeSecret *v1.Secret,
-	data esapi.PushSecretData,
-	updatePolicy esapi.PushSecretUpdatePolicy,
-	originalData map[string][]byte,
-	storeName string,
+	params pushEntryParams,
 ) error {
-	secretData, err := esutils.ReverseKeys(data.ConversionStrategy, originalData)
+	sourceData := params.originalData
+	if params.dataOverride != nil {
+		sourceData = params.dataOverride
+	}
+
+	secretData, err := esutils.ReverseKeys(params.data.ConversionStrategy, sourceData)
 	if err != nil {
 		return fmt.Errorf(errConvert, err)
 	}
 	storeSecret.Data = secretData
 
-	key := data.GetSecretKey()
+	key := params.data.GetSecretKey()
 	if !secretKeyExists(key, storeSecret) {
 		return fmt.Errorf("secret key %v does not exist", key)
 	}
 
-	if updatePolicy == esapi.PushSecretUpdatePolicyIfNotExists {
-		exists, err := secretClient.SecretExists(ctx, data.Match.RemoteRef)
+	if params.updatePolicy == esapi.PushSecretUpdatePolicyIfNotExists {
+		exists, err := secretClient.SecretExists(ctx, params.data.Match.RemoteRef)
 		if err != nil {
 			return fmt.Errorf("could not verify if secret exists in store: %w", err)
 		}
@@ -539,8 +562,8 @@ func (r *Reconciler) pushSecretEntry(
 		}
 	}
 
-	if err := secretClient.PushSecret(ctx, storeSecret, data); err != nil {
-		return fmt.Errorf(errSetSecretFailed, key, storeName, err)
+	if err := secretClient.PushSecret(ctx, storeSecret, params.data); err != nil {
+		return fmt.Errorf(errSetSecretFailed, key, params.storeName, err)
 	}
 	return nil
 }
@@ -866,65 +889,93 @@ func dataToMatchesStore(dataTo esapi.PushSecretDataTo, storeName, storeKind stri
 
 // expandDataTo expands dataTo entries into individual PushSecretData entries.
 //
-// Each matched key becomes a separate entry that is pushed independently. This enables:
-//   - Individual key transformation via rewrite
-//   - Per-key status tracking in SyncedPushSecrets
-//   - Granular deletion when keys are removed (DeletionPolicy=Delete)
-//   - Compatibility with all providers (no bulk API requirement)
+// Two modes are supported per dataTo entry:
 //
-// This mirrors how explicit `data` entries work - each entry maps one source key to
-// one provider secret. The difference is dataTo generates these entries dynamically
-// from patterns rather than requiring explicit configuration.
+// Per-key mode (default, no remoteKey set): each matched key becomes a separate entry
+// pushed independently. This enables individual key transformation, per-key status
+// tracking, granular deletion, and compatibility with all providers.
 //
-// Processing order when template is used:
-//  1. Template is applied to source secret (creates/transforms keys)
-//  2. dataTo matches against the templated secret keys
-//  3. Rewrite transforms matched key names
-//  4. Push to providers
-func (r *Reconciler) expandDataTo(secret *v1.Secret, dataToList []esapi.PushSecretDataTo) ([]esapi.PushSecretData, error) {
+// Bundle mode (remoteKey set): all matched keys are bundled into a single provider
+// secret at the given remoteKey path as a JSON object. A single PushSecretData entry
+// with SecretKey="" is produced, and the bundleOverrides map carries the filtered
+// key set so only matched keys appear in the pushed JSON blob.
+//
+// Returns the expanded entries, a bundleOverrides map (remoteKey -> filtered data),
+// and any error.
+func (r *Reconciler) expandDataTo(secret *v1.Secret, dataToList []esapi.PushSecretDataTo) ([]esapi.PushSecretData, map[string]map[string][]byte, error) {
 	if len(dataToList) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	allData := make([]esapi.PushSecretData, 0)
+	bundleOverrides := make(map[string]map[string][]byte)
 
 	// Track remote keys across all dataTo entries to detect duplicates
 	overallRemoteKeys := make(map[string]string) // remoteKey -> "dataTo[i]:sourceKey"
 
 	for i, dataTo := range dataToList {
-		entries, keyMap, err := r.expandSingleDataTo(secret, dataTo)
+		entries, keyMap, filteredData, err := r.expandSingleDataTo(secret, dataTo)
 		if err != nil {
-			return nil, fmt.Errorf("dataTo[%d]: %w", i, err)
+			return nil, nil, fmt.Errorf("dataTo[%d]: %w", i, err)
 		}
 		if len(entries) == 0 {
 			r.Log.Info("dataTo entry matched no keys", "index", i)
 			continue
 		}
 
-		// Check for duplicate remote keys across all dataTo entries
-		for sourceKey, remoteKey := range keyMap {
-			if existingSource, exists := overallRemoteKeys[remoteKey]; exists {
-				return nil, fmt.Errorf("dataTo[%d]: duplicate remote key %q from source key %q (conflicts with %s)", i, remoteKey, sourceKey, existingSource)
-			}
-			overallRemoteKeys[remoteKey] = fmt.Sprintf("dataTo[%d]:%s", i, sourceKey)
+		if err := registerRemoteKeys(overallRemoteKeys, keyMap, i); err != nil {
+			return nil, nil, err
 		}
+
+		recordBundleOverrides(bundleOverrides, entries, filteredData)
 
 		allData = append(allData, entries...)
 		r.Log.Info("expanded dataTo entry", "index", i, "matchedKeys", len(entries), "created", len(keyMap))
 	}
 
-	return allData, nil
+	return allData, bundleOverrides, nil
+}
+
+// registerRemoteKeys checks for duplicate remote keys across dataTo entries and
+// records new mappings. Returns an error if a duplicate is found.
+func registerRemoteKeys(seen, keyMap map[string]string, index int) error {
+	for sourceKey, remoteKey := range keyMap {
+		if existingSource, exists := seen[remoteKey]; exists {
+			return fmt.Errorf("dataTo[%d]: duplicate remote key %q from source key %q (conflicts with %s)", index, remoteKey, sourceKey, existingSource)
+		}
+		seen[remoteKey] = fmt.Sprintf("dataTo[%d]:%s", index, sourceKey)
+	}
+	return nil
+}
+
+// recordBundleOverrides associates filtered data with bundle entries so only
+// matched keys appear in the pushed JSON blob.
+func recordBundleOverrides(overrides map[string]map[string][]byte, entries []esapi.PushSecretData, filteredData map[string][]byte) {
+	if filteredData == nil {
+		return
+	}
+	for _, entry := range entries {
+		overrides[statusRef(entry)] = filteredData
+	}
 }
 
 // expandSingleDataTo processes a single dataTo entry: converts keys, matches them
 // against the pattern, applies rewrites, validates remote keys, and builds the
 // resulting PushSecretData entries along with the source-to-remote key mapping.
-func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecretDataTo) ([]esapi.PushSecretData, map[string]string, error) {
+//
+// Bundle mode: when dataTo.RemoteKey is set, all matched keys are bundled into a
+// single PushSecretData entry with SecretKey="" targeting dataTo.RemoteKey. The
+// third return value carries the filtered (matched+converted) key data so that
+// only matched keys appear in the JSON blob pushed to the provider.
+//
+// Per-key mode: when dataTo.RemoteKey is empty, one PushSecretData entry is
+// produced per matched key. The third return value is nil.
+func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecretDataTo) ([]esapi.PushSecretData, map[string]string, map[string][]byte, error) {
 	// Apply conversion strategy BEFORE matching and rewriting
 	// This ensures that keys are matched against their converted names
 	convertedData, err := esutils.ReverseKeys(dataTo.ConversionStrategy, secret.Data)
 	if err != nil {
-		return nil, nil, fmt.Errorf("conversion failed: %w", err)
+		return nil, nil, nil, fmt.Errorf("conversion failed: %w", err)
 	}
 
 	allKeys := make([]string, 0, len(convertedData))
@@ -934,10 +985,10 @@ func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecr
 
 	matchedKeys, err := matchKeys(allKeys, dataTo.Match)
 	if err != nil {
-		return nil, nil, fmt.Errorf("match failed: %w", err)
+		return nil, nil, nil, fmt.Errorf("match failed: %w", err)
 	}
 	if len(matchedKeys) == 0 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	matchedData := make(map[string][]byte, len(matchedKeys))
@@ -945,20 +996,38 @@ func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecr
 		matchedData[key] = convertedData[key]
 	}
 
+	// Bundle mode: push all matched keys as a single JSON secret.
+	// The conversion strategy has already been applied above; we skip per-key
+	// rewrites because key names are not used as separate remote paths.
+	if dataTo.RemoteKey != "" {
+		keyMap := map[string]string{"(bundle)": dataTo.RemoteKey}
+		entry := esapi.PushSecretData{
+			Match: esapi.PushSecretMatch{
+				SecretKey: "",
+				RemoteRef: esapi.PushSecretRemoteRef{
+					RemoteKey: dataTo.RemoteKey,
+				},
+			},
+			Metadata:           dataTo.Metadata,
+			ConversionStrategy: esapi.PushSecretConversionNone,
+		}
+		return []esapi.PushSecretData{entry}, keyMap, matchedData, nil
+	}
+
+	// Per-key mode: apply rewrites and produce one entry per matched key.
 	keyMap, err := rewriteWithKeyMapping(dataTo.Rewrite, matchedData)
 	if err != nil {
-		return nil, nil, fmt.Errorf("rewrite failed: %w", err)
+		return nil, nil, nil, fmt.Errorf("rewrite failed: %w", err)
 	}
 
 	// Validate that no remote key is empty
 	for sourceKey, remoteKey := range keyMap {
 		if remoteKey == "" {
-			return nil, nil, fmt.Errorf("empty remote key produced for source key %q", sourceKey)
+			return nil, nil, nil, fmt.Errorf("empty remote key produced for source key %q", sourceKey)
 		}
 	}
 
-	// Create PushSecretData entries
-	// SecretKey references the converted key name
+	// Create PushSecretData entries — one per matched key
 	entries := make([]esapi.PushSecretData, 0, len(keyMap))
 	for sourceKey, remoteKey := range keyMap {
 		entries = append(entries, esapi.PushSecretData{
@@ -973,7 +1042,7 @@ func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecr
 		})
 	}
 
-	return entries, keyMap, nil
+	return entries, keyMap, nil, nil
 }
 
 // validateDataToStoreRefs checks that each dataTo entry has a valid storeRef.

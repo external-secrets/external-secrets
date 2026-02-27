@@ -13310,6 +13310,22 @@ PushSecretStoreRef
 </tr>
 <tr>
 <td>
+<code>remoteKey</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RemoteKey is the name of the single provider secret that will receive ALL
+matched keys bundled as a JSON object (e.g. {&ldquo;DB_HOST&rdquo;:&ldquo;&hellip;&rdquo;,&ldquo;DB_USER&rdquo;:&ldquo;&hellip;&rdquo;}).
+When set, per-key expansion is skipped and a single push is performed.
+The provider&rsquo;s store prefix (if any) is still prepended to this value.
+When not set, each matched key is pushed as its own individual provider secret.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>match</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.PushSecretDataToMatch">
