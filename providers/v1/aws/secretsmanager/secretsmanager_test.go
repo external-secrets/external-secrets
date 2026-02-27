@@ -482,8 +482,9 @@ func TestSetSecret(t *testing.T) {
 	defaultVersion := "00000000-0000-0000-0000-000000000002"
 
 	tagSecretOutput := &awssm.DescribeSecretOutput{
-		ARN:  &arn,
-		Tags: externalSecretsTag,
+		ARN:         &arn,
+		Tags:        externalSecretsTag,
+		Description: aws.String("secret 'managed-by:external-secrets'"),
 		VersionIdsToStages: map[string][]string{
 			defaultVersion: {"AWSCURRENT"},
 		},
@@ -933,8 +934,10 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput2, nil),
-					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					GetSecretValueFn:       fakesm.NewGetSecretValueFn(secretValueOutput2, nil),
+					DescribeSecretFn:       fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					UntagResourceFn:        fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -1493,6 +1496,236 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
+func TestSetSecretMetadataChange(t *testing.T) {
+	ctx := context.Background()
+	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:test-metadata"
+	secretValue := []byte("same-value")
+
+	managedByKey := managedBy
+	externalSecretsVal := externalSecrets
+	defaultDescription := fmt.Sprintf("secret '%s:%s'", managedBy, externalSecrets)
+
+	externalSecretsTag := []types.Tag{
+		{Key: &managedByKey, Value: &externalSecretsVal},
+	}
+
+	// Existing secret with the same binary value — triggers the valueUnchanged path.
+	existingSecret := &awssm.GetSecretValueOutput{
+		ARN:          &arn,
+		SecretBinary: secretValue,
+	}
+
+	psd := fake.PushSecretData{
+		SecretKey: "secret-key",
+		RemoteKey: "test-metadata",
+	}
+
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			"secret-key": secretValue,
+		},
+	}
+
+	tests := map[string]struct {
+		describe              *awssm.DescribeSecretOutput
+		metadata              *apiextensionsv1.JSON
+		setupClient           func(*fakesm.Client)
+		expectUpdateCalledN   int
+		wantErr               string
+	}{
+		"SameValueMetadataUnchanged": {
+			describe: &awssm.DescribeSecretOutput{
+				ARN:         &arn,
+				Tags:        externalSecretsTag,
+				Description: aws.String(defaultDescription),
+				VersionIdsToStages: map[string][]string{
+					"version1": {"AWSCURRENT"},
+				},
+			},
+			setupClient: func(c *fakesm.Client) {
+				c.DeleteResourcePolicyFn = fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil)
+			},
+			expectUpdateCalledN: 0,
+		},
+		"SameValueDescriptionChanged": {
+			describe: &awssm.DescribeSecretOutput{
+				ARN:         &arn,
+				Tags:        externalSecretsTag,
+				Description: aws.String("old description"),
+				VersionIdsToStages: map[string][]string{
+					"version1": {"AWSCURRENT"},
+				},
+			},
+			setupClient: func(c *fakesm.Client) {
+				c.UpdateSecretFn = fakesm.NewUpdateSecretFn(&awssm.UpdateSecretOutput{ARN: &arn}, nil)
+				c.DeleteResourcePolicyFn = fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil)
+			},
+			expectUpdateCalledN: 1,
+		},
+		"SameValueKMSKeyChanged": {
+			describe: &awssm.DescribeSecretOutput{
+				ARN:         &arn,
+				Tags:        externalSecretsTag,
+				Description: aws.String(defaultDescription),
+				KmsKeyId:    aws.String("old-key"),
+				VersionIdsToStages: map[string][]string{
+					"version1": {"AWSCURRENT"},
+				},
+			},
+			metadata: &apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+					"kind": "PushSecretMetadata",
+					"spec": {
+						"kmsKeyId": "new-key-arn"
+					}
+				}`),
+			},
+			setupClient: func(c *fakesm.Client) {
+				c.UpdateSecretFn = fakesm.NewUpdateSecretFn(&awssm.UpdateSecretOutput{ARN: &arn}, nil)
+				c.DeleteResourcePolicyFn = fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil)
+			},
+			expectUpdateCalledN: 1,
+		},
+		"SameValueTagsChanged": {
+			describe: &awssm.DescribeSecretOutput{
+				ARN:         &arn,
+				Tags:        externalSecretsTag,
+				Description: aws.String(defaultDescription),
+				VersionIdsToStages: map[string][]string{
+					"version1": {"AWSCURRENT"},
+				},
+			},
+			metadata: &apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+					"kind": "PushSecretMetadata",
+					"spec": {
+						"tags": {"new-tag": "new-value"}
+					}
+				}`),
+			},
+			setupClient: func(c *fakesm.Client) {
+				c.TagResourceFn = fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil)
+				c.DeleteResourcePolicyFn = fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil)
+			},
+			expectUpdateCalledN: 0,
+		},
+		"SameValueUpdateSecretError": {
+			describe: &awssm.DescribeSecretOutput{
+				ARN:         &arn,
+				Tags:        externalSecretsTag,
+				Description: aws.String("old description"),
+				VersionIdsToStages: map[string][]string{
+					"version1": {"AWSCURRENT"},
+				},
+			},
+			setupClient: func(c *fakesm.Client) {
+				c.UpdateSecretFn = fakesm.NewUpdateSecretFn(nil, errors.New("update failed"))
+			},
+			expectUpdateCalledN: 1,
+			wantErr:             "update failed",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			client := &fakesm.Client{}
+			tc.setupClient(client)
+
+			sm := &SecretsManager{
+				client: client,
+			}
+
+			psdCopy := psd
+			if tc.metadata != nil {
+				psdCopy.Metadata = tc.metadata
+			}
+
+			// Call PushSecret rather than the unexported function so we exercise
+			// the full path including DescribeSecret / GetSecretValue.
+			client.DescribeSecretFn = fakesm.NewDescribeSecretFn(tc.describe, nil)
+			client.GetSecretValueFn = fakesm.NewGetSecretValueFn(existingSecret, nil)
+
+			err := sm.PushSecret(ctx, fakeSecret, psdCopy)
+
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tc.expectUpdateCalledN, client.UpdateSecretCalledN,
+				"UpdateSecret call count mismatch for test %s", name)
+		})
+	}
+}
+
+func TestHasSecretMetadataChanged(t *testing.T) {
+	defaultDescription := fmt.Sprintf("secret '%s:%s'", managedBy, externalSecrets)
+
+	tests := map[string]struct {
+		describe            *awssm.DescribeSecretOutput
+		desiredDescription  string
+		desiredKMSKeyID     string
+		want                bool
+	}{
+		"NothingChanged": {
+			describe: &awssm.DescribeSecretOutput{
+				Description: aws.String(defaultDescription),
+				KmsKeyId:    nil,
+			},
+			desiredDescription: defaultDescription,
+			desiredKMSKeyID:    defaultKMSKeyID,
+			want:               false,
+		},
+		"DescriptionChanged": {
+			describe: &awssm.DescribeSecretOutput{
+				Description: aws.String("old description"),
+			},
+			desiredDescription: defaultDescription,
+			desiredKMSKeyID:    defaultKMSKeyID,
+			want:               true,
+		},
+		"DefaultKMSKeyIgnored": {
+			describe: &awssm.DescribeSecretOutput{
+				Description: aws.String(defaultDescription),
+				// AWS may return the full ARN for the default alias; we should
+				// not trigger an update when the user hasn't requested a custom key.
+				KmsKeyId: aws.String("arn:aws:kms:us-east-1:123456789012:key/some-long-arn"),
+			},
+			desiredDescription: defaultDescription,
+			desiredKMSKeyID:    defaultKMSKeyID,
+			want:               false,
+		},
+		"NonDefaultKMSKeyChanged": {
+			describe: &awssm.DescribeSecretOutput{
+				Description: aws.String(defaultDescription),
+				KmsKeyId:    aws.String("old-key-arn"),
+			},
+			desiredDescription: defaultDescription,
+			desiredKMSKeyID:    "new-key-arn",
+			want:               true,
+		},
+		"NonDefaultKMSKeySame": {
+			describe: &awssm.DescribeSecretOutput{
+				Description: aws.String(defaultDescription),
+				KmsKeyId:    aws.String("my-custom-key"),
+			},
+			desiredDescription: defaultDescription,
+			desiredKMSKeyID:    "my-custom-key",
+			want:               false,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := hasSecretMetadataChanged(tc.describe, tc.desiredDescription, tc.desiredKMSKeyID)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func makeValidSecretStore() *esv1.SecretStore {
 	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{

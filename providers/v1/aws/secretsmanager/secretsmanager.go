@@ -109,6 +109,7 @@ type SMInterface interface {
 	PutResourcePolicy(ctx context.Context, params *awssm.PutResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.PutResourcePolicyOutput, error)
 	GetResourcePolicy(ctx context.Context, params *awssm.GetResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error)
 	DeleteResourcePolicy(ctx context.Context, params *awssm.DeleteResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error)
+	UpdateSecret(ctx context.Context, params *awssm.UpdateSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.UpdateSecretOutput, error)
 }
 
 const (
@@ -116,6 +117,7 @@ const (
 	managedBy                 = "managed-by"
 	externalSecrets           = "external-secrets"
 	initialVersion            = "00000000-0000-0000-0000-000000000001"
+	defaultKMSKeyID           = "alias/aws/secretsmanager"
 )
 
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
@@ -269,7 +271,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		if err != nil {
 			return err
 		}
-		return sm.putSecretValueWithContext(ctx, secretName, nil, psd, finalValue, describeSecretOutput.Tags)
+		return sm.putSecretValueWithContext(ctx, secretName, nil, psd, finalValue, describeSecretOutput)
 	}
 
 	getSecretValueInput := awssm.GetSecretValueInput{SecretId: &secretName}
@@ -283,7 +285,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 	if err != nil {
 		return err
 	}
-	return sm.putSecretValueWithContext(ctx, secretName, getSecretValueOutput, psd, finalValue, describeSecretOutput.Tags)
+	return sm.putSecretValueWithContext(ctx, secretName, getSecretValueOutput, psd, finalValue, describeSecretOutput)
 }
 
 func (sm *SecretsManager) getNewSecretValue(value []byte, property string, existingSecret *awssm.GetSecretValueOutput) ([]byte, error) {
@@ -615,49 +617,84 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	return nil
 }
 
-func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
-	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || esutils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
-		return nil
-	}
+func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, describe *awssm.DescribeSecretOutput) error {
+	valueUnchanged := awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) ||
+		esutils.CompareStringAndByteSlices(awsSecret.SecretString, value))
 
-	newVersionNumber := initialVersion
-	if awsSecret != nil {
-		if sm.newUUID == nil {
-			newVersionNumber = uuid.NewString()
-		} else {
-			newVersionNumber = sm.newUUID()
+	if !valueUnchanged {
+		newVersionNumber := initialVersion
+		if awsSecret != nil {
+			if sm.newUUID == nil {
+				newVersionNumber = uuid.NewString()
+			} else {
+				newVersionNumber = sm.newUUID()
+			}
+		}
+		input := &awssm.PutSecretValueInput{
+			SecretId:           &secretArn,
+			SecretBinary:       value,
+			ClientRequestToken: aws.String(newVersionNumber),
+		}
+		secretPushFormat, err := esutils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+		if err != nil {
+			return fmt.Errorf("failed to parse metadata: %w", err)
+		}
+		if secretPushFormat == SecretPushFormatString {
+			input.SecretBinary = nil
+			input.SecretString = aws.String(string(value))
+		}
+
+		_, err = sm.client.PutSecretValue(ctx, input)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Value is the same — check if Description or KMSKeyID changed.
+		meta, err := sm.constructMetadataWithDefaults(psd.GetMetadata())
+		if err != nil {
+			return fmt.Errorf("failed to parse metadata: %w", err)
+		}
+		if describe != nil && hasSecretMetadataChanged(describe, meta.Spec.Description, meta.Spec.KMSKeyID) {
+			_, err = sm.client.UpdateSecret(ctx, &awssm.UpdateSecretInput{
+				SecretId:    &secretArn,
+				Description: aws.String(meta.Spec.Description),
+				KmsKeyId:    aws.String(meta.Spec.KMSKeyID),
+			})
+			metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMUpdateSecret, err)
+			if err != nil {
+				return fmt.Errorf("error updating metadata for secret %v: %w", secretArn, err)
+			}
 		}
 	}
-	input := &awssm.PutSecretValueInput{
-		SecretId:           &secretArn,
-		SecretBinary:       value,
-		ClientRequestToken: aws.String(newVersionNumber),
-	}
-	secretPushFormat, err := esutils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
-	}
-	if secretPushFormat == SecretPushFormatString {
-		input.SecretBinary = nil
-		input.SecretString = aws.String(string(value))
-	}
 
-	_, err = sm.client.PutSecretValue(ctx, input)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
-	if err != nil {
-		return err
-	}
-
-	currentTags := make(map[string]string, len(tags))
-	for _, tag := range tags {
+	// Always run tag and policy management regardless of value change.
+	currentTags := make(map[string]string, len(describe.Tags))
+	for _, tag := range describe.Tags {
 		currentTags[*tag.Key] = *tag.Value
 	}
 	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
 		return err
 	}
 
-	// Manage resource policy if specified in metadata
+	// Manage resource policy if specified in metadata.
 	return sm.manageResourcePolicy(ctx, psd.GetMetadata(), &secretArn)
+}
+
+// hasSecretMetadataChanged reports whether Description or KMSKeyID differ from the
+// current secret state captured in describe.
+func hasSecretMetadataChanged(describe *awssm.DescribeSecretOutput, desiredDescription, desiredKMSKeyID string) bool {
+	if aws.ToString(describe.Description) != desiredDescription {
+		return true
+	}
+	// Only compare KMS key when user explicitly requests a non-default key,
+	// because the API may return the full key ARN for the default alias.
+	if desiredKMSKeyID != defaultKMSKeyID {
+		if aws.ToString(describe.KmsKeyId) != desiredKMSKeyID {
+			return true
+		}
+	}
+	return false
 }
 
 func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
@@ -813,7 +850,7 @@ func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 	}
 
 	if meta.Spec.KMSKeyID == "" {
-		meta.Spec.KMSKeyID = "alias/aws/secretsmanager"
+		meta.Spec.KMSKeyID = defaultKMSKeyID
 	}
 
 	if len(meta.Spec.Tags) > 0 {

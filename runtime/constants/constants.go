@@ -33,6 +33,7 @@ const (
 	CallAWSSMPutResourcePolicy    = "PutResourcePolicy"
 	CallAWSSMGetResourcePolicy    = "GetResourcePolicy"
 	CallAWSSMDeleteResourcePolicy = "DeleteResourcePolicy"
+	CallAWSSMUpdateSecret         = "UpdateSecret"
 
 	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"
