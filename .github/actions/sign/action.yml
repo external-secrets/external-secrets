@@ -108,7 +108,7 @@ runs:
         echo "Original Go modules SBOM size: ${ORIGINAL_GOMOD_SBOM_SIZE} bytes"
 
         echo "Deduplicating Go modules SPDX package nodes and relationships"
-        ./hack/dedupe-spdx-gomod.sh \
+        bash ./hack/dedupe-spdx-gomod.sh \
           --input sbom.gomod.${IMAGE_TAG}.spdx.json \
           --output sbom.gomod.${IMAGE_TAG}.dedup.spdx.json
 
@@ -120,7 +120,7 @@ runs:
         MAX_GOMOD_SBOM_SIZE_BYTES=10000000
         if [[ "${DEDUP_GOMOD_SBOM_SIZE}" -gt "${MAX_GOMOD_SBOM_SIZE_BYTES}" ]]; then
           echo "Deduped SBOM still above ${MAX_GOMOD_SBOM_SIZE_BYTES} bytes, dropping file ownership data"
-          ./hack/dedupe-spdx-gomod.sh \
+          bash ./hack/dedupe-spdx-gomod.sh \
             --input sbom.gomod.${IMAGE_TAG}.spdx.json \
             --output sbom.gomod.${IMAGE_TAG}.dedup.spdx.json \
             --drop-file-ownership

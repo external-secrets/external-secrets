@@ -23,10 +23,20 @@ DROP_FILE_OWNERSHIP="false"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --input)
+      if [[ -z "${2:-}" || "${2:-}" == --* || "${2:-}" == -* ]]; then
+        echo "Error: --input requires a value" >&2
+        usage >&2
+        exit 1
+      fi
       INPUT="${2:-}"
       shift 2
       ;;
     --output)
+      if [[ -z "${2:-}" || "${2:-}" == --* || "${2:-}" == -* ]]; then
+        echo "Error: --output requires a value" >&2
+        usage >&2
+        exit 1
+      fi
       OUTPUT="${2:-}"
       shift 2
       ;;
@@ -65,7 +75,17 @@ jq \
       | map(select(.referenceType == "purl") | .referenceLocator)
       | first);
   def package_key:
-    (purl // ((.name // "") + "@" + (.versionInfo // "")));
+    if (purl // "") != "" then
+      "purl|" + purl
+    else
+      # No purl means identity is uncertain across ecosystems/catalogers.
+      # Keep the key non-destructive by including provenance fields and SPDXID.
+      "nopurl|spdxid=" + (.SPDXID // "") +
+      "|name=" + (.name // "") +
+      "|version=" + (.versionInfo // "") +
+      "|supplier=" + (.supplier // "") +
+      "|sourceInfo=" + (.sourceInfo // "")
+    end;
 
   . as $doc
   | ($doc.packages // [] | map(. + {__dedupe_key: package_key})) as $pkgs
@@ -80,11 +100,10 @@ jq \
   | ($groups | map(.canonical_pkg)) as $new_packages
   | ($groups | map(.all_spdxids[] as $old | {($old): .canonical_spdxid}) | add // {}) as $id_map
   | ($doc.relationships // []
-      | map({
-          spdxElementId: ($id_map[.spdxElementId] // .spdxElementId),
-          relationshipType: .relationshipType,
-          relatedSpdxElement: ($id_map[.relatedSpdxElement] // .relatedSpdxElement)
-        })
+      | map(
+          .spdxElementId = ($id_map[.spdxElementId] // .spdxElementId)
+          | .relatedSpdxElement = ($id_map[.relatedSpdxElement] // .relatedSpdxElement)
+        )
       | if $drop_file_ownership then
           map(select(.relationshipType != "OTHER"))
         else
@@ -100,4 +119,3 @@ jq \
 ' "${INPUT}" > "${TMP_OUT}"
 
 mv "${TMP_OUT}" "${OUTPUT}"
-
