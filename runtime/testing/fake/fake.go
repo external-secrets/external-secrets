@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 var _ esv1.Provider = &Client{}
@@ -95,7 +96,7 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	v.mu.Lock()
 	v.pushSecretData[data.GetRemoteKey()] = SetSecretCallArgs{
-		Value:     secret.Data[data.GetSecretKey()],
+		Value:     value,
 		RemoteRef: data,
 	}
 	fn := v.SetSecretFn

@@ -19,6 +19,7 @@ package pushsecret
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -40,6 +41,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+)
+
+const (
+	testAdminUser = "admin"
+	testLocalhost = "localhost"
 )
 
 var (
@@ -1407,9 +1413,9 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
-			"db-host":     []byte("localhost"),
+			"db-host":     []byte(testLocalhost),
 			"db-port":     []byte("5432"),
-			"db-username": []byte("admin"),
+			"db-username": []byte(testAdminUser),
 		}
 		// Replace data with dataTo that matches all keys
 		tc.pushsecret.Spec.Data = nil
@@ -1452,7 +1458,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
-			"db-host":     []byte("localhost"),
+			"db-host":     []byte(testLocalhost),
 			"db-port":     []byte("5432"),
 			"app-name":    []byte("myapp"),
 			"app-version": []byte("1.0"),
@@ -1496,7 +1502,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
-			"db-host": []byte("localhost"),
+			"db-host": []byte(testLocalhost),
 			"db-port": []byte("5432"),
 		}
 		// Use dataTo with regex rewrite to add prefix
@@ -1541,7 +1547,7 @@ var _ = Describe("PushSecret controller", func() {
 			return nil
 		}
 		tc.secret.Data = map[string][]byte{
-			"username": []byte("admin"),
+			"username": []byte(testAdminUser),
 		}
 		// Use dataTo with template transformation
 		tc.pushsecret.Spec.Data = nil
@@ -1572,7 +1578,7 @@ var _ = Describe("PushSecret controller", func() {
 				if !ok {
 					return false
 				}
-				return bytes.Equal(providerValue.Value, []byte("admin"))
+				return bytes.Equal(providerValue.Value, []byte(testAdminUser))
 			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
 		}
@@ -1720,7 +1726,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 
 		tc.secret.Data = map[string][]byte{
-			"db-host":  []byte("localhost"),
+			"db-host":  []byte(testLocalhost),
 			"api-key":  []byte("secret123"),
 			"app-name": []byte("myapp"),
 		}
@@ -1821,7 +1827,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Source secret has individual components
 		tc.secret.Data = map[string][]byte{
-			"db_host": []byte("localhost"),
+			"db_host": []byte(testLocalhost),
 			"db_port": []byte("3306"),
 		}
 		// Template creates connection string from components
@@ -1918,7 +1924,7 @@ var _ = Describe("PushSecret controller", func() {
 
 	failDataToDuplicateAcrossEntries := func(tc *testCase) {
 		tc.secret.Data = map[string][]byte{
-			"db-host": []byte("localhost"),
+			"db-host": []byte(testLocalhost),
 			"db-port": []byte("5432"),
 		}
 		// Create two dataTo entries that both produce the same remote key "app/config"
@@ -1974,7 +1980,7 @@ var _ = Describe("PushSecret controller", func() {
 
 	failDataToAndDataDuplicateRemoteKey := func(tc *testCase) {
 		tc.secret.Data = map[string][]byte{
-			"db-host": []byte("localhost"),
+			"db-host": []byte(testLocalhost),
 			"api-key": []byte("secret123"),
 		}
 		// Create dataTo entry and explicit data that map to the same remote key
@@ -2158,7 +2164,7 @@ var _ = Describe("PushSecret controller", func() {
 			return nil
 		}
 		tc.secret.Data = map[string][]byte{
-			"db-username": []byte("admin"),
+			"db-username": []byte(testAdminUser),
 		}
 		// Chain multiple rewrites
 		tc.pushsecret.Spec.Data = nil
@@ -2196,6 +2202,150 @@ var _ = Describe("PushSecret controller", func() {
 				// db-username -> username -> app/username
 				_, ok := setSecretArgs["app/username"]
 				return ok
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	// dataTo bundle mode tests (remoteKey set → all matched keys bundled as JSON)
+	syncWithDataToBundleAllKeys := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.secret.Data = map[string][]byte{
+			"DB_HOST": []byte(testLocalhost),
+			"DB_USER": []byte(testAdminUser),
+		}
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
+			{
+				StoreRef: &v1alpha1.PushSecretStoreRef{
+					Name: PushSecretStore,
+				},
+				RemoteKey: "secrets-sync-target",
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking that all keys were bundled into a single provider secret")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				// Only one provider secret should be created
+				if len(setSecretArgs) != 1 {
+					return false
+				}
+				if bundled, ok := setSecretArgs["secrets-sync-target"]; ok {
+					// Value should be a JSON object containing both keys
+					var decoded map[string]string
+					if json.Unmarshal(bundled.Value, &decoded) != nil {
+						return false
+					}
+					return decoded["DB_HOST"] == testLocalhost && decoded["DB_USER"] == testAdminUser
+				}
+				return false
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	syncWithDataToBundleWithRegexFilter := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.secret.Data = map[string][]byte{
+			"DB_HOST":  []byte(testLocalhost),
+			"DB_USER":  []byte(testAdminUser),
+			"APP_NAME": []byte("myapp"),
+		}
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
+			{
+				StoreRef: &v1alpha1.PushSecretStoreRef{
+					Name: PushSecretStore,
+				},
+				RemoteKey: "db-bundle",
+				Match: &v1alpha1.PushSecretDataToMatch{
+					RegExp: "^DB_",
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking that only matched keys were bundled")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				if len(setSecretArgs) != 1 {
+					return false
+				}
+				if bundled, ok := setSecretArgs["db-bundle"]; ok {
+					var decoded map[string]string
+					if json.Unmarshal(bundled.Value, &decoded) != nil {
+						return false
+					}
+					// Only DB_* keys should be in the bundle, not APP_NAME
+					_, hasApp := decoded["APP_NAME"]
+					return decoded["DB_HOST"] == testLocalhost &&
+						decoded["DB_USER"] == testAdminUser &&
+						!hasApp
+				}
+				return false
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	syncWithDataToBundleAndPerKeyMixed := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.secret.Data = map[string][]byte{
+			"DB_HOST": []byte(testLocalhost),
+			"DB_USER": []byte(testAdminUser),
+			"API_KEY": []byte("secret-key"),
+		}
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
+			{
+				// Bundle mode: DB_* keys → single JSON secret
+				StoreRef: &v1alpha1.PushSecretStoreRef{
+					Name: PushSecretStore,
+				},
+				RemoteKey: "db-config",
+				Match: &v1alpha1.PushSecretDataToMatch{
+					RegExp: "^DB_",
+				},
+			},
+			{
+				// Per-key mode: API_KEY → individual secret
+				StoreRef: &v1alpha1.PushSecretStoreRef{
+					Name: PushSecretStore,
+				},
+				Match: &v1alpha1.PushSecretDataToMatch{
+					RegExp: "^API_",
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking bundle and per-key entries coexist")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				// db-config (bundle) + API_KEY (per-key) = 2 provider secrets
+				if len(setSecretArgs) != 2 {
+					return false
+				}
+				if bundled, ok := setSecretArgs["db-config"]; ok {
+					var decoded map[string]string
+					if json.Unmarshal(bundled.Value, &decoded) != nil {
+						return false
+					}
+					if decoded["DB_HOST"] != testLocalhost || decoded["DB_USER"] != testAdminUser {
+						return false
+					}
+					_, hasAPIKey := setSecretArgs["API_KEY"]
+					return hasAPIKey
+				}
+				return false
 			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
 		}
@@ -2277,6 +2427,9 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should fail with dataTo storeRef not in secretStoreRefs", failDataToStoreRefNotInList),
 		Entry("should sync with dataTo using labelSelector", syncWithDataToLabelSelector),
 		Entry("should sync with dataTo when keys have duplicate values", syncWithDataToDuplicateValues),
+		Entry("should bundle all keys into single provider secret with dataTo remoteKey", syncWithDataToBundleAllKeys),
+		Entry("should bundle only regex-matched keys with dataTo remoteKey and match filter", syncWithDataToBundleWithRegexFilter),
+		Entry("should mix bundle mode and per-key mode in the same dataTo list", syncWithDataToBundleAndPerKeyMixed),
 	)
 })
 
