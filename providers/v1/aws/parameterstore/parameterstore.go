@@ -303,9 +303,27 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 		return errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value")
 	}
 
+	// Fetch current parameter metadata unconditionally so the tier downgrade guard
+	// can run before any write, regardless of whether the value has changed.
+	// Best-effort: a lookup failure is logged and treated as unknown (update proceeds).
+	paramMeta, err := pm.fetchParameterMetadata(ctx, secretName)
+	if err != nil {
+		logger.Info("could not fetch parameter metadata, proceeding with update", "parameter", secretName, "err", err)
+		paramMeta = nil
+	}
+
+	// Guard against Advanced - Standard tier downgrade. AWS does not support this
+	// operation and will reject it; blocking it here prevents a partial update where
+	// the value is written but the tier change is then rejected by the API.
+	// Users should keep tier.type: Advanced in their PushSecret metadata.
+	if paramMeta != nil &&
+		paramMeta.Tier == ssmTypes.ParameterTierAdvanced &&
+		secretRequest.Tier != ssmTypes.ParameterTierAdvanced {
+		return fmt.Errorf("cannot downgrade parameter %q from Advanced to Standard tier: AWS does not support this operation; set tier.type to Advanced in PushSecret metadata to continue managing this parameter", secretName)
+	}
+
 	if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
-		paramMeta, err := pm.fetchParameterMetadata(ctx, secretName)
-		if err == nil && paramMeta != nil && !hasParameterMetadataChanged(paramMeta, &secretRequest) {
+		if paramMeta != nil && !hasParameterMetadataChanged(paramMeta, &secretRequest) {
 			return nil
 		}
 	}
