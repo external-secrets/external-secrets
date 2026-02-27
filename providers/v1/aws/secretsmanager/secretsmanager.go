@@ -684,16 +684,42 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 	return sm.manageResourcePolicy(ctx, psd.GetMetadata(), &secretArn)
 }
 
+// isDefaultKMSKey reports whether kmsKeyID represents the AWS-managed default
+// KMS key for Secrets Manager. Per the DescribeSecret API, the KmsKeyId field
+// is omitted (empty) when the default key is in use. The alias short-form and
+// its full ARN are also recognised for completeness.
+func isDefaultKMSKey(kmsKeyID string) bool {
+	switch {
+	case kmsKeyID == "":
+		// AWS omits the field when the default key is in use.
+		return true
+	case kmsKeyID == defaultKMSKeyID: // "alias/aws/secretsmanager"
+		return true
+	case kmsKeyID == "aws/secretsmanager":
+		return true
+	case strings.HasSuffix(kmsKeyID, ":alias/aws/secretsmanager"):
+		// Full ARN form: "arn:aws:kms:<region>:<account>:alias/aws/secretsmanager"
+		return true
+	default:
+		return false
+	}
+}
+
 // hasSecretMetadataChanged reports whether Description or KMSKeyID differ from the
 // current secret state captured in describe.
 func hasSecretMetadataChanged(describe *awssm.DescribeSecretOutput, desiredDescription, desiredKMSKeyID string) bool {
 	if aws.ToString(describe.Description) != desiredDescription {
 		return true
 	}
-	// Only compare KMS key when user explicitly requests a non-default key,
-	// because the API may return the full key ARN for the default alias.
-	if desiredKMSKeyID != defaultKMSKeyID {
-		if aws.ToString(describe.KmsKeyId) != desiredKMSKeyID {
+	currentKMSKeyID := aws.ToString(describe.KmsKeyId)
+	if desiredKMSKeyID == defaultKMSKeyID {
+		// Transitioning to (or staying at) the default key: trigger an update
+		// only when the current key is not already the default.
+		if !isDefaultKMSKey(currentKMSKeyID) {
+			return true
+		}
+	} else {
+		if currentKMSKeyID != desiredKMSKeyID {
 			return true
 		}
 	}

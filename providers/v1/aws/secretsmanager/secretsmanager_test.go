@@ -1687,16 +1687,36 @@ func TestHasSecretMetadataChanged(t *testing.T) {
 			desiredKMSKeyID:    defaultKMSKeyID,
 			want:               true,
 		},
-		"DefaultKMSKeyIgnored": {
+		"DefaultKMSKeyOmittedByAWS": {
 			describe: &awssm.DescribeSecretOutput{
 				Description: aws.String(defaultDescription),
-				// AWS may return the full ARN for the default alias; we should
-				// not trigger an update when the user hasn't requested a custom key.
-				KmsKeyId: aws.String("arn:aws:kms:us-east-1:123456789012:key/some-long-arn"),
+				// Per the DescribeSecret API, KmsKeyId is omitted when the default key is in use.
+				KmsKeyId: nil,
 			},
 			desiredDescription: defaultDescription,
 			desiredKMSKeyID:    defaultKMSKeyID,
 			want:               false,
+		},
+		"DefaultKMSKeyAliasARNReturnedByAWS": {
+			describe: &awssm.DescribeSecretOutput{
+				Description: aws.String(defaultDescription),
+				// Full ARN form of the default alias — still the default key, no update needed.
+				KmsKeyId: aws.String("arn:aws:kms:us-east-1:123456789012:alias/aws/secretsmanager"),
+			},
+			desiredDescription: defaultDescription,
+			desiredKMSKeyID:    defaultKMSKeyID,
+			want:               false,
+		},
+		"CustomKeyToDefault": {
+			describe: &awssm.DescribeSecretOutput{
+				Description: aws.String(defaultDescription),
+				// Secret was previously configured with a custom key.
+				KmsKeyId: aws.String("arn:aws:kms:us-east-1:123456789012:key/custom-key"),
+			},
+			desiredDescription: defaultDescription,
+			desiredKMSKeyID:    defaultKMSKeyID,
+			// Removing the custom key (reverting to default) must trigger UpdateSecret.
+			want: true,
 		},
 		"NonDefaultKMSKeyChanged": {
 			describe: &awssm.DescribeSecretOutput{
