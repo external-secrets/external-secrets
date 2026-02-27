@@ -669,9 +669,12 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 	}
 
 	// Always run tag and policy management regardless of value change.
-	currentTags := make(map[string]string, len(describe.Tags))
-	for _, tag := range describe.Tags {
-		currentTags[*tag.Key] = *tag.Value
+	var currentTags map[string]string
+	if describe != nil {
+		currentTags = make(map[string]string, len(describe.Tags))
+		for _, tag := range describe.Tags {
+			currentTags[*tag.Key] = *tag.Value
+		}
 	}
 	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
 		return err
