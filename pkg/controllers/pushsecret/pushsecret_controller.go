@@ -1061,26 +1061,21 @@ func validateDataToStoreRefs(dataToList []esapi.PushSecretDataTo, storeRefs []es
 	return nil
 }
 
-// storeRefExistsInList checks if ref matches any entry in storeRefs.
+// storeRefExistsInList checks if a named ref matches any named entry in storeRefs.
 func storeRefExistsInList(ref *esapi.PushSecretStoreRef, storeRefs []esapi.PushSecretStoreRef) bool {
 	refKind := ref.Kind
 	if refKind == "" {
 		refKind = esv1.SecretStoreKind
 	}
 	for _, sr := range storeRefs {
+		if sr.Name == "" {
+			continue
+		}
 		srKind := sr.Kind
 		if srKind == "" {
 			srKind = esv1.SecretStoreKind
 		}
-		// Skip if kinds don't match
-		if srKind != refKind {
-			continue
-		}
-		if sr.Name != "" && sr.Name == ref.Name {
-			return true
-		}
-		// Can't validate labelSelector statically - assume it could match if kinds are compatible
-		if sr.LabelSelector != nil {
+		if srKind == refKind && sr.Name == ref.Name {
 			return true
 		}
 	}
