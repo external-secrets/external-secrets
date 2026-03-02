@@ -122,6 +122,19 @@ func (g *gitlabBase) pushProjectVariableWithID(projectID, key, value string, psd
 	}
 
 	if exists {
+		// Check if variable is managed by ESO before updating
+		vopts := &gitlab.GetProjectVariableOptions{
+			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+		}
+		existingVar, _, getErr := g.projectVariablesClient.GetVariable(projectID, key, vopts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, getErr)
+		if getErr != nil {
+			return fmt.Errorf("failed to get existing variable: %w", getErr)
+		}
+		if existingVar != nil && !isManagedByESO(existingVar.Description) {
+			return fmt.Errorf(errNotManagedByESO, key)
+		}
+
 		// Update existing variable
 		opts := &gitlab.UpdateProjectVariableOptions{
 			Value:            gitlab.Ptr(value),
@@ -130,10 +143,6 @@ func (g *gitlabBase) pushProjectVariableWithID(projectID, key, value string, psd
 
 		// Apply metadata options if provided
 		applyMetadataToUpdateOptions(metadata, opts)
-
-		vopts := &gitlab.GetProjectVariableOptions{
-			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
-		}
 
 		_, _, err := g.projectVariablesClient.UpdateVariable(projectID, key, opts, gitlab.WithContext(context.Background()))
 		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableUpdate, err)
@@ -157,6 +166,7 @@ func (g *gitlabBase) pushProjectVariableWithID(projectID, key, value string, psd
 		Key:              gitlab.Ptr(key),
 		Value:            gitlab.Ptr(value),
 		EnvironmentScope: gitlab.Ptr(environmentScope),
+		Description:      gitlab.Ptr(managedByDescription),
 	}
 
 	// Apply metadata options if provided
@@ -184,6 +194,19 @@ func (g *gitlabBase) pushProjectVariable(key, value string, psd esv1.PushSecretD
 	}
 
 	if exists {
+		// Check if variable is managed by ESO before updating
+		vopts := &gitlab.GetProjectVariableOptions{
+			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+		}
+		existingVar, _, getErr := g.projectVariablesClient.GetVariable(g.store.ProjectID, key, vopts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, getErr)
+		if getErr != nil {
+			return fmt.Errorf("failed to get existing variable: %w", getErr)
+		}
+		if existingVar != nil && !isManagedByESO(existingVar.Description) {
+			return fmt.Errorf(errNotManagedByESO, key)
+		}
+
 		// Update existing variable
 		opts := &gitlab.UpdateProjectVariableOptions{
 			Value:            gitlab.Ptr(value),
@@ -193,10 +216,6 @@ func (g *gitlabBase) pushProjectVariable(key, value string, psd esv1.PushSecretD
 		// Apply metadata options if provided
 		applyMetadataToUpdateOptions(metadata, opts)
 
-		vopts := &gitlab.GetProjectVariableOptions{
-			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
-		}
-
 		_, _, err := g.projectVariablesClient.UpdateVariable(g.store.ProjectID, key, opts, gitlab.WithContext(context.Background()))
 		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableUpdate, err)
 		if err != nil {
@@ -205,6 +224,9 @@ func (g *gitlabBase) pushProjectVariable(key, value string, psd esv1.PushSecretD
 			if errors.Is(err, gitlab.ErrNotFound) {
 				existingVar, _, getErr := g.projectVariablesClient.GetVariable(g.store.ProjectID, key, vopts)
 				if getErr == nil && existingVar != nil {
+					if !isManagedByESO(existingVar.Description) {
+						return fmt.Errorf(errNotManagedByESO, key)
+					}
 					opts.Filter = &gitlab.VariableFilter{EnvironmentScope: existingVar.EnvironmentScope}
 					_, _, err = g.projectVariablesClient.UpdateVariable(g.store.ProjectID, key, opts)
 					metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableUpdate, err)
@@ -219,6 +241,7 @@ func (g *gitlabBase) pushProjectVariable(key, value string, psd esv1.PushSecretD
 		Key:              gitlab.Ptr(key),
 		Value:            gitlab.Ptr(value),
 		EnvironmentScope: gitlab.Ptr(environmentScope),
+		Description:      gitlab.Ptr(managedByDescription),
 	}
 
 	// Apply metadata options if provided
@@ -246,6 +269,19 @@ func (g *gitlabBase) pushGroupVariable(groupID, key, value string, psd esv1.Push
 	}
 
 	if exists {
+		// Check if variable is managed by ESO before updating
+		vopts := &gitlab.GetGroupVariableOptions{
+			Filter: &gitlab.VariableFilter{EnvironmentScope: environmentScope},
+		}
+		existingVar, _, getErr := g.groupVariablesClient.GetVariable(groupID, key, vopts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, getErr)
+		if getErr != nil {
+			return fmt.Errorf("failed to get existing variable: %w", getErr)
+		}
+		if existingVar != nil && !isManagedByESO(existingVar.Description) {
+			return fmt.Errorf(errNotManagedByESO, key)
+		}
+
 		// Update existing variable
 		opts := &gitlab.UpdateGroupVariableOptions{
 			Value:            gitlab.Ptr(value),
@@ -268,6 +304,7 @@ func (g *gitlabBase) pushGroupVariable(groupID, key, value string, psd esv1.Push
 		Key:              gitlab.Ptr(key),
 		Value:            gitlab.Ptr(value),
 		EnvironmentScope: gitlab.Ptr(environmentScope),
+		Description:      gitlab.Ptr(managedByDescription),
 	}
 
 	// Apply metadata options if provided
@@ -467,4 +504,10 @@ func applyMetadataToGroupUpdateOptions(metadata *apiextensionsv1.JSON, opts *git
 	if parsed.VariableType != nil {
 		opts.VariableType = parsed.VariableType
 	}
+}
+
+// isManagedByESO checks if a variable is managed by external-secrets.
+// Returns true if the description contains "managed-by: external-secrets".
+func isManagedByESO(description string) bool {
+	return strings.Contains(description, managedByDescription)
 }

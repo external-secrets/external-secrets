@@ -69,6 +69,7 @@ func (g *gitlabBase) SecretExists(ctx context.Context, remoteRef esv1.PushSecret
 }
 
 // DeleteSecret deletes a variable from GitLab.
+// TODO: Talk about this and how to handle this potentially.
 // LIMITATION: This can only delete from the store's configured projectID or first groupID.
 // Variables pushed with metadata-based groupID/projectID overrides cannot be automatically
 // deleted because the SecretsClient.DeleteSecret interface doesn't provide metadata.

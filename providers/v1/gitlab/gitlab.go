@@ -46,6 +46,8 @@ const (
 	errJSONSecretUnmarshal          = "unable to unmarshal secret from JSON: %w"
 	errNotImplemented               = "not implemented"
 	errNoProjectOrGroup             = "no projectID or groupIDs configured"
+	errNotManagedByESO              = "variable %q is not managed by external-secrets (description does not contain 'managed-by: external-secrets')"
+	managedByDescription            = "managed-by: external-secrets"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
