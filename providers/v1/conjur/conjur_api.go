@@ -26,6 +26,7 @@ import (
 // SecretsClient is an interface for the Conjur client.
 type SecretsClient interface {
 	AddSecret(variable, secret string) error
+	GetStaticSecretDetails(identifier string) (*conjurapi.StaticSecretResponse, error)
 	LoadPolicy(policyMode conjurapi.PolicyMode, policyID string, policy io.Reader) (*conjurapi.PolicyResponse, error)
 	RetrieveSecret(secret string) (result []byte, err error)
 	RetrieveBatchSecrets(variableIDs []string) (map[string][]byte, error)
@@ -41,12 +42,32 @@ type SecretsClientFactory interface {
 // ClientAPIImpl is an implementation of the ClientAPI interface.
 type ClientAPIImpl struct{}
 
+// CompositeClient is the composite of the Client and ClientV2 mechanisms so that API methods from both are accessible.
+type CompositeClient struct {
+	*conjurapi.Client
+	*conjurapi.ClientV2
+}
+
 // NewClientFromKey creates a new Conjur client using API key authentication.
 func (c *ClientAPIImpl) NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (SecretsClient, error) {
-	return conjurapi.NewClientFromKey(config, loginPair)
+	client, err := conjurapi.NewClientFromKey(config, loginPair)
+	if err != nil {
+		return nil, err
+	}
+	return CompositeClient{
+		client,
+		&conjurapi.ClientV2{Client: client},
+	}, nil
 }
 
 // NewClientFromJWT creates a new Conjur client from a JWT token.
 func (c *ClientAPIImpl) NewClientFromJWT(config conjurapi.Config) (SecretsClient, error) {
-	return conjurapi.NewClientFromJwt(config)
+	client, err := conjurapi.NewClientFromJwt(config)
+	if err != nil {
+		return nil, err
+	}
+	return CompositeClient{
+		client,
+		&conjurapi.ClientV2{Client: client},
+	}, nil
 }
