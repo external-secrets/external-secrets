@@ -32,6 +32,10 @@ func (mc *ConjurMockClient) AddSecret(variable, secret string) error {
 	return nil
 }
 
+func (mc *ConjurMockClient) GetStaticSecretDetails(identifier string) (*conjurapi.StaticSecretResponse, error) {
+	return nil, nil
+}
+
 func (mc *ConjurMockClient) LoadPolicy(policyMode conjurapi.PolicyMode, policyID string, policy io.Reader) (*conjurapi.PolicyResponse, error) {
 	return nil, nil
 }
