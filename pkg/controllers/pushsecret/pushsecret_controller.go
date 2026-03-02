@@ -70,6 +70,7 @@ const (
 	errConvert                 = "could not apply conversion strategy to keys: %v"
 	pushSecretFinalizer        = "pushsecret.externalsecrets.io/finalizer"
 	errCloudNotUpdateFinalizer = "could not update finalizers: %w"
+	bundleSourceKey            = "(bundle)"
 )
 
 // Reconciler is the controller for PushSecret resources.
@@ -989,7 +990,7 @@ func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecr
 	}
 
 	if dataTo.RemoteKey != "" {
-		keyMap := map[string]string{"(bundle)": dataTo.RemoteKey}
+		keyMap := map[string]string{bundleSourceKey: dataTo.RemoteKey}
 		entry := esapi.PushSecretData{
 			Match: esapi.PushSecretMatch{
 				SecretKey: "",
