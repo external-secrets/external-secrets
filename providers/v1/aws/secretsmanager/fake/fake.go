@@ -33,20 +33,23 @@ import (
 
 // Client implements the aws secretsmanager interface.
 type Client struct {
-	ExecutionCounter       int
-	valFn                  map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-	CreateSecretFn         CreateSecretFn
-	GetSecretValueFn       GetSecretValueFn
-	PutSecretValueFn       PutSecretValueFn
-	DescribeSecretFn       DescribeSecretFn
-	DeleteSecretFn         DeleteSecretFn
-	ListSecretsFn          ListSecretsFn
-	BatchGetSecretValueFn  BatchGetSecretValueFn
-	TagResourceFn          TagResourceFn
-	UntagResourceFn        UntagResourceFn
-	PutResourcePolicyFn    PutResourcePolicyFn
-	GetResourcePolicyFn    GetResourcePolicyFn
-	DeleteResourcePolicyFn DeleteResourcePolicyFn
+	ExecutionCounter        int
+	valFn                   map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	CreateSecretFn          CreateSecretFn
+	GetSecretValueFn        GetSecretValueFn
+	PutSecretValueFn        PutSecretValueFn
+	DescribeSecretFn        DescribeSecretFn
+	DeleteSecretFn          DeleteSecretFn
+	ListSecretsFn           ListSecretsFn
+	BatchGetSecretValueFn   BatchGetSecretValueFn
+	TagResourceFn           TagResourceFn
+	UntagResourceFn         UntagResourceFn
+	PutResourcePolicyFn     PutResourcePolicyFn
+	GetResourcePolicyFn     GetResourcePolicyFn
+	DeleteResourcePolicyFn  DeleteResourcePolicyFn
+	UpdateSecretFn          UpdateSecretFn
+	UpdateSecretCalledN     int
+	UpdateSecretFnCalledWith [][]*awssm.UpdateSecretInput
 }
 type CreateSecretFn func(context.Context, *awssm.CreateSecretInput, ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
 type GetSecretValueFn func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
@@ -55,6 +58,8 @@ type DescribeSecretFn func(context.Context, *awssm.DescribeSecretInput, ...func(
 type DeleteSecretFn func(context.Context, *awssm.DeleteSecretInput, ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
 type ListSecretsFn func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
 type BatchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
+
+type UpdateSecretFn func(context.Context, *awssm.UpdateSecretInput, ...func(*awssm.Options)) (*awssm.UpdateSecretOutput, error)
 
 type TagResourceFn func(context.Context, *awssm.TagResourceInput, ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
 type UntagResourceFn func(context.Context, *awssm.UntagResourceInput, ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
@@ -268,6 +273,18 @@ func NewDeleteResourcePolicyFn(output *awssm.DeleteResourcePolicyOutput, err err
 		for _, f := range aFunc {
 			f(params)
 		}
+		return output, err
+	}
+}
+
+func (sm *Client) UpdateSecret(ctx context.Context, input *awssm.UpdateSecretInput, opts ...func(*awssm.Options)) (*awssm.UpdateSecretOutput, error) {
+	sm.UpdateSecretCalledN++
+	sm.UpdateSecretFnCalledWith = append(sm.UpdateSecretFnCalledWith, []*awssm.UpdateSecretInput{input})
+	return sm.UpdateSecretFn(ctx, input, opts...)
+}
+
+func NewUpdateSecretFn(output *awssm.UpdateSecretOutput, err error) UpdateSecretFn {
+	return func(_ context.Context, _ *awssm.UpdateSecretInput, _ ...func(*awssm.Options)) (*awssm.UpdateSecretOutput, error) {
 		return output, err
 	}
 }

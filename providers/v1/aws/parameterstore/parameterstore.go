@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -302,8 +303,29 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 		return errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value")
 	}
 
+	// Fetch current parameter metadata unconditionally so the tier downgrade guard
+	// can run before any write, regardless of whether the value has changed.
+	// Best-effort: a lookup failure is logged and treated as unknown (update proceeds).
+	paramMeta, err := pm.fetchParameterMetadata(ctx, secretName)
+	if err != nil {
+		logger.Info("could not fetch parameter metadata, proceeding with update", "parameter", secretName, "err", err)
+		paramMeta = nil
+	}
+
+	// Guard against Advanced - Standard tier downgrade. AWS does not support this
+	// operation and will reject it; blocking it here prevents a partial update where
+	// the value is written but the tier change is then rejected by the API.
+	// Users should keep tier.type: Advanced in their PushSecret metadata.
+	if paramMeta != nil &&
+		paramMeta.Tier == ssmTypes.ParameterTierAdvanced &&
+		secretRequest.Tier != ssmTypes.ParameterTierAdvanced {
+		return fmt.Errorf("cannot downgrade parameter %q from Advanced to Standard tier: AWS does not support this operation; set tier.type to Advanced in PushSecret metadata to continue managing this parameter", secretName)
+	}
+
 	if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
-		return nil
+		if paramMeta != nil && !hasParameterMetadataChanged(paramMeta, &secretRequest) {
+			return nil
+		}
 	}
 
 	err = pm.setManagedRemoteParameter(ctx, secretRequest, []ssmTypes.Tag{}, false)
@@ -342,6 +364,76 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 
 func isManagedByESO(tags map[string]string) bool {
 	return tags[managedBy] == externalSecrets
+}
+
+// fetchParameterMetadata retrieves the ParameterMetadata for a single parameter by name.
+// Returns nil, nil when no matching parameter is found.
+func (pm *ParameterStore) fetchParameterMetadata(ctx context.Context, name string) (*ssmTypes.ParameterMetadata, error) {
+	out, err := pm.client.DescribeParameters(ctx, &ssm.DescribeParametersInput{
+		ParameterFilters: []ssmTypes.ParameterStringFilter{
+			{
+				Key:    aws.String("Name"),
+				Option: aws.String("Equals"),
+				Values: []string{name},
+			},
+		},
+	})
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSDescribeParameter, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(out.Parameters) == 0 {
+		return nil, nil
+	}
+	return &out.Parameters[0], nil
+}
+
+// hasParameterMetadataChanged returns true if the desired PutParameterInput differs from
+// the current ParameterMetadata in any mutable metadata field (Type, Description, Tier, KeyId, Policies).
+func hasParameterMetadataChanged(meta *ssmTypes.ParameterMetadata, req *ssm.PutParameterInput) bool {
+	if meta.Type != req.Type {
+		return true
+	}
+	if aws.ToString(meta.Description) != aws.ToString(req.Description) {
+		return true
+	}
+	if req.Tier != "" && meta.Tier != req.Tier {
+		return true
+	}
+	if req.Type == ssmTypes.ParameterTypeSecureString {
+		if aws.ToString(meta.KeyId) != aws.ToString(req.KeyId) {
+			return true
+		}
+	}
+	if aws.ToString(req.Policies) != "" {
+		if policiesChanged(aws.ToString(req.Policies), meta.Policies) {
+			return true
+		}
+	}
+	return false
+}
+
+// policiesChanged reports whether the desired policies (a JSON array string) differ from
+// the current inline policies returned by DescribeParameters.
+// Comparison is JSON-normalized and order-sensitive; parse errors are treated as changed.
+func policiesChanged(desired string, current []ssmTypes.ParameterInlinePolicy) bool {
+	var desiredPolicies []map[string]any
+	if err := json.Unmarshal([]byte(desired), &desiredPolicies); err != nil {
+		return true
+	}
+	if len(desiredPolicies) != len(current) {
+		return true
+	}
+	for i, p := range current {
+		var currentPolicy map[string]any
+		if err := json.Unmarshal([]byte(aws.ToString(p.PolicyText)), &currentPolicy); err != nil {
+			return true
+		}
+		if !reflect.DeepEqual(desiredPolicies[i], currentPolicy) {
+			return true
+		}
+	}
+	return false
 }
 
 func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, tags []ssmTypes.Tag, createManagedByTags bool) error {

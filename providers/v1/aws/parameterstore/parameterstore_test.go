@@ -770,7 +770,16 @@ func TestPushSecretCalledOnlyOnce(t *testing.T) {
 			Value: &fakeValue,
 		},
 	}
-	describeParameterOutput := &ssm.DescribeParametersOutput{}
+	defaultDescription := "secret 'managed-by:external-secrets'"
+	describeParameterOutput := &ssm.DescribeParametersOutput{
+		Parameters: []ssmtypes.ParameterMetadata{
+			{
+				Type:        ssmtypes.ParameterTypeString,
+				Description: aws.String(defaultDescription),
+				Tier:        ssmtypes.ParameterTierStandard,
+			},
+		},
+	}
 	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
 		TagList: []ssmtypes.Tag{managedByESO},
 	}
@@ -790,6 +799,405 @@ func TestPushSecretCalledOnlyOnce(t *testing.T) {
 	require.NoError(t, ps.PushSecret(context.TODO(), fakeSecret, psd))
 
 	assert.Equal(t, 0, client.PutParameterCalledN)
+}
+
+// TestPushSecretMetadataChange tests that PutParameter is (or is not) called when the
+// secret value is unchanged but metadata fields differ.
+func TestPushSecretMetadataChange(t *testing.T) {
+	defaultDescription := "secret 'managed-by:external-secrets'"
+	managedByESO := ssmtypes.Tag{Key: &managedBy, Value: &externalSecrets}
+
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{fakeSecretKey: []byte(fakeValue)},
+	}
+	validGetParameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssmtypes.Parameter{Value: &fakeValue},
+	}
+	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
+		TagList: []ssmtypes.Tag{managedByESO},
+	}
+
+	type testCase struct {
+		reason             string
+		describeOutput     *ssm.DescribeParametersOutput
+		describeErr        error
+		metadata           *apiextensionsv1.JSON
+		wantErr            string
+		wantPutParameterN  int
+	}
+
+	tests := map[string]testCase{
+		"SetSecretSameValueMetadataUnchanged": {
+			reason: "no PutParameter when value and metadata are unchanged",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeString,
+						Description: aws.String(defaultDescription),
+						Tier:        ssmtypes.ParameterTierStandard,
+					},
+				},
+			},
+			wantPutParameterN: 0,
+		},
+		"SetSecretSameValueTypeChanged": {
+			reason: "PutParameter called when Type changes from String to SecureString",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeSecureString,
+						Description: aws.String(defaultDescription),
+						Tier:        ssmtypes.ParameterTierStandard,
+					},
+				},
+			},
+			wantPutParameterN: 1,
+		},
+		"SetSecretSameValueKMSKeyChanged": {
+			reason: "PutParameter called when KMS key changes",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeSecureString,
+						Description: aws.String(defaultDescription),
+						Tier:        ssmtypes.ParameterTierStandard,
+						KeyId:       aws.String("old-key"),
+					},
+				},
+			},
+			metadata: &apiextensionsv1.JSON{Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"secretType": "SecureString",
+					"kmsKeyID": "new-key-arn"
+				}
+			}`)},
+			wantPutParameterN: 1,
+		},
+		"SetSecretSameValueDescriptionChanged": {
+			reason: "PutParameter called when description changes",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeString,
+						Description: aws.String("old description"),
+						Tier:        ssmtypes.ParameterTierStandard,
+					},
+				},
+			},
+			wantPutParameterN: 1,
+		},
+		"SetSecretSameValueTierChanged": {
+			reason: "PutParameter called when tier changes to Advanced",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeString,
+						Description: aws.String(defaultDescription),
+						Tier:        ssmtypes.ParameterTierStandard,
+					},
+				},
+			},
+			metadata: &apiextensionsv1.JSON{Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"tier": {"type": "Advanced"}
+				}
+			}`)},
+			wantPutParameterN: 1,
+		},
+		"SetSecretSameValuePoliciesChanged": {
+			reason: "PutParameter called when tier policies change while value stays the same",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeString,
+						Description: aws.String(defaultDescription),
+						Tier:        ssmtypes.ParameterTierAdvanced,
+						Policies: []ssmtypes.ParameterInlinePolicy{
+							{PolicyText: aws.String(`{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2024-01-01T00:00:00.000Z"}}`)},
+						},
+					},
+				},
+			},
+			metadata: &apiextensionsv1.JSON{Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"tier": {
+						"type": "Advanced",
+						"policies": [{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2025-06-01T00:00:00.000Z"}}]
+					}
+				}
+			}`)},
+			wantPutParameterN: 1,
+		},
+		"SetSecretSameValuePoliciesUnchanged": {
+			reason: "PutParameter not called when tier policies are the same",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeString,
+						Description: aws.String(defaultDescription),
+						Tier:        ssmtypes.ParameterTierAdvanced,
+						Policies: []ssmtypes.ParameterInlinePolicy{
+							{PolicyText: aws.String(`{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2025-06-01T00:00:00.000Z"}}`)},
+						},
+					},
+				},
+			},
+			metadata: &apiextensionsv1.JSON{Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"tier": {
+						"type": "Advanced",
+						"policies": [{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2025-06-01T00:00:00.000Z"}}]
+					}
+				}
+			}`)},
+			wantPutParameterN: 0,
+		},
+		"SetSecretSameValueDescribeError": {
+			reason:            "PutParameter still called when DescribeParameters fails (best-effort)",
+			describeErr:       errors.New("describe error"),
+			describeOutput:    &ssm.DescribeParametersOutput{},
+			wantErr:           "",
+			wantPutParameterN: 1,
+		},
+		"SetSecretSameValueMetadataNotFound": {
+			reason:            "PutParameter still called when DescribeParameters returns no results",
+			describeOutput:    &ssm.DescribeParametersOutput{},
+			wantErr:           "",
+			wantPutParameterN: 1,
+		},
+		"SetSecretTierDowngradeAdvancedToStandard": {
+			reason: "error returned and no PutParameter when trying to downgrade from Advanced to Standard tier",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeString,
+						Description: aws.String(defaultDescription),
+						Tier:        ssmtypes.ParameterTierAdvanced,
+					},
+				},
+			},
+			// No metadata - defaults to Standard tier, triggering the downgrade guard.
+			wantErr:           "cannot downgrade",
+			wantPutParameterN: 0,
+		},
+		"SetSecretTierKeepAdvanced": {
+			reason: "no PutParameter when current and desired tier are both Advanced and metadata is unchanged",
+			describeOutput: &ssm.DescribeParametersOutput{
+				Parameters: []ssmtypes.ParameterMetadata{
+					{
+						Type:        ssmtypes.ParameterTypeString,
+						Description: aws.String(defaultDescription),
+						Tier:        ssmtypes.ParameterTierAdvanced,
+					},
+				},
+			},
+			metadata: &apiextensionsv1.JSON{Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"tier": {"type": "Advanced"}
+				}
+			}`)},
+			wantPutParameterN: 0,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			client := fakeps.Client{
+				PutParameterFn:        fakeps.NewPutParameterFn(&ssm.PutParameterOutput{}, nil),
+				GetParameterFn:        fakeps.NewGetParameterFn(validGetParameterOutput, nil),
+				DescribeParametersFn:  fakeps.NewDescribeParametersFn(tc.describeOutput, tc.describeErr),
+				ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
+				RemoveTagsFromResourceFn: fakeps.NewRemoveTagsFromResourceFn(&ssm.RemoveTagsFromResourceOutput{}, nil),
+				AddTagsToResourceFn:      fakeps.NewAddTagsToResourceFn(&ssm.AddTagsToResourceOutput{}, nil),
+			}
+			psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
+			if tc.metadata != nil {
+				psd.Metadata = tc.metadata
+			}
+			ps := ParameterStore{client: &client}
+
+			err := ps.PushSecret(context.TODO(), fakeSecret, psd)
+
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr, tc.reason)
+			} else {
+				require.NoError(t, err, tc.reason)
+			}
+			assert.Equal(t, tc.wantPutParameterN, client.PutParameterCalledN, tc.reason)
+		})
+	}
+}
+
+func TestHasParameterMetadataChanged(t *testing.T) {
+	defaultDescription := "secret 'managed-by:external-secrets'"
+
+	tests := map[string]struct {
+		meta *ssmtypes.ParameterMetadata
+		req  *ssm.PutParameterInput
+		want bool
+	}{
+		"NothingChanged": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type:        ssmtypes.ParameterTypeString,
+				Description: aws.String(defaultDescription),
+				Tier:        ssmtypes.ParameterTierStandard,
+			},
+			req: &ssm.PutParameterInput{
+				Type:        ssmtypes.ParameterTypeString,
+				Description: aws.String(defaultDescription),
+			},
+			want: false,
+		},
+		"TypeChanged": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type: ssmtypes.ParameterTypeSecureString,
+			},
+			req: &ssm.PutParameterInput{
+				Type: ssmtypes.ParameterTypeString,
+			},
+			want: true,
+		},
+		"DescriptionChanged": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type:        ssmtypes.ParameterTypeString,
+				Description: aws.String("old"),
+			},
+			req: &ssm.PutParameterInput{
+				Type:        ssmtypes.ParameterTypeString,
+				Description: aws.String("new"),
+			},
+			want: true,
+		},
+		"TierChangedToAdvanced": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type: ssmtypes.ParameterTypeString,
+				Tier: ssmtypes.ParameterTierStandard,
+			},
+			req: &ssm.PutParameterInput{
+				Type: ssmtypes.ParameterTypeString,
+				Tier: ssmtypes.ParameterTierAdvanced,
+			},
+			want: true,
+		},
+		"TierEmptyInReqIgnored": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type: ssmtypes.ParameterTypeString,
+				Tier: ssmtypes.ParameterTierStandard,
+			},
+			req: &ssm.PutParameterInput{
+				Type: ssmtypes.ParameterTypeString,
+				Tier: "",
+			},
+			want: false,
+		},
+		"KMSKeyChangedForSecureString": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type:  ssmtypes.ParameterTypeSecureString,
+				KeyId: aws.String("old-key"),
+			},
+			req: &ssm.PutParameterInput{
+				Type:  ssmtypes.ParameterTypeSecureString,
+				KeyId: aws.String("new-key"),
+			},
+			want: true,
+		},
+		"KMSKeyIgnoredForStringType": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type:  ssmtypes.ParameterTypeString,
+				KeyId: aws.String("some-key"),
+			},
+			req: &ssm.PutParameterInput{
+				Type:  ssmtypes.ParameterTypeString,
+				KeyId: aws.String("different-key"),
+			},
+			want: false,
+		},
+		"PoliciesChanged": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type: ssmtypes.ParameterTypeString,
+				Tier: ssmtypes.ParameterTierAdvanced,
+				Policies: []ssmtypes.ParameterInlinePolicy{
+					{PolicyText: aws.String(`{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2024-01-01T00:00:00.000Z"}}`)},
+				},
+			},
+			req: &ssm.PutParameterInput{
+				Type:     ssmtypes.ParameterTypeString,
+				Tier:     ssmtypes.ParameterTierAdvanced,
+				Policies: aws.String(`[{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2025-06-01T00:00:00.000Z"}}]`),
+			},
+			want: true,
+		},
+		"PoliciesUnchanged": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type: ssmtypes.ParameterTypeString,
+				Tier: ssmtypes.ParameterTierAdvanced,
+				Policies: []ssmtypes.ParameterInlinePolicy{
+					{PolicyText: aws.String(`{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2025-06-01T00:00:00.000Z"}}`)},
+				},
+			},
+			req: &ssm.PutParameterInput{
+				Type:     ssmtypes.ParameterTypeString,
+				Tier:     ssmtypes.ParameterTierAdvanced,
+				Policies: aws.String(`[{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2025-06-01T00:00:00.000Z"}}]`),
+			},
+			want: false,
+		},
+		"PoliciesAddedToEmpty": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type:     ssmtypes.ParameterTypeString,
+				Tier:     ssmtypes.ParameterTierAdvanced,
+				Policies: []ssmtypes.ParameterInlinePolicy{},
+			},
+			req: &ssm.PutParameterInput{
+				Type:     ssmtypes.ParameterTypeString,
+				Tier:     ssmtypes.ParameterTierAdvanced,
+				Policies: aws.String(`[{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2025-06-01T00:00:00.000Z"}}]`),
+			},
+			want: true,
+		},
+		"NoPoliciesInReqIgnoresCurrentPolicies": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type: ssmtypes.ParameterTypeString,
+				Tier: ssmtypes.ParameterTierAdvanced,
+				Policies: []ssmtypes.ParameterInlinePolicy{
+					{PolicyText: aws.String(`{"Type":"Expiration","Version":"1.0","Attributes":{"Timestamp":"2025-06-01T00:00:00.000Z"}}`)},
+				},
+			},
+			req: &ssm.PutParameterInput{
+				Type: ssmtypes.ParameterTypeString,
+				Tier: ssmtypes.ParameterTierAdvanced,
+			},
+			want: false,
+		},
+		"PoliciesInvalidJSONTreatedAsChanged": {
+			meta: &ssmtypes.ParameterMetadata{
+				Type:     ssmtypes.ParameterTypeString,
+				Policies: []ssmtypes.ParameterInlinePolicy{},
+			},
+			req: &ssm.PutParameterInput{
+				Type:     ssmtypes.ParameterTypeString,
+				Policies: aws.String(`not-valid-json`),
+			},
+			want: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := hasParameterMetadataChanged(tc.meta, tc.req)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }
 
 // test the ssm<->aws interface
