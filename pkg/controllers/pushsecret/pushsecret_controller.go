@@ -1090,11 +1090,14 @@ func rewriteWithKeyMapping(rewrites []esapi.PushSecretRewrite, data map[string][
 		keyMap[k] = k
 	}
 
-	// Apply each rewrite operation
 	for i, op := range rewrites {
+		applyFn, err := compileRewrite(op)
+		if err != nil {
+			return nil, fmt.Errorf("rewrite[%d]: %w", i, err)
+		}
 		newKeyMap := make(map[string]string, len(keyMap))
 		for origKey, currentKey := range keyMap {
-			newKey, err := applyRewriteToKey(op, currentKey)
+			newKey, err := applyFn(currentKey)
 			if err != nil {
 				return nil, fmt.Errorf("rewrite[%d] on key %q: %w", i, currentKey, err)
 			}
@@ -1106,27 +1109,34 @@ func rewriteWithKeyMapping(rewrites []esapi.PushSecretRewrite, data map[string][
 	return keyMap, nil
 }
 
-// applyRewriteToKey applies a single rewrite operation to a key.
-func applyRewriteToKey(op esapi.PushSecretRewrite, key string) (string, error) {
+// compileRewrite pre-compiles a rewrite operation (regexp or template) and
+// returns a function that applies it to a key. This avoids re-compiling the
+// same regexp or re-parsing the same template for every key.
+func compileRewrite(op esapi.PushSecretRewrite) (func(string) (string, error), error) {
 	switch {
 	case op.Regexp != nil:
 		re, err := regexp.Compile(op.Regexp.Source)
 		if err != nil {
-			return "", fmt.Errorf("invalid regexp: %w", err)
+			return nil, fmt.Errorf("invalid regexp %q: %w", op.Regexp.Source, err)
 		}
-		return re.ReplaceAllString(key, op.Regexp.Target), nil
+		target := op.Regexp.Target
+		return func(key string) (string, error) {
+			return re.ReplaceAllString(key, target), nil
+		}, nil
 	case op.Transform != nil:
 		tmpl, err := template.New("t").Funcs(estemplate.FuncMap()).Parse(op.Transform.Template)
 		if err != nil {
-			return "", fmt.Errorf("invalid template: %w", err)
+			return nil, fmt.Errorf("invalid template: %w", err)
 		}
-		var buf bytes.Buffer
-		if err := tmpl.Execute(&buf, map[string]string{"value": key}); err != nil {
-			return "", fmt.Errorf("template exec: %w", err)
-		}
-		return buf.String(), nil
+		return func(key string) (string, error) {
+			var buf bytes.Buffer
+			if err := tmpl.Execute(&buf, map[string]string{"value": key}); err != nil {
+				return "", fmt.Errorf("template exec: %w", err)
+			}
+			return buf.String(), nil
+		}, nil
 	default:
-		return key, nil
+		return func(key string) (string, error) { return key, nil }, nil
 	}
 }
 
