@@ -232,7 +232,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if apierrors.IsNotFound(err) && isSecretSelector &&
 			ps.Spec.DeletionPolicy == esapi.PushSecretDeletionPolicyDelete &&
 			len(ps.Status.SyncedPushSecrets) > 0 {
-			return r.handleSourceSecretDeleted(ctx, &ps, mgr)
+			return ctrl.Result{}, r.handleSourceSecretDeleted(ctx, &ps, mgr)
 		}
 		r.markAsFailed(errFailedGetSecret, &ps, nil)
 		return ctrl.Result{}, err
@@ -305,7 +305,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 // handleSourceSecretDeleted cleans up provider secrets when source Secret is unavailable.
-func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.PushSecret, mgr *secretstore.Manager) (ctrl.Result, error) {
+func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.PushSecret, mgr *secretstore.Manager) error {
 	log := r.Log.WithValues("pushsecret", client.ObjectKeyFromObject(ps))
 	log.Info("source secret unavailable, cleaning up provider secrets", "syncedSecrets", len(ps.Status.SyncedPushSecrets))
 
@@ -313,12 +313,12 @@ func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.Pu
 	if err != nil {
 		msg := fmt.Sprintf("failed to cleanup provider secrets: %v", err)
 		r.markAsFailed(msg, ps, badState)
-		return ctrl.Result{}, err
+		return err
 	}
 
 	r.setSecrets(ps, esapi.SyncedPushSecretsMap{})
 	r.markAsFailed(errFailedGetSecret, ps, nil)
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func shouldRefresh(ps esapi.PushSecret) bool {
@@ -440,9 +440,10 @@ func (r *Reconciler) PushSecretToProviders(
 	mgr *secretstore.Manager,
 ) (esapi.SyncedPushSecretsMap, error) {
 	out := make(esapi.SyncedPushSecretsMap)
+	var err error
 	for ref, store := range stores {
 		si := storeInfo{Name: store.GetName(), Kind: ref.Kind, Labels: store.GetLabels()}
-		out, err := r.handlePushSecretDataForStore(ctx, ps, secret, out, mgr, si)
+		out, err = r.handlePushSecretDataForStore(ctx, ps, secret, out, mgr, si)
 		if err != nil {
 			return out, err
 		}
@@ -952,6 +953,10 @@ func recordBundleOverrides(overrides map[string]map[string][]byte, entries []esa
 // Per-key mode: when dataTo.RemoteKey is empty, one PushSecretData entry is
 // produced per matched key. The third return value is nil.
 func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecretDataTo) ([]esapi.PushSecretData, map[string]string, map[string][]byte, error) {
+	if dataTo.RemoteKey != "" && len(dataTo.Rewrite) > 0 {
+		return nil, nil, nil, fmt.Errorf("remoteKey and rewrite are mutually exclusive: rewrite is only supported in per-key mode (without remoteKey)")
+	}
+
 	convertedData, err := esutils.ReverseKeys(dataTo.ConversionStrategy, secret.Data)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("conversion failed: %w", err)
