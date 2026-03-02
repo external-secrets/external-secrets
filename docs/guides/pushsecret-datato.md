@@ -33,7 +33,7 @@ dataTo:
 ```
 
 Result in GitHub Actions (assuming the K8s Secret has `APP_TOKEN` and `APP_ENV`):
-```
+```text
 APP_TOKEN → value of APP_TOKEN
 APP_ENV   → value of APP_ENV
 ```
@@ -55,7 +55,7 @@ dataTo:
 ```
 
 Result in AWS Secrets Manager:
-```
+```text
 my-app/config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"}
 ```
 
@@ -139,7 +139,7 @@ spec:
 ```
 
 Result in AWS Secrets Manager:
-```
+```text
 my-app/db-config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"}
 ```
 

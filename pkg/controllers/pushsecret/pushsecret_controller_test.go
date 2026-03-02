@@ -2092,6 +2092,41 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	failDataToBundleWithRewrite := func(tc *testCase) {
+		tc.secret.Data = map[string][]byte{
+			"key1": []byte("value1"),
+		}
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
+			{
+				StoreRef: &v1alpha1.PushSecretStoreRef{
+					Name: PushSecretStore,
+				},
+				RemoteKey: "my-bundle",
+				Rewrite: []v1alpha1.PushSecretRewrite{
+					{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
+							Source: "^",
+							Target: "prefix/",
+						},
+					},
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking PushSecret rejects remoteKey + rewrite combination")
+				cond := GetPushSecretCondition(ps.Status.Conditions, v1alpha1.PushSecretReady)
+				if cond == nil {
+					return false
+				}
+				return cond.Status == v1.ConditionFalse && cond.Reason == v1alpha1.ReasonErrored
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
 	syncWithDataToLabelSelector := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
@@ -2461,6 +2496,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should fail with duplicate remote keys between dataTo and explicit data", failDataToAndDataDuplicateRemoteKey),
 		Entry("should fail with dataTo storeRef not in secretStoreRefs", failDataToStoreRefNotInList),
 		Entry("should fail with named dataTo storeRef when secretStoreRefs only has labelSelector", failDataToNamedStoreRefWithLabelSelectorRefs),
+		Entry("should fail with dataTo remoteKey and rewrite (mutually exclusive)", failDataToBundleWithRewrite),
 		Entry("should sync with dataTo using labelSelector", syncWithDataToLabelSelector),
 		Entry("should sync with dataTo when keys have duplicate values", syncWithDataToDuplicateValues),
 		Entry("should bundle all keys into single provider secret with dataTo remoteKey", syncWithDataToBundleAllKeys),
