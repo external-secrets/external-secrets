@@ -353,6 +353,11 @@ func ReverseKeys(strategy esv1alpha1.PushSecretConversionStrategy, in map[string
 	return out, nil
 }
 
+// ReverseKey applies the conversion strategy to a single key name.
+func ReverseKey(strategy esv1alpha1.PushSecretConversionStrategy, key string) string {
+	return reverse(strategy, key)
+}
+
 func reverse(strategy esv1alpha1.PushSecretConversionStrategy, str string) string {
 	switch strategy {
 	case esv1alpha1.PushSecretConversionReverseUnicode:

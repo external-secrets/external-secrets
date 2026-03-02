@@ -2779,6 +2779,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 var _ = Describe("mergeDataEntries unit tests", func() {
 	Describe("resolveSourceKeyConflicts", func() {
 		It("should let explicit data override dataTo for same source key", func() {
+			secret := &v1.Secret{Data: map[string][]byte{"foo": []byte("v1"), "bar": []byte("v2")}}
 			dataTo := []v1alpha1.PushSecretData{
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "foo", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "dataTo/foo"}}},
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "bar", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "dataTo/bar"}}},
@@ -2787,10 +2788,9 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "foo", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "explicit/foo"}}},
 			}
 
-			result := resolveSourceKeyConflicts(dataTo, explicit)
+			result := resolveSourceKeyConflicts(dataTo, explicit, secret)
 
 			Expect(result).To(HaveLen(2))
-			// bar from dataTo, foo from explicit
 			keys := make(map[string]string)
 			for _, d := range result {
 				keys[d.GetSecretKey()] = d.GetRemoteKey()
@@ -2800,6 +2800,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 		})
 
 		It("should keep all entries when no conflicts", func() {
+			secret := &v1.Secret{Data: map[string][]byte{"a": []byte("v1"), "b": []byte("v2")}}
 			dataTo := []v1alpha1.PushSecretData{
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "a", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "a"}}},
 			}
@@ -2807,31 +2808,60 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "b"}}},
 			}
 
-			result := resolveSourceKeyConflicts(dataTo, explicit)
+			result := resolveSourceKeyConflicts(dataTo, explicit, secret)
 
 			Expect(result).To(HaveLen(2))
 		})
 
 		It("should handle empty dataTo", func() {
+			secret := &v1.Secret{Data: map[string][]byte{"x": []byte("v1")}}
 			explicit := []v1alpha1.PushSecretData{
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "x", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "x"}}},
 			}
 
-			result := resolveSourceKeyConflicts(nil, explicit)
+			result := resolveSourceKeyConflicts(nil, explicit, secret)
 
 			Expect(result).To(HaveLen(1))
 			Expect(result[0].GetSecretKey()).To(Equal("x"))
 		})
 
 		It("should handle empty explicit", func() {
+			secret := &v1.Secret{Data: map[string][]byte{"y": []byte("v1")}}
 			dataTo := []v1alpha1.PushSecretData{
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "y", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "y"}}},
 			}
 
-			result := resolveSourceKeyConflicts(dataTo, nil)
+			result := resolveSourceKeyConflicts(dataTo, nil, secret)
 
 			Expect(result).To(HaveLen(1))
 			Expect(result[0].GetSecretKey()).To(Equal("y"))
+		})
+
+		It("should resolve conflicts when explicit data uses ConversionStrategy", func() {
+			secret := &v1.Secret{Data: map[string][]byte{
+				"some_U002Dkey": []byte("value"),
+				"other":         []byte("other-value"),
+			}}
+			dataTo := []v1alpha1.PushSecretData{
+				{Match: v1alpha1.PushSecretMatch{SecretKey: "some_U002Dkey", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "dataTo/some-key"}}},
+				{Match: v1alpha1.PushSecretMatch{SecretKey: "other", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "dataTo/other"}}},
+			}
+			explicit := []v1alpha1.PushSecretData{
+				{
+					ConversionStrategy: v1alpha1.PushSecretConversionReverseUnicode,
+					Match:              v1alpha1.PushSecretMatch{SecretKey: "some-key", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "explicit/some-key"}},
+				},
+			}
+
+			result := resolveSourceKeyConflicts(dataTo, explicit, secret)
+
+			Expect(result).To(HaveLen(2))
+			keys := make(map[string]string)
+			for _, d := range result {
+				keys[d.GetSecretKey()] = d.GetRemoteKey()
+			}
+			Expect(keys["other"]).To(Equal("dataTo/other"))
+			Expect(keys["some-key"]).To(Equal("explicit/some-key"))
 		})
 	})
 
@@ -2885,6 +2915,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 
 	Describe("mergeDataEntries", func() {
 		It("should merge valid entries", func() {
+			secret := &v1.Secret{Data: map[string][]byte{"a": []byte("v1"), "b": []byte("v2")}}
 			dataTo := []v1alpha1.PushSecretData{
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "a", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "a"}}},
 			}
@@ -2892,13 +2923,14 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "b"}}},
 			}
 
-			result, err := mergeDataEntries(dataTo, explicit)
+			result, err := mergeDataEntries(dataTo, explicit, secret)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(HaveLen(2))
 		})
 
 		It("should override dataTo with explicit for same source key", func() {
+			secret := &v1.Secret{Data: map[string][]byte{"key": []byte("v1")}}
 			dataTo := []v1alpha1.PushSecretData{
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "key", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "dataTo-path"}}},
 			}
@@ -2906,7 +2938,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "key", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "explicit-path"}}},
 			}
 
-			result, err := mergeDataEntries(dataTo, explicit)
+			result, err := mergeDataEntries(dataTo, explicit, secret)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(HaveLen(1))
@@ -2914,6 +2946,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 		})
 
 		It("should fail for remote key conflict after merge", func() {
+			secret := &v1.Secret{Data: map[string][]byte{"a": []byte("v1"), "b": []byte("v2")}}
 			dataTo := []v1alpha1.PushSecretData{
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "a", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "shared"}}},
 			}
@@ -2921,7 +2954,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "shared"}}},
 			}
 
-			_, err := mergeDataEntries(dataTo, explicit)
+			_, err := mergeDataEntries(dataTo, explicit, secret)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("duplicate remote key"))

@@ -490,7 +490,7 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	}
 
 	// Merge dataTo entries with explicit data (explicit data overrides)
-	allData, err := mergeDataEntries(dataToEntries, ps.Spec.Data)
+	allData, err := mergeDataEntries(dataToEntries, ps.Spec.Data, storeSecret)
 	if err != nil {
 		return out, fmt.Errorf("failed to merge data entries: %w", err)
 	}
@@ -972,11 +972,22 @@ func recordBundleOverrides(overrides map[string]map[string][]byte, entries []esa
 // Per-key mode: when dataTo.RemoteKey is empty, one PushSecretData entry is
 // produced per matched key. The third return value is nil.
 func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecretDataTo) ([]esapi.PushSecretData, map[string]string, map[string][]byte, error) {
-	// Apply conversion strategy BEFORE matching and rewriting
-	// This ensures that keys are matched against their converted names
 	convertedData, err := esutils.ReverseKeys(dataTo.ConversionStrategy, secret.Data)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("conversion failed: %w", err)
+	}
+
+	// Map converted keys back to the original K8s secret keys. The resulting
+	// PushSecretData entries store the original key so that
+	// resolveSourceKeyConflicts can compare dataTo entries against explicit
+	// data entries in the same key space. ConversionStrategy is set to None on
+	// expanded entries because the conversion was already applied during
+	// matching and rewriting; handlePushSecretDataForStore will look up the
+	// original key directly in the unconverted secret data.
+	convertedToOriginal := make(map[string]string, len(secret.Data))
+	for origKey := range secret.Data {
+		convKey := esutils.ReverseKey(dataTo.ConversionStrategy, origKey)
+		convertedToOriginal[convKey] = origKey
 	}
 
 	allKeys := make([]string, 0, len(convertedData))
@@ -999,8 +1010,6 @@ func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecr
 	}
 
 	// Bundle mode: push all matched keys as a single JSON secret.
-	// The conversion strategy has already been applied above; we skip per-key
-	// rewrites because key names are not used as separate remote paths.
 	if dataTo.RemoteKey != "" {
 		keyMap := map[string]string{"(bundle)": dataTo.RemoteKey}
 		entry := esapi.PushSecretData{
@@ -1022,25 +1031,27 @@ func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecr
 		return nil, nil, nil, fmt.Errorf("rewrite failed: %w", err)
 	}
 
-	// Validate that no remote key is empty
 	for sourceKey, remoteKey := range keyMap {
 		if remoteKey == "" {
 			return nil, nil, nil, fmt.Errorf("empty remote key produced for source key %q", sourceKey)
 		}
 	}
 
-	// Create PushSecretData entries — one per matched key
+	// Store the original (pre-conversion) key in SecretKey and set
+	// ConversionStrategy to None. The conversion was applied above for
+	// matching/rewriting purposes only; the handler will look up the original
+	// key in unconverted secret data, producing the same value.
 	entries := make([]esapi.PushSecretData, 0, len(keyMap))
-	for sourceKey, remoteKey := range keyMap {
+	for convertedKey, remoteKey := range keyMap {
 		entries = append(entries, esapi.PushSecretData{
 			Match: esapi.PushSecretMatch{
-				SecretKey: sourceKey,
+				SecretKey: convertedToOriginal[convertedKey],
 				RemoteRef: esapi.PushSecretRemoteRef{
 					RemoteKey: remoteKey,
 				},
 			},
 			Metadata:           dataTo.Metadata,
-			ConversionStrategy: dataTo.ConversionStrategy,
+			ConversionStrategy: esapi.PushSecretConversionNone,
 		})
 	}
 
@@ -1144,23 +1155,41 @@ func compileRewrite(op esapi.PushSecretRewrite) (func(string) (string, error), e
 
 // resolveSourceKeyConflicts merges dataTo and explicit data entries.
 // When both reference the same source secret key, explicit data wins.
-func resolveSourceKeyConflicts(dataToEntries, explicitData []esapi.PushSecretData) []esapi.PushSecretData {
-	// Build set of source keys from explicit data
-	explicitSourceKeys := make(map[string]struct{}, len(explicitData))
+// Comparison is done using the original (raw) K8s secret key. DataTo entries
+// already store the original key; explicit data entries may store a converted
+// key when ConversionStrategy is set, so we normalize them via the secret.
+func resolveSourceKeyConflicts(dataToEntries, explicitData []esapi.PushSecretData, secret *v1.Secret) []esapi.PushSecretData {
+	explicitOriginalKeys := make(map[string]struct{}, len(explicitData))
 	for _, data := range explicitData {
-		explicitSourceKeys[data.GetSecretKey()] = struct{}{}
+		origKey := resolveOriginalKey(data, secret)
+		explicitOriginalKeys[origKey] = struct{}{}
 	}
 
-	// Keep dataTo entries whose source key is NOT in explicit data
 	result := make([]esapi.PushSecretData, 0, len(dataToEntries)+len(explicitData))
 	for _, data := range dataToEntries {
-		if _, exists := explicitSourceKeys[data.GetSecretKey()]; !exists {
+		if _, exists := explicitOriginalKeys[data.GetSecretKey()]; !exists {
 			result = append(result, data)
 		}
 	}
 
-	// Add all explicit data entries (they always take precedence)
 	return append(result, explicitData...)
+}
+
+// resolveOriginalKey returns the raw K8s secret key for a PushSecretData entry.
+// If the entry uses a ConversionStrategy, SecretKey is the converted (decoded)
+// form, so we find the original key by converting each raw key and matching.
+// If no conversion is active, SecretKey is already the original key.
+func resolveOriginalKey(data esapi.PushSecretData, secret *v1.Secret) string {
+	key := data.GetSecretKey()
+	if data.ConversionStrategy == "" || data.ConversionStrategy == esapi.PushSecretConversionNone {
+		return key
+	}
+	for origKey := range secret.Data {
+		if esutils.ReverseKey(data.ConversionStrategy, origKey) == key {
+			return origKey
+		}
+	}
+	return key
 }
 
 // validateRemoteKeyUniqueness ensures no two entries push to the same remote location.
@@ -1198,8 +1227,8 @@ func validateRemoteKeyUniqueness(entries []esapi.PushSecretData) error {
 
 // mergeDataEntries combines dataTo and explicit data entries.
 // It resolves source key conflicts (explicit wins) and validates no duplicate remote destinations.
-func mergeDataEntries(dataToEntries, explicitData []esapi.PushSecretData) ([]esapi.PushSecretData, error) {
-	merged := resolveSourceKeyConflicts(dataToEntries, explicitData)
+func mergeDataEntries(dataToEntries, explicitData []esapi.PushSecretData, secret *v1.Secret) ([]esapi.PushSecretData, error) {
+	merged := resolveSourceKeyConflicts(dataToEntries, explicitData, secret)
 
 	if err := validateRemoteKeyUniqueness(merged); err != nil {
 		return nil, err
