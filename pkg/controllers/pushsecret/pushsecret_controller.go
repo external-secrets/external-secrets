@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -982,6 +983,7 @@ func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecr
 	for key := range convertedData {
 		allKeys = append(allKeys, key)
 	}
+	slices.Sort(allKeys)
 
 	matchedKeys, err := matchKeys(allKeys, dataTo.Match)
 	if err != nil {
