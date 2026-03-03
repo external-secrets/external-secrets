@@ -38,7 +38,7 @@ spec:
 The generator returns different fields depending on the type of dynamic secret:
 #### AWS Dynamic Secrets
 ```yaml
-data:
+stringData:
   accessKeyId: ASIAIOSFODNN7EXAMPLE
   secretAccessKey: wJal...YEKY
   sessionToken: IQoJ...Ek8=

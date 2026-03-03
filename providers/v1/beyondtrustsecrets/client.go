@@ -83,10 +83,25 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 
 	// If there's a property key in the remote reference, use it
 	if ref.Property != "" {
-		if value, ok := secret.Secret[ref.Property]; ok {
-			return []byte(fmt.Sprintf("%v", value)), nil
+		value, ok := secret.Secret[ref.Property]
+		if !ok {
+			return nil, fmt.Errorf("property %s not found in secret", ref.Property)
 		}
-		return nil, fmt.Errorf("property %s not found in secret", ref.Property)
+
+		// Handle different value types to preserve binary and object data
+		switch val := value.(type) {
+		case string:
+			return []byte(val), nil
+		case []byte:
+			return val, nil
+		default:
+			// non-string: marshal to JSON to preserve structure
+			b, err := json.Marshal(val)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal secret value for property %q: %w", ref.Property, err)
+			}
+			return b, nil
+		}
 	}
 
 	// If no property specified, return the entire secret as JSON

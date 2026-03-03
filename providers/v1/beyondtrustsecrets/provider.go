@@ -118,6 +118,10 @@ func (p *Provider) newClient(ctx context.Context, serverURL, apiKey string, btSp
 
 // NewGeneratorClient creates a new BeyondtrustSecrets client for the generator controller.
 func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, btSpec *esv1.BeyondtrustSecretsProvider, namespace string) (btsutil.Client, error) {
+	if btSpec == nil {
+		return nil, ErrNoStore
+	}
+
 	serverURL, apiKey, err := fetchServerValuesFromSpec(ctx, btSpec, kube, namespace, "")
 	if err != nil {
 		return nil, err
@@ -175,6 +179,9 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 func loadAPIKeyFromSpec(ctx context.Context, spec *esv1.BeyondtrustSecretsProvider, kube kclient.Client, namespace, storeKind string) (string, error) {
+	if spec == nil {
+		return "", ErrNoStore
+	}
 	if spec.Auth == nil {
 		return "", ErrNoAPIKey
 	}
@@ -191,6 +198,9 @@ func loadAPIKeyFromSpec(ctx context.Context, spec *esv1.BeyondtrustSecretsProvid
 }
 
 func loadURLFromSpec(spec *esv1.BeyondtrustSecretsProvider) (string, string, error) {
+	if spec == nil {
+		return "", "", ErrNoStore
+	}
 	if spec.Server == nil {
 		return "", "", ErrNoServer
 	}
@@ -206,8 +216,12 @@ func loadURLFromSpec(spec *esv1.BeyondtrustSecretsProvider) (string, string, err
 	return spec.Server.APIURL, spec.Server.SiteID, nil
 }
 
-func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondtrustSecretsProvider, kube kclient.Client, namespace, _ string) (string, string, error) {
-	apiKey, err := loadAPIKeyFromSpec(ctx, spec, kube, namespace, "")
+func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondtrustSecretsProvider, kube kclient.Client, namespace, storeKind string) (string, string, error) {
+	if spec == nil {
+		return "", "", ErrNoStore
+	}
+
+	apiKey, err := loadAPIKeyFromSpec(ctx, spec, kube, namespace, storeKind)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to load credentials: %w", err)
 	}

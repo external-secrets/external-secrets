@@ -1527,8 +1527,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#generators.external-secrets.io/v1alpha1.BeyondtrustSecretsDynamicSecretSpec">BeyondtrustSecretsDynamicSecretSpec</a>)
 </p>
 <p>
-<p>BeyondtrustSecretsProvider configures a store to sync secrets using the BeyondtrustSecrets provider.
-Project and Config are required if not using a Service Token.</p>
+<p>BeyondtrustSecretsProvider configures a store to sync secrets using the BeyondtrustSecrets provider.</p>
 </p>
 <table>
 <thead>
@@ -15854,205 +15853,6 @@ BeyondtrustServer
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.BeyondtrustSecretAuth">BeyondtrustSecretAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.BeyondtrustSecretsProvider">BeyondtrustSecretsProvider</a>)
-</p>
-<p>
-<p>BeyondtrustSecretAuth defines the authentication method for the BeyondtrustSecret provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>apikey</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.BeyondtrustSecretAuthSecretRef">
-BeyondtrustSecretAuthSecretRef
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.BeyondtrustSecretAuthSecretRef">BeyondtrustSecretAuthSecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.BeyondtrustSecretAuth">BeyondtrustSecretAuth</a>)
-</p>
-<p>
-<p>BeyondtrustSecretAuthSecretRef defines a reference to a secret containing credentials for the BeyondtrustSecret provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>token</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>The token is used for authentication.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.BeyondtrustSecretsProvider">BeyondtrustSecretsProvider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
-</p>
-<p>
-<p>BeyondtrustSecretsProvider configures a store to sync secrets using the BeyondtrustSecrets provider.
-Project and Config are required if not using a Service Token.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.BeyondtrustSecretAuth">
-BeyondtrustSecretAuth
-</a>
-</em>
-</td>
-<td>
-<p>Auth configures how the Operator authenticates with the BeyondtrustSecret API</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>server</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.BeyondtrustSecretsServer">
-BeyondtrustSecretsServer
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Server configures the BeyondtrustSecret server connection details</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>folderPath</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Folder path to retrieve secret from</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>caBundle</code></br>
-<em>
-[]byte
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>CABundle is a base64-encoded CA certificate used to validate the BeyondtrustSecrets API TLS certificate. If not set, system roots are used.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>caProvider</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.CAProvider">
-CAProvider
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>CAProvider points to a Secret or ConfigMap containing a PEM-encoded certificate used to validate the BeyondtrustSecrets API TLS certificate.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.BeyondtrustSecretsServer">BeyondtrustSecretsServer
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.BeyondtrustSecretsProvider">BeyondtrustSecretsProvider</a>)
-</p>
-<p>
-<p>BeyondtrustSecretsServer defines configuration for connecting to BeyondtrustSecrets server.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>apiUrl</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>apiVersion</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-<tr>
-<td>
-<code>siteId</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1beta1.BeyondtrustServer">BeyondtrustServer
 </h3>
 <p>
@@ -16327,7 +16127,6 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
-<a href="#external-secrets.io/v1beta1.BeyondtrustSecretsProvider">BeyondtrustSecretsProvider</a>, 
 <a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
 <a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>, 
 <a href="#external-secrets.io/v1beta1.GitlabProvider">GitlabProvider</a>, 
@@ -22484,20 +22283,6 @@ BeyondtrustProvider
 <td>
 <em>(Optional)</em>
 <p>Beyondtrust configures this store to sync secrets using Password Safe provider.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>beyondtrustsecrets</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.BeyondtrustSecretsProvider">
-BeyondtrustSecretsProvider
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>BeyondtrustSecrets configures this store to sync secrets using the BeyondTrust Secrets provider.</p>
 </td>
 </tr>
 <tr>

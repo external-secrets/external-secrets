@@ -283,7 +283,7 @@ spec:
       server:
         apiUrl: "https://api.beyondtrust.io/site"
         siteId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0t..."  # base64-encoded PEM
+      caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0t..."  # base64-encoded PEM
 ```
 
 To generate the base64 string:
@@ -334,7 +334,6 @@ spec:
       server:
         apiUrl: "https://api.beyondtrust.io/site"
         siteId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        namespace: external-secrets      # Required: specify where the CA bundle lives
       folderPath: "eso/static"
 ```
 

@@ -42,7 +42,6 @@ type BeyondtrustSecretsServer struct {
 }
 
 // BeyondtrustSecretsProvider configures a store to sync secrets using the BeyondtrustSecrets provider.
-// Project and Config are required if not using a Service Token.
 type BeyondtrustSecretsProvider struct {
 	// Auth configures how the Operator authenticates with the BeyondtrustSecret API
 	Auth *BeyondtrustSecretAuth `json:"auth"`

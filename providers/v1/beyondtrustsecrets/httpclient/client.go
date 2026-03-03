@@ -201,6 +201,11 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string) ([]btsutil.
 			return nil, fmt.Errorf("failed to unmarshal list response: %w", err)
 		}
 
+		// Check for API error in response body even with 200 status
+		if listResp.Error != "" {
+			return nil, fmt.Errorf("beyondtrust API error: %s", listResp.Error)
+		}
+
 		// Empty folder is valid - return empty list
 		if len(listResp.Data) == 0 {
 			return []btsutil.KVListItem{}, nil
