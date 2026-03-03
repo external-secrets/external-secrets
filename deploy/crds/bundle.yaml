@@ -979,7 +979,6 @@ spec:
                                     description: Specify the Kind of the generator resource
                                     enum:
                                       - ACRAccessToken
-                                      - BeyondtrustSecretsDynamicSecret
                                       - ClusterGenerator
                                       - ECRAuthorizationToken
                                       - Fake
@@ -1173,7 +1172,6 @@ spec:
                                     description: Specify the Kind of the generator resource
                                     enum:
                                       - ACRAccessToken
-                                      - BeyondtrustSecretsDynamicSecret
                                       - ClusterGenerator
                                       - ECRAuthorizationToken
                                       - Fake
@@ -3414,9 +3412,11 @@ spec:
                               type: string
                           required:
                             - apiUrl
+                            - siteId
                           type: object
                       required:
                         - auth
+                        - server
                       type: object
                     bitwardensecretsmanager:
                       description: BitwardenSecretsManager configures this store to sync secrets using BitwardenSecretsManager provider
@@ -13336,7 +13336,6 @@ spec:
                                 description: Specify the Kind of the generator resource
                                 enum:
                                   - ACRAccessToken
-                                  - BeyondtrustSecretsDynamicSecret
                                   - ClusterGenerator
                                   - ECRAuthorizationToken
                                   - Fake
@@ -13530,7 +13529,6 @@ spec:
                                 description: Specify the Kind of the generator resource
                                 enum:
                                   - ACRAccessToken
-                                  - BeyondtrustSecretsDynamicSecret
                                   - ClusterGenerator
                                   - ECRAuthorizationToken
                                   - Fake
@@ -15626,9 +15624,11 @@ spec:
                               type: string
                           required:
                             - apiUrl
+                            - siteId
                           type: object
                       required:
                         - auth
+                        - server
                       type: object
                     bitwardensecretsmanager:
                       description: BitwardenSecretsManager configures this store to sync secrets using BitwardenSecretsManager provider
@@ -25042,9 +25042,11 @@ spec:
                           type: string
                       required:
                         - apiUrl
+                        - siteId
                       type: object
                   required:
                     - auth
+                    - server
                   type: object
                 retrySettings:
                   description: Used to configure http retries if failed
@@ -25458,9 +25460,11 @@ spec:
                                   type: string
                               required:
                                 - apiUrl
+                                - siteId
                               type: object
                           required:
                             - auth
+                            - server
                           type: object
                         retrySettings:
                           description: Used to configure http retries if failed

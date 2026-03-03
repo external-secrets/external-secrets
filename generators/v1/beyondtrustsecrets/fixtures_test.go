@@ -102,4 +102,19 @@ spec:
     server:
       apiUrl: "https://example.com"
       siteId: "test-site"`
+
+	// specEmptySecretName has a folderPath ending with "/" resulting in empty secret name.
+	specEmptySecretName = `apiVersion: generators.external-secrets.io/v1alpha1
+kind: BeyondtrustSecretsDynamicSecret
+spec:
+  provider:
+    folderPath: "test/folder/"
+    auth:
+      apikey:
+        token:
+          name: "beyondtrustsecrets-token"
+          key: "token"
+    server:
+      apiUrl: "https://example.com"
+      siteId: "test-site"`
 )

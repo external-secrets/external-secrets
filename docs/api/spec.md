@@ -1560,7 +1560,6 @@ BeyondtrustSecretsServer
 </em>
 </td>
 <td>
-<em>(Optional)</em>
 <p>Server configures the BeyondtrustSecret server connection details</p>
 </td>
 </tr>
@@ -1650,7 +1649,6 @@ string
 </em>
 </td>
 <td>
-<em>(Optional)</em>
 </td>
 </tr>
 </tbody>

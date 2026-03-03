@@ -229,7 +229,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: app-aws-credentials
-  namespace: production
+  namespace: external-secrets
 spec:
   refreshInterval: 45m  # Refresh before 1-hour expiration
   target:

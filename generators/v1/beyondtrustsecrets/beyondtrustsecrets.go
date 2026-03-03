@@ -57,6 +57,13 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	}
 	provider := spec.Spec.Provider
 
+	// parse and validate folder path and secret name early
+	fullPath := spec.Spec.Provider.FolderPath
+	folderPath, secretName := parsePath(fullPath)
+	if secretName == "" {
+		return nil, nil, fmt.Errorf("invalid path: missing secret name in %q", fullPath)
+	}
+
 	// create BeyondtrustSecrets provider and initialize a client for generator controller
 	clientFactory := g.NewBeyondtrustSecretsClient
 	if clientFactory == nil {
@@ -69,10 +76,6 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create BeyondtrustSecrets client: %w", err)
 	}
-
-	// parse folder path and secret name
-	fullPath := spec.Spec.Provider.FolderPath
-	folderPath, secretName := parsePath(fullPath)
 
 	// call generate
 	generatedSecret, err := cl.GenerateDynamicSecret(ctx, secretName, folderPath)

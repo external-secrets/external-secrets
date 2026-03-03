@@ -37,8 +37,8 @@ type BeyondtrustSecretsServer struct {
 	APIURL string `json:"apiUrl"`
 	// +optional
 	APIVersion string `json:"apiVersion,omitempty"`
-	// +optional
-	SiteID string `json:"siteId,omitempty"`
+	// +required
+	SiteID string `json:"siteId"`
 }
 
 // BeyondtrustSecretsProvider configures a store to sync secrets using the BeyondtrustSecrets provider.
@@ -47,8 +47,7 @@ type BeyondtrustSecretsProvider struct {
 	Auth *BeyondtrustSecretAuth `json:"auth"`
 
 	// Server configures the BeyondtrustSecret server connection details
-	// +optional
-	Server *BeyondtrustSecretsServer `json:"server,omitempty"`
+	Server *BeyondtrustSecretsServer `json:"server"`
 
 	// Folder path to retrieve secret from
 	// +optional

@@ -87,6 +87,18 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 				err: errors.New("path is required in spec"),
 			},
 		},
+		"EmptySecretName": {
+			reason: "Raise error if path ends with slash resulting in empty secret name.",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(specEmptySecretName),
+				},
+				kube: clientfake.NewClientBuilder().Build(),
+			},
+			want: want{
+				err: errors.New("invalid path: missing secret name in \"test/folder/\""),
+			},
+		},
 		"MissingAuth": {
 			reason: "Raise error if auth is not provided.",
 			args: args{
