@@ -44,9 +44,11 @@ type BeyondtrustSecretsServer struct {
 // BeyondtrustSecretsProvider configures a store to sync secrets using the BeyondtrustSecrets provider.
 type BeyondtrustSecretsProvider struct {
 	// Auth configures how the Operator authenticates with the BeyondtrustSecret API
+	// +required
 	Auth *BeyondtrustSecretAuth `json:"auth"`
 
 	// Server configures the BeyondtrustSecret server connection details
+	// +required
 	Server *BeyondtrustSecretsServer `json:"server"`
 
 	// Folder path to retrieve secret from

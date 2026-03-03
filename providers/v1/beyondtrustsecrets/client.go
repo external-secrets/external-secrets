@@ -115,50 +115,22 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 
 // GetAllSecrets retrieves all secrets from BeyondTrust Secrets that match the given criteria.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	// Determine folder path: use ref.Path as folder scope if provided, otherwise use store default
 	folderPath := c.store.FolderPath
-	result := map[string][]byte{}
-
-	// caller provided an explicit path -> fetch that secret and return all its properties.
 	if ref.Path != nil {
-		secretFolderPath, secretName := path.Split(*ref.Path)
-		secretFolderPath = strings.TrimSuffix(secretFolderPath, "/")
-
-		fullSecret, err := c.beyondtrustSecretsClient.GetSecret(ctx, secretName, &secretFolderPath)
-		if err != nil {
-			// For explicit path lookups, propagate 404 as NoSecretError to trigger deletion when desired
-			var apiErr *httpclient.APIError
-			if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
-				return nil, esv1.NoSecretError{}
-			}
-			return nil, fmt.Errorf("failed to get secret at path %q: %w", *ref.Path, err)
-		}
-		if fullSecret == nil || fullSecret.Secret == nil {
-			// Treat missing secret as NoSecretError for explicit path
-			return nil, esv1.NoSecretError{}
-		}
-
-		// Convert values to []byte consistently:
-		for k, v := range fullSecret.Secret {
-			switch val := v.(type) {
-			case string:
-				result[k] = []byte(val)
-			case []byte:
-				result[k] = val
-			default:
-				// non-string: marshal to JSON to preserve structure
-				b, err := json.Marshal(val)
-				if err != nil {
-					return nil, fmt.Errorf("failed to marshal secret value for key %q: %w", k, err)
-				}
-				result[k] = b
-			}
-		}
-		return result, nil
+		folderPath = strings.TrimSuffix(*ref.Path, "/")
 	}
 
-	// no path provided, need to filter by regex
+	result := map[string][]byte{}
+
+	// List all secrets in the folder
 	secretsList, err := c.beyondtrustSecretsClient.GetSecrets(ctx, &folderPath)
 	if err != nil {
+		// Treat 404 from listing API as NoSecretError (folder not found or empty)
+		var apiErr *httpclient.APIError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
+			return nil, esv1.NoSecretError{}
+		}
 		return nil, fmt.Errorf("failed to list secrets: %w", err)
 	}
 
@@ -215,6 +187,11 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 				result[k] = b
 			}
 		}
+	}
+
+	// If no secrets matched the criteria, return NoSecretError
+	if len(result) == 0 {
+		return nil, esv1.NoSecretError{}
 	}
 
 	return result, nil
