@@ -288,6 +288,10 @@ func TestGetAllSecrets(t *testing.T) {
 			Secret: map[string]interface{}{"key1": "val1", "key2": "val2", "key3": "val3"},
 		}
 
+		fakeListItem := btsutil.KVListItem{
+			Path: fakeKV.Path,
+		}
+
 		fakeKVBytes := map[string][]byte{
 			"key1": []byte("val1"),
 			"key2": []byte("val2"),
@@ -295,7 +299,8 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		tc.label = "GetAllSecrets - Secret KVs - Valid"
-		tc.remoteRef = esv1.ExternalSecretFind{Path: &fakeKV.Path}
+		tc.remoteRef = esv1.ExternalSecretFind{Path: ptr.String(validFolderPath)}
+		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
 		tc.expectedResponse = fakeKVBytes
 	}
@@ -404,10 +409,9 @@ func TestGetAllSecrets(t *testing.T) {
 		tc.label = "GetAllSecrets - Secret KVs - Client Error"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
-		pathStr := fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName)
-		tc.remoteRef = esv1.ExternalSecretFind{Path: &pathStr}
-		tc.fakeBtsecretsGetError = ptr.String("beyondtrustsecrets get error")
-		tc.expectedError = ptr.String("failed to get secret at path")
+		tc.remoteRef = esv1.ExternalSecretFind{Path: ptr.String(invalidFolderPath)}
+		tc.fakeBtsecretsListError = ptr.String("beyondtrustsecrets list error")
+		tc.expectedError = ptr.String("failed to list secrets:")
 	}
 
 	nilSecret := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
@@ -415,12 +419,17 @@ func TestGetAllSecrets(t *testing.T) {
 			Path: fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 		}
 
+		fakeListItem := btsutil.KVListItem{
+			Path: fakeKV.Path,
+		}
+
 		tc.label = "GetAllSecrets - Secret KVs - Nil Secret"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
-		tc.remoteRef = esv1.ExternalSecretFind{Path: &fakeKV.Path}
+		tc.remoteRef = esv1.ExternalSecretFind{Path: ptr.String(invalidFolderPath)}
+		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
-		// Provider wraps missing secret as NoSecretError
+		// Provider now returns NoSecretError when no results are found
 		tc.expectedError = ptr.String("Secret does not exist")
 	}
 
@@ -430,10 +439,15 @@ func TestGetAllSecrets(t *testing.T) {
 			Secret: map[string]interface{}{"invalid": func() {}},
 		}
 
+		fakeListItem := btsutil.KVListItem{
+			Path: fakeKV.Path,
+		}
+
 		tc.label = "GetAllSecrets - Secret KVs - Invalid Secret"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
-		tc.remoteRef = esv1.ExternalSecretFind{Path: &fakeKV.Path}
+		tc.remoteRef = esv1.ExternalSecretFind{Path: ptr.String(invalidFolderPath)}
+		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
 		tc.expectedError = ptr.String("failed to marshal secret value for key")
 	}
@@ -473,9 +487,8 @@ func TestGetAllSecrets(t *testing.T) {
 		tc.folderPath = ptr.String(invalidFolderPath)
 		tc.fakeBtsecretsGetResponse = fakeKV
 		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{{Path: fakeKV.Path}}
-		// In list mode, skip missing entries and continue; expect empty result with no error
-		tc.expectedResponse = map[string][]byte{}
-		// no error expected
+		// In list mode, skip missing entries; when no results are found, return NoSecretError
+		tc.expectedError = ptr.String("Secret does not exist")
 	}
 
 	invalidSecretInList := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {

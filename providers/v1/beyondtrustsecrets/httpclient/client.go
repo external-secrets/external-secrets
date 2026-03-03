@@ -114,6 +114,10 @@ func (c *Client) BaseURL() *url.URL {
 
 // SetBaseURL sets the base URL for the API.
 func (c *Client) SetBaseURL(urlStr string) error {
+	if err := validateServerURL(urlStr); err != nil {
+		return err
+	}
+
 	baseURL, err := url.Parse(strings.TrimSuffix(urlStr, "/"))
 	if err != nil {
 		return fmt.Errorf("failed to parse base URL %q: %w", urlStr, err)
@@ -274,8 +278,17 @@ func validateServerURL(server string) error {
 		return fmt.Errorf("server URL is required")
 	}
 
-	if _, err := url.ParseRequestURI(server); err != nil {
+	parsedURL, err := url.ParseRequestURI(server)
+	if err != nil {
 		return fmt.Errorf("invalid server URL %q: %w", server, err)
+	}
+
+	// Validate that the URL has both scheme and host
+	if parsedURL.Scheme == "" {
+		return fmt.Errorf("server URL %q is missing scheme (e.g., https://)", server)
+	}
+	if parsedURL.Host == "" {
+		return fmt.Errorf("server URL %q is missing host", server)
 	}
 
 	return nil

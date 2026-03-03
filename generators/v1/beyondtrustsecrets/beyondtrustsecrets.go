@@ -82,6 +82,9 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	if err != nil {
 		return nil, nil, fmt.Errorf(errGetSecret, err)
 	}
+	if generatedSecret == nil {
+		return nil, nil, fmt.Errorf("generated secret is nil")
+	}
 
 	out := convertToByteMap(generatedSecret)
 
@@ -150,6 +153,11 @@ func parsePath(fullPath string) (*string, string) {
 // Convert generatedSecret to map[string][]byte.
 func convertToByteMap(generatedSecret *btsutil.GeneratedSecret) map[string][]byte {
 	out := make(map[string][]byte)
+
+	// Defensive nil check
+	if generatedSecret == nil {
+		return out
+	}
 
 	out["accessKeyId"] = []byte(generatedSecret.AccessKeyID)
 	out["secretAccessKey"] = []byte(generatedSecret.SecretAccessKey)

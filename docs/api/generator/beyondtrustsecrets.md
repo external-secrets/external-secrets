@@ -83,7 +83,7 @@ For example, if credentials expire in 1 hour but `refreshInterval: 1m`:
 - New credentials are generated every minute
 - Old credentials remain valid until their expiration time
 - Multiple valid credential sets may exist simultaneously
-- **Credential revocation is handled automatically by AWS** (for assume role credentials).
+- **These credentials expire automatically at their TTL in AWS** (for AssumeRole credentials).
 
 **Recommendation:** Set `refreshInterval` to 75-80% of the credential lifetime. For example:
 - 1-hour credentials → `refreshInterval: 45m`

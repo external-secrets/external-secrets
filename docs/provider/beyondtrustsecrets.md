@@ -176,6 +176,34 @@ spec:
 
 This will only sync secrets whose names end with "Secret" (e.g., `anotherSecret`, `mySecret`).
 
+#### Specifying a Different Folder
+
+By default, `find` uses the `folderPath` from the SecretStore. To search a different folder, use the `path` field:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: subfolder-secrets
+  namespace: external-secrets
+spec:
+  refreshInterval: 1m
+  secretStoreRef:
+    name: beyondtrustsecrets-ss
+    kind: SecretStore
+  target:
+    name: subfolder-data
+  dataFrom:
+    - find:
+        path: "eso/production"  # Override folder path
+        name:
+          regexp: ".*"           # Get all secrets in this folder
+```
+
+This will list all secrets in the `eso/production` folder, regardless of the `folderPath` configured in the SecretStore.
+
+**Note:** The `path` field specifies a folder path, not a path to a specific secret. To fetch a single secret, use `data` with `extract` or individual `remoteRef` entries.
+
 ### Handling Source Secret Deletion
 
 By default, when a source secret is deleted from BeyondTrust Secrets Manager, the managed Kubernetes secret is retained. You can change this behavior using `deletionPolicy`:
@@ -293,7 +321,7 @@ cat /path/to/ca.crt | base64 -w 0
 
 ### Folder Path
 
-The `folderPath` specifies the folder containing your secrets. This should be the folder path, not the full path to a specific secret.
+The `folderPath` specifies the default folder containing your secrets. This should be a folder path, not the full path to a specific secret.
 
 For example, if your secrets are stored at:
 - `eso/static/secret1`
@@ -301,6 +329,8 @@ For example, if your secrets are stored at:
 - `eso/static/secret3`
 
 Set `folderPath: "eso/static"` in your SecretStore.
+
+When using `data` or `dataFrom.extract`, secret names are relative to this folder. When using `dataFrom.find`, this folder is searched by default (unless overridden with the `path` field).
 ### Refresh Interval
 The `refreshInterval` controls how often the ExternalSecret checks for updates:
 

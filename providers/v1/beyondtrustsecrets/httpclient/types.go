@@ -16,6 +16,8 @@ limitations under the License.
 
 package httpclient
 
+import "fmt"
+
 // APIError represents an error response from the BeyondTrust Secrets Manager API.
 type APIError struct {
 	StatusCode int
@@ -24,7 +26,13 @@ type APIError struct {
 }
 
 func (e *APIError) Error() string {
-	return e.Message
+	if e == nil {
+		return "<nil>"
+	}
+	if e.Message != "" {
+		return e.Message
+	}
+	return fmt.Sprintf("beyondtrust api error status=%d path=%q", e.StatusCode, e.Path)
 }
 
 // errorResponse represents the structure of an error response from the API.

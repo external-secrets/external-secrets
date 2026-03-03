@@ -285,12 +285,20 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 					t.Errorf("\n%s\nbeyondtrustsecrets.Generate(...): -want error, +got val:\n%v", tc.reason, val)
 				}
 			} else if tc.want.partialVal != nil {
+				// Success case: expect no error
+				if err != nil {
+					t.Fatalf("\n%s\nbeyondtrustsecrets.Generate(...): unexpected error: expected nil, got %v", tc.reason, err)
+				}
 				for k, v := range tc.want.partialVal {
 					if diff := cmp.Diff(v, val[k]); diff != "" {
 						t.Errorf("\n%s\nbeyondtrustsecrets.Generate(...) -> %s: -want partial, +got partial:\n%s", tc.reason, k, diff)
 					}
 				}
 			} else {
+				// Success case: expect no error
+				if err != nil {
+					t.Fatalf("\n%s\nbeyondtrustsecrets.Generate(...): unexpected error: expected nil, got %v", tc.reason, err)
+				}
 				if diff := cmp.Diff(tc.want.val, val); diff != "" {
 					t.Errorf("\n%s\nbeyondtrustsecrets.Generate(...): -want val, +got val:\n%s", tc.reason, diff)
 				}
