@@ -19,7 +19,6 @@ package beyondtrustsecretsdynamic
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -29,7 +28,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	beyondtrustsecretsprovider "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets"
 	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/fake"
 	btsutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/util"
 )
@@ -226,7 +224,7 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			// Create provider with custom client function
+			// Create client factory function with mock setup
 			newClientFn := func(server, token string) (btsutil.Client, error) {
 				client := &fake.BeyondtrustSecretsClient{}
 				client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
@@ -257,54 +255,15 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 				}
 			}
 
-			prov := &beyondtrustsecretsprovider.Provider{
+			// Create generator with injected client factory
+			gen := &Generator{
 				NewBeyondtrustSecretsClient: newClientFn,
 			}
 
-			gen := &Generator{}
-
-			// Test execution with fail-fast error handling
-			val, err := func() (map[string][]byte, error) {
-				// Handle nil spec case
-				if tc.args.jsonSpec == nil {
-					val, _, err := gen.Generate(context.Background(), tc.args.jsonSpec, tc.args.kube, namespace)
-					return val, err
-				}
-
-				// Parse spec
-				spec, parseErr := getDynamicSecretSpec(tc.args.jsonSpec)
-				if parseErr != nil {
-					return nil, parseErr
-				}
-
-				// Validate provider config
-				if spec == nil || spec.Spec.Provider == nil {
-					return nil, errors.New("no beyondtrustsecrets provider config in spec")
-				}
-
-				// Create client
-				cl, clientErr := prov.NewGeneratorClient(context.Background(), tc.args.kube, spec.Spec.Provider, namespace)
-				if clientErr != nil {
-					return nil, errors.New("failed to create BeyondtrustSecrets client: " + clientErr.Error())
-				}
-
-				// Parse path and generate dynamic secret
-				fullPath := spec.Spec.Provider.FolderPath
-				folderPath, secretName := parsePath(fullPath)
-
-				generatedSecret, genErr := cl.GenerateDynamicSecret(context.Background(), secretName, folderPath)
-				if genErr != nil {
-					return nil, fmt.Errorf(errGetSecret, genErr)
-				}
-
-				// Convert result to byte map
-				val := convertToByteMap(generatedSecret)
-
-				return val, nil
-			}()
+			// Call gen.Generate() for all test cases
+			val, _, err := gen.Generate(context.Background(), tc.args.jsonSpec, tc.args.kube, namespace)
 
 			// Assertions
-
 			if tc.want.err != nil {
 				if err != nil {
 					if diff := cmp.Diff(tc.want.err.Error(), err.Error()); diff != "" {

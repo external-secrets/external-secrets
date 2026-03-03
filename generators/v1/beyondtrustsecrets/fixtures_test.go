@@ -34,12 +34,12 @@ spec:
       apiUrl: "https://example.com"
       siteId: "test-site"`
 
-	// validDynamicSecretSpecNoFolder is a spec without a folder path (secret name only).
+	// validDynamicSecretSpecNoFolder is a spec with a secret at root level (no folder prefix).
 	validDynamicSecretSpecNoFolder = `apiVersion: generators.external-secrets.io/v1alpha1
 kind: BeyondtrustSecretsDynamicSecret
 spec:
   provider:
-    folderPath: "aws-dynamic"
+    folderPath: "mysecret"
     auth:
       apikey:
         token:

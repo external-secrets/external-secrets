@@ -35,7 +35,11 @@ import (
 )
 
 // Generator implements BeyondtrustSecrets dynamic generator.
-type Generator struct{}
+type Generator struct {
+	// NewBeyondtrustSecretsClient is a factory function to create a BeyondtrustSecrets client.
+	// If nil, defaults to httpclient.NewBeyondtrustSecretsClient.
+	NewBeyondtrustSecretsClient func(server, token string) (btsutil.Client, error)
+}
 
 const (
 	errNoSpec        = "no config spec provided"
@@ -54,8 +58,12 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	provider := spec.Spec.Provider
 
 	// create BeyondtrustSecrets provider and initialize a client for generator controller
+	clientFactory := g.NewBeyondtrustSecretsClient
+	if clientFactory == nil {
+		clientFactory = httpclient.NewBeyondtrustSecretsClient
+	}
 	prov := beyondtrustsecretsprovider.Provider{
-		NewBeyondtrustSecretsClient: httpclient.NewBeyondtrustSecretsClient,
+		NewBeyondtrustSecretsClient: clientFactory,
 	}
 	cl, err := prov.NewGeneratorClient(ctx, kube, provider, namespace)
 	if err != nil {

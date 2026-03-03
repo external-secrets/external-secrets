@@ -44,10 +44,16 @@ func (c *BeyondtrustSecretsClient) Authenticate() error {
 }
 
 func (c *BeyondtrustSecretsClient) GetSecret(ctx context.Context, name string, folderPath *string) (*btsutil.KV, error) {
+	if c.getSecret == nil {
+		return nil, errors.New("GetSecret not configured in fake client")
+	}
 	return c.getSecret(ctx, name, folderPath)
 }
 
 func (c *BeyondtrustSecretsClient) GetSecrets(ctx context.Context, folderPath *string) ([]btsutil.KVListItem, error) {
+	if c.getSecrets == nil {
+		return nil, errors.New("GetSecrets not configured in fake client")
+	}
 	return c.getSecrets(ctx, folderPath)
 }
 
@@ -103,11 +109,20 @@ func (c *BeyondtrustSecretsClient) WithMultiValues(
 	}
 
 	c.getSecret = func(ctxIn context.Context, nameIn string, folderPathIn *string) (*btsutil.KV, error) {
+		// Bounds check for names slice access
+		if len(names) > 0 && c.getCalls >= len(names) {
+			return nil, errors.New("getSecret called more times than configured responses")
+		}
+
 		if ctxIn != ctx || (len(names) > 0 && names[c.getCalls] != nameIn) || (folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
 			return nil, errors.New("unexpected test argument in getSecret")
 		}
 
 		if getErrMsg == nil {
+			// Bounds check for getResponses slice access
+			if c.getCalls >= len(getResponses) {
+				return nil, errors.New("getSecret called more times than configured responses")
+			}
 			c.getCalls++
 			return &getResponses[c.getCalls-1], nil
 		}
