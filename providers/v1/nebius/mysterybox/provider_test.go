@@ -604,7 +604,7 @@ func TestCreateOrGetMysteryboxClient_EmptyCA_EqualsNil(t *testing.T) {
 	_, err = p.createOrGetMysteryboxClient(ctx, "api.nebius.example", []byte{})
 	tassert.NoError(t, err)
 
-	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d when CA=nil and CA=empty should map to same key", &factoryCalls, 1))
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d when CA=nil and CA=empty should map to same key", factoryCalls, 1))
 }
 
 func TestMysteryboxClientsCache_EvictionClosesClient(t *testing.T) {
@@ -680,7 +680,7 @@ func TestCreateOrGetMysteryboxClient_Concurrent_SingleClient(t *testing.T) {
 		}
 	}
 
-	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d for concurrent same-key requests", &factoryCalls, 1))
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d for concurrent same-key requests", factoryCalls, 1))
 }
 
 func TestCreateOrGetMysteryboxClient_Concurrent_MultipleClients(t *testing.T) {
@@ -833,8 +833,8 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 		tassert.Equal(t, []byte("v"), got)
 	}
 
-	tassert.Equal(t, int32(goroutines), atomic.LoadInt32(&tokenGetter.calls), fmt.Sprintf("TokenGetter.GetToken called %d times, want %d", &factoryCalls, goroutines))
-	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("NewMysteryboxClient called %d times, want 1", &factoryCalls))
+	tassert.Equal(t, int32(goroutines), atomic.LoadInt32(&tokenGetter.calls), fmt.Sprintf("TokenGetter.GetToken called %d times, want %d", factoryCalls, goroutines))
+	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("NewMysteryboxClient called %d times, want 1", factoryCalls))
 }
 
 // helpers
