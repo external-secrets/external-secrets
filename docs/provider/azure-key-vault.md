@@ -3,9 +3,9 @@
 
 ## Azure Key Vault
 
-External Secrets Operator integrates with [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/). We support both `SecretStore` and `ClusterSecretStore` resources to connect to Azure Key Vault. The operator can fetch secrets, keys and certificates stored in Azure Key Vault and synchronize them as Kubernetes secrets using an `ExternalSecret`. Vice versa, it can also push secrets from Kubernetes into Azure Key Vault as secrets, keys and certificates by using a `PushSecret`.
+External Secrets Operator integrates with [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/) via `SecretStore` and `ClusterSecretStore` resources. The operator can fetch secrets, keys and certificates stored in Azure Key Vault and synchronize them as Kubernetes secrets using an `ExternalSecret`. Vice versa, it can also push secrets from Kubernetes into Azure Key Vault as secrets, keys and certificates by using a `PushSecret`.
 
-We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud`, `GermanCloud` and `AzureStackCloud` (for Azure Stack Hub/Edge). You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
+ESO supports connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud`, `GermanCloud` and `AzureStackCloud` (for Azure Stack Hub/Edge). You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
 
 For environments with non-standard endpoints (Azure Stack, Azure China with AKS Workload Identity, etc.), you can provide custom cloud configuration to override the default endpoints. See the [Custom Cloud Configuration](#custom-cloud-configuration) section below.
 
@@ -39,13 +39,13 @@ spec:
 
 ### Authentication
 
-We support multiple authentication methods to connect to Azure Key Vault:
+ESO supports multiple authentication methods to connect to Azure Key Vault:
 
 - Service Principal
 - Managed Identity (AAD Pod Identity)
 - Workload Identity
 
-Regardless which authentication method is used to authenticate to Azure Key Vault, the identity which is assigned to External Secrets Operator needs to have proper permissions to access the Key Vault. We support both [RBAC](https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide) and [Access Policy](https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy) based Key Vaults. RBAC is the recommended approach, but Access Policies are still supported for backward compatibility.
+Regardless of which authentication method is used to authenticate to Azure Key Vault, the identity which is assigned to External Secrets Operator needs to have proper permissions to access the Key Vault. Both [RBAC](https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide) and legacy [Access Policy](https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy) based Key Vaults are supported.
 
 The required permissions depend on the type of objects you want to manage (secrets, keys, certificates) and the operations you want to perform (read, write, delete, etc.). For example, to grant External Secrets Operator permissions to synchronize secrets and certificates using an `ExternalSecret`, the minimum required permissions are either the [Key Vault Secrets User](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-user) and [Key Vault Certificates User](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-certificates-user) RBAC roles, alternatively for Access Policy based Key Vaults, the `Get` permission over secrets and certificates.
 
@@ -59,7 +59,11 @@ To use a Service Principal's credentials for authentication, you need to create 
 Reference this secret in your `SecretStore` configuration.
 
 ```yaml
-{% include 'azkv-secret-store.yaml' %}
+{% include 'azkv-secret-store-spn-secret.yaml' %}
+```
+
+```yaml
+{% include 'azkv-secret-store-spn-certificate.yaml' %}
 ```
 
 #### Managed Identity (AAD Pod Identity)
@@ -79,7 +83,7 @@ If you have multiple identities assigned to External Secrets Operator, you can s
 
 Workload Identity is the recommended authentication method for Azure Key Vault. It allows the External Secrets Operator to authenticate to Azure Key Vault using the identity of a Kubernetes Service Account, without needing to manage secrets or credentials. This is achieved by creating a trust relationship between your Kubernetes cluster and the Entra ID identity you want to use. This process is known as [Workload Identity Federation](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation). The identity in Entra ID can be either an Application, a user-assigned Managed Identity or a Service Principal.
 
-The Workload Identity Federation can be done in various ways, for instance using Terraform, the Azure Portal or Azure CLI. We found the [azwi](https://azure.github.io/azure-workload-identity/docs/installation/azwi.html) CLI very helpful. The Azure [Workload Identity Quick Start Guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html) is a good place to get started.
+The workload identity federation can be done in various ways, for instance using Terraform, the Azure Portal or Azure CLI. We found the [azwi](https://azure.github.io/azure-workload-identity/docs/installation/azwi.html) CLI very helpful. The Azure [Workload Identity Quick Start Guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html) is a good place to get started.
 
 This is basically a two step process:
 
@@ -250,7 +254,7 @@ Pushing to a Secret requires no previous setup. Provided you have a Kubernetes S
     In order to create a PushSecret targeting Secrets, the [Key Vault Secrets Officer](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-officer) role, alternatively Access Policy permissions `Set` and `Delete` for Secrets must be granted to the identity configured on the SecretStore.
 
 #### Pushing to a Key
-The first step is to generate a valid Private Key. Supported formats include `PRIVATE KEY`, `RSA PRIVATE KEY` AND `EC PRIVATE KEY` (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:
+The first step is to generate a valid private key. Supported formats include `PRIVATE KEY`, `RSA PRIVATE KEY` AND `EC PRIVATE KEY` (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:
 
 ```yaml
 {% include 'azkv-pushsecret-key.yaml' %}
@@ -261,7 +265,7 @@ The first step is to generate a valid Private Key. Supported formats include `PR
 
 #### Pushing to a Certificate
 
-The P12 format (also known as PKCS12 or PFX) is the most stable format for importing certificates to Azure Key Vault. The P12 file must contain both the certificate and the private key. Make sure to use PKCS8 format for the private key, as Azure Key Vault does not support PKCS1 format. Additionally, only password-less P12 files are supported.
+The P12 format (also known as PKCS12 or PFX) is recommended format for importing certificates to Azure Key Vault. The P12 file must contain both the certificate and the private key. Make sure to use PKCS8 format for the private key, as Azure Key Vault [does not support PKCS1 format](https://learn.microsoft.com/en-us/rest/api/keyvault/certificates/import-certificate/import-certificate?view=rest-keyvault-certificates-2025-07-01). Additionally, only password-less P12 files are supported.
 
 Provided you have a Kubernetes Secret with a P12 certificate, you can push it to Azure Key Vault by creating a `PushSecret` with the following configuration. The operator will read the P12 file from the Kubernetes Secret and import it into Azure Key Vault as a certificate.
 
