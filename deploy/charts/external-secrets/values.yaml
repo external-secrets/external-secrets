@@ -393,6 +393,43 @@ hostNetwork: false
 # @schema type: [boolean, null]
 hostUsers:
 
+# -- Setup a networkPolicy for external-secrets
+networkPolicy:
+  # -- Specifies whether the networkPolicy should be created.
+  enabled: false
+  # -- The ingress traffic
+  # Should match the health and (optionally) metrics port
+  ingress:
+  - ports:
+    - protocol: TCP
+      # @schema type: [string, integer]
+      port: 8080  # metrics port
+    - protocol: TCP
+      # @schema type: [string, integer]
+      port: 8082  # health port
+  # -- The egress traffic
+  # The minimum egress ports required to function are:
+  #   DNS (53/udp, 53/tcp)
+  #   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp
+  # You will need to add any additional ports for your external stores
+  egress:
+  - ports:
+    - protocol: TCP
+      # @schema type: [string, integer]
+      port: 80
+    - protocol: TCP
+      # @schema type: [string, integer]
+      port: 443
+    - protocol: TCP
+      # @schema type: [string, integer]
+      port: 53
+    - protocol: UDP
+      # @schema type: [string, integer]
+      port: 53
+    - protocol: TCP
+      # @schema type: [string, integer]
+      port: 6443
+
 webhook:
   # -- Annotations to place on validating webhook configuration.
   annotations: {}
@@ -418,6 +455,46 @@ webhook:
   # -- (bool) Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
   # @schema type: [boolean, null]
   hostUsers:
+
+  # -- Setup a networkPolicy for external-secrets webhook
+  networkPolicy:
+    # -- Specifies whether the networkPolicy should be created.
+    enabled: false
+    # -- The ingress traffic
+    # Should match the webhook, health, and (optionally) metrics port
+    ingress:
+    - ports:
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 8080  # metrics port
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 8081  # health port
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 10250  # webhook port
+    # -- The egress traffic
+    # The minimum egress ports required to function are:
+    #   DNS (53/udp, 53/tcp)
+    #   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp
+    egress:
+    - ports:
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 80
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 443
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 53
+      - protocol: UDP
+        # @schema type: [string, integer]
+        port: 53
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 6443
+
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
@@ -647,6 +724,42 @@ certController:
   # -- (bool) Specifies if certController pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
   # @schema type: [boolean, null]
   hostUsers:
+
+  # -- Setup a networkPolicy for external-secrets certController
+  networkPolicy:
+    # -- Specifies whether the networkPolicy should be created.
+    enabled: false
+    # -- The ingress traffic
+    # Should match the health and (optionally) metrics port
+    ingress:
+    - ports:
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 8080  # metrics port
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 8081  # health port
+    # -- The egress traffic
+    # The minimum egress ports required to function are:
+    #   DNS (53/udp, 53/tcp)
+    #   API server (80/tcp, 443/tcp, 6443/tcp) NOTE: OKD and Openshift use 6443/tcp
+    egress:
+    - ports:
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 80
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 443
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 53
+      - protocol: UDP
+        # @schema type: [string, integer]
+        port: 53
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 6443
 
     # -- Pod priority class name.
   priorityClassName: ""
