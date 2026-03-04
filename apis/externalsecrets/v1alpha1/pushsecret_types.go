@@ -212,7 +212,7 @@ func (d PushSecretData) GetProperty() string {
 
 // PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
 // +kubebuilder:validation:XValidation:rule="has(self.storeRef) && (has(self.storeRef.name) || has(self.storeRef.labelSelector))",message="storeRef must specify either name or labelSelector"
-// +kubebuilder:validation:XValidation:rule="!(self.remoteKey != '' && has(self.rewrite))",message="remoteKey and rewrite are mutually exclusive: rewrite is only supported in per-key mode (without remoteKey)"
+// +kubebuilder:validation:XValidation:rule="!has(self.remoteKey) || !has(self.rewrite) || size(self.rewrite) == 0",message="remoteKey and rewrite are mutually exclusive: rewrite is only supported in per-key mode (without remoteKey)"
 type PushSecretDataTo struct {
 	// StoreRef specifies which SecretStore to push to. Required.
 	StoreRef *PushSecretStoreRef `json:"storeRef,omitempty"`
