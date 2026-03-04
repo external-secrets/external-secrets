@@ -1860,7 +1860,7 @@ spec:
                           - message: storeRef must specify either name or labelSelector
                             rule: has(self.storeRef) && (has(self.storeRef.name) || has(self.storeRef.labelSelector))
                           - message: 'remoteKey and rewrite are mutually exclusive: rewrite is only supported in per-key mode (without remoteKey)'
-                            rule: '!(self.remoteKey != '''' && has(self.rewrite))'
+                            rule: '!has(self.remoteKey) || !has(self.rewrite) || size(self.rewrite) == 0'
                       type: array
                     deletionPolicy:
                       default: None
@@ -13736,7 +13736,7 @@ spec:
                       - message: storeRef must specify either name or labelSelector
                         rule: has(self.storeRef) && (has(self.storeRef.name) || has(self.storeRef.labelSelector))
                       - message: 'remoteKey and rewrite are mutually exclusive: rewrite is only supported in per-key mode (without remoteKey)'
-                        rule: '!(self.remoteKey != '''' && has(self.rewrite))'
+                        rule: '!has(self.remoteKey) || !has(self.rewrite) || size(self.rewrite) == 0'
                   type: array
                 deletionPolicy:
                   default: None
