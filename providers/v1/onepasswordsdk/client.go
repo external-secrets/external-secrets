@@ -98,6 +98,11 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 	}
 
 	if !deleted {
+		// also invalidate the cache here, as this field might have been deleted
+		// outside ESO.
+		p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
+		p.invalidateItemCache(ref.GetRemoteKey())
+
 		return nil
 	}
 
