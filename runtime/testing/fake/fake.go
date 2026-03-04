@@ -95,6 +95,7 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 
 func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	v.mu.Lock()
+	value, _ := esutils.ExtractSecretData(data, secret)
 	v.pushSecretData[data.GetRemoteKey()] = SetSecretCallArgs{
 		Value:     value,
 		RemoteRef: data,
