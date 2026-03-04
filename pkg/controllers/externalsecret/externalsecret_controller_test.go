@@ -2662,6 +2662,88 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 	})
 })
 
+var _ = Describe("ExternalSecret update predicate", func() {
+	It("should ignore status-only updates", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+			Status: esv1.ExternalSecretStatus{
+				RefreshTime: metav1.Now(),
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Status.RefreshTime = metav1.NewTime(time.Now().Add(time.Minute))
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeFalse())
+	})
+
+	It("should enqueue when generation changes", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Generation = 2
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when labels change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Labels: map[string]string{
+					"app": "a",
+				},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Labels["app"] = "b"
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when annotations change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Annotations: map[string]string{
+					"note": "a",
+				},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Annotations["note"] = "b"
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when deletion timestamp changes", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+		}
+		newES := oldES.DeepCopy()
+		now := metav1.Now()
+		newES.DeletionTimestamp = &now
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+})
+
 var _ = Describe("ExternalSecret refresh policy", func() {
 	Context("RefreshPolicy=CreatedOnce", func() {
 		It("should refresh when SyncedResourceVersion is empty", func() {
