@@ -242,10 +242,15 @@ func (p *Provider) initMysteryboxClientsCache() error {
 		mysteryboxConnectionsCacheSize,
 		func(key, value interface{}) {
 			p.Logger.V(1).Info("Evicting a Nebius MysteryBox client", "apiDomain", key.(ClientCacheKey).APIDomain)
-			err := value.(mysterybox.Client).Close()
-			if err != nil {
-				p.Logger.Error(err, "Failed to close Nebius MysteryBox client")
-			}
+
+			// We intentionally do not call Close() on the evicted client here.
+			// This avoids "dial is closed" errors for active
+			// reconciliation loops that might still be using this client instance
+			// at the moment of eviction.
+			//
+			// If this approach leads to resource leaks in the future, we should consider
+			// implementing a reference counter to safely close the client only when
+			// it's no longer used by any active session.
 		},
 	)
 	if err == nil {
