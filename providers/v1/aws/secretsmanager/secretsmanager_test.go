@@ -47,6 +47,11 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
+const (
+	testARN            = "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
+	testDefaultVersion = "00000000-0000-0000-0000-000000000002"
+)
+
 type secretsManagerTestCase struct {
 	fakeClient     *fakesm.Client
 	apiInput       *awssm.GetSecretValueInput
@@ -447,7 +452,7 @@ func TestSetSecret(t *testing.T) {
 	}
 	externalSecrets := externalSecrets
 	noPermission := errors.New("no permission")
-	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
+	arn := testARN
 
 	getSecretCorrectErr := types.ResourceNotFoundException{}
 	getSecretWrongErr := types.InvalidRequestException{}
@@ -479,7 +484,7 @@ func TestSetSecret(t *testing.T) {
 		Tags: externalSecretsTag,
 	}
 
-	defaultVersion := "00000000-0000-0000-0000-000000000002"
+	defaultVersion := testDefaultVersion
 
 	tagSecretOutput := &awssm.DescribeSecretOutput{
 		ARN:  &arn,
@@ -933,8 +938,11 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput2, nil),
-					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					GetSecretValueFn:       fakesm.NewGetSecretValueFn(secretValueOutput2, nil),
+					DescribeSecretFn:       fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:          fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:        fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -1223,6 +1231,74 @@ func TestSetSecret(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPushSecretTagsUpdatedWhenValueUnchanged(t *testing.T) {
+	secretKey := "fake-secret-key"
+	secretValue := []byte("fake-value")
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			secretKey: secretValue,
+		},
+	}
+	arn := testARN
+	defaultVersion := testDefaultVersion
+	managedBy := managedBy
+	externalSecrets := externalSecrets
+
+	tagResourceCalled := false
+	var capturedTagInput *awssm.TagResourceInput
+
+	client := fakesm.Client{
+		GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
+			ARN:          &arn,
+			SecretBinary: secretValue,
+			VersionId:    &defaultVersion,
+		}, nil),
+		DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+			ARN: &arn,
+			Tags: []types.Tag{
+				{Key: &managedBy, Value: &externalSecrets},
+			},
+			VersionIdsToStages: map[string][]string{
+				defaultVersion: {"AWSCURRENT"},
+			},
+		}, nil),
+		PutSecretValueFn: fakesm.NewPutSecretValueFn(nil, fmt.Errorf("PutSecretValue should not be called when value is unchanged")),
+		TagResourceFn: fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil, func(input *awssm.TagResourceInput) {
+			tagResourceCalled = true
+			capturedTagInput = input
+		}),
+		UntagResourceFn:        fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+		DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
+	}
+
+	sm := SecretsManager{
+		client: &client,
+	}
+
+	pushSecretData := fake.PushSecretData{
+		SecretKey: secretKey,
+		RemoteKey: fakeKey,
+		Property:  "",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"tags": {"newTag": "newValue"}
+				}
+			}`),
+		},
+	}
+
+	err := sm.PushSecret(context.Background(), fakeSecret, pushSecretData)
+	require.NoError(t, err, "PushSecret should not return error when value is unchanged but tags need updating")
+	assert.True(t, tagResourceCalled, "TagResource should be called even when secret value is unchanged")
+	require.NotNil(t, capturedTagInput, "TagResourceInput should be captured")
+	assert.Len(t, capturedTagInput.Tags, 2)
+	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: &managedBy, Value: &externalSecrets})
+	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: ptr.To("newTag"), Value: ptr.To("newValue")})
 }
 
 func TestDeleteSecret(t *testing.T) {
@@ -1907,8 +1983,8 @@ func TestSecretsManagerValidate(t *testing.T) {
 	}
 }
 func TestSecretExists(t *testing.T) {
-	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
-	defaultVersion := "00000000-0000-0000-0000-000000000002"
+	arn := testARN
+	defaultVersion := testDefaultVersion
 	secretValueOutput := &awssm.GetSecretValueOutput{
 		ARN:       &arn,
 		VersionId: &defaultVersion,
