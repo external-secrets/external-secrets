@@ -86,17 +86,21 @@ func (v *Client) RegisterAs(provider *esv1.SecretStoreProvider) {
 
 // GetAllSecrets implements the provider.Provider interface.
 func (v *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return v.GetAllSecretsFn(ctx, ref)
+	v.mu.RLock()
+	fn := v.GetAllSecretsFn
+	v.mu.RUnlock()
+	return fn(ctx, ref)
 }
 
 func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	v.mu.Lock()
-	defer v.mu.Unlock()
 	v.pushSecretData[data.GetRemoteKey()] = SetSecretCallArgs{
 		Value:     secret.Data[data.GetSecretKey()],
 		RemoteRef: data,
 	}
-	return v.SetSecretFn()
+	fn := v.SetSecretFn
+	v.mu.Unlock()
+	return fn()
 }
 
 // GetPushSecretData safely retrieves the push secret data map for reading.
@@ -112,29 +116,43 @@ func (v *Client) GetPushSecretData() map[string]SetSecretCallArgs {
 }
 
 func (v *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return v.DeleteSecretFn()
+	v.mu.RLock()
+	fn := v.DeleteSecretFn
+	v.mu.RUnlock()
+	return fn()
 }
 
 func (v *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	return v.SecretExistsFn(ctx, ref)
+	v.mu.RLock()
+	fn := v.SecretExistsFn
+	v.mu.RUnlock()
+	return fn(ctx, ref)
 }
 
 // GetSecret implements the provider.Provider interface.
 func (v *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return v.GetSecretFn(ctx, ref)
+	v.mu.RLock()
+	fn := v.GetSecretFn
+	v.mu.RUnlock()
+	return fn(ctx, ref)
 }
 
 // WithGetSecret wraps secret data returned by this provider.
 func (v *Client) WithGetSecret(secData []byte, err error) *Client {
+	v.mu.Lock()
 	v.GetSecretFn = func(context.Context, esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 		return secData, err
 	}
+	v.mu.Unlock()
 	return v
 }
 
 // GetSecretMap implements the provider.Provider interface.
 func (v *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return v.GetSecretMapFn(ctx, ref)
+	v.mu.RLock()
+	fn := v.GetSecretMapFn
+	v.mu.RUnlock()
+	return fn(ctx, ref)
 }
 
 func (v *Client) Close(_ context.Context) error {
@@ -151,32 +169,40 @@ func (v *Client) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) 
 
 // WithGetSecretMap wraps the secret data map returned by this fake provider.
 func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client {
+	v.mu.Lock()
 	v.GetSecretMapFn = func(context.Context, esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 		return secData, err
 	}
+	v.mu.Unlock()
 	return v
 }
 
 // WithGetAllSecrets wraps the secret data map returned by this fake provider.
 func (v *Client) WithGetAllSecrets(secData map[string][]byte, err error) *Client {
+	v.mu.Lock()
 	v.GetAllSecretsFn = func(context.Context, esv1.ExternalSecretFind) (map[string][]byte, error) {
 		return secData, err
 	}
+	v.mu.Unlock()
 	return v
 }
 
 // WithSetSecret wraps the secret response to the fake provider.
 func (v *Client) WithSetSecret(err error) *Client {
+	v.mu.Lock()
 	v.SetSecretFn = func() error {
 		return err
 	}
+	v.mu.Unlock()
 	return v
 }
 
 // WithNew wraps the fake provider factory function.
 func (v *Client) WithNew(f func(context.Context, esv1.GenericStore, client.Client,
 	string) (esv1.SecretsClient, error)) *Client {
+	v.mu.Lock()
 	v.NewFn = f
+	v.mu.Unlock()
 	return v
 }
 
@@ -187,7 +213,10 @@ func (v *Client) Capabilities() esv1.SecretStoreCapabilities {
 
 // NewClient returns a new fake provider.
 func (v *Client) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
-	c, err := v.NewFn(ctx, store, kube, namespace)
+	v.mu.RLock()
+	fn := v.NewFn
+	v.mu.RUnlock()
+	c, err := fn(ctx, store, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
