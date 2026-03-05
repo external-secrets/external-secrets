@@ -1301,6 +1301,101 @@ func TestPushSecretTagsUpdatedWhenValueUnchanged(t *testing.T) {
 	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: ptr.To("newTag"), Value: ptr.To("newValue")})
 }
 
+func TestPushSecretResourcePolicyUpdatedWhenValueUnchanged(t *testing.T) {
+	secretKey := "fake-secret-key"
+	secretValue := []byte("fake-value")
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			secretKey: secretValue,
+		},
+	}
+	arn := testARN
+	defaultVersion := testDefaultVersion
+	managedBy := managedBy
+	externalSecrets := externalSecrets
+
+	putResourcePolicyCalled := false
+	var capturedPolicyInput *awssm.PutResourcePolicyInput
+	putSecretValueCalled := false
+
+	existingPolicy := `{"Version":"2012-10-17","Statement":[{"Sid":"OldPolicy","Effect":"Deny","Principal":"*","Action":"secretsmanager:GetSecretValue","Resource":"*"}]}`
+	newPolicy := `{"Version":"2012-10-17","Statement":[{"Sid":"NewPolicy","Effect":"Allow","Principal":"*","Action":"secretsmanager:GetSecretValue","Resource":"*"}]}`
+
+	client := fakesm.Client{
+		GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
+			ARN:          &arn,
+			SecretBinary: secretValue,
+			VersionId:    &defaultVersion,
+		}, nil),
+		DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+			ARN: &arn,
+			Tags: []types.Tag{
+				{Key: &managedBy, Value: &externalSecrets},
+			},
+			VersionIdsToStages: map[string][]string{
+				defaultVersion: {"AWSCURRENT"},
+			},
+		}, nil),
+		PutSecretValueFn: fakesm.NewPutSecretValueFn(nil, fmt.Errorf("PutSecretValue should not be called when value is unchanged"), func(input *awssm.PutSecretValueInput) {
+			putSecretValueCalled = true
+		}),
+		TagResourceFn:          fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+		UntagResourceFn:        fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+		DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
+		GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(&awssm.GetResourcePolicyOutput{
+			ResourcePolicy: &existingPolicy,
+		}, nil),
+		PutResourcePolicyFn: fakesm.NewPutResourcePolicyFn(&awssm.PutResourcePolicyOutput{}, nil, func(input *awssm.PutResourcePolicyInput) {
+			putResourcePolicyCalled = true
+			capturedPolicyInput = input
+		}),
+	}
+
+	kubeclient := clientfake.NewFakeClient(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "resource-policy",
+		},
+		Data: map[string]string{
+			"policy.json": newPolicy,
+		},
+	})
+
+	sm := SecretsManager{
+		client: &client,
+		kube:   kubeclient,
+	}
+
+	pushSecretData := fake.PushSecretData{
+		SecretKey: secretKey,
+		RemoteKey: fakeKey,
+		Property:  "",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"resourcePolicy": {
+						"blockPublicPolicy": true,
+						"policySourceRef": {
+							"kind": "ConfigMap",
+							"name": "resource-policy",
+							"key": "policy.json"
+						}
+					}
+				}
+			}`),
+		},
+	}
+
+	err := sm.PushSecret(context.Background(), fakeSecret, pushSecretData)
+	require.NoError(t, err, "PushSecret should not return error when value is unchanged but resource policy needs updating")
+	assert.True(t, putResourcePolicyCalled, "PutResourcePolicy should be called even when secret value is unchanged")
+	assert.False(t, putSecretValueCalled, "PutSecretValue should not be called when value is unchanged")
+	require.NotNil(t, capturedPolicyInput, "PutResourcePolicyInput should be captured")
+	assert.Equal(t, arn, *capturedPolicyInput.SecretId)
+	assert.JSONEq(t, newPolicy, *capturedPolicyInput.ResourcePolicy)
+}
+
 func TestDeleteSecret(t *testing.T) {
 	fakeClient := fakesm.Client{}
 	managed := managedBy
