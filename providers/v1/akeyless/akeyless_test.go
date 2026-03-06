@@ -454,3 +454,94 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestIsAccessDeniedError(t *testing.T) {
+	tests := []struct {
+		name     string
+		errBody  string
+		expected bool
+	}{
+		{
+			name:     "unauthorized response",
+			errBody:  `{"message":"Unauthorized"}`,
+			expected: true,
+		},
+		{
+			name:     "forbidden response",
+			errBody:  `{"error":"Forbidden: insufficient permissions"}`,
+			expected: true,
+		},
+		{
+			name:     "not allowed response",
+			errBody:  `{"message":"operation not allowed for this auth method"}`,
+			expected: true,
+		},
+		{
+			name:     "permission denied response",
+			errBody:  `{"error":"permission denied for namespace tester-ns2"}`,
+			expected: true,
+		},
+		{
+			name:     "access denied response",
+			errBody:  `{"error":"access denied"}`,
+			expected: true,
+		},
+		{
+			name:     "access_denied underscore variant",
+			errBody:  `{"error":"access_denied"}`,
+			expected: true,
+		},
+		{
+			name:     "not_allowed underscore variant",
+			errBody:  `{"error":"operation not_allowed"}`,
+			expected: true,
+		},
+		{
+			name:     "permission_denied underscore variant",
+			errBody:  `{"error":"permission_denied"}`,
+			expected: true,
+		},
+		{
+			name:     "no access response",
+			errBody:  `{"error":"no access to resource"}`,
+			expected: true,
+		},
+		{
+			name:     "not authorized response",
+			errBody:  `{"error":"not authorized"}`,
+			expected: true,
+		},
+		{
+			name:     "authorization failed response",
+			errBody:  `{"error":"authorization failed"}`,
+			expected: true,
+		},
+		{
+			name:     "you don't have permission response",
+			errBody:  `{"error":"you don't have permission to perform this action"}`,
+			expected: true,
+		},
+		{
+			name:     "item not found is not access denied",
+			errBody:  `{"error":"item not found"}`,
+			expected: false,
+		},
+		{
+			name:     "generic server error is not access denied",
+			errBody:  `{"error":"internal server error"}`,
+			expected: false,
+		},
+		{
+			name:     "empty body is not access denied",
+			errBody:  "",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isAccessDeniedError(tt.errBody)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
