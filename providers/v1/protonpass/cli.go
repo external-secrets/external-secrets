@@ -43,6 +43,7 @@ var (
 	errCLINotFound       = errors.New("pass-cli binary not found")
 	errCommandTimeout    = errors.New("pass-cli command timed out")
 	errAmbiguousItemName = errors.New("multiple items share the same name; use item ID instead")
+	errEnsureLogin       = errors.New("failed to ensure login")
 )
 
 // cli wraps the pass-cli binary for interacting with Proton Pass.
@@ -159,7 +160,7 @@ func (c *cli) ListVaults(ctx context.Context) ([]vault, error) {
 	defer c.mu.Unlock()
 
 	if err := c.ensureLoggedInLocked(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ensure login: %w", err)
+		return nil, fmt.Errorf("%w: %w", errEnsureLogin, err)
 	}
 
 	if c.vaults != nil {
@@ -202,7 +203,7 @@ func (c *cli) ListItems(ctx context.Context) ([]item, error) {
 	defer c.mu.Unlock()
 
 	if err := c.ensureLoggedInLocked(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ensure login: %w", err)
+		return nil, fmt.Errorf("%w: %w", errEnsureLogin, err)
 	}
 
 	return c.listItemsLocked(ctx)
@@ -243,7 +244,7 @@ func (c *cli) listItemsLocked(ctx context.Context) ([]item, error) {
 // GetItem returns the details of an item by ID.
 func (c *cli) GetItem(ctx context.Context, itemID string) (*item, error) {
 	if err := c.ensureLoggedIn(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ensure login: %w", err)
+		return nil, fmt.Errorf("%w: %w", errEnsureLogin, err)
 	}
 
 	args := c.appendVaultFlag([]string{"item", "view", "--item-id", itemID, "--output", "json"})
@@ -270,7 +271,7 @@ func (c *cli) ResolveItemID(ctx context.Context, nameOrID string) (string, error
 	defer c.mu.Unlock()
 
 	if err := c.ensureLoggedInLocked(ctx); err != nil {
-		return "", fmt.Errorf("failed to ensure login: %w", err)
+		return "", fmt.Errorf("%w: %w", errEnsureLogin, err)
 	}
 
 	// List items to populate the cache (under the same lock)
