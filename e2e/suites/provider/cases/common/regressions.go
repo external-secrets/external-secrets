@@ -19,7 +19,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,7 +65,7 @@ func StatusNotUpdatedAfterSuccessfulSync(f *framework.Framework) (string, func(*
 					return false
 				}
 
-				ready := getExternalSecretCondition(current.Status, esv1.ExternalSecretReady)
+				ready := esv1.GetExternalSecretCondition(current.Status, esv1.ExternalSecretReady)
 				if ready == nil || ready.Status != v1.ConditionTrue {
 					return false
 				}
@@ -95,7 +94,7 @@ func StatusNotUpdatedAfterSuccessfulSync(f *framework.Framework) (string, func(*
 				return true
 			}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(BeTrue())
 
-			Consistently(func(g gomega.Gomega) {
+			Consistently(func(g Gomega) {
 				current := &esv1.ExternalSecret{}
 				g.Expect(tc.Framework.CRClient.Get(GinkgoT().Context(), key, current)).To(Succeed())
 				g.Expect(current.ResourceVersion).To(Equal(baseline.ResourceVersion))
@@ -104,14 +103,4 @@ func StatusNotUpdatedAfterSuccessfulSync(f *framework.Framework) (string, func(*
 			}).WithTimeout(10 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
 		}
 	}
-}
-
-func getExternalSecretCondition(status esv1.ExternalSecretStatus, condType esv1.ExternalSecretConditionType) *esv1.ExternalSecretStatusCondition {
-	for i := range status.Conditions {
-		c := status.Conditions[i]
-		if c.Type == condType {
-			return &c
-		}
-	}
-	return nil
 }
