@@ -26,10 +26,12 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
-	passCLIBinary = "pass-cli"
+	passCLIBinary          = "pass-cli"
+	defaultSubprocessTimeout = 30 * time.Second
 )
 
 // Proton Pass CLI errors.
@@ -38,7 +40,9 @@ var (
 	errVaultNotFound = errors.New("vault not found")
 	errFieldNotFound = errors.New("field not found in item")
 	errLoginFailed   = errors.New("failed to login to Proton Pass")
-	errCLINotFound   = errors.New("pass-cli binary not found")
+	errCLINotFound       = errors.New("pass-cli binary not found")
+	errCommandTimeout    = errors.New("pass-cli command timed out")
+	errAmbiguousItemName = errors.New("multiple items share the same name; use item ID instead")
 )
 
 // cli wraps the pass-cli binary for interacting with Proton Pass.
@@ -54,7 +58,7 @@ type cli struct {
 	loggedIn  bool
 	itemCache map[string][]item // vault -> items
 	vaults    []vault           // cached vaults
-	itemMap   map[string]string // itemName -> itemID (within configured vault)
+	itemMap   map[string][]string // itemName -> itemIDs (within configured vault)
 }
 
 // newCLI creates a new CLI wrapper.
@@ -72,7 +76,7 @@ func newCLI(username, password, totpSecret, extraPassword, vault, homeDir string
 		vault:         vault,
 		homeDir:       homeDir,
 		itemCache:     make(map[string][]item),
-		itemMap:       make(map[string]string),
+		itemMap:       make(map[string][]string),
 	}
 }
 
@@ -96,7 +100,7 @@ func (c *cli) ensureLoggedInLocked(ctx context.Context) error {
 // clearItemCache resets the item cache. Assumes c.mu is already held.
 func (c *cli) clearItemCache() {
 	c.itemCache = make(map[string][]item)
-	c.itemMap = make(map[string]string)
+	c.itemMap = make(map[string][]string)
 }
 
 // clearCache resets all cached data. Assumes c.mu is already held.
@@ -228,9 +232,9 @@ func (c *cli) listItemsLocked(ctx context.Context) ([]item, error) {
 
 	c.itemCache[c.vault] = response.Items
 
-	// Update item name to ID map
+	// Update item name to ID map (append to track duplicates)
 	for _, item := range response.Items {
-		c.itemMap[item.Content.Title] = item.ID
+		c.itemMap[item.Content.Title] = append(c.itemMap[item.Content.Title], item.ID)
 	}
 
 	return response.Items, nil
@@ -284,8 +288,11 @@ func (c *cli) ResolveItemID(ctx context.Context, nameOrID string) (string, error
 	}
 
 	// Check if it's a name in our map
-	if id, ok := c.itemMap[nameOrID]; ok {
-		return id, nil
+	if ids, ok := c.itemMap[nameOrID]; ok {
+		if len(ids) > 1 {
+			return "", fmt.Errorf("%w: %q matches %d items", errAmbiguousItemName, nameOrID, len(ids))
+		}
+		return ids[0], nil
 	}
 
 	return "", fmt.Errorf("%w: %s", errItemNotFound, nameOrID)
@@ -311,8 +318,11 @@ func (c *cli) Logout(ctx context.Context) error {
 	return nil
 }
 
-// runCommand executes a pass-cli command.
+// runCommand executes a pass-cli command with a subprocess timeout.
 func (c *cli) runCommand(ctx context.Context, extraEnv []string, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultSubprocessTimeout)
+	defer cancel()
+
 	cmd := exec.CommandContext(ctx, passCLIBinary, args...)
 
 	// Set up environment - use /tmp as HOME for writable session storage
@@ -326,6 +336,9 @@ func (c *cli) runCommand(ctx context.Context, extraEnv []string, args ...string)
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("%w: %s %s", errCommandTimeout, passCLIBinary, strings.Join(args, " "))
+		}
 		if errors.Is(err, exec.ErrNotFound) {
 			return nil, errCLINotFound
 		}

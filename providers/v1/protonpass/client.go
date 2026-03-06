@@ -41,6 +41,9 @@ var errDeleteSecretNotSupported = errors.New("delete secret is not supported for
 // errSecretExistsNotSupported is returned when attempting to test for secret existence in Proton Pass.
 var errSecretExistsNotSupported = errors.New("secret exists is not supported for Proton Pass provider")
 
+// errTagsNotSupported is returned when find.tags is used, since Proton Pass items have no tag/label field.
+var errTagsNotSupported = errors.New("find by tags is not supported for Proton Pass provider")
+
 // GetSecret retrieves a single secret from Proton Pass.
 // Key format: "itemName" or "itemName/fieldName"
 // Property overrides field name if specified.
@@ -102,6 +105,19 @@ func (p *provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 
 // GetAllSecrets retrieves all secrets from the configured vault.
 func (p *provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if len(ref.Tags) > 0 {
+		return nil, errTagsNotSupported
+	}
+
+	var nameRe *regexp.Regexp
+	if ref.Name != nil && ref.Name.RegExp != "" {
+		var err error
+		nameRe, err = regexp.Compile(ref.Name.RegExp)
+		if err != nil {
+			return nil, fmt.Errorf("invalid regexp %q: %w", ref.Name.RegExp, err)
+		}
+	}
+
 	items, err := p.cli.ListItems(ctx)
 	if err != nil {
 		return nil, err
@@ -111,11 +127,7 @@ func (p *provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 
 	for _, item := range items {
 		// Check if item matches the find criteria
-		matches, err := matchesFind(item, ref)
-		if err != nil {
-			return nil, err
-		}
-		if !matches {
+		if !matchesFind(item, ref, nameRe) {
 			continue
 		}
 
@@ -190,32 +202,27 @@ func parseKey(key string) (itemName, fieldName string) {
 }
 
 // matchesFind checks if an item matches the find criteria.
-func matchesFind(item item, ref esv1.ExternalSecretFind) (bool, error) {
+// nameRe is the precompiled regexp from ref.Name.RegExp (nil when unused).
+func matchesFind(item item, ref esv1.ExternalSecretFind, nameRe *regexp.Regexp) bool {
 	// If no filter is specified, match all
-	if ref.Name == nil && len(ref.Tags) == 0 && ref.Path == nil {
-		return true, nil
+	if nameRe == nil && ref.Path == nil {
+		return true
 	}
 
 	itemName := item.Content.Title
 
 	// Match by name pattern
-	if ref.Name != nil && ref.Name.RegExp != "" {
-		matched, err := regexp.MatchString(ref.Name.RegExp, itemName)
-		if err != nil {
-			return false, fmt.Errorf("invalid regexp %q: %w", ref.Name.RegExp, err)
-		}
-		if !matched {
-			return false, nil
-		}
+	if nameRe != nil && !nameRe.MatchString(itemName) {
+		return false
 	}
 
 	// Path matching (not directly applicable to Proton Pass)
 	if ref.Path != nil {
 		// Treat path as an item name prefix
 		if !strings.HasPrefix(itemName, *ref.Path) {
-			return false, nil
+			return false
 		}
 	}
 
-	return true, nil
+	return true
 }

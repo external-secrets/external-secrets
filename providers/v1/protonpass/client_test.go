@@ -19,6 +19,7 @@ package protonpass
 import (
 	"context"
 	"errors"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,11 +56,10 @@ func TestMatchesFind(t *testing.T) {
 	strPtr := func(s string) *string { return &s }
 
 	tests := []struct {
-		name    string
-		item    item
-		ref     esv1.ExternalSecretFind
-		match   bool
-		wantErr string
+		name  string
+		item  item
+		ref   esv1.ExternalSecretFind
+		match bool
 	}{
 		{
 			name:  "no filter matches all",
@@ -108,14 +108,6 @@ func TestMatchesFind(t *testing.T) {
 			match: true,
 		},
 		{
-			name: "invalid regexp returns error",
-			item: makeItem("anything"),
-			ref: esv1.ExternalSecretFind{
-				Name: &esv1.FindName{RegExp: "[invalid"},
-			},
-			wantErr: "invalid regexp",
-		},
-		{
 			name: "path prefix match",
 			item: makeItem("prod/database"),
 			ref: esv1.ExternalSecretFind{
@@ -160,13 +152,11 @@ func TestMatchesFind(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := matchesFind(tc.item, tc.ref)
-			if tc.wantErr != "" {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tc.wantErr)
-				return
+			var nameRe *regexp.Regexp
+			if tc.ref.Name != nil && tc.ref.Name.RegExp != "" {
+				nameRe = regexp.MustCompile(tc.ref.Name.RegExp)
 			}
-			require.NoError(t, err)
+			got := matchesFind(tc.item, tc.ref, nameRe)
 			assert.Equal(t, tc.match, got)
 		})
 	}
