@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/tidwall/gjson"
@@ -75,7 +76,7 @@ var _ esv1.SecretsClient = &client{}
 //  4. get a specific value by using a key from the json formatted secret in Items.0.ItemValue.
 //     Nested values are supported by specifying a gjson expression
 func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	secret, err := c.getSecret(ctx, ref)
+	secret, err := c.getSecret(ctx, ref, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -130,11 +131,26 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
 
+	if !utf8.Valid(value) {
+		return errors.New("secret value is not valid UTF-8")
+	}
+
+	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
 	// Look up the secret to see if it exists
 	remoteRef := esv1.ExternalSecretDataRemoteRef{
 		Key: data.GetRemoteKey(),
 	}
-	existingSecret, err := c.getSecret(ctx, remoteRef)
+
+	folderID := 0
+	if meta != nil {
+		folderID = meta.Spec.FolderID
+	}
+
+	existingSecret, err := c.getSecret(ctx, remoteRef, folderID)
 	if err != nil {
 		if !isNotFoundError(err) {
 			return fmt.Errorf("failed to get secret: %w", err)
@@ -145,12 +161,6 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	if existingSecret != nil {
 		// Update existing secret
 		return c.updateSecret(existingSecret, data.GetProperty(), string(value))
-	}
-
-	// Secret doesn't exist, create it
-	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 
 	if meta == nil || meta.Spec.FolderID <= 0 || meta.Spec.SecretTemplateID <= 0 {
@@ -202,8 +212,16 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 		return fmt.Errorf("failed to get secret template: %w", err)
 	}
 
+	normalizedName := strings.Trim(name, "/")
+	if meta.FolderID > 0 && strings.Contains(normalizedName, "/") {
+		parts := strings.Split(normalizedName, "/")
+		if len(parts) > 0 {
+			normalizedName = parts[len(parts)-1]
+		}
+	}
+
 	newSecret := server.Secret{
-		Name:             name,
+		Name:             normalizedName,
 		FolderID:         meta.FolderID,
 		SecretTemplateID: meta.SecretTemplateID,
 		Fields:           make([]server.SecretField, 0),
@@ -242,7 +260,7 @@ func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	remoteRef := esv1.ExternalSecretDataRemoteRef{
 		Key: ref.GetRemoteKey(),
 	}
-	secret, err := c.getSecret(ctx, remoteRef)
+	secret, err := c.getSecret(ctx, remoteRef, 0)
 	if err != nil {
 		// If already deleted/not found, ignore
 		if isNotFoundError(err) {
@@ -253,6 +271,9 @@ func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 
 	err = c.api.DeleteSecret(secret.ID)
 	if err != nil {
+		if isNotFoundError(err) {
+			return nil
+		}
 		return fmt.Errorf("failed to delete secret: %w", err)
 	}
 	return nil
@@ -263,7 +284,7 @@ func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	remoteRef := esv1.ExternalSecretDataRemoteRef{
 		Key: ref.GetRemoteKey(),
 	}
-	_, err := c.getSecret(ctx, remoteRef)
+	_, err := c.getSecret(ctx, remoteRef, 0)
 	if err != nil {
 		if isNotFoundError(err) {
 			return false, nil
@@ -281,7 +302,7 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 // GetSecretMap retrieves the secret referenced by ref from the Secret Server API
 // and returns it as a map of byte slices.
 func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	secret, err := c.getSecret(ctx, ref)
+	secret, err := c.getSecret(ctx, ref, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +340,7 @@ func (c *client) Close(context.Context) error {
 }
 
 // getSecret retrieves the secret referenced by ref from the Vault API.
-func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (*server.Secret, error) {
+func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef, folderID int) (*server.Secret, error) {
 	if ref.Version != "" {
 		return nil, errors.New("specifying a version is not supported")
 	}
@@ -337,15 +358,24 @@ func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	// Otherwise try converting it to an ID
 	id, err := strconv.Atoi(ref.Key)
 	if err != nil {
-		s, err := c.api.Secrets(ref.Key, "Name")
+		secrets, err := c.api.Secrets(ref.Key, "Name")
 		if err != nil {
 			return nil, err
 		}
-		if len(s) == 0 {
-			return nil, errors.New("unable to retrieve secret at this time")
+		if len(secrets) == 0 {
+			return nil, errors.New(errMsgUnableToRetrieve)
 		}
 
-		return &s[0], nil
+		if folderID > 0 {
+			for _, s := range secrets {
+				if s.FolderID == folderID {
+					return &s, nil
+				}
+			}
+			return nil, errors.New(errMsgNotFound)
+		}
+
+		return &secrets[0], nil
 	}
 	return c.api.Secret(id)
 }

@@ -55,19 +55,21 @@ func (f *fakeAPI) Secret(id int) (*server.Secret, error) {
 }
 
 func (f *fakeAPI) Secrets(searchText, _ string) ([]server.Secret, error) {
-	secret := make([]server.Secret, 1)
+	var secrets []server.Secret
 	for _, s := range f.secrets {
 		if s.Name == searchText {
-			secret[0] = *s
-			return secret, nil
+			secrets = append(secrets, *s)
 		}
+	}
+	if len(secrets) > 0 {
+		return secrets, nil
 	}
 	return nil, errNotFound
 }
 
 func (f *fakeAPI) SecretByPath(path string) (*server.Secret, error) {
 	for _, s := range f.secrets {
-		if "/"+s.Name == path {
+		if "/"+s.Name == path || s.Name == path {
 			return s, nil
 		}
 	}
@@ -258,7 +260,18 @@ func newTestClient(t *testing.T) esv1.SecretsClient {
 	s6, err := createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }")
 	require.NoError(t, err)
 
-	secrets = append(secrets, s6, createNilFieldsSecret(7000), createEmptyFieldsSecret(8000), createTestFolderSecret(9000, 4))
+	secrets = append(secrets, s6, createNilFieldsSecret(7000), createEmptyFieldsSecret(8000), createTestFolderSecret(9000, 4), createTestFolderSecret(9001, 5))
+
+	// Create a secret for path-based test
+	pathSecret := &server.Secret{
+		ID:       9002,
+		Name:     "/some/path/secret",
+		FolderID: 6,
+		Fields: []server.SecretField{
+			{FieldName: "Password", Slug: "password", ItemValue: "old_path_value"},
+		},
+	}
+	secrets = append(secrets, pathSecret)
 
 	s9999, err := createSecret(9999, "simulated error")
 	require.NoError(t, err)
@@ -469,7 +482,7 @@ func TestGetSecretEmptySecretsList(t *testing.T) {
 		api: &fakeAPI{secrets: []*server.Secret{}},
 	}
 
-	_, err := c.getSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "nonexistent"})
+	_, err := c.getSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "nonexistent"}, 0)
 	assert.Error(t, err)
 	// When secret not found, the fakeAPI returns errNotFound
 	assert.Contains(t, err.Error(), "not found")
@@ -567,6 +580,23 @@ func TestPushSecret(t *testing.T) {
 	createdSecret, _ := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "new-secret", Property: "username"})
 	assert.Equal(t, []byte("my-value"), createdSecret)
 
+	// Create a new secret with path-like key and folderId
+	dataPathCreate := fakePushSecretData{
+		remoteKey: "/some/new/path/secretname",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &metadataJSON,
+	}
+	err = c.PushSecret(ctx, secret, dataPathCreate)
+	assert.NoError(t, err)
+
+	// verify that the created secret has just the basename "secretname"
+	// and since it's the 10th secret created by fakeAPI, its ID would be 10000 + len(secrets)
+	foundSecrets, _ := c.(*client).api.Secrets("secretname", "Name")
+	assert.Len(t, foundSecrets, 1)
+	assert.Equal(t, "secretname", foundSecrets[0].Name)
+	assert.Equal(t, 1, foundSecrets[0].FolderID)
+
 	// Update an existing secret
 	dataUpdate := fakePushSecretData{
 		remoteKey: "4000",
@@ -626,6 +656,71 @@ func TestPushSecret(t *testing.T) {
 	err = c.PushSecret(ctx, secret, dataUpdateInvalidProp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "field non-existent-property not found in secret")
+
+	// Update duplicate-named secret in specific folder (ID 9001 in FolderID 5)
+	metadataFolder5 := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 5, "secretTemplateId": 1}}`),
+	}
+	dataFolderUpdate := fakePushSecretData{
+		remoteKey: "FolderSecretname",
+		property:  "password",
+		secretKey: "my-key",
+		metadata:  &metadataFolder5,
+	}
+	err = c.PushSecret(ctx, secret, dataFolderUpdate)
+	assert.NoError(t, err)
+
+	// Verify only the secret in folder 5 was updated
+	s9001, _ := c.(*client).api.Secret(9001)
+	s9000, _ := c.(*client).api.Secret(9000)
+	// Check the password field
+	var s9001PW, s9000PW string
+	for _, f := range s9001.Fields {
+		if f.Slug == "password" {
+			s9001PW = f.ItemValue
+		}
+	}
+	for _, f := range s9000.Fields {
+		if f.Slug == "password" {
+			s9000PW = f.ItemValue
+		}
+	}
+	assert.Equal(t, "my-value", s9001PW)
+	assert.Equal(t, "passwordvalue", s9000PW) // Unchanged
+
+	// Update path-based key secret
+	dataPathUpdate := fakePushSecretData{
+		remoteKey: "/some/path/secret",
+		property:  "password",
+		secretKey: "my-key",
+	}
+	err = c.PushSecret(ctx, secret, dataPathUpdate)
+	assert.NoError(t, err)
+
+	sPath, _ := c.(*client).api.Secret(9002)
+	var sPathPW string
+	for _, f := range sPath.Fields {
+		if f.Slug == "password" {
+			sPathPW = f.ItemValue
+		}
+	}
+	assert.Equal(t, "my-value", sPathPW)
+
+	// Push invalid UTF-8 secret
+	invalidUtf8Secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"invalid-utf8": {0xff, 0xfe, 0xfd},
+		},
+	}
+	dataInvalidUtf8 := fakePushSecretData{
+		remoteKey: "new-secret-utf8",
+		property:  "username",
+		secretKey: "invalid-utf8",
+		metadata:  &metadataJSON,
+	}
+	err = c.PushSecret(ctx, invalidUtf8Secret, dataInvalidUtf8)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "secret value is not valid UTF-8")
 }
 
 // TestDeleteSecret tests the DeleteSecret functionality.
@@ -651,9 +746,25 @@ func TestDeleteSecret(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, exists)
 
-	// Deleting again should not return an error (idempotent)
+	// Test idempotency: delete again should not error
 	err = c.DeleteSecret(ctx, ref)
 	assert.NoError(t, err)
+
+	// Test path-based key deletion
+	pathRef := fakePushSecretRemoteRef{
+		remoteKey: "/some/path/secret",
+	}
+
+	exists, err = c.SecretExists(ctx, pathRef)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	err = c.DeleteSecret(ctx, pathRef)
+	assert.NoError(t, err)
+
+	exists, err = c.SecretExists(ctx, pathRef)
+	assert.NoError(t, err)
+	assert.False(t, exists)
 }
 
 // TestDeleteSecret_Error tests that an error from the backend during DeleteSecret is propagated.
