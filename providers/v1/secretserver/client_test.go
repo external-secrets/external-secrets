@@ -553,7 +553,7 @@ func TestPushSecret(t *testing.T) {
 		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1}}`),
 	}
 
-	// 1. Create a new secret
+	// Create a new secret
 	data := fakePushSecretData{
 		remoteKey: "new-secret",
 		property:  "username",
@@ -567,7 +567,7 @@ func TestPushSecret(t *testing.T) {
 	createdSecret, _ := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "new-secret", Property: "username"})
 	assert.Equal(t, []byte("my-value"), createdSecret)
 
-	// 2. Update an existing secret
+	// Update an existing secret
 	dataUpdate := fakePushSecretData{
 		remoteKey: "4000",
 		property:  "password",
@@ -579,6 +579,53 @@ func TestPushSecret(t *testing.T) {
 	// Verify update
 	updatedSecret, _ := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "4000", Property: "password"})
 	assert.Equal(t, []byte("my-value"), updatedSecret)
+
+	// Missing metadata for new secret
+	dataMissingMeta := fakePushSecretData{
+		remoteKey: "new-secret-no-meta",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  nil,
+	}
+	err = c.PushSecret(ctx, secret, dataMissingMeta)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "folderId and secretTemplateId must be provided in metadata to create a new secret")
+
+	// Invalid secretTemplateId in metadata
+	invalidMetadataJSON := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 999}}`), // non-existent template
+	}
+	dataInvalidMeta := fakePushSecretData{
+		remoteKey: "new-secret-invalid-meta",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &invalidMetadataJSON,
+	}
+	err = c.PushSecret(ctx, secret, dataInvalidMeta)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get secret template")
+
+	// Simulate create error
+	// Requires modifying fakeAPI to return an error when Name == "simulate-create-error"
+	dataCreateError := fakePushSecretData{
+		remoteKey: "simulate-create-error",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &metadataJSON,
+	}
+	err = c.PushSecret(ctx, secret, dataCreateError)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create secret")
+
+	// Update with non-existent property
+	dataUpdateInvalidProp := fakePushSecretData{
+		remoteKey: "4000",
+		property:  "non-existent-property",
+		secretKey: "my-key",
+	}
+	err = c.PushSecret(ctx, secret, dataUpdateInvalidProp)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "field non-existent-property not found in secret")
 }
 
 // TestDeleteSecret tests the DeleteSecret functionality.
@@ -708,6 +755,9 @@ func TestGetSecretMap(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		// The following test case expects an error because the secret with Key "9999"
+		// contains invalid JSON ("simulated error") which causes unmarshalling to fail
+		// in GetSecretMap, rather than because the secret is missing.
 		"error when secret not found": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "9999",

@@ -34,9 +34,23 @@ import (
 )
 
 const (
+	// tss-sdk-go currently does not expose typed errors for not found or unable to retrieve scenarios.
+	// We depend on these exact string messages returned by the SDK to determine if a secret exists or not.
+	// If the SDK changes these error messages, these constants will need to be updated.
+	// See SDK documentation or source code for error message formats.
 	errMsgUnableToRetrieve = "unable to retrieve secret"
 	errMsgNotFound         = "not found"
 )
+
+// isNotFoundError checks if an error from the SDK indicates a secret was not found.
+// It relies on string matching against specific messages because tss-sdk-go does not
+// provide typed sentinel errors for these cases.
+func isNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), errMsgUnableToRetrieve) || strings.Contains(err.Error(), errMsgNotFound)
+}
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to Delinea Secret Server.
 type PushSecretMetadataSpec struct {
@@ -122,7 +136,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 	existingSecret, err := c.getSecret(ctx, remoteRef)
 	if err != nil {
-		if !strings.Contains(err.Error(), errMsgUnableToRetrieve) && !strings.Contains(err.Error(), errMsgNotFound) {
+		if !isNotFoundError(err) {
 			return fmt.Errorf("failed to get secret: %w", err)
 		}
 		existingSecret = nil
@@ -177,6 +191,11 @@ func (c *client) updateSecret(secret *server.Secret, property string, value stri
 }
 
 // createSecret creates a new secret in Delinea Secret Server.
+// Note: This function currently only populates a single field in the secret
+// (either the first field of the template if property is empty, or the specific
+// field returned by findTemplateFieldID). If the target secret template contains
+// other required fields, the server.Secret creation via c.api.CreateSecret may
+// result in an API error.
 func (c *client) createSecret(name, property, value string, meta PushSecretMetadataSpec) error {
 	template, err := c.api.SecretTemplate(meta.SecretTemplateID)
 	if err != nil {
@@ -226,7 +245,7 @@ func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	secret, err := c.getSecret(ctx, remoteRef)
 	if err != nil {
 		// If already deleted/not found, ignore
-		if strings.Contains(err.Error(), errMsgUnableToRetrieve) || strings.Contains(err.Error(), errMsgNotFound) {
+		if isNotFoundError(err) {
 			return nil
 		}
 		return fmt.Errorf("failed to get secret for deletion: %w", err)
@@ -246,7 +265,7 @@ func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	}
 	_, err := c.getSecret(ctx, remoteRef)
 	if err != nil {
-		if strings.Contains(err.Error(), errMsgUnableToRetrieve) || strings.Contains(err.Error(), errMsgNotFound) {
+		if isNotFoundError(err) {
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to check if secret exists: %w", err)

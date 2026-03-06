@@ -647,9 +647,7 @@ func TestCapabilities(t *testing.T) {
 
 			// Edge: call Capabilities on nil Provider
 			var nilP *Provider
-			if nilP != nil {
-				assert.Equal(t, esv1.SecretStoreReadWrite, nilP.Capabilities())
-			}
+			assert.Equal(t, esv1.SecretStoreReadWrite, nilP.Capabilities())
 		})
 	}
 }
