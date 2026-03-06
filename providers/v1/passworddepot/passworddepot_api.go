@@ -188,17 +188,30 @@ func (api *API) getSecretFingerprint(databaseFingerprint, secretName, folder str
 	return "", errSecretNotFound
 }
 
-func (api *API) getendpointURL(endpoint string) string {
+func (api *API) getEndpointURL(endpoint string) string {
 	return fmt.Sprintf("https://%s:%s/v1.0/%s", api.baseURL, api.hostPort, endpoint)
 }
 
 func (api *API) login(ctx context.Context) error {
-	loginRequest, err := http.NewRequestWithContext(ctx, "GET", api.getendpointURL("login"), http.NoBody)
+	payload := struct {
+		User string `json:"user"`
+		Pass string `json:"pass"`
+	}{
+		User: api.username,
+		Pass: api.password,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("error: marshal login payload: %w", err)
+	}
+
+	loginRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, api.getEndpointURL("login"), bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("error creating request: %w", err)
 	}
-	loginRequest.Header.Add("user", api.username)
-	loginRequest.Header.Add("pass", api.password)
+	loginRequest.Header.Set("Content-Type", "application/json; charset=utf-8")
+	loginRequest.Header.Set("Accept", "application/json")
 
 	resp, err := api.client.Do(loginRequest) //nolint:bodyclose // linters bug
 	if err != nil {
@@ -206,19 +219,17 @@ func (api *API) login(ctx context.Context) error {
 	}
 
 	accessData := AccessData{}
-	err = ReadAndUnmarshal(resp, &accessData)
-	if err != nil {
+	if err := ReadAndUnmarshal(resp, &accessData); err != nil {
 		return fmt.Errorf("error: failed to unmarshal response body: %w", err)
 	}
 
 	api.secret = &accessData
-
 	return nil
 }
 
 // ListSecrets retrieves the list of secrets from the specified database and folder.
 func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, error) {
-	endpointURL := api.getendpointURL(fmt.Sprintf("list?db=%s", dbFingerprint))
+	endpointURL := api.getEndpointURL(fmt.Sprintf("list?db=%s", dbFingerprint))
 	if folder != "" {
 		endpointURL = fmt.Sprintf("%s&folder=%s", endpointURL, folder)
 	}
@@ -255,7 +266,7 @@ func ReadAndUnmarshal(resp *http.Response, target any) error {
 
 // ListDatabases retrieves the list of databases accessible with the current credentials.
 func (api *API) ListDatabases() (Databases, error) {
-	listDBRequest, err := http.NewRequest("GET", api.getendpointURL("list"), http.NoBody)
+	listDBRequest, err := http.NewRequest("GET", api.getEndpointURL("list"), http.NoBody)
 	if err != nil {
 		return Databases{}, fmt.Errorf("error: creating db request: %w", err)
 	}
@@ -281,7 +292,7 @@ func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 	if err != nil {
 		return SecretEntry{}, fmt.Errorf("error: getting Secret fingerprint: %w", err)
 	}
-	readSecretRequest, err := http.NewRequest("GET", api.getendpointURL(fmt.Sprintf("read?db=%s&entry=%s", dbFingerprint, secretFingerprint)), http.NoBody)
+	readSecretRequest, err := http.NewRequest("GET", api.getEndpointURL(fmt.Sprintf("read?db=%s&entry=%s", dbFingerprint, secretFingerprint)), http.NoBody)
 	if err != nil {
 		return SecretEntry{}, fmt.Errorf("error: creating secrets request: %w", err)
 	}
