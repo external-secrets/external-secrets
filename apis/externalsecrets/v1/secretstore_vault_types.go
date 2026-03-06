@@ -17,6 +17,9 @@ limitations under the License.
 package v1
 
 import (
+	"encoding/json"
+	"fmt"
+
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -90,9 +93,10 @@ type VaultProvider struct {
 	// +optional
 	ForwardInconsistent bool `json:"forwardInconsistent,omitempty"`
 
-	// Headers to be added in Vault request
+	// Headers to be added in Vault request.
+	// Values can be provided directly or referenced from a Secret.
 	// +optional
-	Headers map[string]string `json:"headers,omitempty"`
+	Headers map[string]VaultCustomHeader `json:"headers,omitempty"`
 
 	// CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
 	// Only applies to Vault KV v2 stores. When enabled, write operations must include
@@ -437,4 +441,43 @@ type VaultCheckAndSet struct {
 	// This helps prevent unintentional overwrites of secrets.
 	// +optional
 	Required bool `json:"required,omitempty"`
+}
+
+// VaultCustomHeader defines a custom header to be added to Vault requests.
+// Either value or secretKeyRef must be specified, but not both.
+// +kubebuilder:validation:XValidation:rule="has(self.value) != has(self.secretKeyRef)",message="must set exactly one of value or secretKeyRef"
+// +kubebuilder:validation:XValidation:rule="!has(self.secretKeyRef) || (has(self.secretKeyRef.key) && has(self.secretKeyRef.name))",message="secretKeyRef must have both key and name specified"
+type VaultCustomHeader struct {
+	// Value is the header value provided directly as a string.
+	// +optional
+	Value *string `json:"value,omitempty"`
+
+	// SecretKeyRef is a reference to a key in a Secret resource containing the header value.
+	// +optional
+	SecretKeyRef *esmeta.SecretKeySelector `json:"secretKeyRef,omitempty"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshalling for VaultCustomHeader.
+// This provides backwards compatibility with existing manifests that specify
+// headers as plain strings (e.g., {"X-Key": "value"}) by treating them
+// as VaultCustomHeader{Value: &str}.
+func (h *VaultCustomHeader) UnmarshalJSON(data []byte) error {
+	// First, try to unmarshal as the struct type.
+	type vaultCustomHeaderAlias VaultCustomHeader
+	var obj vaultCustomHeaderAlias
+	if json.Unmarshal(data, &obj) == nil {
+		*h = VaultCustomHeader(obj)
+		return nil
+	}
+
+	// If that fails, try to unmarshal as a plain string for backwards compatibility.
+	var str string
+	if json.Unmarshal(data, &str) == nil {
+		h.Value = &str
+		h.SecretKeyRef = nil
+		return nil
+	}
+
+	// Return the struct-level error for unsupported types.
+	return fmt.Errorf("cannot unmarshal header value: expected object or string, got: %s", string(data))
 }
