@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mfa
+// Package otp provides functionality for generating one time passwords
+package otp
 
 import (
 	"crypto/hmac"
@@ -88,8 +89,8 @@ func WithWhen(when time.Time) GeneratorOptionsFunc {
 	}
 }
 
-// generateCode generates an N digit TOTP code from the secret token.
-func generateCode(opts ...GeneratorOptionsFunc) (string, string, error) {
+// GenerateCode generates an N digit TOTP code from the secret token.
+func GenerateCode(opts ...GeneratorOptionsFunc) (string, string, error) {
 	defaults := &options{
 		algorithm:  defaultAlgorithm,
 		length:     defaultLength,

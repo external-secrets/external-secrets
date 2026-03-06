@@ -48,6 +48,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/passbolt => ./providers/v1/passbolt
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot => ./providers/v1/passworddepot
 	github.com/external-secrets/external-secrets/providers/v1/previder => ./providers/v1/previder
+	github.com/external-secrets/external-secrets/providers/v1/protonpass => ./providers/v1/protonpass
 	github.com/external-secrets/external-secrets/providers/v1/pulumi => ./providers/v1/pulumi
 	github.com/external-secrets/external-secrets/providers/v1/scaleway => ./providers/v1/scaleway
 	github.com/external-secrets/external-secrets/providers/v1/secretserver => ./providers/v1/secretserver
@@ -160,6 +161,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/protonpass v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/pulumi v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/scaleway v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/secretserver v0.0.0-00010101000000-000000000000

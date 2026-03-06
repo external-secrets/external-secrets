@@ -1,0 +1,44 @@
+# Dockerfile for external-secrets with Proton Pass provider.
+# Requires pass-cli binary which needs glibc, so we use Debian slim instead of distroless.
+# Expects a pre-built binary at bin/external-secrets-${TARGETOS}-${TARGETARCH}.
+
+# Download pass-cli from Proton's official distribution
+FROM debian:bookworm-slim AS pass-cli-downloader
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /tmp
+# Download from Proton's official CDN - update version as needed
+# Check https://proton.me/download/pass-cli/versions.json for latest version
+# When updating PASS_CLI_VERSION, recompute checksums:
+#   sha256sum pass-cli-linux-x86_64 pass-cli-linux-aarch64
+RUN PASS_CLI_VERSION="1.5.2" && \
+    if [ "${TARGETARCH}" = "amd64" ]; then \
+        ARCH="x86_64"; \
+        EXPECTED_SHA256="b6e02ac79cee277767023dda21b6cea276d56fdb0bf85d96eaf022ff6227debc"; \
+    elif [ "${TARGETARCH}" = "arm64" ]; then \
+        ARCH="aarch64"; \
+        EXPECTED_SHA256="ac88e2ebf15a4799c508408c0cf81dd9180313fe45b67941567ebd30c4fbadb2"; \
+    else \
+        echo "Unsupported architecture: ${TARGETARCH}" && exit 1; \
+    fi && \
+    curl -fsSL -o pass-cli "https://proton.me/download/pass-cli/${PASS_CLI_VERSION}/pass-cli-linux-${ARCH}" && \
+    echo "${EXPECTED_SHA256}  pass-cli" | sha256sum -c - && \
+    chmod +x pass-cli
+
+# Final image - using Debian slim for glibc compatibility with pass-cli
+FROM debian:bookworm-slim
+
+# Add metadata
+LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
+      description="External Secrets Operator with Proton Pass provider"
+
+ARG TARGETOS
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata && rm -rf /var/lib/apt/lists/*
+COPY bin/external-secrets-${TARGETOS}-${TARGETARCH} /bin/external-secrets
+COPY --from=pass-cli-downloader /tmp/pass-cli /usr/local/bin/pass-cli
+
+# Run as UID for nobody
+USER 65534
+
+ENTRYPOINT ["/bin/external-secrets"]
