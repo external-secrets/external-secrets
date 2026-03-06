@@ -33,6 +33,11 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 )
 
+const (
+	errMsgUnableToRetrieve = "unable to retrieve secret"
+	errMsgNotFound         = "not found"
+)
+
 // PushSecretMetadataSpec contains metadata information for pushing secrets to Delinea Secret Server.
 type PushSecretMetadataSpec struct {
 	FolderID         int `json:"folderId"`
@@ -117,7 +122,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 	existingSecret, err := c.getSecret(ctx, remoteRef)
 	if err != nil {
-		if !strings.Contains(err.Error(), "unable to retrieve secret") && !strings.Contains(err.Error(), "not found") {
+		if !strings.Contains(err.Error(), errMsgUnableToRetrieve) && !strings.Contains(err.Error(), errMsgNotFound) {
 			return fmt.Errorf("failed to get secret: %w", err)
 		}
 		existingSecret = nil
@@ -196,17 +201,7 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 		})
 	} else {
 		// Populate the specific property
-		fieldId, found := template.FieldSlugToId(property)
-		if !found {
-			// fallback check if they used name instead of slug
-			for _, f := range template.Fields {
-				if f.Name == property || f.FieldSlugName == property {
-					fieldId = f.SecretTemplateFieldID
-					found = true
-					break
-				}
-			}
-		}
+		fieldId, found := findTemplateFieldID(template, property)
 		if !found {
 			return fmt.Errorf("field %s not found in secret template", property)
 		}
@@ -231,7 +226,7 @@ func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	secret, err := c.getSecret(ctx, remoteRef)
 	if err != nil {
 		// If already deleted/not found, ignore
-		if strings.Contains(err.Error(), "unable to retrieve secret") || strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), errMsgUnableToRetrieve) || strings.Contains(err.Error(), errMsgNotFound) {
 			return nil
 		}
 		return fmt.Errorf("failed to get secret for deletion: %w", err)
@@ -251,7 +246,7 @@ func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	}
 	_, err := c.getSecret(ctx, remoteRef)
 	if err != nil {
-		if strings.Contains(err.Error(), "unable to retrieve secret") || strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), errMsgUnableToRetrieve) || strings.Contains(err.Error(), errMsgNotFound) {
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to check if secret exists: %w", err)
@@ -334,4 +329,20 @@ func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 		return &s[0], nil
 	}
 	return c.api.Secret(id)
+}
+
+func findTemplateFieldID(template *server.SecretTemplate, property string) (int, bool) {
+	fieldId, found := template.FieldSlugToId(property)
+	if found {
+		return fieldId, true
+	}
+
+	// fallback check if they used name instead of slug
+	for _, f := range template.Fields {
+		if f.Name == property || f.FieldSlugName == property {
+			return f.SecretTemplateFieldID, true
+		}
+	}
+
+	return 0, false
 }

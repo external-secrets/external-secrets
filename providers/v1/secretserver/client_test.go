@@ -114,6 +114,9 @@ func (f *fakeAPI) UpdateSecret(secret server.Secret) (*server.Secret, error) {
 // DeleteSecret is a mock implementation of the Secret Server API DeleteSecret method.
 // It returns an error if the id corresponds to a simulated failure case.
 func (f *fakeAPI) DeleteSecret(id int) error {
+	if id == 9999 {
+		return errors.New("simulated backend deletion error")
+	}
 	for i, s := range f.secrets {
 		if s.ID == id {
 			f.secrets = append(f.secrets[:i], f.secrets[i+1:]...)
@@ -256,6 +259,10 @@ func newTestClient(t *testing.T) esv1.SecretsClient {
 	require.NoError(t, err)
 
 	secrets = append(secrets, s6, createNilFieldsSecret(7000), createEmptyFieldsSecret(8000), createTestFolderSecret(9000, 4))
+
+	s9999, err := createSecret(9999, "simulated error")
+	require.NoError(t, err)
+	secrets = append(secrets, s9999)
 
 	return &client{
 		api: &fakeAPI{
@@ -600,6 +607,31 @@ func TestDeleteSecret(t *testing.T) {
 	// Deleting again should not return an error (idempotent)
 	err = c.DeleteSecret(ctx, ref)
 	assert.NoError(t, err)
+}
+
+// TestDeleteSecret_Error tests that an error from the backend during DeleteSecret is propagated.
+func TestDeleteSecret_Error(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient(t)
+
+	ref := fakePushSecretRemoteRef{
+		remoteKey: "9999",
+	}
+
+	// Should exist initially
+	exists, err := c.SecretExists(ctx, ref)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	// Attempt to delete it, expecting an error
+	err = c.DeleteSecret(ctx, ref)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete secret")
+
+	// Verify it still exists
+	exists, err = c.SecretExists(ctx, ref)
+	assert.NoError(t, err)
+	assert.True(t, exists)
 }
 
 // TestSecretExists tests the SecretExists functionality.
