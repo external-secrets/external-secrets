@@ -1100,6 +1100,21 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.ref.Key = fmt.Sprintf("example/%s", smtc.secretName)
 	}
 
+	setSecretWithExpiresAttribute := func(smtc *secretManagerTestCase) {
+		expiryTime := date.UnixTime(time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC))
+		createdTime := date.UnixTime(time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC))
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = "attribute.expires"
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+			Attributes: &keyvault.SecretAttributes{
+				Expires: &expiryTime,
+				Created: &createdTime,
+			},
+		}
+		smtc.expectedSecret = "2030-01-01T00:00:00Z"
+	}
+
 	setSecretWithTag := func(smtc *secretManagerTestCase) {
 		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.ref.Property = tagname
@@ -1336,6 +1351,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(keyNotFound),
 		makeValidSecretManagerTestCaseCustom(setCertificate),
 		makeValidSecretManagerTestCaseCustom(badSecretType),
+		makeValidSecretManagerTestCaseCustom(setSecretWithExpiresAttribute),
 		makeValidSecretManagerTestCaseCustom(setSecretWithTag),
 		makeValidSecretManagerTestCaseCustom(badSecretWithTag),
 		makeValidSecretManagerTestCaseCustom(setSecretWithNoSpecificTag),
