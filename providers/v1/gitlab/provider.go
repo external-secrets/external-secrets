@@ -30,9 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
-	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
 // Provider satisfies the provider interface.
@@ -52,7 +50,7 @@ type gitlabBase struct {
 
 // Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (g *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient creates a new GitLab client with the given store configuration.
@@ -131,33 +129,6 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 	}
 
 	return client, nil
-}
-
-func (g *gitlabBase) getVariables(ref esv1.ExternalSecretDataRemoteRef, vopts *gitlab.GetProjectVariableOptions) (*gitlab.ProjectVariable, error) {
-	// First attempt to get the variable
-	data, _, err := g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
-	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
-
-	// If successful, return immediately
-	if err == nil {
-		return data, nil
-	}
-
-	// If not a "not found" error or environment is already wildcard, return the error
-	if !errors.Is(err, gitlab.ErrNotFound) || isEmptyOrWildcard(g.store.Environment) {
-		return nil, err
-	}
-
-	// Retry with wildcard environment scope
-	opts := &gitlab.GetProjectVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: "*"}}
-	data, _, err = g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, opts)
-	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
-
-	if err != nil {
-		return nil, fmt.Errorf("error getting variable %s from GitLab (including wildcard retry): %w", ref.Key, err)
-	}
-
-	return data, nil
 }
 
 // ValidateStore validates the GitLab store configuration.
