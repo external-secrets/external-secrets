@@ -219,7 +219,7 @@ If authentication fails with a 422 error:
 
 #### CLI not found
 
-Verify the container image includes `pass-cli` at `/usr/local/bin/pass-cli`.
+Verify the container image includes `pass-cli` on the PATH somewhere.
 
 #### Read-only filesystem errors
 
