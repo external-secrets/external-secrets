@@ -136,13 +136,10 @@ For accounts without 2FA, you can omit the `totp-secret` key.
 | Field | Description | Required |
 |-------|-------------|----------|
 | `username` | Your Proton account email | Yes |
-| `vault` | Name of the Proton Pass vault to use | Yes (recommended) |
+| `vault` | Name of the Proton Pass vault to use | Yes |
 | `auth.secretRef.password` | Reference to the password secret | Yes |
 | `auth.secretRef.totp` | Reference to the TOTP secret for 2FA | No |
 | `auth.secretRef.extraPassword` | Reference to an extra password | No |
-
-!!! note "Vault Configuration"
-    Specifying a `vault` is strongly recommended. The provider uses the vault name when fetching item details, and some operations fail without it.
 
 ### Fetching Secrets
 
@@ -214,10 +211,6 @@ If authentication fails with a 422 error:
 1. Verify your password is correct
 2. Check if your account has been temporarily locked due to failed attempts
 3. Ensure the credentials secret is correctly referenced
-
-#### "Please provide either --share-id or --vault-name"
-
-Add the `vault` field to your SecretStore. Use the exact vault name as it appears in Proton Pass.
 
 #### Item not found
 

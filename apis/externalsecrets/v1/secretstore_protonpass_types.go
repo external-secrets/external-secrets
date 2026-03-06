@@ -50,7 +50,5 @@ type ProtonPassProvider struct {
 	Username string `json:"username"`
 
 	// Vault is the name of the Proton Pass vault to use.
-	// If not specified, items from all vaults will be accessible.
-	// +optional
-	Vault string `json:"vault,omitempty"`
+	Vault string `json:"vault"`
 }

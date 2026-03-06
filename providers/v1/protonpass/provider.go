@@ -66,6 +66,7 @@ const (
 	errProtonPassStoreMissingUsername           = "missing: spec.provider.protonpass.username"
 	errProtonPassStoreMissingPasswordRefName    = "missing: spec.provider.protonpass.auth.secretRef.password.name"
 	errProtonPassStoreMissingPasswordRefKey     = "missing: spec.provider.protonpass.auth.secretRef.password.key"
+	errProtonPassStoreMissingVault              = "missing: spec.provider.protonpass.vault"
 )
 
 // provider implements the External Secrets provider interface for Proton Pass.
@@ -235,6 +236,9 @@ func (p *provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 	if config.Username == "" {
 		return nil, fmt.Errorf(errProtonPassStore, errors.New(errProtonPassStoreMissingUsername))
+	}
+	if config.Vault == "" {
+		return nil, fmt.Errorf(errProtonPassStore, errors.New(errProtonPassStoreMissingVault))
 	}
 	if config.Auth.SecretRef.Password.Name == "" {
 		return nil, fmt.Errorf(errProtonPassStore, errors.New(errProtonPassStoreMissingPasswordRefName))

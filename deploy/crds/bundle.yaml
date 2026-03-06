@@ -6082,13 +6082,12 @@ spec:
                           description: Username is the Proton account username (email).
                           type: string
                         vault:
-                          description: |-
-                            Vault is the name of the Proton Pass vault to use.
-                            If not specified, items from all vaults will be accessible.
+                          description: Vault is the name of the Proton Pass vault to use.
                           type: string
                       required:
                         - auth
                         - username
+                        - vault
                       type: object
                     pulumi:
                       description: Pulumi configures this store to sync secrets using the Pulumi provider
@@ -17830,13 +17829,12 @@ spec:
                           description: Username is the Proton account username (email).
                           type: string
                         vault:
-                          description: |-
-                            Vault is the name of the Proton Pass vault to use.
-                            If not specified, items from all vaults will be accessible.
+                          description: Vault is the name of the Proton Pass vault to use.
                           type: string
                       required:
                         - auth
                         - username
+                        - vault
                       type: object
                     pulumi:
                       description: Pulumi configures this store to sync secrets using the Pulumi provider

@@ -91,12 +91,35 @@ func TestValidateStore(t *testing.T) {
 			errSubstr: errProtonPassStoreMissingUsername,
 		},
 		{
+			name: "missing vault",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						ProtonPass: &esv1.ProtonPassProvider{
+							Username: "user@example.com",
+							Auth: &esv1.ProtonPassAuth{
+								SecretRef: esv1.ProtonPassAuthSecretRef{
+									Password: esmeta.SecretKeySelector{
+										Name: "secret",
+										Key:  "password",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr:   true,
+			errSubstr: errProtonPassStoreMissingVault,
+		},
+		{
 			name: "missing password ref name",
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						ProtonPass: &esv1.ProtonPassProvider{
 							Username: "user@example.com",
+							Vault:    "my-vault",
 							Auth: &esv1.ProtonPassAuth{
 								SecretRef: esv1.ProtonPassAuthSecretRef{
 									Password: esmeta.SecretKeySelector{
@@ -118,6 +141,7 @@ func TestValidateStore(t *testing.T) {
 					Provider: &esv1.SecretStoreProvider{
 						ProtonPass: &esv1.ProtonPassProvider{
 							Username: "user@example.com",
+							Vault:    "my-vault",
 							Auth: &esv1.ProtonPassAuth{
 								SecretRef: esv1.ProtonPassAuthSecretRef{
 									Password: esmeta.SecretKeySelector{
@@ -143,6 +167,7 @@ func TestValidateStore(t *testing.T) {
 					Provider: &esv1.SecretStoreProvider{
 						ProtonPass: &esv1.ProtonPassProvider{
 							Username: "user@example.com",
+							Vault:    "my-vault",
 							Auth: &esv1.ProtonPassAuth{
 								SecretRef: esv1.ProtonPassAuthSecretRef{
 									Password: esmeta.SecretKeySelector{
@@ -168,6 +193,7 @@ func TestValidateStore(t *testing.T) {
 					Provider: &esv1.SecretStoreProvider{
 						ProtonPass: &esv1.ProtonPassProvider{
 							Username: "user@example.com",
+							Vault:    "my-vault",
 							Auth: &esv1.ProtonPassAuth{
 								SecretRef: esv1.ProtonPassAuthSecretRef{
 									Password: esmeta.SecretKeySelector{

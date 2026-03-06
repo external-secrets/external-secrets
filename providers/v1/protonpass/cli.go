@@ -30,16 +30,16 @@ import (
 )
 
 const (
-	passCLIBinary          = "pass-cli"
+	passCLIBinary            = "pass-cli"
 	defaultSubprocessTimeout = 30 * time.Second
 )
 
 // Proton Pass CLI errors.
 var (
-	errItemNotFound  = errors.New("item not found")
-	errVaultNotFound = errors.New("vault not found")
-	errFieldNotFound = errors.New("field not found in item")
-	errLoginFailed   = errors.New("failed to login to Proton Pass")
+	errItemNotFound      = errors.New("item not found")
+	errVaultNotFound     = errors.New("vault not found")
+	errFieldNotFound     = errors.New("field not found in item")
+	errLoginFailed       = errors.New("failed to login to Proton Pass")
 	errCLINotFound       = errors.New("pass-cli binary not found")
 	errCommandTimeout    = errors.New("pass-cli command timed out")
 	errAmbiguousItemName = errors.New("multiple items share the same name; use item ID instead")
@@ -57,8 +57,8 @@ type cli struct {
 
 	mu        sync.Mutex
 	loggedIn  bool
-	itemCache map[string][]item // vault -> items
-	vaults    []vault           // cached vaults
+	itemCache map[string][]item   // vault -> items
+	vaults    []vault             // cached vaults
 	itemMap   map[string][]string // itemName -> itemIDs (within configured vault)
 }
 
@@ -110,12 +110,9 @@ func (c *cli) clearCache() {
 	c.vaults = nil
 }
 
-// appendVaultFlag appends --vault-name if a vault is configured.
+// appendVaultFlag appends --vault-name to the argument list.
 func (c *cli) appendVaultFlag(args []string) []string {
-	if c.vault != "" {
-		return append(args, "--vault-name", c.vault)
-	}
-	return args
+	return append(args, "--vault-name", c.vault)
 }
 
 // login performs the login to Proton Pass.
@@ -216,10 +213,7 @@ func (c *cli) listItemsLocked(ctx context.Context) ([]item, error) {
 		return items, nil
 	}
 
-	args := []string{"item", "list", "--output", "json"}
-	if c.vault != "" {
-		args = append(args, c.vault)
-	}
+	args := []string{"item", "list", "--output", "json", c.vault}
 
 	output, err := c.runCommand(ctx, nil, args...)
 	if err != nil {
