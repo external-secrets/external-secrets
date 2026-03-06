@@ -1,0 +1,23 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: my-template-example
+spec:
+  # ...
+  target:
+    name: secret-to-be-created
+    template:
+      engineVersion: v2
+      templateFrom:
+      - target: Data
+        literal: |-
+          {{- $creds := list }}
+          {{- range $user, $pw := . }}
+            {{- $creds = append $creds (printf "%s" (htpasswd $user $pw)) }}
+          {{- end }}
+          auth: {{ $creds | join "\n" | quote }}
+  dataFrom:
+  - extract:
+      key: /ingress-controller/valid-users
+{% endraw %}
