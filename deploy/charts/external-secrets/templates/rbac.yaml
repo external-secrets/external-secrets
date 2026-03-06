@@ -82,7 +82,9 @@ rules:
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
+    {{- if .Values.processGeneratorState}}
     - "generatorstates"
+    {{- end }}
     verbs:
     - "get"
     - "list"
@@ -95,6 +97,7 @@ rules:
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
+    {{- if .Values.processGeneratorState }}
     - "acraccesstokens"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
@@ -113,6 +116,7 @@ rules:
     - "webhooks"
     - "grafanas"
     - "mfas"
+    {{- end }}
     verbs:
     - "get"
     - "list"
@@ -254,6 +258,7 @@ rules:
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
+    {{- if .Values.processGeneratorState}}
     - "acraccesstokens"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
@@ -272,6 +277,7 @@ rules:
     - "generatorstates"
     - "mfas"
     - "uuids"
+    {{- end}}
     verbs:
       - "get"
       - "watch"
@@ -318,6 +324,7 @@ rules:
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
+    {{- if .Values.processGeneratorState}}
     - "acraccesstokens"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
@@ -336,6 +343,7 @@ rules:
     - "generatorstates"
     - "mfas"
     - "uuids"
+    {{- end}}
     verbs:
       - "create"
       - "delete"
