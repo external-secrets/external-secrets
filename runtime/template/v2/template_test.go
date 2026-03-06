@@ -628,6 +628,19 @@ func TestExecute(t *testing.T) {
 				"data_decrypted": []byte("hellopkcs1sha256"),
 			},
 		},
+		{
+			name: "htpasswd with sha1",
+			tpl: map[string][]byte{
+				".htpasswd": []byte(`{{ htpasswd .username .password "sha" }}`),
+			},
+			data: map[string][]byte{
+				"username": []byte("foo1"),
+				"password": []byte("FZ4jR;l]ON;pHKi=_'zh79P"),
+			},
+			expectedData: map[string][]byte{
+				".htpasswd": []byte("foo1:{SHA}wtdJD6OIjUniEJkTlewnKzfFxA4="),
+			},
+		},
 	}
 
 	for _, tt := range tbl {
