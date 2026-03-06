@@ -134,7 +134,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, errors.New(errInvalidStoreProv)
 	}
 	g := spc.Provider.GCPSM
-	if p == nil {
+	if g == nil {
 		return nil, errors.New(errInvalidGCPProv)
 	}
 	if g.Auth.SecretRef != nil {
