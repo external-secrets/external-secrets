@@ -18,6 +18,7 @@ package doppler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,102 +26,140 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/client-go/kubernetes/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/util/fake"
 )
 
-func TestOIDCTokenManager_Token(t *testing.T) {
-	// Mock Doppler OIDC endpoint
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/v3/auth/oidc" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			// Return a token that expires in 1 hour
-			expiresAt := time.Now().Add(time.Hour).Format(time.RFC3339)
-			if _, err := w.Write([]byte(`{"success": true, "token": "doppler_token_123", "expires_at": "` + expiresAt + `"}`)); err != nil {
-				t.Errorf("failed to write response: %v", err)
+func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset()
+
+	// Test with nil store
+	manager := NewOIDCTokenManager(fakeClient.CoreV1(), nil, "default", esv1.SecretStoreKind)
+	assert.Nil(t, manager)
+
+	// Test with nil Auth
+	store := &esv1.DopplerProvider{}
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
+	assert.Nil(t, manager)
+
+	// Test with nil OIDCConfig
+	store.Auth = &esv1.DopplerAuth{}
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
+	assert.Nil(t, manager)
+}
+
+func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
+	tests := []struct {
+		name           string
+		responseBody   map[string]interface{}
+		responseStatus int
+		wantError      bool
+		errorContains  string
+	}{
+		{
+			name: "successful exchange",
+			responseBody: map[string]interface{}{
+				"success":    true,
+				"token":      "doppler_token_123",
+				"expires_at": time.Now().Add(time.Hour).Format(time.RFC3339),
+			},
+			responseStatus: http.StatusOK,
+			wantError:      false,
+		},
+		{
+			name: "failed exchange - success false",
+			responseBody: map[string]interface{}{
+				"success": false,
+				"error":   "invalid identity",
+			},
+			responseStatus: http.StatusOK,
+			wantError:      true,
+			errorContains:  "Doppler OIDC auth failed",
+		},
+		{
+			name: "unauthorized",
+			responseBody: map[string]interface{}{
+				"error": "invalid_token",
+			},
+			responseStatus: http.StatusUnauthorized,
+			wantError:      true,
+			errorContains:  "Doppler OIDC auth failed",
+		},
+		{
+			name:           "server error",
+			responseBody:   nil,
+			responseStatus: http.StatusInternalServerError,
+			wantError:      true,
+			errorContains:  "Doppler OIDC auth failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.responseStatus)
+				if tt.responseBody != nil {
+					_ = json.NewEncoder(w).Encode(tt.responseBody)
+				}
+			}))
+			defer server.Close()
+
+			// Set the custom base URL env var to use the test server
+			t.Setenv(customBaseURLEnvVar, server.URL)
+
+			fakeClient := fake.NewSimpleClientset()
+			store := &esv1.DopplerProvider{
+				Auth: &esv1.DopplerAuth{
+					OIDCConfig: &esv1.DopplerOIDCAuth{
+						Identity: "test-identity",
+						ServiceAccountRef: esmeta.ServiceAccountSelector{
+							Name: "test-sa",
+						},
+					},
+				},
 			}
-			return
-		}
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer server.Close()
 
+			manager := NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
+			require.NotNil(t, manager)
+
+			token, _, err := manager.ExchangeToken(context.Background(), "k8s-token")
+
+			if tt.wantError {
+				require.Error(t, err)
+				if tt.errorContains != "" {
+					assert.Contains(t, err.Error(), tt.errorContains)
+				}
+			} else {
+				require.NoError(t, err)
+				assert.NotEmpty(t, token)
+			}
+		})
+	}
+}
+
+func TestNewOIDCTokenManager_ValidConfig(t *testing.T) {
+	fakeClient := fake.NewSimpleClientset()
+	expSec := int64(600)
 	store := &esv1.DopplerProvider{
 		Auth: &esv1.DopplerAuth{
 			OIDCConfig: &esv1.DopplerOIDCAuth{
-				Identity:          "test-identity",
-				ServiceAccountRef: esmeta.ServiceAccountSelector{Name: "test-sa"},
-				ExpirationSeconds: func() *int64 { v := int64(600); return &v }(),
+				Identity: "test-identity",
+				ServiceAccountRef: esmeta.ServiceAccountSelector{
+					Name: "test-sa",
+				},
+				ExpirationSeconds: &expSec,
 			},
 		},
 	}
 
-	manager := &OIDCTokenManager{
-		corev1:    fake.NewCreateTokenMock().WithToken("k8s_jwt_token"),
-		store:     store,
-		namespace: "test-namespace",
-		storeKind: "SecretStore",
-		storeName: "test-store",
-		baseURL:   server.URL,
-		verifyTLS: false,
-	}
+	manager := NewOIDCTokenManager(
+		fakeClient.CoreV1(),
+		store,
+		"default",
+		esv1.SecretStoreKind,
+	)
 
-	ctx := context.Background()
-
-	// First call should fetch a new token
-	token1, err := manager.Token(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, "doppler_token_123", token1)
-
-	// Second call should return cached token
-	token2, err := manager.Token(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, token1, token2)
-}
-
-func TestOIDCTokenManager_CreateServiceAccountToken(t *testing.T) {
-	store := &esv1.DopplerProvider{
-		Auth: &esv1.DopplerAuth{
-			OIDCConfig: &esv1.DopplerOIDCAuth{
-				Identity:          "test-identity",
-				ServiceAccountRef: esmeta.ServiceAccountSelector{Name: "test-sa", Namespace: func() *string { s := "custom-ns"; return &s }()},
-				ExpirationSeconds: func() *int64 { v := int64(600); return &v }(),
-			},
-		},
-	}
-
-	manager := &OIDCTokenManager{
-		corev1:    fake.NewCreateTokenMock().WithToken("k8s_jwt_token"),
-		store:     store,
-		namespace: "default-namespace",
-		storeKind: "SecretStore",
-		storeName: "test-store",
-		baseURL:   "https://api.doppler.com",
-		verifyTLS: true,
-	}
-
-	token, err := manager.createServiceAccountToken(context.Background())
-	require.NoError(t, err)
-	assert.Equal(t, "k8s_jwt_token", token)
-}
-
-func TestOIDCTokenManager_TokenExpiry(t *testing.T) {
-	manager := &OIDCTokenManager{
-		cachedToken: "test_token",
-		tokenExpiry: time.Now().Add(30 * time.Second), // Token expires in 30 seconds
-	}
-
-	// Token should be considered invalid (less than 60 second buffer)
-	assert.False(t, manager.isTokenValid())
-
-	// Token with more time should be valid
-	manager.tokenExpiry = time.Now().Add(2 * time.Minute)
-	assert.True(t, manager.isTokenValid())
-
-	// Empty token should be invalid
-	manager.cachedToken = ""
-	assert.False(t, manager.isTokenValid())
+	assert.NotNil(t, manager)
 }
