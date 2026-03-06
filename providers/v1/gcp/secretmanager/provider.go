@@ -64,7 +64,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.GCPSM == nil {
 		return nil, errors.New(errGCPSMStore)
 	}
-	gcpStore := storeSpec.Provider.GCPSM
+	gcpStore := storeSpec.Provider.GCPSM.DeepCopy()
 
 	useMu.Lock()
 
