@@ -369,6 +369,56 @@ spec:
       location: us-east1  # Required when using CMEK
 ```
 
+## Adding GCP Secret Manager Labels and Annotations
+
+You can add labels and annotations to your GCP Secret Manager secrets by specifying them in the `metadata` field of the `data` section in your `PushSecret` manifest.
+
+Example:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-gcp
+spec:
+  updatePolicy: Replace # Policy to overwrite existing secrets in the provider on sync
+  deletionPolicy: Delete # the provider's secret will be deleted if the PushSecret is deleted
+  refreshInterval: 1h # Refresh interval for which push secret will reconcile
+  secretStoreRefs:
+    - kind: ClusterSecretStore
+      name: <already set secret store>
+  selector:
+    secret:
+      name: <existing-secret> # Source Kubernetes secret to be pushed
+  template:
+    metadata:
+      annotations:
+        annotation-test-one: "true"
+      labels:
+        label-test-one: "true"
+    data:
+      # If the key source secret key has dashes, then it cannot be accessed directly,
+      # and the "index" function should be used.
+      tmpl-key: "{{ index . \"<key-into-existing-secret>\" }}"
+  data:
+    - conversionStrategy: None # Also supports the ReverseUnicode strategy
+      match:
+        # The secretKey is used within PushSecret (it should match key under spec.template.data)
+        secretKey: tmpl-key
+        remoteRef:
+          remoteKey: <secret-name-into-GCP> # The destination secret object name (where the secret is going to be pushed)
+          metadata:
+            apiVersion: kubernetes.external-secrets.io/v1alpha1
+            kind: PushSecretMetadata
+            spec:
+              cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
+              mergePolicy: Replace # or Merge
+              annotations:
+                annotation-test-one: "true"   # Added into GCP Secret Annotations
+              labels:
+                label-test-one: "true"    # Added into GCP Secret Labels
+```
+
 ## Regional Secrets
 GCP Secret Manager Regional Secrets are available to be used with both ExternalSecrets and PushSecrets.
 
