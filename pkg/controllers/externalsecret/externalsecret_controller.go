@@ -800,7 +800,7 @@ func (r *Reconciler) getRequeueResult(externalSecret *esv1.ExternalSecret) ctrl.
 }
 
 func (r *Reconciler) markAsDone(externalSecret *esv1.ExternalSecret, start time.Time, log logr.Logger, reason, msg string) {
-	oldReadyCondition := GetExternalSecretCondition(externalSecret.Status, esv1.ExternalSecretReady)
+	oldReadyCondition := esv1.GetExternalSecretCondition(externalSecret.Status, esv1.ExternalSecretReady)
 	newReadyCondition := NewExternalSecretCondition(esv1.ExternalSecretReady, v1.ConditionTrue, reason, msg)
 	SetExternalSecretCondition(externalSecret, *newReadyCondition)
 
