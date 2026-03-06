@@ -633,7 +633,8 @@ func TestMysteryboxClientsCache_EvictionClosesClient(t *testing.T) {
 
 	tassert.Len(t, created, 2, "expected 2 clients created, got %d", len(created))
 
-	tassert.Equal(t, int32(1), atomic.LoadInt32(&created[0].Closed), "expected second client to be closed")
+	// clients are not closed because of the eviction policy for provider's mysterybox clients connections cache
+	tassert.Equal(t, int32(0), atomic.LoadInt32(&created[0].Closed), "expected second client not to be closed")
 	tassert.Equal(t, int32(0), atomic.LoadInt32(&created[1].Closed), "expected second client not to be closed")
 }
 
@@ -773,8 +774,9 @@ func TestMysteryboxClientsCache_ConcurrentEviction_CloseOnce(t *testing.T) {
 	wg.Wait()
 
 	tassert.Len(t, created, 3, "expected 3 clients created, got %d", len(created))
-	tassert.Equal(t, int32(1), atomic.LoadInt32(&created[0].Closed), "expected first client to be closed on eviction")
-	tassert.Equal(t, int32(1), atomic.LoadInt32(&created[1].Closed), "expected first client to be closed on eviction")
+	// clients are not closed because of the eviction policy for provider's mysterybox clients connections cache
+	tassert.Equal(t, int32(0), atomic.LoadInt32(&created[0].Closed), "expected first client not to be closed on eviction")
+	tassert.Equal(t, int32(0), atomic.LoadInt32(&created[1].Closed), "expected first client not to be closed on eviction")
 	tassert.Equal(t, int32(0), atomic.LoadInt32(&created[2].Closed), "expected first client not to be closed on eviction")
 }
 
