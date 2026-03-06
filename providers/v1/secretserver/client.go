@@ -213,7 +213,7 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 	}
 
 	normalizedName := strings.Trim(name, "/")
-	if meta.FolderID > 0 && strings.Contains(normalizedName, "/") {
+	if strings.Contains(normalizedName, "/") {
 		parts := strings.Split(normalizedName, "/")
 		if len(parts) > 0 {
 			normalizedName = parts[len(parts)-1]
@@ -348,36 +348,36 @@ func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	// If the ref.Key looks like a full path (starts with "/"), fetch by path.
 	// Example: "/Folder/Subfolder/SecretName"
 	if strings.HasPrefix(ref.Key, "/") {
-		s, err := c.api.SecretByPath(ref.Key)
-		if err != nil {
-			return nil, err
-		}
-		return s, nil
+		return c.api.SecretByPath(ref.Key)
 	}
 
 	// Otherwise try converting it to an ID
-	id, err := strconv.Atoi(ref.Key)
+	if id, err := strconv.Atoi(ref.Key); err == nil {
+		return c.api.Secret(id)
+	}
+
+	return c.getSecretByName(ref.Key, folderID)
+}
+
+func (c *client) getSecretByName(name string, folderID int) (*server.Secret, error) {
+	secrets, err := c.api.Secrets(name, "Name")
 	if err != nil {
-		secrets, err := c.api.Secrets(ref.Key, "Name")
-		if err != nil {
-			return nil, err
-		}
-		if len(secrets) == 0 {
-			return nil, errors.New(errMsgUnableToRetrieve)
-		}
+		return nil, err
+	}
+	if len(secrets) == 0 {
+		return nil, errors.New(errMsgUnableToRetrieve)
+	}
 
-		if folderID > 0 {
-			for _, s := range secrets {
-				if s.FolderID == folderID {
-					return &s, nil
-				}
-			}
-			return nil, errors.New(errMsgNotFound)
-		}
-
+	if folderID <= 0 {
 		return &secrets[0], nil
 	}
-	return c.api.Secret(id)
+
+	for _, s := range secrets {
+		if s.FolderID == folderID {
+			return &s, nil
+		}
+	}
+	return nil, errors.New(errMsgNotFound)
 }
 
 func findTemplateFieldID(template *server.SecretTemplate, property string) (int, bool) {
