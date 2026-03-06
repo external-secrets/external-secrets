@@ -289,7 +289,7 @@ func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1.Ex
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (vms *VaultManagementService) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient constructs a new secrets client based on the provided store.
