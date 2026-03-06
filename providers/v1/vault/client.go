@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
@@ -39,16 +40,17 @@ import (
 var _ esv1.SecretsClient = &client{}
 
 type client struct {
-	kube      kclient.Client
-	store     *esv1.VaultProvider
-	log       logr.Logger
-	corev1    typedcorev1.CoreV1Interface
-	client    vaultutil.Client
-	auth      vaultutil.Auth
-	logical   vaultutil.Logical
-	token     vaultutil.Token
-	namespace string
-	storeKind string
+	kube            kclient.Client
+	store           *esv1.VaultProvider
+	log             logr.Logger
+	corev1          typedcorev1.CoreV1Interface
+	client          vaultutil.Client
+	auth            vaultutil.Auth
+	logical         vaultutil.Logical
+	token           vaultutil.Token
+	tokenExpiryTime *time.Time
+	namespace       string
+	storeKind       string
 }
 
 func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {
