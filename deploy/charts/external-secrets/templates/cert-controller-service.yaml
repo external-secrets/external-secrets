@@ -11,7 +11,7 @@ metadata:
   namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
-  {{- with .Values.metrics.service.annotations }}
+  {{- with .Values.certController.metrics.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
