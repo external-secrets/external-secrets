@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -29,7 +30,14 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 )
+
+// PushSecretMetadataSpec contains metadata information for pushing secrets to Delinea Secret Server.
+type PushSecretMetadataSpec struct {
+	FolderID         int `json:"folderId"`
+	SecretTemplateID int `json:"secretTemplateId"`
+}
 
 type client struct {
 	api secretAPI
@@ -92,19 +100,163 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return []byte(out), nil
 }
 
-// PushSecret not supported at this time.
-func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
-	return errors.New("pushing secrets is not supported by Secret Server at this time")
+// PushSecret creates or updates a secret in Delinea Secret Server.
+func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	if data.GetRemoteKey() == "" {
+		return errors.New("remote key must be defined")
+	}
+
+	value, err := esutils.ExtractSecretData(data, secret)
+	if err != nil {
+		return fmt.Errorf("failed to extract secret data: %w", err)
+	}
+
+	// Look up the secret to see if it exists
+	remoteRef := esv1.ExternalSecretDataRemoteRef{
+		Key: data.GetRemoteKey(),
+	}
+	existingSecret, err := c.getSecret(ctx, remoteRef)
+	if err != nil {
+		if !strings.Contains(err.Error(), "unable to retrieve secret") && !strings.Contains(err.Error(), "not found") {
+			return fmt.Errorf("failed to get secret: %w", err)
+		}
+		existingSecret = nil
+	}
+
+	if existingSecret != nil {
+		// Update existing secret
+		return c.updateSecret(existingSecret, data.GetProperty(), string(value))
+	}
+
+	// Secret doesn't exist, create it
+	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	if meta == nil || meta.Spec.FolderID <= 0 || meta.Spec.SecretTemplateID <= 0 {
+		return errors.New("folderId and secretTemplateId must be provided in metadata to create a new secret")
+	}
+
+	return c.createSecret(data.GetRemoteKey(), data.GetProperty(), string(value), meta.Spec)
 }
 
-// DeleteSecret not supported at this time.
-func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return errors.New("deleting secrets is not supported by Secret Server at this time")
+// updateSecret updates an existing secret in Delinea Secret Server.
+func (c *client) updateSecret(secret *server.Secret, property string, value string) error {
+	if property == "" {
+		// If property is empty, put the JSON value in the first field, matching GetSecretMap logic
+		if len(secret.Fields) > 0 {
+			secret.Fields[0].ItemValue = value
+		} else {
+			return errors.New("secret has no fields to update")
+		}
+	} else {
+		found := false
+		for i, field := range secret.Fields {
+			if field.Slug == property || field.FieldName == property {
+				secret.Fields[i].ItemValue = value
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("field %s not found in secret", property)
+		}
+	}
+
+	_, err := c.api.UpdateSecret(*secret)
+	if err != nil {
+		return fmt.Errorf("failed to update secret: %w", err)
+	}
+	return nil
 }
 
-// SecretExists not supported at this time.
-func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+// createSecret creates a new secret in Delinea Secret Server.
+func (c *client) createSecret(name, property, value string, meta PushSecretMetadataSpec) error {
+	template, err := c.api.SecretTemplate(meta.SecretTemplateID)
+	if err != nil {
+		return fmt.Errorf("failed to get secret template: %w", err)
+	}
+
+	newSecret := server.Secret{
+		Name:             name,
+		FolderID:         meta.FolderID,
+		SecretTemplateID: meta.SecretTemplateID,
+		Fields:           make([]server.SecretField, 0),
+	}
+
+	if property == "" {
+		// Populate the first field of the template with the whole JSON
+		if len(template.Fields) == 0 {
+			return errors.New("secret template has no fields")
+		}
+		newSecret.Fields = append(newSecret.Fields, server.SecretField{
+			FieldID:   template.Fields[0].SecretTemplateFieldID,
+			ItemValue: value,
+		})
+	} else {
+		// Populate the specific property
+		fieldId, found := template.FieldSlugToId(property)
+		if !found {
+			// fallback check if they used name instead of slug
+			for _, f := range template.Fields {
+				if f.Name == property || f.FieldSlugName == property {
+					fieldId = f.SecretTemplateFieldID
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			return fmt.Errorf("field %s not found in secret template", property)
+		}
+		newSecret.Fields = append(newSecret.Fields, server.SecretField{
+			FieldID:   fieldId,
+			ItemValue: value,
+		})
+	}
+
+	_, err = c.api.CreateSecret(newSecret)
+	if err != nil {
+		return fmt.Errorf("failed to create secret: %w", err)
+	}
+	return nil
+}
+
+// DeleteSecret deletes a secret in Delinea Secret Server.
+func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+	remoteRef := esv1.ExternalSecretDataRemoteRef{
+		Key: ref.GetRemoteKey(),
+	}
+	secret, err := c.getSecret(ctx, remoteRef)
+	if err != nil {
+		// If already deleted/not found, ignore
+		if strings.Contains(err.Error(), "unable to retrieve secret") || strings.Contains(err.Error(), "not found") {
+			return nil
+		}
+		return fmt.Errorf("failed to get secret for deletion: %w", err)
+	}
+
+	err = c.api.DeleteSecret(secret.ID)
+	if err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+	return nil
+}
+
+// SecretExists checks if a secret exists in Delinea Secret Server.
+func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	remoteRef := esv1.ExternalSecretDataRemoteRef{
+		Key: ref.GetRemoteKey(),
+	}
+	_, err := c.getSecret(ctx, remoteRef)
+	if err != nil {
+		if strings.Contains(err.Error(), "unable to retrieve secret") || strings.Contains(err.Error(), "not found") {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check if secret exists: %w", err)
+	}
+	return true, nil
 }
 
 // Validate not supported at this time.
@@ -120,7 +272,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		return nil, err
 	}
 	// Ensure secret has fields before indexing into them
-	if secret.Fields == nil || len(secret.Fields) == 0 {
+	if len(secret.Fields) == 0 {
 		return nil, errors.New("secret contains no fields")
 	}
 

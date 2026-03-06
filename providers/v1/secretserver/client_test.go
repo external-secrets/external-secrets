@@ -26,6 +26,8 @@ import (
 	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
@@ -70,6 +72,84 @@ func (f *fakeAPI) SecretByPath(path string) (*server.Secret, error) {
 		}
 	}
 	return nil, errNotFound
+}
+
+// CreateSecret is a mock implementation of the Secret Server API CreateSecret method.
+// It returns a predefined secret based on the SecretTemplateID provided.
+func (f *fakeAPI) CreateSecret(secret server.Secret) (*server.Secret, error) {
+	if secret.Name == "simulate-create-error" {
+		return nil, errors.New("simulated create error")
+	}
+	secret.ID = len(f.secrets) + 10000
+
+	// Simulate populating FieldName and Slug based on FieldID
+	template, _ := f.SecretTemplate(secret.SecretTemplateID)
+	if template != nil {
+		for i, field := range secret.Fields {
+			for _, tField := range template.Fields {
+				if tField.SecretTemplateFieldID == field.FieldID {
+					secret.Fields[i].Slug = tField.FieldSlugName
+					secret.Fields[i].FieldName = tField.Name
+				}
+			}
+		}
+	}
+
+	f.secrets = append(f.secrets, &secret)
+	return &secret, nil
+}
+
+// UpdateSecret is a mock implementation of the Secret Server API UpdateSecret method.
+// It returns an error if a predefined test condition is met, otherwise it simulates success.
+func (f *fakeAPI) UpdateSecret(secret server.Secret) (*server.Secret, error) {
+	for i, s := range f.secrets {
+		if s.ID == secret.ID {
+			f.secrets[i] = &secret
+			return &secret, nil
+		}
+	}
+	return nil, errNotFound
+}
+
+// DeleteSecret is a mock implementation of the Secret Server API DeleteSecret method.
+// It returns an error if the id corresponds to a simulated failure case.
+func (f *fakeAPI) DeleteSecret(id int) error {
+	for i, s := range f.secrets {
+		if s.ID == id {
+			f.secrets = append(f.secrets[:i], f.secrets[i+1:]...)
+			return nil
+		}
+	}
+	return errNotFound
+}
+
+// SecretTemplate is a mock implementation of the Secret Server API SecretTemplate method.
+// It returns a predefined template or an error based on the requested id.
+func (f *fakeAPI) SecretTemplate(id int) (*server.SecretTemplate, error) {
+	if id == 999 {
+		return nil, errors.New("template not found")
+	}
+	return &server.SecretTemplate{
+		ID:   id,
+		Name: "Test Template",
+		Fields: []server.SecretTemplateField{
+			{
+				SecretTemplateFieldID: 1,
+				FieldSlugName:         "username",
+				Name:                  "Username",
+			},
+			{
+				SecretTemplateFieldID: 2,
+				FieldSlugName:         "password",
+				Name:                  "Password",
+			},
+			{
+				SecretTemplateFieldID: 3,
+				FieldSlugName:         "notes",
+				Name:                  "Notes",
+			},
+		},
+	}, nil
 }
 
 func createSecret(id int, itemValue string) (*server.Secret, error) {
@@ -419,15 +499,79 @@ func TestGetSecretWithVersion(t *testing.T) {
 	}
 }
 
+// fakePushSecretData implements esv1.PushSecretData for testing
+type fakePushSecretData struct {
+	remoteKey string
+	property  string
+	secretKey string
+	metadata  *apiextensionsv1.JSON
+}
+
+// GetRemoteKey returns the remote key for the fake push secret data.
+func (f fakePushSecretData) GetRemoteKey() string { return f.remoteKey }
+
+// GetProperty returns the property for the fake push secret data.
+func (f fakePushSecretData) GetProperty() string { return f.property }
+
+// GetSecretKey returns the secret key for the fake push secret data.
+func (f fakePushSecretData) GetSecretKey() string { return f.secretKey }
+
+// GetMetadata returns the metadata for the fake push secret data.
+func (f fakePushSecretData) GetMetadata() *apiextensionsv1.JSON { return f.metadata }
+
+// fakePushSecretRemoteRef implements esv1.PushSecretRemoteRef for testing
+type fakePushSecretRemoteRef struct {
+	remoteKey string
+	property  string
+}
+
+// GetRemoteKey returns the remote key for the fake remote ref.
+func (f fakePushSecretRemoteRef) GetRemoteKey() string { return f.remoteKey }
+
+// GetProperty returns the property for the fake remote ref.
+func (f fakePushSecretRemoteRef) GetProperty() string { return f.property }
+
 // TestPushSecret tests the PushSecret functionality.
 func TestPushSecret(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
 
-	var data esv1.PushSecretData
-	err := c.PushSecret(ctx, nil, data)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not supported")
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"my-key": []byte("my-value"),
+		},
+	}
+
+	metadataJSON := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1}}`),
+	}
+
+	// 1. Create a new secret
+	data := fakePushSecretData{
+		remoteKey: "new-secret",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &metadataJSON,
+	}
+	err := c.PushSecret(ctx, secret, data)
+	assert.NoError(t, err)
+
+	// Verify the secret was created
+	createdSecret, _ := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "new-secret", Property: "username"})
+	assert.Equal(t, []byte("my-value"), createdSecret)
+
+	// 2. Update an existing secret
+	dataUpdate := fakePushSecretData{
+		remoteKey: "4000",
+		property:  "password",
+		secretKey: "my-key", // "my-value" will replace the badPassword
+	}
+	err = c.PushSecret(ctx, secret, dataUpdate)
+	assert.NoError(t, err)
+
+	// Verify update
+	updatedSecret, _ := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "4000", Property: "password"})
+	assert.Equal(t, []byte("my-value"), updatedSecret)
 }
 
 // TestDeleteSecret tests the DeleteSecret functionality.
@@ -435,10 +579,27 @@ func TestDeleteSecret(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
 
-	var data esv1.PushSecretRemoteRef
-	err := c.DeleteSecret(ctx, data)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not supported")
+	ref := fakePushSecretRemoteRef{
+		remoteKey: "1000",
+	}
+
+	// Should exist initially
+	exists, err := c.SecretExists(ctx, ref)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	// Delete it
+	err = c.DeleteSecret(ctx, ref)
+	assert.NoError(t, err)
+
+	// Should not exist now
+	exists, err = c.SecretExists(ctx, ref)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	// Deleting again should not return an error (idempotent)
+	err = c.DeleteSecret(ctx, ref)
+	assert.NoError(t, err)
 }
 
 // TestSecretExists tests the SecretExists functionality.
@@ -446,11 +607,34 @@ func TestSecretExists(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
 
-	var data esv1.PushSecretRemoteRef
-	exists, err := c.SecretExists(ctx, data)
-	assert.False(t, exists)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not implemented")
+	testCases := map[string]struct {
+		ref     esv1.PushSecretRemoteRef
+		want    bool
+		wantErr bool
+	}{
+		"existing secret": {
+			ref:     fakePushSecretRemoteRef{remoteKey: "1000"},
+			want:    true,
+			wantErr: false,
+		},
+		"non-existing secret": {
+			ref:     fakePushSecretRemoteRef{remoteKey: "does-not-exist"},
+			want:    false,
+			wantErr: false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := c.SecretExists(ctx, tc.ref)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
 }
 
 // TestValidate tests the Validate functionality.

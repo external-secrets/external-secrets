@@ -272,3 +272,84 @@ returns: The entire secret in JSON format as displayed below
   ]
 }
 ```
+
+### Pushing Secrets
+
+The Delinea Secret-Server/Platform provider supports pushing secrets from Kubernetes back to your Secret Server instance using the `PushSecret` resource. You can both create new secrets and update existing ones.
+
+#### Requirements for Creating New Secrets
+
+When creating a **new** secret in Secret Server, you must provide a `folderId` and a `secretTemplateId`. These are passed as `metadata` in the `PushSecret` spec:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: secret-server-store
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-k8s-secret
+  data:
+    - match:
+        secretKey: username
+        remoteRef:
+          remoteKey: my-new-secret
+          property: username # Maps to the 'Username' field/slug in Secret Server
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73 # Required for new secrets
+          secretTemplateId: 6098 # Required for new secrets
+    - match:
+        secretKey: password
+        remoteRef:
+          remoteKey: my-new-secret
+          property: password # Maps to the 'Password' field/slug in Secret Server
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73
+          secretTemplateId: 6098
+```
+
+#### Updating Existing Secrets
+
+When updating an existing secret, you do not strictly need the `folderId` or `secretTemplateId` metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.
+
+#### Pushing JSON Payloads
+
+If your Kubernetes secret contains a full JSON payload that you want to push into a single text field in Secret Server (like a `Data` or `Notes` field), you can omit the `property` in the `remoteRef`. The provider will place the complete JSON representation of your secret into the **first** field of the Secret Server secret.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-json-example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: secret-server-store
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-k8s-json-secret
+  data:
+    - match:
+        secretKey: config # The key in your k8s secret containing the JSON
+        remoteRef:
+          remoteKey: my-new-json-secret
+          # property is omitted to store the value in the first available field
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73
+          secretTemplateId: 6098
+```

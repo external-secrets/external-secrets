@@ -23,7 +23,18 @@ import (
 // secretAPI represents the subset of the Secret Server API
 // which is supported by tss-sdk-go/v3.
 type secretAPI interface {
+	// Secret retrieves a secret by its ID.
 	Secret(id int) (*server.Secret, error)
+	// Secrets searches for secrets by text and field name.
 	Secrets(searchText, field string) ([]server.Secret, error)
+	// SecretByPath retrieves a secret using its folder path.
 	SecretByPath(secretPath string) (*server.Secret, error)
+	// CreateSecret creates a new secret in Secret Server.
+	CreateSecret(secret server.Secret) (*server.Secret, error)
+	// UpdateSecret updates an existing secret in Secret Server.
+	UpdateSecret(secret server.Secret) (*server.Secret, error)
+	// DeleteSecret deletes a secret by its ID.
+	DeleteSecret(id int) error
+	// SecretTemplate retrieves a secret template by its ID.
+	SecretTemplate(id int) (*server.SecretTemplate, error)
 }
