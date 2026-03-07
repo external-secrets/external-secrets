@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -989,4 +990,99 @@ func TestGetAllSecrets(t *testing.T) {
 // Helper function to create string pointer.
 func esv1Ptr(s string) *string {
 	return &s
+}
+
+// TestIsNotFoundError tests the isNotFoundError function with various error formats.
+func TestIsNotFoundError(t *testing.T) {
+	testCases := map[string]struct {
+		err  error
+		want bool
+	}{
+		"nil error": {
+			err:  nil,
+			want: false,
+		},
+		"exact lowercase not found": {
+			err:  errors.New("not found"),
+			want: true,
+		},
+		"SDK HTTP 404 format": {
+			err:  errors.New("404 Not Found: no secret was found"),
+			want: true,
+		},
+		"no matching secrets": {
+			err:  errors.New("no matching secrets"),
+			want: true,
+		},
+		"unrelated error": {
+			err:  errors.New("connection refused"),
+			want: false,
+		},
+		"field not found in secret": {
+			// This error message from updateSecret contains "not found" and will match.
+			// Callers must not pass these through isNotFoundError; this test documents the behavior.
+			err:  fmt.Errorf("field password not found in secret"),
+			want: true,
+		},
+		"mixed case Not Found": {
+			err:  errors.New("Not Found"),
+			want: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := isNotFoundError(tc.err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+// TestPushSecretInvalidPathKeys tests that PushSecret rejects path-style keys with
+// empty final segments (root slash, double slash, etc.) that would produce an empty secret name.
+func TestPushSecretInvalidPathKeys(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient(t)
+
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"my-key": []byte("my-value"),
+		},
+	}
+
+	metadataJSON := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1}}`),
+	}
+
+	testCases := map[string]struct {
+		remoteKey string
+		errMsg    string
+	}{
+		"root slash only": {
+			remoteKey: "/",
+			errMsg:    "invalid secret name",
+		},
+		"double slash": {
+			remoteKey: "//",
+			errMsg:    "invalid secret name",
+		},
+		"triple slash": {
+			remoteKey: "///",
+			errMsg:    "invalid secret name",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			data := fakePushSecretData{
+				remoteKey: tc.remoteKey,
+				property:  "username",
+				secretKey: "my-key",
+				metadata:  &metadataJSON,
+			}
+			err := c.PushSecret(ctx, secret, data)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tc.errMsg)
+		})
+	}
 }

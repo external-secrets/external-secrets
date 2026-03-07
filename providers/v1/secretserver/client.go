@@ -35,22 +35,21 @@ import (
 )
 
 const (
-	// tss-sdk-go currently does not expose typed errors for not found or unable to retrieve scenarios.
-	// We depend on these exact string messages returned by the SDK to determine if a secret exists or not.
-	// If the SDK changes these error messages, these constants will need to be updated.
-	// See SDK documentation or source code for error message formats.
-	errMsgUnableToRetrieve = "unable to retrieve secret"
-	errMsgNotFound         = "not found"
+	// errMsgNoMatchingSecrets is returned by getSecretByName when a search returns zero results.
+	errMsgNoMatchingSecrets = "no matching secrets"
+	// errMsgNotFound is returned when a secret is not found in a specific folder.
+	errMsgNotFound = "not found"
 )
 
-// isNotFoundError checks if an error from the SDK indicates a secret was not found.
-// It relies on string matching against specific messages because tss-sdk-go does not
-// provide typed sentinel errors for these cases.
+// isNotFoundError checks if an error indicates a secret was not found.
+// Uses case-insensitive matching to also catch the SDK's "404 Not Found: ..." HTTP errors,
+// since tss-sdk-go v3 does not expose typed errors.
 func isNotFoundError(err error) bool {
 	if err == nil {
 		return false
 	}
-	return strings.Contains(err.Error(), errMsgUnableToRetrieve) || strings.Contains(err.Error(), errMsgNotFound)
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, errMsgNoMatchingSecrets) || strings.Contains(msg, errMsgNotFound)
 }
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to Delinea Secret Server.
@@ -215,9 +214,10 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 	normalizedName := strings.Trim(name, "/")
 	if strings.Contains(normalizedName, "/") {
 		parts := strings.Split(normalizedName, "/")
-		if len(parts) > 0 {
-			normalizedName = parts[len(parts)-1]
-		}
+		normalizedName = parts[len(parts)-1]
+	}
+	if normalizedName == "" {
+		return fmt.Errorf("invalid secret name %q: name must not be empty or end with a trailing slash", name)
 	}
 
 	newSecret := server.Secret{
@@ -365,7 +365,7 @@ func (c *client) getSecretByName(name string, folderID int) (*server.Secret, err
 		return nil, err
 	}
 	if len(secrets) == 0 {
-		return nil, errors.New(errMsgUnableToRetrieve)
+		return nil, errors.New(errMsgNoMatchingSecrets)
 	}
 
 	if folderID <= 0 {
