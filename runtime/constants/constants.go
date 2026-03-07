@@ -121,6 +121,11 @@ const (
 	CallOnePasswordSDKFilesRead   = "FilesRead"
 	CallOnePasswordSDKVaultsList  = "VaultsList"
 
+	ProviderNebiusMysterybox           = "Nebius/Mysterybox"
+	CallNebiusMysteryboxGetSecret      = "GetSecret"
+	CallNebiusMysteryboxGetSecretByKey = "GetSecretByKey"
+	CallNebiusMysteryboxAuth           = "Auth"
+
 	StatusError   = "error"
 	StatusSuccess = "success"
 
