@@ -18,9 +18,9 @@ package v1
 
 // GetExternalSecretCondition returns the condition with the provided type.
 func GetExternalSecretCondition(status ExternalSecretStatus, condType ExternalSecretConditionType) *ExternalSecretStatusCondition {
-	for _, c := range status.Conditions {
-		if c.Type == condType {
-			return &c
+	for i := range status.Conditions {
+		if status.Conditions[i].Type == condType {
+			return &status.Conditions[i]
 		}
 	}
 
