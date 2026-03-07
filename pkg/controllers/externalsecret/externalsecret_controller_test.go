@@ -1872,7 +1872,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				}
 				// condition must now be true!
 				cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
-				if cond == nil && cond.Status != v1.ConditionTrue {
+				if cond == nil || cond.Status != v1.ConditionTrue {
 					return false
 				}
 				return true
@@ -2739,6 +2739,21 @@ var _ = Describe("ExternalSecret update predicate", func() {
 		newES := oldES.DeepCopy()
 		now := metav1.Now()
 		newES.DeletionTimestamp = &now
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when finalizers change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Finalizers: []string{"external-secrets.io/finalizer"},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Finalizers = nil
 
 		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
 	})

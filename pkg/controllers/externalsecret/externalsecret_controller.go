@@ -1337,6 +1337,10 @@ func shouldEnqueueExternalSecretUpdate(oldObj, newObj client.Object) bool {
 		return true
 	}
 
+	if !equality.Semantic.DeepEqual(oldES.GetFinalizers(), newES.GetFinalizers()) {
+		return true
+	}
+
 	oldDeletion := oldES.GetDeletionTimestamp()
 	newDeletion := newES.GetDeletionTimestamp()
 	if oldDeletion == nil && newDeletion == nil {
