@@ -280,7 +280,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			// default condition: es should be ready
 			targetSecretName: ExternalSecretTargetSecretName,
 			checkCondition: func(es *esv1.ExternalSecret) bool {
-				cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+				cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 				if cond == nil || cond.Status != v1.ConditionTrue {
 					return false
 				}
@@ -1659,14 +1659,14 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			"bar/foo": []byte(BarValue),
 		}, nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
 			return true
 		}
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1708,14 +1708,14 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			"bar/foo": []byte(BarValue),
 		}, nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
 			return true
 		}
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1847,7 +1847,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		fakeProvider.WithGetSecret(nil, errors.New("boom"))
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Millisecond * 100}
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1871,8 +1871,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 					return false
 				}
 				// condition must now be true!
-				cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
-				if cond == nil && cond.Status != v1.ConditionTrue {
+				cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+				if cond == nil || cond.Status != v1.ConditionTrue {
 					return false
 				}
 				return true
@@ -1885,7 +1885,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	storeMissingErrCondition := func(tc *testCase) {
 		tc.externalSecret.Spec.SecretStoreRef.Name = "nonexistent"
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1911,7 +1911,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		})
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
 			// condition must be false
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1933,7 +1933,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	ignoreMismatchController := func(tc *testCase) {
 		tc.secretStore.GetSpec().Controller = "nop"
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			return cond == nil
 		}
 		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
@@ -1968,7 +1968,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		)).To(BeTrue())
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			return cond == nil
 		}
 	}
@@ -2158,7 +2158,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2175,7 +2175,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2195,7 +2195,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2237,7 +2237,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2267,7 +2267,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2319,7 +2319,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2659,6 +2659,103 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			})
 			Expect(h1).To(Equal(h2))
 		})
+	})
+})
+
+var _ = Describe("ExternalSecret update predicate", func() {
+	It("should ignore status-only updates", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+			Status: esv1.ExternalSecretStatus{
+				RefreshTime: metav1.Now(),
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Status.RefreshTime = metav1.NewTime(time.Now().Add(time.Minute))
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeFalse())
+	})
+
+	It("should enqueue when generation changes", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Generation = 2
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when labels change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Labels: map[string]string{
+					"app": "a",
+				},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Labels["app"] = "b"
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when annotations change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Annotations: map[string]string{
+					"note": "a",
+				},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Annotations["note"] = "b"
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when deletion timestamp changes", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+		}
+		newES := oldES.DeepCopy()
+		now := metav1.Now()
+		newES.DeletionTimestamp = &now
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when finalizers change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Finalizers: []string{"external-secrets.io/finalizer"},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Finalizers = nil
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
 	})
 })
 
