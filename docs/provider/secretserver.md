@@ -63,7 +63,7 @@ spec:
     data:
       - secretKey: SecretServerValue #<SECRET_VALUE_RETURNED_HERE>
         remoteRef:
-          key: "52622" #<SECRET_ID>
+          key: "53974" #<SECRET_ID>
           property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
 
@@ -88,7 +88,7 @@ spec:
     data:
       - secretKey: password
         remoteRef:
-          key: "52622"      # Secret ID
+          key: "53974"      # Secret ID
           property: "password"  # FieldName or Slug of the password field
 ```
 
@@ -137,7 +137,7 @@ Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
 
->spec.data.remoteRef.key = 52622 (id of the secret)<br />
+>spec.data.remoteRef.key = 53974 (id of the secret)<br />
 spec.data.remoteRef.property = "user" (Items.0.ItemValue user attribute)<br />
 returns: marktwain@hannibal.com
 
@@ -149,7 +149,7 @@ returns: huckleberryFinn
 
 - Lookup by secret ID (*secret name will work as well*) and return the entire secret.
 
->spec.data.remoteRef.key = "52622" (id of the secret)<br />
+>spec.data.remoteRef.key = "53974" (id of the secret)<br />
 spec.data.remoteRef.property = "" <br />
 returns: The entire secret in JSON format as displayed below
 
@@ -158,7 +158,7 @@ returns: The entire secret in JSON format as displayed below
 {
   "Name": "external-secret-testing",
   "FolderID": 73,
-  "ID": 52622,
+  "ID": 53974,
   "SiteID": 1,
   "SecretTemplateID": 6098,
   "SecretPolicyID": -1,
@@ -205,7 +205,7 @@ Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
 
->spec.data.remoteRef.key = 4000 (id of the secret)<br />
+>spec.data.remoteRef.key = 53974 (id of the secret)<br />
 spec.data.remoteRef.property = "Username" (Items.0.FieldName)<br />
 returns: usernamevalue
 
@@ -217,7 +217,7 @@ returns: passwordvalue
 
 - Lookup by secret ID (*secret name will work as well*) and return the entire secret.
 
->spec.data.remoteRef.key = "4000" (id of the secret)<br />
+>spec.data.remoteRef.key = "53974" (id of the secret)<br />
 returns: The entire secret in JSON format as displayed below
 
 
@@ -225,7 +225,7 @@ returns: The entire secret in JSON format as displayed below
 {
   "Name": "Secretname",
   "FolderID": 0,
-  "ID": 4000,
+  "ID": 53974,
   "SiteID": 0,
   "SecretTemplateID": 0,
   "LauncherConnectAsSecretID": 0,
@@ -271,4 +271,93 @@ returns: The entire secret in JSON format as displayed below
     }
   ]
 }
+```
+
+### Pushing Secrets
+
+The Delinea Secret-Server/Platform provider supports pushing secrets from Kubernetes back to your Secret Server instance using the `PushSecret` resource. You can both create new secrets and update existing ones.
+
+#### Requirements for Creating New Secrets
+
+When creating a **new** secret in Secret Server, you must provide a `folderId` and a `secretTemplateId`. These are passed as `metadata` in the `PushSecret` spec:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: secret-server-store
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-k8s-secret
+  data:
+    - match:
+        secretKey: username
+        remoteRef:
+          remoteKey: my-new-secret
+          property: username # Maps to the 'Username' field/slug in Secret Server
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73 # Required for new secrets
+          secretTemplateId: 6098 # Required for new secrets
+    - match:
+        secretKey: password
+        remoteRef:
+          remoteKey: my-new-secret
+          property: password # Maps to the 'Password' field/slug in Secret Server
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73
+          secretTemplateId: 6098
+```
+
+#### Updating Existing Secrets
+
+When updating an existing secret, you do not strictly need the `folderId` or `secretTemplateId` metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.
+
+#### Deletion Behavior
+
+The `PushSecret` resource allows you to configure what happens to the remote secret in Secret Server when the `PushSecret` itself is deleted, via the `PushSecret.spec.deletionPolicy` field. Supported values are:
+- `Retain`: (Default) The remote secret is left intact in Secret Server when the `PushSecret` is deleted.
+- `Delete`: The provider will attempt to delete the remote secret from Secret Server when the `PushSecret` is removed.
+
+When `Delete` is specified, the deletion operation is idempotent; if the secret has already been removed or cannot be found, the provider will safely ignore the error and proceed. Note that this deletion uses the exact remote key (ID, name, or path) configured in the `remoteRef` to match and remove the secret.
+
+#### Pushing JSON Payloads
+
+If your Kubernetes secret contains a full JSON payload that you want to push into a single text field in Secret Server (like a `Data` or `Notes` field), you can omit the `property` in the `remoteRef`. The provider will place the complete JSON representation of your secret into the **first** field of the Secret Server secret.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-json-example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: secret-server-store
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-k8s-json-secret
+  data:
+    - match:
+        secretKey: config # The key in your k8s secret containing the JSON
+        remoteRef:
+          remoteKey: my-new-json-secret
+          # property is omitted to store the value in the first available field
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73
+          secretTemplateId: 6098
 ```

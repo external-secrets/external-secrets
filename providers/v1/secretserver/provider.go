@@ -52,7 +52,7 @@ var _ esv1.Provider = &Provider{}
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient creates a new secrets client based on provided store.
