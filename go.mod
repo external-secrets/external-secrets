@@ -46,6 +46,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk => ./providers/v1/onepasswordsdk
 	github.com/external-secrets/external-secrets/providers/v1/oracle => ./providers/v1/oracle
+	github.com/external-secrets/external-secrets/providers/v1/ovh => ./providers/v1/ovh
 	github.com/external-secrets/external-secrets/providers/v1/passbolt => ./providers/v1/passbolt
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot => ./providers/v1/passworddepot
 	github.com/external-secrets/external-secrets/providers/v1/previder => ./providers/v1/previder
@@ -159,6 +160,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/ovh v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-00010101000000-000000000000
@@ -202,6 +204,7 @@ require (
 	github.com/ProtonMail/gopenpgp/v2 v2.9.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/akeylesslabs/akeyless-go/v4 v4.3.0 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.39.6 // indirect
@@ -318,7 +321,9 @@ require (
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 // indirect
 	github.com/ngrok/ngrok-api-go/v7 v7.6.0 // indirect
+	github.com/oapi-codegen/runtime v1.1.2 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
+	github.com/ovh/okms-sdk-go v0.5.1 // indirect
 	github.com/passbolt/go-passbolt v0.7.2 // indirect
 	github.com/pgavlin/fx v0.1.6 // indirect
 	github.com/pgavlin/fx/v2 v2.0.12 // indirect
