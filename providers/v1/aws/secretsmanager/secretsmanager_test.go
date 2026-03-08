@@ -69,11 +69,12 @@ type secretsManagerTestCase struct {
 
 const unexpectedErrorString = "[%d] unexpected error: %s, expected: '%s'"
 const (
-	tagname1  = "tagname1"
-	tagvalue1 = "tagvalue1"
-	tagname2  = "tagname2"
-	tagvalue2 = "tagvalue2"
-	fakeKey   = "fake-key"
+	tagname1      = "tagname1"
+	tagvalue1     = "tagvalue1"
+	tagname2      = "tagname2"
+	tagvalue2     = "tagvalue2"
+	fakeKey       = "fake-key"
+	fakeSecretKey = "fake-secret-key"
 )
 
 func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
@@ -443,7 +444,7 @@ func ErrorContains(out error, want string) bool {
 func TestSetSecret(t *testing.T) {
 	managedBy := managedBy
 	notManagedBy := "not-managed-by"
-	secretKey := "fake-secret-key"
+	secretKey := fakeSecretKey
 	secretValue := []byte("fake-value")
 	fakeSecret := &corev1.Secret{
 		Data: map[string][]byte{
@@ -1234,7 +1235,7 @@ func TestSetSecret(t *testing.T) {
 }
 
 func TestPushSecretTagsUpdatedWhenValueUnchanged(t *testing.T) {
-	secretKey := "fake-secret-key"
+	secretKey := fakeSecretKey
 	secretValue := []byte("fake-value")
 	fakeSecret := &corev1.Secret{
 		Data: map[string][]byte{
@@ -1302,7 +1303,7 @@ func TestPushSecretTagsUpdatedWhenValueUnchanged(t *testing.T) {
 }
 
 func TestPushSecretResourcePolicyUpdatedWhenValueUnchanged(t *testing.T) {
-	secretKey := "fake-secret-key"
+	secretKey := fakeSecretKey
 	secretValue := []byte("fake-value")
 	fakeSecret := &corev1.Secret{
 		Data: map[string][]byte{
@@ -2091,7 +2092,7 @@ func TestSecretExists(t *testing.T) {
 	getSecretCorrectErr := types.ResourceNotFoundException{}
 	getSecretWrongErr := types.InvalidRequestException{}
 
-	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeKey, Property: ""}
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: fakeKey, Property: ""}
 
 	type args struct {
 		store          *esv1.AWSProvider
