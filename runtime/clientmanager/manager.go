@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -45,6 +46,7 @@ const (
 	errSecretStoreNotReady   = "%s %q is not ready"
 	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 	errClusterProviderDenied = "using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions"
+	errV2ProvidersDisabled   = "v2 provider support is disabled, refusing %s %q (enable with --enable-v2-providers)"
 )
 
 var (
@@ -54,7 +56,18 @@ var (
 	globalV2ConnectionPool     *grpc.ConnectionPool
 	globalV2ConnectionPoolOnce sync.Once
 	globalV2ConnectionPoolLog  logr.Logger
+	v2ProvidersEnabled         atomic.Bool
 )
+
+// SetV2ProvidersEnabled toggles support for experimental v2 Provider and ClusterProvider references.
+func SetV2ProvidersEnabled(enabled bool) {
+	v2ProvidersEnabled.Store(enabled)
+}
+
+// V2ProvidersEnabled reports whether v2 Provider and ClusterProvider references are allowed.
+func V2ProvidersEnabled() bool {
+	return v2ProvidersEnabled.Load()
+}
 
 // initGlobalV2ConnectionPool initializes the global connection pool for v2 providers.
 // This is called once on first use via sync.Once.
@@ -169,15 +182,23 @@ func (m *Manager) GetFromStore(ctx context.Context, store esv1.GenericStore, nam
 // Do not close the client returned from this func, instead close
 // the manager once you're done with recinciling the external secret.
 func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespace string, sourceRef *esv1.StoreGeneratorSourceRef) (esv1.SecretsClient, error) {
-	if storeRef.Kind == esv1.ProviderKindStr {
-		return m.getV2ProviderClient(ctx, storeRef.Name, namespace)
-	}
-	if storeRef.Kind == esv1.ClusterProviderKindStr {
-		return m.getV2ClusterProviderClient(ctx, storeRef.Name, namespace)
-	}
 	if sourceRef != nil && sourceRef.SecretStoreRef != nil {
 		storeRef = *sourceRef.SecretStoreRef
 	}
+
+	if storeRef.Kind == esv1.ProviderKindStr {
+		if !V2ProvidersEnabled() {
+			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
+		}
+		return m.getV2ProviderClient(ctx, storeRef.Name, namespace)
+	}
+	if storeRef.Kind == esv1.ClusterProviderKindStr {
+		if !V2ProvidersEnabled() {
+			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
+		}
+		return m.getV2ClusterProviderClient(ctx, storeRef.Name, namespace)
+	}
+
 	store, err := m.getStore(ctx, &storeRef, namespace)
 	if err != nil {
 		return nil, err
@@ -500,7 +521,7 @@ func (m *Manager) Close(ctx context.Context) error {
 	// Close v1 provider clients (they don't use the pool)
 	for key, val := range m.clientMap {
 		// Only close v1 clients; v2 clients are managed by the pool
-		if key.providerType != "v2-provider" {
+		if key.providerType != "v2-provider" && key.providerType != "v2-cluster-provider" {
 			err := val.client.Close(ctx)
 			if err != nil {
 				errs = append(errs, err.Error())

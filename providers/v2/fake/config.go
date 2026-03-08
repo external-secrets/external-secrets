@@ -26,11 +26,15 @@ import (
 
 // GetSpecMapper returns the spec mapper function for the Fake provider.
 // This function converts v2 ProviderReference to v1 SecretStoreSpec.
-func GetSpecMapper(kubeClient client.Client) func(*pb.ProviderReference) (*v1.SecretStoreSpec, error) {
-	return func(ref *pb.ProviderReference) (*v1.SecretStoreSpec, error) {
+func GetSpecMapper(kubeClient client.Client) func(*pb.ProviderReference, string) (*v1.SecretStoreSpec, error) {
+	return func(ref *pb.ProviderReference, sourceNamespace string) (*v1.SecretStoreSpec, error) {
+		namespace := ref.Namespace
+		if namespace == "" {
+			namespace = sourceNamespace
+		}
 		var fakeProvider fakev2alpha1.Fake
 		err := kubeClient.Get(context.Background(), client.ObjectKey{
-			Namespace: ref.Namespace,
+			Namespace: namespace,
 			Name:      ref.Name,
 		}, &fakeProvider)
 		if err != nil {
@@ -43,4 +47,3 @@ func GetSpecMapper(kubeClient client.Client) func(*pb.ProviderReference) (*v1.Se
 		}, nil
 	}
 }
-

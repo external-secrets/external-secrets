@@ -16,6 +16,8 @@ package grpc
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -312,7 +314,8 @@ func (p *ConnectionPool) isConnectionValid(pooled *pooledConnection) bool {
 // connectionKey generates a unique key for caching connections.
 func (p *ConnectionPool) connectionKey(address string, tlsConfig *TLSConfig) string {
 	if tlsConfig != nil {
-		return fmt.Sprintf("%s-tls", address)
+		sum := sha256.Sum256(append(append(append([]byte{}, tlsConfig.CACert...), tlsConfig.ClientCert...), tlsConfig.ClientKey...))
+		return fmt.Sprintf("%s|%s-tls", address, hex.EncodeToString(sum[:8]))
 	}
 	return fmt.Sprintf("%s-insecure", address)
 }
@@ -320,7 +323,13 @@ func (p *ConnectionPool) connectionKey(address string, tlsConfig *TLSConfig) str
 // parseConnectionKey extracts address and TLS status from a connection key.
 func (p *ConnectionPool) parseConnectionKey(key string) (address string, tlsEnabled bool) {
 	if len(key) > 4 && key[len(key)-4:] == "-tls" {
-		return key[:len(key)-4], true
+		trimmed := key[:len(key)-4]
+		for i := 0; i < len(trimmed); i++ {
+			if trimmed[i] == '|' {
+				return trimmed[:i], true
+			}
+		}
+		return trimmed, true
 	}
 	if len(key) > 9 && key[len(key)-9:] == "-insecure" {
 		return key[:len(key)-9], false
@@ -345,17 +354,17 @@ func (p *ConnectionPool) updatePoolMetrics() {
 	for key, pooled := range p.connections {
 		pooled.mu.Lock()
 		address, tlsEnabled := p.parseConnectionKey(key)
-		
+
 		statKey := key
 		s := stats[statKey]
 		s.total++
-		
+
 		if pooled.references > 0 {
 			s.active++
 		} else {
 			s.idle++
 		}
-		
+
 		stats[statKey] = s
 
 		// Record connection age and idle time
@@ -363,7 +372,7 @@ func (p *ConnectionPool) updatePoolMetrics() {
 		if pooled.references == 0 {
 			poolMetrics.RecordConnectionIdle(address, tlsEnabled, now.Sub(pooled.lastUsed))
 		}
-		
+
 		pooled.mu.Unlock()
 	}
 
