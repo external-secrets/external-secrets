@@ -44,7 +44,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterprovider"
-	clusterprovidermetrics "github.com/external-secrets/external-secrets/pkg/controllers/clusterprovider"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
@@ -58,10 +57,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
-	"github.com/external-secrets/external-secrets/providers/v2/common/grpc"
-	clientmanagermetrics "github.com/external-secrets/external-secrets/runtime/clientmanager"
 	"github.com/external-secrets/external-secrets/runtime/feature"
-	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	// To allow using gcp auth.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -249,6 +245,34 @@ var rootCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+		provider.SetUpMetrics()
+		if err = (&provider.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("Provider"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: storeRequeueInterval,
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "Provider")
+			os.Exit(1)
+		}
+
+		clusterprovider.SetUpMetrics()
+		if err = (&clusterprovider.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("ClusterProvider"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: storeRequeueInterval,
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "ClusterProvider")
+			os.Exit(1)
+		}
+
 		if err = (&generatorstate.Reconciler{
 			Client:     mgr.GetClient(),
 			Log:        ctrl.Log.WithName("controllers").WithName("GeneratorState"),

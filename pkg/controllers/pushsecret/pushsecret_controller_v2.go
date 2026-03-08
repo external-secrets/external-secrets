@@ -26,6 +26,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 	"github.com/external-secrets/external-secrets/providers/v2/common/grpc"
+	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 )
 
 // isV2SecretStore checks if the referenced SecretStore is a v2 API version.
@@ -184,6 +185,34 @@ func (r *Reconciler) handleV2Push(ctx context.Context, storeRef esv1alpha1.PushS
 
 	// Not a v2 store, return nil to indicate v1 handling should be used
 	return nil, nil
+}
+
+// PushSecretToProvidersV2 pushes secret data to both v1 stores and v2 providers.
+func (r *Reconciler) PushSecretToProvidersV2(
+	ctx context.Context,
+	stores map[esv1alpha1.PushSecretStoreRef]interface{},
+	ps esv1alpha1.PushSecret,
+	secret *corev1.Secret,
+	mgr *clientmanager.Manager,
+) (esv1alpha1.SyncedPushSecretsMap, error) {
+	out := make(esv1alpha1.SyncedPushSecretsMap)
+	for ref, store := range stores {
+		v2Synced, err := r.handleV2Push(ctx, ref, store, ps, secret)
+		if err != nil {
+			return out, err
+		}
+		if v2Synced != nil {
+			storeKey := fmt.Sprintf("%v/%v", ref.Kind, ref.Name)
+			out[storeKey] = v2Synced
+			continue
+		}
+
+		out, err = r.handlePushSecretDataForStore(ctx, ps, secret, out, mgr, ref.Name, ref.Kind)
+		if err != nil {
+			return out, err
+		}
+	}
+	return out, nil
 }
 
 // DeleteSecretFromProvidersV2 removes secrets from v2 providers when they're no longer needed.

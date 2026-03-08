@@ -208,7 +208,7 @@ func (r *Reconciler) handleExtractSecrets(
 	ctx context.Context,
 	externalSecret *esv1.ExternalSecret,
 	remoteRef esv1.ExternalSecretDataFromRemoteRef,
-	cmgr *secretstore.Manager,
+	cmgr *clientmanager.Manager,
 	genState *statemanager.Manager,
 	i int,
 ) (map[string][]byte, error) {
@@ -256,7 +256,7 @@ func (r *Reconciler) handleFindAllSecrets(
 	ctx context.Context,
 	externalSecret *esv1.ExternalSecret,
 	remoteRef esv1.ExternalSecretDataFromRemoteRef,
-	cmgr *secretstore.Manager,
+	cmgr *clientmanager.Manager,
 	genState *statemanager.Manager,
 	i int,
 ) (map[string][]byte, error) {

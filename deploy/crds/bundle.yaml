@@ -989,11 +989,13 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
                                       - ClusterSecretStore
+                                      - Provider
+                                      - ClusterProvider
                                     type: string
                                   name:
                                     description: Name of the SecretStore resource
@@ -1182,11 +1184,13 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
                                       - ClusterSecretStore
+                                      - Provider
+                                      - ClusterProvider
                                     type: string
                                   name:
                                     description: Name of the SecretStore resource
@@ -1224,11 +1228,13 @@ spec:
                       properties:
                         kind:
                           description: |-
-                            Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                            Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
                             Defaults to `SecretStore`
                           enum:
                             - SecretStore
                             - ClusterSecretStore
+                            - Provider
+                            - ClusterProvider
                           type: string
                         name:
                           description: Name of the SecretStore resource
@@ -1619,7 +1625,7 @@ spec:
             metadata:
               type: object
             spec:
-              description: ClusterProviderSpec defines the desired state of ClusterProvider
+              description: ClusterProviderSpec defines the desired state of ClusterProvider.
               properties:
                 authenticationScope:
                   default: ProviderNamespace
@@ -1741,7 +1747,7 @@ spec:
                 - config
               type: object
             status:
-              description: ProviderStatus defines the observed state of Provider
+              description: ProviderStatus defines the observed state of Provider.
               properties:
                 capabilities:
                   description: Capabilities indicates what operations this Provider supports.
@@ -13110,11 +13116,13 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
                                   - ClusterSecretStore
+                                  - Provider
+                                  - ClusterProvider
                                 type: string
                               name:
                                 description: Name of the SecretStore resource
@@ -13303,11 +13311,13 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
                                   - ClusterSecretStore
+                                  - Provider
+                                  - ClusterProvider
                                 type: string
                               name:
                                 description: Name of the SecretStore resource
@@ -13345,11 +13355,13 @@ spec:
                   properties:
                     kind:
                       description: |-
-                        Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                        Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
                         Defaults to `SecretStore`
                       enum:
                         - SecretStore
                         - ClusterSecretStore
+                        - Provider
+                        - ClusterProvider
                       type: string
                     name:
                       description: Name of the SecretStore resource
@@ -13611,7 +13623,7 @@ spec:
       name: v1
       schema:
         openAPIV3Schema:
-          description: Provider is the Schema for the providers API
+          description: Provider is the Schema for the providers API.
           properties:
             apiVersion:
               description: |-
@@ -13631,7 +13643,7 @@ spec:
             metadata:
               type: object
             spec:
-              description: ProviderSpec defines the desired state of Provider
+              description: ProviderSpec defines the desired state of Provider.
               properties:
                 config:
                   description: Config contains configuration for connecting to the provider.
@@ -13675,7 +13687,7 @@ spec:
                 - config
               type: object
             status:
-              description: ProviderStatus defines the observed state of Provider
+              description: ProviderStatus defines the observed state of Provider.
               properties:
                 capabilities:
                   description: Capabilities indicates what operations this Provider supports.
@@ -29749,7 +29761,7 @@ spec:
       name: v2alpha1
       schema:
         openAPIV3Schema:
-          description: SecretsManager is the Schema for AWS Secrets Manager provider configuration
+          description: SecretsManager is the Schema for AWS Secrets Manager provider configuration.
           properties:
             apiVersion:
               description: |-
@@ -29769,7 +29781,7 @@ spec:
             metadata:
               type: object
             spec:
-              description: SecretsManagerSpec defines the desired state of SecretsManager
+              description: SecretsManagerSpec defines the desired state of SecretsManager.
               properties:
                 additionalRoles:
                   description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
@@ -29959,7 +29971,7 @@ spec:
                 - region
               type: object
             status:
-              description: SecretsManagerStatus defines the observed state of SecretsManager
+              description: SecretsManagerStatus defines the observed state of SecretsManager.
               properties:
                 conditions:
                   description: Conditions represent the latest available observations of the resource's state.

@@ -29,7 +29,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 // Provider implements the external-secrets Provider interface for DVLS.
 type Provider struct{}
@@ -131,7 +131,7 @@ func getDVLSProvider(store esv1.GenericStore) (*esv1.DVLSProvider, error) {
 }
 
 // NewProvider creates a new DVLS Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

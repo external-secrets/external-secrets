@@ -126,9 +126,14 @@ func parseSTSSpec(data []byte) (*genv1alpha1.STSSessionToken, error) {
 	return &spec, err
 }
 
-// NewGenerator creates a new Generator instance.
+// NewSTSGenerator creates a new STSGenerator instance.
+func NewSTSGenerator() genv1alpha1.Generator {
+	return &STSGenerator{}
+}
+
+// NewGenerator is kept as a compatibility alias.
 func NewGenerator() genv1alpha1.Generator {
-	return &Generator{}
+	return NewSTSGenerator()
 }
 
 // STSKind returns the generator kind.

@@ -6,6 +6,8 @@ replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
 	github.com/external-secrets/external-secrets/generators/v1/acr => ./generators/v1/acr
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith => ./generators/v1/cloudsmith
+	github.com/external-secrets/external-secrets/generators/v1/ecr => ./generators/v1/ecr
+	github.com/external-secrets/external-secrets/generators/v1/fake => ./generators/v1/fake
 	github.com/external-secrets/external-secrets/generators/v1/gcr => ./generators/v1/gcr
 	github.com/external-secrets/external-secrets/generators/v1/github => ./generators/v1/github
 	github.com/external-secrets/external-secrets/generators/v1/grafana => ./generators/v1/grafana
@@ -13,6 +15,7 @@ replace (
 	github.com/external-secrets/external-secrets/generators/v1/password => ./generators/v1/password
 	github.com/external-secrets/external-secrets/generators/v1/quay => ./generators/v1/quay
 	github.com/external-secrets/external-secrets/generators/v1/sshkey => ./generators/v1/sshkey
+	github.com/external-secrets/external-secrets/generators/v1/sts => ./generators/v1/sts
 	github.com/external-secrets/external-secrets/generators/v1/uuid => ./generators/v1/uuid
 	github.com/external-secrets/external-secrets/generators/v1/vault => ./generators/v1/vault
 	github.com/external-secrets/external-secrets/generators/v1/webhook => ./generators/v1/webhook
@@ -91,9 +94,9 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.10.0 // indirect
 	github.com/hashicorp/vault/api/auth/ldap v0.11.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/onsi/ginkgo/v2 v2.26.0
+	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
-	github.com/oracle/oci-go-sdk/v65 v65.102.1 // indirect
+	github.com/oracle/oci-go-sdk/v65 v65.103.0 // indirect
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
 	github.com/spf13/cobra v1.10.1
@@ -128,16 +131,9 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
-	github.com/BeyondTrust/go-client-library-passwordsafe v0.23.0 // indirect
+	github.com/BeyondTrust/go-client-library-passwordsafe v1.0.0 // indirect
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 // indirect
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d // indirect
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.13 // indirect
-	github.com/alibabacloud-go/kms-20160120/v3 v3.3.1 // indirect
-	github.com/alibabacloud-go/openapi-util v0.1.1 // indirect
-	github.com/alibabacloud-go/tea v1.3.13 // indirect
-	github.com/alibabacloud-go/tea-utils/v2 v2.0.7 // indirect
-	github.com/aliyun/credentials-go v1.4.7 // indirect
-	github.com/avast/retry-go/v4 v4.7.0 // indirect
 	github.com/bradleyfalzon/ghinstallation/v2 v2.17.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cloudru-tech/iam-sdk v1.0.4 // indirect
@@ -146,8 +142,6 @@ require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-00010101000000-000000000000
@@ -155,7 +149,6 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-00010101000000-000000000000
@@ -216,10 +209,18 @@ require (
 	github.com/sethvargo/go-password v0.3.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	gitlab.com/gitlab-org/api/client-go v0.157.0 // indirect
-	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
+	gitlab.com/gitlab-org/api/client-go v0.157.1 // indirect
+	k8s.io/kube-openapi v0.0.0-20260127142750-a19766b6e2d4 // indirect
 	sigs.k8s.io/yaml v1.6.0
 	software.sslmate.com/src/go-pkcs12 v0.6.0 // indirect
+)
+
+require (
+	github.com/external-secrets/external-secrets/proto v0.0.0
+	github.com/external-secrets/external-secrets/providers/v2/adapter/store v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v2/aws v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v2/common v0.0.0
+	github.com/external-secrets/external-secrets/providers/v2/fake v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -231,10 +232,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets v1.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v1.2.0 // indirect
-	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
-	github.com/BeyondTrust/go-client-library-passwordsafe v1.0.0 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
-	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 // indirect
 	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1 // indirect
 	github.com/Devolutions/go-dvls v0.15.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -298,7 +296,6 @@ require (
 	github.com/go-openapi/loads v0.23.1 // indirect
 	github.com/go-openapi/runtime v0.29.0 // indirect
 	github.com/go-openapi/spec v0.22.0 // indirect
-	github.com/go-openapi/strfmt v0.24.0 // indirect
 	github.com/go-openapi/swag/cmdutils v0.25.4 // indirect
 	github.com/go-openapi/swag/conv v0.25.4 // indirect
 	github.com/go-openapi/swag/fileutils v0.25.4 // indirect
@@ -322,19 +319,15 @@ require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
-	github.com/google/go-github/v56 v56.0.0 // indirect
 	github.com/google/go-github/v75 v75.0.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/gophercloud/gophercloud/v2 v2.8.0 // indirect
-	github.com/grafana/grafana-openapi-client-go v0.0.0-20250925215610-d92957c70d5c // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.0 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.3.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
-	github.com/hashicorp/vault/api/auth/aws v0.11.0 // indirect
 	github.com/hashicorp/vault/api/auth/gcp v0.11.0 // indirect
-	github.com/hashicorp/vault/api/auth/userpass v0.11.0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/infisical/go-sdk v0.5.100 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
@@ -369,7 +362,6 @@ require (
 	github.com/tetratelabs/wabin v0.0.0-20230304001439-f6f874872834 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/texttheater/golang-levenshtein v1.0.1 // indirect
-	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/volcengine/volc-sdk-golang v1.0.225 // indirect
 	github.com/volcengine/volcengine-go-sdk v1.1.46 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -384,7 +376,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.8.0 // indirect
-	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
@@ -396,11 +387,9 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/code-generator v0.35.0 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
-	k8s.io/kube-openapi v0.0.0-20260127142750-a19766b6e2d4 // indirect
 	lukechampine.com/frand v1.5.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 // indirect
-	software.sslmate.com/src/go-pkcs12 v0.6.0 // indirect
 )
 
 require (
