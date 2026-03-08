@@ -6,6 +6,11 @@ image:
   pullPolicy: IfNotPresent
 
 installCRDs: true
+v2:
+  enabled: true
+crds:
+  createProvider: true
+  createClusterProvider: true
 
 providers:
   enabled: true

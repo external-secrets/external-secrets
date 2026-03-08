@@ -101,8 +101,10 @@ func (r *Reconciler) validateStoreAndGetCapabilities(ctx context.Context, store 
 		return "", fmt.Errorf("provider address is required")
 	}
 
+	tlsSecretNamespace := grpc.NamespaceFromAddress(store.Spec.Config.Address, store.Namespace)
+
 	// Load TLS configuration
-	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, r.Client, store.Spec.Config.Address, "external-secrets-system")
+	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, r.Client, store.Spec.Config.Address, tlsSecretNamespace)
 	if err != nil {
 		return "", fmt.Errorf("failed to load TLS config: %w", err)
 	}

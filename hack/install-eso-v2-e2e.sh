@@ -150,6 +150,12 @@ install_external_secrets() {
 # Controller configuration
 installCRDs: true
 replicaCount: 1
+v2:
+  enabled: true
+
+crds:
+  createProvider: true
+  createClusterProvider: true
 
 image:
   repository: ghcr.io/external-secrets/external-secrets

@@ -276,6 +276,16 @@ func CreateFakeGenerator(f *framework.Framework, namespace, name string, data ma
 // CreateClusterProvider creates a ClusterProvider pointing to the specified provider.
 // Returns the created ClusterProvider object.
 func CreateClusterProvider(f *framework.Framework, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string, authScope v1.AuthenticationScope, conditions []v1.ClusterSecretStoreCondition) *v1.ClusterProvider {
+	existing := &v1.ClusterProvider{}
+	err := f.CRClient.Get(context.Background(), types.NamespacedName{Name: name}, existing)
+	if err == nil {
+		Expect(f.CRClient.Delete(context.Background(), existing)).To(Succeed())
+		Eventually(func() bool {
+			lookupErr := f.CRClient.Get(context.Background(), types.NamespacedName{Name: name}, &v1.ClusterProvider{})
+			return lookupErr != nil && strings.Contains(lookupErr.Error(), "not found")
+		}, 15*time.Second, 500*time.Millisecond).Should(BeTrue(), "existing ClusterProvider should be deleted before recreation")
+	}
+
 	clusterProvider := &v1.ClusterProvider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,

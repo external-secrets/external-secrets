@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -57,6 +58,8 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
+	grpccommon "github.com/external-secrets/external-secrets/providers/v2/common/grpc"
+	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 	"github.com/external-secrets/external-secrets/runtime/feature"
 
 	// To allow using gcp auth.
@@ -107,6 +110,7 @@ var (
 	tlsMinVersion                         string
 	enableHTTP2                           bool
 	allowGenericTargets                   bool
+	enableV2Providers                     bool
 	providerNamespace                     string
 	providerServiceNames                  []string
 )
@@ -140,6 +144,16 @@ var rootCmd = &cobra.Command{
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
+		if enableV2Providers {
+			if err := clientmanager.RegisterMetrics(); err != nil {
+				setupLog.Error(err, "unable to register clientmanager metrics")
+				os.Exit(1)
+			}
+			if err := grpccommon.RegisterMetrics(crmetrics.Registry); err != nil {
+				setupLog.Error(err, "unable to register grpc metrics")
+				os.Exit(1)
+			}
+		}
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
@@ -245,32 +259,34 @@ var rootCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
-		provider.SetUpMetrics()
-		if err = (&provider.Reconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("Provider"),
-			Scheme:          mgr.GetScheme(),
-			RequeueInterval: storeRequeueInterval,
-		}).SetupWithManager(mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-			RateLimiter:             ctrlcommon.BuildRateLimiter(),
-		}); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "Provider")
-			os.Exit(1)
-		}
+		if enableV2Providers {
+			provider.SetUpMetrics()
+			if err = (&provider.Reconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("Provider"),
+				Scheme:          mgr.GetScheme(),
+				RequeueInterval: storeRequeueInterval,
+			}).SetupWithManager(mgr, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
+			}); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "Provider")
+				os.Exit(1)
+			}
 
-		clusterprovider.SetUpMetrics()
-		if err = (&clusterprovider.Reconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("ClusterProvider"),
-			Scheme:          mgr.GetScheme(),
-			RequeueInterval: storeRequeueInterval,
-		}).SetupWithManager(mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-			RateLimiter:             ctrlcommon.BuildRateLimiter(),
-		}); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "ClusterProvider")
-			os.Exit(1)
+			clusterprovider.SetUpMetrics()
+			if err = (&clusterprovider.Reconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("ClusterProvider"),
+				Scheme:          mgr.GetScheme(),
+				RequeueInterval: storeRequeueInterval,
+			}).SetupWithManager(mgr, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
+			}); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "ClusterProvider")
+				os.Exit(1)
+			}
 		}
 
 		if err = (&generatorstate.Reconciler{
@@ -412,6 +428,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
+	rootCmd.Flags().BoolVar(&enableV2Providers, "enable-v2-providers", false,
+		"Enable experimental v2 Provider/ClusterProvider controllers and metrics.")
 	rootCmd.Flags().
 		BoolVar(&allowGenericTargets, "unsafe-allow-generic-targets", false, "Enable support for creating generic resources (ConfigMaps, Custom Resources). WARNING: Using generic resources, please sure all policies are correctly configured.")
 	fs := feature.Features()

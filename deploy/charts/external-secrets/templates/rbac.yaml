@@ -13,6 +13,7 @@ metadata:
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 rules:
+  {{- if .Values.v2.enabled }}
   - apiGroups:
     - "provider.external-secrets.io"
     resources:
@@ -23,12 +24,15 @@ rules:
     - "get"
     - "list"
     - "watch"
+  {{- end }}
   - apiGroups:
     - "external-secrets.io"
     resources:
     - "secretstores"
+    {{- if .Values.v2.enabled }}
     - "providers"
     - "clusterproviders"
+    {{- end }}
     {{- if .Values.processClusterStore }}
     - "clustersecretstores"
     {{- end }}
@@ -49,10 +53,12 @@ rules:
   - apiGroups:
     - "external-secrets.io"
     resources:
+    {{- if .Values.v2.enabled }}
     - "providers"
     - "providers/status"
     - "clusterproviders"
     - "clusterproviders/status"
+    {{- end }}
     - "externalsecrets"
     - "externalsecrets/status"
     {{- if .Values.openshiftFinalizers }}
@@ -254,8 +260,10 @@ rules:
     resources:
       - "externalsecrets"
       - "secretstores"
+      {{- if .Values.v2.enabled }}
       - "providers"
       - "clusterproviders"
+      {{- end }}
       {{- if .Values.processClusterStore }}
       - "clustersecretstores"
       {{- end }}
@@ -318,8 +326,10 @@ rules:
     resources:
       - "externalsecrets"
       - "secretstores"
+      {{- if .Values.v2.enabled }}
       - "providers"
       - "clusterproviders"
+      {{- end }}
       {{- if .Values.processClusterStore }}
       - "clustersecretstores"
       {{- end }}

@@ -101,8 +101,10 @@ func (r *Reconciler) validateStoreAndGetCapabilities(ctx context.Context, store 
 		return "", fmt.Errorf("provider address is required")
 	}
 
+	tlsSecretNamespace := grpc.NamespaceFromAddress(store.Spec.Config.Address, store.Spec.Config.ProviderRef.Namespace)
+
 	// Load TLS configuration
-	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, r.Client, store.Spec.Config.Address, "external-secrets-system")
+	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, r.Client, store.Spec.Config.Address, tlsSecretNamespace)
 	if err != nil {
 		return "", fmt.Errorf("failed to load TLS config: %w", err)
 	}
@@ -204,4 +206,3 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		Owns(&corev1.Secret{}). // Watch secrets that might be used for auth
 		Complete(r)
 }
-

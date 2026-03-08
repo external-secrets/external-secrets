@@ -1972,11 +1972,12 @@ spec:
                             type: string
                           kind:
                             default: SecretStore
-                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, or Provider)
+                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, or ClusterProvider)
                             enum:
                               - SecretStore
                               - ClusterSecretStore
                               - Provider
+                              - ClusterProvider
                             type: string
                           labelSelector:
                             description: Optionally, sync to secret stores with label selector
@@ -13841,11 +13842,12 @@ spec:
                         type: string
                       kind:
                         default: SecretStore
-                        description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, or Provider)
+                        description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, or ClusterProvider)
                         enum:
                           - SecretStore
                           - ClusterSecretStore
                           - Provider
+                          - ClusterProvider
                         type: string
                       labelSelector:
                         description: Optionally, sync to secret stores with label selector
