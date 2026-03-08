@@ -61,8 +61,10 @@ crds:
   createClusterExternalSecret: true
   # -- If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false.
   createClusterSecretStore: true
+  # -- If true, create CRDs for Provider.
+  createProvider: false
   # -- If true, create CRDs for Cluster Provider.
-  createClusterProvider: true
+  createClusterProvider: false
   # -- If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false.
   createSecretStore: true
   # -- If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false.
@@ -133,6 +135,11 @@ processClusterGenerator: true
 
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
+
+# -- Experimental v2 Provider/ClusterProvider support.
+# Keep disabled unless you explicitly opt into v2 provider flows.
+v2:
+  enabled: false
 
 # -- Enable support for generic targets (ConfigMaps, Custom Resources).
 # Warning: Using generic target. Make sure access policies and encryption are properly configured.

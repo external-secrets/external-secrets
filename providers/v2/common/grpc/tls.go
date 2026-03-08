@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -85,6 +86,25 @@ func LoadClientTLSConfig(
 		ClientKey:  clientKey,
 		ServerName: hostname,
 	}, nil
+}
+
+// NamespaceFromAddress extracts the service namespace from a Kubernetes service DNS address.
+// Expected address formats include:
+// - "<service>.<namespace>.svc:port"
+// - "<service>.<namespace>.svc.cluster.local:port"
+// If parsing fails, fallbackNamespace is returned.
+func NamespaceFromAddress(address, fallbackNamespace string) string {
+	host := address
+	if parsedHost, _, err := net.SplitHostPort(address); err == nil {
+		host = parsedHost
+	}
+
+	parts := strings.Split(host, ".")
+	if len(parts) >= 3 && parts[2] == "svc" && parts[1] != "" {
+		return parts[1]
+	}
+
+	return fallbackNamespace
 }
 
 // ToGRPCTLSConfig converts TLSConfig to a *tls.Config suitable for gRPC.

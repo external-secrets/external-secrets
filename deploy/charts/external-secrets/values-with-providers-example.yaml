@@ -11,6 +11,11 @@ image:
 
 # Install CRDs
 installCRDs: true
+v2:
+  enabled: true
+crds:
+  createProvider: true
+  createClusterProvider: true
 
 # Enable provider deployments
 providers:
