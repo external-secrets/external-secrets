@@ -43,8 +43,8 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
+	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/statemanager"
@@ -416,7 +416,7 @@ func (r *Reconciler) PushSecretToProviders(
 	stores map[esapi.PushSecretStoreRef]esv1.GenericStore,
 	ps esapi.PushSecret,
 	secret *v1.Secret,
-	mgr *secretstore.Manager,
+	mgr *clientmanager.Manager,
 ) (esapi.SyncedPushSecretsMap, error) {
 	out := make(esapi.SyncedPushSecretsMap)
 	for ref, store := range stores {
@@ -433,7 +433,7 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	ps esapi.PushSecret,
 	secret *v1.Secret,
 	out esapi.SyncedPushSecretsMap,
-	mgr *secretstore.Manager,
+	mgr *clientmanager.Manager,
 	storeName, refKind string,
 ) (esapi.SyncedPushSecretsMap, error) {
 	storeKey := fmt.Sprintf("%v/%v", refKind, storeName)
