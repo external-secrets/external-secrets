@@ -73,6 +73,52 @@ jobs:
 
     - uses: ./.github/actions/e2e
 
+  integration-v2-optional:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
+    steps:
+    - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+      with:
+        egress-policy: audit
+
+    - name: Branch based PR checkout
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Fetch History
+      run: git fetch --prune --unshallow
+
+    - name: Setup Go
+      uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+      with:
+        go-version-file: go.mod
+
+    - name: Setup kind
+      uses: engineerd/setup-kind@aa272fe2a7309878ffc2a81c56cfe3ef108ae7d0 # v0.5.0
+      with:
+        version: ${{ env.KIND_VERSION }}
+        wait: 10m
+        image: ${{ env.KIND_IMAGE }}
+        name: external-secrets
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      with:
+        install: true
+
+    - name: Install Ginkgo CLI
+      run: |
+        make -C e2e install-ginkgo
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+    - name: Run V2 e2e Tests (optional)
+      env:
+        DOCKER_BUILD_ARGS: --load
+      run: make test.e2e.v2
+
   # Repo owner has commented /ok-to-test on a (fork-based) pull request
   integration-fork:
     runs-on: ubuntu-latest
