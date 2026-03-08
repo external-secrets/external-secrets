@@ -1336,9 +1336,10 @@ func TestPushSecretResourcePolicyUpdatedWhenValueUnchanged(t *testing.T) {
 				defaultVersion: {"AWSCURRENT"},
 			},
 		}, nil),
-		PutSecretValueFn: fakesm.NewPutSecretValueFn(nil, fmt.Errorf("PutSecretValue should not be called when value is unchanged"), func(input *awssm.PutSecretValueInput) {
+		PutSecretValueFn: func(_ context.Context, _ *awssm.PutSecretValueInput, _ ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error) {
 			putSecretValueCalled = true
-		}),
+			return nil, fmt.Errorf("PutSecretValue should not be called when value is unchanged")
+		},
 		TagResourceFn:          fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
 		UntagResourceFn:        fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 		DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
@@ -1392,7 +1393,7 @@ func TestPushSecretResourcePolicyUpdatedWhenValueUnchanged(t *testing.T) {
 	assert.True(t, putResourcePolicyCalled, "PutResourcePolicy should be called even when secret value is unchanged")
 	assert.False(t, putSecretValueCalled, "PutSecretValue should not be called when value is unchanged")
 	require.NotNil(t, capturedPolicyInput, "PutResourcePolicyInput should be captured")
-	assert.Equal(t, arn, *capturedPolicyInput.SecretId)
+	assert.Equal(t, fakeKey, *capturedPolicyInput.SecretId)
 	assert.JSONEq(t, newPolicy, *capturedPolicyInput.ResourcePolicy)
 }
 
