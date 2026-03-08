@@ -62,6 +62,11 @@ func (s *Server) GetSecret(ctx context.Context, req *pb.GetSecretRequest) (*pb.G
 	return s.storeServer.GetSecret(ctx, req)
 }
 
+// GetSecretMap retrieves multiple key/value pairs from a single secret object.
+func (s *Server) GetSecretMap(ctx context.Context, req *pb.GetSecretMapRequest) (*pb.GetSecretMapResponse, error) {
+	return s.storeServer.GetSecretMap(ctx, req)
+}
+
 // PushSecret pushes a secret to the provider.
 func (s *Server) PushSecret(ctx context.Context, req *pb.PushSecretRequest) (*pb.PushSecretResponse, error) {
 	return s.storeServer.PushSecret(ctx, req)

@@ -154,6 +154,43 @@ func (s *V1AdapterServer) GetSecret(ctx context.Context, req *pb.GetSecretReques
 	}, nil
 }
 
+// GetSecretMap retrieves multiple key/value pairs from a single secret object.
+func (s *V1AdapterServer) GetSecretMap(ctx context.Context, req *pb.GetSecretMapRequest) (*pb.GetSecretMapResponse, error) {
+	if req == nil || req.RemoteRef == nil {
+		return nil, fmt.Errorf("request or remote ref is nil")
+	}
+	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
+		return nil, err
+	}
+
+	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client: %w", err)
+	}
+	defer func() { _ = client.Close(ctx) }()
+
+	ref := esv1.ExternalSecretDataRemoteRef{
+		Key:      req.RemoteRef.Key,
+		Version:  req.RemoteRef.Version,
+		Property: req.RemoteRef.Property,
+	}
+	if req.RemoteRef.DecodingStrategy != "" {
+		ref.DecodingStrategy = esv1.ExternalSecretDecodingStrategy(req.RemoteRef.DecodingStrategy)
+	}
+	if req.RemoteRef.MetadataPolicy != "" {
+		ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicy(req.RemoteRef.MetadataPolicy)
+	}
+
+	secrets, err := client.GetSecretMap(ctx, ref)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret map: %w", err)
+	}
+
+	return &pb.GetSecretMapResponse{
+		Secrets: secrets,
+	}, nil
+}
+
 // PushSecret writes a secret to the provider.
 func (s *V1AdapterServer) PushSecret(ctx context.Context, req *pb.PushSecretRequest) (*pb.PushSecretResponse, error) {
 	if req == nil || req.PushSecretData == nil {

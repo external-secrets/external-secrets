@@ -33,6 +33,7 @@ const bufSize = 1024 * 1024
 type mockServer struct {
 	pb.UnimplementedSecretStoreProviderServer
 	getSecretResponse *pb.GetSecretResponse
+	getSecretMap      map[string][]byte
 	validateResponse  *pb.ValidateResponse
 }
 
@@ -42,8 +43,16 @@ func (m *mockServer) GetSecret(ctx context.Context, req *pb.GetSecretRequest) (*
 	}
 	return &pb.GetSecretResponse{
 		Value: []byte("test-secret-value"),
-		Metadata: map[string]string{
-			"version": "1",
+	}, nil
+}
+
+func (m *mockServer) GetSecretMap(ctx context.Context, req *pb.GetSecretMapRequest) (*pb.GetSecretMapResponse, error) {
+	if m.getSecretMap != nil {
+		return &pb.GetSecretMapResponse{Secrets: m.getSecretMap}, nil
+	}
+	return &pb.GetSecretMapResponse{
+		Secrets: map[string][]byte{
+			"foo": []byte("bar"),
 		},
 	}, nil
 }
@@ -100,7 +109,7 @@ func TestClient_GetSecret(t *testing.T) {
 		Property: "password",
 	}
 
-	value, err := client.GetSecret(context.Background(), ref)
+	value, err := client.GetSecret(context.Background(), ref, &pb.ProviderReference{Name: "provider"}, "default")
 	if err != nil {
 		t.Fatalf("GetSecret failed: %v", err)
 	}
@@ -118,7 +127,7 @@ func TestClient_Validate(t *testing.T) {
 
 		client := NewClientWithConn(conn)
 
-		err := client.Validate(context.Background())
+		err := client.Validate(context.Background(), &pb.ProviderReference{Name: "provider"}, "default")
 		if err != nil {
 			t.Fatalf("Validate failed: %v", err)
 		}
@@ -136,7 +145,7 @@ func TestClient_Validate(t *testing.T) {
 
 		client := NewClientWithConn(conn)
 
-		err := client.Validate(context.Background())
+		err := client.Validate(context.Background(), &pb.ProviderReference{Name: "provider"}, "default")
 		if err == nil {
 			t.Fatal("Expected validation to fail, but it succeeded")
 		}
@@ -145,6 +154,32 @@ func TestClient_Validate(t *testing.T) {
 			t.Errorf("Unexpected error message: %v", err)
 		}
 	})
+}
+
+func TestClient_GetSecretMap(t *testing.T) {
+	mock := &mockServer{
+		getSecretMap: map[string][]byte{
+			"a": []byte("b"),
+		},
+	}
+	conn, cleanup := setupTestServer(t, mock)
+	defer cleanup()
+
+	client := NewClientWithConn(conn)
+
+	value, err := client.GetSecretMap(
+		context.Background(),
+		esv1.ExternalSecretDataRemoteRef{Key: "test-key"},
+		&pb.ProviderReference{Name: "provider"},
+		"default",
+	)
+	if err != nil {
+		t.Fatalf("GetSecretMap failed: %v", err)
+	}
+
+	if string(value["a"]) != "b" {
+		t.Fatalf("Expected map[a]=b, got %#v", value)
+	}
 }
 
 func TestClient_Close(t *testing.T) {

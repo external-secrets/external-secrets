@@ -16,7 +16,6 @@ package store
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -24,12 +23,16 @@ import (
 )
 
 type fakeV2Provider struct {
-	getSecretResponse []byte
-	getSecretErr      error
+	getSecretMapResponse map[string][]byte
+	getSecretMapErr      error
 }
 
 func (f *fakeV2Provider) GetSecret(context.Context, esv1.ExternalSecretDataRemoteRef, *pb.ProviderReference, string) ([]byte, error) {
-	return f.getSecretResponse, f.getSecretErr
+	return nil, nil
+}
+
+func (f *fakeV2Provider) GetSecretMap(context.Context, esv1.ExternalSecretDataRemoteRef, *pb.ProviderReference, string) (map[string][]byte, error) {
+	return f.getSecretMapResponse, f.getSecretMapErr
 }
 
 func (f *fakeV2Provider) GetAllSecrets(context.Context, esv1.ExternalSecretFind, *pb.ProviderReference, string) (map[string][]byte, error) {
@@ -61,9 +64,13 @@ func (f *fakeV2Provider) Close(context.Context) error {
 }
 
 func TestGetSecretMap(t *testing.T) {
-	t.Run("converts JSON object to byte map", func(t *testing.T) {
+	t.Run("delegates to provider GetSecretMap", func(t *testing.T) {
+		expected := map[string][]byte{
+			"foo": []byte("bar"),
+			"baz": []byte("qux"),
+		}
 		provider := &fakeV2Provider{
-			getSecretResponse: []byte(`{"foo":"bar","num":42,"obj":{"nested":"value"}}`),
+			getSecretMapResponse: expected,
 		}
 		client := NewClient(provider, &pb.ProviderReference{Name: "provider"}, "default")
 
@@ -71,30 +78,11 @@ func TestGetSecretMap(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetSecretMap() error = %v", err)
 		}
-
-		if string(secretMap["foo"]) != "bar" {
-			t.Fatalf("expected foo=bar, got %q", string(secretMap["foo"]))
+		if len(secretMap) != len(expected) {
+			t.Fatalf("expected %d keys, got %d", len(expected), len(secretMap))
 		}
-		if string(secretMap["num"]) != "42" {
-			t.Fatalf("expected num=42, got %q", string(secretMap["num"]))
-		}
-		if string(secretMap["obj"]) != `{"nested":"value"}` {
-			t.Fatalf("expected obj JSON value, got %q", string(secretMap["obj"]))
-		}
-	})
-
-	t.Run("returns error for non JSON object payload", func(t *testing.T) {
-		provider := &fakeV2Provider{
-			getSecretResponse: []byte(`"plain-string"`),
-		}
-		client := NewClient(provider, &pb.ProviderReference{Name: "provider"}, "default")
-
-		_, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"})
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "failed to decode secret as JSON object for extract") {
-			t.Fatalf("expected JSON decode error, got %v", err)
+		if string(secretMap["foo"]) != "bar" || string(secretMap["baz"]) != "qux" {
+			t.Fatalf("unexpected secret map: %#v", secretMap)
 		}
 	})
 }

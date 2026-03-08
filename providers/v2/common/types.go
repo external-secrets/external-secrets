@@ -31,6 +31,10 @@ type Provider interface {
 	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the ExternalSecret.
 	GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) ([]byte, error)
 
+	// GetSecretMap retrieves multiple key/value pairs from a single secret object.
+	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the ExternalSecret.
+	GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error)
+
 	// GetAllSecrets retrieves multiple secrets based on find criteria.
 	// Returns a map of secret names to their byte values.
 	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the ExternalSecret.
