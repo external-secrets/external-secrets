@@ -108,6 +108,57 @@ func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSec
 	return resp.Value, nil
 }
 
+// GetSecretMap retrieves multiple key/value pairs from a single provider object via gRPC.
+func (c *grpcProviderClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error) {
+	start := time.Now()
+	var err error
+	defer func() {
+		clientMetrics.ObserveRequest("GetSecretMap", c.conn.Target(), err, time.Since(start))
+	}()
+
+	c.log.V(1).Info("getting secret map via gRPC",
+		"key", ref.Key,
+		"version", ref.Version,
+		"property", ref.Property,
+		"connectionState", c.conn.GetState().String(),
+		"providerRef", providerRef,
+		"sourceNamespace", sourceNamespace)
+
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
+	pbRef := &pb.ExternalSecretDataRemoteRef{
+		Key:              ref.Key,
+		Version:          ref.Version,
+		Property:         ref.Property,
+		DecodingStrategy: string(ref.DecodingStrategy),
+		MetadataPolicy:   string(ref.MetadataPolicy),
+	}
+
+	req := &pb.GetSecretMapRequest{
+		RemoteRef:       pbRef,
+		ProviderRef:     providerRef,
+		SourceNamespace: sourceNamespace,
+	}
+
+	c.log.V(1).Info("calling GetSecretMap RPC",
+		"target", c.conn.Target())
+
+	resp, err := c.client.GetSecretMap(ctx, req)
+	if err != nil {
+		c.log.Error(err, "GetSecretMap RPC failed",
+			"connectionState", c.conn.GetState().String(),
+			"target", c.conn.Target())
+		err = fmt.Errorf("failed to get secret map via gRPC: %w", err)
+		return nil, err
+	}
+
+	c.log.V(1).Info("GetSecretMap RPC succeeded",
+		"secretCount", len(resp.Secrets))
+
+	return resp.Secrets, nil
+}
+
 // Validate checks if the provider is properly configured via gRPC.
 func (c *grpcProviderClient) Validate(ctx context.Context, providerRef *pb.ProviderReference, sourceNamespace string) error {
 	start := time.Now()

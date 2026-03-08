@@ -130,6 +130,22 @@ func (rc *ResilientClient) GetSecret(ctx context.Context, ref esv1.ExternalSecre
 	return result, err
 }
 
+// GetSecretMap retrieves multiple key/value pairs from a single provider object with retry logic and circuit breaking.
+func (rc *ResilientClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error) {
+	var result map[string][]byte
+
+	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
+		secretMap, err := client.GetSecretMap(ctx, ref, providerRef, sourceNamespace)
+		if err != nil {
+			return err
+		}
+		result = secretMap
+		return nil
+	})
+
+	return result, err
+}
+
 // GetAllSecrets retrieves multiple secrets with retry logic and circuit breaking.
 func (rc *ResilientClient) GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error) {
 	var result map[string][]byte
