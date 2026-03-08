@@ -170,7 +170,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 }
 
 // updateSecret updates an existing secret in Delinea Secret Server.
-func (c *client) updateSecret(secret *server.Secret, property string, value string) error {
+func (c *client) updateSecret(secret *server.Secret, property, value string) error {
 	if property == "" {
 		// If property is empty, put the JSON value in the first field, matching GetSecretMap logic
 		if len(secret.Fields) > 0 {
@@ -238,12 +238,12 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 		})
 	} else {
 		// Populate the specific property
-		fieldId, found := findTemplateFieldID(template, property)
+		fieldID, found := findTemplateFieldID(template, property)
 		if !found {
 			return fmt.Errorf("field %s not found in secret template", property)
 		}
 		newSecret.Fields = append(newSecret.Fields, server.SecretField{
-			FieldID:   fieldId,
+			FieldID:   fieldID,
 			ItemValue: value,
 		})
 	}
@@ -381,9 +381,9 @@ func (c *client) getSecretByName(name string, folderID int) (*server.Secret, err
 }
 
 func findTemplateFieldID(template *server.SecretTemplate, property string) (int, bool) {
-	fieldId, found := template.FieldSlugToId(property)
+	fieldID, found := template.FieldSlugToId(property)
 	if found {
-		return fieldId, true
+		return fieldID, true
 	}
 
 	// fallback check if they used name instead of slug

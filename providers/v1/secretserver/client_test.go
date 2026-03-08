@@ -520,7 +520,7 @@ func TestGetSecretWithVersion(t *testing.T) {
 	}
 }
 
-// fakePushSecretData implements esv1.PushSecretData for testing
+// fakePushSecretData implements esv1.PushSecretData for testing.
 type fakePushSecretData struct {
 	remoteKey string
 	property  string
@@ -540,7 +540,7 @@ func (f fakePushSecretData) GetSecretKey() string { return f.secretKey }
 // GetMetadata returns the metadata for the fake push secret data.
 func (f fakePushSecretData) GetMetadata() *apiextensionsv1.JSON { return f.metadata }
 
-// fakePushSecretRemoteRef implements esv1.PushSecretRemoteRef for testing
+// fakePushSecretRemoteRef implements esv1.PushSecretRemoteRef for testing.
 type fakePushSecretRemoteRef struct {
 	remoteKey string
 	property  string
@@ -677,12 +677,12 @@ func TestPushSecret(t *testing.T) {
 	// Check the password field
 	var s9001PW, s9000PW string
 	for _, f := range s9001.Fields {
-		if f.Slug == "password" {
+		if f.Slug == passwordSlug {
 			s9001PW = f.ItemValue
 		}
 	}
 	for _, f := range s9000.Fields {
-		if f.Slug == "password" {
+		if f.Slug == passwordSlug {
 			s9000PW = f.ItemValue
 		}
 	}
@@ -701,7 +701,7 @@ func TestPushSecret(t *testing.T) {
 	sPath, _ := c.(*client).api.Secret(9002)
 	var sPathPW string
 	for _, f := range sPath.Fields {
-		if f.Slug == "password" {
+		if f.Slug == passwordSlug {
 			sPathPW = f.ItemValue
 		}
 	}

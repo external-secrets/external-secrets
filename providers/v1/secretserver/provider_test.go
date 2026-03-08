@@ -168,7 +168,7 @@ func TestValidateStore(t *testing.T) {
 func TestNewClient(t *testing.T) {
 	userNameKey := "username"
 	userNameValue := "foo"
-	passwordKey := "password"
+	passwordKey := passwordSlug
 	passwordValue := generateRandomString()
 	domain := "domain1"
 
