@@ -55,7 +55,19 @@ env:
 jobs:
 
   integration-trusted:
+    name: integration-trusted (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+        - name: classic
+          make_target: test.e2e
+          allow_failure: false
+        - name: v2
+          make_target: test.e2e.v2
+          allow_failure: true
+    continue-on-error: ${{ matrix.suite.allow_failure }}
     permissions:
       id-token: write #for oidc auth with aws/gcp/azure
       contents: read  #for checkout
@@ -72,56 +84,24 @@ jobs:
       run: git fetch --prune --unshallow
 
     - uses: ./.github/actions/e2e
-
-  integration-v2-optional:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    timeout-minutes: 90
-    permissions:
-      contents: read
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
-    steps:
-    - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
       with:
-        egress-policy: audit
-
-    - name: Branch based PR checkout
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-    - name: Fetch History
-      run: git fetch --prune --unshallow
-
-    - name: Setup Go
-      uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
-      with:
-        go-version-file: go.mod
-
-    - name: Setup kind
-      uses: engineerd/setup-kind@aa272fe2a7309878ffc2a81c56cfe3ef108ae7d0 # v0.5.0
-      with:
-        version: ${{ env.KIND_VERSION }}
-        wait: 10m
-        image: ${{ env.KIND_IMAGE }}
-        name: external-secrets
-
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-      with:
-        install: true
-
-    - name: Install Ginkgo CLI
-      run: |
-        make -C e2e install-ginkgo
-        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-    - name: Run V2 e2e Tests (optional)
-      env:
-        DOCKER_BUILD_ARGS: --load
-      run: make test.e2e.v2
+        make-target: ${{ matrix.suite.make_target }}
 
   # Repo owner has commented /ok-to-test on a (fork-based) pull request
   integration-fork:
+    name: integration-fork (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+        - name: classic
+          make_target: test.e2e
+          allow_failure: false
+        - name: v2
+          make_target: test.e2e.v2
+          allow_failure: true
+    continue-on-error: ${{ matrix.suite.allow_failure }}
     permissions:
       id-token: write      #for oidc auth with aws/gcp/azure
       contents: read       #for checkout
@@ -143,8 +123,10 @@ jobs:
 
     - id: e2e
       uses: ./.github/actions/e2e
+      with:
+        make-target: ${{ matrix.suite.make_target }}
     - id: create_token
-      if: always()
+      if: always() && matrix.suite.name == 'classic'
       uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
       with:
         app-id: ${{ secrets.APP_ID }}
@@ -152,7 +134,7 @@ jobs:
         owner: ${{ github.repository_owner }}
 
     - name: Update on Succeess
-      if: always() && steps.e2e.conclusion == 'success'
+      if: always() && matrix.suite.name == 'classic' && steps.e2e.conclusion == 'success'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}
@@ -160,7 +142,7 @@ jobs:
         body: |
             [Bot] - :white_check_mark: [e2e for ${{ env.TARGET_SHA }} passed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
     - name: Update on Failure
-      if: always() &&  steps.e2e.conclusion != 'success'
+      if: always() && matrix.suite.name == 'classic' && steps.e2e.conclusion != 'success'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}

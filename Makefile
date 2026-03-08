@@ -155,14 +155,10 @@ test.e2e.managed: generate ## Run e2e tests managed
 	@$(OK) go test e2e-tests-managed
 
 .PHONY: test.e2e.v2
-test.e2e.v2: generate manifests docker.build.e2e docker.build.providers ## Run V2 E2E tests
-	@$(INFO) Installing ESO V2 for E2E tests
-	./hack/install-eso-v2-e2e.sh
-	@$(INFO) Running V2 E2E tests
-	cd e2e && ACK_GINKGO_DEPRECATIONS=2.9.5 ginkgo -v --label-filter="v2" ./suites/v2/...
-	@$(INFO) Cleaning up ESO V2
-	./hack/uninstall-eso-v2-e2e.sh
-	@$(OK) V2 E2E tests complete
+test.e2e.v2: generate ## Run V2 E2E tests
+	@$(INFO) go test v2 e2e-tests
+	$(MAKE) -C ./e2e test.v2
+	@$(OK) go test v2 e2e-tests
 
 .PHONY: test.crds
 test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
