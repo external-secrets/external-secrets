@@ -45,7 +45,7 @@ type ProviderMapping map[schema.GroupVersionKind]esv1.ProviderInterface
 
 // SpecMapper maps a provider reference to a SecretStoreSpec.
 // This is used to create a synthetic store for the v1 provider.
-type SpecMapper func(ref *pb.ProviderReference) (*esv1.SecretStoreSpec, error)
+type SpecMapper func(ref *pb.ProviderReference, sourceNamespace string) (*esv1.SecretStoreSpec, error)
 
 // NewServer creates a new AdapterServer that wraps v1 providers and generators.
 func NewServer(kubeClient client.Client, resourceMapping ProviderMapping, specMapping SpecMapper) *Server {
@@ -85,7 +85,7 @@ func (s *Server) getClient(ctx context.Context, ref *pb.ProviderReference, names
 		return nil, fmt.Errorf("request or remote ref is nil")
 	}
 
-	spec, err := s.specMapper(ref)
+	spec, err := s.specMapper(ref, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to map provider reference to spec: %w", err)
 	}
@@ -105,6 +105,9 @@ func (s *Server) getClient(ctx context.Context, ref *pb.ProviderReference, names
 func (s *Server) GetSecret(ctx context.Context, req *pb.GetSecretRequest) (*pb.GetSecretResponse, error) {
 	if req == nil || req.RemoteRef == nil {
 		return nil, fmt.Errorf("request or remote ref is nil")
+	}
+	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
+		return nil, err
 	}
 	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
@@ -140,6 +143,9 @@ func (s *Server) PushSecret(ctx context.Context, req *pb.PushSecretRequest) (*pb
 	if req == nil || req.PushSecretData == nil {
 		return nil, fmt.Errorf("request or push secret data is nil")
 	}
+	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
+		return nil, err
+	}
 
 	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
@@ -174,6 +180,9 @@ func (s *Server) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) 
 	if req == nil || req.RemoteRef == nil {
 		return nil, fmt.Errorf("request or remote ref is nil")
 	}
+	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
+		return nil, err
+	}
 
 	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
@@ -199,6 +208,9 @@ func (s *Server) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) 
 func (s *Server) SecretExists(ctx context.Context, req *pb.SecretExistsRequest) (*pb.SecretExistsResponse, error) {
 	if req == nil || req.RemoteRef == nil {
 		return nil, fmt.Errorf("request or remote ref is nil")
+	}
+	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
+		return nil, err
 	}
 
 	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
@@ -228,6 +240,9 @@ func (s *Server) SecretExists(ctx context.Context, req *pb.SecretExistsRequest) 
 func (s *Server) GetAllSecrets(ctx context.Context, req *pb.GetAllSecretsRequest) (*pb.GetAllSecretsResponse, error) {
 	if req == nil || req.Find == nil {
 		return nil, fmt.Errorf("request or find criteria is nil")
+	}
+	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
+		return nil, err
 	}
 
 	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
@@ -330,6 +345,13 @@ func (s *Server) Capabilities(_ context.Context, req *pb.CapabilitiesRequest) (*
 	return &pb.CapabilitiesResponse{
 		Capabilities: pbCaps,
 	}, nil
+}
+
+func validateSourceNamespace(sourceNamespace string) error {
+	if sourceNamespace == "" {
+		return fmt.Errorf("source namespace is required")
+	}
+	return nil
 }
 
 // pushSecretData implements esv1.PushSecretData.

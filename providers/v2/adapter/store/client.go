@@ -17,7 +17,9 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -51,10 +53,27 @@ func (w *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return w.v2Provider.GetSecret(ctx, ref, w.providerRef, w.sourceNamespace)
 }
 
-// GetSecretMap is not supported for v2 providers.
-// V2 providers don't have this method as it's being phased out in favor of GetAllSecrets.
 func (w *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, fmt.Errorf("GetSecretMap not supported for v2 providers")
+	secretData, err := w.v2Provider.GetSecret(ctx, ref, w.providerRef, w.sourceNamespace)
+	if err != nil {
+		return nil, err
+	}
+
+	values := make(map[string]any)
+	if err := json.Unmarshal(secretData, &values); err != nil {
+		return nil, fmt.Errorf("failed to decode secret as JSON object for extract: %w", err)
+	}
+
+	secretMap := make(map[string][]byte, len(values))
+	for key, value := range values {
+		byteValue, err := toByteValue(value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert extracted value for key %q: %w", key, err)
+		}
+		secretMap[key] = byteValue
+	}
+
+	return secretMap, nil
 }
 
 // GetAllSecrets retrieves multiple secrets based on find criteria.
@@ -118,4 +137,21 @@ func (w *Client) Validate() (esv1.ValidationResult, error) {
 // Close cleans up any resources held by the provider client.
 func (w *Client) Close(ctx context.Context) error {
 	return w.v2Provider.Close(ctx)
+}
+
+func toByteValue(value any) ([]byte, error) {
+	switch v := value.(type) {
+	case string:
+		return []byte(v), nil
+	case float64:
+		return []byte(strconv.FormatFloat(v, 'f', -1, 64)), nil
+	case bool:
+		return []byte(strconv.FormatBool(v)), nil
+	case nil:
+		return nil, nil
+	case map[string]any, []any:
+		return json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("unsupported extracted value type: %T", v)
+	}
 }

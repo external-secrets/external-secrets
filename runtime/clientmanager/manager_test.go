@@ -411,6 +411,45 @@ func TestShouldProcessSecret(t *testing.T) {
 	}
 }
 
+func TestGetV2ProviderFeatureGate(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(false)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	mgr := NewManager(nil, "default", false)
+
+	_, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: "example-provider",
+		Kind: esv1.ProviderKindStr,
+	}, "default", nil)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "v2 provider support is disabled")
+}
+
+func TestGetV2ProviderFeatureGateFromSourceRef(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(false)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	mgr := NewManager(nil, "default", false)
+
+	_, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: "example-store",
+		Kind: esv1.SecretStoreKind,
+	}, "default", &esv1.StoreGeneratorSourceRef{
+		SecretStoreRef: &esv1.SecretStoreRef{
+			Name: "example-provider",
+			Kind: esv1.ProviderKindStr,
+		},
+	})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "v2 provider support is disabled")
+}
+
 type WrapProvider struct {
 	newClientFunc func(
 		context.Context,

@@ -370,7 +370,7 @@ func (m *Manager) Close(ctx context.Context) error {
 	// Close v1 provider clients (they don't use the pool)
 	for key, val := range m.clientMap {
 		// Only close v1 clients; v2 clients are managed by the pool
-		if key.providerType != "v2-provider" {
+		if key.providerType != "v2-provider" && key.providerType != "v2-cluster-provider" {
 			err := val.client.Close(ctx)
 			if err != nil {
 				errs = append(errs, err.Error())
@@ -438,5 +438,3 @@ func (m *Manager) shouldProcessSecret(store esv1.GenericStore, ns string) (bool,
 
 	return false, nil
 }
-
-

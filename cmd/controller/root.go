@@ -141,6 +141,7 @@ var rootCmd = &cobra.Command{
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		setupLogger()
+		clientmanager.SetV2ProvidersEnabled(enableV2Providers)
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
