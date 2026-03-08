@@ -1,6 +1,12 @@
 name: "e2e"
 description: "runs our e2e test suite"
 
+inputs:
+  make-target:
+    description: "Make target to execute (for example: test.e2e or test.e2e.v2)"
+    required: false
+    default: "test.e2e"
+
 runs:
   using: composite
   steps:
@@ -56,4 +62,4 @@ runs:
       shell: bash
       env:
         DOCKER_BUILD_ARGS: --load
-      run: make test.e2e
+      run: make ${{ inputs.make-target }}

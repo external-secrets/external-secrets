@@ -38,6 +38,22 @@ test: e2e-image ## Run e2e tests against current kube context
 	kind load docker-image --name="external-secrets" $(E2E_IMAGE_NAME):$(VERSION)
 	./run.sh
 
+test.v2: e2e-image ## Run v2 e2e tests against current kube context
+	$(MAKE) -C ../ docker.build \
+		IMAGE_NAME=$(IMAGE_NAME) \
+		VERSION=$(VERSION) \
+		ARCH=amd64 \
+		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+	$(MAKE) -C ../ docker.build \
+		IMAGE_NAME=$(OCI_IMAGE_NAME) \
+		VERSION=$(VERSION) \
+		ARCH=amd64 \
+		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+	kind load docker-image --name="external-secrets" $(IMAGE_NAME):$(VERSION)
+	kind load docker-image --name="external-secrets" $(OCI_IMAGE_NAME):$(VERSION)
+	kind load docker-image --name="external-secrets" $(E2E_IMAGE_NAME):$(VERSION)
+	GINKGO_LABELS="v2" TEST_SUITES="v2" ./run.sh
+
 test.managed: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.build \
 		VERSION=$(VERSION) \
