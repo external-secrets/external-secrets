@@ -211,6 +211,10 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 		return fmt.Errorf("failed to get secret template: %w", err)
 	}
 
+	if strings.HasSuffix(name, "/") {
+		return fmt.Errorf("invalid secret name %q: name must not be empty or end with a trailing slash", name)
+	}
+
 	normalizedName := strings.Trim(name, "/")
 	if strings.Contains(normalizedName, "/") {
 		parts := strings.Split(normalizedName, "/")
@@ -351,9 +355,18 @@ func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 		return c.api.SecretByPath(ref.Key)
 	}
 
-	// Otherwise try converting it to an ID
+	// Otherwise try converting it to an ID; if the key is numeric but no secret
+	// exists with that ID, fall back to a name-based lookup so that secrets whose
+	// name happens to be a numeric string can still be resolved.
 	if id, err := strconv.Atoi(ref.Key); err == nil {
-		return c.api.Secret(id)
+		secret, err := c.api.Secret(id)
+		if err == nil && secret != nil {
+			return secret, nil
+		}
+		if !isNotFoundError(err) {
+			return nil, err
+		}
+		// ID lookup returned not-found; fall through to name-based lookup.
 	}
 
 	return c.getSecretByName(ref.Key, folderID)
@@ -372,9 +385,9 @@ func (c *client) getSecretByName(name string, folderID int) (*server.Secret, err
 		return &secrets[0], nil
 	}
 
-	for _, s := range secrets {
+	for i, s := range secrets {
 		if s.FolderID == folderID {
-			return &s, nil
+			return &secrets[i], nil
 		}
 	}
 	return nil, errors.New(errMsgNotFound)

@@ -1070,6 +1070,10 @@ func TestPushSecretInvalidPathKeys(t *testing.T) {
 			remoteKey: "///",
 			errMsg:    "invalid secret name",
 		},
+		"trailing slash on path": {
+			remoteKey: "/Folder/Subfolder/",
+			errMsg:    "invalid secret name",
+		},
 	}
 
 	for name, tc := range testCases {
