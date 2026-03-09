@@ -31,6 +31,7 @@ webhooks:
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None
   timeoutSeconds: 5
+  failurePolicy: {{ .Values.webhook.failurePolicy }}
 
 - name: "validate.clustersecretstore.external-secrets.io"
   rules:

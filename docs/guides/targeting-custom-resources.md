@@ -9,7 +9,7 @@ External Secrets Operator can create and manage resources beyond Kubernetes Secr
 !!! warning "Security Consideration"
     Custom resources are not encrypted at rest by Kubernetes. Only use this feature when you need to populate resources that do not contain sensitive credentials, or when the target resource is encrypted by other means.
 
-This feature must be explicitly enabled in your deployment using the `--unsafe-allow-non-secret-targets` flag.
+This feature must be explicitly enabled in your deployment using the `--unsafe-allow-generic-targets` flag.
 
 !!! note "Namespaced Resources Only"
     With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.
@@ -56,11 +56,31 @@ When working with custom resources that have complex structures, you can use `ta
 
 The `target` field accepts dot-notation paths like `spec.database` or `spec.logging` to place the rendered template output at specific locations in the resource structure. When `target` is not specified it defaults to `Data` for backward compatibility with Secrets.
 
+!!! note "Using `property` when templating `data`"
+    The return of `data:` isn't an object on the template scope. If templated as a `string` it will fail in finding the right key. Therefore, something like this:
+    ```yaml
+      data:
+        - secretKey: url
+          remoteRef:
+            key: slack-alerts/myalert-dev
+    ```
+    templated as a literal:
+    ```yaml
+    {% raw %}
+    template:
+      engineVersion: v2
+      templateFrom:
+        - literal: |
+            api_url: {{ .url }}
+          target: spec.slack
+    {% endraw %}
+    ```
+    will not work. A property like `property: url` MUST be defined.
+
 ## Drift Detection
 
-The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state during the next reconciliation cycle.
-
-This ensures that your configuration remains consistent with what is defined in your external secret provider, preventing configuration drift.
+The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state immediately.
+This is achieved with informers watching the relevant GVK of the Resource.
 
 ## Metadata and Labels
 
@@ -77,13 +97,12 @@ The operator automatically adds the `externalsecrets.external-secrets.io/managed
 When using custom resource targets, ensure the External Secrets Operator has appropriate RBAC permissions to create and manage those resources. The Helm chart provides configuration options to enable these permissions:
 
 ```yaml
-nonSecretTargets:
+genericTargets:
   enabled: true
-  rbac:
-    configMaps: true
-    customResources:
-    - apiGroups: ["config.example.com"]
-      resources: ["appconfigs"]
+  resources:
+  - apiGroups: ["config.example.com"]
+    resources: ["appconfigs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ```
 
 Without these permissions, the operator will not be able to create or update your target resources.

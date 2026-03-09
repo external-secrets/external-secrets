@@ -20,12 +20,12 @@ package vaultutil
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	vault "github.com/hashicorp/vault/api"
 )
 
 // JwtProviderFactory is a function type that creates a JWT credentials provider.
-type JwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error)
+type JwtProviderFactory func(ctx context.Context, name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error)
 
 // Auth defines the interface for Vault authentication.
 type Auth interface {

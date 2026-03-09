@@ -58,7 +58,14 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // newConjurProvider creates and returns a new Conjur client with the specified configuration.
-func newConjurProvider(_ context.Context, store esv1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientAPI SecretsClientFactory) (esv1.SecretsClient, error) {
+func newConjurProvider(
+	_ context.Context,
+	store esv1.GenericStore,
+	kube client.Client,
+	namespace string,
+	corev1 typedcorev1.CoreV1Interface,
+	clientAPI SecretsClientFactory,
+) (esv1.SecretsClient, error) {
 	return &Client{
 		StoreKind: store.GetObjectKind().GroupVersionKind().Kind,
 		store:     store,

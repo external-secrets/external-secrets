@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 The Kubernetes Authors.
 #
@@ -49,5 +49,5 @@ fi
 
 gendoc::build
 gendoc::exec \
-    -api-dir github.com/external-secrets/external-secrets/apis/externalsecrets/v1 \
+    -api-dir github.com/external-secrets/external-secrets/apis \
     -out-file "$1"

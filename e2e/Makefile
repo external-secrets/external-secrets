@@ -1,5 +1,5 @@
 MAKEFLAGS   += --warn-undefined-variables
-SHELL       := /bin/bash
+SHELL       := /usr/bin/env bash
 .SHELLFLAGS := -euo pipefail -c
 
 KIND_IMG       = "kindest/node:v1.33.4@sha256:25a6018e48dfcaee478f4a59af81157a437f15e6e140bf103f85a2e7cd0cbbf2"
@@ -9,7 +9,7 @@ export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed
 export TEST_SUITES ?= provider generator flux argocd
 
-export OCI_IMAGE_NAME = oci.external-secrets.io/external-secrets/external-secrets
+export OCI_IMAGE_NAME = ghcr.io/external-secrets/external-secrets
 
 start-kind: ## Start kind cluster
 	kind create cluster \

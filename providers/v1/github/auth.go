@@ -47,7 +47,14 @@ func (g *Client) AuthWithPrivateKey(ctx context.Context) (*github.Client, error)
 		if uploadURL == "" {
 			uploadURL = g.provider.URL
 		}
-		return client.WithEnterpriseURLs(g.provider.URL, uploadURL)
+
+		enterpriseClient, err := client.WithEnterpriseURLs(g.provider.URL, uploadURL)
+		if err != nil {
+			return nil, fmt.Errorf("could not instantiate new enterprise client: %w", err)
+		}
+
+		itr.BaseURL = enterpriseClient.BaseURL.String()
+		return github.NewClient(&http.Client{Transport: itr}).WithEnterpriseURLs(g.provider.URL, uploadURL)
 	}
 	return client, nil
 }

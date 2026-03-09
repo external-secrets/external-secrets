@@ -398,10 +398,26 @@ func makeSecretStore(fn ...storeModifier) *esv1.SecretStore {
 
 func withAuth(name, key string, namespace *string) storeModifier {
 	return func(store *esv1.SecretStore) *esv1.SecretStore {
-		store.Spec.Provider.Doppler.Auth.SecretRef.DopplerToken = v1.SecretKeySelector{
-			Name:      name,
-			Key:       key,
-			Namespace: namespace,
+		store.Spec.Provider.Doppler.Auth.SecretRef = &esv1.DopplerAuthSecretRef{
+			DopplerToken: v1.SecretKeySelector{
+				Name:      name,
+				Key:       key,
+				Namespace: namespace,
+			},
+		}
+		return store
+	}
+}
+
+func withOIDCAuth(identityID, saName string, saNamespace *string) storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Doppler.Auth.SecretRef = nil
+		store.Spec.Provider.Doppler.Auth.OIDCConfig = &esv1.DopplerOIDCAuth{
+			Identity: identityID,
+			ServiceAccountRef: v1.ServiceAccountSelector{
+				Name:      saName,
+				Namespace: saNamespace,
+			},
 		}
 		return store
 	}
@@ -436,6 +452,39 @@ func TestValidateStore(t *testing.T) {
 			label: "valid namespace not set",
 			store: makeSecretStore(withAuth(secretName, "", nil)),
 			err:   nil,
+		},
+		{
+			label: "invalid store missing both auth methods",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Doppler: &esv1.DopplerProvider{
+							Auth: &esv1.DopplerAuth{},
+						},
+					},
+				},
+			},
+			err: errors.New("invalid store: either auth.secretRef or auth.oidcConfig must be specified"),
+		},
+		{
+			label: "invalid OIDC missing identityId",
+			store: makeSecretStore(withOIDCAuth("", "sa-name", nil)),
+			err:   errors.New("invalid store: oidcConfig.identity cannot be empty"),
+		},
+		{
+			label: "invalid OIDC missing serviceAccountRef.name",
+			store: makeSecretStore(withOIDCAuth("identity-123", "", nil)),
+			err:   errors.New("invalid store: oidcConfig.serviceAccountRef.name cannot be empty"),
+		},
+		{
+			label: "valid OIDC auth",
+			store: makeSecretStore(withOIDCAuth("identity-123", "sa-name", nil)),
+			err:   nil,
+		},
+		{
+			label: "invalid OIDC namespace not allowed",
+			store: makeSecretStore(withOIDCAuth("identity-123", "sa-name", &namespace)),
+			err:   errors.New("invalid store: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 	}
 	p := Provider{}

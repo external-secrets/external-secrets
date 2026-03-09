@@ -29,8 +29,7 @@ const (
 	VaultKVStoreV2 VaultKVStoreVersion = "v2"
 )
 
-// VaultProvider configures a store to sync secrets using a HashiCorp Vault
-// KV backend.
+// VaultProvider configures a store to sync secrets using a Hashicorp Vault KV backend.
 type VaultProvider struct {
 	// Auth configures how secret-manager authenticates with the Vault server.
 	Auth *VaultAuth `json:"auth,omitempty"`
@@ -119,7 +118,7 @@ type VaultClientTLS struct {
 }
 
 // VaultAuth is the configuration used to authenticate with a Vault server.
-// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt` or `cert`
+// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt`, `cert`, `iam` or `gcp`
 // can be specified. A namespace to authenticate against can optionally be specified.
 type VaultAuth struct {
 	// Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
@@ -167,6 +166,11 @@ type VaultAuth struct {
 	// UserPass authenticates with Vault by passing username/password pair
 	// +optional
 	UserPass *VaultUserPassAuth `json:"userPass,omitempty"`
+
+	// Gcp authenticates with Vault using Google Cloud Platform authentication method
+	// GCP authentication method
+	// +optional
+	GCP *VaultGCPAuth `json:"gcp,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -389,6 +393,42 @@ type VaultUserPassAuth struct {
 	// method
 	// +optional
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
+// Refer: https://developer.hashicorp.com/vault/docs/auth/gcp
+//
+// When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod's
+// identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.
+type VaultGCPAuth struct {
+	// Path where the GCP auth method is enabled in Vault, e.g: "gcp"
+	// +kubebuilder:default=gcp
+	// +optional
+	Path string `json:"path,omitempty"`
+
+	// Vault Role. In Vault, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.
+	//+required
+	Role string `json:"role"`
+
+	// Project ID of the Google Cloud Platform project
+	// +optional
+	ProjectID string `json:"projectID,omitempty"`
+
+	// Location optionally defines a location/region for the secret
+	// +optional
+	Location string `json:"location,omitempty"`
+
+	// Specify credentials in a Secret object
+	// +optional
+	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
+
+	// Specify a service account with Workload Identity
+	// +optional
+	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
+
+	// ServiceAccountRef to a service account for impersonation
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 // VaultCheckAndSet defines the Check-And-Set (CAS) settings for Vault KV v2 PushSecret operations.

@@ -210,12 +210,20 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1.Pu
 	defer provider.mu.Unlock()
 	providerItem, err := provider.findItem(ref.GetRemoteKey())
 	if err != nil {
+		if errors.Is(err, ErrKeyNotFound) {
+			return nil
+		}
+
 		return err
 	}
 
 	providerItem.Fields, err = deleteField(providerItem.Fields, ref.GetProperty())
 	if err != nil {
 		return fmt.Errorf(errUpdateItem, err)
+	}
+
+	if len(providerItem.Sections) == 1 && providerItem.Sections[0].ID == "" && providerItem.Sections[0].Label == "" {
+		providerItem.Sections = nil
 	}
 
 	if len(providerItem.Fields) == 0 && len(providerItem.Files) == 0 && len(providerItem.Sections) == 0 {

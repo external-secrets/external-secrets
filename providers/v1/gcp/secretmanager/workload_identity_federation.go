@@ -405,7 +405,13 @@ func validateCredConfigAWSCredentialSource(credSource *externalaccount.Credentia
 
 func (r *k8sSATokenReader) SubjectToken(ctx context.Context, options externalaccount.SupplierOptions) (string, error) {
 	if options.Audience != r.audience || options.SubjectTokenType != r.subjectTokenType {
-		return "", fmt.Errorf("invalid subject token request, audience is %s(expected %s) and subject_token_type is %s(expected %s)", options.Audience, r.audience, options.SubjectTokenType, r.subjectTokenType)
+		return "", fmt.Errorf(
+			"invalid subject token request, audience is %s(expected %s) and subject_token_type is %s(expected %s)",
+			options.Audience,
+			r.audience,
+			options.SubjectTokenType,
+			r.subjectTokenType,
+		)
 	}
 
 	resp, err := r.saTokenGenerator.Generate(ctx, r.saAudience, r.serviceAccount.Name, r.serviceAccount.Namespace)

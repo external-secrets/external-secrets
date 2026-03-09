@@ -178,6 +178,7 @@ func TestValidateStore(t *testing.T) {
 			Key:       "bar",
 			Namespace: &ns,
 		},
+		IAMEndpoint: "https://iam.cloud.ibm.com",
 	}
 	_, err = p.ValidateStore(store)
 	if err == nil {

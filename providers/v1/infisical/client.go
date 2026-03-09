@@ -29,9 +29,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
-	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
 )
 
 var (
@@ -197,7 +197,14 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 
 	if err != nil {
-		return esv1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s recursive:%t, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, p.apiScope.Recursive, err)
+		return esv1.ValidationResultError, fmt.Errorf(
+			"cannot read secrets with provided project scope project:%s environment:%s secret-path:%s recursive:%t, %w",
+			p.apiScope.ProjectSlug,
+			p.apiScope.EnvironmentSlug,
+			p.apiScope.SecretPath,
+			p.apiScope.Recursive,
+			err,
+		)
 	}
 
 	return esv1.ValidationResultReady, nil

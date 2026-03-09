@@ -32,8 +32,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/providers/v1/onepassword/fake"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 )
 
 const (
@@ -2466,6 +2466,95 @@ func (m *mockClient) LoadStructFromItem(config interface{}, itemQuery, vaultQuer
 	return nil
 }
 func (m *mockClient) LoadStruct(config interface{}) error { return nil }
+
+func TestDeleteSecretWithEmptySections(t *testing.T) {
+	const vaultName = "vault1"
+	vault := onepassword.Vault{
+		ID:   vaultName,
+		Name: vaultName,
+	}
+
+	t.Run("item with empty section should be deleted when last field is removed", func(t *testing.T) {
+		deleteCalled := false
+		updateCalled := false
+
+		mockClient := fake.NewMockClient()
+		mockClient.MockVaults = map[string][]onepassword.Vault{
+			vaultName: {vault},
+		}
+		mockClient.MockItems = map[string][]onepassword.Item{
+			vaultName: {
+				{
+					ID:    "item-id",
+					Title: "test-item",
+					Vault: onepassword.ItemVault{ID: vaultName},
+					Sections: []*onepassword.ItemSection{
+						{ID: "", Label: ""},
+					},
+				},
+			},
+		}
+		mockClient.MockItemFields = map[string]map[string][]*onepassword.ItemField{
+			vaultName: {
+				"item-id": {
+					{ID: "field-1", Label: "password", Value: "secret"},
+				},
+			},
+		}
+		mockClient.DeleteItemValidateFunc = func(item *onepassword.Item, s string) error {
+			deleteCalled = true
+			return nil
+		}
+		mockClient.UpdateItemValidateFunc = func(item *onepassword.Item, s string) (*onepassword.Item, error) {
+			updateCalled = true
+			return item, nil
+		}
+
+		provider := &ProviderOnePassword{
+			vaults: map[string]int{vaultName: 1},
+			client: mockClient,
+		}
+
+		err := provider.DeleteSecret(context.Background(), fakeRef{
+			key:  "test-item",
+			prop: "password",
+		})
+
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+		if !deleteCalled {
+			t.Error("expected DeleteItem to be called when item has no fields and only empty sections")
+		}
+		if updateCalled {
+			t.Error("expected UpdateItem not to be called")
+		}
+	})
+
+	t.Run("item not found should not error", func(t *testing.T) {
+		mockClient := fake.NewMockClient()
+		mockClient.MockVaults = map[string][]onepassword.Vault{
+			vaultName: {vault},
+		}
+		mockClient.MockItems = map[string][]onepassword.Item{
+			vaultName: {},
+		}
+
+		provider := &ProviderOnePassword{
+			vaults: map[string]int{vaultName: 1},
+			client: mockClient,
+		}
+
+		err := provider.DeleteSecret(context.Background(), fakeRef{
+			key:  "non-existent-item",
+			prop: "password",
+		})
+
+		if err != nil {
+			t.Errorf("expected no error when item not found, got %v", err)
+		}
+	})
+}
 
 func TestRetryClient(t *testing.T) {
 	tests := []struct {

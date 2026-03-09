@@ -22,12 +22,13 @@ import (
 )
 
 // MaintenanceStatus defines a type for different maintenance states of a provider schema.
-type MaintenanceStatus bool
+type MaintenanceStatus string
 
 // These are the defined maintenance states for a provider schema.
 const (
-	MaintenanceStatusMaintained    MaintenanceStatus = true
-	MaintenanceStatusNotMaintained MaintenanceStatus = false
+	MaintenanceStatusMaintained    MaintenanceStatus = "Maintained"
+	MaintenanceStatusNotMaintained MaintenanceStatus = "NotMaintained"
+	MaintenanceStatusDeprecated    MaintenanceStatus = "Deprecated"
 )
 
 var maintenance map[string]MaintenanceStatus

@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/go-chef/chef"
 	"github.com/go-logr/logr"
 	"github.com/tidwall/gjson"
@@ -38,6 +37,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
 const (

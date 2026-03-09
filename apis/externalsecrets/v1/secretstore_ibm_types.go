@@ -42,6 +42,9 @@ type IBMAuth struct {
 type IBMAuthSecretRef struct {
 	// The SecretAccessKey is used for authentication
 	SecretAPIKey esmeta.SecretKeySelector `json:"secretApiKeySecretRef,omitempty"`
+
+	// The IAM endpoint used to obain a token
+	IAMEndpoint string `json:"iamEndpoint,omitempty"`
 }
 
 // IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.

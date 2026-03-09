@@ -21,12 +21,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/volcengine/volcengine-go-sdk/service/kms"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
-	"github.com/volcengine/volcengine-go-sdk/service/kms"
 )
 
 var _ esv1.Provider = &Provider{}

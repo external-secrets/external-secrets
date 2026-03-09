@@ -44,7 +44,10 @@ func (mc *IBMMockClient) GetSecretWithContext(ctx context.Context, getSecretOpti
 	return mc.getSecretWithContext(ctx, getSecretOptions)
 }
 
-func (mc *IBMMockClient) GetSecretByNameTypeWithContext(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
+func (mc *IBMMockClient) GetSecretByNameTypeWithContext(
+	ctx context.Context,
+	getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions,
+) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
 	return mc.getSecretByNameTypeWithContext(ctx, getSecretByNameTypeOptions)
 }
 

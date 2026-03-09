@@ -32,9 +32,9 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	utilfake "github.com/external-secrets/external-secrets/runtime/util/fake"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	utilfake "github.com/external-secrets/external-secrets/runtime/util/fake"
 )
 
 const (

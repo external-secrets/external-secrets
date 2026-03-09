@@ -23,8 +23,8 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/providers/v1/cloudru/secretmanager/adapter"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 // KubeCredentialsResolver resolves the credentials from the Kubernetes secret.

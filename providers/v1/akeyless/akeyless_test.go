@@ -312,7 +312,11 @@ func TestSecretExists(t *testing.T) {
 		failGetTestCase(),
 		makeValidAkeylessTestCase("success without property").SetExpectVal(true).SetExpectInput(&testingfake.PushSecretData{Property: ""}).
 			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) { return "my secret", nil })),
-		makeValidAkeylessTestCase("fail unmarshal").SetExpectVal(false).SetExpectErr("invalid character 'd' looking for beginning of value").SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
+		makeValidAkeylessTestCase(
+			"fail unmarshal",
+		).SetExpectVal(false).
+			SetExpectErr("failed to unmarshal secret: invalid JSON format").
+			SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
 			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) { return "daenerys", nil })),
 		makeValidAkeylessTestCase("no property").SetExpectVal(false).SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
 			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) { return `{"propa": "a"}`, nil })),
@@ -339,7 +343,7 @@ func TestPushSecret(t *testing.T) {
 	testCases := []*akeylessTestCase{
 		nilProviderTestCase(),
 		failGetTestCase(),
-		makeValidAkeylessTestCase("fail unmarshal").SetExpectErr("invalid character 'm' looking for beginning of value").
+		makeValidAkeylessTestCase("fail unmarshal").SetExpectErr("failed to unmarshal remote secret: invalid JSON format").
 			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) { return "morgoth", nil })),
 		makeValidAkeylessTestCase("create new secret").SetExpectInput(&corev1.Secret{Data: map[string][]byte{"test": []byte("test")}}).
 			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) { return "", ErrItemNotExists }).

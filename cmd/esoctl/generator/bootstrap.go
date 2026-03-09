@@ -29,6 +29,8 @@ import (
 //go:embed templates/*.tmpl
 var templates embed.FS
 
+const generatorImportPath = "github.com/external-secrets/external-secrets/generators/v1/"
+
 // Config holds the configuration for bootstrapping a generator.
 type Config struct {
 	GeneratorName string
@@ -72,6 +74,11 @@ func Bootstrap(rootDir string, cfg Config) error {
 	// Update register kind file
 	if err := updateRegisterKindFile(rootDir, cfg); err != nil {
 		return fmt.Errorf("failed to update register kind file: %w", err)
+	}
+
+	// Update ExternalSecret GeneratorRef validation
+	if err := updateExternalSecretGeneratorRef(rootDir, cfg); err != nil {
+		return fmt.Errorf("failed to update ExternalSecret GeneratorRef: %w", err)
 	}
 
 	return nil
@@ -179,8 +186,8 @@ func updateRegisterFile(rootDir string, cfg Config) error {
 	}
 
 	// Add import
-	importLine := fmt.Sprintf("\t%s \"github.com/external-secrets/external-secrets/generators/v1/%s\"",
-		cfg.PackageName, cfg.PackageName)
+	importLine := fmt.Sprintf("\t%s \"%s%s\"",
+		cfg.PackageName, generatorImportPath, cfg.PackageName)
 
 	// Find the last import before the closing parenthesis
 	lines := strings.Split(content, "\n")
@@ -192,7 +199,7 @@ func updateRegisterFile(rootDir string, cfg Config) error {
 		newLines = append(newLines, line)
 
 		// Add import after the last generator import
-		if !importAdded && strings.Contains(line, "\"github.com/external-secrets/external-secrets/generators/v1/") {
+		if !importAdded && strings.Contains(line, "\""+generatorImportPath) {
 			// Look ahead to see if next line is still an import or closing paren
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == ")" {
 				newLines = append(newLines, importLine)
@@ -318,7 +325,8 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 	}
 
 	content := string(data)
-	replaceLine := fmt.Sprintf("\tgithub.com/external-secrets/external-secrets/generators/v1/%s => ./generators/v1/%s",
+	replaceLine := fmt.Sprintf("\t%s%s => ./generators/v1/%s",
+		generatorImportPath,
 		cfg.PackageName, cfg.PackageName)
 
 	// Check if already exists
@@ -334,7 +342,7 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 
 	// First pass: find where to insert
 	for i, line := range lines {
-		if strings.Contains(line, "github.com/external-secrets/external-secrets/generators/v1/") {
+		if strings.Contains(line, generatorImportPath) {
 			lastGeneratorIdx = i
 			// Extract the package name from the current line
 			currentPkg := extractGeneratorPackage(line)
@@ -350,7 +358,7 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 		// If this was the last generator and we haven't added yet, add after it
 		if i == lastGeneratorIdx && !added && lastGeneratorIdx != -1 {
 			// Check if next line is NOT a generator (meaning this is the last one)
-			if i+1 >= len(lines) || !strings.Contains(lines[i+1], "github.com/external-secrets/external-secrets/generators/v1/") {
+			if i+1 >= len(lines) || !strings.Contains(lines[i+1], generatorImportPath) {
 				newLines = append(newLines, replaceLine)
 				added = true
 			}
@@ -371,7 +379,7 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 }
 
 func extractGeneratorPackage(line string) string {
-	if !strings.Contains(line, "github.com/external-secrets/external-secrets/generators/v1/") {
+	if !strings.Contains(line, generatorImportPath) {
 		return ""
 	}
 	// Extract package name from line like:
@@ -508,6 +516,58 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 		}
 		fmt.Printf("✓ Updated register.go\n")
 	}
+
+	return nil
+}
+
+func updateExternalSecretGeneratorRef(rootDir string, cfg Config) error {
+	// Update v1 ExternalSecret types
+	externalSecretFile := filepath.Join(rootDir, "apis", "externalsecrets", "v1", "externalsecret_types.go")
+
+	data, err := os.ReadFile(filepath.Clean(externalSecretFile))
+	if err != nil {
+		return fmt.Errorf("failed to read v1 externalsecret_types.go: %w", err)
+	}
+
+	content := string(data)
+
+	// Check if already exists
+	if strings.Contains(content, ";"+cfg.GeneratorName) {
+		fmt.Printf("⚠ Generator %s already exists in v1 GeneratorRef enum\n", cfg.GeneratorName)
+		return nil
+	}
+
+	lines := strings.Split(content, "\n")
+	newLines := make([]string, 0, len(lines))
+	updated := false
+
+	for _, line := range lines {
+		// Look for the GeneratorRef Kind enum validation line
+		// Pattern: // +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;...
+		if !updated && strings.Contains(line, "+kubebuilder:validation:Enum=") &&
+			strings.Contains(line, "ACRAccessToken") &&
+			strings.Contains(line, "ClusterGenerator") {
+			// This is the enum line we need to update
+			// Add the new generator to the end of the enum list
+			line = strings.TrimRight(line, "\n")
+			line = line + ";" + cfg.GeneratorName
+			updated = true
+		}
+
+		newLines = append(newLines, line)
+	}
+
+	if !updated {
+		fmt.Printf("⚠ Warning: Could not find GeneratorRef Kind enum in v1. Please manually add '%s' to the enum.\n",
+			cfg.GeneratorName)
+		return nil
+	}
+
+	if err := os.WriteFile(filepath.Clean(externalSecretFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
+		return fmt.Errorf("failed to write v1 externalsecret_types.go: %w", err)
+	}
+
+	fmt.Printf("✓ Updated v1 ExternalSecret GeneratorRef enum\n")
 
 	return nil
 }

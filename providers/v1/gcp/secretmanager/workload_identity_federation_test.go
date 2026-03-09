@@ -747,9 +747,11 @@ func TestK8sSATokenReader(t *testing.T) {
 		SubjectTokenType: workloadIdentitySubjectTokenType,
 	})
 	assert.Error(t, err)
-	assert.Equal(t,
+	assert.Equal(
+		t,
 		`invalid subject token request, audience is invalid-audience(expected //iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/test-pool/providers/test-provider) and subject_token_type is urn:ietf:params:oauth:token-type:jwt(expected urn:ietf:params:oauth:token-type:jwt)`,
-		err.Error())
+		err.Error(),
+	)
 
 	// Test invalid subject token type
 	_, err = r.SubjectToken(ctx, externalaccount.SupplierOptions{
@@ -757,9 +759,11 @@ func TestK8sSATokenReader(t *testing.T) {
 		SubjectTokenType: "invalid-type",
 	})
 	assert.Error(t, err)
-	assert.Equal(t,
+	assert.Equal(
+		t,
 		`invalid subject token request, audience is //iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/test-pool/providers/test-provider(expected //iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/test-pool/providers/test-provider) and subject_token_type is invalid-type(expected urn:ietf:params:oauth:token-type:jwt)`,
-		err.Error())
+		err.Error(),
+	)
 }
 
 func TestAWSSecurityCredentialsReader(t *testing.T) {

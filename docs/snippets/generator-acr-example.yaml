@@ -11,7 +11,7 @@ spec:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: ACRAccessToken
           name: my-azurecr
-  refreshInterval: 3h
+  refreshInterval: 30h0s
   target:
     name: azurecr-credentials
     template:

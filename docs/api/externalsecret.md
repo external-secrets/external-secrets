@@ -50,7 +50,7 @@ metadata:
   name: example
 spec:
   refreshPolicy: Periodic
-  refreshInterval: 1h  # Update every hour
+  refreshInterval: 1h0m0s  # Update every hour
   # other fields...
 ```
 

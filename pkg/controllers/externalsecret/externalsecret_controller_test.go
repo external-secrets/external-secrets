@@ -43,7 +43,7 @@ import (
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
-	"github.com/external-secrets/external-secrets/pkg/controllers/util"
+	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
@@ -513,7 +513,13 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			oldCharactersAroundMismatchToInclude := format.CharactersAroundMismatchToInclude
 			format.CharactersAroundMismatchToInclude = 10
 			Expect(ctest.FirstManagedFieldForManager(secret.ObjectMeta, ExternalSecretFQDN)).To(
-				Equal(fmt.Sprintf(`{"f:data":{"f:targetProperty":{}},"f:metadata":{"f:annotations":{"f:es-annotation-key":{},"f:%s":{}},"f:labels":{"f:es-label-key":{},"f:%s":{}}}}`, esv1.AnnotationDataHash, esv1.LabelManaged)),
+				Equal(
+					fmt.Sprintf(
+						`{"f:data":{"f:targetProperty":{}},"f:metadata":{"f:annotations":{"f:es-annotation-key":{},"f:%s":{}},"f:labels":{"f:es-label-key":{},"f:%s":{}}}}`,
+						esv1.AnnotationDataHash,
+						esv1.LabelManaged,
+					),
+				),
 			)
 			Expect(ctest.FirstManagedFieldForManager(secret.ObjectMeta, FakeManager)).To(
 				Equal(`{"f:data":{".":{},"f:pre-existing-key":{}},"f:metadata":{"f:annotations":{".":{},"f:existing-annotation-key":{}},"f:labels":{".":{},"f:existing-label-key":{}}},"f:type":{}}`),
@@ -1933,12 +1939,16 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
 			// Condition True and False should be 0, since the Condition was not created
 			Eventually(func() float64 {
-				Expect(testExternalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1.ExternalSecretReady), string(v1.ConditionTrue)).Write(&metric)).To(Succeed())
+				Expect(
+					testExternalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1.ExternalSecretReady), string(v1.ConditionTrue)).Write(&metric),
+				).To(Succeed())
 				return metric.GetGauge().GetValue()
 			}, timeout, interval).Should(Equal(0.0))
 
 			Eventually(func() float64 {
-				Expect(testExternalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1.ExternalSecretReady), string(v1.ConditionFalse)).Write(&metric)).To(Succeed())
+				Expect(
+					testExternalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1.ExternalSecretReady), string(v1.ConditionFalse)).Write(&metric),
+				).To(Succeed())
 				return metric.GetGauge().GetValue()
 			}, timeout, interval).Should(Equal(0.0))
 
@@ -2317,7 +2327,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 	}
 
-	DescribeTable("When reconciling an ExternalSecret",
+	DescribeTable(
+		"When reconciling an ExternalSecret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestcase()
 			for _, tweak := range tweaks {
@@ -2412,17 +2423,49 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should update the status properly even if the deletionPolicy is Retain and the data is empty", deletionPolicyRetainEmptyData),
 		Entry("should not delete pre-existing secret with deletionPolicy=Merge", deletionPolicyMerge),
 		Entry("secret is created when there are no conditions for the cluster secret store", useClusterSecretStore, noConditionsSecretCreated),
-		Entry("secret is not created when the condition for the cluster secret store states a different namespace single string condition", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchStringCondition),
-		Entry("secret is not created when the condition for the cluster secret store states a different namespace single string condition with multiple names", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchStringConditionWithMultipleNames),
-		Entry("secret is not created when the condition for the cluster secret store states a different namespace multiple string conditions", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchMultipleStringCondition),
-		Entry("secret is created when the condition for the cluster secret store has only one matching namespace by string condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesSingleStringCondition),
-		Entry("secret is created when the condition for the cluster secret store has one matching namespace of multiple namespaces by string condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesMultipleStringConditions),
-		Entry("secret is not created when the condition for the cluster secret store states a non-matching label condition", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchLabelCondition),
+		Entry(
+			"secret is not created when the condition for the cluster secret store states a different namespace single string condition",
+			useClusterSecretStore,
+			noSecretCreatedWhenNamespaceDoesntMatchStringCondition,
+		),
+		Entry(
+			"secret is not created when the condition for the cluster secret store states a different namespace single string condition with multiple names",
+			useClusterSecretStore,
+			noSecretCreatedWhenNamespaceDoesntMatchStringConditionWithMultipleNames,
+		),
+		Entry(
+			"secret is not created when the condition for the cluster secret store states a different namespace multiple string conditions",
+			useClusterSecretStore,
+			noSecretCreatedWhenNamespaceDoesntMatchMultipleStringCondition,
+		),
+		Entry(
+			"secret is created when the condition for the cluster secret store has only one matching namespace by string condition",
+			useClusterSecretStore,
+			secretCreatedWhenNamespaceMatchesSingleStringCondition,
+		),
+		Entry(
+			"secret is created when the condition for the cluster secret store has one matching namespace of multiple namespaces by string condition",
+			useClusterSecretStore,
+			secretCreatedWhenNamespaceMatchesMultipleStringConditions,
+		),
+		Entry(
+			"secret is not created when the condition for the cluster secret store states a non-matching label condition",
+			useClusterSecretStore,
+			noSecretCreatedWhenNamespaceDoesntMatchLabelCondition,
+		),
 		Entry("secret is created when the condition for the cluster secret store states a single matching label condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchOnlyLabelCondition),
-		Entry("secret is not created when the condition for the cluster secret store states a partially-matching label condition", useClusterSecretStore, noSecretCreatedWhenNamespacePartiallyMatchLabelCondition),
+		Entry(
+			"secret is not created when the condition for the cluster secret store states a partially-matching label condition",
+			useClusterSecretStore,
+			noSecretCreatedWhenNamespacePartiallyMatchLabelCondition,
+		),
 		Entry("secret is created when one of the label conditions for the cluster secret store matches", useClusterSecretStore, secretCreatedWhenNamespaceMatchOneLabelCondition),
 		Entry("secret is created when the namespaces matches multiple cluster secret store conditions", useClusterSecretStore, secretCreatedWhenNamespaceMatchMultipleConditions),
-		Entry("secret is not created when the namespaces doesn't match any of multiple cluster secret store conditions", useClusterSecretStore, noSecretCreatedWhenNamespaceMatchMultipleNonMatchingConditions),
+		Entry(
+			"secret is not created when the namespaces doesn't match any of multiple cluster secret store conditions",
+			useClusterSecretStore,
+			noSecretCreatedWhenNamespaceMatchMultipleNonMatchingConditions,
+		),
 	)
 })
 

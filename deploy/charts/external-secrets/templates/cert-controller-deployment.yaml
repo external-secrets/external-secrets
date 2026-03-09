@@ -22,22 +22,35 @@ spec:
   {{- end }}
   template:
     metadata:
-      {{- with .Values.certController.podAnnotations }}
+      {{- if .Values.certController.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.certController.podAnnotations | nindent 8 }}
+      {{- else if .Values.global.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.global.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
         {{- include "external-secrets-cert-controller.labels" . | nindent 8 }}
-        {{- with .Values.certController.podLabels }}
-          {{- toYaml . | nindent 8 }}
+        {{- if .Values.certController.podLabels }}
+        {{- toYaml .Values.certController.podLabels | nindent 8 }}
+        {{- else if .Values.global.podLabels }}
+        {{- toYaml .Values.global.podLabels | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.certController.imagePullSecrets }}
+      {{- if .Values.certController.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.certController.imagePullSecrets | nindent 8 }}
+      {{- else if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.certController.serviceAccount.automount }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      {{- if kindIs "bool" .Values.certController.hostUsers }}
+      hostUsers: {{ .Values.certController.hostUsers }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.certController.podSecurityContext }}
        {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:
@@ -53,7 +66,7 @@ spec:
             {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 12 }}
           {{- end }}
           {{- end }}
-          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.certController.image) | trim }}
+          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.certController.image "context" .) | trim }}
           imagePullPolicy: {{ .Values.certController.image.pullPolicy }}
           args:
           - certcontroller
@@ -76,6 +89,9 @@ spec:
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
           {{- end }}
+          {{- if .Values.leaderElect }}
+          - --enable-leader-election=true
+          {{- end }}
           {{- range $key, $value := .Values.certController.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
@@ -87,9 +103,17 @@ spec:
             - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
               name: metrics
+            - containerPort: {{ .Values.certController.readinessProbe.port }}
+              protocol: TCP
+              name: ready
+            {{- if and .Values.certController.startupProbe.enabled (not .Values.certController.startupProbe.useReadinessProbePort) }}
+            - containerPort: {{ .Values.certController.startupProbe.port }}
+              protocol: TCP
+              name: startup
+            {{- end }}
           readinessProbe:
             httpGet:
-              port: {{ .Values.certController.readinessProbe.port }}
+              port: ready
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
@@ -97,9 +121,9 @@ spec:
           startupProbe:
             httpGet:
               {{- if .Values.certController.startupProbe.useReadinessProbePort }}
-              port: {{ .Values.certController.readinessProbe.port }}
+              port: ready
               {{- else }}
-              port: {{ .Values.certController.startupProbe.port }}
+              port: startup
               {{- end }}
               path: /readyz
             initialDelaySeconds: 20
@@ -125,6 +149,10 @@ spec:
       volumes:
       {{- toYaml .Values.certController.extraVolumes | nindent 8 }}
       {{- end }}
+      {{- with .Values.certController.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.certController.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -139,7 +167,14 @@ spec:
       {{- end }}
       {{- with .Values.certController.topologySpreadConstraints | default .Values.global.topologySpreadConstraints }}
       topologySpreadConstraints:
-        {{- toYaml . | nindent 8 }}
+        {{- range $constraint := . }}
+        - {{ toYaml $constraint | nindent 10 | trim }}
+          {{- if not $constraint.labelSelector }}
+          labelSelector:
+            matchLabels:
+              {{- include "external-secrets-cert-controller.selectorLabels" $ | nindent 14 }}
+          {{- end }}
+        {{- end }}
       {{- end }}
       {{- if .Values.certController.priorityClassName }}
       priorityClassName: {{ .Values.certController.priorityClassName }}

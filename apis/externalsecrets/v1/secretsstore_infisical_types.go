@@ -164,4 +164,15 @@ type InfisicalProvider struct {
 	// +kubebuilder:default="https://app.infisical.com/api"
 	// +optional
 	HostAPI string `json:"hostAPI,omitempty"`
+
+	// CABundle is a PEM-encoded CA certificate bundle used to validate
+	// the Infisical server's TLS certificate. Mutually exclusive with CAProvider.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// CAProvider is a reference to a Secret or ConfigMap that contains a CA certificate.
+	// The certificate is used to validate the Infisical server's TLS certificate.
+	// Mutually exclusive with CABundle.
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }

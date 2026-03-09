@@ -19,7 +19,9 @@ package sshkey
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/pem"
@@ -98,6 +100,12 @@ func generateSSHKey(keyType string, keySize *int, comment string) (privateKey, p
 		return generateRSAKey(bits, comment)
 	case "ed25519":
 		return generateEd25519Key(comment)
+	case "ecdsa":
+		bits := 256
+		if keySize != nil {
+			bits = *keySize
+		}
+		return generateECDSAKey(bits, comment)
 	default:
 		return nil, nil, fmt.Errorf(errUnsupported, keyType)
 	}
@@ -161,12 +169,53 @@ func generateEd25519Key(comment string) (privateKey, publicKey []byte, err error
 	return pem.EncodeToMemory(sshPrivateKey), publicKeyBytes, nil
 }
 
+func generateECDSAKey(keySize int, comment string) (privateKey, publicKey []byte, err error) {
+	var ellipticCurve elliptic.Curve
+
+	// Select the elliptic curve based on keySize
+	switch keySize {
+	case 256:
+		ellipticCurve = elliptic.P256()
+	case 384:
+		ellipticCurve = elliptic.P384()
+	case 521:
+		ellipticCurve = elliptic.P521()
+	default:
+		ellipticCurve = elliptic.P256()
+	}
+
+	ecdsaKey, err := ecdsa.GenerateKey(ellipticCurve, rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create SSH private key in OpenSSH format
+	sshPrivateKey, err := ssh.MarshalPrivateKey(ecdsaKey, comment)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create SSH public key
+	sshPublicKey, err := ssh.NewPublicKey(&ecdsaKey.PublicKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	publicKeyBytes := ssh.MarshalAuthorizedKey(sshPublicKey)
+	if comment != "" {
+		// Remove the newline and add comment
+		publicKeyStr := string(publicKeyBytes[:len(publicKeyBytes)-1]) + " " + comment + "\n"
+		publicKeyBytes = []byte(publicKeyStr)
+	}
+
+	return pem.EncodeToMemory(sshPrivateKey), publicKeyBytes, nil
+}
+
 func parseSpec(data []byte) (*genv1alpha1.SSHKey, error) {
 	var spec genv1alpha1.SSHKey
 	err := yaml.Unmarshal(data, &spec)
 	return &spec, err
 }
-
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {

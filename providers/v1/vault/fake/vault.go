@@ -26,7 +26,7 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 
-	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 )
 
 // LoginFn is a function type that represents logging in to Vault using a specific authentication method.

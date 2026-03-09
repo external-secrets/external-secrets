@@ -3,7 +3,7 @@ kind: ExternalSecret
 metadata:
   name: merge-basic-example
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     name: vault-backend
     kind: SecretStore

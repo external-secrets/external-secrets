@@ -432,7 +432,9 @@ func (a *Akeyless) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRe
 	var secretMap map[string]any
 	err = json.Unmarshal(secret, &secretMap)
 	if err != nil {
-		return false, err
+		// Do not return the raw error as json.Unmarshal errors may contain
+		// sensitive secret data in the error message
+		return false, errors.New("failed to unmarshal secret: invalid JSON format")
 	}
 	_, ok := secretMap[ref.GetProperty()]
 	return ok, nil
@@ -468,7 +470,9 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 		err = json.Unmarshal(secretRemote, &data)
 	}
 	if err != nil {
-		return err
+		// Do not return the raw error as json.Unmarshal errors may contain
+		// sensitive secret data in the error message
+		return errors.New("failed to unmarshal remote secret: invalid JSON format")
 	}
 	if psd.GetProperty() == "" {
 		for k, v := range secret.Data {
@@ -517,7 +521,9 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRe
 	var secretMap map[string]any
 	err = json.Unmarshal(secret, &secretMap)
 	if err != nil {
-		return err
+		// Do not return the raw error as json.Unmarshal errors may contain
+		// sensitive secret data in the error message
+		return errors.New("failed to unmarshal secret for deletion: invalid JSON format")
 	}
 	delete(secretMap, psr.GetProperty())
 	if len(secretMap) == 0 {

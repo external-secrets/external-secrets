@@ -51,7 +51,7 @@ metadata:
   name: sample
   namespace: default
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   target:
    name: foobar
   secretStoreRef:

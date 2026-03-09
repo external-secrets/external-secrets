@@ -22,8 +22,7 @@ import (
 
 // SetupWebhookWithManager registers the ExternalSecret webhook with the controller manager.
 func (es *ExternalSecret) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(es).
+	return ctrl.NewWebhookManagedBy(mgr, es).
 		WithValidator(&ExternalSecretValidator{}).
 		Complete()
 }

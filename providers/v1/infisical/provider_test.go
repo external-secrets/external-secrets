@@ -27,6 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -232,6 +233,7 @@ func TestGetSecretMap(t *testing.T) {
 
 func makeSecretStore(projectSlug, environment, secretsPath string, fn ...storeModifier) *esv1.SecretStore {
 	store := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Infisical: &esv1.InfisicalProvider{
@@ -266,6 +268,78 @@ func withClientID(name, key string, namespace *string) storeModifier {
 
 func withClientSecret(name, key string, namespace *string) storeModifier {
 	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Infisical.Auth.UniversalAuthCredentials.ClientSecret = esv1meta.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+
+func withSecretStoreCAProvider(name, key string, namespace *string) storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Infisical.CAProvider = &esv1.CAProvider{
+			Type:      esv1.CAProviderTypeSecret,
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+
+type clusterStoreModifier func(*esv1.ClusterSecretStore) *esv1.ClusterSecretStore
+
+func makeClusterSecretStore(projectSlug, environment, secretsPath string, fn ...clusterStoreModifier) *esv1.ClusterSecretStore {
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Infisical: &esv1.InfisicalProvider{
+					Auth: esv1.InfisicalAuth{
+						UniversalAuthCredentials: &esv1.UniversalAuthCredentials{},
+					},
+					SecretsScope: esv1.MachineIdentityScopeInWorkspace{
+						SecretsPath:     secretsPath,
+						EnvironmentSlug: environment,
+						ProjectSlug:     projectSlug,
+					},
+				},
+			},
+		},
+	}
+	for _, f := range fn {
+		store = f(store)
+	}
+	return store
+}
+
+func withCAProvider(name, key string, namespace *string) clusterStoreModifier {
+	return func(store *esv1.ClusterSecretStore) *esv1.ClusterSecretStore {
+		store.Spec.Provider.Infisical.CAProvider = &esv1.CAProvider{
+			Type:      esv1.CAProviderTypeSecret,
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+
+func withClusterClientID(name, key string, namespace *string) clusterStoreModifier {
+	return func(store *esv1.ClusterSecretStore) *esv1.ClusterSecretStore {
+		store.Spec.Provider.Infisical.Auth.UniversalAuthCredentials.ClientID = esv1meta.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+
+func withClusterClientSecret(name, key string, namespace *string) clusterStoreModifier {
+	return func(store *esv1.ClusterSecretStore) *esv1.ClusterSecretStore {
 		store.Spec.Provider.Infisical.Auth.UniversalAuthCredentials.ClientSecret = esv1meta.SecretKeySelector{
 			Name:      name,
 			Key:       key,
@@ -315,6 +389,77 @@ func TestValidateStore(t *testing.T) {
 			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
 		},
 	}
+	p := Provider{}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := p.ValidateStore(tc.store)
+			tc.assertError(t, err)
+		})
+	}
+}
+
+func TestValidateStoreCAProvider(t *testing.T) {
+	const randomID = "some-random-id"
+	const authType = "universal-auth"
+	namespace := "my-namespace"
+
+	testCases := []struct {
+		name        string
+		store       esv1.GenericStore
+		assertError func(t *testing.T, err error)
+	}{
+		{
+			name: "ClusterSecretStore with CAProvider missing namespace should fail",
+			store: makeClusterSecretStore(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClusterClientID(authType, randomID, &namespace),
+				withClusterClientSecret(authType, randomID, &namespace),
+				withCAProvider("my-ca-secret", "ca.crt", nil),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "caProvider.namespace is required for ClusterSecretStore")
+			},
+		},
+		{
+			name: "ClusterSecretStore with CAProvider with namespace should succeed",
+			store: makeClusterSecretStore(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClusterClientID(authType, randomID, &namespace),
+				withClusterClientSecret(authType, randomID, &namespace),
+				withCAProvider("my-ca-secret", "ca.crt", &namespace),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "SecretStore with CAProvider namespace set should fail",
+			store: makeSecretStore(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClientID(authType, randomID, nil),
+				withClientSecret(authType, randomID, nil),
+				withSecretStoreCAProvider("my-ca-secret", "ca.crt", &namespace),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "caProvider.namespace must be empty with SecretStore")
+			},
+		},
+		{
+			name: "SecretStore with CAProvider without namespace should succeed",
+			store: makeSecretStore(
+				apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath,
+				withClientID(authType, randomID, nil),
+				withClientSecret(authType, randomID, nil),
+				withSecretStoreCAProvider("my-ca-secret", "ca.crt", nil),
+			),
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
 	p := Provider{}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

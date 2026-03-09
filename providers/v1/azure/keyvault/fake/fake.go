@@ -55,7 +55,11 @@ func (mc *AzureMockClient) SetSecret(ctx context.Context, vaultBaseURL, secretNa
 	return mc.setSecret(ctx, vaultBaseURL, secretName, parameters)
 }
 
-func (mc *AzureMockClient) ImportCertificate(ctx context.Context, vaultBaseURL, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error) {
+func (mc *AzureMockClient) ImportCertificate(
+	ctx context.Context,
+	vaultBaseURL, certificateName string,
+	parameters keyvault.CertificateImportParameters,
+) (result keyvault.CertificateBundle, err error) {
 	return mc.importCertificate(ctx, vaultBaseURL, certificateName, parameters)
 }
 

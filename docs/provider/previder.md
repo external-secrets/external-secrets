@@ -50,7 +50,7 @@ kind: ExternalSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 1h
+  refreshInterval: 1h0m0s
   secretStoreRef:
     name: previder-secretstore-sample
     kind: SecretStore

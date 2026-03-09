@@ -45,7 +45,7 @@ CMD ["/entrypoint.sh"]
 
 And the content of `entrypoint.sh`:
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 

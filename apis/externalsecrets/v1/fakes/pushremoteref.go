@@ -20,7 +20,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // PushRemoteRef is a fake implementation of the PushRemoteRef interface for testing.

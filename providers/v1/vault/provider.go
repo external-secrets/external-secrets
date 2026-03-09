@@ -104,7 +104,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 }
 
 // NewGeneratorClient creates a new Vault client for the generator controller.
-func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1.VaultProvider, namespace string, retrySettings *esv1.SecretStoreRetrySettings) (vaultutil.Client, error) {
+func (p *Provider) NewGeneratorClient(
+	ctx context.Context,
+	kube kclient.Client,
+	corev1 typedcorev1.CoreV1Interface,
+	vaultSpec *esv1.VaultProvider,
+	namespace string,
+	retrySettings *esv1.SecretStoreRetrySettings,
+) (vaultutil.Client, error) {
 	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
 	if err != nil {
 		return nil, err
@@ -182,7 +189,14 @@ func (p *Provider) initClient(ctx context.Context, c *client, client vaultutil.C
 	return c, nil
 }
 
-func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1.VaultProvider, retrySettings *esv1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
+func (p *Provider) prepareConfig(
+	ctx context.Context,
+	kube kclient.Client,
+	corev1 typedcorev1.CoreV1Interface,
+	vaultSpec *esv1.VaultProvider,
+	retrySettings *esv1.SecretStoreRetrySettings,
+	namespace, storeKind string,
+) (*client, *vault.Config, error) {
 	c := &client{
 		kube:      kube,
 		corev1:    corev1,
@@ -311,9 +325,19 @@ func initCache(size int) {
 func init() {
 	var vaultTokenCacheSize int
 	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
-	fs.BoolVar(&enableCache, "experimental-enable-vault-token-cache", false, "Enable experimental Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.")
+	fs.BoolVar(
+		&enableCache,
+		"experimental-enable-vault-token-cache",
+		false,
+		"Enable experimental Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.",
+	)
 	// max. 265k vault leases with 30bytes each ~= 7MB
-	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", defaultCacheSize, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
+	fs.IntVar(
+		&vaultTokenCacheSize,
+		"experimental-vault-token-cache-size",
+		defaultCacheSize,
+		"Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.",
+	)
 	feature.Register(feature.Feature{
 		Flags:      fs,
 		Initialize: func() { initCache(vaultTokenCacheSize) },

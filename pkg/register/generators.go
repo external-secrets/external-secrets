@@ -18,7 +18,6 @@ package register
 
 import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-
 	acr "github.com/external-secrets/external-secrets/generators/v1/acr"
 	cloudsmith "github.com/external-secrets/external-secrets/generators/v1/cloudsmith"
 	ecr "github.com/external-secrets/external-secrets/generators/v1/ecr"

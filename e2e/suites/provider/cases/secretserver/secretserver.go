@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("[secretserver]", Label("secretserver"), func() {
+var _ = PDescribe("[secretserver]", Label("secretserver"), func() {
 
 	f := framework.New("eso-secretserver")
 

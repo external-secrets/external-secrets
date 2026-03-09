@@ -771,29 +771,38 @@ func TestNewGeneratorSession_AssumeRoleWithDefaultCredentials(t *testing.T) {
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "BASE_SECRET_KEY")
 
 	stsProviderCalled := false
-	cfg, err := NewGeneratorSession(context.Background(), esv1.AWSAuth{}, "arn:aws:iam::123456789012:role/assumed-role", "us-east-1", clientfake.NewClientBuilder().Build(), "test-ns", func(cfg *aws.Config) STSprovider {
-		stsProviderCalled = true
-		creds, err := cfg.Credentials.Retrieve(context.Background())
-		assert.NoError(t, err)
-		assert.Equal(t, "BASE_ACCESS_KEY", creds.AccessKeyID)
-		return &fakesess.AssumeRoler{
-			AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
-				assert.Equal(t, "arn:aws:iam::123456789012:role/assumed-role", *input.RoleArn)
-				return &sts.AssumeRoleOutput{
-					AssumedRoleUser: &ststypes.AssumedRoleUser{
-						Arn:           aws.String("arn:aws:sts::123456789012:assumed-role/assumed-role/session"),
-						AssumedRoleId: aws.String("AROA123456"),
-					},
-					Credentials: &ststypes.Credentials{
-						AccessKeyId:     aws.String("ASSUMED_ACCESS_KEY"),
-						SecretAccessKey: aws.String("ASSUMED_SECRET_KEY"),
-						SessionToken:    aws.String("ASSUMED_SESSION_TOKEN"),
-						Expiration:      aws.Time(time.Now().Add(time.Hour)),
-					},
-				}, nil
-			},
-		}
-	}, DefaultJWTProvider)
+	cfg, err := NewGeneratorSession(
+		context.Background(),
+		esv1.AWSAuth{},
+		"arn:aws:iam::123456789012:role/assumed-role",
+		"us-east-1",
+		clientfake.NewClientBuilder().Build(),
+		"test-ns",
+		func(cfg *aws.Config) STSprovider {
+			stsProviderCalled = true
+			creds, err := cfg.Credentials.Retrieve(context.Background())
+			assert.NoError(t, err)
+			assert.Equal(t, "BASE_ACCESS_KEY", creds.AccessKeyID)
+			return &fakesess.AssumeRoler{
+				AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
+					assert.Equal(t, "arn:aws:iam::123456789012:role/assumed-role", *input.RoleArn)
+					return &sts.AssumeRoleOutput{
+						AssumedRoleUser: &ststypes.AssumedRoleUser{
+							Arn:           aws.String("arn:aws:sts::123456789012:assumed-role/assumed-role/session"),
+							AssumedRoleId: aws.String("AROA123456"),
+						},
+						Credentials: &ststypes.Credentials{
+							AccessKeyId:     aws.String("ASSUMED_ACCESS_KEY"),
+							SecretAccessKey: aws.String("ASSUMED_SECRET_KEY"),
+							SessionToken:    aws.String("ASSUMED_SESSION_TOKEN"),
+							Expiration:      aws.Time(time.Now().Add(time.Hour)),
+						},
+					}, nil
+				},
+			}
+		},
+		DefaultJWTProvider,
+	)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, cfg)

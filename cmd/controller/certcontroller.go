@@ -193,7 +193,8 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
 	certcontrollerCmd.Flags().StringVar(&secretName, "secret-name", "external-secrets-webhook", "Secret to store certs for webhook")
 	certcontrollerCmd.Flags().StringVar(&secretNamespace, "secret-namespace", "default", "namespace of the secret to store certs")
-	certcontrollerCmd.Flags().StringSliceVar(&crdNames, "crd-names", []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"}, "CRD names reconciled by the controller")
+	certcontrollerCmd.Flags().
+		StringSliceVar(&crdNames, "crd-names", []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"}, "CRD names reconciled by the controller")
 	certcontrollerCmd.Flags().BoolVar(&enablePartialCache, "enable-partial-cache", false,
 		"Enable caching of only the relevant CRDs and Webhook configurations in the Informer to improve memory efficiency")
 	certcontrollerCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,

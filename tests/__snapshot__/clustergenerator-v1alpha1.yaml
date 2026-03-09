@@ -133,6 +133,7 @@ spec:
       encoding: "raw"
       length: 24
       noUpper: false
+      secretKeys: [string] # minItems 1 of type string
       symbolCharacters: string
       symbols: 1
     quayAccessTokenSpec:
@@ -202,6 +203,28 @@ spec:
               key: string
               name: string
               namespace: string
+          gcp:
+            location: string
+            path: "gcp"
+            projectID: string
+            role: string
+            secretRef:
+              secretAccessKeySecretRef:
+                key: string
+                name: string
+                namespace: string
+            serviceAccountRef:
+              audiences: [] # minItems 0 of type string
+              name: string
+              namespace: string
+            workloadIdentity:
+              clusterLocation: string
+              clusterName: string
+              clusterProjectID: string
+              serviceAccountRef:
+                audiences: [] # minItems 0 of type string
+                name: string
+                namespace: string
           iam:
             externalID: string
             jwt:

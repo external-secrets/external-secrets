@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # update-deps.sh: Update Go module dependencies across all modules in the repository

@@ -44,6 +44,7 @@ import (
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/tidwall/gjson"
 	"golang.org/x/crypto/sha3"
@@ -329,23 +330,17 @@ func (a *Azure) ValidateStore(store esv1.GenericStore) (admission.Warnings, erro
 		}
 	}
 
-	// Validate Azure Stack Cloud configuration
-	if p.EnvironmentType == esv1.AzureEnvironmentAzureStackCloud {
-		// Azure Stack requires custom cloud config
-		if p.CustomCloudConfig == nil {
-			return nil, errors.New("CustomCloudConfig is required when EnvironmentType is AzureStackCloud")
+	if p.CustomCloudConfig != nil {
+		if !ptr.ToBool(p.UseAzureSDK) {
+			return nil, errors.New("CustomCloudConfig requires UseAzureSDK to be set to true - the legacy SDK does not support custom clouds")
 		}
-		// Azure Stack requires new SDK
-		if p.UseAzureSDK == nil || !*p.UseAzureSDK {
-			return nil, errors.New("AzureStackCloud environment requires UseAzureSDK to be set to true - the legacy SDK does not support custom clouds")
-		}
-		// Validate required fields
 		if p.CustomCloudConfig.ActiveDirectoryEndpoint == "" {
 			return nil, errors.New("activeDirectoryEndpoint is required in CustomCloudConfig")
 		}
-	} else if p.CustomCloudConfig != nil {
-		// CustomCloudConfig should only be used with AzureStackCloud
-		return nil, errors.New("CustomCloudConfig should only be specified when EnvironmentType is AzureStackCloud")
+	}
+
+	if p.EnvironmentType == esv1.AzureEnvironmentAzureStackCloud && p.CustomCloudConfig == nil {
+		return nil, errors.New("CustomCloudConfig is required when EnvironmentType is AzureStackCloud")
 	}
 
 	return nil, nil

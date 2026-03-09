@@ -29,9 +29,13 @@ spec:
           app: frontend
 ```
 
-### 3. Selectively Disable Reconciliation of Cluster-Wide Resources
+### 3. Selectively Disable Reconciliation of Resources
 
-ESO allows you to selectively disable the reconciliation of cluster-wide resources `ClusterSecretStore`, `ClusterExternalSecret`, and `PushSecret`.
+ESO allows you to selectively disable the reconciliation of resources. You can disable reconciliation for:
+
+- **Cluster-wide resources**: `ClusterSecretStore`, `ClusterExternalSecret`
+- **Namespaced resources**: `SecretStore`, `PushSecret`
+
 You can disable the installation of CRDs and reconciliation in the Helm chart, or disable reconciliation in the core controller.
 
 To disable reconciliation in the Helm chart:
@@ -40,6 +44,7 @@ To disable reconciliation in the Helm chart:
 processClusterExternalSecret: false
 processClusterStore: false
 processPushSecret: false
+processSecretStore: false
 ```
 
 To disable CRD installation in the Helm chart:
@@ -48,10 +53,13 @@ To disable CRD installation in the Helm chart:
 crds:
   createClusterExternalSecret: false
   createClusterSecretStore: false
+  createSecretStore: false
   createPushSecret: false
 ```
 
-Note that disabling CRD installation for a cluster-wide resource does not automatically disable its reconciliation.
+**Warning:** Disabling the `SecretStore` CRD will prevent ExternalSecrets from referencing namespaced SecretStores. Only use this if you exclusively use ClusterSecretStore.
+
+Note that disabling CRD installation for a resource does not automatically disable its reconciliation.
 The core controller will issue error logs if the CRD is not installed but the reconciliation is not disabled.
 
 To disable reconciliation in the core controller, set the following flags:
@@ -59,6 +67,7 @@ To disable reconciliation in the core controller, set the following flags:
 ```
 --enable-cluster-external-secret-reconciler=false
 --enable-cluster-store-reconciler=false
+--enable-secret-store-reconciler=false
 --enable-push-secret-reconciler=false
 ```
 

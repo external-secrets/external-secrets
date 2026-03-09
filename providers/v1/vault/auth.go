@@ -29,10 +29,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
+	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
-	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/util"
 )
 
 const (
@@ -111,6 +111,12 @@ func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 	tokenExists, err = setIamAuthToken(ctx, c, vaultiamauth.DefaultJWTProvider, vaultiamauth.DefaultSTSProvider)
 	if tokenExists {
 		c.log.V(1).Info("Retrieved new token using IAM auth")
+		return err
+	}
+
+	tokenExists, err = setGcpAuthToken(ctx, c)
+	if tokenExists {
+		c.log.V(1).Info("Retrieved new token using GCP auth")
 		return err
 	}
 

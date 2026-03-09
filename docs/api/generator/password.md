@@ -7,7 +7,7 @@ The Password generator provides random passwords that you can feed into your app
 
 | Key      | Description            |
 | -------- | ---------------------- |
-| password | the generated password |
+| password | the generated password. If `spec.secretKeys` is set, each listed key is populated with its own unique password |
 
 ## Parameters
 

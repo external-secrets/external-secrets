@@ -296,7 +296,9 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 	err = json.Unmarshal(rawData, &structuredData)
 	if err != nil {
-		return nil, err
+		// Do not return the raw error as json.Unmarshal errors may contain
+		// sensitive secret data in the error message
+		return nil, errors.New("failed to unmarshal secret: invalid JSON format")
 	}
 
 	values := make(map[string][]byte)

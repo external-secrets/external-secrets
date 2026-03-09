@@ -30,7 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
-	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,10 +37,13 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakesm "github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager/fake"
-	"github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
@@ -101,6 +103,35 @@ func makeValidAPIInput() *awssm.GetSecretValueInput {
 func makeValidAPIOutput() *awssm.GetSecretValueOutput {
 	return &awssm.GetSecretValueOutput{
 		SecretString: aws.String(""),
+	}
+}
+
+func makeValidGetResourcePolicyOutput() *awssm.GetResourcePolicyOutput {
+	return &awssm.GetResourcePolicyOutput{
+		ResourcePolicy: aws.String(`{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Sid": "DenyPolicyChangesExceptAdmins",
+					"Effect": "Deny",
+					"Principal": "*",
+					"Action": [
+						"secretsmanager:PutResourcePolicy",
+						"secretsmanager:DeleteResourcePolicy",
+						"secretsmanager:GetResourcePolicy"
+					],
+					"Resource": "*",
+					"Condition": {
+						"ArnNotEquals": {
+							"aws:PrincipalArn": [
+								"arn:aws:iam::000000000000:root",
+								"arn:aws:iam::000000000000:role/admin"
+							]
+						}
+					}
+				}
+			]
+		}`),
 	}
 }
 
@@ -533,6 +564,7 @@ func TestSetSecret(t *testing.T) {
 		client         fakesm.Client
 		pushSecretData fake.PushSecretData
 		newUUID        string
+		kubeclient     client.Client
 	}
 
 	type want struct {
@@ -1014,6 +1046,157 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithExistingNonChangingResourcePolicy": {
+			reason: "sync an existing secret without syncing resource policy that has no change",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					// NO call to PutResourcePolicy
+					GetSecretValueFn:    fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:    fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:    fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:       fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:     fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(makeValidGetResourcePolicyOutput(), nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"resourcePolicy": {
+										"blockPublicPolicy": true,
+										"policySourceRef": {
+											"kind": "ConfigMap",
+											"name": "resource-policy",
+											"key": "policy.json"
+									}
+								}
+							}
+						}`),
+					},
+				},
+				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "resource-policy",
+					},
+					// Create a policy that does not match object order of the
+					// existing one
+					Data: map[string]string{
+						"policy.json": `
+							{
+								"Version": "2012-10-17",
+								"Statement": [
+									{
+										"Resource": "*",
+										"Effect": "Deny",
+										"Principal": "*",
+										"Action": [
+											"secretsmanager:PutResourcePolicy",
+											"secretsmanager:DeleteResourcePolicy",
+											"secretsmanager:GetResourcePolicy"
+										],
+										"Condition": {
+											"ArnNotEquals": {
+												"aws:PrincipalArn": [
+													"arn:aws:iam::000000000000:root",
+													"arn:aws:iam::000000000000:role/admin"
+												]
+											}
+										},
+										"Sid": "DenyPolicyChangesExceptAdmins"
+									}
+								]
+							}
+						`,
+					},
+				}),
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithExistingChangingResourcePolicy": {
+			reason: "sync an existing secret and the resource policy when it has changes",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn:    fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:    fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:    fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:       fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:     fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(makeValidGetResourcePolicyOutput(), nil),
+					// Call to PutResourcePolicy since policy does not match
+					PutResourcePolicyFn: fakesm.NewPutResourcePolicyFn(&awssm.PutResourcePolicyOutput{}, nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"resourcePolicy": {
+										"blockPublicPolicy": true,
+										"policySourceRef": {
+											"kind": "ConfigMap",
+											"name": "resource-policy",
+											"key": "policy.json"
+									}
+								}
+							}
+						}`),
+					},
+				},
+				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "resource-policy",
+					},
+					// Create a policy that does not match object order of the
+					// existing one
+					Data: map[string]string{
+						"policy.json": `
+							{
+								"Version": "2012-10-17",
+								"Statement": [
+									{
+										"Resource": "*",
+										"Effect": "Deny",
+										"Principal": "*",
+										"Action": [
+											"secretsmanager:PutResourcePolicy",
+											"secretsmanager:DeleteResourcePolicy",
+											"secretsmanager:GetResourcePolicy"
+										],
+										"Condition": {
+											"ArnNotEquals": {
+												"aws:PrincipalArn": [
+													"arn:aws:iam::000000000000:root",
+													"arn:aws:iam::000000000000:role/sudo"
+												]
+											}
+										},
+										"Sid": "DenyPolicyChangesExceptAdmins"
+									}
+								]
+							}
+						`,
+					},
+				}),
+			},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -1022,6 +1205,7 @@ func TestSetSecret(t *testing.T) {
 				client:  &tc.args.client,
 				prefix:  tc.args.store.Prefix,
 				newUUID: func() string { return tc.args.newUUID },
+				kube:    tc.args.kubeclient,
 			}
 
 			err := sm.PushSecret(context.Background(), fakeSecret, tc.args.pushSecretData)
@@ -1363,6 +1547,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		secretValue           string
 		batchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
 		listSecretsFn         func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
+		getSecretValueFn      func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
 		expectedData          map[string][]byte
 		expectedError         string
 	}{
@@ -1501,6 +1686,103 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			expectedError: "",
 		},
 		{
+			name: "name and tags: matching secrets found",
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
+					RegExp: secretName,
+				},
+				Tags: secretTags,
+			},
+			listSecretsFn: func(_ context.Context, input *awssm.ListSecretsInput, _ ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
+				allSecrets := []types.SecretListEntry{
+					{
+						Name: ptr.To(secretName),
+						Tags: []types.Tag{
+							{Key: ptr.To("foo"), Value: ptr.To("bar")},
+						},
+					},
+					{
+						Name: ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+					},
+					{
+						Name: ptr.To("unmatched-secret"),
+						Tags: []types.Tag{
+							{Key: ptr.To("foo"), Value: ptr.To("bar")},
+						},
+					},
+				}
+
+				filtered := make([]types.SecretListEntry, 0, len(allSecrets))
+				for _, secret := range allSecrets {
+					exclude := false
+
+					tagMap := map[string]string{}
+					for _, t := range secret.Tags {
+						if t.Key != nil && t.Value != nil {
+							tagMap[*t.Key] = *t.Value
+						}
+					}
+
+					for _, f := range input.Filters {
+						switch f.Key {
+						case types.FilterNameStringTypeName:
+							if secret.Name != nil {
+								for _, v := range f.Values {
+									if strings.Contains(*secret.Name, v) {
+										exclude = true
+										break
+									}
+								}
+							}
+						case types.FilterNameStringTypeTagKey:
+							for _, v := range f.Values {
+								if tagMap[v] == "" {
+									exclude = true
+									break
+								}
+							}
+						case types.FilterNameStringTypeDescription,
+							types.FilterNameStringTypeTagValue,
+							types.FilterNameStringTypePrimaryRegion,
+							types.FilterNameStringTypeOwningService,
+							types.FilterNameStringTypeAll:
+							continue
+						}
+					}
+
+					if !exclude {
+						filtered = append(filtered, secret)
+					}
+				}
+				return &awssm.ListSecretsOutput{SecretList: filtered}, nil
+			},
+			getSecretValueFn: func(_ context.Context, input *awssm.GetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
+				if *input.SecretId == secretName {
+					return &awssm.GetSecretValueOutput{
+						Name:          ptr.To(secretName),
+						VersionStages: []string{secretVersion},
+						SecretBinary:  []byte(secretValue),
+					}, nil
+				}
+				if *input.SecretId == "unmatched-secret" {
+					return &awssm.GetSecretValueOutput{
+						Name:          ptr.To("unmatched-secret"),
+						VersionStages: []string{secretVersion},
+						SecretBinary:  []byte("othervalue"),
+					}, nil
+				}
+				return &awssm.GetSecretValueOutput{
+					Name:          ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+					VersionStages: []string{secretVersion},
+					SecretBinary:  []byte("someothervalue"),
+				}, nil
+			},
+			expectedData: map[string][]byte{
+				secretName: []byte(secretValue),
+			},
+			expectedError: "",
+		},
+		{
 			name: "tags: error occurred while fetching secret value",
 			ref: esv1.ExternalSecretFind{
 				Tags: secretTags,
@@ -1540,6 +1822,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			fc := fakesm.NewClient()
 			fc.BatchGetSecretValueFn = tc.batchGetSecretValueFn
 			fc.ListSecretsFn = tc.listSecretsFn
+			fc.GetSecretValueFn = tc.getSecretValueFn
 			sm := SecretsManager{
 				client: fc,
 				cache:  make(map[string]*awssm.GetSecretValueOutput),

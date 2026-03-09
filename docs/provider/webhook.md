@@ -101,7 +101,7 @@ kind: PushSecret
 metadata:
   name: pushsecret-example # Customisable
 spec:
-  refreshInterval: 1h # Refresh interval for which push secret will reconcile
+  refreshInterval: 1h0m0s # Refresh interval for which push secret will reconcile
   secretStoreRefs: # A list of secret stores to push secrets to
     - name: webhook-backend
       kind: SecretStore

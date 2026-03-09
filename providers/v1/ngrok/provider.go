@@ -22,14 +22,14 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v7/secrets"
+	"github.com/ngrok/ngrok-api-go/v7/vaults"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/ngrok/ngrok-api-go/v7"
-	"github.com/ngrok/ngrok-api-go/v7/secrets"
-	"github.com/ngrok/ngrok-api-go/v7/vaults"
 )
 
 var (

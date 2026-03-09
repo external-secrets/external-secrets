@@ -64,6 +64,9 @@ func InstallGlobalAddon(addon Addon) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	err = addon.Install()
+	if err != nil {
+		addon.Logs() // Print logs in case installation fails
+	}
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
