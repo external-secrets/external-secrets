@@ -25,6 +25,5 @@ ADD e2e/suites/provider/provider.test /provider.test
 ADD e2e/suites/argocd/argocd.test /argocd.test
 ADD e2e/suites/flux/flux.test /flux.test
 ADD e2e/suites/generator/generator.test /generator.test
-ADD e2e/suites/v2/v2.test /v2.test
 
 CMD [ "/entrypoint.sh" ]

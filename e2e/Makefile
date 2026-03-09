@@ -6,7 +6,7 @@ KIND_IMG       = "kindest/node:v1.33.4@sha256:25a6018e48dfcaee478f4a59af81157a43
 DOCKER_BUILD_ARGS     ?=
 
 export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
-export GINKGO_LABELS ?= !managed
+export GINKGO_LABELS ?= !managed && !v2
 export TEST_SUITES ?= provider generator flux argocd
 
 export OCI_IMAGE_NAME = ghcr.io/external-secrets/external-secrets
@@ -52,7 +52,8 @@ test.v2: e2e-image ## Run v2 e2e tests against current kube context
 	kind load docker-image --name="external-secrets" $(IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="external-secrets" $(OCI_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="external-secrets" $(E2E_IMAGE_NAME):$(VERSION)
-	GINKGO_LABELS="v2" TEST_SUITES="v2" ./run.sh
+	kind load docker-image --name="external-secrets" ghcr.io/external-secrets/provider-kubernetes:$(VERSION)
+	GINKGO_LABELS="v2" E2E_PROVIDER_MODE="v2" TEST_SUITES="provider" ./run.sh
 
 test.managed: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.build \
