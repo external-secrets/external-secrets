@@ -36,7 +36,9 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -75,6 +77,43 @@ func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSe
 	stores := make(map[esv1alpha1.PushSecretStoreRef]interface{})
 
 	for _, refStore := range ps.Spec.SecretStoreRefs {
+		if refStore.LabelSelector != nil {
+			labelSelector, err := metav1.LabelSelectorAsSelector(refStore.LabelSelector)
+			if err != nil {
+				return nil, fmt.Errorf("could not convert labels: %w", err)
+			}
+
+			if refStore.Kind == esapi.ClusterSecretStoreKind {
+				clusterSecretStoreList := esapi.ClusterSecretStoreList{}
+				err = r.List(ctx, &clusterSecretStoreList, &client.ListOptions{LabelSelector: labelSelector})
+				if err != nil {
+					return nil, fmt.Errorf("could not list cluster Secret Stores: %w", err)
+				}
+				for k, v := range clusterSecretStoreList.Items {
+					key := esv1alpha1.PushSecretStoreRef{
+						Name: v.Name,
+						Kind: esapi.ClusterSecretStoreKind,
+					}
+					stores[key] = &clusterSecretStoreList.Items[k]
+				}
+				continue
+			}
+
+			secretStoreList := esapi.SecretStoreList{}
+			err = r.List(ctx, &secretStoreList, &client.ListOptions{LabelSelector: labelSelector, Namespace: ps.Namespace})
+			if err != nil {
+				return nil, fmt.Errorf("could not list Secret Stores: %w", err)
+			}
+			for k, v := range secretStoreList.Items {
+				key := esv1alpha1.PushSecretStoreRef{
+					Name: v.Name,
+					Kind: esapi.SecretStoreKind,
+				}
+				stores[key] = &secretStoreList.Items[k]
+			}
+			continue
+		}
+
 		// Check if this is a v2 Provider
 		if r.isV2SecretStore(ctx, refStore, ps.Namespace) {
 			if refStore.Kind == esapi.ClusterProviderKindStr {
@@ -147,20 +186,6 @@ func (r *Reconciler) DeleteSecretFromProvidersV2(
 		}
 		storeKind := parts[0]
 		storeNameOnly := parts[1]
-
-		// Find the matching store
-		var found bool
-		for ref := range stores {
-			if ref.Kind == storeKind && ref.Name == storeNameOnly {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			// Store no longer referenced, skip deletion.
-			continue
-		}
 
 		secretClient, err := mgr.Get(ctx, esapi.SecretStoreRef{
 			Name: storeNameOnly,
