@@ -170,7 +170,7 @@ func (r *Reconciler) DeleteSecretFromProvidersV2(
 	ctx context.Context,
 	ps *esv1alpha1.PushSecret,
 	newMap esv1alpha1.SyncedPushSecretsMap,
-	stores map[esv1alpha1.PushSecretStoreRef]interface{},
+	_ map[esv1alpha1.PushSecretStoreRef]interface{},
 ) (esv1alpha1.SyncedPushSecretsMap, error) {
 	out := mergeSecretState(newMap, ps.Status.SyncedPushSecrets)
 	mgr := clientmanager.NewManager(r.Client, r.ControllerClass, false)
