@@ -1,3 +1,19 @@
+// /*
+// Copyright © 2025 ESO Maintainer Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// */
+
 /*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -78,14 +94,14 @@ func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSe
 			}
 			stores[refStore] = &store
 			continue
-		} else {
-			// Get v1 SecretStore (existing implementation)
-			store, err := r.getSecretStoreFromName(ctx, refStore, ps.Namespace)
-			if err != nil {
-				return nil, err
-			}
-			stores[refStore] = store
 		}
+
+		// Get v1 SecretStore (existing implementation).
+		store, err := r.getSecretStoreFromName(ctx, refStore, ps.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		stores[refStore] = store
 	}
 
 	return stores, nil
@@ -111,7 +127,12 @@ func (r *Reconciler) PushSecretToProvidersV2(
 }
 
 // DeleteSecretFromProvidersV2 removes secrets from v2 providers when they're no longer needed.
-func (r *Reconciler) DeleteSecretFromProvidersV2(ctx context.Context, ps *esv1alpha1.PushSecret, newMap esv1alpha1.SyncedPushSecretsMap, stores map[esv1alpha1.PushSecretStoreRef]interface{}) (esv1alpha1.SyncedPushSecretsMap, error) {
+func (r *Reconciler) DeleteSecretFromProvidersV2(
+	ctx context.Context,
+	ps *esv1alpha1.PushSecret,
+	newMap esv1alpha1.SyncedPushSecretsMap,
+	stores map[esv1alpha1.PushSecretStoreRef]interface{},
+) (esv1alpha1.SyncedPushSecretsMap, error) {
 	out := mergeSecretState(newMap, ps.Status.SyncedPushSecrets)
 	mgr := clientmanager.NewManager(r.Client, r.ControllerClass, false)
 	defer func() {
@@ -137,7 +158,7 @@ func (r *Reconciler) DeleteSecretFromProvidersV2(ctx context.Context, ps *esv1al
 		}
 
 		if !found {
-			// Store no longer referenced, skip deletion
+			// Store no longer referenced, skip deletion.
 			continue
 		}
 

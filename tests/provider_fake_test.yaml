@@ -1,0 +1,7 @@
+suite: test Fake Provider
+template: tests/crds/provider-fake.yml
+tests:
+  - it: matches Fake provider correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__/fake-provider

@@ -1,3 +1,19 @@
+// /*
+// Copyright © 2025 ESO Maintainer Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// */
+
 /*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,6 +28,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package server provides common gRPC and metrics server helpers for provider runtimes.
 package server
 
 import (
@@ -26,21 +43,21 @@ import (
 )
 
 const (
-	// DefaultMetricsPort is the default port for the HTTP metrics server
+	// DefaultMetricsPort is the default port for the HTTP metrics server.
 	DefaultMetricsPort = 8081
-	// DefaultMetricsPath is the default path for the metrics endpoint
+	// DefaultMetricsPath is the default path for the metrics endpoint.
 	DefaultMetricsPath = "/metrics"
 )
 
 var metricsLog = ctrl.Log.WithName("metrics-server")
 
-// MetricsServer serves Prometheus metrics via HTTP
+// MetricsServer serves Prometheus metrics via HTTP.
 type MetricsServer struct {
 	server   *http.Server
 	registry *prometheus.Registry
 }
 
-// NewMetricsServer creates a new HTTP metrics server
+// NewMetricsServer creates a new HTTP metrics server.
 func NewMetricsServer(port int, registry *prometheus.Registry) *MetricsServer {
 	if registry == nil {
 		registry = prometheus.NewRegistry()
@@ -51,10 +68,12 @@ func NewMetricsServer(port int, registry *prometheus.Registry) *MetricsServer {
 		ErrorHandling: promhttp.ContinueOnError,
 	}))
 
-	// Add health check endpoint
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	// Add health check endpoint.
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		if _, err := w.Write([]byte("ok")); err != nil {
+			metricsLog.Error(err, "failed writing health response")
+		}
 	})
 
 	server := &http.Server{
@@ -72,11 +91,11 @@ func NewMetricsServer(port int, registry *prometheus.Registry) *MetricsServer {
 	}
 }
 
-// Start starts the HTTP metrics server
+// Start starts the HTTP metrics server.
 func (m *MetricsServer) Start(ctx context.Context) error {
 	metricsLog.Info("Starting metrics server", "addr", m.server.Addr, "path", DefaultMetricsPath)
 
-	// Start server in goroutine
+	// Start server in goroutine.
 	errChan := make(chan error, 1)
 	go func() {
 		if err := m.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -84,7 +103,7 @@ func (m *MetricsServer) Start(ctx context.Context) error {
 		}
 	}()
 
-	// Wait for context cancellation or server error
+	// Wait for context cancellation or server error.
 	select {
 	case <-ctx.Done():
 		metricsLog.Info("Shutting down metrics server")
@@ -99,8 +118,7 @@ func (m *MetricsServer) Start(ctx context.Context) error {
 	}
 }
 
-// GetRegistry returns the Prometheus registry
+// GetRegistry returns the Prometheus registry.
 func (m *MetricsServer) GetRegistry() *prometheus.Registry {
 	return m.registry
 }
-

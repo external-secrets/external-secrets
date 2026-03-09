@@ -250,10 +250,7 @@ func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig,
 				"authNamespace", authNamespace,
 				"generation", cfg.generation)
 			// Record cache hit
-			providerType := "provider"
-			if cfg.isClusterScoped {
-				providerType = "cluster-provider"
-			}
+			providerType := cacheMetricProviderType(cfg.isClusterScoped)
 			clientManagerMetrics.RecordCacheHit(providerType)
 			return cached.client, nil
 		}
@@ -264,10 +261,7 @@ func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig,
 			"oldGeneration", cached.v2ProviderGeneration,
 			"newGeneration", cfg.generation)
 		// Record cache invalidation
-		providerType := "provider"
-		if cfg.isClusterScoped {
-			providerType = "cluster-provider"
-		}
+		providerType := cacheMetricProviderType(cfg.isClusterScoped)
 		clientManagerMetrics.RecordCacheInvalidation(providerType, "generation_change")
 		delete(m.clientMap, cacheKey)
 	}
@@ -437,14 +431,7 @@ func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.Provid
 			"provider", fmt.Sprintf("%T", storeProvider),
 			"store", storeName)
 		// Record cache hit
-		providerType := "unknown"
-		if idx.v2ProviderName != "" {
-			if idx.v2ProviderNamespace == "" {
-				providerType = "cluster-provider"
-			} else {
-				providerType = "provider"
-			}
-		}
+		providerType := cacheMetricProviderTypeFromKey(idx)
 		clientManagerMetrics.RecordCacheHit(providerType)
 		return val.client
 	}
@@ -457,14 +444,9 @@ func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.Provid
 	delete(m.clientMap, idx)
 
 	// Record cache invalidation
-	providerType := "unknown"
+	providerType := cacheMetricProviderTypeFromKey(idx)
 	reason := "store_mismatch"
 	if idx.v2ProviderName != "" {
-		if idx.v2ProviderNamespace == "" {
-			providerType = "cluster-provider"
-		} else {
-			providerType = "provider"
-		}
 		if val.store.GetObjectMeta().Generation != store.GetGeneration() {
 			reason = "generation_change"
 		}
@@ -478,6 +460,25 @@ func storeKey(storeProvider esv1.ProviderInterface) clientKey {
 	return clientKey{
 		providerType: fmt.Sprintf("%T", storeProvider),
 	}
+}
+
+func cacheMetricProviderType(isClusterScoped bool) string {
+	if isClusterScoped {
+		return providerTypeClusterProvider
+	}
+
+	return providerTypeProvider
+}
+
+func cacheMetricProviderTypeFromKey(key clientKey) string {
+	if key.v2ProviderName == "" {
+		return "unknown"
+	}
+	if key.v2ProviderNamespace == "" {
+		return providerTypeClusterProvider
+	}
+
+	return providerTypeProvider
 }
 
 // getStore fetches the (Cluster)SecretStore from the kube-apiserver

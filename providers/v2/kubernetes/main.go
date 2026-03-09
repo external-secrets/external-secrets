@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,13 +28,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/prometheus/client_golang/prometheus"
 	kubernetesv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 	kubernetes "github.com/external-secrets/external-secrets/providers/v1/kubernetes"
 	adapterstore "github.com/external-secrets/external-secrets/providers/v2/adapter/store"
 	grpccommon "github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 	grpcserver "github.com/external-secrets/external-secrets/providers/v2/common/grpc/server"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -55,7 +57,7 @@ func main() {
 
 	log.Printf("starting on port %d (TLS: %v, Verbose: %v)", *port, *enableTLS, *verbose)
 
-	// Set up metrics
+	// Set up metrics.
 	registry := prometheus.NewRegistry()
 	if err := grpcserver.RegisterMetrics(registry); err != nil {
 		log.Printf("Warning: failed to register server metrics: %v", err)
@@ -64,10 +66,10 @@ func main() {
 		log.Printf("Warning: failed to register grpc metrics: %v", err)
 	}
 
-	// Start metrics server
+	// Start metrics server.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	metricsServer := grpcserver.NewMetricsServer(*metricsPort, registry)
 	go func() {
 		if err := metricsServer.Start(ctx); err != nil {
@@ -104,7 +106,7 @@ func main() {
 	adapterServer := adapterstore.NewServer(kubeClient, providerMapping, specMapper)
 
 	log.Printf("[PROVIDER] Using v1 Kubernetes Provider provider wrapped with v2 adapter")
-	grpcServer, err := grpcserver.NewGRPCServer(grpcserver.ServerOptions{
+	grpcServer, err := grpcserver.NewGRPCServer(grpcserver.Options{
 		EnableTLS: *enableTLS,
 		Verbose:   *verbose,
 	})
@@ -135,7 +137,7 @@ func main() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-sigChan
 		log.Printf("Received signal: %v, shutting down gracefully...", sig)
-		cancel() // Stop metrics server
+		cancel()
 		grpcServer.GracefulStop()
 	}()
 

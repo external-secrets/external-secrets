@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,7 +28,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/prometheus/client_golang/prometheus"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
 	genpb "github.com/external-secrets/external-secrets/proto/generator"
@@ -38,6 +39,7 @@ import (
 	grpcserver "github.com/external-secrets/external-secrets/providers/v2/common/grpc/server"
 	generator "github.com/external-secrets/external-secrets/providers/v2/fake/generator"
 	store "github.com/external-secrets/external-secrets/providers/v2/fake/store"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -60,7 +62,7 @@ func main() {
 
 	log.Printf("starting on port %d (TLS: %v, Verbose: %v)", *port, *enableTLS, *verbose)
 
-	// Set up metrics
+	// Set up metrics.
 	registry := prometheus.NewRegistry()
 	if err := grpcserver.RegisterMetrics(registry); err != nil {
 		log.Printf("Warning: failed to register server metrics: %v", err)
@@ -69,10 +71,10 @@ func main() {
 		log.Printf("Warning: failed to register grpc metrics: %v", err)
 	}
 
-	// Start metrics server
+	// Start metrics server.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	metricsServer := grpcserver.NewMetricsServer(*metricsPort, registry)
 	go func() {
 		if err := metricsServer.Start(ctx); err != nil {
@@ -108,7 +110,7 @@ func main() {
 
 	specMapper := GetSpecMapper(kubeClient)
 	// Setup v1 generator(s)
-	generatorMapping := adaptergenerator.GeneratorMapping{
+	generatorMapping := adaptergenerator.Mapping{
 		schema.GroupVersionKind{
 			Group:   "generators.external-secrets.io",
 			Version: "v1alpha1",
@@ -118,7 +120,7 @@ func main() {
 	adapterServer := adapter.NewServer(kubeClient, scheme, providerMapping, specMapper, generatorMapping)
 
 	log.Printf("[PROVIDER] Using v1 Fake Provider provider with generators wrapped with v2 adapter")
-	grpcServer, err := grpcserver.NewGRPCServer(grpcserver.ServerOptions{
+	grpcServer, err := grpcserver.NewGRPCServer(grpcserver.Options{
 		EnableTLS: *enableTLS,
 		Verbose:   *verbose,
 	})
@@ -150,7 +152,7 @@ func main() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-sigChan
 		log.Printf("Received signal: %v, shutting down gracefully...", sig)
-		cancel() // Stop metrics server
+		cancel()
 		grpcServer.GracefulStop()
 	}()
 

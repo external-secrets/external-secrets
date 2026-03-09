@@ -1,3 +1,19 @@
+// /*
+// Copyright © 2025 ESO Maintainer Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// */
+
 /*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,6 +28,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package grpc provides gRPC client, pool, retry, and resilience helpers for v2 providers.
 package grpc
 
 import (
@@ -29,7 +46,7 @@ import (
 )
 
 const (
-	// defaultTimeout is the default timeout for gRPC calls
+	// defaultTimeout is the default timeout for gRPC calls.
 	defaultTimeout = 30 * time.Second
 )
 
@@ -40,7 +57,7 @@ type grpcProviderClient struct {
 	log    logr.Logger
 }
 
-// Ensure grpcProviderClient implements Provider interface
+// Ensure grpcProviderClient implements Provider interface.
 var _ v2.Provider = &grpcProviderClient{}
 
 // GetSecret retrieves a single secret from the provider via gRPC.
@@ -469,7 +486,7 @@ func (c *grpcProviderClient) Capabilities(ctx context.Context, providerRef *pb.P
 }
 
 // Close closes the gRPC connection.
-func (c *grpcProviderClient) Close(ctx context.Context) error {
+func (c *grpcProviderClient) Close(_ context.Context) error {
 	if c.conn != nil {
 		c.log.V(1).Info("closing gRPC connection",
 			"target", c.conn.Target(),

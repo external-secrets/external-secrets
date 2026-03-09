@@ -1,3 +1,19 @@
+// /*
+// Copyright © 2025 ESO Maintainer Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// */
+
 /*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,9 +32,11 @@ package grpc
 
 import (
 	"context"
+	cryptorand "crypto/rand"
+	"errors"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/big"
 	"sync"
 	"time"
 
@@ -74,11 +92,11 @@ func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
 type CircuitState int
 
 const (
-	// StateClosed means the circuit is closed and requests flow normally
+	// StateClosed means the circuit is closed and requests flow normally.
 	StateClosed CircuitState = iota
-	// StateOpen means the circuit is open and requests fail fast
+	// StateOpen means the circuit is open and requests fail fast.
 	StateOpen
-	// StateHalfOpen means the circuit is testing if the service has recovered
+	// StateHalfOpen means the circuit is testing if the service has recovered.
 	StateHalfOpen
 )
 
@@ -101,7 +119,7 @@ func NewCircuitBreaker(config CircuitBreakerConfig) *CircuitBreaker {
 }
 
 // Call executes the given function with circuit breaker protection.
-func (cb *CircuitBreaker) Call(ctx context.Context, fn func() error) error {
+func (cb *CircuitBreaker) Call(_ context.Context, fn func() error) error {
 	// Check if we should allow the request
 	if err := cb.beforeRequest(); err != nil {
 		return err
@@ -167,6 +185,9 @@ func (cb *CircuitBreaker) onSuccess() {
 	case StateClosed:
 		cb.failures = 0
 
+	case StateOpen:
+		return
+
 	case StateHalfOpen:
 		// Success in half-open state means we can close the circuit
 		cb.state = StateClosed
@@ -185,6 +206,9 @@ func (cb *CircuitBreaker) onFailure() {
 		if cb.failures >= cb.config.MaxFailures {
 			cb.state = StateOpen
 		}
+
+	case StateOpen:
+		return
 
 	case StateHalfOpen:
 		// Failure in half-open state means we go back to open
@@ -247,28 +271,36 @@ func isRetryable(err error) bool {
 	st, ok := status.FromError(err)
 	if ok {
 		switch st.Code() {
-		case codes.Unavailable,
-			codes.DeadlineExceeded,
-			codes.ResourceExhausted,
-			codes.Aborted:
-			return true
-
-		case codes.InvalidArgument,
+		case codes.OK,
+			codes.Canceled,
+			codes.InvalidArgument,
 			codes.NotFound,
 			codes.AlreadyExists,
 			codes.PermissionDenied,
+			codes.FailedPrecondition,
+			codes.OutOfRange,
+			codes.Unimplemented,
 			codes.Unauthenticated:
 			return false
 
+		case codes.Unavailable,
+			codes.DeadlineExceeded,
+			codes.ResourceExhausted,
+			codes.Aborted,
+			codes.Unknown,
+			codes.Internal,
+			codes.DataLoss:
+			return true
+
 		default:
-			// For unknown codes, retry to be safe
+			// For unclassified codes, retry to be safe.
 			return true
 		}
 	}
 
 	// For non-gRPC errors, retry network-related issues
 	// Context errors should not be retried
-	if err == context.Canceled || err == context.DeadlineExceeded {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}
 
@@ -289,9 +321,26 @@ func calculateBackoff(attempt int, config RetryConfig) time.Duration {
 	// Add jitter if enabled
 	if config.Jitter {
 		// Add random jitter between 0 and 25% of backoff
-		jitter := rand.Float64() * backoff * 0.25
-		backoff += jitter
+		jitter, err := cryptoJitter(backoff * 0.25)
+		if err == nil {
+			backoff += jitter
+		}
 	}
 
 	return time.Duration(backoff)
+}
+
+func cryptoJitter(limit float64) (float64, error) {
+	if limit <= 0 {
+		return 0, nil
+	}
+
+	const precision int64 = 1_000_000
+	maxValue := big.NewInt(precision)
+	n, err := cryptorand.Int(cryptorand.Reader, maxValue)
+	if err != nil {
+		return 0, fmt.Errorf("generate jitter: %w", err)
+	}
+
+	return (float64(n.Int64()) / float64(precision)) * limit, nil
 }

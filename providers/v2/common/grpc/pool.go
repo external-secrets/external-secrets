@@ -1,3 +1,19 @@
+// /*
+// Copyright © 2025 ESO Maintainer Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// */
+
 /*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -93,7 +109,7 @@ func NewConnectionPool(cfg PoolConfig) *ConnectionPool {
 
 // Get retrieves or creates a connection to the specified provider address.
 // The caller must call Release() when done with the connection.
-func (p *ConnectionPool) Get(ctx context.Context, address string, tlsConfig *TLSConfig) (v2.Provider, error) {
+func (p *ConnectionPool) Get(_ context.Context, address string, tlsConfig *TLSConfig) (v2.Provider, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -131,7 +147,7 @@ func (p *ConnectionPool) Get(ctx context.Context, address string, tlsConfig *TLS
 		p.log.Info("cached connection invalid, cleaning up",
 			"address", address,
 			"state", pooled.conn.GetState().String())
-		pooled.conn.Close()
+		_ = pooled.conn.Close()
 		delete(p.connections, key)
 	}
 
@@ -204,7 +220,7 @@ func (p *ConnectionPool) Close() error {
 	for _, pooled := range p.connections {
 		pooled.mu.Lock()
 		if pooled.conn != nil {
-			pooled.conn.Close()
+			_ = pooled.conn.Close()
 		}
 		pooled.mu.Unlock()
 	}
@@ -249,11 +265,11 @@ func (p *ConnectionPool) cleanupIdleConnections() {
 		tooOld := now.Sub(pooled.created) > p.maxLifetime
 
 		if idleTooLong {
-			pooled.conn.Close()
+			_ = pooled.conn.Close()
 			toRemove = append(toRemove, key)
 			evictions[key] = "idle_timeout"
 		} else if tooOld {
-			pooled.conn.Close()
+			_ = pooled.conn.Close()
 			toRemove = append(toRemove, key)
 			evictions[key] = "max_lifetime"
 		}
@@ -281,7 +297,7 @@ func (p *ConnectionPool) checkConnectionHealth() {
 		// Check connection state
 		state := pooled.conn.GetState()
 		if state == connectivity.TransientFailure || state == connectivity.Shutdown {
-			pooled.conn.Close()
+			_ = pooled.conn.Close()
 			toRemove = append(toRemove, key)
 		}
 
