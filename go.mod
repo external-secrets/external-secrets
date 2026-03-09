@@ -138,7 +138,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cloudru-tech/iam-sdk v1.0.4 // indirect
 	github.com/cloudru-tech/secret-manager-sdk v1.1.1 // indirect
-	github.com/cyberark/conjur-api-go v0.13.7 // indirect
+	github.com/cyberark/conjur-api-go v0.13.8 // indirect
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
@@ -274,9 +274,6 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
-	github.com/cloudru-tech/iam-sdk v1.0.4 // indirect
-	github.com/cloudru-tech/secret-manager-sdk v1.1.1 // indirect
-	github.com/cyberark/conjur-api-go v0.13.8 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/djherbis/times v1.6.0 // indirect
