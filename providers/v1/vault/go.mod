@@ -174,5 +174,3 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/gcp => ../gcp
 	github.com/external-secrets/external-secrets/runtime => ../../../runtime
 )
-
-replace github.com/external-secrets/external-secrets/providers/v2/aws => ../aws
