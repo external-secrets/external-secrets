@@ -25,6 +25,7 @@ import (
 	// nolint
 	. "github.com/onsi/gomega"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases"
@@ -33,6 +34,16 @@ import (
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	if framework.IsV2ProviderMode() {
+		By("installing eso in provider v2 mode")
+		addon.InstallGlobalAddon(addon.NewESO(
+			addon.WithCRDs(),
+			addon.WithV2Namespace(),
+			addon.WithV2KubernetesProvider(),
+		))
+		return nil
+	}
+
 	By("installing eso")
 	addon.InstallGlobalAddon(addon.NewESO(addon.WithCRDs()))
 

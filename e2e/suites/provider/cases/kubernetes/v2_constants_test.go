@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,16 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v2
+package kubernetes
 
-import (
-	"testing"
+import "time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+const (
+	defaultV2WaitTimeout     = 60 * time.Second
+	defaultV2PollInterval    = 2 * time.Second
+	defaultV2RefreshInterval = 10 * time.Second
 )
-
-func TestV2Suite(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "V2 E2E Suite")
-}
