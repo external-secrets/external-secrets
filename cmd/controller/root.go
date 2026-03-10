@@ -89,7 +89,6 @@ var (
 	enableClusterPushSecretReconciler     bool
 	enablePushSecretReconciler            bool
 	enableGeneratorStateReconciler        bool
-	enableExternalSecretReconciler        bool
 	enableFloodGate                       bool
 	enableGeneratorState                  bool
 	enableExtendedMetricLabels            bool
@@ -129,6 +128,7 @@ var rootCmd = &cobra.Command{
 		setupLogger()
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
+		esmetrics.SetupMetrics()
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
@@ -249,28 +249,26 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		if enableExternalSecretReconciler{
-			esmetrics.SetUpMetrics()
-			if err = (&externalsecret.Reconciler{
-				Client:                    mgr.GetClient(),
-				SecretClient:              secretClient,
-				Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
-				Scheme:                    mgr.GetScheme(),
-				RestConfig:                mgr.GetConfig(),
-				ControllerClass:           controllerClass,
-				RequeueInterval:           time.Hour,
-				ClusterSecretStoreEnabled: enableClusterStoreReconciler,
-				EnableFloodGate:           enableFloodGate,
-				EnableGeneratorState:      enableGeneratorState,
-				AllowGenericTargets:       allowGenericTargets,
-			}).SetupWithManager(cmd.Context(), mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-				RateLimiter:             ctrlcommon.BuildRateLimiter(),
-			}); err != nil {
-				setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
-				os.Exit(1)
-			}
+		if err = (&externalsecret.Reconciler{
+			Client:                    mgr.GetClient(),
+			SecretClient:              secretClient,
+			Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
+			Scheme:                    mgr.GetScheme(),
+			RestConfig:                mgr.GetConfig(),
+			ControllerClass:           controllerClass,
+			RequeueInterval:           time.Hour,
+			ClusterSecretStoreEnabled: enableClusterStoreReconciler,
+			EnableFloodGate:           enableFloodGate,
+			EnableGeneratorState:      enableGeneratorState,
+			AllowGenericTargets:       allowGenericTargets,
+		}).SetupWithManager(cmd.Context(), mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
+			os.Exit(1)
 		}
+		
 		if enablePushSecretReconciler {
 			psmetrics.SetUpMetrics()
 			if err = (&pushsecret.Reconciler{
@@ -371,7 +369,6 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableClusterPushSecretReconciler, "enable-cluster-push-secret-reconciler", true, "Enable cluster push secret reconciler.")
 	rootCmd.Flags().BoolVar(&enablePushSecretReconciler, "enable-push-secret-reconciler", true, "Enable push secret reconciler.")
 	rootCmd.Flags().BoolVar(&enableGeneratorStateReconciler, "enable-generator-state-reconciler", true, "Enable generator state reconciler.")
-	rootCmd.Flags().BoolVar(&enableExternalSecretReconciler, "enable-external-secret-reconciler", true, "Enable external secret reconciler")
 	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enable secrets caching for ALL secrets in the cluster (WARNING: can increase memory usage).")
 	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable configmaps caching for ALL configmaps in the cluster (WARNING: can increase memory usage).")
 	rootCmd.Flags().BoolVar(&enableManagedSecretsCache, "enable-managed-secrets-caching", true, "Enable secrets caching for secrets managed by an ExternalSecret")

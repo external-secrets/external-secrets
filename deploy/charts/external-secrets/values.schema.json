@@ -682,9 +682,6 @@
         "processClusterStore": {
             "type": "boolean"
         },
-        "processExternalSecret": {
-            "type": "boolean"
-        },
         "processGeneratorState": {
             "type": "boolean"
         },

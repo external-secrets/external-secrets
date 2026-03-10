@@ -79,12 +79,11 @@ rules:
     - "get"
     - "update"
     - "patch"
+  {{- if .Values.processGeneratorState}}
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
-    {{- if .Values.processGeneratorState}}
     - "generatorstates"
-    {{- end }}
     verbs:
     - "get"
     - "list"
@@ -97,7 +96,6 @@ rules:
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
-    {{- if .Values.processGeneratorState }}
     - "acraccesstokens"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
@@ -116,11 +114,11 @@ rules:
     - "webhooks"
     - "grafanas"
     - "mfas"
-    {{- end }}
     verbs:
     - "get"
     - "list"
     - "watch"
+  {{- end }}
   - apiGroups:
     - ""
     resources:
@@ -255,10 +253,10 @@ rules:
       - "get"
       - "watch"
       - "list"
+  {{- if .Values.processGeneratorState}}
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
-    {{- if .Values.processGeneratorState}}
     - "acraccesstokens"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
@@ -277,11 +275,11 @@ rules:
     - "generatorstates"
     - "mfas"
     - "uuids"
-    {{- end}}
     verbs:
       - "get"
       - "watch"
       - "list"
+  {{- end}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
@@ -321,10 +319,10 @@ rules:
       - "deletecollection"
       - "patch"
       - "update"
+  {{- if .Values.processGeneratorState}}
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
-    {{- if .Values.processGeneratorState}}
     - "acraccesstokens"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
@@ -343,13 +341,13 @@ rules:
     - "generatorstates"
     - "mfas"
     - "uuids"
-    {{- end}}
     verbs:
       - "create"
       - "delete"
       - "deletecollection"
       - "patch"
       - "update"
+  {{- end}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}

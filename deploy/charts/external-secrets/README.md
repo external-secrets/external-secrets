@@ -195,7 +195,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | processClusterGenerator | bool | `true` | if true, the operator will process cluster generator. Else, it will ignore them. |
 | processClusterPushSecret | bool | `true` | if true, the operator will process cluster push secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
-| processExternalSecret | bool | `true` | if true, the operator will process external secret. Else, it will ignore them.  |
 | processGeneratorState | bool | `true` | if true, the operator will process generator state. Else, it will ignore them. |
 | processPushSecret | bool | `true` | if true, the operator will process push secret. Else, it will ignore them. |
 | processSecretStore | bool | `true` | if true, the operator will process secret store. Else, it will ignore them. |

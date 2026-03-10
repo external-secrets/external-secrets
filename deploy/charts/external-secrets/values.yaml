@@ -169,9 +169,6 @@ processPushSecret: true
 # -- if true, the operator will process generator state. Else, it will ignore them.
 processGeneratorState: true
 
-# -- if true, the operator will process external secret. Else, it will ignore them. 
-processExternalSecret: true 
-
 # -- Enable support for generic targets (ConfigMaps, Custom Resources).
 # Warning: Using generic target. Make sure access policies and encryption are properly configured.
 # When enabled, this grants the controller permissions to create/update/delete
