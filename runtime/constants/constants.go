@@ -33,8 +33,8 @@ const (
 	CallAWSSMPutResourcePolicy    = "PutResourcePolicy"
 	CallAWSSMGetResourcePolicy    = "GetResourcePolicy"
 	CallAWSSMDeleteResourcePolicy = "DeleteResourcePolicy"
+	ProviderAWSPS                 = "AWS/ParameterStore"
 
-	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"
 	CallAWSPSPutParameter        = "PutParameter"
 	CallAWSPSDeleteParameter     = "DeleteParameter"
@@ -110,6 +110,21 @@ const (
 	CallAKEYLESSSMCreateSecret          = "CreateSecret"
 	CallAKEYLESSSMUpdateSecretVal       = "UpdateSecretVal"
 	CallAKEYLESSSMDeleteItem            = "DeleteItem"
+
+	ProviderOnePasswordSDK        = "1Password/SDK"
+	CallOnePasswordSDKResolve     = "Resolve"
+	CallOnePasswordSDKItemsList   = "ItemsList"
+	CallOnePasswordSDKItemsGet    = "ItemsGet"
+	CallOnePasswordSDKItemsCreate = "ItemsCreate"
+	CallOnePasswordSDKItemsPut    = "ItemsPut"
+	CallOnePasswordSDKItemsDelete = "ItemsDelete"
+	CallOnePasswordSDKFilesRead   = "FilesRead"
+	CallOnePasswordSDKVaultsList  = "VaultsList"
+
+	ProviderNebiusMysterybox           = "Nebius/Mysterybox"
+	CallNebiusMysteryboxGetSecret      = "GetSecret"
+	CallNebiusMysteryboxGetSecretByKey = "GetSecretByKey"
+	CallNebiusMysteryboxAuth           = "Auth"
 
 	StatusError   = "error"
 	StatusSuccess = "success"
