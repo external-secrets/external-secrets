@@ -5237,6 +5237,9 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <li><code>kmsKeyID</code> takes a KMS Key <code>$ID</code> or <code>$ARN</code> (in case a key source is created in another account) as a string, where <code>alias/aws/secretsmanager</code> is the <em>default</em>.</li>
 <li><code>description</code> Description of the secret.</li>
 <li><code>tags</code> Key-value map of user-defined tags that are attached to the secret.</li>
+</ul>
+<p><strong>Note:</strong> ESO treats the PushSecret as the <strong>source of truth</strong> for tags. Tags specified in <code>metadata.tags</code> will be added or updated, and tags NOT specified will be removed from AWS. This synchronization happens on every reconciliation, even when the secret value hasn't changed.</p>
+<ul>
 <li><code>resourcePolicy</code> Attach a resource-based policy to the secret for cross-account access or advanced access control.</li>
 <li><code>blockPublicPolicy</code> (optional) - Set to <code>true</code> to validate that the policy doesn't grant public access before applying. Defaults to AWS behavior.</li>
 <li><code>policySourceRef</code> (required) - Reference to a ConfigMap or Secret containing the policy JSON.<ul>
@@ -5302,7 +5305,7 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <span class="w">      </span><span class="no">]</span>
 <span class="w">    </span><span class="no">}</span>
 </code></pre></div>
-<p><strong>Note:</strong> The resource policy is applied after the secret is created or updated. If the <code>resourcePolicy</code> field is removed from metadata, the existing policy will be deleted from the secret.</p>
+<p><strong>Note:</strong> The resource policy is synchronized on every reconciliation, even when the secret value hasn't changed. If the <code>resourcePolicy</code> field is removed from metadata, the existing policy will be deleted from the secret.</p>
 <h3 id="json-secret-values">JSON Secret Values</h3>
 <p>SecretsManager supports <em>simple</em> key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
 <p>Consider the following JSON object that is stored in the SecretsManager key <code>friendslist</code>:
