@@ -11,9 +11,6 @@ env:
   GOLANGCI_VERSION: 'v2.4.0'
   KUBERNETES_VERSION: '1.33.x'
 
-  # Sonar
-  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
 permissions:
   contents: read
 
@@ -51,6 +48,8 @@ jobs:
           egress-policy: audit
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       - name: Check License Headers
         uses: apache/skywalking-eyes/header@61275cc80d0798a405cb070f7d3a8aaf7cf2c2c1 # v0.8.0
 
@@ -67,6 +66,8 @@ jobs:
           egress-policy: audit
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v3
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
@@ -102,6 +103,8 @@ jobs:
           egress-policy: audit
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Fetch History
         run: git fetch --prune --unshallow

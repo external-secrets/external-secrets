@@ -28,6 +28,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.ref }}
+          persist-credentials: false
       - name: set branches output
         id: branches
         run: echo "branches=[\"main\"]" >> $GITHUB_OUTPUT
@@ -50,9 +51,12 @@ jobs:
     - name: Generate token
       id: generate_token
       uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      env:
+        APP_ID: ${{ secrets.APP_ID }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       with:
-        app-id: ${{ secrets.APP_ID }}
-        private-key: ${{ secrets.PRIVATE_KEY }}
+        app-id: ${{ env.APP_ID }}
+        private-key: ${{ env.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
 
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -60,6 +64,7 @@ jobs:
         token: ${{ steps.generate_token.outputs.token }}
         ref: ${{ matrix.branch }}
         fetch-depth: 0
+        persist-credentials: false
 
     - name: Setup Go
       uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
@@ -70,9 +75,11 @@ jobs:
       env:
         BASE_BRANCH: ${{ matrix.branch }}
         GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        GH_REPO: ${{ github.repository }}
       run: |
         git config --global user.email "ExternalSecretsOperator@users.noreply.github.com"
         git config --global user.name "External Secrets Operator"
+        git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GH_REPO}.git"
         BRANCH=update-deps-$(date "+%s")
         make update-deps || true
         make check-diff || true
