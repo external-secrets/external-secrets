@@ -483,7 +483,7 @@ func TestGetSecretEmptySecretsList(t *testing.T) {
 		api: &fakeAPI{secrets: []*server.Secret{}},
 	}
 
-	_, err := c.getSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "nonexistent"}, 0)
+	_, err := c.getSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "nonexistent"})
 	assert.Error(t, err)
 	// When secret not found, the fakeAPI returns errNotFound
 	assert.Contains(t, err.Error(), "not found")

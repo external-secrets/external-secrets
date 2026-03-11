@@ -75,7 +75,7 @@ var _ esv1.SecretsClient = &client{}
 //  4. get a specific value by using a key from the json formatted secret in Items.0.ItemValue.
 //     Nested values are supported by specifying a gjson expression
 func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	secret, err := c.getSecret(ctx, ref, 0)
+	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -140,16 +140,12 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 
 	// Look up the secret to see if it exists
-	remoteRef := esv1.ExternalSecretDataRemoteRef{
-		Key: data.GetRemoteKey(),
-	}
-
 	folderID := 0
 	if meta != nil {
 		folderID = meta.Spec.FolderID
 	}
 
-	existingSecret, err := c.getSecret(ctx, remoteRef, folderID)
+	existingSecret, err := c.findExistingSecret(ctx, data.GetRemoteKey(), folderID)
 	if err != nil {
 		if !isNotFoundError(err) {
 			return fmt.Errorf("failed to get secret: %w", err)
@@ -264,7 +260,7 @@ func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	remoteRef := esv1.ExternalSecretDataRemoteRef{
 		Key: ref.GetRemoteKey(),
 	}
-	secret, err := c.getSecret(ctx, remoteRef, 0)
+	secret, err := c.getSecret(ctx, remoteRef)
 	if err != nil {
 		// If already deleted/not found, ignore
 		if isNotFoundError(err) {
@@ -288,7 +284,7 @@ func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	remoteRef := esv1.ExternalSecretDataRemoteRef{
 		Key: ref.GetRemoteKey(),
 	}
-	_, err := c.getSecret(ctx, remoteRef, 0)
+	_, err := c.getSecret(ctx, remoteRef)
 	if err != nil {
 		if isNotFoundError(err) {
 			return false, nil
@@ -306,7 +302,7 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 // GetSecretMap retrieves the secret referenced by ref from the Secret Server API
 // and returns it as a map of byte slices.
 func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	secret, err := c.getSecret(ctx, ref, 0)
+	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -343,8 +339,8 @@ func (c *client) Close(context.Context) error {
 	return nil
 }
 
-// getSecret retrieves the secret referenced by ref from the Vault API.
-func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef, folderID int) (*server.Secret, error) {
+// getSecret retrieves the secret referenced by ref from the Secret Server API.
+func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (*server.Secret, error) {
 	if ref.Version != "" {
 		return nil, errors.New("specifying a version is not supported")
 	}
@@ -369,7 +365,31 @@ func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 		// ID lookup returned not-found; fall through to name-based lookup.
 	}
 
-	return c.getSecretByName(ref.Key, folderID)
+	return c.getSecretByName(ref.Key, 0)
+}
+
+// findExistingSecret looks up a secret for PushSecret's find-or-create logic.
+// Unlike getSecret, this method supports folder-scoped disambiguation when
+// multiple secrets share the same name. The folderID is only used for
+// name-based lookups; path and ID lookups are unambiguous by nature.
+func (c *client) findExistingSecret(_ context.Context, key string, folderID int) (*server.Secret, error) {
+	// Path-based key: fully qualified, no disambiguation needed.
+	if strings.HasPrefix(key, "/") {
+		return c.api.SecretByPath(key)
+	}
+
+	// Numeric key: treat as ID first; fall back to name-based lookup.
+	if id, err := strconv.Atoi(key); err == nil {
+		secret, err := c.api.Secret(id)
+		if err == nil && secret != nil {
+			return secret, nil
+		}
+		if !isNotFoundError(err) {
+			return nil, err
+		}
+	}
+
+	return c.getSecretByName(key, folderID)
 }
 
 func (c *client) getSecretByName(name string, folderID int) (*server.Secret, error) {
