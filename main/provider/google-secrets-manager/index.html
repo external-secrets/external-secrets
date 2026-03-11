@@ -3227,6 +3227,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#auto-detection-of-gcp-project-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auto-detection of GCP project ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#projectid-vs-clusterprojectid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        projectID vs clusterProjectID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#explicitly-specifying-the-gke-clusters-name-and-location" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5110,6 +5132,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#auto-detection-of-gcp-project-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auto-detection of GCP project ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#projectid-vs-clusterprojectid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        projectID vs clusterProjectID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#explicitly-specifying-the-gke-clusters-name-and-location" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5489,7 +5533,7 @@ You can use either of the approaches described in the previous two sections.</p>
 <li><em><a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">Authenticate to Google Cloud APIs from GKE workloads</a> in the GKE documentation.</em></li>
 <li><em><a href="https://cloud.google.com/secret-manager/docs/access-control">Access control with IAM</a> in the Secret Manager documentation.</em></li>
 </ul>
-<p>Once the Core Controller Pod can access the Secret Manager secret(s) through WIF via its Kubernetes service account, you can create <code>SecretStore</code> or <code>ClusterSecretStore</code> instances that only specify the GCP project ID, omitting the <code>auth</code> section entirely:</p>
+<p>Once the Core Controller Pod can access the Secret Manager secret(s) through WIF via its Kubernetes service account, you can create <code>SecretStore</code> or <code>ClusterSecretStore</code> instances without authentication configuration. You can optionally specify the GCP project ID, or omit it to use auto-detection from the GCP metadata server:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5500,8 +5544,49 @@ You can use either of the approaches described in the previous two sections.</p>
 <span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">PROJECT_ID</span><span class="p p-Indicator">]</span>
 </code></pre></div>
+<p>Alternatively, with projectID auto-detection (GKE only):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-secret-store</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span><span class="w"> </span><span class="c1"># Both projectID and auth are optional when using Core Controller authentication in GKE</span>
+</code></pre></div>
+<h4 id="auto-detection-of-gcp-project-id">Auto-detection of GCP project ID</h4>
+<p>When creating a <code>SecretStore</code> or <code>ClusterSecretStore</code> that uses Workload Identity, Workload Identity Federation, or default credentials (ADC), the <code>projectID</code> field is optional. If omitted, the operator will automatically detect the GCP project ID from the <a href="https://cloud.google.com/compute/docs/metadata/overview">GCP metadata server</a> when running in GKE.</p>
+<p>This allows you to create portable SecretStore configurations that work across multiple GCP projects without modification:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># projectID is optional - will be auto-detected from GCP metadata server</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">workloadIdentity</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo-secrets-sa</span>
+</code></pre></div>
+<p>You must set <code>projectID</code> explicitly when using static service account credentials (<code>auth.secretRef</code>), when running outside GKE, or when accessing secrets in a different project than your cluster. When running in GKE with Workload Identity, Workload Identity Federation, or default credentials, <code>projectID</code> can be omitted if the secrets live in the same project as the cluster.</p>
+<h4 id="projectid-vs-clusterprojectid">projectID vs clusterProjectID</h4>
+<p><code>projectID</code> (<code>spec.provider.gcpsm.projectID</code>) tells the provider which GCP project holds the secrets. It is used in secret resource paths like <code>projects/{projectID}/secrets/{name}</code>. For Workload Identity, it also serves as a fallback for authentication if <code>clusterProjectID</code> is not set.</p>
+<p><code>clusterProjectID</code> (<code>spec.provider.gcpsm.auth.workloadIdentity.clusterProjectID</code>) identifies the project hosting the GKE cluster. It is only used by Workload Identity to build the identity pool URL. When either field is omitted in GKE, the provider queries the <a href="https://cloud.google.com/compute/docs/metadata/overview">GCP metadata server</a> to resolve the project ID.</p>
+<p>For cross-project access, set both fields explicitly:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secrets-project-456&quot;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">workloadIdentity</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">clusterProjectID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cluster-project-123&quot;</span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo-sa</span>
+</code></pre></div>
 <h4 id="explicitly-specifying-the-gke-clusters-name-and-location">Explicitly specifying the GKE cluster's name and location</h4>
-<p>When creating a <code>SecretStore</code> or <code>ClusterSecretStore</code> that uses WIF, the GKE cluster's project ID, name, and location are automatically determined through the <a href="https://cloud.google.com/compute/docs/metadata/overview">GCP metadata server</a>.
+<p>When creating a <code>SecretStore</code> or <code>ClusterSecretStore</code> that uses Workload Identity, the GKE cluster's name and location are automatically determined through the <a href="https://cloud.google.com/compute/docs/metadata/overview">GCP metadata server</a>.
 Alternatively, you can explicitly specify some or all of these values.</p>
 <p>For a fully specified configuration, you'll need to know the following three values:</p>
 <ul>
