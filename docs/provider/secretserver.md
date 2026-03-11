@@ -331,9 +331,9 @@ The `PushSecret` resource allows you to configure what happens to the remote sec
 
 When `Delete` is specified, the deletion operation is idempotent; if the secret has already been removed or cannot be found, the provider will safely ignore the error and proceed. Note that this deletion uses the exact remote key (ID, name, or path) configured in the `remoteRef` to match and remove the secret.
 
-#### Pushing JSON Payloads
+#### Pushing Without a Property
 
-If your Kubernetes secret contains a full JSON payload that you want to push into a single text field in Secret Server (like a `Data` or `Notes` field), you can omit the `property` in the `remoteRef`. The provider will place the complete JSON representation of your secret into the **first** field of the Secret Server secret.
+If you omit `property` from the `remoteRef`, the provider writes the value selected by `data.match.secretKey` (e.g., the content stored under the `config` key in your Kubernetes Secret) into the **first** field of the Secret Server secret. This is useful when your secret value is a single JSON payload that you want to store in a text field like `Data` or `Notes`.
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
@@ -350,10 +350,10 @@ spec:
       name: my-k8s-json-secret
   data:
     - match:
-        secretKey: config # The key in your k8s secret containing the JSON
+        secretKey: config # The key in your k8s secret whose value will be pushed
         remoteRef:
           remoteKey: my-new-json-secret
-          # property is omitted to store the value in the first available field
+          # property is omitted: the value is stored in the first template field
       metadata:
         apiVersion: kubernetes.external-secrets.io/v1alpha1
         kind: PushSecretMetadata
