@@ -63,7 +63,7 @@ spec:
     data:
       - secretKey: SecretServerValue #<SECRET_VALUE_RETURNED_HERE>
         remoteRef:
-          key: "53974" #<SECRET_ID>
+          key: "52622" #<SECRET_ID>
           property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
 
@@ -88,7 +88,7 @@ spec:
     data:
       - secretKey: password
         remoteRef:
-          key: "53974"      # Secret ID
+          key: "52622"      # Secret ID
           property: "password"  # FieldName or Slug of the password field
 ```
 
@@ -149,7 +149,7 @@ returns: huckleberryFinn
 
 - Lookup by secret ID (*secret name will work as well*) and return the entire secret.
 
->spec.data.remoteRef.key = "53974" (id of the secret)<br />
+>spec.data.remoteRef.key = "52622" (id of the secret)<br />
 spec.data.remoteRef.property = "" <br />
 returns: The entire secret in JSON format as displayed below
 
@@ -158,7 +158,7 @@ returns: The entire secret in JSON format as displayed below
 {
   "Name": "external-secret-testing",
   "FolderID": 73,
-  "ID": 53974,
+  "ID": 52622,
   "SiteID": 1,
   "SecretTemplateID": 6098,
   "SecretPolicyID": -1,
@@ -205,7 +205,7 @@ Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
 
->spec.data.remoteRef.key = 53974 (id of the secret)<br />
+>spec.data.remoteRef.key = 52622 (id of the secret)<br />
 spec.data.remoteRef.property = "Username" (Items.0.FieldName)<br />
 returns: usernamevalue
 
@@ -217,7 +217,7 @@ returns: passwordvalue
 
 - Lookup by secret ID (*secret name will work as well*) and return the entire secret.
 
->spec.data.remoteRef.key = "53974" (id of the secret)<br />
+>spec.data.remoteRef.key = "52622" (id of the secret)<br />
 returns: The entire secret in JSON format as displayed below
 
 
@@ -225,7 +225,7 @@ returns: The entire secret in JSON format as displayed below
 {
   "Name": "Secretname",
   "FolderID": 0,
-  "ID": 53974,
+  "ID": 52622,
   "SiteID": 0,
   "SecretTemplateID": 0,
   "LauncherConnectAsSecretID": 0,
