@@ -21,6 +21,7 @@ package passbolt
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"regexp"
 
@@ -95,7 +96,9 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1.Gene
 
 	// Prefetch caches for V5 metadata decryption performance (CLI pattern)
 	// This caches session keys and metadata keys for fast V5 decryption
-	_, _, _ = client.PreFetchCaches(ctx) // Non-fatal if fails
+	if _, _, err := client.PreFetchCaches(ctx); err != nil {
+		fmt.Printf("passbolt: prefetch caches failed (non-fatal): %v\n", err)
+	}
 
 	provider.client = client
 	return provider, nil
