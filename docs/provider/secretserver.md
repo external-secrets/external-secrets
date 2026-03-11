@@ -137,7 +137,7 @@ Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
 
->spec.data.remoteRef.key = 53974 (id of the secret)<br />
+>spec.data.remoteRef.key = 52622 (id of the secret)<br />
 spec.data.remoteRef.property = "user" (Items.0.ItemValue user attribute)<br />
 returns: marktwain@hannibal.com
 
@@ -205,7 +205,7 @@ Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
 
->spec.data.remoteRef.key = 52622 (id of the secret)<br />
+>spec.data.remoteRef.key = 4000 (id of the secret)<br />
 spec.data.remoteRef.property = "Username" (Items.0.FieldName)<br />
 returns: usernamevalue
 
@@ -217,7 +217,7 @@ returns: passwordvalue
 
 - Lookup by secret ID (*secret name will work as well*) and return the entire secret.
 
->spec.data.remoteRef.key = "52622" (id of the secret)<br />
+>spec.data.remoteRef.key = "4000" (id of the secret)<br />
 returns: The entire secret in JSON format as displayed below
 
 
@@ -225,7 +225,7 @@ returns: The entire secret in JSON format as displayed below
 {
   "Name": "Secretname",
   "FolderID": 0,
-  "ID": 52622,
+  "ID": 4000,
   "SiteID": 0,
   "SecretTemplateID": 0,
   "LauncherConnectAsSecretID": 0,
