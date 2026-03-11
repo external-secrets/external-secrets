@@ -40,7 +40,7 @@ import (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 // Provider satisfies the provider interface.
 type Provider struct{}
@@ -230,7 +230,7 @@ func (f fixedDelayer) BackoffDelay(int, error) (time.Duration, error) {
 }
 
 // NewProvider creates a new AWS Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

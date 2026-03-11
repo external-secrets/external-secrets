@@ -27,7 +27,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-var _ esv1.Provider = &Client{}
+var _ esv1.ProviderInterface = &Client{}
 
 type SetSecretCallArgs struct {
 	Value     []byte

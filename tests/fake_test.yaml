@@ -4,4 +4,4 @@ tests:
   - it: matches Fake generator correctly
     asserts:
       - matchSnapshot:
-          path: tests/__snapshot__
+          path: tests/__snapshot__/fake-generator

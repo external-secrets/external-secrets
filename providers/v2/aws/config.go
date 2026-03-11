@@ -1,0 +1,81 @@
+// /*
+// Copyright © 2025 ESO Maintainer Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// */
+
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package main provides the AWS provider configuration and spec mapper implementation.
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
+	pb "github.com/external-secrets/external-secrets/proto/provider"
+)
+
+// GetSpecMapper returns the spec mapper function for the AWS provider.
+// This function converts v2 ProviderReference to v1 SecretStoreSpec.
+func GetSpecMapper(kubeClient client.Client) func(*pb.ProviderReference, string) (*v1.SecretStoreSpec, error) {
+	return func(ref *pb.ProviderReference, sourceNamespace string) (*v1.SecretStoreSpec, error) {
+		if ref.Kind != awsv2alpha1.SecretsManagerKind {
+			return nil, fmt.Errorf("unsupported provider kind: %s", ref.Kind)
+		}
+		namespace := ref.Namespace
+		if namespace == "" {
+			namespace = sourceNamespace
+		}
+		var awsProvider awsv2alpha1.SecretsManager
+		err := kubeClient.Get(context.Background(), client.ObjectKey{
+			Namespace: namespace,
+			Name:      ref.Name,
+		}, &awsProvider)
+		if err != nil {
+			return nil, err
+		}
+		return &v1.SecretStoreSpec{
+			Provider: &v1.SecretStoreProvider{
+				AWS: &v1.AWSProvider{
+					Service:           v1.AWSServiceSecretsManager,
+					Auth:              awsProvider.Spec.Auth,
+					Role:              awsProvider.Spec.Role,
+					Region:            awsProvider.Spec.Region,
+					AdditionalRoles:   awsProvider.Spec.AdditionalRoles,
+					ExternalID:        awsProvider.Spec.ExternalID,
+					SecretsManager:    awsProvider.Spec.SecretsManager,
+					SessionTags:       awsProvider.Spec.SessionTags,
+					TransitiveTagKeys: awsProvider.Spec.TransitiveTagKeys,
+					Prefix:            awsProvider.Spec.Prefix,
+				},
+			},
+		}, nil
+	}
+}

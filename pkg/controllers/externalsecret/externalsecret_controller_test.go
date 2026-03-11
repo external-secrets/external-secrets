@@ -44,6 +44,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
+	fakeprovider "github.com/external-secrets/external-secrets/providers/v1/fake"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
@@ -3058,6 +3059,7 @@ func externalSecretConditionShouldBe(name, ns string, ct esv1.ExternalSecretCond
 
 func init() {
 	fakeProvider = fake.New()
+	esv1.ForceRegister(fakeprovider.NewProvider(), fakeprovider.ProviderSpec(), fakeprovider.MaintenanceStatus())
 	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
 		AWS: &esv1.AWSProvider{
 			Service: esv1.AWSServiceSecretsManager,

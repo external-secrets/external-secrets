@@ -26,6 +26,7 @@ import (
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/storeutil"
 )
 
 // NewSecretStoreCondition a set of default options for creating an External Secret Condition.
@@ -40,14 +41,9 @@ func NewSecretStoreCondition(condType esapi.SecretStoreConditionType, status v1.
 }
 
 // GetSecretStoreCondition returns the condition with the provided type.
+// This is a wrapper around storeutil.GetSecretStoreCondition for backward compatibility.
 func GetSecretStoreCondition(status esapi.SecretStoreStatus, condType esapi.SecretStoreConditionType) *esapi.SecretStoreStatusCondition {
-	for i := range status.Conditions {
-		c := status.Conditions[i]
-		if c.Type == condType {
-			return &c
-		}
-	}
-	return nil
+	return storeutil.GetSecretStoreCondition(status, condType)
 }
 
 // SetExternalSecretCondition updates the external secret to include the provided

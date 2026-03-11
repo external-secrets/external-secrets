@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
-	github.com/external-secrets/external-secrets/providers/v1/vault v0.0.0-20251103080423-08fa383f42e5
+	github.com/external-secrets/external-secrets/providers/v1/vault v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/vault/api v1.22.0
@@ -89,7 +89,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.2.0 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
-	github.com/hashicorp/go-uuid v1.0.3 // indirect
+	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/hashicorp/vault/api/auth/approle v0.11.0 // indirect
@@ -169,9 +169,9 @@ require (
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ../../../apis
+	github.com/external-secrets/external-secrets/providers/v1/aws => ../../../providers/v1/aws
+	github.com/external-secrets/external-secrets/providers/v1/gcp => ../../../providers/v1/gcp
 	github.com/external-secrets/external-secrets/runtime => ../../../runtime
 )
 
 replace github.com/external-secrets/external-secrets/providers/v1/vault => ../../../providers/v1/vault
-
-replace github.com/external-secrets/external-secrets/providers/v1/aws => ../../../providers/v1/aws

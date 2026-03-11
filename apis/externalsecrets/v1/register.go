@@ -72,9 +72,33 @@ var (
 	ClusterSecretStoreGroupVersionKind = SchemeGroupVersion.WithKind(ClusterSecretStoreKind)
 )
 
+// Provider type metadata.
+var (
+	ProviderKind             = reflect.TypeOf(Provider{}).Name()
+	ProviderGroupKind        = schema.GroupKind{Group: Group, Kind: ProviderKind}.String()
+	ProviderKindAPIVersion   = ProviderKind + "." + SchemeGroupVersion.String()
+	ProviderGroupVersionKind = SchemeGroupVersion.WithKind(ProviderKind)
+)
+
+// ClusterProvider type metadata.
+var (
+	ClusterProviderKind             = reflect.TypeOf(ClusterProvider{}).Name()
+	ClusterProviderGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterProviderKind}.String()
+	ClusterProviderKindAPIVersion   = ClusterProviderKind + "." + SchemeGroupVersion.String()
+	ClusterProviderGroupVersionKind = SchemeGroupVersion.WithKind(ClusterProviderKind)
+)
+
+// Provider kind string constants for use in SecretStoreRef.
+const (
+	ProviderKindStr        = "Provider"
+	ClusterProviderKindStr = "ClusterProvider"
+)
+
 func init() {
 	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
 	SchemeBuilder.Register(&ClusterExternalSecret{}, &ClusterExternalSecretList{})
 	SchemeBuilder.Register(&SecretStore{}, &SecretStoreList{})
 	SchemeBuilder.Register(&ClusterSecretStore{}, &ClusterSecretStoreList{})
+	SchemeBuilder.Register(&Provider{}, &ProviderList{})
+	SchemeBuilder.Register(&ClusterProvider{}, &ClusterProviderList{})
 }

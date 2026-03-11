@@ -89,7 +89,7 @@ func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iam
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return ydxcommon.InitYandexCloudProvider(
 		log,
 		clock.NewRealClock(),

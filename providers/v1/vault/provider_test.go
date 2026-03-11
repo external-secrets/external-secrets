@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
@@ -305,7 +306,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				}),
 			},
 			want: want{
-				err: errors.New("time: invalid duration \"not-an-interval\""),
+				err: invalidRetryIntervalError("not-an-interval"),
 			},
 		},
 		"ValidRetrySettings": {
@@ -734,6 +735,12 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			vaultTest(t, name, tc)
 		})
 	}
+}
+
+func invalidRetryIntervalError(value string) error {
+	_, err := time.ParseDuration(value)
+
+	return err
 }
 
 func vaultTest(t *testing.T, _ string, tc testCase) {

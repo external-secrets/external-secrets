@@ -30,10 +30,13 @@ limitations under the License.
 package webhook
 
 import (
+	"bytes"
 	"context"
 	b64 "encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -49,7 +52,7 @@ type mockAuthTestPackage struct {
 	Creds      mockCreds
 	MockServer mockAuthTestServer
 	Request    mockAuthRequest
-	Expect     string
+	Validate   func(string) error
 }
 
 type mockCreds struct {
@@ -70,15 +73,19 @@ func TestWebhookAuth(t *testing.T) {
 	// define test cases
 	creds := mockCreds{"correctuser123", "correctpassword123"}
 	basicAuthExpect := "Basic " + b64.StdEncoding.EncodeToString([]byte(creds.UserName+":"+creds.Password))
-	ntlmExpect := "NTLM TlRMTVNTUAABAAAAAQCIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
-	negotiateExpect := "Negotiate TlRMTVNTUAABAAAAAQCIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
 
 	// due to integrated nature of GetSecret(), we use a mock server
 	// to return relevant parts of a request, in this case, the auth header.
 	testAuthHeaders := map[string]mockAuthTestPackage{
-		"BasicAuth": {creds, basicAuthRequestEcho, basicAuthRequest, basicAuthExpect},
-		"NTLM":      {creds, ntlmRequestEcho, ntlmRequest, ntlmExpect},
-		"Negotiate": {creds, negotiateRequestEcho, ntlmRequest, negotiateExpect},
+		"BasicAuth": {creds, basicAuthRequestEcho, basicAuthRequest, func(result string) error {
+			if result != basicAuthExpect {
+				return fmt.Errorf("got %q, want %q", result, basicAuthExpect)
+			}
+
+			return nil
+		}},
+		"NTLM":      {creds, ntlmRequestEcho, ntlmRequest, validateNTLMAuthHeader("NTLM")},
+		"Negotiate": {creds, negotiateRequestEcho, ntlmRequest, validateNTLMAuthHeader("Negotiate")},
 	}
 
 	// execute test cases
@@ -86,10 +93,29 @@ func TestWebhookAuth(t *testing.T) {
 		server := p.MockServer(p.Creds, t)
 		result := p.Request(server.URL, creds, t)
 		server.Close()
-		expect := p.Expect
-		if result != expect {
-			t.Errorf("Test failed. Result: '%s' / Expected:  '%s'", result, expect)
+		if err := p.Validate(result); err != nil {
+			t.Errorf("Test failed. %v", err)
 		}
+	}
+}
+
+func validateNTLMAuthHeader(scheme string) func(string) error {
+	return func(result string) error {
+		prefix := scheme + " "
+		if !strings.HasPrefix(result, prefix) {
+			return fmt.Errorf("expected %q prefix, got %q", prefix, result)
+		}
+
+		token, err := b64.StdEncoding.DecodeString(strings.TrimPrefix(result, prefix))
+		if err != nil {
+			return fmt.Errorf("decode NTLM token: %w", err)
+		}
+
+		if !bytes.HasPrefix(token, []byte("NTLMSSP\x00\x01\x00\x00\x00")) {
+			return fmt.Errorf("unexpected NTLM negotiate message: %x", token)
+		}
+
+		return nil
 	}
 }
 

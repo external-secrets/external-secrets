@@ -34,6 +34,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 type Framework struct {
@@ -54,13 +55,24 @@ type Framework struct {
 	Addons []addon.Addon
 
 	MakeRemoteRefKey func(base string) string
+
+	ProviderMode                        string
+	DefaultSecretStoreRefKind           string
+	DefaultPushSecretStoreRefKind       string
+	DefaultPushSecretStoreRefAPIVersion string
 }
 
 // New returns a new framework instance with defaults.
 func New(baseName string) *Framework {
 	f := &Framework{
-		BaseName:         baseName,
-		MakeRemoteRefKey: func(base string) string { return base },
+		BaseName:                            baseName,
+		MakeRemoteRefKey:                    func(base string) string { return base },
+		ProviderMode:                        GetProviderMode(),
+		DefaultPushSecretStoreRefAPIVersion: esv1.SchemeGroupVersion.String(),
+	}
+	if f.ProviderMode == ProviderModeV2 {
+		f.DefaultSecretStoreRefKind = esv1.ProviderKindStr
+		f.DefaultPushSecretStoreRefKind = esv1.ProviderKindStr
 	}
 	f.KubeConfig, f.KubeClientSet, f.CRClient = util.NewConfig()
 

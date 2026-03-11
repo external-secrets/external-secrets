@@ -388,8 +388,9 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}
 				copied.Spec.PushSecretSpec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 					{
-						Name: updateStoreName,
-						Kind: "SecretStore",
+						Name:       updateStoreName,
+						Kind:       "SecretStore",
+						APIVersion: esv1.SchemeGroupVersion.String(),
 					},
 				}
 				Expect(k8sClient.Patch(ctx, copied, crclient.MergeFrom(created.DeepCopy()))).ShouldNot(HaveOccurred())
@@ -402,8 +403,9 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}
 				updatedSpec.PushSecretSpec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 					{
-						Name: updateStoreName,
-						Kind: "SecretStore",
+						Name:       updateStoreName,
+						Kind:       "SecretStore",
+						APIVersion: esv1.SchemeGroupVersion.String(),
 					},
 				}
 
@@ -428,8 +430,9 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				updatedSpec := created.Spec.PushSecretSpec.DeepCopy()
 				updatedSpec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 					{
-						Name: updateStoreName,
-						Kind: "SecretStore",
+						Name:       updateStoreName,
+						Kind:       "SecretStore",
+						APIVersion: esv1.SchemeGroupVersion.String(),
 					},
 				}
 
@@ -517,8 +520,9 @@ var _ = Describe("ClusterPushSecret controller", func() {
 							RefreshInterval: &metav1.Duration{Duration: time.Hour},
 							SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 								{
-									Name: updateStoreName,
-									Kind: "SecretStore",
+									Name:       updateStoreName,
+									Kind:       "SecretStore",
+									APIVersion: esv1.SchemeGroupVersion.String(),
 								},
 							},
 							UpdatePolicy: "Replace",
