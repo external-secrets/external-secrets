@@ -967,12 +967,12 @@ func TestGetAllSecrets(t *testing.T) {
 				Path: esv1Ptr("some-path"),
 			},
 			wantErr: true,
-			errMsg:  "getting all secrets is not supported by Delinea Secret Server at this time",
+			errMsg:  "getting all secrets is not supported by Delinea Secret Server",
 		},
 		"returns error with nil path": {
 			ref:     esv1.ExternalSecretFind{},
 			wantErr: true,
-			errMsg:  "getting all secrets is not supported by Delinea Secret Server at this time",
+			errMsg:  "getting all secrets is not supported by Delinea Secret Server",
 		},
 	}
 

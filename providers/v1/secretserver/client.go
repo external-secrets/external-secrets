@@ -42,8 +42,7 @@ const (
 )
 
 // isNotFoundError checks if an error indicates a secret was not found.
-// Uses case-insensitive matching to also catch the SDK's "404 Not Found: ..." HTTP errors,
-// since tss-sdk-go v3 does not expose typed errors.
+// Uses case-insensitive substring matching since tss-sdk-go v3 has no typed errors.
 func isNotFoundError(err error) bool {
 	if err == nil {
 		return false
@@ -196,11 +195,8 @@ func (c *client) updateSecret(secret *server.Secret, property, value string) err
 }
 
 // createSecret creates a new secret in Delinea Secret Server.
-// Note: This function currently only populates a single field in the secret
-// (either the first field of the template if property is empty, or the specific
-// field returned by findTemplateFieldID). If the target secret template contains
-// other required fields, the server.Secret creation via c.api.CreateSecret may
-// result in an API error.
+// Only the targeted field is populated; other required template fields
+// may cause an API error.
 func (c *client) createSecret(name, property, value string, meta PushSecretMetadataSpec) error {
 	template, err := c.api.SecretTemplate(meta.SecretTemplateID)
 	if err != nil {
@@ -211,13 +207,10 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 		return fmt.Errorf("invalid secret name %q: name must not be empty or end with a trailing slash", name)
 	}
 
-	normalizedName := strings.Trim(name, "/")
+	normalizedName := strings.TrimPrefix(name, "/")
 	if strings.Contains(normalizedName, "/") {
 		parts := strings.Split(normalizedName, "/")
 		normalizedName = parts[len(parts)-1]
-	}
-	if normalizedName == "" {
-		return fmt.Errorf("invalid secret name %q: name must not be empty or end with a trailing slash", name)
 	}
 
 	newSecret := server.Secret{
@@ -228,7 +221,7 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 	}
 
 	if property == "" {
-		// Populate the first field of the template with the whole JSON
+		// No property specified: use the first template field.
 		if len(template.Fields) == 0 {
 			return errors.New("secret template has no fields")
 		}
@@ -237,7 +230,7 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 			ItemValue: value,
 		})
 	} else {
-		// Populate the specific property
+		// Use the field matching the specified property.
 		fieldID, found := findTemplateFieldID(template, property)
 		if !found {
 			return fmt.Errorf("field %s not found in secret template", property)
@@ -271,9 +264,6 @@ func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 
 	err = c.api.DeleteSecret(secret.ID)
 	if err != nil {
-		if isNotFoundError(err) {
-			return nil
-		}
 		return fmt.Errorf("failed to delete secret: %w", err)
 	}
 	return nil
@@ -330,9 +320,10 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return data, nil
 }
 
-// GetAllSecrets not supported at this time.
+// GetAllSecrets is not supported. The tss-sdk-go v3 SDK search is hard-capped
+// at 30 results with no pagination, no tag filtering, and no folder enumeration.
 func (c *client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, errors.New("getting all secrets is not supported by Delinea Secret Server at this time")
+	return nil, errors.New("getting all secrets is not supported by Delinea Secret Server")
 }
 
 func (c *client) Close(context.Context) error {
@@ -345,40 +336,25 @@ func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 		return nil, errors.New("specifying a version is not supported")
 	}
 
-	// If the ref.Key looks like a full path (starts with "/"), fetch by path.
-	// Example: "/Folder/Subfolder/SecretName"
-	if strings.HasPrefix(ref.Key, "/") {
-		return c.api.SecretByPath(ref.Key)
-	}
-
-	// Otherwise try converting it to an ID; if the key is numeric but no secret
-	// exists with that ID, fall back to a name-based lookup so that secrets whose
-	// name happens to be a numeric string can still be resolved.
-	if id, err := strconv.Atoi(ref.Key); err == nil {
-		secret, err := c.api.Secret(id)
-		if err == nil && secret != nil {
-			return secret, nil
-		}
-		if !isNotFoundError(err) {
-			return nil, err
-		}
-		// ID lookup returned not-found; fall through to name-based lookup.
-	}
-
-	return c.getSecretByName(ref.Key, 0)
+	return c.lookupSecret(ref.Key, 0)
 }
 
 // findExistingSecret looks up a secret for PushSecret's find-or-create logic.
-// Unlike getSecret, this method supports folder-scoped disambiguation when
-// multiple secrets share the same name. The folderID is only used for
-// name-based lookups; path and ID lookups are unambiguous by nature.
+// Unlike getSecret, it supports folder-scoped disambiguation via folderID.
 func (c *client) findExistingSecret(_ context.Context, key string, folderID int) (*server.Secret, error) {
+	return c.lookupSecret(key, folderID)
+}
+
+// lookupSecret resolves a secret by path ("/..."), numeric ID, or name.
+// The folderID scopes name-based lookups (0 = any folder).
+func (c *client) lookupSecret(key string, folderID int) (*server.Secret, error) {
 	// Path-based key: fully qualified, no disambiguation needed.
 	if strings.HasPrefix(key, "/") {
 		return c.api.SecretByPath(key)
 	}
 
-	// Numeric key: treat as ID first; fall back to name-based lookup.
+	// Numeric key: treat as ID first; fall back to name-based lookup so that
+	// secrets whose name happens to be a numeric string can still be resolved.
 	if id, err := strconv.Atoi(key); err == nil {
 		secret, err := c.api.Secret(id)
 		if err == nil && secret != nil {
@@ -401,10 +377,12 @@ func (c *client) getSecretByName(name string, folderID int) (*server.Secret, err
 		return nil, errors.New(errMsgNoMatchingSecrets)
 	}
 
-	if folderID <= 0 {
+	// No folder constraint: return the first match.
+	if folderID == 0 {
 		return &secrets[0], nil
 	}
 
+	// Find the first secret matching the requested folder.
 	for i, s := range secrets {
 		if s.FolderID == folderID {
 			return &secrets[i], nil
