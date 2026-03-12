@@ -53,10 +53,9 @@ jobs:
       uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
       env:
         APP_ID: ${{ secrets.APP_ID }}
-        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       with:
         app-id: ${{ env.APP_ID }}
-        private-key: ${{ env.PRIVATE_KEY }}
+        private-key: ${{ secrets.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
 
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
