@@ -669,6 +669,7 @@ type ExternalSecretStatus struct {
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshInterval`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Last Sync",type=date,JSONPath=`.status.refreshTime`
 // +kubebuilder:selectablefield:JSONPath=`.spec.secretStoreRef.name`
 // +kubebuilder:selectablefield:JSONPath=`.spec.secretStoreRef.kind`
 // +kubebuilder:selectablefield:JSONPath=`.spec.target.name`
