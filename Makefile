@@ -77,6 +77,7 @@ reviewable: generate docs manifests helm.generate helm.schema.update helm.docs l
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
 	@cd runtime/ && go mod tidy
+	@cd commond/gcp/ && go mod tidy
 	@for provider in providers/v1/*/; do (cd $$provider && go mod tidy); done
 	@for generator in generators/v1/*/; do (cd $$generator && go mod tidy); done
 
