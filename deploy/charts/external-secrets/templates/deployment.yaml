@@ -124,11 +124,17 @@ spec:
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
-          {{- if .Values.livenessProbe.enabled }}
-          {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
-          - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.port }}
+          {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+          {{- if and .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+          {{- if ne (toString .Values.livenessProbe.spec.httpGet.port) (toString .Values.readinessProbe.spec.httpGet.port) }}
+          {{- fail "readinessProbe.spec.httpGet.port must match livenessProbe.spec.httpGet.port when both probes are enabled (they share the same --live-addr health server)" }}
+          {{- end }}
+          {{- end }}
+          {{- $probeSpec := ternary .Values.livenessProbe.spec .Values.readinessProbe.spec .Values.livenessProbe.enabled }}
+          {{- if eq (kindOf $probeSpec.httpGet.port) "string" }}
+          - --live-addr={{ $probeSpec.address }}:{{ $probeSpec.port }}
           {{- else }}
-          - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.httpGet.port }}
+          - --live-addr={{ $probeSpec.address }}:{{ $probeSpec.httpGet.port }}
           {{- end }}
           {{- end }}
           {{- if .Values.metrics.listen.secure.enabled }}
@@ -141,18 +147,23 @@ spec:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
-            {{- if .Values.livenessProbe.enabled }}
+            {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+            {{- $probeSpec := ternary .Values.livenessProbe.spec .Values.readinessProbe.spec .Values.livenessProbe.enabled }}
             - name: live
               protocol: TCP
-              {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
-              containerPort: {{ .Values.livenessProbe.spec.port }}
+              {{- if eq (kindOf $probeSpec.httpGet.port) "string" }}
+              containerPort: {{ $probeSpec.port }}
               {{- else }}
-              containerPort: {{ .Values.livenessProbe.spec.httpGet.port }}
+              containerPort: {{ $probeSpec.httpGet.port }}
               {{- end }}
             {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
           {{- toYaml (omit .Values.livenessProbe.spec "address" "port") | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+          {{- toYaml (omit .Values.readinessProbe.spec "address" "port") | nindent 12 }}
           {{- end }}
           {{- with .Values.extraEnv }}
           env:
