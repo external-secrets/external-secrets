@@ -57,7 +57,7 @@ func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resourc
 	policyID := "conjur:policy:root"
 	if filter.Offset == 0 {
 		// First "page" of secrets: 2 static ones and 98 random ones
-		secrets := []map[string]interface{}{
+		secrets := []map[string]interface{}{ //nolint:prealloc // static init + dynamic append
 			{
 				"id": "conjur:variable:secret1",
 				"annotations": []interface{}{

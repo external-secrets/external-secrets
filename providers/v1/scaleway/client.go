@@ -377,7 +377,7 @@ func (c *client) safeConvertInt32(page *int32) uint64 {
 		return 0
 	}
 
-	return uint64(*page - 1) //nolint:gosec // already checked above
+	return uint64(*page - 1)
 }
 
 func (c *client) Close(context.Context) error {
