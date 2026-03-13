@@ -791,7 +791,7 @@ func sortVaults(vaults map[string]int) []string {
 		index++
 	}
 	sort.Sort(list)
-	sortedVaults := []string{}
+	sortedVaults := make([]string, 0, len(list))
 	for _, item := range list {
 		sortedVaults = append(sortedVaults, item.Name)
 	}

@@ -44,12 +44,12 @@ func GetEndpoints(url string) (*EndpointsResponse, error) {
 		return nil, fmt.Errorf("invalid endpoints URL: expected %s, got %s", EndpointsURI, url)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, url, http.NoBody) //nolint:gosec // URL is validated against EndpointsURI above
 	if err != nil {
 		return nil, fmt.Errorf("construct HTTP request for cloud.ru endpoints: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL is validated against EndpointsURI above
 	if err != nil {
 		return nil, fmt.Errorf("get cloud.ru endpoints: %w", err)
 	}
