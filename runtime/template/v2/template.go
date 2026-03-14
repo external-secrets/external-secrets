@@ -19,6 +19,7 @@ package template
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"strings"
 	tpl "text/template"
 
@@ -56,6 +57,9 @@ var tplFuncs = tpl.FuncMap{
 	"fromYaml": fromYAML,
 
 	"rsaDecrypt": rsaDecrypt,
+
+	"urlQueryEscape": url.QueryEscape,
+	"urlPathEscape":  url.PathEscape,
 }
 
 var leftDelim, rightDelim string
