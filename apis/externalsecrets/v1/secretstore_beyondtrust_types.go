@@ -1,0 +1,76 @@
+/*
+Copyright © The ESO Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v1
+
+import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+
+// BeyondTrustProviderSecretRef references a value that can be specified directly or via a secret
+// for a BeyondTrustProvider.
+type BeyondTrustProviderSecretRef struct {
+
+	// Value can be specified directly to set a value without using a secret.
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// SecretRef references a key in a secret that will be used as value.
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// BeyondtrustAuth provides different ways to authenticate to a BeyondtrustProvider server.
+type BeyondtrustAuth struct {
+	// APIKey If not provided then ClientID/ClientSecret become required.
+	APIKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
+	// ClientID is the API OAuth Client ID.
+	ClientID *BeyondTrustProviderSecretRef `json:"clientId,omitempty"`
+	// ClientSecret is the API OAuth Client Secret.
+	ClientSecret *BeyondTrustProviderSecretRef `json:"clientSecret,omitempty"`
+	// Certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+	Certificate *BeyondTrustProviderSecretRef `json:"certificate,omitempty"`
+	// Certificate private key (key.pem). For use when authenticating with an OAuth client Id
+	CertificateKey *BeyondTrustProviderSecretRef `json:"certificateKey,omitempty"`
+}
+
+// BeyondtrustServer configures a store to sync secrets using BeyondTrust Password Safe.
+type BeyondtrustServer struct {
+	// +required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
+	APIURL string `json:"apiUrl"`
+	// +optional - The recommended version is 3.1. If no version is specified, the default API version 3.0 will be used
+	APIVersion string `json:"apiVersion,omitempty"`
+	// The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+	RetrievalType string `json:"retrievalType,omitempty"`
+	// A character that separates the folder names.
+	Separator string `json:"separator,omitempty"`
+	// When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.
+	// +optional
+	// +kubebuilder:default=true
+	Decrypt bool `json:"decrypt,omitempty"`
+	// +required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.
+	VerifyCA bool `json:"verifyCA"`
+	// Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
+	ClientTimeOutSeconds int `json:"clientTimeOutSeconds,omitempty"`
+}
+
+// BeyondtrustProvider provides access to a BeyondTrust secrets provider.
+type BeyondtrustProvider struct {
+
+	// Auth configures how the operator authenticates with Beyondtrust.
+	Auth *BeyondtrustAuth `json:"auth"`
+
+	// Auth configures how API server works.
+	Server *BeyondtrustServer `json:"server"`
+}

@@ -1,0 +1,94 @@
+{{- if and .Values.certController.create .Values.certController.rbac.create (not .Values.webhook.certManager.enabled) -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+    - "apiextensions.k8s.io"
+    resources:
+    - "customresourcedefinitions"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+    - "update"
+    - "patch"
+  - apiGroups:
+    - "admissionregistration.k8s.io"
+    resources:
+    - "validatingwebhookconfigurations"
+    verbs:
+    - "list"
+    - "watch"
+    - "get"
+  - apiGroups:
+    - "admissionregistration.k8s.io"
+    resources:
+    - "validatingwebhookconfigurations"
+    resourceNames:
+    - "secretstore-validate"
+    - "externalsecret-validate"
+    verbs:
+    - "update"
+    - "patch"
+  - apiGroups:
+    - ""
+    resources:
+    - "endpoints"
+    verbs:
+    - "list"
+    - "get"
+    - "watch"
+  - apiGroups:
+    - "discovery.k8s.io"
+    resources:
+    - "endpointslices"
+    verbs:
+    - "list"
+    - "get"
+    - "watch"
+  - apiGroups:
+    - ""
+    resources:
+    - "events"
+    verbs:
+    - "create"
+    - "patch"
+  - apiGroups:
+    - ""
+    resources:
+    - "secrets"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+    - "update"
+    - "patch"
+  - apiGroups:
+    - "coordination.k8s.io"
+    resources:
+    - "leases"
+    verbs:
+    - "get"
+    - "create"
+    - "update"
+    - "patch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+subjects:
+  - name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
+    namespace: {{ template "external-secrets.namespace" . }}
+    kind: ServiceAccount
+{{- end }}

@@ -1,0 +1,562 @@
+suite: test webhook deployment
+templates:
+  - webhook-deployment.yaml
+  - webhook-secret.yaml
+  - webhook-service.yaml
+  - webhook-certificate.yaml
+  - validatingwebhook.yaml
+  - crds/externalsecret.yaml
+tests:
+  - it: should match snapshot of default values
+    asserts:
+      - matchSnapshot: {}
+    templates:
+      - webhook-deployment.yaml
+      - webhook-secret.yaml
+      # webhook-certificate.yaml is not rendered by default
+  - it: should set imagePullPolicy to Always
+    set:
+      webhook.image.pullPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+    template: webhook-deployment.yaml
+  - it: should imagePullPolicy to be default value IfNotPresent
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+    template: webhook-deployment.yaml
+  - it: should override securityContext
+    set:
+      webhook.podSecurityContext:
+        runAsUser: 2000
+      webhook.securityContext:
+        runAsUser: 3000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsUser: 2000
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 3000
+            seccompProfile:
+              type: RuntimeDefault
+    template: webhook-deployment.yaml
+  - it: should override hostNetwork
+    set:
+      webhook.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+    template: webhook-deployment.yaml
+  - it: should create a certificate CRD
+    set:
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.duration: "10d"
+      webhook.certManager.cert.renewBefore: "5d"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - equal:
+          path: spec.secretName
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - equal:
+          path: spec.commonName
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - equal:
+          path: spec.dnsNames[0]
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - equal:
+          path: spec.issuerRef.group
+          value: "cert-manager.io"
+      - equal:
+          path: spec.issuerRef.kind
+          value: "Issuer"
+      - equal:
+          path: spec.issuerRef.name
+          value: "my-issuer"
+      - equal:
+          path: spec.duration
+          value: "10d"
+      - equal:
+          path: spec.renewBefore
+          value: "5d"
+      - notExists:
+          path: spec.privateKey
+      - notExists:
+          path: spec.signatureAlgorithm
+      - hasDocuments:
+          count: 1
+    templates:
+      - webhook-certificate.yaml
+  - it: should create a certificate CRD with privateKey and signatureAlgorithm
+    set:
+      webhook:
+        certManager:
+          enabled: true
+          cert:
+            privateKey:
+              algorithm: RSA
+              rotationPolicy: Always
+              size: 2048
+            signatureAlgorithm: SHA256WithRSA
+    asserts:
+      - equal:
+          path: spec.privateKey.algorithm
+          value: "RSA"
+      - equal:
+          path: spec.privateKey.rotationPolicy
+          value: "Always"
+      - equal:
+          path: spec.privateKey.size
+          value: 2048
+      - equal:
+          path: spec.signatureAlgorithm
+          value: "SHA256WithRSA"
+      - hasDocuments:
+          count: 1
+    templates:
+      - webhook-certificate.yaml
+  - it: should not create the webhook secret
+    set:
+      webhook.certManager.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+    template: webhook-secret.yaml
+  - it: should not create the secret nor the certificate
+    set:
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+    templates:
+      - webhook-secret.yaml
+      - webhook-certificate.yaml
+  - it: should
+    set:
+      webhook.certManager.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - hasDocuments:
+          count: 1
+    template: webhook-certificate.yaml
+  - it: should allow using a cluster issuer
+    set:
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.issuerRef.kind: ClusterIssuer
+      webhook.certManager.cert.issuerRef.name: my-other-issuer
+    asserts:
+      - equal:
+          path: spec.issuerRef.kind
+          value: "ClusterIssuer"
+      - equal:
+          path: spec.issuerRef.name
+          value: "my-other-issuer"
+    templates:
+      - webhook-certificate.yaml
+  - it: should add annotations to the webhook
+    set:
+      webhook.create: true
+      crds.conversion.enabled: true
+      webhook.certManager.enabled: true
+      webhook.certManager.addInjectorAnnotations: true
+    asserts:
+      - equal:
+          path: metadata.annotations["cert-manager.io/inject-ca-from"]
+          value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
+    templates:
+      - validatingwebhook.yaml
+      - crds/externalsecret.yaml
+  - it: should not add annotations to the webhook
+    set:
+      webhook.create: true
+      webhook.certManager.enabled: true
+      webhook.certManager.addInjectorAnnotations: false
+    asserts:
+      - isNull:
+          path: metadata.annotations["cert-manager.io/inject-ca-from"]
+          # value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
+    templates:
+      - validatingwebhook.yaml
+      - crds/externalsecret.yaml
+  - it: should have the correct labels
+    set:
+      webhook.create: true
+    templates:
+      - validatingwebhook.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "external-secrets-webhook"
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+  - it: should override metrics port
+    set:
+      webhook.metrics.listen.port: 8888
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[5]
+          value: "--metrics-addr=:8888"
+  - it: should override image flavour
+    set:
+      webhook.image.repository: ghcr.io/external-secrets/external-secrets
+      webhook.image.tag: v0.9.8
+      webhook.image.flavour: ubi-boringssl
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/external-secrets/external-secrets:v0.9.8-ubi-boringssl
+  - it: should override image flavour
+    set:
+      webhook.image.repository: example.com/external-secrets/external-secrets
+      webhook.image.tag: v0.9.9-ubi
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: example.com/external-secrets/external-secrets:v0.9.9-ubi
+  - it: should expose metrics port when metrics are enabled
+    set:
+      webhook.metrics.service.enabled: true
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: spec.ports[1].name
+          value: metrics
+  - it: should expose metrics port and metrics label when APIVersions is present and serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1/ServiceMonitor"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: spec.ports[1].name
+          value: metrics
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "webhook"
+  - it: should expose metrics port and metrics label when APIVersions is not present, serviceMonitor is enabled, and serviceMonitor.renderMode is alwaysRender
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: spec.ports[1].name
+          value: metrics
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "webhook"
+  - it: should fail if APIVersions is missing, serviceMonitor is enabled, and serviceMonitor.renderMode is failIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: failIfMissing
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - failedTemplate: {}
+  - it: should not expose metrics port nor metrics label when APIVersions is not present, serviceMonitor is enabled, and serviceMonitor.renderMode is skipIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: skipIfMissing
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+  - it: should not expose metrics port nor metrics label when APIVersions is not present but serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+  - it: should not expose metrics port nor metrics label when APIVersions is present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1/ServiceMonitor"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+  - it: should not expose metrics port nor metrics annotation when APIVersions is not present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+
+  - it: should have no annotations when nothing configured
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should have only service annotations when only they are configured
+    set:
+      webhook.service.annotations:
+        custom.annotation: value
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["custom.annotation"]
+          value: value
+
+  - it: should have no annotations when only metrics enabled without annotations
+    set:
+      webhook.metrics.service.enabled: true
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should have only service annotations when metrics enabled without metrics annotations
+    set:
+      webhook.service.annotations:
+        custom.annotation: value
+      webhook.metrics.service.enabled: true
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["custom.annotation"]
+          value: value
+
+  - it: should have no annotations when metrics annotations exist but metrics disabled
+    set:
+      webhook.metrics.service.annotations:
+        prometheus.io/scrape: "true"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should have only service annotations when metrics annotations exist but metrics disabled
+    set:
+      webhook.service.annotations:
+        custom.annotation: value
+      webhook.metrics.service.annotations:
+        prometheus.io/scrape: "true"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["custom.annotation"]
+          value: value
+      - isNull:
+          path: metadata.annotations["prometheus.io/scrape"]
+
+  - it: should have only metrics annotations when metrics enabled and only metrics annotations configured
+    set:
+      webhook.metrics.service.enabled: true
+      webhook.metrics.service.annotations:
+        prometheus.io/scrape: "true"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+
+  - it: should have both annotations when everything is configured and enabled
+    set:
+      webhook.service.annotations:
+        custom.annotation: value
+      webhook.metrics.service.enabled: true
+      webhook.metrics.service.annotations:
+        prometheus.io/scrape: "true"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["custom.annotation"]
+          value: value
+      - equal:
+          path: metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+  - it: should add a init container
+    templates:
+      - webhook-deployment.yaml
+    set:
+      webhook.extraInitContainers:
+        - name: foo
+          image: example.com/external-secrets/init-image:{{ .Chart.Version }}
+          restartPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: foo
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].image
+          pattern: ^example\.com/external-secrets/init-image:[0-9]+\.[0-9]+\.[0-9]+$
+      - equal:
+          path: spec.template.spec.initContainers[0].restartPolicy
+          value: Always
+  - it: should override the deployment strategy
+    templates:
+      - webhook-deployment.yaml
+    set:
+      webhook.strategy:
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+    asserts:
+      - equal:
+          path: spec.strategy.rollingUpdate.maxSurge
+          value: 1
+      - equal:
+          path: spec.strategy.rollingUpdate.maxUnavailable
+          value: 0
+  - it: should update args with enableHTTP2=true
+    set:
+      enableHTTP2: true
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-http2=true"
+  - it: should default to hostUsers absent
+    set:
+      webhook.create: true
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should permit override of hostUsers
+    set:
+      webhook.create: true
+      webhook.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostUsers
+          value: false
+  - it: should ignore hostUsers on older k8s
+    set:
+      webhook.create: true
+      webhook.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '32'
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should not have hostAliases by default
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostAliases
+  - it: should add hostAliases when configured
+    set:
+      webhook.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "webhook.example.local"
+            - "webhook"
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "webhook.example.local"
+                - "webhook"
+  - it: should use global hostAliases when webhook level not set
+    set:
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.200"
+              hostnames:
+                - "global.example.com"
+  - it: should prefer webhook hostAliases over global
+    set:
+      webhook.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "webhook.example.com"
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "webhook.example.com"

@@ -1,0 +1,23 @@
+# When modifying this file, please validate using
+# curl -X POST --data-binary @codecov.yml https://codecov.io/validate
+ignore:
+  - "**/zz_generated.deepcopy.go"
+  - "assets"
+  - "config"
+  - "deploy"
+  - "design"
+  - "docs"
+  - "e2e"
+  - "hacks"
+  - "overrides"
+  - "terraform"
+github_checks:
+  annotations: false
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true

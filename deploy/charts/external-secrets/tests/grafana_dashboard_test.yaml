@@ -1,0 +1,94 @@
+suite: test grafana dashboard
+templates:
+  - grafana-dashboard.yaml
+tests:
+  - it: should not render grafana dashboard when disabled
+    set:
+      grafanaDashboard.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should render grafana dashboard when enabled
+    set:
+      grafanaDashboard.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-dashboard
+      - equal:
+          path: metadata.labels["grafana_dashboard"]
+          value: "1"
+  - it: should include extraLabels when set
+    set:
+      grafanaDashboard.enabled: true
+      grafanaDashboard.extraLabels:
+        custom-label: custom-value
+        another-label: another-value
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["custom-label"]
+          value: custom-value
+      - equal:
+          path: metadata.labels["another-label"]
+          value: another-value
+      - equal:
+          path: metadata.labels["grafana_dashboard"]
+          value: "1"
+  - it: should include annotations when set
+    set:
+      grafanaDashboard.enabled: true
+      grafanaDashboard.annotations:
+        custom-annotation: custom-value
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.annotations["custom-annotation"]
+          value: custom-value
+  - it: should override sidecarLabel and sidecarLabelValue
+    set:
+      grafanaDashboard.enabled: true
+      grafanaDashboard.sidecarLabel: custom-dashboard-label
+      grafanaDashboard.sidecarLabelValue: "custom-value"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["custom-dashboard-label"]
+          value: "custom-value"
+  - it: should combine extraLabels with default labels
+    set:
+      grafanaDashboard.enabled: true
+      grafanaDashboard.extraLabels:
+        environment: production
+        team: platform
+      fullnameOverride: my-external-secrets
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["environment"]
+          value: production
+      - equal:
+          path: metadata.labels["team"]
+          value: platform
+      - equal:
+          path: metadata.labels["grafana_dashboard"]
+          value: "1"
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: external-secrets
+  - it: should include dashboard data
+    set:
+      grafanaDashboard.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - exists:
+          path: data["external-secrets.json"]

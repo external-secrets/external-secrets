@@ -1,0 +1,171 @@
+name: Reusable workflow to run trivy scan
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        required: true
+        type: string
+      image-tag:
+        required: false
+        type: string
+      tag-suffix:
+        required: true
+        type: string
+      dockerfile:
+        required: true
+        type: string
+      ref:
+        required: false
+        default: main
+        type: string
+      build-args:
+        required: true
+        type: string
+      build-arch:
+        required: true
+        type: string
+      build-platform:
+        required: true
+        type: string
+    secrets:
+      IS_FORK:
+        required: false
+
+env:
+  IMAGE_NAME: ${{ inputs.image-name }}
+  TAG_SUFFIX: ${{ inputs.tag-suffix }}
+  ARCH: ${{ inputs.build-arch }}
+  DOCKERFILE: ${{ inputs.dockerfile }}
+  IS_FORK: ${{ secrets.IS_FORK }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      image-tag: ${{ steps.container_info.outputs.image-tag }}
+    steps:
+      - uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+        with:
+          platforms: all
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        id: setup-go
+        with:
+          go-version-file: "go.mod"
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Fetch History
+        shell: bash
+        run: git fetch --prune --unshallow
+
+      - name: Login to Docker
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        if: env.IS_FORK != ''
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Get docker image tag
+        id: container_info
+        shell: bash
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          INPUT_IMAGE_TAG: ${{ inputs.image-tag }}
+          INPUT_TAG_SUFFIX: ${{ inputs.tag-suffix }}
+        run: |
+          # rebuild-image
+          if [ "$INPUT_IMAGE_TAG" != "" ]; then
+            TAG="${INPUT_IMAGE_TAG}${INPUT_TAG_SUFFIX}"
+          # main
+          elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            TAG=${GITHUB_REF#refs/heads/}${INPUT_TAG_SUFFIX}
+          # Pull Request
+          else
+            TAG=$(make docker.tag)
+          fi
+          echo "image-tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Build & Publish Artifacts
+        if: env.IS_FORK != ''
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
+          BUILD_ARGS: ${{ inputs.build-args }}
+          DOCKER_BUILD_ARGS: >-
+            --no-cache
+            --push
+            --platform ${{ inputs.build-platform }}
+        run: make docker.build
+
+      - name: Build & Publish Artifacts fork
+        if: env.IS_FORK == ''
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
+          BUILD_ARGS: ${{ inputs.build-args }}
+          DOCKER_BUILD_ARGS: --no-cache --load
+        run: make docker.build
+      # images are large to the point trivy fails due to no space on disk left
+      # This is a silly attempt to clean up space for trivy to run more
+      # consistently
+      - name: Cleanup unused cache
+        shell: bash
+        run: |
+          docker system prune --force
+          go clean -cache
+          go clean -modcache
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # master
+        with:
+          image-ref: ${{ inputs.image-name }}:${{ steps.container_info.outputs.image-tag }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  sign:
+    runs-on: ubuntu-latest
+    needs: build-publish
+    permissions:
+      contents: read
+      id-token: write #for keyless sign
+      packages: write #to update packages with added SBOMs.
+    steps:
+      - uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Sign image
+        if: env.IS_FORK != ''
+        uses: ./.github/actions/sign
+        with:
+          image-name: ${{ inputs.image-name }}
+          image-tag: ${{ needs.build-publish.outputs.image-tag }}

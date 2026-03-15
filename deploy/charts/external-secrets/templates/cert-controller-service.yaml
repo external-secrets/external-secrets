@@ -1,0 +1,33 @@
+{{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
+{{- if and .Values.certController.create
+         (or .Values.certController.metrics.service.enabled
+             (and (eq $shouldRenderStr "true")
+                  .Values.serviceMonitor.enabled))
+         (not .Values.webhook.certManager.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+  {{- with .Values.certController.metrics.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
+  {{- end }}
+  ports:
+  - port: {{ .Values.certController.metrics.service.port }}
+    protocol: TCP
+    targetPort: metrics
+    name: metrics
+  selector:
+    {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 4 }}
+{{- end }}

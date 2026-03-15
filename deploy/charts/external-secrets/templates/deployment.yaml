@@ -1,0 +1,218 @@
+{{- if .Values.createOperator }}
+{{- include "external-secrets.reconciler-sanity-test" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "external-secrets.fullname" . }}
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets.labels" . | nindent 4 }}
+  {{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "external-secrets.selectorLabels" . | nindent 6 }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- else if .Values.global.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.global.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "external-secrets.labels" . | nindent 8 }}
+        {{- if .Values.podLabels }}
+        {{- toYaml .Values.podLabels | nindent 8 }}
+        {{- else if .Values.global.podLabels }}
+        {{- toYaml .Values.global.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- else if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "external-secrets.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      {{- if kindIs "bool" .Values.hostUsers }}
+      hostUsers: {{ .Values.hostUsers }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      {{- if and (.enabled) (gt (keys . | len) 1) }}
+      securityContext:
+        {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          {{- if and (.enabled) (gt (keys . | len) 1) }}
+          securityContext:
+            {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image "context" .) | trim }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.processClusterStore) (.Values.processClusterExternalSecret) (.Values.processClusterPushSecret) (.Values.concurrent) (.Values.extraArgs) }}
+          args:
+          {{- if .Values.leaderElect }}
+          - --enable-leader-election=true
+          {{- end }}
+          {{- if .Values.scopedNamespace }}
+          - --namespace={{ .Values.scopedNamespace }}
+          {{- end }}
+          {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+          - --enable-cluster-store-reconciler=false
+          - --enable-cluster-external-secret-reconciler=false
+          - --enable-cluster-push-secret-reconciler=false
+          {{- else }}
+            {{- if not .Values.processClusterStore }}
+          - --enable-cluster-store-reconciler=false
+            {{- end }}
+            {{- if not .Values.processClusterExternalSecret }}
+          - --enable-cluster-external-secret-reconciler=false
+            {{- end }}
+            {{- if not .Values.processClusterPushSecret }}
+          - --enable-cluster-push-secret-reconciler=false
+            {{- end }}
+          {{- end }}
+          {{- if not .Values.processPushSecret }}
+          - --enable-push-secret-reconciler=false
+          {{- end }}
+          {{- if not .Values.processSecretStore }}
+          - --enable-secret-store-reconciler=false
+          {{- end }}
+          {{- if .Values.controllerClass }}
+          - --controller-class={{ .Values.controllerClass }}
+          {{- end }}
+          {{- if .Values.extendedMetricLabels }}
+          - --enable-extended-metric-labels={{ .Values.extendedMetricLabels }}
+          {{- end }}
+          {{- if .Values.enableHTTP2 }}
+          - --enable-http2=true
+          {{- end }}
+          {{- if .Values.concurrent }}
+          - --concurrent={{ .Values.concurrent }}
+          {{- end }}
+          {{- if .Values.genericTargets.enabled }}
+          - --unsafe-allow-generic-targets=true
+          {{- end }}
+          {{- range $key, $value := .Values.extraArgs }}
+            {{- if $value }}
+          - --{{ $key }}={{ $value }}
+            {{- else }}
+          - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
+          - --metrics-addr=:{{ .Values.metrics.listen.port }}
+          - --loglevel={{ .Values.log.level }}
+          - --zap-time-encoding={{ .Values.log.timeEncoding }}
+          {{- if .Values.livenessProbe.enabled }}
+          {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
+          - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.port }}
+          {{- else }}
+          - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.httpGet.port }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.metrics.listen.secure.enabled }}
+          - --metrics-secure=true
+          - --metrics-cert-dir={{ .Values.metrics.listen.secure.certDir }}
+          - --metrics-cert-name={{ .Values.metrics.listen.secure.certFile }}
+          - --metrics-key-name={{ .Values.metrics.listen.secure.keyFile }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.metrics.listen.port }}
+              protocol: TCP
+              name: metrics
+            {{- if .Values.livenessProbe.enabled }}
+            - name: live
+              protocol: TCP
+              {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
+              containerPort: {{ .Values.livenessProbe.spec.port }}
+              {{- else }}
+              containerPort: {{ .Values.livenessProbe.spec.httpGet.port }}
+              {{- end }}
+            {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+          {{- toYaml (omit .Values.livenessProbe.spec "address" "port") | nindent 12 }}
+          {{- end }}
+          {{- with .Values.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.extraVolumeMounts }}
+          volumeMounts:
+          {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+        {{- if .Values.extraContainers }}
+          {{ toYaml .Values.extraContainers | nindent 8 }}
+        {{- end }}
+      {{- with .Values.extraInitContainers }}
+      initContainers:
+        {{- tpl (toYaml . | nindent 8) $ }}
+      {{- end }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
+      {{- if .Values.dnsConfig }}
+      dnsConfig:
+          {{- toYaml .Values.dnsConfig | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.extraVolumes }}
+      volumes:
+      {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector | default .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity | default .Values.global.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations | default .Values.global.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints | default .Values.global.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- range $constraint := . }}
+        - {{ toYaml $constraint | nindent 10 | trim }}
+          {{- if not $constraint.labelSelector }}
+          labelSelector:
+            matchLabels:
+              {{- include "external-secrets.selectorLabels" $ | nindent 14 }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      {{- if .Values.podSpecExtra }}
+      {{- toYaml .Values.podSpecExtra | nindent 6 }}
+      {{- end }}
+{{- end }}

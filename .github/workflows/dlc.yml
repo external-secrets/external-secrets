@@ -1,0 +1,38 @@
+name: Dependency License Checks
+
+on:
+  pull_request:
+    paths:
+      - "go.mod"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  HAS_FOSSA_KEY: ${{ secrets.FOSSA_API_KEY != '' }}
+
+jobs:
+  fossa-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        with:
+          egress-policy: audit
+      - name: "Checkout Code"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+
+      - name: "Run FOSSA Scan"
+        uses: fossas/fossa-action@c414b9ad82eaad041e47a7cf62a4f02411f427a0 # main
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        with:
+          api-key: ${{secrets.FOSSA_API_KEY}}
+
+      - name: "Run FOSSA Test"
+        uses: fossas/fossa-action@c414b9ad82eaad041e47a7cf62a4f02411f427a0 # main
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        with:
+          api-key: ${{secrets.FOSSA_API_KEY}}
+          run-tests: true

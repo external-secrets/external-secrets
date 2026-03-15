@@ -1,0 +1,30 @@
+{
+    "hideMemberFields": [
+        "TypeMeta"
+    ],
+    "hideTypePatterns": [
+        "ParseError$",
+        "List$",
+        "^StoreProvider$"
+    ],
+    "externalPackages": [
+        {
+            "typeMatchPrefix": "^k8s\\.io/apimachinery/pkg/apis/meta/v1\\.Duration$",
+            "docsURLTemplate": "https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration"
+        },
+        {
+            "typeMatchPrefix": "^k8s\\.io/(api|apimachinery/pkg/apis)/",
+            "docsURLTemplate": "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#{{lower .TypeIdentifier}}-{{arrIndex .PackageSegments -1}}-{{arrIndex .PackageSegments -2}}"
+        },
+        {
+            "typeMatchPrefix": "^github\\.com/external-secrets/external-secrets/apis/meta/v1",
+            "docsURLTemplate": "https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#{{ .TypeIdentifier }}"
+        }
+    ],
+    "typeDisplayNamePrefixOverrides": {
+        "k8s.io/api/": "Kubernetes ",
+        "k8s.io/apimachinery/pkg/apis/": "Kubernetes ",
+        "github.com/external-secrets/external-secrets/apis/": "External Secrets "
+    },
+    "markdownDisabled": false
+}

@@ -1,0 +1,19 @@
+{{- if and .Values.webhook.create .Values.webhook.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "external-secrets.webhookPdbName" . | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
+    external-secrets.io/component: webhook
+spec:
+  {{- if .Values.webhook.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.webhook.podDisruptionBudget.maxUnavailable }}
+  {{- else if .Values.webhook.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.webhook.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
+{{- end }}

@@ -1,0 +1,29 @@
+{{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
+{{- if or .Values.metrics.service.enabled (and .Values.serviceMonitor.enabled (eq $shouldRenderStr "true")) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-metrics
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets.labels" . | nindent 4 }}
+  {{- with .Values.metrics.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
+  {{- end }}
+  ports:
+    - port: {{ .Values.metrics.service.port }}
+      protocol: TCP
+      targetPort: metrics
+      name: metrics
+  selector:
+    {{- include "external-secrets.selectorLabels" . | nindent 4 }}
+{{- end }}

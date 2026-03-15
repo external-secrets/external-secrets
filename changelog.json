@@ -1,0 +1,18 @@
+{
+  "categories": [],
+  "ignore_labels": [],
+  "sort": "ASC",
+  "template": "## Changes\n\n${{UNCATEGORIZED}}",
+  "pr_template": "- ${{TITLE}}",
+  "empty_template": "- no changes",
+  "label_extractor": [],
+  "transformers": [],
+  "max_tags_to_fetch": 200,
+  "max_pull_requests": 200,
+  "max_back_track_time_days": 365,
+  "exclude_merge_branches": [],
+  "tag_resolver": {
+    "method": "semver"
+  },
+  "base_branches": []
+}

@@ -1,0 +1,744 @@
+---
+global:
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
+  #  - maxSkew: 1
+  #    topologyKey: topology.kubernetes.io/zone
+  #    whenUnsatisfiable: ScheduleAnyway
+  #    matchLabelKeys:
+  #      - pod-template-hash
+  #  - maxSkew: 1
+  #    topologyKey: kubernetes.io/hostname
+  #    whenUnsatisfiable: DoNotSchedule
+  #    matchLabelKeys:
+  #      - pod-template-hash
+  affinity: {}
+  # -- Global hostAliases to be applied to all deployments
+  hostAliases: []
+  # -- Global pod labels to be applied to all deployments
+  podLabels: {}
+  # -- Global pod annotations to be applied to all deployments
+  podAnnotations: {}
+  # -- Global imagePullSecrets to be applied to all deployments
+  imagePullSecrets: []
+  # -- Global image repository to be applied to all deployments
+  repository: ""
+  compatibility:
+    openshift:
+      # -- Manages the securityContext properties to make them compatible with OpenShift.
+      # Possible values:
+      # auto - Apply configurations if it is detected that OpenShift is the target platform.
+      # force - Always apply configurations.
+      # disabled - No modification applied.
+      adaptSecurityContext: auto
+
+replicaCount: 1
+
+bitwarden-sdk-server:
+  enabled: false
+  namespaceOverride: ""
+
+# -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+revisionHistoryLimit: 10
+
+image:
+  repository: ghcr.io/external-secrets/external-secrets
+  pullPolicy: IfNotPresent
+  # -- The image tag to use. The default is the chart appVersion.
+  tag: ""
+  # -- The flavour of tag you want to use
+  # There are different image flavours available, like distroless and ubi.
+  # Please see GitHub release notes for image tags for these flavors.
+  # By default, the distroless image is used.
+  flavour: ""
+
+# -- If set, install and upgrade CRDs through helm chart.
+installCRDs: true
+
+crds:
+  # -- If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false.
+  createClusterExternalSecret: true
+  # -- If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false.
+  createClusterSecretStore: true
+  # -- If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false.
+  createSecretStore: true
+  # -- If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false.
+  createClusterGenerator: true
+  # -- If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false.
+  createClusterPushSecret: true
+  # -- If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false.
+  createPushSecret: true
+  annotations: {}
+  conversion:
+    # -- Conversion is disabled by default as we stopped supporting v1alpha1.
+    enabled: false
+  # -- If true, enable v1beta1 API version serving for ExternalSecret, ClusterExternalSecret, SecretStore, and ClusterSecretStore CRDs.
+  # v1beta1 is deprecated. Only enable this for backward compatibility if you have existing v1beta1 resources.
+  # Warning: This flag will be removed on 2026.05.01.
+  unsafeServeV1Beta1: false
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: ""
+
+# -- Additional labels added to all helm chart resources.
+commonLabels: {}
+
+# -- If true, external-secrets will perform leader election between instances to ensure no more
+# than one instance of external-secrets operates at a time.
+leaderElect: false
+
+# -- If set external secrets will filter matching
+# Secret Stores with the appropriate controller values.
+controllerClass: ""
+
+# -- If true external secrets will use recommended kubernetes
+# annotations as prometheus metric labels.
+extendedMetricLabels: false
+
+# -- If set external secrets are only reconciled in the
+# provided namespace
+scopedNamespace: ""
+
+# -- Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace
+# and implicitly disable cluster stores and cluster external secrets
+scopedRBAC: false
+
+# -- If true the OpenShift finalizer permissions will be added to RBAC
+openshiftFinalizers: true
+
+# -- If true the system:auth-delegator ClusterRole will be added to RBAC
+systemAuthDelegator: false
+
+# -- if true, the operator will process cluster external secret. Else, it will ignore them.
+# When enabled, this adds update/patch permissions on namespaces to handle finalizers for proper
+# cleanup during namespace deletion, preventing race conditions with ExternalSecrets.
+processClusterExternalSecret: true
+
+# -- if true, the operator will process cluster push secret. Else, it will ignore them.
+processClusterPushSecret: true
+
+# -- if true, the operator will process cluster store. Else, it will ignore them.
+processClusterStore: true
+
+# -- if true, the operator will process secret store. Else, it will ignore them.
+processSecretStore: true
+
+# -- if true, the operator will process cluster generator. Else, it will ignore them.
+processClusterGenerator: true
+
+# -- if true, the operator will process push secret. Else, it will ignore them.
+processPushSecret: true
+
+# -- Enable support for generic targets (ConfigMaps, Custom Resources).
+# Warning: Using generic target. Make sure access policies and encryption are properly configured.
+# When enabled, this grants the controller permissions to create/update/delete
+# ConfigMaps and optionally other resource types specified in generic.resources.
+genericTargets:
+  # -- Enable generic target support
+  enabled: false
+  # -- List of additional resource types to grant permissions for.
+  # Each entry should specify apiGroup, resources, and verbs.
+  # Example:
+  # resources:
+  #   - apiGroup: "argoproj.io"
+  #     resources: ["applications"]
+  #     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  resources: []
+
+# -- Specifies whether an external secret operator deployment be created.
+createOperator: true
+
+# -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook.
+enableHTTP2: false
+
+# -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
+# a time.
+concurrent: 1
+# -- Specifies Log Params to the External Secrets Operator
+log:
+  level: info
+  timeEncoding: epoch
+service:
+  # -- Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
+  ipFamilyPolicy: ""
+  # -- Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
+  ipFamilies: []
+
+serviceAccount:
+  # -- Specifies whether a service account should be created.
+  create: true
+  # -- Automounts the service account token in all containers of the pod
+  automount: true
+  # -- Annotations to add to the service account.
+  annotations: {}
+  # -- Extra Labels to add to the service account.
+  extraLabels: {}
+  # -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template.
+  name: ""
+
+rbac:
+  # -- Specifies whether role and rolebinding resources should be created.
+  create: true
+
+  servicebindings:
+    # -- Specifies whether a clusterrole to give servicebindings read access should be created.
+    create: true
+
+  # -- Specifies whether permissions are aggregated to the view ClusterRole
+  aggregateToView: true
+
+  # -- Specifies whether permissions are aggregated to the edit ClusterRole
+  aggregateToEdit: true
+
+## -- Extra environment variables to add to container.
+extraEnv: []
+
+## -- Map of extra arguments to pass to container.
+extraArgs: {}
+
+## -- Extra volumes to pass to pod.
+extraVolumes: []
+
+## -- Extra Kubernetes objects to deploy with the helm chart
+extraObjects: []
+
+## -- Extra volumes to mount to the container.
+extraVolumeMounts: []
+
+## -- Extra init containers to add to the pod.
+extraInitContainers: []
+
+## -- Extra containers to add to the pod.
+extraContainers: []
+
+# -- Annotations to add to Deployment
+deploymentAnnotations: {}
+
+ # -- Set deployment strategy
+strategy: {}
+
+# -- Annotations to add to Pod
+podAnnotations: {}
+
+podLabels: {}
+
+podSecurityContext:
+  enabled: true
+  # fsGroup: 2000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  enabled: true
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+resources: {}
+  # requests:
+  #   cpu: 10m
+  #   memory: 32Mi
+
+serviceMonitor:
+  # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
+  enabled: false
+
+  # -- How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`"
+  #
+  # Possible values:
+  # - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing.
+  # - `failIfMissing`: Fail Helm install if CRD is not present.
+  # - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD.
+
+  # @schema
+  # enum:
+  # - skipIfMissing
+  # - failIfMissing
+  # - alwaysRender
+  # @schema
+  renderMode: skipIfMissing   # @schema enum: [skipIfMissing, failIfMissing, alwaysRender]
+
+  # -- namespace where you want to install ServiceMonitors
+  namespace: ""
+
+  # -- Additional labels
+  additionalLabels: {}
+
+  # --  Interval to scrape metrics
+  interval: 30s
+
+  # -- Timeout if metrics can't be retrieved in given time interval
+  scrapeTimeout: 25s
+
+  # -- Let prometheus add an exported_ prefix to conflicting labels
+  honorLabels: false
+
+  # -- Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs)
+  metricRelabelings: []
+  # - action: replace
+  #   regex: (.*)
+  #   replacement: $1
+  #   sourceLabels:
+  #   - exported_namespace
+  #   targetLabel: namespace
+
+  # -- Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config)
+  relabelings: []
+  # - sourceLabels: [__meta_kubernetes_pod_node_name]
+  #   separator: ;
+  #   regex: ^(.*)$
+  #   targetLabel: nodename
+  #   replacement: $1
+  #   action: replace
+
+metrics:
+
+  listen:
+    port: 8080
+    secure:
+      enabled: false
+      # -- if those are not set or invalid, self-signed certs will be generated
+      # -- TLS cert directory path
+      certDir: /etc/tls
+      # -- TLS cert file path
+      certFile: /etc/tls/tls.crt
+      # -- TLS key file path
+      keyFile: /etc/tls/tls.key
+
+  service:
+    # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
+    enabled: false
+
+    # -- Metrics service port to scrape
+    port: 8080
+
+    # -- Additional service annotations
+    annotations: {}
+
+grafanaDashboard:
+  # -- If true creates a Grafana dashboard.
+  enabled: false
+
+  # -- Label that ConfigMaps should have to be loaded as dashboards.
+  sidecarLabel: "grafana_dashboard"
+
+  # -- Label value that ConfigMaps should have to be loaded as dashboards.
+  sidecarLabelValue: "1"
+
+  # -- Annotations that ConfigMaps can have to get configured in Grafana,
+  # See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder.
+  # https://github.com/grafana/helm-charts/tree/main/charts/grafana
+  annotations: {}
+
+  # -- Extra labels to add to the Grafana dashboard ConfigMap.
+  extraLabels: {}
+
+livenessProbe:
+  # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
+  enabled: false
+  # -- The body of the liveness probe settings.
+  spec:
+    # -- Address for liveness probe.
+    address: ""
+    # -- Named port for liveness probe.
+    port: 8082
+    # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
+    timeoutSeconds: 5
+    # -- Number of consecutive probe failures that should occur before considering the probe as failed.
+    failureThreshold: 5
+    # -- Period in seconds for K8s to start performing probes.
+    periodSeconds: 10
+    # -- Number of successful probes to mark probe successful.
+    successThreshold: 1
+    # -- Delay in seconds for the container to start before performing the initial probe.
+    initialDelaySeconds: 10
+    # -- Handler for liveness probe.
+    httpGet:
+      # -- Set this value to 'live' (for named port) or an an integer for liveness probes.
+      # @schema type: [string, integer]
+      port: live
+      # -- Path for liveness probe.
+      path: /healthz
+
+nodeSelector: {}
+
+tolerations: []
+
+topologySpreadConstraints: []
+
+affinity: {}
+
+# -- Pod priority class name.
+priorityClassName: ""
+
+# -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1    # @schema type:[integer, string]
+  nameOverride: ""
+  # maxUnavailable: "50%"
+
+# -- Run the controller on the host network
+hostNetwork: false
+
+# -- (bool) Specifies if controller pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
+# @schema type: [boolean, null]
+hostUsers:
+
+webhook:
+  # -- Annotations to place on validating webhook configuration.
+  annotations: {}
+  # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
+  create: true
+  # -- Specifies the time to check if the cert is valid
+  certCheckInterval: "5m"
+  # -- Specifies the lookaheadInterval for certificate validity
+  lookaheadInterval: ""
+  replicaCount: 1
+  # -- Specifies Log Params to the Webhook
+  log:
+    level: info
+    timeEncoding: epoch
+  # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+  revisionHistoryLimit: 10
+
+  certDir: /tmp/certs
+  # -- Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
+  failurePolicy: Fail
+  # -- Specifies if webhook pod should use hostNetwork or not.
+  hostNetwork: false
+  # -- (bool) Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
+  # @schema type: [boolean, null]
+  hostUsers:
+  image:
+    repository: ghcr.io/external-secrets/external-secrets
+    pullPolicy: IfNotPresent
+    # -- The image tag to use. The default is the chart appVersion.
+    tag: ""
+    # -- The flavour of tag you want to use
+    flavour: ""
+  imagePullSecrets: []
+  # -- The port the webhook will listen to
+  port: 10250
+  serviceAccount:
+    # -- Specifies whether a service account should be created.
+    create: true
+    # -- Automounts the service account token in all containers of the pod
+    automount: true
+    # -- Annotations to add to the service account.
+    annotations: {}
+    # -- Extra Labels to add to the service account.
+    extraLabels: {}
+    # -- The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template.
+    name: ""
+  nodeSelector: {}
+
+  # -- Specifies `hostAliases` to webhook deployment
+  hostAliases: []
+
+  certManager:
+    # -- Enabling cert-manager support will disable the built in secret and
+    # switch to using cert-manager (installed separately) to automatically issue
+    # and renew the webhook certificate. This chart does not install
+    # cert-manager for you, See https://cert-manager.io/docs/
+    enabled: false
+    # -- Automatically add the cert-manager.io/inject-ca-from annotation to the
+    # webhooks and CRDs. As long as you have the cert-manager CA Injector
+    # enabled, this will automatically setup your webhook's CA to the one used
+    # by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector
+    addInjectorAnnotations: true
+    cert:
+      # -- Create a certificate resource within this chart. See
+      # https://cert-manager.io/docs/usage/certificate/
+      create: true
+      # -- For the Certificate created by this chart, setup the issuer. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
+      issuerRef:
+        group: cert-manager.io
+        kind: "Issuer"
+        name: "my-issuer"
+      # -- Set the requested duration (i.e. lifetime) of the Certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      # One year by default.
+      duration: "8760h0m0s"
+      # -- Set the revisionHistoryLimit on the Certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      # Defaults to 0 (ignored).
+      revisionHistoryLimit: 0
+      # -- How long before the currently issued certificate’s expiry
+      # cert-manager should renew the certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      # Note that renewBefore should be greater than .webhook.lookaheadInterval
+      # since the webhook will check this far in advance that the certificate is
+      # valid.
+      renewBefore: ""
+      # -- Specific settings on the privateKey and its generation
+      privateKey: {}
+        # rotationPolicy: Always
+        # algorithm: RSA
+        # size: 2048
+      # -- Specific settings on the signatureAlgorithm used on the cert.
+      # signatureAlgorithm is only valid for cert-manager v1.18.0+
+      signatureAlgorithm: ""
+      # -- Add extra annotations to the Certificate resource.
+      annotations: {}
+
+  tolerations: []
+
+  topologySpreadConstraints: []
+
+  affinity: {}
+
+  # -- Set deployment strategy
+  strategy: {}
+
+    # -- Pod priority class name.
+  priorityClassName: ""
+
+  # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1    # @schema type:[integer, string]
+    nameOverride: ""
+    # maxUnavailable: "50%"
+
+  metrics:
+
+    listen:
+      port: 8080
+
+    service:
+      # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
+      enabled: false
+
+      # -- Metrics service port to scrape
+      port: 8080
+
+      # -- Additional service annotations
+      annotations: {}
+
+
+  readinessProbe:
+    # -- Address for readiness probe
+    address: ""
+    # -- ReadinessProbe port for kubelet
+    port: 8081
+
+
+    ## -- Extra environment variables to add to container.
+  extraEnv: []
+
+    ## -- Map of extra arguments to pass to container.
+  extraArgs: {}
+
+    ## -- Extra init containers to add to the pod.
+  extraInitContainers: []
+
+    ## -- Extra volumes to pass to pod.
+  extraVolumes: []
+
+    ## -- Extra volumes to mount to the container.
+  extraVolumeMounts: []
+
+    # -- Annotations to add to Secret
+  secretAnnotations: {}
+
+    # -- Annotations to add to Deployment
+  deploymentAnnotations: {}
+
+    # -- Annotations to add to Pod
+  podAnnotations: {}
+
+  podLabels: {}
+
+  podSecurityContext:
+    enabled: true
+      # fsGroup: 2000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    enabled: true
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  resources: {}
+      # requests:
+      #   cpu: 10m
+      #   memory: 32Mi
+
+  # -- Manage the service through which the webhook is reached.
+  service:
+    # -- Whether the service object should be enabled or not (it is expected to exist).
+    enabled: true
+    # -- Custom annotations for the webhook service.
+    annotations: {}
+    # -- Custom labels for the webhook service.
+    labels: {}
+    # -- The service type of the webhook service.
+    type: ClusterIP
+    # -- If the webhook service type is LoadBalancer, you can assign a specific load balancer IP here.
+    # Check the documentation of your load balancer provider to see if/how this should be used.
+    loadBalancerIP: ""
+
+certController:
+  # -- Specifies whether a certificate controller deployment be created.
+  create: true
+  requeueInterval: "5m"
+  replicaCount: 1
+  # -- Specifies Log Params to the Certificate Controller
+  log:
+    level: info
+    timeEncoding: epoch
+  # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+  revisionHistoryLimit: 10
+
+  image:
+    repository: ghcr.io/external-secrets/external-secrets
+    pullPolicy: IfNotPresent
+    tag: ""
+    flavour: ""
+  imagePullSecrets: []
+  rbac:
+  # -- Specifies whether role and rolebinding resources should be created.
+    create: true
+  serviceAccount:
+    # -- Specifies whether a service account should be created.
+    create: true
+    # -- Automounts the service account token in all containers of the pod
+    automount: true
+    # -- Annotations to add to the service account.
+    annotations: {}
+    # -- Extra Labels to add to the service account.
+    extraLabels: {}
+    # -- The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template.
+    name: ""
+  nodeSelector: {}
+
+  # -- Specifies `hostAliases` to cert-controller deployment
+  hostAliases: []
+
+  tolerations: []
+
+  topologySpreadConstraints: []
+
+  affinity: {}
+
+  # -- Set deployment strategy
+  strategy: {}
+
+  # -- Run the certController on the host network
+  hostNetwork: false
+  # -- (bool) Specifies if certController pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
+  # @schema type: [boolean, null]
+  hostUsers:
+
+    # -- Pod priority class name.
+  priorityClassName: ""
+
+  # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1    # @schema type:[integer, string]
+    nameOverride: ""
+    # maxUnavailable: "50%"
+
+  metrics:
+
+    listen:
+      port: 8080
+
+    service:
+      # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
+      enabled: false
+
+      # -- Metrics service port to scrape
+      port: 8080
+
+      # -- Additional service annotations
+      annotations: {}
+
+  readinessProbe:
+    # -- Address for readiness probe
+    address: ""
+    # -- ReadinessProbe port for kubelet
+    port: 8081
+
+  startupProbe:
+    # -- Enabled determines if the startup probe should be used or not. By default it's enabled
+    enabled: false
+    # -- whether to use the readiness probe port for startup probe.
+    useReadinessProbePort: true
+    # -- Port for startup probe.
+    port: ""
+
+    ## -- Extra environment variables to add to container.
+  extraEnv: []
+
+    ## -- Map of extra arguments to pass to container.
+  extraArgs: {}
+
+    ## -- Extra init containers to add to the pod.
+  extraInitContainers: []
+
+    ## -- Extra volumes to pass to pod.
+  extraVolumes: []
+
+    ## -- Extra volumes to mount to the container.
+  extraVolumeMounts: []
+
+    # -- Annotations to add to Deployment
+  deploymentAnnotations: {}
+
+    # -- Annotations to add to Pod
+  podAnnotations: {}
+
+  podLabels: {}
+
+  podSecurityContext:
+    enabled: true
+      # fsGroup: 2000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    enabled: true
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  resources: {}
+      # requests:
+      #   cpu: 10m
+      #   memory: 32Mi
+
+# -- Specifies `dnsPolicy` to deployment
+dnsPolicy: ClusterFirst
+
+# -- Specifies `dnsOptions` to deployment
+dnsConfig: {}
+
+# -- Specifies `hostAliases` to deployment
+hostAliases: []
+
+# -- Any extra pod spec on the deployment
+podSpecExtra: {}

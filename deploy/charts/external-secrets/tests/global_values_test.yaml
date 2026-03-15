@@ -1,0 +1,376 @@
+suite: test global values
+# This test suite validates the global values functionality for:
+# - global.podLabels: Global pod labels applied to all deployments
+# - global.podAnnotations: Global pod annotations applied to all deployments
+# - global.imagePullSecrets: Global image pull secrets applied to all deployments
+# - global.repository: Global image repository applied to all deployments
+#
+# Test coverage:
+# 1. Verify global values are used when local values are not set
+# 2. Verify local values take precedence over global values
+# 3. Verify all three deployments (controller, webhook, cert-controller) respect the logic
+# 4. Verify combined scenarios with multiple global values
+templates:
+  - deployment.yaml
+  - webhook-deployment.yaml
+  - cert-controller-deployment.yaml
+tests:
+  # Test global.podLabels
+  - it: should use global podLabels when local podLabels not set (controller)
+    template: deployment.yaml
+    set:
+      global.podLabels:
+        globalLabel: "global-value"
+        environment: "production"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.globalLabel
+          value: "global-value"
+      - equal:
+          path: spec.template.metadata.labels.environment
+          value: "production"
+
+  - it: should use local podLabels over global podLabels (controller)
+    template: deployment.yaml
+    set:
+      global.podLabels:
+        globalLabel: "global-value"
+      podLabels:
+        localLabel: "local-value"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.localLabel
+          value: "local-value"
+      - notExists:
+          path: spec.template.metadata.labels.globalLabel
+
+  - it: should use global podLabels when local podLabels not set (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.podLabels:
+        globalLabel: "global-value"
+        environment: "production"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.globalLabel
+          value: "global-value"
+      - equal:
+          path: spec.template.metadata.labels.environment
+          value: "production"
+
+  - it: should use local podLabels over global podLabels (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.podLabels:
+        globalLabel: "global-value"
+      webhook.podLabels:
+        localLabel: "local-value"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.localLabel
+          value: "local-value"
+      - notExists:
+          path: spec.template.metadata.labels.globalLabel
+
+  - it: should use global podLabels when local podLabels not set (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.podLabels:
+        globalLabel: "global-value"
+        environment: "production"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.globalLabel
+          value: "global-value"
+      - equal:
+          path: spec.template.metadata.labels.environment
+          value: "production"
+
+  - it: should use local podLabels over global podLabels (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.podLabels:
+        globalLabel: "global-value"
+      certController.podLabels:
+        localLabel: "local-value"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.localLabel
+          value: "local-value"
+      - notExists:
+          path: spec.template.metadata.labels.globalLabel
+
+  # Test global.podAnnotations
+  - it: should use global podAnnotations when local podAnnotations not set (controller)
+    template: deployment.yaml
+    set:
+      global.podAnnotations:
+        globalAnnotation: "global-value"
+        environment: "production"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.globalAnnotation
+          value: "global-value"
+      - equal:
+          path: spec.template.metadata.annotations.environment
+          value: "production"
+
+  - it: should use local podAnnotations over global podAnnotations (controller)
+    template: deployment.yaml
+    set:
+      global.podAnnotations:
+        globalAnnotation: "global-value"
+      podAnnotations:
+        localAnnotation: "local-value"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.localAnnotation
+          value: "local-value"
+      - notExists:
+          path: spec.template.metadata.annotations.globalAnnotation
+
+  - it: should use global podAnnotations when local podAnnotations not set (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.podAnnotations:
+        globalAnnotation: "global-value"
+        environment: "production"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.globalAnnotation
+          value: "global-value"
+      - equal:
+          path: spec.template.metadata.annotations.environment
+          value: "production"
+
+  - it: should use local podAnnotations over global podAnnotations (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.podAnnotations:
+        globalAnnotation: "global-value"
+      webhook.podAnnotations:
+        localAnnotation: "local-value"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.localAnnotation
+          value: "local-value"
+      - notExists:
+          path: spec.template.metadata.annotations.globalAnnotation
+
+  - it: should use global podAnnotations when local podAnnotations not set (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.podAnnotations:
+        globalAnnotation: "global-value"
+        environment: "production"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.globalAnnotation
+          value: "global-value"
+      - equal:
+          path: spec.template.metadata.annotations.environment
+          value: "production"
+
+  - it: should use local podAnnotations over global podAnnotations (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.podAnnotations:
+        globalAnnotation: "global-value"
+      certController.podAnnotations:
+        localAnnotation: "local-value"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.localAnnotation
+          value: "local-value"
+      - notExists:
+          path: spec.template.metadata.annotations.globalAnnotation
+
+  # Test global.imagePullSecrets
+  - it: should use global imagePullSecrets when local imagePullSecrets not set (controller)
+    template: deployment.yaml
+    set:
+      global.imagePullSecrets:
+        - name: global-registry-secret
+        - name: another-global-secret
+      imagePullSecrets: []
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: global-registry-secret
+      - equal:
+          path: spec.template.spec.imagePullSecrets[1].name
+          value: another-global-secret
+
+  - it: should use local imagePullSecrets over global imagePullSecrets (controller)
+    template: deployment.yaml
+    set:
+      global.imagePullSecrets:
+        - name: global-registry-secret
+      imagePullSecrets:
+        - name: local-registry-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: local-registry-secret
+      - lengthEqual:
+          path: spec.template.spec.imagePullSecrets
+          count: 1
+
+  - it: should use global imagePullSecrets when local imagePullSecrets not set (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.imagePullSecrets:
+        - name: global-registry-secret
+        - name: another-global-secret
+      webhook.imagePullSecrets: []
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: global-registry-secret
+      - equal:
+          path: spec.template.spec.imagePullSecrets[1].name
+          value: another-global-secret
+
+  - it: should use local imagePullSecrets over global imagePullSecrets (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.imagePullSecrets:
+        - name: global-registry-secret
+      webhook.imagePullSecrets:
+        - name: local-registry-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: local-registry-secret
+      - lengthEqual:
+          path: spec.template.spec.imagePullSecrets
+          count: 1
+
+  - it: should use global imagePullSecrets when local imagePullSecrets not set (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.imagePullSecrets:
+        - name: global-registry-secret
+        - name: another-global-secret
+      certController.imagePullSecrets: []
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: global-registry-secret
+      - equal:
+          path: spec.template.spec.imagePullSecrets[1].name
+          value: another-global-secret
+
+  - it: should use local imagePullSecrets over global imagePullSecrets (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.imagePullSecrets:
+        - name: global-registry-secret
+      certController.imagePullSecrets:
+        - name: local-registry-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: local-registry-secret
+      - lengthEqual:
+          path: spec.template.spec.imagePullSecrets
+          count: 1
+
+  # Test global.repository
+  - it: should use global repository when set (controller)
+    template: deployment.yaml
+    set:
+      global.repository: "my-registry.io/custom/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^my-registry\.io/custom/external-secrets:.*
+
+  - it: should use local repository when global repository not set (controller)
+    template: deployment.yaml
+    set:
+      global.repository: ""
+      image.repository: "ghcr.io/external-secrets/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^ghcr\.io/external-secrets/external-secrets:.*
+
+  - it: should use global repository when set (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.repository: "my-registry.io/custom/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^my-registry\.io/custom/external-secrets:.*
+
+  - it: should use local repository when global repository not set (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.repository: ""
+      webhook.image.repository: "ghcr.io/external-secrets/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^ghcr\.io/external-secrets/external-secrets:.*
+
+  - it: should use global repository when set (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.repository: "my-registry.io/custom/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^my-registry\.io/custom/external-secrets:.*
+
+  - it: should use local repository when global repository not set (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.repository: ""
+      certController.image.repository: "ghcr.io/external-secrets/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^ghcr\.io/external-secrets/external-secrets:.*
+
+  # Combined test - all global values set
+  - it: should apply all global values when local values not set (controller)
+    template: deployment.yaml
+    set:
+      global.repository: "my-registry.io/custom/external-secrets"
+      global.imagePullSecrets:
+        - name: global-secret
+      global.podLabels:
+        globalLabel: "global-value"
+      global.podAnnotations:
+        globalAnnotation: "global-value"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^my-registry\.io/custom/external-secrets:.*
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: global-secret
+      - equal:
+          path: spec.template.metadata.labels.globalLabel
+          value: "global-value"
+      - equal:
+          path: spec.template.metadata.annotations.globalAnnotation
+          value: "global-value"
+
+  # No values set - should use only default helm labels
+  - it: should have only default helm labels when no custom values are set (controller)
+    template: deployment.yaml
+    set:
+      global.podLabels: {}
+      global.podAnnotations: {}
+      global.imagePullSecrets: []
+      podLabels: {}
+      podAnnotations: {}
+      imagePullSecrets: []
+    asserts:
+      - exists:
+          path: spec.template.metadata.labels
+      - notExists:
+          path: spec.template.spec.imagePullSecrets

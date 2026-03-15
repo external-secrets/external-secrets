@@ -1,0 +1,7 @@
+suite: test GeneratorState
+template: tests/crds/generatorstate.yml
+tests:
+  - it: matches GeneratorState correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

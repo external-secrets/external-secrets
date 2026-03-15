@@ -1,0 +1,52 @@
+# If someone with reviewer access comments "/lgtm" on a pull request, add lgtm label
+name: LGTM Command
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  lgtm-command:
+    permissions:
+      pull-requests: write  # for peter-evans/slash-command-dispatch to create PR reaction
+      issues: write        # for adding labels and comments
+      contents: read       # for reading CODEOWNERS.md
+    runs-on: ubuntu-latest
+    # Only run for PRs, not issue comments
+    if: ${{ github.event.issue.pull_request }}
+    steps:
+    # Checkout repo to access CODEOWNERS.md
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5
+      with:
+        sparse-checkout: |
+          CODEOWNERS.md
+
+    # Generate a GitHub App installation access token
+    - name: Generate token
+      id: generate_token
+      uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      with:
+        app-id: ${{ secrets.LGTM_APP_ID }}
+        private-key: ${{ secrets.LGTM_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+
+    - name: Slash Command Dispatch
+      uses: peter-evans/slash-command-dispatch@9bdcd7914ec1b75590b790b844aa3b8eee7c683a # v5.0.2
+      with:
+        token: ${{ steps.generate_token.outputs.token }}
+        reaction-token: ${{ secrets.GITHUB_TOKEN }}
+        issue-type: pull-request
+        commands: lgtm
+        permission: none # anyone can use the command, but permissions are checked in the workflow itself.
+
+    - name: Process LGTM Command
+      if: ${{ github.event.comment.body == '/lgtm' }}
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v7
+      with:
+        github-token: ${{ steps.generate_token.outputs.token }}
+        script: |
+          const { default: run } = await import(`${process.env.GITHUB_WORKSPACE}/.github/scripts/lgtm-processor.js`);
+          await run({ core, github, context, fs: require('fs') });

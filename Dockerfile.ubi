@@ -1,0 +1,33 @@
+FROM registry.access.redhat.com/ubi9/ubi@sha256:cecb1cde7bda7c8165ae27841c2335667f8a3665a349c0d051329c61660a496c AS minimal-ubi
+
+# Add metadata
+LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
+      description="External Secrets Operator is a Kubernetes operator that integrates external secret management systems"
+
+ARG TARGETOS
+ARG TARGETARCH
+RUN dnf update -y --allowerasing
+# prep target rootfs for scratch container
+WORKDIR /
+RUN mkdir /image && \
+    ln -s usr/bin /image/bin && \
+	ln -s usr/sbin /image/sbin && \
+	ln -s usr/lib64 /image/lib64 && \
+	ln -s usr/lib /image/lib && \
+	mkdir -p /image/{usr/bin,usr/lib64,usr/lib,root,home,proc,etc,sys,var,dev}
+
+# Install required packages directly into /image root - more robust under QEMU emulation
+RUN rpm --root /image --initdb \
+  && dnf install -y --installroot=/image --releasever=9 --setopt=install_weak_deps=false --nodocs \
+     glibc tzdata ca-certificates \
+  && dnf clean all --installroot=/image \
+  && rm -rf /image/var/cache/dnf /image/var/log/*
+
+FROM scratch
+# Copy all required files + rpm database so the image is scannable
+COPY --from=minimal-ubi /image/ /
+USER 65534
+ARG TARGETOS
+ARG TARGETARCH
+COPY bin/external-secrets-${TARGETOS}-${TARGETARCH} /bin/external-secrets
+ENTRYPOINT ["/bin/external-secrets"]

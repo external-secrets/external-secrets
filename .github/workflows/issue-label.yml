@@ -1,0 +1,44 @@
+name: New issues labeler
+on:
+  issues:
+    types:
+      - opened
+
+permissions:
+  issues: write
+
+jobs:
+  new-contributor-labeler:
+    name: Label issues when they are created by a first time contributor
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v7
+        with:
+          script: |
+            console.log("Verify that the issue was created by a first time contributor");
+            const labelName = "triage/pending-triage";
+            const creator = context.payload.sender.login
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const contributors = await github.paginate(
+            github.rest.repos.listContributors,
+              { owner, repo, per_page: 100 }
+            );
+            let isAlreadyContributor = contributors.some(
+              (c) => (c.login ?? "").toLowerCase() === creator.toLowerCase()
+            );
+            if (isAlreadyContributor) {
+              console.log("User %s is already a contributor", creator);
+              return;
+            }
+            console.log("Adding label %s to issue number %d", labelName, context.issue.number)
+            
+            await github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: owner,
+              repo: repo,
+              labels: [labelName]
+            })

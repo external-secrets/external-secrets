@@ -1,0 +1,182 @@
+{{- if and .Values.certController.create (not .Values.webhook.certManager.enabled) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+  {{- with .Values.certController.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.certController.replicaCount }}
+  revisionHistoryLimit: {{ .Values.certController.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
+  {{- with .Values.certController.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      {{- if .Values.certController.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.certController.podAnnotations | nindent 8 }}
+      {{- else if .Values.global.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.global.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "external-secrets-cert-controller.labels" . | nindent 8 }}
+        {{- if .Values.certController.podLabels }}
+        {{- toYaml .Values.certController.podLabels | nindent 8 }}
+        {{- else if .Values.global.podLabels }}
+        {{- toYaml .Values.global.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.certController.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.certController.imagePullSecrets | nindent 8 }}
+      {{- else if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.certController.serviceAccount.automount }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      {{- if kindIs "bool" .Values.certController.hostUsers }}
+      hostUsers: {{ .Values.certController.hostUsers }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.certController.podSecurityContext }}
+       {{- if and (.enabled) (gt (keys . | len) 1) }}
+      securityContext:
+        {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      hostNetwork: {{ .Values.certController.hostNetwork }}
+      containers:
+        - name: cert-controller
+          {{- with .Values.certController.securityContext }}
+          {{- if and (.enabled) (gt (keys . | len) 1) }}
+          securityContext:
+            {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.certController.image "context" .) | trim }}
+          imagePullPolicy: {{ .Values.certController.image.pullPolicy }}
+          args:
+          - certcontroller
+          - --crd-requeue-interval={{ .Values.certController.requeueInterval }}
+          - --service-name={{ include "external-secrets.fullname" . }}-webhook
+          - --service-namespace={{ template "external-secrets.namespace" . }}
+          - --secret-name={{ include "external-secrets.fullname" . }}-webhook
+          - --secret-namespace={{ template "external-secrets.namespace" . }}
+          - --metrics-addr=:{{ .Values.certController.metrics.listen.port }}
+          - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
+          - --loglevel={{ .Values.certController.log.level }}
+          - --zap-time-encoding={{ .Values.certController.log.timeEncoding }}
+          {{- if not .Values.crds.createClusterSecretStore }}
+          - --crd-names=externalsecrets.external-secrets.io
+          - --crd-names=secretstores.external-secrets.io
+          {{- end }}
+          {{- if .Values.installCRDs }}
+          - --enable-partial-cache=true
+          {{- end }}
+          {{- if .Values.enableHTTP2 }}
+          - --enable-http2=true
+          {{- end }}
+          {{- if .Values.leaderElect }}
+          - --enable-leader-election=true
+          {{- end }}
+          {{- range $key, $value := .Values.certController.extraArgs }}
+            {{- if $value }}
+          - --{{ $key }}={{ $value }}
+            {{- else }}
+          - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.certController.metrics.listen.port }}
+              protocol: TCP
+              name: metrics
+            - containerPort: {{ .Values.certController.readinessProbe.port }}
+              protocol: TCP
+              name: ready
+            {{- if and .Values.certController.startupProbe.enabled (not .Values.certController.startupProbe.useReadinessProbePort) }}
+            - containerPort: {{ .Values.certController.startupProbe.port }}
+              protocol: TCP
+              name: startup
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              port: ready
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          {{- if .Values.certController.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              {{- if .Values.certController.startupProbe.useReadinessProbePort }}
+              port: ready
+              {{- else }}
+              port: startup
+              {{- end }}
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          {{- end }}
+          {{- with .Values.certController.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.certController.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.certController.extraVolumeMounts }}
+          volumeMounts:
+          {{- toYaml .Values.certController.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+      {{- with .Values.certController.extraInitContainers }}
+      initContainers:
+        {{- tpl (toYaml . | nindent 8) $ }}
+      {{- end }}
+      {{- if .Values.certController.extraVolumes }}
+      volumes:
+      {{- toYaml .Values.certController.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.nodeSelector | default .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.affinity | default .Values.global.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.tolerations | default .Values.global.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.topologySpreadConstraints | default .Values.global.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- range $constraint := . }}
+        - {{ toYaml $constraint | nindent 10 | trim }}
+          {{- if not $constraint.labelSelector }}
+          labelSelector:
+            matchLabels:
+              {{- include "external-secrets-cert-controller.selectorLabels" $ | nindent 14 }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.certController.priorityClassName }}
+      priorityClassName: {{ .Values.certController.priorityClassName }}
+      {{- end }}
+{{- end }}

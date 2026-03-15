@@ -1,0 +1,10 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: QuayAccessToken
+metadata: {}
+spec:
+  robotAccount: string
+  serviceAccountRef:
+    audiences: [] # minItems 0 of type string
+    name: string
+    namespace: string
+  url: string

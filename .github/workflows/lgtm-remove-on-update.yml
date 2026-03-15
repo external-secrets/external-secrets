@@ -1,0 +1,45 @@
+name: Pull Request Maintenance
+on:
+  pull_request_target:
+    types: [synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  remove-lgtm:
+    permissions:
+      pull-requests: write  # for removing labels
+      issues: write        # for removing labels and adding comments
+    runs-on: ubuntu-latest
+    steps:
+    - name: Remove LGTM label on PR update
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+          const labelName = 'lgtm';
+          
+          // Check if LGTM label exists
+          const labels = await github.rest.issues.listLabelsOnIssue({
+            owner, repo, issue_number: prNumber
+          });
+          
+          const hasLGTM = labels.data.some(l => l.name === labelName);
+          if (!hasLGTM) {
+            console.log('No LGTM label found, nothing to remove');
+            return;
+          }
+          
+          // Remove LGTM label
+          try {
+            await github.rest.issues.removeLabel({
+              owner, repo, issue_number: prNumber, name: labelName
+            });
+            console.log('LGTM label removed');
+          } catch (error) {
+            console.log('Failed to remove LGTM label:', error.message);
+            return;
+          }

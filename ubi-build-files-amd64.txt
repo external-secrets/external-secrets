@@ -1,0 +1,13 @@
+
+etc/redhat-release
+usr/share/zoneinfo
+usr/lib64/ld-linux-x86-64.so.2
+usr/lib64/libc.so.6
+usr/lib64/libdl.so.2
+usr/lib64/libpthread.so.0
+usr/lib64/libm.so.6
+/etc/pki/tls/cert.pem
+/etc/pki/tls/certs/ca-bundle.crt
+/etc/pki/tls/certs/ca-bundle.trust.crt
+/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt
+/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem

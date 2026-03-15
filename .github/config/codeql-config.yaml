@@ -1,0 +1,88 @@
+name: "Synthetic Apps All Queries Config"
+
+# expand thread model - https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#extending-codeql-coverage-with-threat-models
+threat-models: local
+
+# start from scratch - https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#disabling-the-default-queries
+disable-default-queries: true
+
+packs:
+  # All queries from the CodeQL Built in packs (including low/no precision queries)
+  - codeql/actions-queries:.
+  - codeql/go-queries:.
+  ### GitHub Security Lab###
+  # Queries via Community Packs https://github.com/GitHubSecurityLab/CodeQL-Community-Packs (NOTE: the default suites do not include audit/debugging queries)
+  - githubsecuritylab/codeql-go-queries
+  - trailofbits/go-queries
+
+# Start with Security Experimental (lightly documented: https://github.com/github/codeql/pull/11702) : https://github.com/github/codeql/blob/main/misc/suite-helpers/security-experimental-selectors.yml
+# - precision ( low + Low or EXCLUDED precision)
+# + problem.severity: recommendation
+# - restriction of no experimental folder
+# - restriction of audit/debugging queries from community packs
+query-filters:
+  - include:
+      kind:
+        - problem
+        - path-problem
+      tags contain:
+        - security
+  - include:
+      kind:
+        - diagnostic
+  - include:
+      kind:
+        - metric
+      tags contain:
+        - summary
+  - exclude:
+      deprecated: //
+  - exclude:
+      query path:
+        # REMOVE exclude - OK even if they exist in experimental folder
+        #- /^experimental\/.*/
+        - Metrics/Summaries/FrameworkCoverage.ql
+        - /Diagnostics/Internal/.*/
+  - exclude:
+      tags contain:
+        - modeleditor
+        - modelgenerator
+  # Exclude audit queries from the CodeQL Built in packs
+  - exclude:
+      id:
+        - go/untrusted-data-to-external-api
+
+  # Remove debugging, and audit queries used by community packs (this is duplicative of the default suites from those community packs)
+  - exclude:
+      tags contain:
+        - debugging
+        - audit
+
+#Additional extractor excludes:  https://github.com/github/codeql/blob/768e5190a1c9d40a4acc7143c461c3b114e7fd59/javascript/extractor/src/com/semmle/js/extractor/AutoBuild.java#L421-L427C42
+paths-ignore:
+  # Python
+  - "vendor/**"
+  - "examples/**"
+  - "tests/**"
+  - "test/**"
+  - "site-packages/**"
+
+  # JavaScript
+  - "node_modules"
+  - "**/*.test.js"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "dist"
+  - "CoverageResults"
+  - "**/wwwroot/lib/**"
+  - "**/deps/**"
+  - "**/third_party/**"
+  - "**/wp-includes/**"
+  - "**/wp-admin/**"
+
+  # Ruby
+  - "**/gems/**"
+  - "**/spec/**/*_spec.rb"
+  - "**/test/**/*_test.rb"
+

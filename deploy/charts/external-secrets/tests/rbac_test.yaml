@@ -1,0 +1,68 @@
+suite: test rbac
+templates:
+  - rbac.yaml
+tests:
+  - it: should remove the labels aggregate-to-view to the view ClusterRole
+    set:
+      rbac:
+        aggregateToView: false
+    asserts:
+      - notExists:
+          path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-view"]
+        documentSelector:
+          kind: ClusterRole
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-view
+  - it: should remove the labels aggregate-to-edit to the view and edit ClusterRoles
+    set:
+      rbac:
+        aggregateToEdit: false
+    asserts:
+      - notExists:
+          path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-edit"]
+        documentSelector:
+          kind: ClusterRole
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-view
+      - notExists:
+          path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-edit"]
+        documentSelector:
+          kind: ClusterRole
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-edit
+  - it: should not create auth delegator ClusterRoleBinding by default
+    documentSelector:
+      path: kind
+      value: ClusterRoleBinding
+    asserts:
+      - notEqual:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-auth-delegator
+
+  - it: should create auth delegator ClusterRoleBinding when systemAuthDelegator is true
+    set:
+      systemAuthDelegator: true
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-external-secrets-auth-delegator
+    asserts:
+      - isKind:
+          of: ClusterRoleBinding
+      - equal:
+          path: roleRef.apiGroup
+          value: rbac.authorization.k8s.io
+      - equal:
+          path: roleRef.kind
+          value: ClusterRole
+      - equal:
+          path: roleRef.name
+          value: system:auth-delegator
+      - equal:
+          path: subjects[0].kind
+          value: ServiceAccount
+      - equal:
+          path: subjects[0].name
+          value: RELEASE-NAME-external-secrets
+      - equal:
+          path: subjects[0].namespace
+          value: NAMESPACE

@@ -1,0 +1,16 @@
+module github.com/external-secrets/external-secrets/generators/v1/{{.PackageName}}
+
+go 1.25.3
+
+require (
+	github.com/external-secrets/external-secrets/apis v0.0.0
+	github.com/stretchr/testify v1.11.1
+	k8s.io/apiextensions-apiserver v0.34.1
+	sigs.k8s.io/controller-runtime v0.22.3
+	sigs.k8s.io/yaml v1.6.0
+)
+
+replace (
+	github.com/external-secrets/external-secrets/apis => ../../../apis
+	github.com/external-secrets/external-secrets/runtime => ../../../runtime
+)

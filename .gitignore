@@ -1,0 +1,83 @@
+.DS_Store
+/webhook/bin
+/webhook/certcontroller/bin
+/bin
+/cmd/esoctl/bin
+/cmd/esoctl/dist
+/vendor
+cover.out
+
+#ignore go workspace
+go.work
+go.work.sum
+
+# ignore vim swp
+*.swp
+
+# ignore ide files (debug config etc...)
+/.vscode
+/.idea
+
+# helm chart dependencies
+**/charts/*.tgz
+**/charts/**/requirements.lock
+.tagmanifest
+deploy/charts/external-secrets/templates/crds/*.yaml
+
+site/
+e2e/k8s/deploy
+e2e/suites/argocd/argocd.test
+e2e/suites/flux/flux.test
+e2e/suites/provider/provider.test
+e2e/suites/generator/generator.test
+
+# tf ignores
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files, which are likely to contain sentitive data, such as
+# password, private keys, and other secrets. These should not be part of version
+# control as they are data points which are potentially sensitive and subject
+# to change depending on the environment.
+#
+*.tfvars
+
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Include override files you do wish to add to version control using negated pattern
+#
+# !example_override.tf
+
+# Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
+# example: *tfplan*
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+**/secrets/**
+.terraform.lock.hcl
+
+tmp/
+tests/crds/*.yml
+.tilt-tmp
+
+# Common environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.envrc

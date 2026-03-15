@@ -1,0 +1,10 @@
+image:
+  tag: main
+
+webhook:
+  image:
+    tag: main
+
+certController:
+  image:
+    tag: main

@@ -1,0 +1,7 @@
+suite: test Grafana generator
+template: tests/crds/grafana.yml
+tests:
+  - it: matches Grafana correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

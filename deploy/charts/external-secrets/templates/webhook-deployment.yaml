@@ -1,0 +1,166 @@
+{{- if .Values.webhook.create }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-webhook
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
+  {{- with .Values.webhook.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.webhook.replicaCount }}
+  revisionHistoryLimit: {{ .Values.webhook.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
+  {{- with .Values.webhook.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      {{- if .Values.webhook.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.webhook.podAnnotations | nindent 8 }}
+      {{- else if .Values.global.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.global.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "external-secrets-webhook.labels" . | nindent 8 }}
+        {{- if .Values.webhook.podLabels }}
+        {{- toYaml .Values.webhook.podLabels | nindent 8 }}
+        {{- else if .Values.global.podLabels }}
+        {{- toYaml .Values.global.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.webhook.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.webhook.imagePullSecrets | nindent 8 }}
+      {{- else if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      hostNetwork: {{ .Values.webhook.hostNetwork}}
+      serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.webhook.serviceAccount.automount }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      {{- if kindIs "bool" .Values.webhook.hostUsers }}
+      hostUsers: {{ .Values.webhook.hostUsers }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.webhook.podSecurityContext }}
+      {{- if and (.enabled) (gt (keys . | len) 1) }}
+      securityContext:
+        {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - name: webhook
+          {{- with .Values.webhook.securityContext }}
+          {{- if and (.enabled) (gt (keys . | len) 1) }}
+          securityContext:
+            {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.webhook.image "context" .) | trim }}
+          imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
+          args:
+          - webhook
+          - --port={{ .Values.webhook.port }}
+          - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ template "external-secrets.namespace" . }}.svc
+          - --cert-dir={{ .Values.webhook.certDir }}
+          - --check-interval={{ .Values.webhook.certCheckInterval }}
+          - --metrics-addr=:{{ .Values.webhook.metrics.listen.port }}
+          - --healthz-addr={{ .Values.webhook.readinessProbe.address }}:{{ .Values.webhook.readinessProbe.port }}
+          - --loglevel={{ .Values.webhook.log.level }}
+          - --zap-time-encoding={{ .Values.webhook.log.timeEncoding }}
+          {{- if .Values.webhook.lookaheadInterval }}
+          - --lookahead-interval={{ .Values.webhook.lookaheadInterval }}
+          {{- end }}
+          {{- if .Values.enableHTTP2 }}
+          - --enable-http2=true
+          {{- end }}
+          {{- range $key, $value := .Values.webhook.extraArgs }}
+            {{- if $value }}
+          - --{{ $key }}={{ $value }}
+            {{- else }}
+          - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.webhook.metrics.listen.port }}
+              protocol: TCP
+              name: metrics
+            - containerPort: {{ .Values.webhook.port }}
+              protocol: TCP
+              name: webhook
+            - containerPort: {{ .Values.webhook.readinessProbe.port }}
+              protocol: TCP
+              name: ready
+          readinessProbe:
+            httpGet:
+              port: ready
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          {{- with .Values.webhook.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.webhook.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: certs
+              mountPath: {{ .Values.webhook.certDir }}
+              readOnly: true
+          {{- if .Values.webhook.extraVolumeMounts }}
+          {{- toYaml .Values.webhook.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+      {{- with .Values.webhook.extraInitContainers }}
+      initContainers:
+        {{- tpl (toYaml . | nindent 8) $ }}
+      {{- end }}
+      volumes:
+        - name: certs
+          secret:
+            secretName: {{ include "external-secrets.fullname" . }}-webhook
+      {{- if .Values.webhook.extraVolumes }}
+      {{- toYaml .Values.webhook.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.nodeSelector | default .Values.global.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.affinity | default .Values.global.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.tolerations | default .Values.global.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.topologySpreadConstraints | default .Values.global.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- range $constraint := . }}
+        - {{ toYaml $constraint | nindent 10 | trim }}
+          {{- if not $constraint.labelSelector }}
+          labelSelector:
+            matchLabels:
+              {{- include "external-secrets-webhook.selectorLabels" $ | nindent 14 }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.webhook.priorityClassName }}
+      priorityClassName: {{ .Values.webhook.priorityClassName }}
+      {{- end }}
+{{- end }}

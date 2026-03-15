@@ -1,0 +1,7 @@
+suite: test Fake Generator
+template: tests/crds/fake.yml
+tests:
+  - it: matches Fake generator correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

@@ -1,0 +1,391 @@
+suite: test cert controller deployment
+templates:
+  - cert-controller-deployment.yaml
+  - cert-controller-service.yaml
+tests:
+  - it: should match snapshot of default values
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - matchSnapshot: {}
+  - it: should set imagePullPolicy to Always
+    set:
+      certController.image.pullPolicy: Always
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+  - it: should imagePullPolicy to be default value IfNotPresent
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+  - it: should add a init container
+    templates:
+      - cert-controller-deployment.yaml
+    set:
+      certController.extraInitContainers:
+        - name: foo
+          image: example.com/external-secrets/init-image:{{ .Chart.Version }}
+          restartPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: foo
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].image
+          pattern: ^example\.com/external-secrets/init-image:[0-9]+\.[0-9]+\.[0-9]+$
+      - equal:
+          path: spec.template.spec.initContainers[0].restartPolicy
+          value: Always
+  - it: should override the deployment strategy
+    templates:
+      - cert-controller-deployment.yaml
+    set:
+      certController.strategy:
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+    asserts:
+    - equal:
+        path: spec.strategy.rollingUpdate.maxSurge
+        value: 1
+    - equal:
+        path: spec.strategy.rollingUpdate.maxUnavailable
+        value: 0
+  - it: should override securityContext
+    set:
+      certController.podSecurityContext:
+        runAsUser: 2000
+      certController.securityContext:
+        runAsUser: 3000
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsUser: 2000
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 3000
+            seccompProfile:
+              type: RuntimeDefault
+  - it: should override hostNetwork
+    set:
+      certController.hostNetwork: true
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+  - it: should override readinessProbe port
+    set:
+      certController.readinessProbe.port: 8082
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[7]
+          value: "--healthz-addr=:8082"
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].name
+          value: ready
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].protocol
+          value: TCP
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].containerPort
+          value: 8082
+      - notExists:
+          path: spec.template.spec.containers[0].ports[2]
+  - it: should override metrics port
+    set:
+      certController.metrics.listen.port: 8888
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[6]
+          value: "--metrics-addr=:8888"
+  - it: should override image flavour
+    set:
+      certController.image.repository: ghcr.io/external-secrets/external-secrets
+      certController.image.tag: v0.9.8
+      certController.image.flavour: ubi-boringssl
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/external-secrets/external-secrets:v0.9.8-ubi-boringssl
+  - it: should override image flavour
+    set:
+      certController.image.repository: example.com/external-secrets/external-secrets
+      certController.image.tag: v0.9.9-ubi
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: example.com/external-secrets/external-secrets:v0.9.9-ubi
+  - it: should render service without metrics label when metrics is enabled
+    set:
+      certController.metrics.service.enabled: true
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+  - it: should render service with metrics label when APIVersions are present and serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1/ServiceMonitor"
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "cert-controller"
+  - it: should render service with metrics label when APIVersions are not present, serviceMonitor is enabled, and serviceMonitor.renderMode is alwaysRender
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "cert-controller"
+  - it: should fail if APIVersions is missing, serviceMonitor is enabled, and serviceMonitor.renderMode is failIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: failIfMissing
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - failedTemplate: {}
+  - it: should not render service when APIVersions is not present, serviceMonitor is enabled, and and serviceMonitor.renderMode is skipIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: skipIfMissing
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service when APIVersions is not present but serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service when APIVersions is present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1/ServiceMonitor"
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service when APIVersions is not present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not have enableHTTP2 flag by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-http2"
+  - it: should have startup Probe if enabled
+    set:
+      certController.startupProbe.enabled: true
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              path: /readyz
+              port: ready
+            initialDelaySeconds: 20
+            periodSeconds: 5
+      - equal:
+          path: spec.template.spec.containers[0].ports[1].name
+          value: ready
+      - notExists:
+          path: spec.template.spec.containers[0].ports[2]
+  - it: should override the startup Probe port
+    set:
+      certController.startupProbe.enabled: true
+      certController.startupProbe.useReadinessProbePort: false
+      certController.startupProbe.port: "8083"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[2]
+          value:
+            containerPort: 8083
+            protocol: TCP
+            name: startup
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              port: startup
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].name
+          value: startup
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].protocol
+          value: TCP
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].containerPort
+          value: 8083
+  - it: should default to hostUsers absent
+    set:
+      certController.create: true
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should permit override of hostUsers
+    set:
+      certController.create: true
+      certController.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '33'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostUsers
+          value: false
+  - it: should ignore hostUsers on older k8s
+    set:
+      certController.create: true
+      certController.hostUsers: false
+    capabilities:
+      majorVersion: '1'
+      minorVersion: '32'
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostUsers
+  - it: should not have hostAliases by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostAliases
+  - it: should add hostAliases when configured
+    set:
+      certController.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "cert.example.local"
+            - "cert"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "cert.example.local"
+                - "cert"
+  - it: should use global hostAliases when certController level not set
+    set:
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.200"
+              hostnames:
+                - "global.example.com"
+  - it: should prefer certController hostAliases over global
+    set:
+      certController.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "cert.example.com"
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "cert.example.com"
+  - it: should not have enable-leader-election flag by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-leader-election=true"
+  - it: should have enable-leader-election flag when leaderElect is true
+    set:
+      leaderElect: true
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-leader-election=true"

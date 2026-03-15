@@ -1,0 +1,27 @@
+name: 'Close stale issues and PR'
+on:
+  schedule:
+    - cron: '30 1 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  stale:
+    permissions:
+      issues: write  # for actions/stale to close stale issues
+      pull-requests: write  # for actions/stale to close stale PRs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+      - uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-issue-message: 'This issue is stale because it has been open 90 days with no activity. Remove stale label or comment or this will be closed in 30 days.'
+          stale-pr-message: 'This pr is stale because it has been open 90 days with no activity. Remove stale label or comment or this will be closed in 30 days.'
+          close-issue-message: 'This issue was closed because it has been stalled for 30 days with no activity.'
+          exempt-issue-labels: kind/feature
+          days-before-stale: 90
+          days-before-close: 30

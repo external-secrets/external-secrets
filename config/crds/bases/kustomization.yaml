@@ -1,0 +1,27 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - external-secrets.io_clusterexternalsecrets.yaml
+  - external-secrets.io_clusterpushsecrets.yaml
+  - external-secrets.io_clustersecretstores.yaml
+  - external-secrets.io_externalsecrets.yaml
+  - external-secrets.io_pushsecrets.yaml
+  - external-secrets.io_secretstores.yaml
+  - generators.external-secrets.io_acraccesstokens.yaml
+  - generators.external-secrets.io_cloudsmithaccesstokens.yaml
+  - generators.external-secrets.io_clustergenerators.yaml
+  - generators.external-secrets.io_ecrauthorizationtokens.yaml
+  - generators.external-secrets.io_fakes.yaml
+  - generators.external-secrets.io_gcraccesstokens.yaml
+  - generators.external-secrets.io_generatorstates.yaml
+  - generators.external-secrets.io_githubaccesstokens.yaml
+  - generators.external-secrets.io_grafanas.yaml
+  - generators.external-secrets.io_mfas.yaml
+  - generators.external-secrets.io_passwords.yaml
+  - generators.external-secrets.io_quayaccesstokens.yaml
+  - generators.external-secrets.io_sshkeys.yaml
+  - generators.external-secrets.io_stssessiontokens.yaml
+  - generators.external-secrets.io_uuids.yaml
+  - generators.external-secrets.io_vaultdynamicsecrets.yaml
+  - generators.external-secrets.io_webhooks.yaml

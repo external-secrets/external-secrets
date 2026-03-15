@@ -1,0 +1,27 @@
+domain: io
+multigroup: true
+repo: github.com/external-secrets/external-secrets
+resources:
+- kind: ClusterSecretStore
+  version: v1beta1
+- group: external-secrets
+  kind: SecretStore
+  version: v1beta1
+- group: external-secrets
+  kind: ExternalSecret
+  version: v1beta1
+- group: external-secrets
+  kind: ClusterPushSecret
+  version: v1alpha1
+- group: external-secrets
+  kind: PushSecret
+  version: v1alpha1
+- kind: ClusterSecretStore
+  version: v1
+- group: external-secrets
+  kind: SecretStore
+  version: v1
+- group: external-secrets
+  kind: ExternalSecret
+  version: v1
+version: "3"
