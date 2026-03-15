@@ -32,7 +32,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -118,10 +117,7 @@ var certcontrollerCmd = &cobra.Command{
 				SecretNamespace: secretNamespace,
 				Resources:       crdNames,
 			})
-		if err := crdctrl.SetupWithManager(mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-			RateLimiter:             ctrlcommon.BuildRateLimiter(),
-		}); err != nil {
+		if err := crdctrl.SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "CustomResourceDefinition")
 			os.Exit(1)
 		}
@@ -135,10 +131,7 @@ var certcontrollerCmd = &cobra.Command{
 				SecretNamespace: secretNamespace,
 				RequeueInterval: crdRequeueInterval,
 			})
-		if err := whc.SetupWithManager(mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-			RateLimiter:             ctrlcommon.BuildRateLimiter(),
-		}); err != nil {
+		if err := whc.SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "WebhookConfig")
 			os.Exit(1)
 		}
