@@ -68,9 +68,78 @@ func TestValidateStore(t *testing.T) {
 			errorMsg:    "store is nil",
 		},
 		{
-			name:        "valid store should pass validation",
+			name:        "valid password store should pass validation",
 			store:       makeValidSecretStore(),
 			expectError: false,
+		},
+		{
+			name:        "valid password store with explicit authType should pass",
+			store:       makeSecretStoreWithExplicitPasswordAuthType(),
+			expectError: false,
+		},
+		{
+			name:        "valid appCredential store should pass validation",
+			store:       makeSecretStoreWithAppCredAuth(),
+			expectError: false,
+		},
+		{
+			name:        "valid appCredential store with inline ID should pass",
+			store:       makeSecretStoreWithAppCredValueID(),
+			expectError: false,
+		},
+		{
+			name:        "nil provider should return error",
+			store:       makeSecretStoreWithNilProvider(),
+			expectError: true,
+			errorMsg:    "provider barbican is nil",
+		},
+		{
+			name:        "nil barbican should return error",
+			store:       makeSecretStoreWithNilBarbican(),
+			expectError: true,
+			errorMsg:    "provider barbican is nil",
+		},
+		{
+			name:        "missing authURL should return error",
+			store:       makeSecretStoreWithMissingAuthURL(),
+			expectError: true,
+			errorMsg:    "authURL is required",
+		},
+		{
+			name:        "password auth missing username should return error",
+			store:       makeSecretStorePasswordNoUsername(),
+			expectError: true,
+			errorMsg:    "username must specify either value or secretRef",
+		},
+		{
+			name:        "password auth missing password should return error",
+			store:       makeSecretStorePasswordNoPassword(),
+			expectError: true,
+			errorMsg:    "password secretRef is required",
+		},
+		{
+			name:        "appCredential auth missing ID should return error",
+			store:       makeSecretStoreAppCredNoID(),
+			expectError: true,
+			errorMsg:    "applicationCredentialID is required",
+		},
+		{
+			name:        "appCredential auth ID with no value or secretRef should return error",
+			store:       makeSecretStoreAppCredEmptyID(),
+			expectError: true,
+			errorMsg:    "applicationCredentialID must specify either value or secretRef",
+		},
+		{
+			name:        "appCredential auth missing secret should return error",
+			store:       makeSecretStoreAppCredNoSecret(),
+			expectError: true,
+			errorMsg:    "applicationCredentialSecret secretRef is required",
+		},
+		{
+			name:        "unsupported auth type should return error",
+			store:       makeSecretStoreWithUnsupportedAuthType(),
+			expectError: true,
+			errorMsg:    "unsupported auth type",
 		},
 	}
 
@@ -254,8 +323,15 @@ func TestNewClient(t *testing.T) {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorMsg)
 			} else {
-				// This would only pass with proper OpenStack mocking
-				assert.Error(t, err) // We expect an error due to missing OpenStack mock
+				// Without an OpenStack mock we still get a connection error,
+				// but it must NOT be a config/validation error.
+				assert.Error(t, err)
+				assert.NotContains(t, err.Error(), "missing required field",
+					"happy-path case should not fail on config validation")
+				assert.NotContains(t, err.Error(), "unsupported auth type",
+					"happy-path case should not fail on auth type selection")
+				assert.Contains(t, err.Error(), "authentication failed",
+					"happy-path case should only fail on the OpenStack connection")
 			}
 		})
 	}
@@ -534,4 +610,186 @@ func makeAppCredSecretWithMissingSecret() *corev1.Secret {
 			// missing app-cred-secret key
 		},
 	}
+}
+
+func TestBuildPasswordAuthOpts(t *testing.T) {
+	ctx := context.Background()
+
+	testCases := []struct {
+		name        string
+		store       *esv1.SecretStore
+		kube        *clientfake.ClientBuilder
+		expectError bool
+		errorMsg    string
+		wantUser    string
+		wantPass    string
+	}{
+		{
+			name:        "resolve username and password from secret",
+			store:       makeValidSecretStore(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeValidSecret()),
+			expectError: false,
+			wantUser:    testUsername,
+			wantPass:    testPassword,
+		},
+		{
+			name:        "inline username value is preferred over secretRef",
+			store:       makeSecretStoreWithValueUsername(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeValidSecretWithNoUsername()),
+			expectError: false,
+			wantUser:    testUsername,
+			wantPass:    testPassword,
+		},
+		{
+			name:        "missing username secret returns error",
+			store:       makeValidSecretStore(),
+			kube:        clientfake.NewClientBuilder(),
+			expectError: true,
+			errorMsg:    "missing required field",
+		},
+		{
+			name:        "missing password key in secret returns error",
+			store:       makeValidSecretStore(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeSecretWithMissingPassword()),
+			expectError: true,
+			errorMsg:    "missing required field",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			prov := tc.store.Spec.Provider.Barbican
+			opts, err := buildPasswordAuthOpts(ctx, tc.store, tc.kube.Build(), testNamespace, prov)
+
+			if tc.expectError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errorMsg)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.wantUser, opts.Username)
+				assert.Equal(t, tc.wantPass, opts.Password)
+				assert.Equal(t, testAuthURL, opts.IdentityEndpoint)
+				assert.Equal(t, testTenantName, opts.TenantName)
+				assert.Equal(t, testDomainName, opts.DomainName)
+			}
+		})
+	}
+}
+
+func TestBuildAppCredAuthOpts(t *testing.T) {
+	ctx := context.Background()
+
+	testCases := []struct {
+		name        string
+		store       *esv1.SecretStore
+		kube        *clientfake.ClientBuilder
+		expectError bool
+		errorMsg    string
+		wantCredID  string
+		wantCredSec string
+	}{
+		{
+			name:        "resolve appCredID and appCredSecret from secret",
+			store:       makeSecretStoreWithAppCredAuth(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeValidAppCredSecret()),
+			expectError: false,
+			wantCredID:  testAppCredID,
+			wantCredSec: testAppCredSecret,
+		},
+		{
+			name:        "inline appCredID value is preferred over secretRef",
+			store:       makeSecretStoreWithAppCredValueID(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeAppCredSecretWithNoID()),
+			expectError: false,
+			wantCredID:  testAppCredID,
+			wantCredSec: testAppCredSecret,
+		},
+		{
+			name:        "nil applicationCredentialID returns error",
+			store:       makeSecretStoreAppCredNoID(),
+			kube:        clientfake.NewClientBuilder(),
+			expectError: true,
+			errorMsg:    "applicationCredentialID is required",
+		},
+		{
+			name:        "nil applicationCredentialSecret returns error",
+			store:       makeSecretStoreAppCredNoSecret(),
+			kube:        clientfake.NewClientBuilder(),
+			expectError: true,
+			errorMsg:    "applicationCredentialSecret is required",
+		},
+		{
+			name:        "appCredID with no value and no secretRef returns error",
+			store:       makeSecretStoreAppCredEmptyID(),
+			kube:        clientfake.NewClientBuilder(),
+			expectError: true,
+			errorMsg:    "applicationCredentialID.secretRef is required when value is empty",
+		},
+		{
+			name:        "missing appCredID secret object returns error",
+			store:       makeSecretStoreWithAppCredAuth(),
+			kube:        clientfake.NewClientBuilder(),
+			expectError: true,
+			errorMsg:    "missing required field",
+		},
+		{
+			name:        "missing appCredSecret key in secret returns error",
+			store:       makeSecretStoreWithAppCredAuth(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeAppCredSecretWithMissingSecret()),
+			expectError: true,
+			errorMsg:    "missing required field",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			prov := tc.store.Spec.Provider.Barbican
+			opts, err := buildAppCredAuthOpts(ctx, tc.store, tc.kube.Build(), testNamespace, prov)
+
+			if tc.expectError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errorMsg)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.wantCredID, opts.ApplicationCredentialID)
+				assert.Equal(t, tc.wantCredSec, opts.ApplicationCredentialSecret)
+				assert.Equal(t, testAuthURL, opts.IdentityEndpoint)
+			}
+		})
+	}
+}
+
+// Helper: password auth store with no username (empty value, nil secretRef).
+func makeSecretStorePasswordNoUsername() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Username = esv1.BarbicanProviderUsernameRef{}
+	return store
+}
+
+// Helper: password auth store with no password secretRef.
+func makeSecretStorePasswordNoPassword() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Password = esv1.BarbicanProviderPasswordRef{}
+	return store
+}
+
+// Helper: appCredential auth with nil ApplicationCredentialID.
+func makeSecretStoreAppCredNoID() *esv1.SecretStore {
+	store := makeSecretStoreWithAppCredAuth()
+	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID = nil
+	return store
+}
+
+// Helper: appCredential auth with ApplicationCredentialID present but empty (no value, no secretRef).
+func makeSecretStoreAppCredEmptyID() *esv1.SecretStore {
+	store := makeSecretStoreWithAppCredAuth()
+	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID = &esv1.BarbicanProviderAppCredIDRef{}
+	return store
+}
+
+// Helper: appCredential auth with nil ApplicationCredentialSecret.
+func makeSecretStoreAppCredNoSecret() *esv1.SecretStore {
+	store := makeSecretStoreWithAppCredAuth()
+	store.Spec.Provider.Barbican.Auth.ApplicationCredentialSecret = nil
+	return store
 }

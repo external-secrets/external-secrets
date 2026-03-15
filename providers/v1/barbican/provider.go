@@ -53,6 +53,43 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if store == nil {
 		return nil, fmt.Errorf(errGeneric, errors.New("store is nil"))
 	}
+
+	provider, err := getProvider(store)
+	if err != nil {
+		return nil, err
+	}
+
+	if provider.AuthURL == "" {
+		return nil, fmt.Errorf(errMissingField, errors.New("authURL is required"))
+	}
+
+	authType := esv1.BarbicanAuthTypePassword
+	if provider.Auth.AuthType != nil {
+		authType = *provider.Auth.AuthType
+	}
+
+	switch authType {
+	case esv1.BarbicanAuthTypePassword:
+		if provider.Auth.Username.Value == "" && provider.Auth.Username.SecretRef == nil {
+			return nil, fmt.Errorf(errMissingField, errors.New("username must specify either value or secretRef"))
+		}
+		if provider.Auth.Password.SecretRef == nil {
+			return nil, fmt.Errorf(errMissingField, errors.New("password secretRef is required"))
+		}
+	case esv1.BarbicanAuthTypeApplicationCredential:
+		if provider.Auth.ApplicationCredentialID == nil {
+			return nil, fmt.Errorf(errMissingField, errors.New("applicationCredentialID is required for applicationCredential auth"))
+		}
+		if provider.Auth.ApplicationCredentialID.Value == "" && provider.Auth.ApplicationCredentialID.SecretRef == nil {
+			return nil, fmt.Errorf(errMissingField, errors.New("applicationCredentialID must specify either value or secretRef"))
+		}
+		if provider.Auth.ApplicationCredentialSecret == nil || provider.Auth.ApplicationCredentialSecret.SecretRef == nil {
+			return nil, fmt.Errorf(errMissingField, errors.New("applicationCredentialSecret secretRef is required for applicationCredential auth"))
+		}
+	default:
+		return nil, fmt.Errorf(errUnsupportedAuth, authType)
+	}
+
 	return nil, nil
 }
 
@@ -138,16 +175,30 @@ func buildPasswordAuthOpts(ctx context.Context, store esv1.GenericStore, kube cl
 }
 
 func buildAppCredAuthOpts(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, provider *esv1.BarbicanProvider) (gophercloud.AuthOptions, error) {
+	if provider.Auth.ApplicationCredentialID == nil {
+		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("applicationCredentialID is required"))
+	}
+
+	if provider.Auth.ApplicationCredentialSecret == nil {
+		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("applicationCredentialSecret is required"))
+	}
+
 	appCredID := provider.Auth.ApplicationCredentialID.Value
 	var err error
 
 	if appCredID == "" {
+		if provider.Auth.ApplicationCredentialID.SecretRef == nil {
+			return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("applicationCredentialID.secretRef is required when value is empty"))
+		}
 		appCredID, err = resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.ApplicationCredentialID.SecretRef)
 		if err != nil {
 			return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)
 		}
 	}
 
+	if provider.Auth.ApplicationCredentialSecret.SecretRef == nil {
+		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("applicationCredentialSecret.secretRef is required"))
+	}
 	appCredSecret, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.ApplicationCredentialSecret.SecretRef)
 	if err != nil {
 		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)

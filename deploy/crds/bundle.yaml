@@ -2937,6 +2937,7 @@ spec:
                                 - secretRef
                               type: object
                             authType:
+                              default: password
                               enum:
                                 - password
                                 - applicationCredential
@@ -14773,6 +14774,7 @@ spec:
                                 - secretRef
                               type: object
                             authType:
+                              default: password
                               enum:
                                 - password
                                 - applicationCredential

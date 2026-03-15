@@ -68,6 +68,7 @@ type BarbicanProvider struct {
 // BarbicanAuth contains the authentication information for Barbican.
 type BarbicanAuth struct {
 	// +optional
+	// +kubebuilder:default="password"
 	AuthType *BarbicanAuthType `json:"authType,omitempty"`
 
 	// Username / Password authentication fields.
