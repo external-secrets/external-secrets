@@ -15,10 +15,20 @@ export default async function run({ core, github, context, fs }) {
   const organization = 'external-secrets';
   const lgtmLabelName = 'lgtm';
 
-  const commenter = context.payload.comment.user.login;
-  const prNumber = context.payload.issue.number;
   const owner = context.repo.owner;
   const repo = context.repo.repo;
+
+  // Fail fast if the LGTM label does not exist in the repository
+  const repoLabels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+    owner, repo, per_page: 100
+  });
+  if (!repoLabels.some(l => l.name === lgtmLabelName)) {
+    core.setFailed(`LGTM label "${lgtmLabelName}" does not exist in the repository. Please create it before using the LGTM workflow.`);
+    return;
+  }
+
+  const commenter = context.payload.comment.user.login;
+  const prNumber = context.payload.issue.number;
 
   // Parse CODEOWNERS.md file
   let codeownersContent;
