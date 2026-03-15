@@ -12,46 +12,9 @@ env:
   # Common versions
   KIND_VERSION: 'v0.30.0'
   KIND_IMAGE: 'kindest/node:v1.33.4'
-
-  # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
-  # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
-  # credentials have been provided before trying to run steps that need them.
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
   GHCR_USERNAME: ${{ github.actor }}
-  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY}}
-  GCP_FED_REGION: ${{ secrets.GCP_FED_REGION}}
-  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Google Service Account
-  GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
-  GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID}}
-
   AWS_REGION: "eu-central-1"
-  AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-  AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
-  AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
-
-  TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID}}
-  TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
-  TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID}}
-  TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
-  TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL}}
-
-  SCALEWAY_API_URL: ${{ secrets.SCALEWAY_API_URL }}
-  SCALEWAY_REGION: ${{ secrets.SCALEWAY_REGION }}
-  SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
-  SCALEWAY_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-  SCALEWAY_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-  DELINEA_TLD: ${{ secrets.DELINEA_TLD }}
-  DELINEA_URL_TEMPLATE: ${{ secrets.DELINEA_URL_TEMPLATE }}
-  DELINEA_TENANT: ${{ secrets.DELINEA_TENANT }}
-  DELINEA_CLIENT_ID: ${{ secrets.DELINEA_CLIENT_ID }}
-  DELINEA_CLIENT_SECRET: ${{ secrets.DELINEA_CLIENT_SECRET }}
-
-  SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
-  SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
-  SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
-
-  GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
-  GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
 jobs:
 
   integration-trusted:
@@ -60,6 +23,35 @@ jobs:
       id-token: write #for oidc auth with aws/gcp/azure
       contents: read  #for checkout
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
+    env:
+      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+      GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
+      GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME }}
+      GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME }}
+      GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
+      AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
+      TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID }}
+      TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
+      TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID }}
+      TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
+      TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
+      SCALEWAY_API_URL: ${{ secrets.SCALEWAY_API_URL }}
+      SCALEWAY_REGION: ${{ secrets.SCALEWAY_REGION }}
+      SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
+      SCALEWAY_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+      SCALEWAY_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+      DELINEA_TLD: ${{ secrets.DELINEA_TLD }}
+      DELINEA_URL_TEMPLATE: ${{ secrets.DELINEA_URL_TEMPLATE }}
+      DELINEA_TENANT: ${{ secrets.DELINEA_TENANT }}
+      DELINEA_CLIENT_ID: ${{ secrets.DELINEA_CLIENT_ID }}
+      DELINEA_CLIENT_SECRET: ${{ secrets.DELINEA_CLIENT_SECRET }}
+      SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
+      SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
+      SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
+      GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+      GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
     steps:
     - uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
       with:
@@ -67,6 +59,8 @@ jobs:
 
     - name: Branch based PR checkout
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
 
     - name: Fetch History
       run: git fetch --prune --unshallow
@@ -81,6 +75,35 @@ jobs:
       contents: read       #for checkout
       pull-requests: write # to publish the status as comments
     if: github.event_name == 'repository_dispatch'
+    env:
+      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+      GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
+      GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME }}
+      GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME }}
+      GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
+      AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
+      TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID }}
+      TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
+      TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID }}
+      TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
+      TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
+      SCALEWAY_API_URL: ${{ secrets.SCALEWAY_API_URL }}
+      SCALEWAY_REGION: ${{ secrets.SCALEWAY_REGION }}
+      SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
+      SCALEWAY_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+      SCALEWAY_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+      DELINEA_TLD: ${{ secrets.DELINEA_TLD }}
+      DELINEA_URL_TEMPLATE: ${{ secrets.DELINEA_URL_TEMPLATE }}
+      DELINEA_TENANT: ${{ secrets.DELINEA_TENANT }}
+      DELINEA_CLIENT_ID: ${{ secrets.DELINEA_CLIENT_ID }}
+      DELINEA_CLIENT_SECRET: ${{ secrets.DELINEA_CLIENT_SECRET }}
+      SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
+      SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
+      SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
+      GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+      GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
     steps:
     - uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
       with:
@@ -91,6 +114,7 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         ref: '${{ env.TARGET_SHA }}'
+        persist-credentials: false
 
     - name: Fetch History
       run: git fetch --prune --unshallow
@@ -100,9 +124,12 @@ jobs:
     - id: create_token
       if: always()
       uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      env:
+        APP_ID: ${{ secrets.APP_ID }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       with:
-        app-id: ${{ secrets.APP_ID }}
-        private-key: ${{ secrets.PRIVATE_KEY }}
+        app-id: ${{ env.APP_ID }}
+        private-key: ${{ env.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
 
     - name: Update on Succeess
