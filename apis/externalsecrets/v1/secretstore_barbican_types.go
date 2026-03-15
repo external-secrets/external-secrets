@@ -20,6 +20,16 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// +kubebuilder:validation:Enum=password;applicationCredential
+type BarbicanAuthType string
+
+const (
+	// BarbicanAuthTypePassword uses username/password Keystone authentication.
+	BarbicanAuthTypePassword BarbicanAuthType = "password"
+	// BarbicanAuthTypeApplicationCredential uses OpenStack Application Credentials.
+	BarbicanAuthTypeApplicationCredential BarbicanAuthType = "applicationCredential"
+)
+
 // BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
@@ -30,6 +40,19 @@ type BarbicanProviderUsernameRef struct {
 
 // BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.
 type BarbicanProviderPasswordRef struct {
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef"`
+}
+
+// BarbicanProviderAppCredIDRef defines a reference to an Application Credential ID.
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
+type BarbicanProviderAppCredIDRef struct {
+	Value     string                    `json:"value,omitempty"`
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// BarbicanProviderAppCredSecretRef defines a reference to an Application Credential Secret.
+type BarbicanProviderAppCredSecretRef struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef"`
 }
 
@@ -44,6 +67,18 @@ type BarbicanProvider struct {
 
 // BarbicanAuth contains the authentication information for Barbican.
 type BarbicanAuth struct {
-	Username BarbicanProviderUsernameRef `json:"username"`
-	Password BarbicanProviderPasswordRef `json:"password"`
+	// +optional
+	AuthType *BarbicanAuthType `json:"authType,omitempty"`
+
+	// Username / Password authentication fields.
+	// +optional
+	Username BarbicanProviderUsernameRef `json:"username,omitempty"`
+	// +optional
+	Password BarbicanProviderPasswordRef `json:"password,omitempty"`
+
+	// Application Credential authentication fields.
+	// +optional
+	ApplicationCredentialID *BarbicanProviderAppCredIDRef `json:"applicationCredentialID,omitempty"`
+	// +optional
+	ApplicationCredentialSecret *BarbicanProviderAppCredSecretRef `json:"applicationCredentialSecret,omitempty"`
 }

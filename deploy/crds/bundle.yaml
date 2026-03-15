@@ -2866,6 +2866,81 @@ spec:
                         auth:
                           description: BarbicanAuth contains the authentication information for Barbican.
                           properties:
+                            applicationCredentialID:
+                              description: Application Credential authentication fields.
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                value:
+                                  type: string
+                              type: object
+                            applicationCredentialSecret:
+                              description: BarbicanProviderAppCredSecretRef defines a reference to an Application Credential Secret.
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - secretRef
+                              type: object
+                            authType:
+                              enum:
+                                - password
+                                - applicationCredential
+                              type: string
                             password:
                               description: BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.
                               properties:
@@ -2901,7 +2976,7 @@ spec:
                                 - secretRef
                               type: object
                             username:
-                              description: BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.
+                              description: Username / Password authentication fields.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -2936,9 +3011,6 @@ spec:
                                 value:
                                   type: string
                               type: object
-                          required:
-                            - password
-                            - username
                           type: object
                         authURL:
                           type: string
@@ -14621,6 +14693,81 @@ spec:
                         auth:
                           description: BarbicanAuth contains the authentication information for Barbican.
                           properties:
+                            applicationCredentialID:
+                              description: Application Credential authentication fields.
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                value:
+                                  type: string
+                              type: object
+                            applicationCredentialSecret:
+                              description: BarbicanProviderAppCredSecretRef defines a reference to an Application Credential Secret.
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - secretRef
+                              type: object
+                            authType:
+                              enum:
+                                - password
+                                - applicationCredential
+                              type: string
                             password:
                               description: BarbicanProviderPasswordRef defines a reference to a secret containing password for the Barbican provider.
                               properties:
@@ -14656,7 +14803,7 @@ spec:
                                 - secretRef
                               type: object
                             username:
-                              description: BarbicanProviderUsernameRef defines a reference to a secret containing username for the Barbican provider.
+                              description: Username / Password authentication fields.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -14691,9 +14838,6 @@ spec:
                                 value:
                                   type: string
                               type: object
-                          required:
-                            - password
-                            - username
                           type: object
                         authURL:
                           type: string

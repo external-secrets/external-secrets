@@ -31,10 +31,11 @@ import (
 )
 
 const (
-	errGeneric      = "barbican provider error: %w"
-	errMissingField = "barbican provider missing required field: %w"
-	errAuthFailed   = "barbican provider authentication failed: %w"
-	errClientInit   = "barbican provider client initialization failed: %w"
+	errGeneric         = "barbican provider error: %w"
+	errMissingField    = "barbican provider missing required field: %w"
+	errAuthFailed      = "barbican provider authentication failed: %w"
+	errClientInit      = "barbican provider client initialization failed: %w"
+	errUnsupportedAuth = "barbican provider unsupported auth type: %s"
 )
 
 var _ esv1.Provider = &Provider{}
@@ -78,26 +79,22 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return nil, fmt.Errorf(errMissingField, errors.New("authURL is required"))
 	}
 
-	username := provider.Auth.Username.Value
-
-	if username == "" {
-		username, err = resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.Username.SecretRef)
-		if err != nil {
-			return nil, fmt.Errorf(errMissingField, err)
-		}
+	authType := esv1.BarbicanAuthTypePassword
+	if provider.Auth.AuthType != nil {
+		authType = *provider.Auth.AuthType
 	}
 
-	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.Password.SecretRef)
+	var authopts gophercloud.AuthOptions
+	switch authType {
+	case esv1.BarbicanAuthTypePassword:
+		authopts, err = buildPasswordAuthOpts(ctx, store, kube, namespace, provider)
+	case esv1.BarbicanAuthTypeApplicationCredential:
+		authopts, err = buildAppCredAuthOpts(ctx, store, kube, namespace, provider)
+	default:
+		return nil, fmt.Errorf(errUnsupportedAuth, authType)
+	}
 	if err != nil {
-		return nil, fmt.Errorf(errMissingField, err)
-	}
-
-	authopts := gophercloud.AuthOptions{
-		IdentityEndpoint: provider.AuthURL,
-		TenantName:       provider.TenantName,
-		DomainName:       provider.DomainName,
-		Username:         username,
-		Password:         password,
+		return nil, err
 	}
 
 	auth, err := openstack.AuthenticatedClient(ctx, authopts)
@@ -112,11 +109,55 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return nil, fmt.Errorf(errClientInit, err)
 	}
 
-	c := &Client{
-		keyManager: barbicanClient,
+	return &Client{keyManager: barbicanClient}, nil
+}
+
+func buildPasswordAuthOpts(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, provider *esv1.BarbicanProvider) (gophercloud.AuthOptions, error) {
+	username := provider.Auth.Username.Value
+	var err error
+
+	if username == "" {
+		username, err = resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.Username.SecretRef)
+		if err != nil {
+			return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)
+		}
 	}
 
-	return c, nil
+	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.Password.SecretRef)
+	if err != nil {
+		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)
+	}
+
+	return gophercloud.AuthOptions{
+		IdentityEndpoint: provider.AuthURL,
+		TenantName:       provider.TenantName,
+		DomainName:       provider.DomainName,
+		Username:         username,
+		Password:         password,
+	}, nil
+}
+
+func buildAppCredAuthOpts(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, provider *esv1.BarbicanProvider) (gophercloud.AuthOptions, error) {
+	appCredID := provider.Auth.ApplicationCredentialID.Value
+	var err error
+
+	if appCredID == "" {
+		appCredID, err = resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.ApplicationCredentialID.SecretRef)
+		if err != nil {
+			return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)
+		}
+	}
+
+	appCredSecret, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.ApplicationCredentialSecret.SecretRef)
+	if err != nil {
+		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)
+	}
+
+	return gophercloud.AuthOptions{
+		IdentityEndpoint:            provider.AuthURL,
+		ApplicationCredentialSecret: appCredSecret,
+		ApplicationCredentialID:     appCredID,
+	}, nil
 }
 
 // NewProvider constructs a new Barbican provider.
