@@ -144,4 +144,72 @@ assert.equal(fileMatchesPattern('pkg/provider/aws-extra/file.go', 'pkg/provider/
   assert.ok(roles.has('@external-secrets/gcp-team'));
 }
 
+// ---------------------------------------------------------------------------
+// lgtmProcessor integration tests (mocked GitHub API)
+// ---------------------------------------------------------------------------
+
+import { describe, it } from 'node:test';
+import run from './lgtm-processor.js';
+
+function makeMockContext() {
+  return {
+    repo: { owner: 'external-secrets', repo: 'external-secrets' },
+    payload: {
+      comment: { user: { login: 'testuser' } },
+      issue: { number: 42 }
+    }
+  };
+}
+
+// label existence check: fails fast when lgtm label is missing
+await describe('lgtmProcessor label existence check', async () => {
+  await it('should call core.setFailed when lgtm label does not exist', async () => {
+    let failedMessage = null;
+    const core = {
+      setFailed: (msg) => { failedMessage = msg; }
+    };
+    const github = {
+      paginate: async () => [{ name: 'bug' }, { name: 'enhancement' }],
+      rest: {
+        issues: {
+          listLabelsForRepo: () => {}
+        }
+      }
+    };
+    const context = makeMockContext();
+    const fs = { readFileSync: () => '* @external-secrets/maintainers\n' };
+
+    await run({ core, github, context, fs });
+
+    assert.ok(failedMessage !== null, 'core.setFailed should have been called');
+    assert.ok(failedMessage.includes('does not exist'), `Expected message about missing label, got: ${failedMessage}`);
+  });
+
+  await it('should not call core.setFailed when lgtm label exists', async () => {
+    let failedMessage = null;
+    const core = {
+      setFailed: (msg) => { failedMessage = msg; }
+    };
+
+    // The function will proceed past the label check and try to read CODEOWNERS.
+    // We let readFileSync throw to stop execution early (the point is that setFailed was NOT called).
+    const github = {
+      paginate: async () => [{ name: 'bug' }, { name: 'lgtm' }],
+      rest: {
+        issues: {
+          listLabelsForRepo: () => {}
+        }
+      }
+    };
+    const context = makeMockContext();
+    const fs = {
+      readFileSync: () => { throw new Error('stop here'); }
+    };
+
+    await run({ core, github, context, fs });
+
+    assert.equal(failedMessage, null, 'core.setFailed should not have been called when lgtm label exists');
+  });
+});
+
 console.log('All tests passed.');
