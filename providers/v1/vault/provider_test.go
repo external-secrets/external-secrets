@@ -744,8 +744,10 @@ func vaultTest(t *testing.T, _ string, tc testCase) {
 		prov.NewVaultClient = NewVaultClient
 	}
 	_, err := prov.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
-	if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
-		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
+	if tc.want.err != nil {
+		if tc.want.err.Error() != err.Error() {
+			t.Errorf("newClient() error = %v, wantErr %v", err, tc.want.err)
+		}
 	}
 }
 

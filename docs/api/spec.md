@@ -2280,8 +2280,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2307,8 +2307,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2472,8 +2472,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2499,8 +2499,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -11640,8 +11640,8 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.
-Deprecated: use serviceAccountRef.Audiences instead</p>
+Defaults to a single audience <code>vault</code> it not specified.</p>
+<p>Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -11655,8 +11655,8 @@ int64
 <em>(Optional)</em>
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
-<code>serviceAccountRef</code>.
-Deprecated: this will be removed in the future.
+<code>serviceAccountRef</code>.</p>
+<p>Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>
@@ -15843,8 +15843,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -16033,8 +16033,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -23304,8 +23304,8 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.
-Deprecated: use serviceAccountRef.Audiences instead</p>
+Defaults to a single audience <code>vault</code> it not specified.</p>
+<p>Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -23319,8 +23319,8 @@ int64
 <em>(Optional)</em>
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
-<code>serviceAccountRef</code>.
-Deprecated: this will be removed in the future.
+<code>serviceAccountRef</code>.</p>
+<p>Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>

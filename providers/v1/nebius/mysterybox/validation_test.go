@@ -304,7 +304,7 @@ func TestValidateStore_APIDomainCases(t *testing.T) {
 		nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k"}
 		return st
 	}
-	cases := []struct {
+	cases := []struct { //nolint:prealloc // struct literal with dynamic appends below
 		name   string
 		domain string
 		valid  bool
