@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -31,7 +32,6 @@ import (
 	"github.com/1Password/connect-sdk-go/connect"
 	"github.com/1Password/connect-sdk-go/onepassword"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -502,6 +502,16 @@ func (provider *ProviderOnePassword) Close(_ context.Context) error {
 	return nil
 }
 
+// nativeItemIDPattern matches a 1Password item ID per the Connect
+// server OpenAPI spec (^[\da-z]{26}$). Despite being called "UUIDs"
+// in 1Password's SDK and docs, they are not RFC 4122 UUIDs.
+// https://github.com/1Password/connect/blob/7485a59/docs/openapi/spec.yaml#L73-L75
+var nativeItemIDPattern = regexp.MustCompile(`^[\da-z]{26}$`)
+
+func isNativeItemID(s string) bool {
+	return nativeItemIDPattern.MatchString(s)
+}
+
 func (provider *ProviderOnePassword) findItem(name string) (*onepassword.Item, error) {
 	sortedVaults := sortVaults(provider.vaults)
 	for _, vaultName := range sortedVaults {
@@ -510,7 +520,7 @@ func (provider *ProviderOnePassword) findItem(name string) (*onepassword.Item, e
 			return nil, fmt.Errorf(errGetVault, err)
 		}
 
-		if strfmt.IsUUID(name) {
+		if isNativeItemID(name) {
 			return provider.client.GetItem(name, vault.ID)
 		}
 
