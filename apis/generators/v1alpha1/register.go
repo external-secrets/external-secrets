@@ -73,6 +73,8 @@ var (
 	ClusterGeneratorKind = reflect.TypeOf(ClusterGenerator{}).Name()
 	// CloudsmithAccessTokenKind is the kind name for CloudsmithAccessToken resource.
 	CloudsmithAccessTokenKind = reflect.TypeOf(CloudsmithAccessToken{}).Name()
+	// BeyondtrustSecretsDynamicSecretKind is the kind name for BeyondtrustSecretsDynamicSecret resource.
+	BeyondtrustSecretsDynamicSecretKind = reflect.TypeOf(BeyondtrustSecretsDynamicSecret{}).Name()
 )
 
 func init() {
@@ -109,4 +111,5 @@ func init() {
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
 	SchemeBuilder.Register(&MFA{}, &MFAList{})
+	SchemeBuilder.Register(&BeyondtrustSecretsDynamicSecret{}, &BeyondtrustSecretsDynamicSecretList{})
 }
