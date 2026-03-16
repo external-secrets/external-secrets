@@ -128,7 +128,7 @@ var rootCmd = &cobra.Command{
 		setupLogger()
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
-		esmetrics.SetupMetrics()
+		esmetrics.SetUpMetrics()
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
