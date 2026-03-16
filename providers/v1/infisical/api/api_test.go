@@ -157,7 +157,7 @@ func TestGetSecretsV3(t *testing.T) {
 			Secrets: secrets,
 		})
 
-		var sdkFormattedSecrets []infisical.Secret
+		sdkFormattedSecrets := make([]infisical.Secret, 0, len(secrets))
 
 		for _, secret := range secrets {
 			sdkFormattedSecrets = append(sdkFormattedSecrets, infisical.Secret{
@@ -190,7 +190,7 @@ func TestGetSecretsV3(t *testing.T) {
 		})
 		defer closeFunc()
 
-		var sdkFormattedSecrets []infisical.Secret
+		sdkFormattedSecrets := make([]infisical.Secret, 0, len(secrets))
 
 		for _, secret := range secrets {
 			sdkFormattedSecrets = append(sdkFormattedSecrets, infisical.Secret{

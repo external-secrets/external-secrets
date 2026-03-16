@@ -153,7 +153,7 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 		$(OK) Finished linting $(LINT_TARGET); \
 	else \
 		$(INFO) Running golangci-lint on all modules in parallel; \
-		JOBS=$${LINT_JOBS:-20}; \
+		JOBS=$${LINT_JOBS:-1}; \
 		TMPDIR=$$(mktemp -d); \
 		GOLANGCI=$(GOLANGCI_LINT); \
 		trap "rm -rf $$TMPDIR" EXIT; \
@@ -428,7 +428,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 LINT_TARGET ?= ""
 ## Tool Versions
-GOLANGCI_VERSION := 2.4.0
+GOLANGCI_VERSION := 2.11.3
 KUBERNETES_VERSION := 1.33.x
 TILT_VERSION := 0.33.21
 CTY_VERSION := 1.1.3

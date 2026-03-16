@@ -289,6 +289,7 @@ type VaultKubernetesServiceAccountTokenAuth struct {
 	// Optional audiences field that will be used to request a temporary Kubernetes service
 	// account token for the service account referenced by `serviceAccountRef`.
 	// Defaults to a single audience `vault` it not specified.
+	//
 	// Deprecated: use serviceAccountRef.Audiences instead
 	// +optional
 	Audiences *[]string `json:"audiences,omitempty"`
@@ -296,6 +297,7 @@ type VaultKubernetesServiceAccountTokenAuth struct {
 	// Optional expiration time in seconds that will be used to request a temporary
 	// Kubernetes service account token for the service account referenced by
 	// `serviceAccountRef`.
+	//
 	// Deprecated: this will be removed in the future.
 	// Defaults to 10 minutes.
 	// +optional

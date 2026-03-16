@@ -107,7 +107,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 	}
 
 	defaultSourceSecret := func(namespaces []v1.Namespace) []v1.Secret {
-		var result []v1.Secret
+		result := make([]v1.Secret, 0, len(namespaces))
 		for _, s := range namespaces {
 			result = append(result, v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -127,7 +127,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 		func(tc clusterPushSecretTestCase) {
 			ctx := context.Background()
 			By("creating namespaces")
-			var namespaces []v1.Namespace
+			namespaces := make([]v1.Namespace, 0, len(tc.namespaces))
 			for _, ns := range tc.namespaces {
 				err := k8sClient.Create(ctx, &ns)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -176,7 +176,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPSs := tc.expectedPushSecrets(namespaces, pes)
 
 			Eventually(func(g Gomega) {
-				var gotESs []v1alpha1.PushSecret
+				var gotESs []v1alpha1.PushSecret //nolint:prealloc // size unknown before loop
 				for _, ns := range namespaces {
 					var pushSecrets v1alpha1.PushSecretList
 					err := k8sClient.List(ctx, &pushSecrets, crclient.InNamespace(ns.Name))
