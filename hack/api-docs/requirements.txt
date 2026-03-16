@@ -35,7 +35,7 @@ regex==2026.2.28
 requests==2.32.5
 six==1.17.0
 termcolor==3.3.0
-tornado==6.5.4
+tornado==6.5.5
 urllib3==2.6.3
 verspec==0.1.0
 watchdog==6.0.0
