@@ -68,10 +68,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, fmt.Errorf(errMissingField, errors.New("authURL is required"))
 	}
 
-	authType := esv1.BarbicanAuthTypePassword
-	if provider.Auth.AuthType != nil {
-		authType = *provider.Auth.AuthType
-	}
+	authType := resolveAuthType(provider.Auth)
 
 	switch authType {
 	case esv1.BarbicanAuthTypePassword:
@@ -83,11 +80,21 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 }
 
+func resolveAuthType(auth esv1.BarbicanAuth) esv1.BarbicanAuthType {
+	if auth.AuthType != nil {
+		return *auth.AuthType
+	}
+	return esv1.BarbicanAuthTypePassword
+}
+
 func validatePasswordAuth(auth esv1.BarbicanAuth) error {
+	if auth.Username == nil {
+		return fmt.Errorf(errMissingField, errors.New("username is required for password auth"))
+	}
 	if auth.Username.Value == "" && auth.Username.SecretRef == nil {
 		return fmt.Errorf(errMissingField, errors.New("username must specify either value or secretRef"))
 	}
-	if auth.Password.SecretRef == nil {
+	if auth.Password == nil || auth.Password.SecretRef == nil {
 		return fmt.Errorf(errMissingField, errors.New("password secretRef is required"))
 	}
 	return nil
@@ -129,10 +136,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return nil, fmt.Errorf(errMissingField, errors.New("authURL is required"))
 	}
 
-	authType := esv1.BarbicanAuthTypePassword
-	if provider.Auth.AuthType != nil {
-		authType = *provider.Auth.AuthType
-	}
+	authType := resolveAuthType(provider.Auth)
 
 	var authopts gophercloud.AuthOptions
 	switch authType {
@@ -163,6 +167,13 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 }
 
 func buildPasswordAuthOpts(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, provider *esv1.BarbicanProvider) (gophercloud.AuthOptions, error) {
+	if provider.Auth.Username == nil {
+		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("username is required"))
+	}
+	if provider.Auth.Password == nil {
+		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("password is required"))
+	}
+
 	username := provider.Auth.Username.Value
 	var err error
 
@@ -175,7 +186,7 @@ func buildPasswordAuthOpts(ctx context.Context, store esv1.GenericStore, kube cl
 			return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)
 		}
 	}
-    if provider.Auth.Password.SecretRef == nil {
+	if provider.Auth.Password.SecretRef == nil {
 		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("password.secretRef is required"))
 	}
 	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.Password.SecretRef)

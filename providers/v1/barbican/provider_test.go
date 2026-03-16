@@ -111,7 +111,7 @@ func TestValidateStore(t *testing.T) {
 			name:        "password auth missing username should return error",
 			store:       makeSecretStorePasswordNoUsername(),
 			expectError: true,
-			errorMsg:    "username must specify either value or secretRef",
+			errorMsg:    "username is required for password auth",
 		},
 		{
 			name:        "password auth missing password should return error",
@@ -409,13 +409,13 @@ func makeValidSecretStore() *esv1.SecretStore {
 					DomainName: testDomainName,
 					Region:     testRegion,
 					Auth: esv1.BarbicanAuth{
-						Username: esv1.BarbicanProviderUsernameRef{
+						Username: &esv1.BarbicanProviderUsernameRef{
 							SecretRef: &esmeta.SecretKeySelector{
 								Name: testSecretName,
 								Key:  "username",
 							},
 						},
-						Password: esv1.BarbicanProviderPasswordRef{
+						Password: &esv1.BarbicanProviderPasswordRef{
 							SecretRef: &esmeta.SecretKeySelector{
 								Name: testSecretName,
 								Key:  "password",
@@ -778,14 +778,14 @@ func TestBuildAppCredAuthOpts(t *testing.T) {
 // Helper: password auth store with no username (empty value, nil secretRef).
 func makeSecretStorePasswordNoUsername() *esv1.SecretStore {
 	store := makeValidSecretStore()
-	store.Spec.Provider.Barbican.Auth.Username = esv1.BarbicanProviderUsernameRef{}
+	store.Spec.Provider.Barbican.Auth.Username = nil
 	return store
 }
 
 // Helper: password auth store with no password secretRef.
 func makeSecretStorePasswordNoPassword() *esv1.SecretStore {
 	store := makeValidSecretStore()
-	store.Spec.Provider.Barbican.Auth.Password = esv1.BarbicanProviderPasswordRef{}
+	store.Spec.Provider.Barbican.Auth.Password = nil
 	return store
 }
 

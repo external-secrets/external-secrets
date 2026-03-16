@@ -81,9 +81,9 @@ type BarbicanAuth struct {
 
 	// Username / Password authentication fields.
 	// +optional
-	Username BarbicanProviderUsernameRef `json:"username,omitempty"`
+	Username *BarbicanProviderUsernameRef `json:"username,omitempty"`
 	// +optional
-	Password BarbicanProviderPasswordRef `json:"password,omitempty"`
+	Password *BarbicanProviderPasswordRef `json:"password,omitempty"`
 
 	// Application Credential authentication fields.
 	// +optional

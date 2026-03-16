@@ -435,8 +435,16 @@ func (in *BarbicanAuth) DeepCopyInto(out *BarbicanAuth) {
 		*out = new(BarbicanAuthType)
 		**out = **in
 	}
-	in.Username.DeepCopyInto(&out.Username)
-	in.Password.DeepCopyInto(&out.Password)
+	if in.Username != nil {
+		in, out := &in.Username, &out.Username
+		*out = new(BarbicanProviderUsernameRef)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.Password != nil {
+		in, out := &in.Password, &out.Password
+		*out = new(BarbicanProviderPasswordRef)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.ApplicationCredentialID != nil {
 		in, out := &in.ApplicationCredentialID, &out.ApplicationCredentialID
 		*out = new(BarbicanProviderAppCredIDRef)
