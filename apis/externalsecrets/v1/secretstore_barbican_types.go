@@ -66,9 +66,15 @@ type BarbicanProvider struct {
 }
 
 // BarbicanAuth contains the authentication information for Barbican.
-// +kubebuilder:validation:XValidation:rule="self.authType != 'password' || (has(self.username) && has(self.password))",message="password auth requires both username and password"
+// +kubebuilder:validation:XValidation:rule="(has(self.authType) && self.authType == 'applicationCredential') || (has(self.username) && has(self.password))",message="password auth requires both username and password"
 // +kubebuilder:validation:XValidation:rule="self.authType != 'applicationCredential' || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))",message="applicationCredential auth requires both applicationCredentialID and applicationCredentialSecret"
+// +kubebuilder:validation:XValidation:rule="(has(self.authType) && self.authType == 'applicationCredential') || (!has(self.applicationCredentialID) && !has(self.applicationCredentialSecret))",message="password auth should not include applicationCredential fields"
+// +kubebuilder:validation:XValidation:rule="self.authType != 'applicationCredential' || (!has(self.username) && !has(self.password))",message="applicationCredential auth should not include password fields"
 type BarbicanAuth struct {
+	// AuthType selects how Barbican authenticates.
+	// - "password": use username and password.
+	// - "applicationCredential": use application credential ID and secret.
+	// Defaults to "password".
 	// +optional
 	// +kubebuilder:default="password"
 	AuthType *BarbicanAuthType `json:"authType,omitempty"`

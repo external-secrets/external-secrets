@@ -40,6 +40,11 @@ const (
 
 var _ esv1.Provider = &Provider{}
 
+var (
+	authenticatedClient = openstack.AuthenticatedClient
+	newKeyManagerV1     = openstack.NewKeyManagerV1
+)
+
 // Provider implements the Barbican provider.
 type Provider struct{}
 
@@ -142,12 +147,12 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return nil, err
 	}
 
-	auth, err := openstack.AuthenticatedClient(ctx, authopts)
+	auth, err := authenticatedClient(ctx, authopts)
 	if err != nil {
 		return nil, fmt.Errorf(errAuthFailed, err)
 	}
 
-	barbicanClient, err := openstack.NewKeyManagerV1(auth, gophercloud.EndpointOpts{
+	barbicanClient, err := newKeyManagerV1(auth, gophercloud.EndpointOpts{
 		Region: provider.Region,
 	})
 	if err != nil {
