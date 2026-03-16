@@ -268,7 +268,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 			os.Exit(1)
 		}
-		
+
 		if enablePushSecretReconciler {
 			psmetrics.SetUpMetrics()
 			if err = (&pushsecret.Reconciler{
