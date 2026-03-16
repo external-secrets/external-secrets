@@ -174,7 +174,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 
 	selected := map[string][]byte{}
 	for _, secret := range secrets {
-		if (matcher != nil && !matcher.MatchName(secret.SecretKey)) || (ref.Path != nil && !strings.HasPrefix(secret.SecretKey, *ref.Path)) {
+		if (matcher != nil && !matcher.MatchName(secret.SecretKey)) || (ref.Path != nil && !strings.HasPrefix(secret.SecretPath, *ref.Path)) {
 			continue
 		}
 		selected[secret.SecretKey] = []byte(secret.SecretValue)
