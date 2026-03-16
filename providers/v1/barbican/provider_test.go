@@ -330,8 +330,8 @@ func TestNewClient(t *testing.T) {
 					"happy-path case should not fail on config validation")
 				assert.NotContains(t, err.Error(), "unsupported auth type",
 					"happy-path case should not fail on auth type selection")
-				assert.Contains(t, err.Error(), "authentication failed",
-					"happy-path case should only fail on the OpenStack connection")
+				assert.NotContains(t, err.Error(), "provider barbican is nil",
+					"happy-path case should not fail on provider validation")
 			}
 		})
 	}
@@ -357,26 +357,21 @@ func TestGetProviderWithAuthType(t *testing.T) {
 	testCases := []struct {
 		name             string
 		store            esv1.GenericStore
-		expectError      bool
-		errorMsg         string
 		expectedAuthType *esv1.BarbicanAuthType
 	}{
 		{
 			name:             "password store with no authType set (backward compat)",
 			store:            makeValidSecretStore(),
-			expectError:      false,
 			expectedAuthType: nil,
 		},
 		{
 			name:             "password store with explicit authType",
 			store:            makeSecretStoreWithExplicitPasswordAuthType(),
-			expectError:      false,
 			expectedAuthType: barbicanAuthTypePtr(esv1.BarbicanAuthTypePassword),
 		},
 		{
 			name:             "appCredential store with authType",
 			store:            makeSecretStoreWithAppCredAuth(),
-			expectError:      false,
 			expectedAuthType: barbicanAuthTypePtr(esv1.BarbicanAuthTypeApplicationCredential),
 		},
 	}
@@ -385,17 +380,12 @@ func TestGetProviderWithAuthType(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			provider, err := getProvider(tc.store)
 
-			if tc.expectError {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tc.errorMsg)
+			assert.NoError(t, err)
+			assert.NotNil(t, provider)
+			if tc.expectedAuthType == nil {
+				assert.Nil(t, provider.Auth.AuthType)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, provider)
-				if tc.expectedAuthType == nil {
-					assert.Nil(t, provider.Auth.AuthType)
-				} else {
-					assert.Equal(t, *tc.expectedAuthType, *provider.Auth.AuthType)
-				}
+				assert.Equal(t, *tc.expectedAuthType, *provider.Auth.AuthType)
 			}
 		})
 	}

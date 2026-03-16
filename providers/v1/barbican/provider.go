@@ -70,27 +70,35 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	switch authType {
 	case esv1.BarbicanAuthTypePassword:
-		if provider.Auth.Username.Value == "" && provider.Auth.Username.SecretRef == nil {
-			return nil, fmt.Errorf(errMissingField, errors.New("username must specify either value or secretRef"))
-		}
-		if provider.Auth.Password.SecretRef == nil {
-			return nil, fmt.Errorf(errMissingField, errors.New("password secretRef is required"))
-		}
+		return nil, validatePasswordAuth(provider.Auth)
 	case esv1.BarbicanAuthTypeApplicationCredential:
-		if provider.Auth.ApplicationCredentialID == nil {
-			return nil, fmt.Errorf(errMissingField, errors.New("applicationCredentialID is required for applicationCredential auth"))
-		}
-		if provider.Auth.ApplicationCredentialID.Value == "" && provider.Auth.ApplicationCredentialID.SecretRef == nil {
-			return nil, fmt.Errorf(errMissingField, errors.New("applicationCredentialID must specify either value or secretRef"))
-		}
-		if provider.Auth.ApplicationCredentialSecret == nil || provider.Auth.ApplicationCredentialSecret.SecretRef == nil {
-			return nil, fmt.Errorf(errMissingField, errors.New("applicationCredentialSecret secretRef is required for applicationCredential auth"))
-		}
+		return nil, validateAppCredAuth(provider.Auth)
 	default:
 		return nil, fmt.Errorf(errUnsupportedAuth, authType)
 	}
+}
 
-	return nil, nil
+func validatePasswordAuth(auth esv1.BarbicanAuth) error {
+	if auth.Username.Value == "" && auth.Username.SecretRef == nil {
+		return fmt.Errorf(errMissingField, errors.New("username must specify either value or secretRef"))
+	}
+	if auth.Password.SecretRef == nil {
+		return fmt.Errorf(errMissingField, errors.New("password secretRef is required"))
+	}
+	return nil
+}
+
+func validateAppCredAuth(auth esv1.BarbicanAuth) error {
+	if auth.ApplicationCredentialID == nil {
+		return fmt.Errorf(errMissingField, errors.New("applicationCredentialID is required for applicationCredential auth"))
+	}
+	if auth.ApplicationCredentialID.Value == "" && auth.ApplicationCredentialID.SecretRef == nil {
+		return fmt.Errorf(errMissingField, errors.New("applicationCredentialID must specify either value or secretRef"))
+	}
+	if auth.ApplicationCredentialSecret == nil || auth.ApplicationCredentialSecret.SecretRef == nil {
+		return fmt.Errorf(errMissingField, errors.New("applicationCredentialSecret secretRef is required for applicationCredential auth"))
+	}
+	return nil
 }
 
 // NewClient creates a new Barbican client.
@@ -154,12 +162,17 @@ func buildPasswordAuthOpts(ctx context.Context, store esv1.GenericStore, kube cl
 	var err error
 
 	if username == "" {
+		if provider.Auth.Username.SecretRef == nil {
+			return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("username.secretRef is required when value is empty"))
+		}
 		username, err = resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.Username.SecretRef)
 		if err != nil {
 			return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)
 		}
 	}
-
+    if provider.Auth.Password.SecretRef == nil {
+		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, errors.New("password.secretRef is required"))
+	}
 	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, provider.Auth.Password.SecretRef)
 	if err != nil {
 		return gophercloud.AuthOptions{}, fmt.Errorf(errMissingField, err)

@@ -3013,6 +3013,11 @@ spec:
                                   type: string
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: password auth requires both username and password
+                              rule: self.authType != 'password' || (has(self.username) && has(self.password))
+                            - message: applicationCredential auth requires both applicationCredentialID and applicationCredentialSecret
+                              rule: self.authType != 'applicationCredential' || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))
                         authURL:
                           type: string
                         domainName:
@@ -14850,6 +14855,11 @@ spec:
                                   type: string
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: password auth requires both username and password
+                              rule: self.authType != 'password' || (has(self.username) && has(self.password))
+                            - message: applicationCredential auth requires both applicationCredentialID and applicationCredentialSecret
+                              rule: self.authType != 'applicationCredential' || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))
                         authURL:
                           type: string
                         domainName:
