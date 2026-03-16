@@ -85,7 +85,7 @@ type BarbicanAuth struct {
 	// +optional
 	Password *BarbicanProviderPasswordRef `json:"password,omitempty"`
 
-	// Application Credential authentication fields.
+	// ID of the application credential used for authentication (e.g., UUID or name).
 	// +optional
 	ApplicationCredentialID *BarbicanProviderAppCredIDRef `json:"applicationCredentialID,omitempty"`
 	// +optional

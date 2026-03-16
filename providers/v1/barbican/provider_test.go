@@ -430,7 +430,9 @@ func makeValidSecretStore() *esv1.SecretStore {
 
 func makeSecretStoreWithValueUsername() *esv1.SecretStore {
 	store := makeValidSecretStore()
-	store.Spec.Provider.Barbican.Auth.Username.Value = testUsername
+	store.Spec.Provider.Barbican.Auth.Username = &esv1.BarbicanProviderUsernameRef{
+		Value: testUsername,
+	}
 	return store
 }
 
@@ -540,7 +542,9 @@ func makeSecretStoreWithAppCredAuth() *esv1.SecretStore {
 // Helper: application credential auth store with inline value for appCredID.
 func makeSecretStoreWithAppCredValueID() *esv1.SecretStore {
 	store := makeSecretStoreWithAppCredAuth()
-	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID.Value = testAppCredID
+	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID = &esv1.BarbicanProviderAppCredIDRef{
+		Value: testAppCredID,
+	}
 	return store
 }
 
@@ -614,6 +618,62 @@ func makeValidAppCredSecretWithDifferentID() *corev1.Secret {
 	}
 }
 
+// Helper: k8s secret with empty username value.
+func makeSecretWithEmptyUsername() *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testSecretName,
+			Namespace: testNamespace,
+		},
+		Data: map[string][]byte{
+			"username": []byte(""),
+			"password": []byte(testPassword),
+		},
+	}
+}
+
+// Helper: k8s secret with empty password value.
+func makeSecretWithEmptyPassword() *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testSecretName,
+			Namespace: testNamespace,
+		},
+		Data: map[string][]byte{
+			"username": []byte(testUsername),
+			"password": []byte(""),
+		},
+	}
+}
+
+// Helper: k8s secret with empty app-cred-id value.
+func makeAppCredSecretWithEmptyID() *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppCredSecName,
+			Namespace: testNamespace,
+		},
+		Data: map[string][]byte{
+			"app-cred-id":     []byte(""),
+			"app-cred-secret": []byte(testAppCredSecret),
+		},
+	}
+}
+
+// Helper: k8s secret with empty app-cred-secret value.
+func makeAppCredSecretWithEmptySecret() *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppCredSecName,
+			Namespace: testNamespace,
+		},
+		Data: map[string][]byte{
+			"app-cred-id":     []byte(testAppCredID),
+			"app-cred-secret": []byte(""),
+		},
+	}
+}
+
 // Helper: k8s secret with app credential ID but missing app credential secret.
 func makeAppCredSecretWithMissingSecret() *corev1.Secret {
 	return &corev1.Secret{
@@ -670,6 +730,20 @@ func TestBuildPasswordAuthOpts(t *testing.T) {
 			expectError: true,
 			errorMsg:    "missing required field",
 		},
+		{
+			name:        "empty username in secret returns error",
+			store:       makeValidSecretStore(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeSecretWithEmptyUsername()),
+			expectError: true,
+			errorMsg:    "username secret value is empty",
+		},
+		{
+			name:        "empty password in secret returns error",
+			store:       makeValidSecretStore(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeSecretWithEmptyPassword()),
+			expectError: true,
+			errorMsg:    "password secret value is empty",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -725,21 +799,21 @@ func TestBuildAppCredAuthOpts(t *testing.T) {
 			store:       makeSecretStoreAppCredNoID(),
 			kube:        clientfake.NewClientBuilder(),
 			expectError: true,
-			errorMsg:    "applicationCredentialID is required",
+			errorMsg:    "applicationCredentialID is required for applicationCredential auth",
 		},
 		{
 			name:        "nil applicationCredentialSecret returns error",
 			store:       makeSecretStoreAppCredNoSecret(),
 			kube:        clientfake.NewClientBuilder(),
 			expectError: true,
-			errorMsg:    "applicationCredentialSecret is required",
+			errorMsg:    "applicationCredentialSecret secretRef is required for applicationCredential auth",
 		},
 		{
 			name:        "appCredID with no value and no secretRef returns error",
 			store:       makeSecretStoreAppCredEmptyID(),
 			kube:        clientfake.NewClientBuilder(),
 			expectError: true,
-			errorMsg:    "applicationCredentialID.secretRef is required when value is empty",
+			errorMsg:    "applicationCredentialID must specify either value or secretRef",
 		},
 		{
 			name:        "missing appCredID secret object returns error",
@@ -754,6 +828,20 @@ func TestBuildAppCredAuthOpts(t *testing.T) {
 			kube:        clientfake.NewClientBuilder().WithObjects(makeAppCredSecretWithMissingSecret()),
 			expectError: true,
 			errorMsg:    "missing required field",
+		},
+		{
+			name:        "empty appCredID in secret returns error",
+			store:       makeSecretStoreWithAppCredAuth(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeAppCredSecretWithEmptyID()),
+			expectError: true,
+			errorMsg:    "applicationCredentialID secret value is empty",
+		},
+		{
+			name:        "empty appCredSecret in secret returns error",
+			store:       makeSecretStoreWithAppCredAuth(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeAppCredSecretWithEmptySecret()),
+			expectError: true,
+			errorMsg:    "applicationCredentialSecret secret value is empty",
 		},
 	}
 
