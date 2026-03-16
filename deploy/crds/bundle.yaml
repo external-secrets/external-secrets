@@ -12074,6 +12074,9 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
+        - jsonPath: .status.refreshTime
+          name: Last Sync
+          type: date
       name: v1
       schema:
         openAPIV3Schema:
@@ -12764,6 +12767,9 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
+        - jsonPath: .status.refreshTime
+          name: Last Sync
+          type: date
       deprecated: true
       name: v1beta1
       schema:
@@ -13389,6 +13395,9 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+        - jsonPath: .status.refreshTime
+          name: Last Sync
+          type: date
       name: v1alpha1
       schema:
         openAPIV3Schema:
