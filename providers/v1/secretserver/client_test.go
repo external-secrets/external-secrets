@@ -159,7 +159,7 @@ func createEmptyFieldsSecret(id int) *server.Secret {
 
 func newTestClient(t *testing.T) esv1.SecretsClient {
 	// Build secrets list while handling any errors from createSecret
-	var secrets []*server.Secret
+	var secrets []*server.Secret //nolint:prealloc // populated incrementally
 
 	s, err := createSecret(1000, "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}")
 	require.NoError(t, err)

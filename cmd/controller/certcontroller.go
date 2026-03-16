@@ -52,7 +52,7 @@ var certcontrollerCmd = &cobra.Command{
 
 		// completely disable caching of Secrets and ConfigMaps to save memory
 		// see: https://github.com/external-secrets/external-secrets/issues/721
-		clientCacheDisableFor := make([]client.Object, 0)
+		clientCacheDisableFor := make([]client.Object, 0, 2)
 		clientCacheDisableFor = append(clientCacheDisableFor, &v1.Secret{}, &v1.ConfigMap{})
 
 		// in large clusters, the CRDs and ValidatingWebhookConfigurations can take up a lot of memory
