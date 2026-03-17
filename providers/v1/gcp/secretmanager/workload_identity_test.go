@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -193,10 +193,10 @@ func TestWorkloadIdentity(t *testing.T) {
 }
 
 func TestClusterProjectID(t *testing.T) {
-	clusterID, err := clusterProjectID(defaultStore().GetSpec())
+	clusterID, err := clusterProjectID(t.Context(), defaultStore().GetSpec())
 	assert.Nil(t, err)
 	assert.Equal(t, clusterID, "1234")
-	externalClusterID, err := clusterProjectID(defaultExternalStore().GetSpec())
+	externalClusterID, err := clusterProjectID(t.Context(), defaultExternalStore().GetSpec())
 	assert.Nil(t, err)
 	assert.Equal(t, externalClusterID, "5678")
 }
