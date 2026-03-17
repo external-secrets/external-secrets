@@ -39,6 +39,10 @@ const (
 	errMsgNoMatchingSecrets = "no matching secrets"
 	// errMsgNotFound is returned when a secret is not found in a specific folder.
 	errMsgNotFound = "not found"
+
+	// folderPrefix is the prefix used to encode a folder ID in a remote key.
+	// Format: "folderId:<id>/<name>" (e.g. "folderId:73/my-secret").
+	folderPrefix = "folderId:"
 )
 
 // isNotFoundError checks if an error indicates a secret was not found.
@@ -49,6 +53,40 @@ func isNotFoundError(err error) bool {
 	}
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, errMsgNoMatchingSecrets) || strings.Contains(msg, errMsgNotFound)
+}
+
+// parseFolderPrefix extracts a folder ID and secret name from a key with the
+// format "folderId:<id>/<name>".  If the key does not match the prefix format,
+// it returns (0, key, false) so callers can fall through to other resolution
+// strategies.
+func parseFolderPrefix(key string) (folderID int, name string, hasFolderPrefix bool) {
+	if !strings.HasPrefix(key, folderPrefix) {
+		return 0, key, false
+	}
+
+	rest := strings.TrimPrefix(key, folderPrefix) // "<id>/<name>"
+
+	slashIdx := strings.Index(rest, "/")
+	if slashIdx < 0 {
+		// "folderId:73" with no slash/name — treat as not having the prefix.
+		return 0, key, false
+	}
+
+	idStr := rest[:slashIdx]
+	secretName := rest[slashIdx+1:]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		// Non-numeric or non-positive folder ID — treat as not having the prefix.
+		return 0, key, false
+	}
+
+	if secretName == "" {
+		// "folderId:73/" with empty name — treat as not having the prefix.
+		return 0, key, false
+	}
+
+	return id, secretName, true
 }
 
 // PushSecretMetadataSpec contains metadata information for pushing secrets to Delinea Secret Server.
@@ -138,10 +176,15 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 
-	// Look up the secret to see if it exists
+	// Look up the secret to see if it exists.
+	// A folderId encoded in the remoteKey takes precedence over metadata for
+	// lookups (delete and existence-check never see metadata).
 	folderID := 0
 	if meta != nil {
 		folderID = meta.Spec.FolderID
+	}
+	if prefixFolderID, _, ok := parseFolderPrefix(data.GetRemoteKey()); ok {
+		folderID = prefixFolderID
 	}
 
 	existingSecret, err := c.findExistingSecret(ctx, data.GetRemoteKey(), folderID)
@@ -205,6 +248,12 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 
 	if strings.HasSuffix(name, "/") {
 		return fmt.Errorf("invalid secret name %q: name must not be empty or end with a trailing slash", name)
+	}
+
+	// Strip the "folderId:<id>/" prefix if present so the secret is created
+	// with just the plain name.  The folder is already specified in meta.FolderID.
+	if _, stripped, ok := parseFolderPrefix(name); ok {
+		name = stripped
 	}
 
 	normalizedName := strings.TrimPrefix(name, "/")
@@ -345,16 +394,24 @@ func (c *client) findExistingSecret(_ context.Context, key string, folderID int)
 	return c.lookupSecret(key, folderID)
 }
 
-// lookupSecret resolves a secret by path ("/..."), numeric ID, or name.
-// The folderID scopes name-based lookups (0 = any folder).
+// lookupSecret resolves a secret by path ("/..."), numeric ID, folder-scoped
+// name ("folderId:<id>/<name>"), or plain name.
+// The folderID scopes name-based lookups (0 = any folder).  A folder prefix
+// encoded in the key takes precedence over the folderID argument.
 func (c *client) lookupSecret(key string, folderID int) (*server.Secret, error) {
-	// Path-based key: fully qualified, no disambiguation needed.
+	// 1. Folder-scoped prefix: "folderId:<id>/<name>" — override folderID and
+	//    resolve by name within the specified folder.
+	if prefixFolderID, name, ok := parseFolderPrefix(key); ok {
+		return c.getSecretByName(name, prefixFolderID)
+	}
+
+	// 2. Path-based key: fully qualified, no disambiguation needed.
 	if strings.HasPrefix(key, "/") {
 		return c.api.SecretByPath(key)
 	}
 
-	// Numeric key: treat as ID first; fall back to name-based lookup so that
-	// secrets whose name happens to be a numeric string can still be resolved.
+	// 3. Numeric key: treat as ID first; fall back to name-based lookup so that
+	//    secrets whose name happens to be a numeric string can still be resolved.
 	if id, err := strconv.Atoi(key); err == nil {
 		secret, err := c.api.Secret(id)
 		if err == nil && secret != nil {

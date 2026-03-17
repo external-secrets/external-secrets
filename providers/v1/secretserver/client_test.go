@@ -1090,3 +1090,253 @@ func TestPushSecretInvalidPathKeys(t *testing.T) {
 		})
 	}
 }
+
+// TestParseFolderPrefix tests the parseFolderPrefix helper function.
+func TestParseFolderPrefix(t *testing.T) {
+	testCases := map[string]struct {
+		key              string
+		wantFolderID     int
+		wantName         string
+		wantHasFolderPfx bool
+	}{
+		"valid prefix": {
+			key:              "folderId:73/my-secret",
+			wantFolderID:     73,
+			wantName:         "my-secret",
+			wantHasFolderPfx: true,
+		},
+		"valid prefix with large folder ID": {
+			key:              "folderId:99999/secret-name",
+			wantFolderID:     99999,
+			wantName:         "secret-name",
+			wantHasFolderPfx: true,
+		},
+		"valid prefix with name containing slashes": {
+			key:              "folderId:73/sub/path/secret",
+			wantFolderID:     73,
+			wantName:         "sub/path/secret",
+			wantHasFolderPfx: true,
+		},
+		"no prefix - plain name": {
+			key:              "my-secret",
+			wantFolderID:     0,
+			wantName:         "my-secret",
+			wantHasFolderPfx: false,
+		},
+		"no prefix - numeric key": {
+			key:              "12345",
+			wantFolderID:     0,
+			wantName:         "12345",
+			wantHasFolderPfx: false,
+		},
+		"no prefix - path key": {
+			key:              "/Folder/SecretName",
+			wantFolderID:     0,
+			wantName:         "/Folder/SecretName",
+			wantHasFolderPfx: false,
+		},
+		"prefix without slash": {
+			key:              "folderId:73",
+			wantFolderID:     0,
+			wantName:         "folderId:73",
+			wantHasFolderPfx: false,
+		},
+		"prefix with empty name": {
+			key:              "folderId:73/",
+			wantFolderID:     0,
+			wantName:         "folderId:73/",
+			wantHasFolderPfx: false,
+		},
+		"prefix with non-numeric ID": {
+			key:              "folderId:abc/my-secret",
+			wantFolderID:     0,
+			wantName:         "folderId:abc/my-secret",
+			wantHasFolderPfx: false,
+		},
+		"prefix with zero ID": {
+			key:              "folderId:0/my-secret",
+			wantFolderID:     0,
+			wantName:         "folderId:0/my-secret",
+			wantHasFolderPfx: false,
+		},
+		"prefix with negative ID": {
+			key:              "folderId:-1/my-secret",
+			wantFolderID:     0,
+			wantName:         "folderId:-1/my-secret",
+			wantHasFolderPfx: false,
+		},
+		"empty key": {
+			key:              "",
+			wantFolderID:     0,
+			wantName:         "",
+			wantHasFolderPfx: false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			folderID, secretName, hasFolderPrefix := parseFolderPrefix(tc.key)
+			assert.Equal(t, tc.wantFolderID, folderID)
+			assert.Equal(t, tc.wantName, secretName)
+			assert.Equal(t, tc.wantHasFolderPfx, hasFolderPrefix)
+		})
+	}
+}
+
+// TestPushSecretWithFolderPrefix tests PushSecret with the "folderId:<id>/<name>" key format.
+func TestPushSecretWithFolderPrefix(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient(t)
+
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"my-key": []byte("folder-prefix-value"),
+		},
+	}
+
+	metadataJSON := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 5, "secretTemplateId": 1}}`),
+	}
+
+	// Update an existing secret using folderId prefix — should target folder 5 (ID 9001)
+	dataUpdate := fakePushSecretData{
+		remoteKey: "folderId:5/FolderSecretname",
+		property:  "password",
+		secretKey: "my-key",
+		metadata:  &metadataJSON,
+	}
+	err := c.PushSecret(ctx, secret, dataUpdate)
+	assert.NoError(t, err)
+
+	// Verify only the secret in folder 5 was updated
+	s9001, _ := c.(*client).api.Secret(9001)
+	s9000, _ := c.(*client).api.Secret(9000)
+	var s9001PW, s9000PW string
+	for _, f := range s9001.Fields {
+		if f.Slug == passwordSlug {
+			s9001PW = f.ItemValue
+		}
+	}
+	for _, f := range s9000.Fields {
+		if f.Slug == passwordSlug {
+			s9000PW = f.ItemValue
+		}
+	}
+	assert.Equal(t, "folder-prefix-value", s9001PW)
+	assert.Equal(t, "passwordvalue", s9000PW) // Unchanged
+
+	// Create a new secret using folderId prefix
+	metadataCreate := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 42, "secretTemplateId": 1}}`),
+	}
+	dataCreate := fakePushSecretData{
+		remoteKey: "folderId:42/brand-new-secret",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &metadataCreate,
+	}
+	err = c.PushSecret(ctx, secret, dataCreate)
+	assert.NoError(t, err)
+
+	// Verify the created secret has the plain name (prefix stripped)
+	foundSecrets, _ := c.(*client).api.Secrets("brand-new-secret", "Name")
+	assert.Len(t, foundSecrets, 1)
+	assert.Equal(t, "brand-new-secret", foundSecrets[0].Name)
+	assert.Equal(t, 42, foundSecrets[0].FolderID)
+
+	// Test precedence: remoteKey folderId overrides metadata folderId for lookups.
+	// Metadata says folderId:4, but remoteKey says folderId:5 — should target folder 5.
+	metadataFolder4 := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 4, "secretTemplateId": 1}}`),
+	}
+	dataPrecedence := fakePushSecretData{
+		remoteKey: "folderId:5/FolderSecretname",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &metadataFolder4,
+	}
+	err = c.PushSecret(ctx, secret, dataPrecedence)
+	assert.NoError(t, err)
+
+	// Verify the secret in folder 5 was updated (not folder 4)
+	s9001, _ = c.(*client).api.Secret(9001)
+	var s9001User string
+	for _, f := range s9001.Fields {
+		if f.Slug == usernameSlug {
+			s9001User = f.ItemValue
+		}
+	}
+	assert.Equal(t, "folder-prefix-value", s9001User)
+}
+
+// TestDeleteSecretWithFolderPrefix tests that DeleteSecret correctly uses the
+// folderId prefix in the remote key to target the right secret.
+func TestDeleteSecretWithFolderPrefix(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient(t)
+
+	// Both secrets 9000 (folder 4) and 9001 (folder 5) have name "FolderSecretname".
+	// Delete only the one in folder 5.
+	ref := fakePushSecretRemoteRef{
+		remoteKey: "folderId:5/FolderSecretname",
+	}
+
+	// Should exist initially
+	exists, err := c.SecretExists(ctx, ref)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	// Delete it
+	err = c.DeleteSecret(ctx, ref)
+	assert.NoError(t, err)
+
+	// Should not exist now
+	exists, err = c.SecretExists(ctx, ref)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	// The secret in folder 4 should still exist
+	refFolder4 := fakePushSecretRemoteRef{
+		remoteKey: "folderId:4/FolderSecretname",
+	}
+	exists, err = c.SecretExists(ctx, refFolder4)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+}
+
+// TestSecretExistsWithFolderPrefix tests that SecretExists correctly uses the
+// folderId prefix in the remote key.
+func TestSecretExistsWithFolderPrefix(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient(t)
+
+	testCases := map[string]struct {
+		ref  esv1.PushSecretRemoteRef
+		want bool
+	}{
+		"existing secret in folder 4": {
+			ref:  fakePushSecretRemoteRef{remoteKey: "folderId:4/FolderSecretname"},
+			want: true,
+		},
+		"existing secret in folder 5": {
+			ref:  fakePushSecretRemoteRef{remoteKey: "folderId:5/FolderSecretname"},
+			want: true,
+		},
+		"non-existing secret in wrong folder": {
+			ref:  fakePushSecretRemoteRef{remoteKey: "folderId:99/FolderSecretname"},
+			want: false,
+		},
+		"non-existing secret name": {
+			ref:  fakePushSecretRemoteRef{remoteKey: "folderId:4/does-not-exist"},
+			want: false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := c.SecretExists(ctx, tc.ref)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
