@@ -176,18 +176,18 @@ spec:
         remoteRef:
           remoteKey: my-remote-secret
           property: password
-  metadata:
-    resourcePolicy:
-      blockPublicPolicy: true
-      policySourceRef:
-        kind: ConfigMap
-        name: my-secret-resource-policy
-        key: policy.json
-    kmsKeyID: bb123123-b2b0-4f60-ac3a-44a13f0e6b6c
-    secretPushFormat: string
-    description: "Cross-account accessible secret"
-    tags:
-      team: platform-engineering
+      metadata:
+        resourcePolicy:
+          blockPublicPolicy: true
+          policySourceRef:
+            kind: ConfigMap
+            name: my-secret-resource-policy
+            key: policy.json
+        kmsKeyID: bb123123-b2b0-4f60-ac3a-44a13f0e6b6c
+        secretPushFormat: string
+        description: "Cross-account accessible secret"
+        tags:
+          team: platform-engineering
 ```
 
 The ConfigMap should contain the policy JSON:

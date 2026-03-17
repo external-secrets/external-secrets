@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/runtime
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.1-0.20241028115027-8cb06fe3c8b0
