@@ -48,6 +48,7 @@ var tplFuncs = tpl.FuncMap{
 
 	"filterPEM":       filterPEM,
 	"filterCertChain": filterCertChain,
+	"certSANs":        certSANs,
 
 	"jwkPublicKeyPem":  jwkPublicKeyPem,
 	"jwkPrivateKeyPem": jwkPrivateKeyPem,
