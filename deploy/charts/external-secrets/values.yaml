@@ -394,7 +394,7 @@ readinessProbe:
       # @schema type: [string, integer]
       port: live
       # -- Path for readiness probe.
-      path: /healthz
+      path: /readyz
 
 nodeSelector: {}
 
