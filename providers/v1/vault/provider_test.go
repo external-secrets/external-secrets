@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -744,8 +744,19 @@ func vaultTest(t *testing.T, _ string, tc testCase) {
 		prov.NewVaultClient = NewVaultClient
 	}
 	_, err := prov.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
-	if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
-		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
+
+	if tc.want.err == nil {
+		if err != nil {
+			t.Errorf("newClient() unexpected error = %v", err)
+		}
+		return
+	}
+	if err == nil {
+		t.Errorf("newClient() error = nil, wantErr %v", tc.want.err)
+		return
+	}
+	if tc.want.err.Error() != err.Error() {
+		t.Errorf("newClient() error = %v, wantErr %v", err, tc.want.err)
 	}
 }
 

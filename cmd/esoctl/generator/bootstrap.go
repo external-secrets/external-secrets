@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -223,7 +223,7 @@ func updateRegisterFile(rootDir string, cfg Config) error {
 		return fmt.Errorf("failed to add import or register call to %s", registerFile)
 	}
 
-	if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally, not from user input
 		return err
 	}
 
@@ -307,7 +307,7 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 				cfg.GeneratorName, cfg.GeneratorName, strings.ToLower(cfg.GeneratorName))
 		}
 	} else {
-		if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
 			return err
 		}
 		fmt.Printf("✓ Updated types_cluster.go\n")
@@ -370,7 +370,7 @@ func updateMainGoMod(rootDir string, cfg Config) error {
 		return fmt.Errorf("could not find appropriate position to insert replace directive")
 	}
 
-	if err := os.WriteFile(filepath.Clean(goModFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Clean(goModFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
 		return err
 	}
 
@@ -445,7 +445,7 @@ func updateResolverFile(rootDir string, cfg Config) error {
 		return fmt.Errorf("could not find default case in resolver file")
 	}
 
-	if err := os.WriteFile(filepath.Clean(resolverFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Clean(resolverFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
 		return err
 	}
 
@@ -511,7 +511,7 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 			fmt.Printf("   2. Add SchemeBuilder registration: SchemeBuilder.Register(&%s{}, &%sList{})\n", cfg.GeneratorName, cfg.GeneratorName)
 		}
 	} else {
-		if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
 			return err
 		}
 		fmt.Printf("✓ Updated register.go\n")
@@ -563,7 +563,7 @@ func updateExternalSecretGeneratorRef(rootDir string, cfg Config) error {
 		return nil
 	}
 
-	if err := os.WriteFile(filepath.Clean(externalSecretFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Clean(externalSecretFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
 		return fmt.Errorf("failed to write v1 externalsecret_types.go: %w", err)
 	}
 

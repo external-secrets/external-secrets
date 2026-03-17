@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/beyondtrust
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/BeyondTrust/go-client-library-passwordsafe v1.0.0

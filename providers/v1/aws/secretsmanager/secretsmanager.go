@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -616,6 +616,18 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 }
 
 func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
+	currentTags := make(map[string]string, len(tags))
+	for _, tag := range tags {
+		currentTags[*tag.Key] = *tag.Value
+	}
+	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
+		return err
+	}
+
+	if err := sm.manageResourcePolicy(ctx, psd.GetMetadata(), &secretArn); err != nil {
+		return err
+	}
+
 	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || esutils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
 		return nil
 	}
@@ -644,20 +656,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 
 	_, err = sm.client.PutSecretValue(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
-	if err != nil {
-		return err
-	}
-
-	currentTags := make(map[string]string, len(tags))
-	for _, tag := range tags {
-		currentTags[*tag.Key] = *tag.Value
-	}
-	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
-		return err
-	}
-
-	// Manage resource policy if specified in metadata
-	return sm.manageResourcePolicy(ctx, psd.GetMetadata(), &secretArn)
+	return err
 }
 
 func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
