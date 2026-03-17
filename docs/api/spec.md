@@ -9413,7 +9413,7 @@ OvhProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Ovh configures this store to sync secrets using the OVHcloud provider.</p>
+<p>OVHcloud configures this store to sync secrets using the OVHcloud provider.</p>
 </td>
 </tr>
 <tr>

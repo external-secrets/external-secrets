@@ -1,10 +1,10 @@
 module github.com/external-secrets/external-secrets/providers/v1/ovh
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
-	github.com/external-secrets/external-secrets/runtime v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/ovh/okms-sdk-go v0.5.1
 	github.com/tidwall/gjson v1.18.0
