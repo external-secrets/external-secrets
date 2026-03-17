@@ -88,14 +88,22 @@ func TestSetAuth(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "should return err if no ca provided",
+			name: "should use system trust store when no auth provided",
 			fields: fields{
 				store: &esv1.KubernetesProvider{
-					Server: esv1.KubernetesServer{},
+					Server: esv1.KubernetesServer{
+						URL: serverURL,
+					},
 				},
 			},
-			want:    nil,
-			wantErr: true,
+			want: &want{
+				Host: serverURL,
+				TLSClientConfig: rest.TLSClientConfig{
+					Insecure: false,
+					CAData:   nil,
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "should return err if no auth provided",
