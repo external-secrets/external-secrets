@@ -346,9 +346,9 @@ livenessProbe:
   enabled: false
   # -- The body of the liveness probe settings.
   spec:
-    # -- Address for liveness probe.
+    # -- Bind address for the health server used by both liveness and readiness probes (--live-addr flag).
     address: ""
-    # -- Named port for liveness probe.
+    # -- Port for the health server used by both liveness and readiness probes (--live-addr flag).
     port: 8082
     # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
     timeoutSeconds: 5
@@ -371,13 +371,10 @@ livenessProbe:
 readinessProbe:
   # -- Enabled determines if the readiness probe should be used or not. By default it's disabled.
   # -- Note: Enabling this will auto-start the health server (--live-addr) even if livenessProbe.enabled is false.
+  # -- The health server address/port is configured via livenessProbe.spec.address and livenessProbe.spec.port.
   enabled: false
-  # -- The body of the readiness probe settings.
+  # -- The body of the readiness probe settings (standard Kubernetes probe spec).
   spec:
-    # -- Address for readiness probe.
-    address: ""
-    # -- Named port for readiness probe.
-    port: 8082
     # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
     timeoutSeconds: 5
     # -- Number of consecutive probe failures that should occur before considering the probe as failed.

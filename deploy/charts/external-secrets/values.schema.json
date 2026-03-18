@@ -668,9 +668,6 @@
                 "spec": {
                     "type": "object",
                     "properties": {
-                        "address": {
-                            "type": "string"
-                        },
                         "failureThreshold": {
                             "type": "integer"
                         },
@@ -692,9 +689,6 @@
                             "type": "integer"
                         },
                         "periodSeconds": {
-                            "type": "integer"
-                        },
-                        "port": {
                             "type": "integer"
                         },
                         "successThreshold": {
