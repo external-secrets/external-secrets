@@ -19,7 +19,10 @@ limitations under the License.
 package certificatemanager
 
 import (
+	"bytes"
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 
@@ -42,29 +45,18 @@ type PushSecretMetadataSpec struct {
 	// Tags are the AWS resource tags to apply to the certificate.
 	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
-	// CertificateKey is the key in the Kubernetes secret containing the PEM-encoded certificate.
-	// Defaults to "tls.crt".
-	// +optional
-	CertificateKey string `json:"certificateKey,omitempty"`
-	// PrivateKeyKey is the key in the Kubernetes secret containing the PEM-encoded private key.
-	// Defaults to "tls.key".
-	// +optional
-	PrivateKeyKey string `json:"privateKeyKey,omitempty"`
-	// CertificateChainKey is the key in the Kubernetes secret containing the PEM-encoded certificate chain.
-	// Defaults to "ca.crt". If the key is absent from the secret, no chain is sent to ACM.
-	// +optional
-	CertificateChainKey string `json:"certificateChainKey,omitempty"`
 }
 
 const (
-	managedBy             = "managed-by"
-	externalSecrets       = "external-secrets"
-	remoteKeyTag          = "external-secrets-remote-key"
-	defaultCertificateKey = "tls.crt"
-	defaultPrivateKeyKey  = "tls.key"
-	defaultCertChainKey   = "ca.crt"
-	errNotImplemented     = "operation not supported by AWS Certificate Manager provider"
-	errNotManagedByESO    = "certificate not managed by external-secrets"
+	managedBy           = "managed-by"
+	externalSecrets     = "external-secrets"
+	remoteKeyTag        = "external-secrets-remote-key"
+	tlsCertKey          = "tls.crt"
+	tlsPrivateKeyKey    = "tls.key"
+	errNotImplemented   = "operation not supported by AWS Certificate Manager provider"
+	errNotManagedByESO  = "certificate not managed by external-secrets"
+	errSecretKeyNotEmpty = "secretKey must be empty for the AWS Certificate Manager provider: " +
+		"the whole kubernetes.io/tls secret is required (tls.crt and tls.key)"
 )
 
 // errCertificateNotFound is returned by listTags when the certificate no longer exists in ACM.
@@ -107,36 +99,39 @@ func (cm *CertificateManager) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // PushSecret imports a TLS certificate from the Kubernetes secret into AWS Certificate Manager.
-// The Kubernetes secret must contain the certificate and private key (and optionally a certificate chain).
+//
+// The source secret must be a standard kubernetes.io/tls secret:
+//   - tls.crt: PEM-encoded leaf certificate, optionally followed by intermediate certificates.
+//     The chain is split automatically — the leaf becomes the Certificate field and the
+//     intermediates become the CertificateChain field of the ACM ImportCertificate call.
+//   - tls.key: PEM-encoded private key.
+//
+// The PushSecret spec.data entry must have an empty secretKey (whole-secret mode) because
+// both tls.crt and tls.key are required for a single ACM import call.
 // The remoteKey is used to tag the certificate for future lookups.
 func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
+	if psd.GetSecretKey() != "" {
+		return errors.New(errSecretKeyNotEmpty)
+	}
+
 	meta, err := constructMetadata(psd.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
 
-	certKey := meta.Spec.CertificateKey
-	if certKey == "" {
-		certKey = defaultCertificateKey
+	certPEM, ok := secret.Data[tlsCertKey]
+	if !ok || len(certPEM) == 0 {
+		return fmt.Errorf("key %q not found or empty in secret %s/%s", tlsCertKey, secret.Namespace, secret.Name)
 	}
-	privKeyKey := meta.Spec.PrivateKeyKey
-	if privKeyKey == "" {
-		privKeyKey = defaultPrivateKeyKey
-	}
-	chainKey := meta.Spec.CertificateChainKey
-	if chainKey == "" {
-		chainKey = defaultCertChainKey
+	privKeyPEM, ok := secret.Data[tlsPrivateKeyKey]
+	if !ok || len(privKeyPEM) == 0 {
+		return fmt.Errorf("key %q not found or empty in secret %s/%s", tlsPrivateKeyKey, secret.Namespace, secret.Name)
 	}
 
-	certPEM, ok := secret.Data[certKey]
-	if !ok || len(certPEM) == 0 {
-		return fmt.Errorf("key %q not found or empty in secret %s/%s", certKey, secret.Namespace, secret.Name)
+	leafPEM, chainPEM, err := splitCertificatePEM(certPEM)
+	if err != nil {
+		return fmt.Errorf("failed to parse %q: %w", tlsCertKey, err)
 	}
-	privKeyPEM, ok := secret.Data[privKeyKey]
-	if !ok || len(privKeyPEM) == 0 {
-		return fmt.Errorf("key %q not found or empty in secret %s/%s", privKeyKey, secret.Namespace, secret.Name)
-	}
-	chainPEM := secret.Data[chainKey] // optional
 
 	remoteKey := psd.GetRemoteKey()
 
@@ -147,7 +142,7 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	}
 
 	input := &acm.ImportCertificateInput{
-		Certificate: certPEM,
+		Certificate: leafPEM,
 		PrivateKey:  privKeyPEM,
 	}
 	if len(chainPEM) > 0 {
@@ -406,6 +401,45 @@ func matchesTags(tags []types.Tag, remoteKey string) bool {
 		}
 	}
 	return hasManagedBy && hasRemoteKey
+}
+
+// splitCertificatePEM splits a PEM value that follows the standard kubernetes.io/tls format —
+// leaf certificate first, followed by zero or more intermediate certificates — into the leaf
+// and the intermediate chain. Root CA certificates (self-signed) are excluded from the chain
+// because ACM manages its own trust store and does not accept roots via ImportCertificate.
+//
+// Returns (leaf, chain, nil). chain is nil when tls.crt contains only the leaf certificate.
+func splitCertificatePEM(certPEM []byte) (leaf []byte, chain []byte, err error) {
+	var blocks []*pem.Block
+	rest := certPEM
+	for {
+		var block *pem.Block
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		if block.Type == "CERTIFICATE" {
+			blocks = append(blocks, block)
+		}
+	}
+	if len(blocks) == 0 {
+		return nil, nil, errors.New("no CERTIFICATE PEM blocks found")
+	}
+
+	leaf = pem.EncodeToMemory(blocks[0])
+
+	for _, b := range blocks[1:] {
+		cert, parseErr := x509.ParseCertificate(b.Bytes)
+		if parseErr != nil {
+			return nil, nil, fmt.Errorf("failed to parse certificate in chain: %w", parseErr)
+		}
+		// Skip self-signed (root) certificates — ACM does not need them.
+		if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
+			continue
+		}
+		chain = append(chain, pem.EncodeToMemory(b)...)
+	}
+	return leaf, chain, nil
 }
 
 // constructMetadata parses the PushSecretMetadata from raw JSON, returning safe defaults when absent.
