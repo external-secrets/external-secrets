@@ -629,6 +629,64 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
+			name: "certSANs extract DNS SANs as comma-separated string",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .certificate | certSANs | join "," }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs extract first SAN with index",
+			tpl: map[string][]byte{
+				"primary-domain": []byte(`{{ index (.certificate | certSANs) 0 }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"primary-domain": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs with toJson",
+			tpl: map[string][]byte{
+				"sans-json": []byte(`{{ .certificate | certSANs | toJson }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans-json": []byte(`["gooble.com"]`),
+			},
+		},
+		{
+			name: "certSANs combined with filterPEM pipeline",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .secret | filterPEM "CERTIFICATE" | certSANs | join "," }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12Key + pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs with invalid PEM",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .certificate | certSANs }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte("not-a-pem"),
+			},
+			expErr: "failed to decode PEM block",
+		},
+		{
 			name: "htpasswd with sha1",
 			tpl: map[string][]byte{
 				".htpasswd": []byte(`{{ htpasswd .username .password "sha" }}`),

@@ -197,15 +197,21 @@ func NewGeneratorSession(
 			return nil, err
 		}
 	}
-	awscfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
+
+	// Build config options - use WithCredentialsProvider during loading
+	// to prevent the default credential chain (including EC2 IMDS) from being used
+	// when explicit credentials are provided
+	var loadCfgOpts []func(*config.LoadOptions) error
 	if credsProvider != nil {
-		awscfg.Credentials = credsProvider
+		loadCfgOpts = append(loadCfgOpts, config.WithCredentialsProvider(credsProvider))
 	}
 	if region != "" {
-		awscfg.Region = region
+		loadCfgOpts = append(loadCfgOpts, config.WithRegion(region))
+	}
+
+	awscfg, err := config.LoadDefaultConfig(ctx, loadCfgOpts...)
+	if err != nil {
+		return nil, err
 	}
 
 	if role != "" {
