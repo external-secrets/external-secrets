@@ -217,11 +217,10 @@ func newHTTPClientWithMTLS(ctx context.Context, p *Provider, cl *ovhClient, clie
 	}
 
 	// Create an HTTP transport for mTLS, enforcing TLS 1.2+ and using the client certificate.
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			MinVersion:   tls.VersionTLS12,
-			Certificates: []tls.Certificate{cert},
-		},
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		Certificates: []tls.Certificate{cert},
 	}
 	// Configure custom CA for the TLS client if provided via CAProvider or CABundle.
 	if clientMTLS.CAProvider != nil || len(clientMTLS.CABundle) != 0 {
@@ -312,6 +311,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	// Validate the provider's authentication method.
+	return p.validateAuth(provider)
+}
+
+func (p *Provider) validateAuth(provider *esv1.SecretStoreProvider) (admission.Warnings, error) {
 	auth := provider.OVHcloud.Auth
 	if auth.ClientMTLS == nil && auth.ClientToken == nil {
 		return nil, errors.New("missing authentication method")
@@ -324,7 +327,6 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if auth.ClientMTLS != nil && (auth.ClientMTLS.ClientCertificate == (v1.SecretKeySelector{}) || auth.ClientMTLS.ClientKey == (v1.SecretKeySelector{})) {
 		return nil, errors.New("missing tls certificate or key for mtls authentication")
 	}
-
 	return nil, nil
 }
 

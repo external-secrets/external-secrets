@@ -119,6 +119,7 @@ func (f FakeOkmsClient) GetSecretV2(ctx context.Context, okmsID uuid.UUID, path 
 	}
 	return NewGetSecretV2Fn(path, nil)()
 }
+
 func NewGetSecretV2Fn(path string, err error) GetSecretV2Fn {
 	if err != nil {
 		return func() (*types.GetSecretV2Response, error) {
@@ -196,6 +197,10 @@ func NewDeleteSecretV2Fn(err error) DeleteSecretV2Fn {
 //
 // This implementation returns a list of secrets from fakeSecretStorage variable.
 func (f FakeOkmsClient) GetSecretsMetadata(ctx context.Context, okmsID uuid.UUID, path string, list bool) (*types.GetMetadataResponse, error) {
+	if f.GetSecretsMetadataFn != nil {
+		return f.GetSecretsMetadataFn(path)
+	}
+
 	if path == "" {
 		path = "/"
 	}

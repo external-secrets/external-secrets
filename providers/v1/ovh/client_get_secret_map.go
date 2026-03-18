@@ -34,7 +34,7 @@ const retrieveSecretError = "failed to retrieve secret at path"
 // If a property is provided, it should reference only nested values.
 func (cl *ovhClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	// Retrieve secret from KMS.
-	secretDataBytes, _, err := getSecretWithOvhSDK(ctx, cl.okmsClient, cl.okmsID, ref)
+	secretDataBytes, _, err := cl.getSecretWithOvhSDK(ctx, cl.okmsID, ref)
 	if err != nil {
 		if errors.Is(err, esv1.NoSecretErr) {
 			return map[string][]byte{}, err

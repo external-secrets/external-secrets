@@ -66,7 +66,7 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 		}
 	}
 
-	secretsMap, err := filterSecretsListWithRegexp(ctx, cl, secrets, regex, ref)
+	secretsMap, err := filterSecretsListWithRegexp(ctx, cl, secrets, regex)
 	if err != nil {
 		return map[string][]byte{}, fmt.Errorf("%s: %w", retrieveMultipleSecretsError, err)
 	}
@@ -79,7 +79,7 @@ func (cl *ovhClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretF
 func getSecretsList(ctx context.Context, okmsClient OkmsClient, okmsID uuid.UUID, path *string) ([]string, error) {
 	// Ignore invalid path
 	if path != nil && (strings.HasPrefix(*path, "/") || strings.Contains(*path, "//")) {
-		return []string{}, nil
+		return []string{}, fmt.Errorf("invalid path %q: cannot start with a / or contain a //", *path)
 	}
 
 	formatPath := ""
@@ -169,7 +169,7 @@ func secretListLoop(ctx context.Context, secrets *types.GetMetadataResponse, okm
 }
 
 // Filter the list of secrets using a regular expression.
-func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []string, regex *regexp.Regexp, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []string, regex *regexp.Regexp) (map[string][]byte, error) {
 	secretsDataMap := make(map[string][]byte)
 	for _, secret := range secrets {
 		// Insert the secret if no regex is provided;
@@ -182,9 +182,7 @@ func filterSecretsListWithRegexp(ctx context.Context, cl *ovhClient, secrets []s
 			secretsDataMap[secret] = secretData
 		}
 	}
-	if len(secretsDataMap) == 0 {
-		return map[string][]byte{}, buildNoMatchError(ref.Name, ref.Path)
-	}
+
 	return secretsDataMap, nil
 }
 
@@ -207,16 +205,4 @@ func fetchSecretData(ctx context.Context, cl *ovhClient, secret string, regex *r
 	}
 
 	return secretData, true, nil
-}
-
-func buildNoMatchError(findName *esv1.FindName, findPath *string) error {
-	expr := ""
-	if findName != nil {
-		expr = findName.RegExp
-	}
-	path := ""
-	if findPath != nil {
-		path = *findPath
-	}
-	return fmt.Errorf("regex expression %q did not match any secret at path %q", expr, path)
 }

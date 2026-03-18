@@ -30,7 +30,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-func getSecretWithOvhSDK(ctx context.Context, kmsClient OkmsClient, okmsID uuid.UUID, ref esv1.ExternalSecretDataRemoteRef) ([]byte, *uint32, error) {
+func (cl *ovhClient) getSecretWithOvhSDK(ctx context.Context, okmsID uuid.UUID, ref esv1.ExternalSecretDataRemoteRef) ([]byte, *uint32, error) {
 	// Check if the remoteRef key is empty.
 	if ref.Key == "" {
 		return []byte{}, nil, errors.New("remote key cannot be empty (spec.data.remoteRef.key)")
@@ -49,7 +49,7 @@ func getSecretWithOvhSDK(ctx context.Context, kmsClient OkmsClient, okmsID uuid.
 
 	// Retrieve the KMS secret.
 	includeData := true
-	secret, err := kmsClient.GetSecretV2(ctx, okmsID, ref.Key, versionAddr, &includeData)
+	secret, err := cl.okmsClient.GetSecretV2(ctx, okmsID, ref.Key, versionAddr, &includeData)
 	if err != nil {
 		return []byte{}, nil, handleOkmsError(err)
 	}
@@ -104,7 +104,7 @@ func getPropertyValue(data map[string]any, property string) ([]byte, error) {
 	// Retrieve the property value if it exists.
 	secretDataResult := gjson.Get(string(secretData), property)
 	if !secretDataResult.Exists() {
-		return []byte{}, fmt.Errorf("secret property \"%s\" not found", property)
+		return []byte{}, fmt.Errorf("secret property %q not found", property)
 	}
 
 	return []byte(secretDataResult.String()), nil

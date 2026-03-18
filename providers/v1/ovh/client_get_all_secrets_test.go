@@ -30,7 +30,7 @@ import (
 
 func TestGetAllSecrets(t *testing.T) {
 	path2 := "pattern2/test"
-	emptyPath := ""
+	slashPath := "pattern//slash"
 	emptySecretPath := "empty"
 	nilSecretPath := "nil"
 
@@ -79,12 +79,12 @@ func TestGetAllSecrets(t *testing.T) {
 			},
 		},
 		"No Regexp Match": {
-			errshould: fmt.Sprintf("failed to retrieve multiple secrets: regex expression %q did not match any secret at path %q", noMatchRegexp, emptyPath),
 			refFind: esv1.ExternalSecretFind{
 				Name: &esv1.FindName{
 					RegExp: noMatchRegexp,
 				},
 			},
+			should: map[string][]byte{},
 		},
 		"Regex pattern containing '.' or '-' only": {
 			should: map[string][]byte{
@@ -106,6 +106,16 @@ func TestGetAllSecrets(t *testing.T) {
 			refFind: esv1.ExternalSecretFind{
 				Path: &path2,
 			},
+		},
+		"Path pattern//wrong": {
+			should: map[string][]byte{
+				"/pattern2/test/testsecret":  []byte("{\"key4\":\"value4\"}"),
+				"pattern2/test/test//secret": []byte("{\"key5\":\"value5\"}"),
+			},
+			refFind: esv1.ExternalSecretFind{
+				Path: &slashPath,
+			},
+			errshould: "failed to retrieve multiple secrets: invalid path \"pattern//slash\": cannot start with a / or contain a //",
 		},
 		"Secrets found without path": {
 			should: map[string][]byte{

@@ -46,7 +46,7 @@ func (cl *ovhClient) PushSecret(ctx context.Context, secret *corev1.Secret, data
 
 	// Check if the secret already exists.
 	// This determines which method to use: create or update.
-	remoteSecret, currentVersion, err := getSecretWithOvhSDK(ctx, cl.okmsClient, cl.okmsID, esv1.ExternalSecretDataRemoteRef{
+	remoteSecret, currentVersion, err := cl.getSecretWithOvhSDK(ctx, cl.okmsID, esv1.ExternalSecretDataRemoteRef{
 		Key: remoteKey,
 	})
 	noSecretErr := errors.Is(err, esv1.NoSecretErr)

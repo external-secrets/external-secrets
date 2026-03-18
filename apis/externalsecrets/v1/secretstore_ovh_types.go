@@ -31,6 +31,7 @@ type OvhProvider struct {
 	CasRequired *bool `json:"casRequired,omitempty"`
 	// Setup a timeout in seconds when requests to the KMS are made (default: 30).
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:default=30
 	OkmsTimeout *uint32 `json:"okmsTimeout,omitempty"`
 	// Authentication method (mtls or token).

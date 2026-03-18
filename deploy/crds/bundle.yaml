@@ -6080,6 +6080,7 @@ spec:
                           default: 30
                           description: 'Setup a timeout in seconds when requests to the KMS are made (default: 30).'
                           format: int32
+                          minimum: 1
                           type: integer
                         okmsid:
                           description: specifies the OKMS ID.
@@ -18009,6 +18010,7 @@ spec:
                           default: 30
                           description: 'Setup a timeout in seconds when requests to the KMS are made (default: 30).'
                           format: int32
+                          minimum: 1
                           type: integer
                         okmsid:
                           description: specifies the OKMS ID.
