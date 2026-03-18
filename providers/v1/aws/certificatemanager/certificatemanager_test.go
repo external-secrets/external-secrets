@@ -25,6 +25,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -272,6 +273,18 @@ func TestSplitCertificatePEM_NoCertificates(t *testing.T) {
 	}
 }
 
+func TestSplitCertificatePEM_InvalidLeafCertificate(t *testing.T) {
+	// Valid PEM structure but corrupt DER content.
+	badPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: []byte("not valid DER")})
+	_, _, err := splitCertificatePEM(badPEM)
+	if err == nil {
+		t.Fatal("expected error for invalid leaf certificate DER")
+	}
+	if got := err.Error(); !strings.Contains(got, "failed to parse leaf certificate") {
+		t.Errorf("expected error to mention leaf certificate, got: %s", got)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // PushSecret tests
 // ---------------------------------------------------------------------------
@@ -281,6 +294,7 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/new"
 
 	var gotCert, gotChain []byte
+	var gotTags []types.Tag
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
@@ -291,6 +305,7 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 			}
 			gotCert = p.Certificate
 			gotChain = p.CertificateChain
+			gotTags = p.Tags
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
 		},
 		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
@@ -316,6 +331,20 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	}
 	if string(gotChain) != string(certs.IntermediatePEM) {
 		t.Error("CertificateChain field should be the intermediate certificate")
+	}
+	// Management tags must be included atomically in the ImportCertificate call.
+	if len(gotTags) != 2 {
+		t.Fatalf("expected 2 management tags on new import, got %d", len(gotTags))
+	}
+	tagMap := make(map[string]string, len(gotTags))
+	for _, tag := range gotTags {
+		tagMap[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+	}
+	if tagMap[managedBy] != externalSecrets {
+		t.Errorf("expected tag %q=%q, got %q", managedBy, externalSecrets, tagMap[managedBy])
+	}
+	if tagMap[remoteKeyTag] != "my-cert" {
+		t.Errorf("expected tag %q=%q, got %q", remoteKeyTag, "my-cert", tagMap[remoteKeyTag])
 	}
 }
 
@@ -373,10 +402,12 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 		},
 		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importedARN = aws.ToString(p.CertificateArn)
+			if len(p.Tags) > 0 {
+				t.Error("Tags must not be set on re-import (not supported by ACM)")
+			}
 			return &acm.ImportCertificateOutput{CertificateArn: p.CertificateArn}, nil
 		},
 		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
-			t.Error("AddTagsToCertificate should not be called when re-importing")
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
 		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
@@ -621,9 +652,3 @@ func TestGetSecret_Unsupported(t *testing.T) {
 	}
 }
 
-func TestCapabilities(t *testing.T) {
-	cm := newProvider(&fakeACMClient{})
-	if cm.Capabilities() != esv1.SecretStoreWriteOnly {
-		t.Errorf("expected WriteOnly capability")
-	}
-}

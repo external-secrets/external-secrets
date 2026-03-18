@@ -93,11 +93,6 @@ func New(_ context.Context, cfg *aws.Config, referentAuth bool) (*CertificateMan
 	}, nil
 }
 
-// Capabilities returns WriteOnly since ACM is a certificate lifecycle service, not a general secret store.
-func (cm *CertificateManager) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreWriteOnly
-}
-
 // PushSecret imports a TLS certificate from the Kubernetes secret into AWS Certificate Manager.
 //
 // The source secret must be a standard kubernetes.io/tls secret:
@@ -153,6 +148,13 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 		input.CertificateArn = aws.String(existingARN)
 		log.Info("re-importing existing ACM certificate", "arn", existingARN, "remoteKey", remoteKey)
 	} else {
+		// Include management tags atomically with the first import to prevent
+		// duplicate certificates when the controller re-reconciles before a
+		// separate AddTagsToCertificate call would complete.
+		input.Tags = []types.Tag{
+			{Key: aws.String(managedBy), Value: aws.String(externalSecrets)},
+			{Key: aws.String(remoteKeyTag), Value: aws.String(remoteKey)},
+		}
 		log.Info("importing new ACM certificate", "remoteKey", remoteKey)
 	}
 
@@ -163,22 +165,6 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	}
 
 	certARN := aws.ToString(out.CertificateArn)
-
-	// On first import, set the ESO management tags so we can track this certificate.
-	if existingARN == "" {
-		requiredTags := []types.Tag{
-			{Key: aws.String(managedBy), Value: aws.String(externalSecrets)},
-			{Key: aws.String(remoteKeyTag), Value: aws.String(remoteKey)},
-		}
-		_, err = cm.client.AddTagsToCertificate(ctx, &acm.AddTagsToCertificateInput{
-			CertificateArn: aws.String(certARN),
-			Tags:           requiredTags,
-		})
-		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMAddTagsToCertificate, err)
-		if err != nil {
-			return fmt.Errorf("failed to tag imported certificate: %w", err)
-		}
-	}
 
 	// Reconcile user-defined tags.
 	if err := cm.syncTags(ctx, certARN, meta.Spec.Tags); err != nil {
@@ -424,6 +410,10 @@ func splitCertificatePEM(certPEM []byte) (leaf []byte, chain []byte, err error) 
 	}
 	if len(blocks) == 0 {
 		return nil, nil, errors.New("no CERTIFICATE PEM blocks found")
+	}
+
+	if _, err := x509.ParseCertificate(blocks[0].Bytes); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse leaf certificate: %w", err)
 	}
 
 	leaf = pem.EncodeToMemory(blocks[0])
