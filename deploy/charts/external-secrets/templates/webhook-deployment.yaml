@@ -98,9 +98,12 @@ spec:
             - containerPort: {{ .Values.webhook.port }}
               protocol: TCP
               name: webhook
+            - containerPort: {{ .Values.webhook.readinessProbe.port }}
+              protocol: TCP
+              name: ready
           readinessProbe:
             httpGet:
-              port: {{ .Values.webhook.readinessProbe.port }}
+              port: ready
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
@@ -129,6 +132,10 @@ spec:
             secretName: {{ include "external-secrets.fullname" . }}-webhook
       {{- if .Values.webhook.extraVolumes }}
       {{- toYaml .Values.webhook.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.webhook.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:

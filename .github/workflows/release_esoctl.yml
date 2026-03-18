@@ -24,27 +24,29 @@ jobs:
     permissions:
       contents: write # for publishing the release
     steps:
-      - uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+      - uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - name: Resolve and validate ref
         id: resolve_ref
+        env:
+          SOURCE_REF: ${{ github.event.inputs.source_ref }}
         run: |
           set -e
           # Try to fetch the ref from remote
-          if git fetch origin "${{ github.event.inputs.source_ref }}"; then
+          if git fetch origin "$SOURCE_REF"; then
             # Remote ref exists, use it
-            RESOLVED_SHA=$(git rev-parse "origin/${{ github.event.inputs.source_ref }}")
-          elif git rev-parse --verify "${{ github.event.inputs.source_ref }}" >/dev/null 2>&1; then
+            RESOLVED_SHA=$(git rev-parse "origin/$SOURCE_REF")
+          elif git rev-parse --verify "$SOURCE_REF" >/dev/null 2>&1; then
             # Local ref exists (e.g., a tag)
-            RESOLVED_SHA=$(git rev-parse "${{ github.event.inputs.source_ref }}")
+            RESOLVED_SHA=$(git rev-parse "$SOURCE_REF")
           else
-            echo "Error: ref '${{ github.event.inputs.source_ref }}' not found"
+            echo "Error: ref '$SOURCE_REF' not found"
             exit 1
           fi
           echo "Resolved to SHA: $RESOLVED_SHA"
@@ -54,7 +56,7 @@ jobs:
         run: git checkout ${{ steps.resolve_ref.outputs.sha }}
 
       - name: Setup Go
-        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -63,11 +65,11 @@ jobs:
         run: go mod download
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
+        uses: anchore/sbom-action/download-syft@57aae528053a48a3f6235f2d9461b05fbcb7366d # v0.23.1
 
       - name: Import GPG key
         id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
@@ -91,7 +93,7 @@ jobs:
           git push origin $TAG
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
+        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
         with:
           version: '~> v2'
           args: release --clean

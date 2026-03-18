@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,9 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -93,6 +95,18 @@ func BuildManagedSecretClient(mgr ctrl.Manager, namespace string) (client.Client
 	}
 
 	return secretClient, nil
+}
+
+// BuildControllerOptions creates controller options with the given concurrency
+// and our standard rate limiter. The priority queue introduced in
+// controller-runtime v0.23.0 is explicitly disabled because it has known
+// issues at scale (see https://github.com/external-secrets/external-secrets/issues/6053).
+func BuildControllerOptions(concurrent int) controller.Options {
+	return controller.Options{
+		MaxConcurrentReconciles: concurrent,
+		RateLimiter:             BuildRateLimiter(),
+		UsePriorityQueue:        ptr.To(false),
+	}
 }
 
 // BuildRateLimiter creates a new rate limiter for our controllers.

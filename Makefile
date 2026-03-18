@@ -153,7 +153,7 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 		$(OK) Finished linting $(LINT_TARGET); \
 	else \
 		$(INFO) Running golangci-lint on all modules in parallel; \
-		JOBS=$${LINT_JOBS:-20}; \
+		JOBS=$${LINT_JOBS:-1}; \
 		TMPDIR=$$(mktemp -d); \
 		GOLANGCI=$(GOLANGCI_LINT); \
 		trap "rm -rf $$TMPDIR" EXIT; \
@@ -329,8 +329,8 @@ docker.tag:  ## Emit IMAGE_TAG
 .PHONY: docker.build
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) $(DOCKER) build
-	echo $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	DOCKER_BUILDKIT=1 $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	echo $(DOCKER) buildx build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	$(DOCKER) buildx build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) $(DOCKER) build
 
 .PHONY: docker.push
@@ -348,11 +348,11 @@ SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
 	$(DOCKER) manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
-	for digest in $$(jq -r 'if type=="array" then .[].Descriptor.digest else .Descriptor.digest end' < .tagmanifest); do \
+	for digest in $$(jq -r 'if type=="array" then .[] | select(.Descriptor.platform.architecture != "unknown") | .Descriptor.digest else .Descriptor.digest end' < .tagmanifest); do \
 		$(DOCKER) pull $(IMAGE_NAME)@$$digest; \
 	done
 	$(DOCKER) manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
-		$$(jq -j '"--amend $(IMAGE_NAME)@" + if type=="array" then .[].Descriptor.digest else .Descriptor.digest end + " "' < .tagmanifest)
+		$$(jq -j 'if type=="array" then [.[] | select(.Descriptor.platform.architecture != "unknown")] | map("--amend $(IMAGE_NAME)@" + .Descriptor.digest) | join(" ") else "--amend $(IMAGE_NAME)@" + .Descriptor.digest end' < .tagmanifest)
 	$(DOCKER) manifest push $(IMAGE_NAME):$(RELEASE_TAG)
 	@$(OK) $(DOCKER) push $(RELEASE_TAG) \
 
@@ -404,22 +404,16 @@ clean:  ## Clean bins
 # ====================================================================================
 # Build Dependencies
 
-ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
-    detected_OS := windows
-    real_OS := windows
-    arch := x86_64
-else
-    detected_OS := $(shell uname -s)
-    real_OS := $(detected_OS)
-    arch := $(shell uname -m)
-    ifeq ($(detected_OS),Darwin)
+detected_OS := $(shell uname -s)
+real_OS := $(detected_OS)
+arch := $(shell uname -m)
+ifeq ($(detected_OS),Darwin)
         detected_OS := mac
         real_OS := darwin
-    endif
-    ifeq ($(detected_OS),Linux)
+endif
+ifeq ($(detected_OS),Linux)
         detected_OS := linux
-        real_OS := linux
-    endif
+	real_OS := linux
 endif
 
 ## Location to install dependencies to
@@ -434,7 +428,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 LINT_TARGET ?= ""
 ## Tool Versions
-GOLANGCI_VERSION := 2.4.0
+GOLANGCI_VERSION := 2.11.3
 KUBERNETES_VERSION := 1.33.x
 TILT_VERSION := 0.33.21
 CTY_VERSION := 1.1.3

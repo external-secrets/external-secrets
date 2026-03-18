@@ -124,8 +124,12 @@ spec:
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
-          {{- if .Values.livenessProbe.enabled }}
+          {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+          {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
+          - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.port }}
+          {{- else }}
           - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.httpGet.port }}
+          {{- end }}
           {{- end }}
           {{- if .Values.metrics.listen.secure.enabled }}
           - --metrics-secure=true
@@ -137,9 +141,22 @@ spec:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
+            {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
+            - name: live
+              protocol: TCP
+              {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
+              containerPort: {{ .Values.livenessProbe.spec.port }}
+              {{- else }}
+              containerPort: {{ .Values.livenessProbe.spec.httpGet.port }}
+              {{- end }}
+            {{- end }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
-          {{- toYaml (omit .Values.livenessProbe.spec "address") | nindent 12 }}
+          {{- toYaml (omit .Values.livenessProbe.spec "address" "port") | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+          {{- toYaml .Values.readinessProbe.spec | nindent 12 }}
           {{- end }}
           {{- with .Values.extraEnv }}
           env:
@@ -164,6 +181,10 @@ spec:
       {{- if .Values.dnsConfig }}
       dnsConfig:
           {{- toYaml .Values.dnsConfig | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.extraVolumes }}
       volumes:

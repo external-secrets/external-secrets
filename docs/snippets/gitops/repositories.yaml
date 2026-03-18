@@ -16,5 +16,5 @@ metadata:
 spec:
   interval: 10m
   ref:
-    tag: v0.10.3
+    tag: v1.3.1
   url: https://github.com/external-secrets/external-secrets

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -128,7 +128,9 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 	err = json.Unmarshal([]byte(secret.Fields[0].ItemValue), &secretData)
 	if err != nil {
-		return nil, err
+		// Do not return the raw error as json.Unmarshal errors may contain
+		// sensitive secret data in the error message
+		return nil, errors.New("failed to unmarshal secret: invalid JSON format")
 	}
 
 	data := make(map[string][]byte)

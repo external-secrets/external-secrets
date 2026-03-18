@@ -43,6 +43,9 @@
                 "extraVolumes": {
                     "type": "array"
                 },
+                "hostAliases": {
+                    "type": "array"
+                },
                 "hostNetwork": {
                     "type": "boolean"
                 },
@@ -438,6 +441,9 @@
                         }
                     }
                 },
+                "hostAliases": {
+                    "type": "array"
+                },
                 "imagePullSecrets": {
                     "type": "array"
                 },
@@ -480,6 +486,9 @@
                     "type": "string"
                 }
             }
+        },
+        "hostAliases": {
+            "type": "array"
         },
         "hostNetwork": {
             "type": "boolean"
@@ -549,6 +558,9 @@
                             "type": "integer"
                         },
                         "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "port": {
                             "type": "integer"
                         },
                         "successThreshold": {
@@ -758,6 +770,48 @@
                     "properties": {
                         "create": {
                             "type": "boolean"
+                        }
+                    }
+                }
+            }
+        },
+        "readinessProbe": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "spec": {
+                    "type": "object",
+                    "properties": {
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "httpGet": {
+                            "type": "object",
+                            "properties": {
+                                "path": {
+                                    "type": "string"
+                                },
+                                "port": {
+                                    "type": [
+                                        "string",
+                                        "integer"
+                                    ]
+                                }
+                            }
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
                         }
                     }
                 }
@@ -986,6 +1040,9 @@
                 },
                 "failurePolicy": {
                     "type": "string"
+                },
+                "hostAliases": {
+                    "type": "array"
                 },
                 "hostNetwork": {
                     "type": "boolean"
