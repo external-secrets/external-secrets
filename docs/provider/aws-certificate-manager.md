@@ -78,7 +78,7 @@ You can apply custom AWS resource tags to the imported certificate using PushSec
 {% include 'aws-acm-push-secret-with-metadata.yaml' %}
 ```
 
-The tags `managed-by` and `external-secrets-remote-key` are reserved for ESO internal tracking and cannot be overridden via metadata.
+The tags `managed-by`, `external-secrets-remote-key`, and `external-secrets-content-hash` are reserved for ESO internal tracking and cannot be overridden via metadata. The content hash tag stores a SHA-256 digest of the certificate and private key, allowing the provider to skip redundant re-imports when the secret content has not changed.
 
 ### Usage with cert-manager
 

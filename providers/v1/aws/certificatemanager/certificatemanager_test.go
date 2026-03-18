@@ -342,9 +342,9 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	if string(gotChain) != string(certs.IntermediatePEM) {
 		t.Error("CertificateChain field should be the intermediate certificate")
 	}
-	// Management tags must be included atomically in the ImportCertificate call.
-	if len(gotTags) != 2 {
-		t.Fatalf("expected 2 management tags on new import, got %d", len(gotTags))
+	// Management tags (including content hash) must be included atomically.
+	if len(gotTags) != 3 {
+		t.Fatalf("expected 3 management tags on new import, got %d", len(gotTags))
 	}
 	tagMap := make(map[string]string, len(gotTags))
 	for _, tag := range gotTags {
@@ -355,6 +355,10 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	}
 	if tagMap[remoteKeyTag] != "my-cert" {
 		t.Errorf("expected tag %q=%q, got %q", remoteKeyTag, "my-cert", tagMap[remoteKeyTag])
+	}
+	expectedHash := computeContentHash(certs.TLSCrt, certs.PrivateKeyPEM)
+	if tagMap[contentHashTag] != expectedHash {
+		t.Errorf("expected tag %q=%q, got %q", contentHashTag, expectedHash, tagMap[contentHashTag])
 	}
 }
 
@@ -401,6 +405,7 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/existing"
 	var importedARN string
 
+	// Existing cert has a stale hash (simulates a cert-manager renewal).
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
@@ -410,12 +415,14 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 			}, nil
 		},
 		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+			tags := append(managedTags("my-cert"),
+				types.Tag{Key: aws.String(contentHashTag), Value: aws.String("stale-hash")})
+			return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
 		},
 		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importedARN = aws.ToString(p.CertificateArn)
 			if len(p.Tags) > 0 {
-				t.Error("Tags must not be set on re-import (not supported by ACM)")
+				t.Error("Tags must not be set on re-import")
 			}
 			return &acm.ImportCertificateOutput{CertificateArn: p.CertificateArn}, nil
 		},
@@ -435,6 +442,51 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 	}
 	if importedARN != arn {
 		t.Errorf("expected CertificateArn %q, got %q", arn, importedARN)
+	}
+}
+
+func TestPushSecret_SkipsReimportWhenUnchanged(t *testing.T) {
+	clearARNCache()
+	certs := generateTestCerts(t)
+	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/unchanged"
+
+	currentHash := computeContentHash(certs.TLSCrt, certs.PrivateKeyPEM)
+	importCalled := false
+
+	fake := &fakeACMClient{
+		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+			return &acm.ListCertificatesOutput{
+				CertificateSummaryList: []types.CertificateSummary{
+					{CertificateArn: aws.String(arn)},
+				},
+			}, nil
+		},
+		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+			tags := append(managedTags("my-cert"),
+				types.Tag{Key: aws.String(contentHashTag), Value: aws.String(currentHash)})
+			return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
+		},
+		importCertificateFn: func(_ context.Context, _ *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+			importCalled = true
+			t.Error("ImportCertificate should not be called when content is unchanged")
+			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
+		},
+		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+			return &acm.AddTagsToCertificateOutput{}, nil
+		},
+		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+			return &acm.RemoveTagsFromCertificateOutput{}, nil
+		},
+	}
+
+	psd := &pushSecretData{remoteKey: "my-cert"}
+	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
+
+	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
+		t.Fatalf("PushSecret: %v", err)
+	}
+	if importCalled {
+		t.Error("ImportCertificate was called despite unchanged content")
 	}
 }
 

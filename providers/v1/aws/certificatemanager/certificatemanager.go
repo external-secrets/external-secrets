@@ -21,7 +21,9 @@ package certificatemanager
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -52,6 +54,7 @@ const (
 	managedBy           = "managed-by"
 	externalSecrets     = "external-secrets"
 	remoteKeyTag        = "external-secrets-remote-key"
+	contentHashTag      = "external-secrets-content-hash"
 	tlsCertKey          = "tls.crt"
 	tlsPrivateKeyKey    = "tls.key"
 	errNotImplemented   = "operation not supported by AWS Certificate Manager provider"
@@ -137,6 +140,7 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	}
 
 	remoteKey := psd.GetRemoteKey()
+	contentHash := computeContentHash(certPEM, privKeyPEM)
 
 	// Find an existing certificate tagged with this remote key.
 	existingARN, err := cm.findCertificateARN(ctx, remoteKey)
@@ -144,27 +148,58 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 		return fmt.Errorf("failed to search for existing certificate: %w", err)
 	}
 
+	if existingARN != "" {
+		tags, err := cm.listTags(ctx, existingARN)
+		if err != nil {
+			return fmt.Errorf("failed to list tags for %s: %w", existingARN, err)
+		}
+
+		if getTagValue(tags, contentHashTag) == contentHash {
+			log.Info("certificate unchanged, skipping re-import", "arn", existingARN, "remoteKey", remoteKey)
+			if err := cm.syncTags(ctx, existingARN, meta.Spec.Tags); err != nil {
+				return fmt.Errorf("failed to sync certificate tags: %w", err)
+			}
+			return nil
+		}
+
+		input := &acm.ImportCertificateInput{
+			Certificate:    leafPEM,
+			PrivateKey:     privKeyPEM,
+			CertificateArn: aws.String(existingARN),
+		}
+		if len(chainPEM) > 0 {
+			input.CertificateChain = chainPEM
+		}
+		log.Info("re-importing existing ACM certificate", "arn", existingARN, "remoteKey", remoteKey)
+
+		_, err = cm.client.ImportCertificate(ctx, input)
+		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMImportCertificate, err)
+		if err != nil {
+			return fmt.Errorf("failed to import certificate: %w", err)
+		}
+
+		if err := cm.syncTags(ctx, existingARN, meta.Spec.Tags); err != nil {
+			return fmt.Errorf("failed to sync certificate tags: %w", err)
+		}
+		return cm.updateContentHash(ctx, existingARN, contentHash)
+	}
+
+	// New certificate: include management tags atomically with the first import
+	// to prevent duplicate certificates when the controller re-reconciles before
+	// a separate AddTagsToCertificate call would complete.
 	input := &acm.ImportCertificateInput{
 		Certificate: leafPEM,
 		PrivateKey:  privKeyPEM,
+		Tags: []types.Tag{
+			{Key: aws.String(managedBy), Value: aws.String(externalSecrets)},
+			{Key: aws.String(remoteKeyTag), Value: aws.String(remoteKey)},
+			{Key: aws.String(contentHashTag), Value: aws.String(contentHash)},
+		},
 	}
 	if len(chainPEM) > 0 {
 		input.CertificateChain = chainPEM
 	}
-	if existingARN != "" {
-		// Re-import (update) the existing certificate in-place.
-		input.CertificateArn = aws.String(existingARN)
-		log.Info("re-importing existing ACM certificate", "arn", existingARN, "remoteKey", remoteKey)
-	} else {
-		// Include management tags atomically with the first import to prevent
-		// duplicate certificates when the controller re-reconciles before a
-		// separate AddTagsToCertificate call would complete.
-		input.Tags = []types.Tag{
-			{Key: aws.String(managedBy), Value: aws.String(externalSecrets)},
-			{Key: aws.String(remoteKeyTag), Value: aws.String(remoteKey)},
-		}
-		log.Info("importing new ACM certificate", "remoteKey", remoteKey)
-	}
+	log.Info("importing new ACM certificate", "remoteKey", remoteKey)
 
 	out, err := cm.client.ImportCertificate(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMImportCertificate, err)
@@ -173,12 +208,8 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	}
 
 	certARN := aws.ToString(out.CertificateArn)
+	arnCache.Store(remoteKey, certARN)
 
-	if existingARN == "" {
-		arnCache.Store(remoteKey, certARN)
-	}
-
-	// Reconcile user-defined tags.
 	if err := cm.syncTags(ctx, certARN, meta.Spec.Tags); err != nil {
 		return fmt.Errorf("failed to sync certificate tags: %w", err)
 	}
@@ -351,7 +382,7 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 	// Remove tags that are no longer desired, skipping ESO management tags.
 	var toRemove []types.Tag
 	for k, v := range currentMap {
-		if k == managedBy || k == remoteKeyTag {
+		if isReservedTag(k) {
 			continue
 		}
 		if _, ok := desiredTags[k]; !ok {
@@ -372,7 +403,7 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 	// Add or update desired tags.
 	var toAdd []types.Tag
 	for k, v := range desiredTags {
-		if k == managedBy || k == remoteKeyTag {
+		if isReservedTag(k) {
 			continue
 		}
 		if currentMap[k] != v {
@@ -418,6 +449,41 @@ func matchesTags(tags []types.Tag, remoteKey string) bool {
 		}
 	}
 	return hasManagedBy && hasRemoteKey
+}
+
+// isReservedTag returns true for tag keys managed internally by ESO.
+func isReservedTag(key string) bool {
+	return key == managedBy || key == remoteKeyTag || key == contentHashTag
+}
+
+// computeContentHash returns a hex-encoded SHA-256 digest of the certificate
+// and private key bytes. This is stored as a tag on the ACM certificate so
+// subsequent reconciliations can skip redundant re-imports.
+func computeContentHash(certPEM, keyPEM []byte) string {
+	h := sha256.New()
+	h.Write(certPEM)
+	h.Write(keyPEM)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// getTagValue returns the value of the first tag matching the given key, or "".
+func getTagValue(tags []types.Tag, key string) string {
+	for _, t := range tags {
+		if aws.ToString(t.Key) == key {
+			return aws.ToString(t.Value)
+		}
+	}
+	return ""
+}
+
+// updateContentHash sets (or overwrites) the content-hash tag on the certificate.
+func (cm *CertificateManager) updateContentHash(ctx context.Context, arn, hash string) error {
+	_, err := cm.client.AddTagsToCertificate(ctx, &acm.AddTagsToCertificateInput{
+		CertificateArn: aws.String(arn),
+		Tags:           []types.Tag{{Key: aws.String(contentHashTag), Value: aws.String(hash)}},
+	})
+	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMAddTagsToCertificate, err)
+	return err
 }
 
 // splitCertificatePEM splits a PEM value that follows the standard kubernetes.io/tls format —
