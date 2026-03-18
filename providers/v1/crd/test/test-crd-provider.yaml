@@ -1,0 +1,53 @@
+---
+# ConfigMap being used as the data source.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-app-config
+  namespace: default
+data:
+  foo: "hello"
+  bar: "world"
+
+---
+# SecretStore using the CRD provider.
+# Targets ConfigMap (core group = "") authenticated as the crd-reader SA.
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: test-crd
+  namespace: default
+spec:
+  provider:
+    crd:
+      serviceAccountName: crd-reader
+      resource:
+        group: ""       # empty group = core Kubernetes API
+        version: v1
+        kind: ConfigMap
+
+---
+# ExternalSecret that reads foo and bar from the ConfigMap and writes
+# them as keys in a Kubernetes Secret.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: test-crd-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: test-crd
+    kind: SecretStore
+  target:
+    name: test-crd-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: foo
+      remoteRef:
+        key: my-app-config   # name of the ConfigMap object
+        property: data.foo   # dot-notation path inside the object
+    - secretKey: bar
+      remoteRef:
+        key: my-app-config
+        property: data.bar

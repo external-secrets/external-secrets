@@ -1,0 +1,40 @@
+---
+# ServiceAccount that the CRD provider will impersonate.
+# It must have RBAC permission to get/list ConfigMaps.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: crd-reader
+  namespace: default
+
+---
+# Role granting read access to ConfigMaps in the default namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: crd-reader-configmap
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+  - apiGroups: ["test.external-secrets.io"]
+    resources: ["dbspecs"]
+    verbs: ["get", "list"]
+
+---
+# Bind the Role to the ServiceAccount.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: crd-reader-configmap
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: crd-reader-configmap
+subjects:
+  - kind: ServiceAccount
+    name: crd-reader
+    namespace: default
+---
