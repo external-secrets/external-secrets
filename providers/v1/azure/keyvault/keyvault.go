@@ -26,6 +26,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -468,8 +469,7 @@ func (a *Azure) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemot
 
 	err = parseError(err)
 	if err != nil {
-		var noSecretErr esv1.NoSecretError
-		if errors.As(err, &noSecretErr) {
+		if _, ok := errors.AsType[esv1.NoSecretError](err); ok {
 			return false, nil
 		}
 		return false, err
@@ -824,20 +824,22 @@ func getSecretAllMetadata(resp any) map[string]*string {
 	var expires, created, updated, notBefore *date.UnixTime
 	switch v := resp.(type) {
 	case keyvault.SecretBundle:
-		tags = v.Tags
+		tags = maps.Clone(v.Tags)
 		if v.Attributes != nil {
 			expires, created, updated, notBefore = v.Attributes.Expires, v.Attributes.Created, v.Attributes.Updated, v.Attributes.NotBefore
 		}
 	case keyvault.CertificateBundle:
-		tags = v.Tags
+		tags = maps.Clone(v.Tags)
 		if v.Attributes != nil {
 			expires, created, updated, notBefore = v.Attributes.Expires, v.Attributes.Created, v.Attributes.Updated, v.Attributes.NotBefore
 		}
 	case keyvault.KeyBundle:
-		tags = v.Tags
+		tags = maps.Clone(v.Tags)
 		if v.Attributes != nil {
 			expires, created, updated, notBefore = v.Attributes.Expires, v.Attributes.Created, v.Attributes.Updated, v.Attributes.NotBefore
 		}
+	default:
+		return nil
 	}
 	if tags == nil {
 		tags = make(map[string]*string)
@@ -846,8 +848,7 @@ func getSecretAllMetadata(resp any) map[string]*string {
 		if v == nil {
 			return
 		}
-		s := time.Time(*v).UTC().Format(time.RFC3339)
-		tags[key] = &s
+		tags[key] = new(time.Time(*v).UTC().Format(time.RFC3339))
 	}
 	set(attributeExpires, expires)
 	set(attributeCreated, created)
@@ -861,11 +862,18 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	if property == "" {
 		secretTagsData := make(map[string]string)
 		for k, v := range tags {
+			if v == nil {
+				continue
+			}
 			secretTagsData[k] = *v
 		}
 		return json.Marshal(secretTagsData)
 	}
 	if val, exist := tags[property]; exist {
+		if val == nil {
+			return nil, nil
+		}
+
 		return []byte(*val), nil
 	}
 
@@ -877,6 +885,9 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	if idx > 0 {
 		tagName := property[0:idx]
 		if val, exist := tags[tagName]; exist {
+			if val == nil {
+				return nil, nil
+			}
 			key := strings.Replace(property, tagName+".", "", 1)
 			return getProperty(*val, key, property)
 		}
