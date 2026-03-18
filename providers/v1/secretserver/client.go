@@ -39,6 +39,9 @@ const (
 	errMsgNoMatchingSecrets = "no matching secrets"
 	// errMsgNotFound is returned when a secret is not found in a specific folder.
 	errMsgNotFound = "not found"
+	// errMsgAmbiguousName is returned by lookupSecretStrict when a plain name
+	// matches multiple secrets across folders and no folder scope is provided.
+	errMsgAmbiguousName = "multiple secrets found with the same name across different folders; use the 'folderId:<id>/<name>' key format, a path-based key, or a numeric ID to disambiguate"
 
 	// folderPrefix is the prefix used to encode a folder ID in a remote key.
 	// Format: "folderId:<id>/<name>" (e.g. "folderId:73/my-secret").
@@ -46,13 +49,40 @@ const (
 )
 
 // isNotFoundError checks if an error indicates a secret was not found.
-// Uses case-insensitive substring matching since tss-sdk-go v3 has no typed errors.
+// The TSS SDK (v3) returns all errors as plain fmt.Errorf strings with format
+// "<StatusCode> <StatusText>: <body>" — no typed/sentinel errors.
+//
+// This function uses case-insensitive substring matching with explicit exclusions
+// for false-positive patterns produced by our own code (e.g. "not found in secret"
+// from updateSecret or "not found in secret template" from createSecret).
 func isNotFoundError(err error) bool {
 	if err == nil {
 		return false
 	}
 	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, errMsgNoMatchingSecrets) || strings.Contains(msg, errMsgNotFound)
+
+	// Our own sentinel from getSecretByName / getSecretByNameStrict.
+	if strings.Contains(msg, errMsgNoMatchingSecrets) {
+		return true
+	}
+
+	// SDK HTTP 404 responses start with "404 ".
+	if strings.HasPrefix(msg, "404 ") {
+		return true
+	}
+
+	// Generic "not found" substring — but exclude false positives from our own
+	// updateSecret / createSecret error messages.
+	if strings.Contains(msg, errMsgNotFound) {
+		// Patterns like "field X not found in secret" or "field X not found in secret template"
+		// are field-level errors, not secret-not-found errors.
+		if strings.Contains(msg, "not found in secret") {
+			return false
+		}
+		return true
+	}
+
+	return false
 }
 
 // parseFolderPrefix extracts a folder ID and secret name from a key with the
@@ -101,24 +131,24 @@ type client struct {
 
 var _ esv1.SecretsClient = &client{}
 
-// GetSecret supports two types:
-//  1. Get the secrets using the secret ID in ref.key i.e. key: 53974
-//  2. Get the secret using the secret "name" i.e. key: "secretNameHere"
+// GetSecret supports several lookup modes:
+//  1. Get the secret using the secret ID in ref.Key (e.g. key: 53974).
+//  2. Get the secret using the secret "name" (e.g. key: "secretNameHere").
 //     - Secret names must not contain spaces.
-//     - If using the secret "name" and multiple secrets are found ...
+//     - If using the secret "name" and multiple secrets are found,
 //     the first secret in the array will be the secret returned.
-//  3. get the full secret as json-encoded value
-//     by leaving the ref.Property empty.
-//  4. get a specific value by using a key from the json formatted secret in Items.0.ItemValue.
-//     Nested values are supported by specifying a gjson expression
+//  3. Get the full secret as a JSON-encoded value by leaving ref.Property empty.
+//  4. Get a specific field value by matching ref.Property against field
+//     Slug or FieldName. If no field matches, fall back to gjson extraction
+//     from the first field's ItemValue (legacy single-field JSON blob pattern).
+//     Nested values are supported by specifying a gjson expression.
 func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-	// Return nil if secret contains no fields
-	if secret.Fields == nil {
-		return nil, nil
+	if len(secret.Fields) == 0 {
+		return nil, errors.New("secret contains no fields")
 	}
 	jsonStr, err := json.Marshal(secret)
 	if err != nil {
@@ -130,30 +160,26 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		return jsonStr, nil
 	}
 
-	// extract first "field" i.e. Items.0.ItemValue, data from secret using gjson
+	// First: match ref.Property against field Slug or FieldName.
+	// This is the primary lookup path for multi-field secrets.
+	for index := range secret.Fields {
+		if secret.Fields[index].Slug == ref.Property || secret.Fields[index].FieldName == ref.Property {
+			return []byte(secret.Fields[index].ItemValue), nil
+		}
+	}
+
+	// Fallback: legacy single-field JSON blob pattern.
+	// If the first field's ItemValue is valid JSON, try extracting ref.Property
+	// via gjson (supports nested paths like "server.1").
 	val := gjson.Get(string(jsonStr), "Items.0.ItemValue")
 	if val.Exists() && gjson.Valid(val.String()) {
-		// extract specific value from data directly above using gjson
 		out := gjson.Get(val.String(), ref.Property)
 		if out.Exists() {
 			return []byte(out.String()), nil
 		}
 	}
 
-	// More general case Fields is an array in DelineaXPM/tss-sdk-go/v3/server
-	// https://github.com/DelineaXPM/tss-sdk-go/blob/571e5674a8103031ad6f873453db27959ec1ca67/server/secret.go#L23
-	secretMap := make(map[string]string)
-	for index := range secret.Fields {
-		secretMap[secret.Fields[index].FieldName] = secret.Fields[index].ItemValue
-		secretMap[secret.Fields[index].Slug] = secret.Fields[index].ItemValue
-	}
-
-	out, ok := secretMap[ref.Property]
-	if !ok {
-		return nil, esv1.NoSecretError{}
-	}
-
-	return []byte(out), nil
+	return nil, esv1.NoSecretError{}
 }
 
 // PushSecret creates or updates a secret in Delinea Secret Server.
@@ -176,9 +202,10 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 
-	// Look up the secret to see if it exists.
-	// A folderId encoded in the remoteKey takes precedence over metadata for
-	// lookups (delete and existence-check never see metadata).
+	// Resolve the effective folder ID for both lookups AND creation.
+	// A folderId encoded in the remoteKey takes precedence over metadata
+	// (delete and existence-check never see metadata, so the prefix must win
+	// to keep lookup and creation consistent).
 	folderID := 0
 	if meta != nil {
 		folderID = meta.Spec.FolderID
@@ -200,11 +227,18 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return c.updateSecret(existingSecret, data.GetProperty(), string(value))
 	}
 
-	if meta == nil || meta.Spec.FolderID <= 0 || meta.Spec.SecretTemplateID <= 0 {
+	if meta == nil || meta.Spec.SecretTemplateID <= 0 {
 		return errors.New("folderId and secretTemplateId must be provided in metadata to create a new secret")
 	}
 
-	return c.createSecret(data.GetRemoteKey(), data.GetProperty(), string(value), meta.Spec)
+	// Use the effective folderID (prefix-overridden or metadata-supplied) for creation.
+	if folderID <= 0 {
+		return errors.New("folderId and secretTemplateId must be provided in metadata to create a new secret")
+	}
+
+	createSpec := meta.Spec
+	createSpec.FolderID = folderID
+	return c.createSecret(data.GetRemoteKey(), data.GetProperty(), string(value), createSpec)
 }
 
 // updateSecret updates an existing secret in Delinea Secret Server.
@@ -254,8 +288,15 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 	// with just the plain name.  The folder is already specified in meta.FolderID.
 	if _, stripped, ok := parseFolderPrefix(name); ok {
 		name = stripped
+		// After prefix stripping, the name should be a simple name (no slashes).
+		// The folderId format is "folderId:<id>/<name>", not "folderId:<id>/<path>".
+		if strings.Contains(name, "/") {
+			return fmt.Errorf("invalid secret name %q in folderId prefix: name must not contain path separators", name)
+		}
 	}
 
+	// For path-based keys (e.g. "/Folder/SubFolder/SecretName"), extract the
+	// basename. The folder structure is controlled by meta.FolderID.
 	normalizedName := strings.TrimPrefix(name, "/")
 	if strings.Contains(normalizedName, "/") {
 		parts := strings.Split(normalizedName, "/")
@@ -298,11 +339,8 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 }
 
 // DeleteSecret deletes a secret in Delinea Secret Server.
-func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
-	remoteRef := esv1.ExternalSecretDataRemoteRef{
-		Key: ref.GetRemoteKey(),
-	}
-	secret, err := c.getSecret(ctx, remoteRef)
+func (c *client) DeleteSecret(_ context.Context, ref esv1.PushSecretRemoteRef) error {
+	secret, err := c.lookupSecretStrict(ref.GetRemoteKey())
 	if err != nil {
 		// If already deleted/not found, ignore
 		if isNotFoundError(err) {
@@ -319,11 +357,8 @@ func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 }
 
 // SecretExists checks if a secret exists in Delinea Secret Server.
-func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	remoteRef := esv1.ExternalSecretDataRemoteRef{
-		Key: ref.GetRemoteKey(),
-	}
-	_, err := c.getSecret(ctx, remoteRef)
+func (c *client) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	_, err := c.lookupSecretStrict(ref.GetRemoteKey())
 	if err != nil {
 		if isNotFoundError(err) {
 			return false, nil
@@ -389,9 +424,17 @@ func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 }
 
 // findExistingSecret looks up a secret for PushSecret's find-or-create logic.
-// Unlike getSecret, it supports folder-scoped disambiguation via folderID.
+// Unlike getSecret (used for reads), this refuses ambiguous plain-name matches
+// when no folder scope is available, matching the safety behavior of DeleteSecret
+// and SecretExists.
 func (c *client) findExistingSecret(_ context.Context, key string, folderID int) (*server.Secret, error) {
-	return c.lookupSecret(key, folderID)
+	// When a folder scope is available (either from prefix or metadata),
+	// the lookup is unambiguous — use the regular (non-strict) resolver.
+	if folderID > 0 {
+		return c.lookupSecret(key, folderID)
+	}
+	// No folder scope: use strict lookup to reject ambiguous plain names.
+	return c.lookupSecretStrict(key)
 }
 
 // lookupSecret resolves a secret by path ("/..."), numeric ID, folder-scoped
@@ -423,6 +466,53 @@ func (c *client) lookupSecret(key string, folderID int) (*server.Secret, error) 
 	}
 
 	return c.getSecretByName(key, folderID)
+}
+
+// lookupSecretStrict resolves a secret like lookupSecret but refuses to
+// silently pick the first match when a plain name (no folderId prefix, no
+// path, no numeric ID) matches more than one secret across folders.
+// This is used by destructive operations (DeleteSecret) and existence checks
+// (SecretExists) that must not accidentally act on the wrong secret.
+func (c *client) lookupSecretStrict(key string) (*server.Secret, error) {
+	// 1. Folder-scoped prefix: unambiguous — delegate directly.
+	if prefixFolderID, name, ok := parseFolderPrefix(key); ok {
+		return c.getSecretByName(name, prefixFolderID)
+	}
+
+	// 2. Path-based key: unambiguous.
+	if strings.HasPrefix(key, "/") {
+		return c.api.SecretByPath(key)
+	}
+
+	// 3. Numeric key: try as ID first; fall back to name-based lookup.
+	if id, err := strconv.Atoi(key); err == nil {
+		secret, err := c.api.Secret(id)
+		if err == nil && secret != nil {
+			return secret, nil
+		}
+		if !isNotFoundError(err) {
+			return nil, err
+		}
+	}
+
+	// 4. Plain name: reject if ambiguous (multiple matches without folder scope).
+	return c.getSecretByNameStrict(key)
+}
+
+// getSecretByNameStrict searches for a secret by name and returns an error if
+// multiple secrets share the same name across different folders.
+func (c *client) getSecretByNameStrict(name string) (*server.Secret, error) {
+	secrets, err := c.api.Secrets(name, "Name")
+	if err != nil {
+		return nil, err
+	}
+	if len(secrets) == 0 {
+		return nil, errors.New(errMsgNoMatchingSecrets)
+	}
+	if len(secrets) > 1 {
+		return nil, errors.New(errMsgAmbiguousName)
+	}
+	return &secrets[0], nil
 }
 
 func (c *client) getSecretByName(name string, folderID int) (*server.Secret, error) {

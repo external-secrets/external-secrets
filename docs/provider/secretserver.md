@@ -122,18 +122,18 @@ spec:
     - secretKey: SecretServerValue  # Key in the Kubernetes Secret
       remoteRef:
         key: "/secretFolder/secretname"  # Path format: /<Folder>/<SecretName>
-        property: ""                    # Optional: use gjson syntax to extract a specific field
+        property: ""                    # Optional: matched against field Slug/FieldName first, then gjson on Items.0.ItemValue as fallback
 ```
 
 #### Notes:
 
 The path must exactly match the folder and secret name in Secret-Server/Platform.
 If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
-You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret.
+You can still use property to match fields by Slug/FieldName, extract values from JSON-formatted secrets via gjson, or omit it to retrieve the entire secret.
 
 ### Preparing your secret
-You can either retrieve your entire secret or you can use a JSON formatted string
-stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
+You can either retrieve your entire secret, match a field by its Slug or FieldName, or use a JSON formatted string
+stored in your secret located at Items[0].ItemValue to retrieve a specific value using gjson syntax.<br />
 See example JSON secret below.
 
 #### Examples
@@ -199,9 +199,9 @@ returns: The entire secret in JSON format as displayed below
 }
 ```
 
-### Referencing Secrets in multiple Items secrets
+### Referencing Secrets by Field Name or Slug
 
-If there is more then one Item in the secret, it supports to retrieve them (all Item.\*.ItemValue) looking up by Item.\*.FieldName or Item.\*.Slug, instead of the above behaviour to use gjson only on the first item Items.0.ItemValue only.
+When `property` is set, the provider first tries to match it against each field's `Slug` or `FieldName` and returns the corresponding `ItemValue`. This works for secrets with any number of fields. If no field matches, it falls back to treating the first field's `ItemValue` as JSON and extracting the property using gjson syntax (supporting nested paths like `"books.1"`).
 
 #### Examples
 

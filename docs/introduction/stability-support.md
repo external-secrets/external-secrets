@@ -118,7 +118,7 @@ The following table show the support for features across different providers.
 | CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 | Beyondtrust               |      x       |              |                      |                         |        x         |             |                             |
-| SecretServer              |      x       |              |                      |                         |        x         |             |                             |
+| SecretServer              |      x       |              |                      |                         |        x         |      x      |              x              |
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 | Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
