@@ -214,6 +214,15 @@ func newProvider(fake *fakeACMClient) *CertificateManager {
 	}
 }
 
+// clearARNCache removes all entries from the package-level ARN cache.
+// Must be called in tests that rely on or modify cache state.
+func clearARNCache() {
+	arnCache.Range(func(key, _ any) bool {
+		arnCache.Delete(key)
+		return true
+	})
+}
+
 // ---------------------------------------------------------------------------
 // splitCertificatePEM tests
 // ---------------------------------------------------------------------------
@@ -290,6 +299,7 @@ func TestSplitCertificatePEM_InvalidLeafCertificate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPushSecret_NewCertificate(t *testing.T) {
+	clearARNCache()
 	certs := generateTestCerts(t)
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/new"
 
@@ -349,6 +359,7 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 }
 
 func TestPushSecret_LeafOnly_NoChainSent(t *testing.T) {
+	clearARNCache()
 	certs := generateTestCerts(t)
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/leaf-only"
 
@@ -385,6 +396,7 @@ func TestPushSecret_LeafOnly_NoChainSent(t *testing.T) {
 }
 
 func TestPushSecret_ReimportExisting(t *testing.T) {
+	clearARNCache()
 	certs := generateTestCerts(t)
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/existing"
 	var importedARN string
@@ -427,6 +439,7 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 }
 
 func TestPushSecret_MissingCertKey(t *testing.T) {
+	clearARNCache()
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
@@ -465,11 +478,134 @@ func TestPushSecret_SecretKeyNotEmpty_Rejected(t *testing.T) {
 	}
 }
 
+func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
+	clearARNCache()
+	certs := generateTestCerts(t)
+	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/cached"
+
+	importCount := 0
+	fake := &fakeACMClient{
+		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+			// Simulate eventual consistency: ListCertificates never returns the cert.
+			return &acm.ListCertificatesOutput{}, nil
+		},
+		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+			importCount++
+			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
+		},
+		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+			return &acm.AddTagsToCertificateOutput{}, nil
+		},
+		listTagsFn: func(_ context.Context, p *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+			if aws.ToString(p.CertificateArn) == arn {
+				return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+			}
+			return &acm.ListTagsForCertificateOutput{}, nil
+		},
+		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+			return &acm.RemoveTagsFromCertificateOutput{}, nil
+		},
+	}
+
+	psd := &pushSecretData{remoteKey: "my-cert"}
+	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
+
+	// First call: new import (ListCertificates returns empty, cache is empty).
+	provider := newProvider(fake)
+	if err := provider.PushSecret(context.Background(), secret, psd); err != nil {
+		t.Fatalf("first PushSecret: %v", err)
+	}
+	if importCount != 1 {
+		t.Fatalf("expected 1 import call after first push, got %d", importCount)
+	}
+
+	// Second call simulates a rapid re-reconciliation.
+	// ListCertificates still returns empty (eventual consistency), but the
+	// cache should let findCertificateARN find the cert via ListTagsForCertificate.
+	provider2 := newProvider(fake)
+	if err := provider2.PushSecret(context.Background(), secret, psd); err != nil {
+		t.Fatalf("second PushSecret: %v", err)
+	}
+	if importCount != 2 {
+		t.Fatalf("expected 2 import calls total, got %d", importCount)
+	}
+
+	// Verify the second import was a re-import (CertificateArn set), not a new import.
+	// We'll track this with a more detailed check.
+	importCount = 0
+	var secondImportHadARN bool
+	fake.importCertificateFn = func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+		importCount++
+		secondImportHadARN = p.CertificateArn != nil
+		return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
+	}
+	provider3 := newProvider(fake)
+	if err := provider3.PushSecret(context.Background(), secret, psd); err != nil {
+		t.Fatalf("third PushSecret: %v", err)
+	}
+	if !secondImportHadARN {
+		t.Error("expected re-import (CertificateArn set) on cached lookup, got new import")
+	}
+}
+
+func TestPushSecret_CacheClearedOnDelete(t *testing.T) {
+	clearARNCache()
+	certs := generateTestCerts(t)
+	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/to-delete-cache"
+
+	importCount := 0
+	fake := &fakeACMClient{
+		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+			return &acm.ListCertificatesOutput{
+				CertificateSummaryList: []types.CertificateSummary{{CertificateArn: aws.String(arn)}},
+			}, nil
+		},
+		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+			importCount++
+			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
+		},
+		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+			return &acm.AddTagsToCertificateOutput{}, nil
+		},
+		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+		},
+		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+			return &acm.RemoveTagsFromCertificateOutput{}, nil
+		},
+		deleteCertificateFn: func(_ context.Context, _ *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
+			return &acm.DeleteCertificateOutput{}, nil
+		},
+	}
+
+	psd := &pushSecretData{remoteKey: "my-cert"}
+	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
+
+	// Push to populate cache.
+	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
+		t.Fatalf("PushSecret: %v", err)
+	}
+
+	// Verify cache is populated.
+	if _, ok := arnCache.Load("my-cert"); !ok {
+		t.Fatal("expected ARN to be cached after PushSecret")
+	}
+
+	// Delete should clear the cache.
+	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: "my-cert"}); err != nil {
+		t.Fatalf("DeleteSecret: %v", err)
+	}
+	if _, ok := arnCache.Load("my-cert"); ok {
+		t.Error("expected ARN cache to be cleared after DeleteSecret")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // SecretExists tests
 // ---------------------------------------------------------------------------
 
 func TestSecretExists_Found(t *testing.T) {
+	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/abc"
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
@@ -492,6 +628,7 @@ func TestSecretExists_Found(t *testing.T) {
 }
 
 func TestSecretExists_NotFound(t *testing.T) {
+	clearARNCache()
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
@@ -512,6 +649,7 @@ func TestSecretExists_NotFound(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDeleteSecret_Managed(t *testing.T) {
+	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/to-delete"
 	deleted := false
 
@@ -542,6 +680,7 @@ func TestDeleteSecret_Managed(t *testing.T) {
 }
 
 func TestDeleteSecret_NotManagedByESO(t *testing.T) {
+	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/not-ours"
 
 	fake := &fakeACMClient{
@@ -563,6 +702,7 @@ func TestDeleteSecret_NotManagedByESO(t *testing.T) {
 }
 
 func TestDeleteSecret_NotFound(t *testing.T) {
+	clearARNCache()
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
@@ -575,6 +715,7 @@ func TestDeleteSecret_NotFound(t *testing.T) {
 }
 
 func TestDeleteSecret_ExplicitlyTaggedAsNotManaged(t *testing.T) {
+	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/external"
 
 	fake := &fakeACMClient{
@@ -598,6 +739,7 @@ func TestDeleteSecret_ExplicitlyTaggedAsNotManaged(t *testing.T) {
 }
 
 func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
+	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/race"
 
 	// findCertificateARN succeeds (cert appears in ListCertificates), but by the time

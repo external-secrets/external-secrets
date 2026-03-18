@@ -25,6 +25,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
@@ -61,6 +62,13 @@ const (
 
 // errCertificateNotFound is returned by listTags when the certificate no longer exists in ACM.
 var errCertificateNotFound = errors.New("certificate not found")
+
+// arnCache maps remoteKey → certificate ARN for recently imported certificates.
+// ACM's ListCertificates API has eventual consistency: a certificate may not
+// appear in the listing immediately after ImportCertificate returns. This cache
+// lets findCertificateARN verify a known ARN via the strongly-consistent
+// ListTagsForCertificate call instead of relying on list enumeration.
+var arnCache sync.Map
 
 // ACMInterface is the subset of the AWS ACM API used by this provider.
 type ACMInterface interface {
@@ -166,6 +174,10 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 
 	certARN := aws.ToString(out.CertificateArn)
 
+	if existingARN == "" {
+		arnCache.Store(remoteKey, certARN)
+	}
+
 	// Reconcile user-defined tags.
 	if err := cm.syncTags(ctx, certARN, meta.Spec.Tags); err != nil {
 		return fmt.Errorf("failed to sync certificate tags: %w", err)
@@ -214,6 +226,7 @@ func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.P
 	if err != nil {
 		return fmt.Errorf("failed to delete certificate %s: %w", arn, err)
 	}
+	arnCache.Delete(remoteRef.GetRemoteKey())
 	log.Info("deleted ACM certificate", "arn", arn, "remoteKey", remoteRef.GetRemoteKey())
 	return nil
 }
@@ -252,7 +265,25 @@ func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 
 // findCertificateARN searches ACM for a certificate tagged with the given remoteKey.
 // Returns the ARN of the matching certificate, or an empty string if not found.
+//
+// It first checks the in-process ARN cache (populated by PushSecret after a new
+// import) and verifies the cached ARN via ListTagsForCertificate, which is
+// strongly consistent for a known resource. This avoids the eventual-consistency
+// window of ListCertificates that can cause duplicate imports across rapid
+// back-to-back reconciliations.
 func (cm *CertificateManager) findCertificateARN(ctx context.Context, remoteKey string) (string, error) {
+	if cached, ok := arnCache.Load(remoteKey); ok {
+		arn := cached.(string)
+		tags, err := cm.listTags(ctx, arn)
+		if err == nil && matchesTags(tags, remoteKey) {
+			return arn, nil
+		}
+		if !errors.Is(err, errCertificateNotFound) && err != nil {
+			return "", fmt.Errorf("failed to verify cached certificate %s: %w", arn, err)
+		}
+		arnCache.Delete(remoteKey)
+	}
+
 	var nextToken *string
 	for {
 		out, err := cm.client.ListCertificates(ctx, &acm.ListCertificatesInput{
@@ -269,13 +300,13 @@ func (cm *CertificateManager) findCertificateARN(ctx context.Context, remoteKey 
 			}
 			tags, err := cm.listTags(ctx, aws.ToString(cert.CertificateArn))
 			if errors.Is(err, errCertificateNotFound) {
-				// Deleted concurrently — skip and keep scanning.
 				continue
 			}
 			if err != nil {
 				return "", fmt.Errorf("failed to list tags for %s: %w", aws.ToString(cert.CertificateArn), err)
 			}
 			if matchesTags(tags, remoteKey) {
+				arnCache.Store(remoteKey, aws.ToString(cert.CertificateArn))
 				return aws.ToString(cert.CertificateArn), nil
 			}
 		}
