@@ -4,11 +4,24 @@ External Secrets Operator integrates with [Nebius MysteryBox](https://docs.nebiu
 
 ### Authentication
 
-Currently, only [Service Account credentials](https://docs.nebius.com/grpc-api/auth) authorization is supported.
+Nebius MysteryBox supports the following authentication methods:
 
+- `auth.serviceAccountRef`: request a Kubernetes service account token via the `TokenRequest` API and exchange it for a Nebius IAM token using workload federation.
+- `auth.serviceAccountCredsSecretRef`: read Nebius service account credentials JSON from a Kubernetes `Secret` and exchange it for a Nebius IAM token.
+- `auth.tokenSecretRef`: read an already issued Nebius IAM token from a Kubernetes `Secret`.
 
-Before you start, create a service account and grant it permission to read desired secrets in MysteryBox.
+#### Kubernetes service account federation
+
+Before you start, configure the Nebius federated credentials for the Kubernetes service account outside External Secrets Operator. ESO assumes that this Nebius-side federation setup already exists and only performs runtime token exchange.
+
+Then create a Kubernetes `ServiceAccount` and grant the impersonated Nebius service account permission to read desired secrets in MysteryBox.
 For details on required roles and permissions, see [MysteryBox get method](https://docs.nebius.com/mysterybox/secrets/get).
+
+The SecretStore example below uses this authentication method.
+
+#### Nebius service account credentials JSON
+
+If you prefer static Nebius service account credentials, create a service account and grant it permission to read desired secrets in MysteryBox.
 
 You will need to create a Kubernetes Secret with desired auth parameters and structure.
 The Kubernetes secret must be in a Subject Credentials format:
@@ -82,5 +95,4 @@ There is also a possibility to specify Version variable to get a secret.
 
 !!! tip inline end
     When the `version` field is not specified, a primary version of the secret will be retrieved.
-
 

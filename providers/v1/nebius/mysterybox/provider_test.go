@@ -38,6 +38,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/iam"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox/fake"
 )
@@ -421,13 +422,168 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 
 	// also ensure TokenGetter was exercised with the domain and creds we expect
 	tassert.Equal(t, int32(1), tokenGetter.calls, "expected TokenGetter to be called once")
-	tassert.Equal(t, apiDomain, tokenGetter.gotDomain, "expected TokenGetter to be called with the correct domain")
-	tassert.Equal(t, string(providedCreds), tokenGetter.gotCreds, "expected TokenGetter to be called with the correct creds")
+	tassert.NotNil(t, tokenGetter.gotRequest, "expected TokenGetter to capture the request")
+	tassert.Equal(t, apiDomain, tokenGetter.gotRequest.APIDomain, "expected TokenGetter to be called with the correct domain")
+	tassert.Equal(t, iam.TokenAuthTypeServiceAccountCreds, tokenGetter.gotRequest.AuthType, "expected service account creds auth type")
+	tassert.Equal(t, string(providedCreds), tokenGetter.gotRequest.SubjectCreds, "expected TokenGetter to be called with the correct creds")
 	tassert.Nil(t, tokenGetter.gotCACert, "expected TokenGetter to be called without CA cert")
 
 	got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k"})
 	tassert.NoError(t, err)
 	tassert.Equal(t, []byte("v"), got)
+}
+
+func TestNewClient_AuthWithServiceAccountRef(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	mysteryboxService := fake.InitMysteryboxService()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	secret := mysteryboxService.CreateSecret([]mysterybox.Entry{{Key: "k", StringValue: "v"}})
+	tokenGetter := &faketokenGetter{tokenToIssue: tokenToBeIssued}
+
+	cache, err := lru.New(10)
+	tassert.NoError(t, err)
+
+	var (
+		fetchCalls int
+		gotRef     esmeta.ServiceAccountSelector
+		gotNS      string
+	)
+	p := &Provider{
+		Logger: logger,
+		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+			return fake.NewFakeMysteryboxClient(mysteryboxService), nil
+		},
+		TokenGetter:            tokenGetter,
+		mysteryboxClientsCache: cache,
+		ServiceAccountTokenFetcher: func(_ context.Context, ref esmeta.ServiceAccountSelector, namespace string) (string, error) {
+			fetchCalls++
+			gotRef = ref
+			gotNS = namespace
+			return "k8s-jwt", nil
+		},
+	}
+
+	store := newNebiusMysteryboxSecretStoreWithServiceAccountRef(apiDomain, namespace, "wi-sa", nil, []string{"aud-a"})
+	client, err := p.NewClient(ctx, store, k8sClient, namespace)
+	tassert.NoError(t, err)
+
+	msc, ok := client.(*SecretsClient)
+	tassert.True(t, ok, "expected *SecretsClient, got %T", client)
+	tassert.Equal(t, tokenToBeIssued, msc.token)
+
+	tassert.Equal(t, 1, fetchCalls)
+	tassert.Equal(t, "wi-sa", gotRef.Name)
+	tassert.Equal(t, namespace, gotNS)
+
+	tassert.NotNil(t, tokenGetter.gotRequest)
+	tassert.Equal(t, iam.TokenAuthTypeFederatedServiceAccount, tokenGetter.gotRequest.AuthType)
+	tassert.Equal(t, apiDomain, tokenGetter.gotRequest.APIDomain)
+	tassert.Equal(t, "k8s-jwt", tokenGetter.gotRequest.SubjectToken)
+	tassert.Equal(t, namespace, tokenGetter.gotRequest.ServiceAccountNamespace)
+	tassert.Equal(t, "wi-sa", tokenGetter.gotRequest.ServiceAccountName)
+	tassert.Equal(t, []string{"aud-a"}, tokenGetter.gotRequest.ServiceAccountAudiences)
+
+	got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k"})
+	tassert.NoError(t, err)
+	tassert.Equal(t, []byte("v"), got)
+}
+
+func TestNewClient_ServiceAccountRefTokenRequestError(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	cache, err := lru.New(10)
+	tassert.NoError(t, err)
+
+	p := &Provider{
+		Logger: logger,
+		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+			return fake.NewFakeMysteryboxClient(nil), nil
+		},
+		TokenGetter:            &faketokenGetter{tokenToIssue: tokenToBeIssued},
+		mysteryboxClientsCache: cache,
+		ServiceAccountTokenFetcher: func(_ context.Context, ref esmeta.ServiceAccountSelector, namespace string) (string, error) {
+			return "", errors.New("request failed")
+		},
+	}
+
+	store := newNebiusMysteryboxSecretStoreWithServiceAccountRef(apiDomain, namespace, "wi-sa", nil, nil)
+	_, err = p.NewClient(ctx, store, k8sClient, namespace)
+	tassert.Error(t, err)
+	tassert.ErrorContains(t, err, fmt.Sprintf("request Kubernetes service account token %s/%s", namespace, "wi-sa"))
+}
+
+func TestNewClient_ServiceAccountRefTokenExchangeError(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	cache, err := lru.New(10)
+	tassert.NoError(t, err)
+
+	p := &Provider{
+		Logger: logger,
+		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+			return fake.NewFakeMysteryboxClient(nil), nil
+		},
+		TokenGetter:            &faketokenGetter{returnError: true},
+		mysteryboxClientsCache: cache,
+		ServiceAccountTokenFetcher: func(_ context.Context, ref esmeta.ServiceAccountSelector, namespace string) (string, error) {
+			return "k8s-jwt", nil
+		},
+	}
+
+	store := newNebiusMysteryboxSecretStoreWithServiceAccountRef(apiDomain, namespace, "wi-sa", nil, nil)
+	_, err = p.NewClient(ctx, store, k8sClient, namespace)
+	tassert.Error(t, err)
+	tassert.ErrorContains(t, err, "failed to retrieve iam token by credentials")
+}
+
+func TestResolveServiceAccountNamespace(t *testing.T) {
+	t.Parallel()
+
+	callerNamespace := "caller-ns"
+	explicitNamespace := "configured-ns"
+
+	tests := []struct {
+		name   string
+		store  esv1.GenericStore
+		ref    esmeta.ServiceAccountSelector
+		wantNS string
+	}{
+		{
+			name:   "namespaced secret store uses caller namespace",
+			store:  newNebiusMysteryboxSecretStoreWithServiceAccountRef(apiDomain, callerNamespace, "wi-sa", nil, nil),
+			ref:    esmeta.ServiceAccountSelector{Name: "wi-sa"},
+			wantNS: callerNamespace,
+		},
+		{
+			name:   "cluster secret store falls back to caller namespace",
+			store:  newNebiusMysteryboxClusterSecretStoreWithServiceAccountRef(apiDomain, "wi-sa", nil, nil),
+			ref:    esmeta.ServiceAccountSelector{Name: "wi-sa"},
+			wantNS: callerNamespace,
+		},
+		{
+			name:   "cluster secret store uses explicit namespace",
+			store:  newNebiusMysteryboxClusterSecretStoreWithServiceAccountRef(apiDomain, "wi-sa", &explicitNamespace, nil),
+			ref:    esmeta.ServiceAccountSelector{Name: "wi-sa", Namespace: &explicitNamespace},
+			wantNS: explicitNamespace,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := resolveServiceAccountNamespace(tt.store, callerNamespace, tt.ref)
+			tassert.Equal(t, tt.wantNS, got)
+		})
+	}
 }
 
 func TestGetSecret_NotFound(t *testing.T) {
@@ -883,6 +1039,50 @@ func newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace,
 	}
 }
 
+func newNebiusMysteryboxSecretStoreWithServiceAccountRef(apiDomain, namespace, serviceAccountName string, serviceAccountNamespace *string, audiences []string) esv1.GenericStore {
+	return &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
+					APIDomain: apiDomain,
+					Auth: esv1.NebiusAuth{
+						ServiceAccountRef: &esmeta.ServiceAccountSelector{
+							Name:      serviceAccountName,
+							Namespace: serviceAccountNamespace,
+							Audiences: audiences,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newNebiusMysteryboxClusterSecretStoreWithServiceAccountRef(apiDomain, serviceAccountName string, serviceAccountNamespace *string, audiences []string) esv1.GenericStore {
+	return &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: esv1.ClusterSecretStoreKind,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
+					APIDomain: apiDomain,
+					Auth: esv1.NebiusAuth{
+						ServiceAccountRef: &esmeta.ServiceAccountSelector{
+							Name:      serviceAccountName,
+							Namespace: serviceAccountNamespace,
+							Audiences: audiences,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) {
 	err := k8sClient.Create(ctx, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -916,22 +1116,26 @@ func newProvider(t *testing.T, newMysteryboxClientFunc NewMysteryboxClient, toke
 type faketokenGetter struct {
 	calls        int32
 	returnError  bool
-	gotDomain    string
-	gotCreds     string
+	gotRequest   *iam.TokenRequest
 	gotCACert    []byte
 	tokenToIssue string
 
 	mu sync.Mutex
 }
 
-func (f *faketokenGetter) GetToken(_ context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
+func (f *faketokenGetter) GetToken(_ context.Context, req *iam.TokenRequest, caCert []byte) (string, error) {
 	atomic.AddInt32(&f.calls, 1)
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.gotDomain = apiDomain
-	f.gotCreds = subjectCreds
+	if req != nil {
+		reqCopy := *req
+		if req.ServiceAccountAudiences != nil {
+			reqCopy.ServiceAccountAudiences = append([]string(nil), req.ServiceAccountAudiences...)
+		}
+		f.gotRequest = &reqCopy
+	}
 	f.gotCACert = caCert
 	if f.returnError {
 		return "", errors.New("internal error")

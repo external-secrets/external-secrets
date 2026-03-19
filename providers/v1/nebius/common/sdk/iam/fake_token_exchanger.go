@@ -29,11 +29,19 @@ import (
 type FakeTokenExchanger struct {
 	Calls       atomic.Int64
 	ReturnError bool
+	LastRequest *TokenRequest
 }
 
 // ExchangeIamToken exchanges credentials to generate a new IAM token with a fixed 100-second validity period.
-func (f *FakeTokenExchanger) ExchangeIamToken(_ context.Context, _, _ string, issuedAt time.Time, _ []byte) (*Token, error) {
+func (f *FakeTokenExchanger) ExchangeIamToken(_ context.Context, req *TokenRequest, issuedAt time.Time, _ []byte) (*Token, error) {
 	f.Calls.Add(1)
+	if req != nil {
+		reqCopy := *req
+		if req.ServiceAccountAudiences != nil {
+			reqCopy.ServiceAccountAudiences = append([]string(nil), req.ServiceAccountAudiences...)
+		}
+		f.LastRequest = &reqCopy
+	}
 	if f.ReturnError {
 		return nil, fmt.Errorf("fake error")
 	}

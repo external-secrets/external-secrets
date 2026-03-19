@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebius/gosdk/auth"
@@ -36,18 +37,31 @@ const (
 
 // TokenGetter is an interface for generating and retrieving authentication tokens.
 type TokenGetter interface {
-	GetToken(ctx context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error)
+	GetToken(ctx context.Context, req *iam.TokenRequest, caCert []byte) (string, error)
 }
 
 type tokenCacheKey struct {
-	APIDomain        string
-	PublicKeyID      string
-	ServiceAccountID string
-	PrivateKeyHash   string
+	APIDomain         string
+	AuthType          string
+	PublicKeyID       string
+	ServiceAccountID  string
+	PrivateKeyHash    string
+	K8SNamespace      string
+	K8SServiceAccount string
+	AudiencesHash     string
 }
 
 func (k *tokenCacheKey) String() string {
-	return k.APIDomain + "|" + k.PublicKeyID + "|" + k.ServiceAccountID + "|" + k.PrivateKeyHash
+	return strings.Join([]string{
+		k.APIDomain,
+		k.AuthType,
+		k.PublicKeyID,
+		k.ServiceAccountID,
+		k.PrivateKeyHash,
+		k.K8SNamespace,
+		k.K8SServiceAccount,
+		k.AudiencesHash,
+	}, "|")
 }
 
 // CachedTokenGetter is responsible for managing Nebius IAM token caching and token exchange processes.
@@ -86,10 +100,8 @@ func isTokenExpired(token *iam.Token, clk clock.Clock) bool {
 
 // GetToken retrieves an IAM token for the given API domain and subject credentials, using a cache to optimize requests.
 // It exchanges credentials for a new token if no valid cached token exists or the cached token is nearing expiration.
-func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
-	byteCreds := []byte(subjectCreds)
-	cacheKey, err := buildTokenCacheKey(byteCreds, apiDomain)
-
+func (c *CachedTokenGetter) GetToken(ctx context.Context, req *iam.TokenRequest, caCert []byte) (string, error) {
+	cacheKey, err := buildTokenCacheKey(req)
 	if err != nil {
 		return "", err
 	}
@@ -113,7 +125,7 @@ func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCred
 			}
 		}
 
-		newToken, err := c.TokenExchanger.ExchangeIamToken(ctx, apiDomain, subjectCreds, c.Clock.Now(), caCert)
+		newToken, err := c.TokenExchanger.ExchangeIamToken(ctx, req, c.Clock.Now(), caCert)
 		if err != nil {
 			return "", fmt.Errorf("could not exchange creds to iam token: %w", MapGrpcErrors("create token", err))
 		}
@@ -128,18 +140,39 @@ func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCred
 	return token.(string), nil
 }
 
-func buildTokenCacheKey(subjectCreds []byte, apiDomain string) (*tokenCacheKey, error) {
-	parsedSubjectCreds := &auth.ServiceAccountCredentials{}
-	err := json.Unmarshal(subjectCreds, parsedSubjectCreds)
-	if err != nil {
-		return nil, errors.New(errInvalidSubjectCreds)
+func buildTokenCacheKey(req *iam.TokenRequest) (*tokenCacheKey, error) {
+	if req == nil {
+		return nil, errors.New("invalid token request")
 	}
-	return &tokenCacheKey{
-		APIDomain:        apiDomain,
-		PublicKeyID:      parsedSubjectCreds.SubjectCredentials.KeyID,
-		ServiceAccountID: parsedSubjectCreds.SubjectCredentials.Subject,
-		PrivateKeyHash:   HashBytes([]byte(parsedSubjectCreds.SubjectCredentials.PrivateKey)),
-	}, nil
+
+	switch req.AuthType {
+	case iam.TokenAuthTypeServiceAccountCreds:
+		parsedSubjectCreds := &auth.ServiceAccountCredentials{}
+		err := json.Unmarshal([]byte(req.SubjectCreds), parsedSubjectCreds)
+		if err != nil {
+			return nil, errors.New(errInvalidSubjectCreds)
+		}
+		return &tokenCacheKey{
+			APIDomain:        req.APIDomain,
+			AuthType:         string(req.AuthType),
+			PublicKeyID:      parsedSubjectCreds.SubjectCredentials.KeyID,
+			ServiceAccountID: parsedSubjectCreds.SubjectCredentials.Subject,
+			PrivateKeyHash:   HashBytes([]byte(parsedSubjectCreds.SubjectCredentials.PrivateKey)),
+		}, nil
+	case iam.TokenAuthTypeFederatedServiceAccount:
+		if req.ServiceAccountNamespace == "" || req.ServiceAccountName == "" {
+			return nil, errors.New("invalid federated service account token request")
+		}
+		return &tokenCacheKey{
+			APIDomain:         req.APIDomain,
+			AuthType:          string(req.AuthType),
+			K8SNamespace:      req.ServiceAccountNamespace,
+			K8SServiceAccount: req.ServiceAccountName,
+			AudiencesHash:     HashBytes([]byte(strings.Join(req.ServiceAccountAudiences, "\x00"))),
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid token auth type %q", req.AuthType)
+	}
 }
 
 var _ TokenGetter = &CachedTokenGetter{}

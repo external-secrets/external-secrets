@@ -19,7 +19,9 @@ package v1
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 // NebiusAuth defines the authentication method for the Nebius provider.
-// +kubebuilder:validation:XValidation:rule="has(self.serviceAccountCredsSecretRef) || has(self.tokenSecretRef)",message="either serviceAccountCredsSecretRef or tokenSecretRef must be set"
+// +kubebuilder:validation:XValidation:rule="(has(self.serviceAccountCredsSecretRef) && !has(self.tokenSecretRef) && !has(self.serviceAccountRef)) || (!has(self.serviceAccountCredsSecretRef) && has(self.tokenSecretRef) && !has(self.serviceAccountRef)) || (!has(self.serviceAccountCredsSecretRef) && !has(self.tokenSecretRef) && has(self.serviceAccountRef))",message="exactly one of serviceAccountCredsSecretRef, tokenSecretRef or serviceAccountRef must be set"
+// +kubebuilder:validation:XValidation:rule="!has(self.serviceAccountRef) || self.iamServiceAccountID != ''",message="iamServiceAccountID must be set when serviceAccountRef is used"
+// +kubebuilder:validation:XValidation:rule="has(self.serviceAccountRef) || !has(self.iamServiceAccountID)",message="iamServiceAccountID can only be used with serviceAccountRef"
 type NebiusAuth struct {
 	// ServiceAccountCreds references a Kubernetes Secret key that contains a JSON
 	// document with service account credentials used to get an IAM token.
@@ -39,6 +41,18 @@ type NebiusAuth struct {
 	// Token authenticates with Nebius Mysterybox by presenting a token.
 	// +optional
 	Token esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+
+	// ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+	// temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+	// Nebius IAM token using workload federation.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
+	// IAMServiceAccountID is the Nebius IAM service account identifier that the
+	// federated Kubernetes service account should impersonate during token exchange.
+	// This field is required when serviceAccountRef is used.
+	// +optional
+	IAMServiceAccountID string `json:"iamServiceAccountID,omitempty"`
 }
 
 // NebiusCAProvider The provider for the CA bundle to use to validate Nebius server certificate.

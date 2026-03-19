@@ -22,6 +22,14 @@ import (
 	"time"
 )
 
+// TokenAuthType identifies the auth source used to obtain a Nebius IAM token.
+type TokenAuthType string
+
+const (
+	TokenAuthTypeServiceAccountCreds     TokenAuthType = "serviceAccountCreds"
+	TokenAuthTypeFederatedServiceAccount TokenAuthType = "serviceAccountRef"
+)
+
 // Token represents an IAM token with its value, expiration time, and issuance time.
 type Token struct {
 	Token     string
@@ -29,7 +37,23 @@ type Token struct {
 	IssuedAt  time.Time
 }
 
+// TokenRequest describes the input used to exchange a credential for a Nebius IAM token.
+type TokenRequest struct {
+	APIDomain string
+	AuthType  TokenAuthType
+
+	// SubjectCreds contains Nebius service account credentials JSON.
+	SubjectCreds string
+
+	// SubjectToken contains a subject token such as a Kubernetes service account JWT.
+	SubjectToken string
+
+	ServiceAccountNamespace string
+	ServiceAccountName      string
+	ServiceAccountAudiences []string
+}
+
 // TokenExchanger is an interface for exchanging credentials to obtain IAM tokens.
 type TokenExchanger interface {
-	ExchangeIamToken(ctx context.Context, apiDomain, subjectCreds string, issuedAt time.Time, caCertificate []byte) (*Token, error)
+	ExchangeIamToken(ctx context.Context, req *TokenRequest, issuedAt time.Time, caCertificate []byte) (*Token, error)
 }

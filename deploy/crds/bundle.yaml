@@ -5456,6 +5456,37 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            serviceAccountRef:
+                              description: |-
+                                ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+                                temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+                                Nebius IAM token using workload federation.
+                              properties:
+                                audiences:
+                                  description: |-
+                                    Audience specifies the `aud` claim for the service account token
+                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                    then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              required:
+                                - name
+                              type: object
                             tokenSecretRef:
                               description: Token authenticates with Nebius Mysterybox by presenting a token.
                               properties:
@@ -5484,8 +5515,8 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-validations:
-                            - message: either serviceAccountCredsSecretRef or tokenSecretRef must be set
-                              rule: has(self.serviceAccountCredsSecretRef) || has(self.tokenSecretRef)
+                            - message: exactly one of serviceAccountCredsSecretRef, tokenSecretRef or serviceAccountRef must be set
+                              rule: (has(self.serviceAccountCredsSecretRef) && !has(self.tokenSecretRef) && !has(self.serviceAccountRef)) || (!has(self.serviceAccountCredsSecretRef) && has(self.tokenSecretRef) && !has(self.serviceAccountRef)) || (!has(self.serviceAccountCredsSecretRef) && !has(self.tokenSecretRef) && has(self.serviceAccountRef))
                         caProvider:
                           description: The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
                           properties:
@@ -17224,6 +17255,37 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            serviceAccountRef:
+                              description: |-
+                                ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+                                temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+                                Nebius IAM token using workload federation.
+                              properties:
+                                audiences:
+                                  description: |-
+                                    Audience specifies the `aud` claim for the service account token
+                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                    then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              required:
+                                - name
+                              type: object
                             tokenSecretRef:
                               description: Token authenticates with Nebius Mysterybox by presenting a token.
                               properties:
@@ -17252,8 +17314,8 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-validations:
-                            - message: either serviceAccountCredsSecretRef or tokenSecretRef must be set
-                              rule: has(self.serviceAccountCredsSecretRef) || has(self.tokenSecretRef)
+                            - message: exactly one of serviceAccountCredsSecretRef, tokenSecretRef or serviceAccountRef must be set
+                              rule: (has(self.serviceAccountCredsSecretRef) && !has(self.tokenSecretRef) && !has(self.serviceAccountRef)) || (!has(self.serviceAccountCredsSecretRef) && has(self.tokenSecretRef) && !has(self.serviceAccountRef)) || (!has(self.serviceAccountCredsSecretRef) && !has(self.tokenSecretRef) && has(self.serviceAccountRef))
                         caProvider:
                           description: The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
                           properties:

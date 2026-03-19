@@ -75,6 +75,11 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if provider.Auth.ServiceAccountCreds.Name != "" {
 		selectors = append(selectors, &provider.Auth.ServiceAccountCreds)
 	}
+	if provider.Auth.ServiceAccountRef != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *provider.Auth.ServiceAccountRef); err != nil {
+			return nil, err
+		}
+	}
 	if provider.CAProvider != nil {
 		err := validateCertificate(&provider.CAProvider.Certificate)
 		if err != nil {
@@ -114,16 +119,31 @@ func getNebiusMysteryboxProvider(store esv1.GenericStore) (*esv1.NebiusMysterybo
 }
 
 func validateProviderAuth(provider *esv1.NebiusMysteryboxProvider) error {
-	if provider.Auth.Token.Name == "" && provider.Auth.ServiceAccountCreds.Name == "" {
+	hasToken := provider.Auth.Token.Name != ""
+	hasSACreds := provider.Auth.ServiceAccountCreds.Name != ""
+	hasServiceAccountRef := provider.Auth.ServiceAccountRef != nil
+
+	authMethodsCount := 0
+	if hasToken {
+		authMethodsCount++
+	}
+	if hasSACreds {
+		authMethodsCount++
+	}
+	if hasServiceAccountRef {
+		authMethodsCount++
+	}
+
+	if authMethodsCount == 0 {
 		return errors.New(errMissingAuthOptions)
 	}
-	if provider.Auth.Token.Name != "" && provider.Auth.ServiceAccountCreds.Name != "" {
+	if authMethodsCount > 1 {
 		return errors.New(errInvalidAuthConfig)
 	}
-	if provider.Auth.Token.Name != "" && provider.Auth.Token.Key == "" {
+	if hasToken && provider.Auth.Token.Key == "" {
 		return errors.New(errInvalidTokenAuthConfig)
 	}
-	if provider.Auth.ServiceAccountCreds.Name != "" && provider.Auth.ServiceAccountCreds.Key == "" {
+	if hasSACreds && provider.Auth.ServiceAccountCreds.Key == "" {
 		return errors.New(errInvalidSACredsAuthConfig)
 	}
 	return nil

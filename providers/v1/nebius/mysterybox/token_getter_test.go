@@ -62,6 +62,25 @@ func buildSubjectCredsJSON(t *testing.T, privateKey, keyID, subject string) stri
 	return string(b)
 }
 
+func serviceAccountCredsTokenRequest(apiDomain, subjectCreds string) *iam.TokenRequest {
+	return &iam.TokenRequest{
+		APIDomain:    apiDomain,
+		AuthType:     iam.TokenAuthTypeServiceAccountCreds,
+		SubjectCreds: subjectCreds,
+	}
+}
+
+func federatedServiceAccountTokenRequest(apiDomain, subjectToken, namespace, name string, audiences ...string) *iam.TokenRequest {
+	return &iam.TokenRequest{
+		APIDomain:               apiDomain,
+		AuthType:                iam.TokenAuthTypeFederatedServiceAccount,
+		SubjectToken:            subjectToken,
+		ServiceAccountNamespace: namespace,
+		ServiceAccountName:      name,
+		ServiceAccountAudiences: audiences,
+	}
+}
+
 func TestGetToken_CachesUntilTenPercentLeft(t *testing.T) {
 	t.Parallel()
 	env := newTokenTestEnv(t)
@@ -69,21 +88,21 @@ func TestGetToken_CachesUntilTenPercentLeft(t *testing.T) {
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 
-	token1, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
+	token1, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.example", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-1", token1)
 	tassert.Equal(t, int64(1), env.fakeTokenExchanger.Calls.Load())
 
 	// add 5 seconds (remaining > 10%)
 	addSecondsToClock(env.clk, 5)
-	token2, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
+	token2, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.example", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, token1, token2)
 	tassert.Equal(t, int64(1), env.fakeTokenExchanger.Calls.Load())
 
 	// after >90% elapsed -> should refresh
 	addSecondsToClock(env.clk, 91) // total 96s
-	token3, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
+	token3, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.example", creds), nil)
 	tassert.NoError(t, err)
 	tassert.NotEqual(t, token1, token3)
 	tassert.Equal(t, int64(2), env.fakeTokenExchanger.Calls.Load())
@@ -97,11 +116,11 @@ func TestGetToken_SeparateCacheEntriesPerSubjectCreds(t *testing.T) {
 	credsA := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 	credsB := buildSubjectCredsJSON(t, "priv-B", "kid-B", "sa-B")
 
-	tokenA1, err := env.cachedTokenGetter.GetToken(ctx, "api.example", credsA, nil)
+	tokenA1, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.example", credsA), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-1", tokenA1)
 
-	tokenB1, err := env.cachedTokenGetter.GetToken(ctx, "api.example", credsB, nil)
+	tokenB1, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.example", credsB), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-2", tokenB1)
 
@@ -109,7 +128,7 @@ func TestGetToken_SeparateCacheEntriesPerSubjectCreds(t *testing.T) {
 
 	// check token cached
 	addSecondsToClock(env.clk, 1)
-	tokA2, err := env.cachedTokenGetter.GetToken(ctx, "api.example", credsA, nil)
+	tokA2, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.example", credsA), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, tokenA1, tokA2)
 	tassert.Equal(t, int64(2), env.fakeTokenExchanger.Calls.Load())
@@ -119,7 +138,7 @@ func TestGetToken_InvalidSubjectCreds_ReturnsError(t *testing.T) {
 	t.Parallel()
 	env := newTokenTestEnv(t)
 
-	_, err := env.cachedTokenGetter.GetToken(env.ctx, "api.example", "not a json", nil)
+	_, err := env.cachedTokenGetter.GetToken(env.ctx, serviceAccountCredsTokenRequest("api.example", "not a json"), nil)
 	tassert.Error(t, err)
 }
 
@@ -133,17 +152,17 @@ func TestGetToken_SeparateCacheEntriesPerApiDomain(t *testing.T) {
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 
-	tokA1, err := env.cachedTokenGetter.GetToken(ctx, "api.one", creds, nil)
+	tokA1, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.one", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-1", tokA1)
 
-	tokB1, err := env.cachedTokenGetter.GetToken(ctx, "api.two", creds, nil)
+	tokB1, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.two", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-2", tokB1)
 	tassert.NotEqual(t, tokA1, tokB1)
 	tassert.Equal(t, int64(2), env.fakeTokenExchanger.Calls.Load())
 
-	tokA2, err := env.cachedTokenGetter.GetToken(ctx, "api.one", creds, nil)
+	tokA2, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.one", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, tokA1, tokA2)
 	tassert.Equal(t, int64(2), env.fakeTokenExchanger.Calls.Load())
@@ -158,26 +177,26 @@ func TestGetToken_LRUEviction(t *testing.T) {
 	ctx := context.Background()
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 
-	tok1, err := svc.GetToken(ctx, "api.first", creds, nil)
+	tok1, err := svc.GetToken(ctx, serviceAccountCredsTokenRequest("api.first", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-1", tok1)
 
-	tok2, err := svc.GetToken(ctx, "api.second", creds, nil)
+	tok2, err := svc.GetToken(ctx, serviceAccountCredsTokenRequest("api.second", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-2", tok2)
 	tassert.Equal(t, int64(2), ex.Calls.Load())
 
-	tok1again, err := svc.GetToken(ctx, "api.first", creds, nil)
+	tok1again, err := svc.GetToken(ctx, serviceAccountCredsTokenRequest("api.first", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, tok1, tok1again)
 	tassert.Equal(t, int64(2), ex.Calls.Load())
 
-	tok3, err := svc.GetToken(ctx, "api.third", creds, nil)
+	tok3, err := svc.GetToken(ctx, serviceAccountCredsTokenRequest("api.third", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-3", tok3)
 	tassert.Equal(t, int64(3), ex.Calls.Load())
 
-	secondAgain, err := svc.GetToken(ctx, "api.second", creds, nil)
+	secondAgain, err := svc.GetToken(ctx, serviceAccountCredsTokenRequest("api.second", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, "token-4", secondAgain)
 	tassert.Equal(t, int64(4), ex.Calls.Load())
@@ -189,11 +208,11 @@ func TestGetToken_AfterExpiration_Refreshes(t *testing.T) {
 	ctx := env.ctx
 	creds := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-A")
 
-	_, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
+	_, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.example", creds), nil)
 	tassert.NoError(t, err)
 	addSecondsToClock(env.clk, 101)
 
-	tok2, err := env.cachedTokenGetter.GetToken(ctx, "api.example", creds, nil)
+	tok2, err := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api.example", creds), nil)
 	tassert.NoError(t, err)
 	tassert.Equal(t, int64(2), env.fakeTokenExchanger.Calls.Load())
 	tassert.Equal(t, "token-2", tok2)
@@ -209,10 +228,10 @@ func TestGetToken_CacheKeyChangesOnKeyRotation(t *testing.T) {
 	rotatedPriv := buildSubjectCredsJSON(t, "priv-B", "kid-A", "sa-A")
 	rotatedSubject := buildSubjectCredsJSON(t, "priv-A", "kid-A", "sa-B")
 
-	t1, _ := env.cachedTokenGetter.GetToken(ctx, "api", base, nil)
-	t2, _ := env.cachedTokenGetter.GetToken(ctx, "api", rotatedKeyID, nil)
-	t3, _ := env.cachedTokenGetter.GetToken(ctx, "api", rotatedPriv, nil)
-	t4, _ := env.cachedTokenGetter.GetToken(ctx, "api", rotatedSubject, nil)
+	t1, _ := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api", base), nil)
+	t2, _ := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api", rotatedKeyID), nil)
+	t3, _ := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api", rotatedPriv), nil)
+	t4, _ := env.cachedTokenGetter.GetToken(ctx, serviceAccountCredsTokenRequest("api", rotatedSubject), nil)
 
 	tassert.NotEqual(t, t1, t2)
 	tassert.NotEqual(t, t1, t3)
@@ -226,7 +245,7 @@ func TestGetToken_ExchangerErrorIsWrapped(t *testing.T) {
 	svc, err := NewCachedTokenGetter(10, &iam.FakeTokenExchanger{ReturnError: true}, clk)
 	trequire.NoError(t, err)
 
-	_, err = svc.GetToken(context.Background(), "api", buildSubjectCredsJSON(t, "p", "k", "s"), nil)
+	_, err = svc.GetToken(context.Background(), serviceAccountCredsTokenRequest("api", buildSubjectCredsJSON(t, "p", "k", "s")), nil)
 	tassert.Error(t, err)
 	tassert.Contains(t, err.Error(), "could not exchange creds to iam token:")
 }
@@ -252,7 +271,7 @@ func TestGetToken_Singleflight_DedupesConcurrentSameKey(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			tok, err := svc.GetToken(context.Background(), "api.example", creds, nil)
+			tok, err := svc.GetToken(context.Background(), serviceAccountCredsTokenRequest("api.example", creds), nil)
 			tokens[i] = tok
 			errs[i] = err
 		}()
@@ -287,7 +306,7 @@ func TestGetToken_ConcurrentDifferentKeys_NoRaceAndWorks(t *testing.T) {
 			defer wg.Done()
 			<-start
 			domain := "api." + strconv.Itoa(i%5)
-			_, err := svc.GetToken(context.Background(), domain, creds, nil)
+			_, err := svc.GetToken(context.Background(), serviceAccountCredsTokenRequest(domain, creds), nil)
 			tassert.NoError(t, err)
 		}()
 	}
@@ -296,4 +315,44 @@ func TestGetToken_ConcurrentDifferentKeys_NoRaceAndWorks(t *testing.T) {
 	wg.Wait()
 
 	tassert.GreaterOrEqual(t, ex.Calls.Load(), int64(1)) // lru cache is small, no guarantees
+}
+
+func TestGetToken_FederatedServiceAccountCacheKeyIgnoresRawJWT(t *testing.T) {
+	t.Parallel()
+	env := newTokenTestEnv(t)
+
+	reqA := federatedServiceAccountTokenRequest("api.example", "jwt-1", "ns-a", "sa-a", "aud-a")
+	reqB := federatedServiceAccountTokenRequest("api.example", "jwt-2", "ns-a", "sa-a", "aud-a")
+
+	token1, err := env.cachedTokenGetter.GetToken(env.ctx, reqA, nil)
+	tassert.NoError(t, err)
+	token2, err := env.cachedTokenGetter.GetToken(env.ctx, reqB, nil)
+	tassert.NoError(t, err)
+
+	tassert.Equal(t, token1, token2)
+	tassert.Equal(t, int64(1), env.fakeTokenExchanger.Calls.Load())
+}
+
+func TestGetToken_FederatedServiceAccountCacheKeySeparatesLogicalSources(t *testing.T) {
+	t.Parallel()
+	env := newTokenTestEnv(t)
+
+	reqA := federatedServiceAccountTokenRequest("api.example", "jwt-1", "ns-a", "sa-a", "aud-a")
+	reqDifferentNamespace := federatedServiceAccountTokenRequest("api.example", "jwt-1", "ns-b", "sa-a", "aud-a")
+	reqDifferentName := federatedServiceAccountTokenRequest("api.example", "jwt-1", "ns-a", "sa-b", "aud-a")
+	reqDifferentAudience := federatedServiceAccountTokenRequest("api.example", "jwt-1", "ns-a", "sa-a", "aud-b")
+
+	tokenA, err := env.cachedTokenGetter.GetToken(env.ctx, reqA, nil)
+	tassert.NoError(t, err)
+	tokenNS, err := env.cachedTokenGetter.GetToken(env.ctx, reqDifferentNamespace, nil)
+	tassert.NoError(t, err)
+	tokenName, err := env.cachedTokenGetter.GetToken(env.ctx, reqDifferentName, nil)
+	tassert.NoError(t, err)
+	tokenAud, err := env.cachedTokenGetter.GetToken(env.ctx, reqDifferentAudience, nil)
+	tassert.NoError(t, err)
+
+	tassert.NotEqual(t, tokenA, tokenNS)
+	tassert.NotEqual(t, tokenA, tokenName)
+	tassert.NotEqual(t, tokenA, tokenAud)
+	tassert.Equal(t, int64(4), env.fakeTokenExchanger.Calls.Load())
 }

@@ -7238,6 +7238,22 @@ External Secrets meta/v1.SecretKeySelector
 <p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+Nebius IAM token using workload federation.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.NebiusCAProvider">NebiusCAProvider
