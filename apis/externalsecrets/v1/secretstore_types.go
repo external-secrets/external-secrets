@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -116,10 +116,6 @@ type SecretStoreProvider struct {
 	// +optional
 	Gitlab *GitlabProvider `json:"gitlab,omitempty"`
 
-	// Alibaba configures this store to sync secrets using Alibaba Cloud provider
-	// +optional
-	Alibaba *AlibabaProvider `json:"alibaba,omitempty"`
-
 	// OnePassword configures this store to sync secrets using the 1Password Cloud provider
 	// +optional
 	OnePassword *OnePasswordProvider `json:"onepassword,omitempty"`
@@ -196,9 +192,9 @@ type SecretStoreProvider struct {
 	// +optional
 	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
 
-	// Device42 configures this store to sync secrets using the Device42 provider
+	// DVLS configures this store to sync secrets using Devolutions Server provider
 	// +optional
-	Device42 *Device42Provider `json:"device42,omitempty"`
+	DVLS *DVLSProvider `json:"dvls,omitempty"`
 
 	// Infisical configures this store to sync secrets using the Infisical provider
 	// +optional
@@ -223,6 +219,10 @@ type SecretStoreProvider struct {
 	// Barbican configures this store to sync secrets using the OpenStack Barbican provider
 	// +optional
 	Barbican *BarbicanProvider `json:"barbican,omitempty"`
+
+	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
+	// +optional
+	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

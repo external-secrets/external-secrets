@@ -24,6 +24,8 @@ for i in "${HELM_DIR}"/templates/crds/*.yml; do
     $SEDPRG -i '/- |-/d' "$i.bkp"
     # Indent the remaining additionalPrinterColumn property right
     $SEDPRG -i 's/       additionalPrinterColumns:/    - additionalPrinterColumns:/' "$i.bkp"
+    # Replace served: false with templated value for v1beta1
+    $SEDPRG -i '/name: v1beta1/,/served: false/{s/served: false/served: {{ .Values.crds.unsafeServeV1Beta1 }}/}' "$i.bkp"
   fi
 
   if [[ "${CRDS_FLAG_NAME}" == *"Cluster"* ]]; then

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package template
 
 import (
 	"os"
+	"slices"
 	"testing"
 )
 
@@ -373,4 +374,57 @@ func readCertificates(certFiles []string) ([]byte, error) {
 		certificates = append(certificates, c...)
 	}
 	return certificates, nil
+}
+
+func TestCertSANs(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []string
+		wantErr bool
+	}{
+		{
+			name:  "extract DNS SANs from cert",
+			input: certData,
+			want:  []string{"gooble.com"},
+		},
+		{
+			name:    "invalid PEM input",
+			input:   "not a pem",
+			wantErr: true,
+		},
+		{
+			name:    "empty input",
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:  "cert with junk before PEM",
+			input: "some junk\n" + certData,
+			want:  []string{"gooble.com"},
+		},
+		{
+			name: "cert from file with all types of SANs",
+			input: func() string {
+				b, err := os.ReadFile("_testdata/sans.crt")
+				if err != nil {
+					panic("test setup failed: " + err.Error())
+				}
+				return string(b)
+			}(),
+			want: []string{"example.com", "www.example.com", "192.168.1.10", "10.0.0.1", "admin@example.com", "https://example.com"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := certSANs(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("certSANs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && !slices.Equal(got, tt.want) {
+				t.Errorf("certSANs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

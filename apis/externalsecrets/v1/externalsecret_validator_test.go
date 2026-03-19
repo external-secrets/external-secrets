@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ package v1
 
 import (
 	"testing"
-
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -29,13 +27,13 @@ const (
 func TestValidateExternalSecret(t *testing.T) {
 	tests := []struct {
 		name        string
-		obj         runtime.Object
+		obj         *ExternalSecret
 		expectedErr string
 	}{
 		{
 			name:        "nil",
 			obj:         nil,
-			expectedErr: "unexpected type",
+			expectedErr: "external secret cannot be nil during validation",
 		},
 		{
 			name: "deletion policy delete",

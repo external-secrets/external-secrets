@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -198,6 +198,43 @@ func TestSetAuth(t *testing.T) {
 				BearerToken: "mytoken",
 				TLSClientConfig: rest.TLSClientConfig{
 					CAData: []byte("1234"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "should use system ca roots when no ca configured",
+			fields: fields{
+				namespace: "default",
+				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foobar",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"token": []byte("mytoken"),
+					},
+				}).Build(),
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
+						URL: serverURL,
+					},
+					Auth: &esv1.KubernetesAuth{
+						Token: &esv1.TokenAuth{
+							BearerToken: v1.SecretKeySelector{
+								Name: "foobar",
+								Key:  "token",
+							},
+						},
+					},
+				},
+			},
+			want: &want{
+				Host:        serverURL,
+				BearerToken: "mytoken",
+				TLSClientConfig: rest.TLSClientConfig{
+					Insecure: false,
+					CAData:   nil,
 				},
 			},
 			wantErr: false,

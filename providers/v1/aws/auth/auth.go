@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	stsTypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
-	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -40,7 +39,6 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 // Config contains configuration to create a new AWS provider.
@@ -51,8 +49,7 @@ type Config struct {
 }
 
 var (
-	log                = ctrl.Log.WithName("provider").WithName("aws")
-	enableSessionCache bool
+	log = ctrl.Log.WithName("provider").WithName("aws")
 )
 
 const (
@@ -64,14 +61,6 @@ const (
 	errFetchSAKSecret  = "could not fetch SecretAccessKey secret: %w"
 	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
 )
-
-func init() {
-	fs := pflag.NewFlagSet("aws-auth", pflag.ExitOnError)
-	fs.BoolVar(&enableSessionCache, "experimental-enable-aws-session-cache", false, "DEPRECATED: this flag is no longer used and will be removed since aws sdk v2 has its own session cache.")
-	feature.Register(feature.Feature{
-		Flags: fs,
-	})
-}
 
 // Opts define options for New function.
 type Opts struct {
@@ -208,15 +197,21 @@ func NewGeneratorSession(
 			return nil, err
 		}
 	}
-	awscfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
+
+	// Build config options - use WithCredentialsProvider during loading
+	// to prevent the default credential chain (including EC2 IMDS) from being used
+	// when explicit credentials are provided
+	var loadCfgOpts []func(*config.LoadOptions) error
 	if credsProvider != nil {
-		awscfg.Credentials = credsProvider
+		loadCfgOpts = append(loadCfgOpts, config.WithCredentialsProvider(credsProvider))
 	}
 	if region != "" {
-		awscfg.Region = region
+		loadCfgOpts = append(loadCfgOpts, config.WithRegion(region))
+	}
+
+	awscfg, err := config.LoadDefaultConfig(ctx, loadCfgOpts...)
+	if err != nil {
+		return nil, err
 	}
 
 	if role != "" {
