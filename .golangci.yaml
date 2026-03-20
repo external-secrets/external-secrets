@@ -75,6 +75,9 @@ linters:
     #        - QF1008
     misspell:
       locale: US
+    modernize:
+      disable:
+        - omitzero
   exclusions:
     rules:
       # Exclude some linters from running on tests files.

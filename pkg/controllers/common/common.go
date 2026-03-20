@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -105,7 +104,7 @@ func BuildControllerOptions(concurrent int) controller.Options {
 	return controller.Options{
 		MaxConcurrentReconciles: concurrent,
 		RateLimiter:             BuildRateLimiter(),
-		UsePriorityQueue:        ptr.To(false),
+		UsePriorityQueue:        new(false),
 	}
 }
 

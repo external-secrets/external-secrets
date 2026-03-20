@@ -272,7 +272,7 @@ spec:
 					func(cl *fake.VaultClient) {
 						cl.MockLogical.ReadWithDataWithContextFn = func(ctx context.Context, path string, data map[string][]string) (*vaultapi.Secret, error) {
 							return &vaultapi.Secret{
-								Data: map[string]interface{}{
+								Data: map[string]any{
 									"key": "value",
 								},
 							}, nil
@@ -363,7 +363,7 @@ spec:
 						cl.MockLogical.ReadWithDataWithContextFn = func(ctx context.Context, path string, data map[string][]string) (*vaultapi.Secret, error) {
 							return &vaultapi.Secret{
 								LeaseID: "123",
-								Data: map[string]interface{}{
+								Data: map[string]any{
 									"key": "value",
 								},
 							}, nil

@@ -63,8 +63,8 @@ func (c *client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	return esutils.GetByteValue(value.GetValue())
 }
 
-func createSubmaps(input map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
+func createSubmaps(input map[string]any) map[string]any {
+	result := make(map[string]any)
 
 	for key, value := range input {
 		keys := strings.Split(key, ".")
@@ -75,9 +75,9 @@ func createSubmaps(input map[string]interface{}) map[string]interface{} {
 				current[k] = value
 			} else {
 				if _, exists := current[k]; !exists {
-					current[k] = make(map[string]interface{})
+					current[k] = make(map[string]any)
 				}
-				current = current[k].(map[string]interface{})
+				current = current[k].(map[string]any)
 			}
 		}
 	}
@@ -94,7 +94,7 @@ func (c *client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 
 	updatePayload := &esc.EnvironmentDefinition{
 		Values: &esc.EnvironmentDefinitionValues{
-			AdditionalProperties: map[string]interface{}{
+			AdditionalProperties: map[string]any{
 				data.GetRemoteKey(): string(value),
 			},
 		},
@@ -129,9 +129,9 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 }
 
 // GetMapFromInterface converts an interface{} to a map[string][]byte.
-func GetMapFromInterface(i interface{}) (map[string][]byte, error) {
+func GetMapFromInterface(i any) (map[string][]byte, error) {
 	// Assert the interface{} to map[string]interface{}
-	m, ok := i.(map[string]interface{})
+	m, ok := i.(map[string]any)
 	if !ok {
 		return nil, errors.New(errInterfaceType)
 	}

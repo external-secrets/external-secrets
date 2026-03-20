@@ -586,7 +586,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}{
 		"returns error indicating not supported": {
 			ref: esv1.ExternalSecretFind{
-				Path: esv1Ptr("some-path"),
+				Path: new("some-path"),
 			},
 			wantErr: true,
 			errMsg:  "getting all secrets is not supported by Delinea Secret Server at this time",
@@ -610,6 +610,8 @@ func TestGetAllSecrets(t *testing.T) {
 }
 
 // Helper function to create string pointer.
+//
+//go:fix inline
 func esv1Ptr(s string) *string {
-	return &s
+	return new(s)
 }
