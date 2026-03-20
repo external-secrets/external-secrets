@@ -265,6 +265,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
+	if err := validateDataToMatchesResolvedStores(ps.Spec.DataTo, secretStores); err != nil {
+		r.markAsFailed(err.Error(), &ps, nil)
+		return ctrl.Result{}, err
+	}
+
 	allSyncedSecrets := make(esapi.SyncedPushSecretsMap)
 	for _, secret := range secrets {
 		if err := r.applyTemplate(ctx, &ps, &secret); err != nil {
@@ -1077,6 +1082,46 @@ func storeRefExistsInList(ref *esapi.PushSecretStoreRef, storeRefs []esapi.PushS
 			srKind = esv1.SecretStoreKind
 		}
 		if srKind == refKind && sr.Name == ref.Name {
+			return true
+		}
+	}
+	return false
+}
+
+// validateDataToMatchesResolvedStores checks that every dataTo entry with a
+// labelSelector actually matches at least one resolved store. Without this,
+// a misconfigured labelSelector silently becomes a no-op.
+func validateDataToMatchesResolvedStores(dataToList []esapi.PushSecretDataTo, stores map[esapi.PushSecretStoreRef]esv1.GenericStore) error {
+	for i, dataTo := range dataToList {
+		if dataTo.StoreRef == nil || dataTo.StoreRef.LabelSelector == nil {
+			continue
+		}
+		if dataTo.StoreRef.Name != "" {
+			continue
+		}
+
+		selector, err := metav1.LabelSelectorAsSelector(dataTo.StoreRef.LabelSelector)
+		if err != nil {
+			return fmt.Errorf("dataTo[%d]: invalid labelSelector: %w", i, err)
+		}
+
+		refKind := dataTo.StoreRef.Kind
+		if refKind == "" {
+			refKind = esv1.SecretStoreKind
+		}
+
+		if !anyStoreMatchesSelector(refKind, selector, stores) {
+			return fmt.Errorf("dataTo[%d]: labelSelector does not match any store in secretStoreRefs", i)
+		}
+	}
+	return nil
+}
+
+// anyStoreMatchesSelector returns true if at least one resolved store matches
+// the given kind and label selector.
+func anyStoreMatchesSelector(kind string, selector labels.Selector, stores map[esapi.PushSecretStoreRef]esv1.GenericStore) bool {
+	for ref, store := range stores {
+		if ref.Kind == kind && selector.Matches(labels.Set(store.GetLabels())) {
 			return true
 		}
 	}
