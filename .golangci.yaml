@@ -24,6 +24,7 @@ linters:
     - govet
     - ineffassign
     - misspell
+    - modernize # A suite of analyzers that suggest simplifications to Go code, using modern language and library features. https://golangci-lint.run/docs/linters/configuration/#modernize
     - nakedret
     - nolintlint
     - prealloc
