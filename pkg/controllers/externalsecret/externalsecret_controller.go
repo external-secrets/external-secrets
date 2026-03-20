@@ -141,18 +141,19 @@ const (
 // Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
-	SecretClient              client.Client
-	APIReader                 client.Reader
-	Log                       logr.Logger
-	Scheme                    *runtime.Scheme
-	RestConfig                *rest.Config
-	ControllerClass           string
-	RequeueInterval           time.Duration
-	ClusterSecretStoreEnabled bool
-	EnableFloodGate           bool
-	EnableGeneratorState      bool
-	AllowGenericTargets       bool
-	recorder                  record.EventRecorder
+	SecretClient                       client.Client
+	APIReader                          client.Reader
+	EnableSecretAPIReadOnCacheMismatch bool
+	Log                                logr.Logger
+	Scheme                             *runtime.Scheme
+	RestConfig                         *rest.Config
+	ControllerClass                    string
+	RequeueInterval                    time.Duration
+	ClusterSecretStoreEnabled          bool
+	EnableFloodGate                    bool
+	EnableGeneratorState               bool
+	AllowGenericTargets                bool
+	recorder                           record.EventRecorder
 
 	// informerManager manages dynamic informers for generic targets
 	informerManager InformerManager
@@ -339,28 +340,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// ensure the full cache is up-to-date
 	// NOTE: this prevents race conditions between the partial and full cache.
-	//       we verify against the API server before retrying, to avoid aggressive error retries
+	//       if enabled, we verify against the API server before retrying to avoid unnecessary error backoff
 	//       when the cache is temporarily stale.
-	if secretPartial.UID != existingSecret.UID || secretPartial.ResourceVersion != existingSecret.ResourceVersion {
-		authoritativeSecret := &v1.Secret{}
-		secretReader := r.APIReader
-		if secretReader == nil {
-			secretReader = r.SecretClient
-		}
-		getErr := secretReader.Get(ctx, client.ObjectKey{Name: secretName, Namespace: externalSecret.Namespace}, authoritativeSecret)
-		if getErr != nil && !apierrors.IsNotFound(getErr) {
-			log.Error(getErr, logErrorGetSecret, "secretName", secretName, "secretNamespace", externalSecret.Namespace)
-			syncCallsError.With(resourceLabels).Inc()
-			return ctrl.Result{}, getErr
-		}
-
-		if secretPartial.UID != authoritativeSecret.UID || secretPartial.ResourceVersion != authoritativeSecret.ResourceVersion {
-			log.V(1).Info(logErrorSecretCacheNotSynced, "secretName", secretName, "secretNamespace", externalSecret.Namespace)
-			return ctrl.Result{RequeueAfter: cacheSyncRetryDelay}, nil
-		}
-
-		// use the authoritative view so we can continue reconciliation even if the full cache is stale.
-		existingSecret = authoritativeSecret
+	existingSecret, cacheNotSynced, getErr := r.resolveSecretCacheMismatch(ctx, client.ObjectKey{Name: secretName, Namespace: externalSecret.Namespace}, secretPartial, existingSecret)
+	if getErr != nil && !apierrors.IsNotFound(getErr) {
+		log.Error(getErr, logErrorGetSecret, "secretName", secretName, "secretNamespace", externalSecret.Namespace)
+		syncCallsError.With(resourceLabels).Inc()
+		return ctrl.Result{}, getErr
+	}
+	if cacheNotSynced {
+		log.V(1).Info(logErrorSecretCacheNotSynced, "secretName", secretName, "secretNamespace", externalSecret.Namespace)
+		return ctrl.Result{RequeueAfter: cacheSyncRetryDelay}, nil
 	}
 
 	// refresh will be skipped if ALL the following conditions are met:
@@ -1351,6 +1341,36 @@ func shouldEnqueueExternalSecretUpdate(oldObj, newObj client.Object) bool {
 	}
 
 	return !oldDeletion.Equal(newDeletion)
+}
+
+// resolveSecretCacheMismatch optionally uses a direct API read when the partial
+// and full secret caches disagree. It returns the secret to continue with,
+// whether the caches should still be treated as out of sync, and any read error.
+func (r *Reconciler) resolveSecretCacheMismatch(ctx context.Context, key client.ObjectKey, secretPartial *metav1.PartialObjectMetadata, existingSecret *v1.Secret) (*v1.Secret, bool, error) {
+	if secretPartial.UID == existingSecret.UID && secretPartial.ResourceVersion == existingSecret.ResourceVersion {
+		return existingSecret, false, nil
+	}
+
+	if !r.EnableSecretAPIReadOnCacheMismatch {
+		return nil, true, nil
+	}
+
+	authoritativeSecret := &v1.Secret{}
+	secretReader := r.APIReader
+	if secretReader == nil {
+		secretReader = r.SecretClient
+	}
+
+	err := secretReader.Get(ctx, key, authoritativeSecret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, false, err
+	}
+
+	if secretPartial.UID != authoritativeSecret.UID || secretPartial.ResourceVersion != authoritativeSecret.ResourceVersion {
+		return nil, true, nil
+	}
+
+	return authoritativeSecret, false, nil
 }
 
 func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Object) []reconcile.Request {
