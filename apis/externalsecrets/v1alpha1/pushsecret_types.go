@@ -30,6 +30,8 @@ const (
 	ReasonSynced = "Synced"
 	// ReasonErrored indicates that the push secret encountered an error during sync.
 	ReasonErrored = "Errored"
+	// ReasonSourceDeleted indicates that the source Secret was deleted and provider secrets were cleaned up.
+	ReasonSourceDeleted = "SourceDeleted"
 )
 
 // PushSecretStoreRef contains a reference on how to sync to a SecretStore.
@@ -110,7 +112,7 @@ type PushSecretSpec struct {
 	// +optional
 	Data []PushSecretData `json:"data,omitempty"`
 
-	// Secret Data that should be pushed to providers
+	// DataTo defines bulk push rules that expand source Secret keys into provider entries.
 	// +optional
 	DataTo []PushSecretDataTo `json:"dataTo,omitempty"`
 

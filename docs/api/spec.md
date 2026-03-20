@@ -13375,7 +13375,7 @@ PushSecretSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Secret Data that should be pushed to providers</p>
+<p>DataTo defines bulk push rules that expand source Secret keys into provider entries.</p>
 </td>
 </tr>
 <tr>
@@ -14051,7 +14051,7 @@ PushSecretSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Secret Data that should be pushed to providers</p>
+<p>DataTo defines bulk push rules that expand source Secret keys into provider entries.</p>
 </td>
 </tr>
 <tr>

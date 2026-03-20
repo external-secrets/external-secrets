@@ -166,12 +166,6 @@ Instead of per-entry metadata, use a map keyed by provider type. Rejected becaus
 
 Using a direct type alias would include `Merge` which doesn't apply to PushSecret. A new struct with shared inner types provides the right subset.
 
-## Open questions
-
-1. **Field naming**: Maintainer feedback suggests `match` and `rewrite` may confuse users who expect ExternalSecret-identical behavior. Alternatives under consideration: `keyFilter`/`keyTransform`. To be resolved in community meeting.
-
-2. **Bundle + rewrite validation**: Currently `rewrite` is silently ignored in bundle mode. Should this be a CRD validation error instead? Recommendation: yes, add XValidation.
-
 ## Backwards compatibility
 
 - `dataTo` is fully optional — existing PushSecrets work exactly as before.

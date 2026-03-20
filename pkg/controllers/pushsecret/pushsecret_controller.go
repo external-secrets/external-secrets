@@ -317,7 +317,7 @@ func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.Pu
 	}
 
 	r.setSecrets(ps, esapi.SyncedPushSecretsMap{})
-	r.markAsFailed(errFailedGetSecret, ps, nil)
+	r.markAsSourceDeleted(ps)
 	return nil
 }
 
@@ -341,6 +341,13 @@ func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, syncState es
 		r.setSecrets(ps, syncState)
 	}
 	r.recorder.Event(ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+}
+
+func (r *Reconciler) markAsSourceDeleted(ps *esapi.PushSecret) {
+	msg := "source secret deleted; provider secrets cleaned up"
+	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonSourceDeleted, msg)
+	SetPushSecretCondition(ps, *cond)
+	r.recorder.Event(ps, v1.EventTypeNormal, esapi.ReasonSourceDeleted, msg)
 }
 
 func (r *Reconciler) markAsDone(ps *esapi.PushSecret, secrets esapi.SyncedPushSecretsMap, start time.Time) {
@@ -534,10 +541,9 @@ func (r *Reconciler) pushSecretEntry(
 	if err != nil {
 		return fmt.Errorf(errConvert, err)
 	}
-	storeSecret.Data = secretData
 
 	key := params.data.GetSecretKey()
-	if !secretKeyExists(key, storeSecret) {
+	if !secretKeyExists(key, secretData) {
 		return fmt.Errorf("secret key %v does not exist", key)
 	}
 
@@ -551,14 +557,16 @@ func (r *Reconciler) pushSecretEntry(
 		}
 	}
 
-	if err := secretClient.PushSecret(ctx, storeSecret, params.data); err != nil {
+	localSecret := storeSecret.DeepCopy()
+	localSecret.Data = secretData
+	if err := secretClient.PushSecret(ctx, localSecret, params.data); err != nil {
 		return fmt.Errorf(errSetSecretFailed, key, params.storeName, err)
 	}
 	return nil
 }
 
-func secretKeyExists(key string, secret *v1.Secret) bool {
-	_, ok := secret.Data[key]
+func secretKeyExists(key string, data map[string][]byte) bool {
+	_, ok := data[key]
 	return key == "" || ok
 }
 
@@ -1020,13 +1028,14 @@ func (r *Reconciler) expandSingleDataTo(secret *v1.Secret, dataTo esapi.PushSecr
 		}
 	}
 
+	sortedKeys := slices.Sorted(maps.Keys(keyMap))
 	entries := make([]esapi.PushSecretData, 0, len(keyMap))
-	for convertedKey, remoteKey := range keyMap {
+	for _, convertedKey := range sortedKeys {
 		entries = append(entries, esapi.PushSecretData{
 			Match: esapi.PushSecretMatch{
 				SecretKey: convertedToOriginal[convertedKey],
 				RemoteRef: esapi.PushSecretRemoteRef{
-					RemoteKey: remoteKey,
+					RemoteKey: keyMap[convertedKey],
 				},
 			},
 			Metadata:           dataTo.Metadata,
