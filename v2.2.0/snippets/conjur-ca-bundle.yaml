@@ -1,0 +1,21 @@
+....
+spec:
+  provider:
+    conjur:
+      # Service URL
+      url: https://myapi.conjur.org
+
+      # [OPTIONAL] base64 encoded string of certificate
+      caBundle: "<base64 encoded cabundle>"
+
+      # [OPTIONAL] caProvider:
+      # Instead of caBundle you can also specify a caProvider,
+      # which retrieves the cert from a Secret or ConfigMap
+      caProvider:
+        type: "Secret" # Can be Secret or ConfigMap
+        name: "<name of secret or configmap>"
+        key: "<key inside secret or configmap>"
+        # namespace is required for ClusterSecretStore
+        # but not relevant for SecretStore
+        namespace: "my-cert-secret-namespace"
+  ....
