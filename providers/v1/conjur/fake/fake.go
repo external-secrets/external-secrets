@@ -103,7 +103,7 @@ func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resourc
 }
 
 func generateRandomSecrets(count int) []map[string]any {
-	var secrets []map[string]any
+	secrets := make([]map[string]any, 0, count)
 	for range count {
 		//nolint:gosec
 		randomNumber := rand.Intn(10000)
