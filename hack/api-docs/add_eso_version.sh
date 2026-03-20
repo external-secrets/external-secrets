@@ -66,7 +66,7 @@ BEGIN {
 }
 
 # Match the separator line (dashes) only in the ESO Version table
-in_eso_table == 1 && /\| -+/ {
+in_eso_table == 1 && /\|-+/ {
     print $0;
     print new_line;
     added_new_line = 1;
