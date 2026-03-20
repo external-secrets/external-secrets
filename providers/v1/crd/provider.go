@@ -44,10 +44,28 @@ var (
 	errMissingCRDProvider = errors.New("missing CRD provider configuration")
 	errMissingKind        = errors.New("resource.kind is required")
 	errMissingVersion     = errors.New("resource.version is required")
-	errMissingSA          = errors.New("serviceAccountName is required")
+	errMissingSA          = errors.New("serviceAccountName is required in legacy mode (set server/auth or authRef for explicit connection)")
 	errKindIsSecret       = errors.New("kind \"Secret\" is not allowed: use the Kubernetes provider to read Kubernetes Secrets")
 	errEmptyWhitelistRule = errors.New("whitelist rule must define name or properties")
 )
+
+const warnNoCAConfigured = "No caBundle or caProvider specified; TLS connections will use system certificate roots."
+
+// usesExplicitCRDConnection is true when the store uses the same connection
+// model as the Kubernetes provider (server URL, auth, or kubeconfig secret).
+func usesExplicitCRDConnection(prov *esv1.CRDProvider) bool {
+	if prov.AuthRef != nil || prov.Auth != nil {
+		return true
+	}
+	return prov.Server.URL != ""
+}
+
+func resolveCRDTargetNamespace(prov *esv1.CRDProvider, storeNamespace string) string {
+	if prov.RemoteNamespace != "" {
+		return prov.RemoteNamespace
+	}
+	return storeNamespace
+}
 
 // Provider is the top-level CRD provider that implements esv1.Provider.
 type Provider struct {
@@ -75,17 +93,41 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 
 // NewClient constructs a CRD client from the store configuration.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
-	cfg, err := ctrlcfg.GetConfig()
+	ctrlCfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, fmt.Errorf("crd: failed to get kubeconfig: %w", err)
 	}
-	return p.newClient(ctx, store, kube, cfg, namespace)
+	clientset, err := kubernetes.NewForConfig(ctrlCfg)
+	if err != nil {
+		return nil, fmt.Errorf("crd: failed to create kubernetes clientset: %w", err)
+	}
+	return p.newClient(ctx, store, kube, ctrlCfg, clientset, namespace)
 }
 
-func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, _ kclient.Client, restCfg *rest.Config, namespace string) (esv1.SecretsClient, error) {
+func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, ctrlCfg *rest.Config, clientset kubernetes.Interface, namespace string) (esv1.SecretsClient, error) {
 	provSpec, err := getProvider(store)
 	if err != nil {
 		return nil, err
+	}
+
+	storeKind := store.GetKind()
+	targetNS := resolveCRDTargetNamespace(provSpec, namespace)
+
+	if usesExplicitCRDConnection(provSpec) {
+		cfg, err := esutils.BuildRESTConfigFromKubernetesConnection(
+			ctx,
+			kube,
+			clientset.CoreV1(),
+			storeKind,
+			namespace,
+			provSpec.Server,
+			provSpec.Auth,
+			provSpec.AuthRef,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("crd: failed to prepare api connection: %w", err)
+		}
+		return p.newClientWithRESTConfig(store, cfg, targetNS)
 	}
 
 	saNamespace := namespace
@@ -94,10 +136,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, _ kcl
 		saNamespace = "default"
 	}
 
-	// Obtain a short-lived token for the configured ServiceAccount.
-	// This follows the same pattern as the kubernetes provider (auth.go) and
-	// avoids the broader cluster-wide impersonate RBAC privilege that
-	// rest.ImpersonationConfig would require.
+	// Legacy: in-cluster API server + short-lived token for ServiceAccountName.
 	token, err := esutils.FetchServiceAccountToken(ctx, esmeta.ServiceAccountSelector{
 		Name: provSpec.ServiceAccountName,
 	}, saNamespace)
@@ -106,7 +145,20 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, _ kcl
 			saNamespace, provSpec.ServiceAccountName, err)
 	}
 
-	return p.newClientFromToken(store, restCfg, token, namespace)
+	authedCfg := rest.CopyConfig(ctrlCfg)
+	authedCfg.BearerToken = token
+	authedCfg.BearerTokenFile = ""
+	authedCfg.Username = ""
+	authedCfg.Password = ""
+	authedCfg.CertFile = ""
+	authedCfg.KeyFile = ""
+	authedCfg.CertData = nil
+	authedCfg.KeyData = nil
+	authedCfg.AuthProvider = nil
+	authedCfg.ExecProvider = nil
+	authedCfg.Impersonate = rest.ImpersonationConfig{}
+
+	return p.newClientWithRESTConfig(store, authedCfg, targetNS)
 }
 
 // Client holds the runtime state for a single SecretStore/ClusterSecretStore.
@@ -120,27 +172,13 @@ type Client struct {
 
 var _ esv1.SecretsClient = &Client{}
 
-// newClientFromToken builds the Client from an already-resolved bearer token.
-// Separated out so tests can inject a token directly without needing a live cluster.
-func (p *Provider) newClientFromToken(store esv1.GenericStore, restCfg *rest.Config, token, namespace string) (esv1.SecretsClient, error) {
+// newClientWithRESTConfig builds the Client from a fully authenticated REST config.
+// Exposed for tests that inject a token or explicit connection config without a live cluster.
+func (p *Provider) newClientWithRESTConfig(store esv1.GenericStore, authedCfg *rest.Config, targetNamespace string) (esv1.SecretsClient, error) {
 	provSpec, err := getProvider(store)
 	if err != nil {
 		return nil, err
 	}
-
-	// Build an authenticated REST config using the SA bearer token.
-	authedCfg := rest.CopyConfig(restCfg)
-	authedCfg.BearerToken = token
-	authedCfg.BearerTokenFile = "" // ensure file-based token is not used
-	authedCfg.Username = ""
-	authedCfg.Password = ""
-	authedCfg.CertFile = ""
-	authedCfg.KeyFile = ""
-	authedCfg.CertData = nil
-	authedCfg.KeyData = nil
-	authedCfg.AuthProvider = nil
-	authedCfg.ExecProvider = nil
-	authedCfg.Impersonate = rest.ImpersonationConfig{}
 
 	// Validate that the requested group/version/kind is actually registered in
 	// the cluster before building the dynamic client.
@@ -149,7 +187,7 @@ func (p *Provider) newClientFromToken(store esv1.GenericStore, restCfg *rest.Con
 		return nil, err
 	}
 	if p.accessCheckFn != nil {
-		if err := p.accessCheckFn(authedCfg, provSpec.Resource, plural, namespace); err != nil {
+		if err := p.accessCheckFn(authedCfg, provSpec.Resource, plural, targetNamespace); err != nil {
 			return nil, err
 		}
 	}
@@ -161,7 +199,7 @@ func (p *Provider) newClientFromToken(store esv1.GenericStore, restCfg *rest.Con
 	return &Client{
 		store:     provSpec,
 		dynClient: dynClient,
-		namespace: namespace,
+		namespace: targetNamespace,
 		plural:    plural,
 	}, nil
 }
@@ -248,9 +286,53 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, nil
 	}
 	prov := spec.Provider.CRD
-	if prov.ServiceAccountName == "" {
+	var warnings admission.Warnings
+
+	if usesExplicitCRDConnection(prov) {
+		if prov.AuthRef == nil && prov.Server.CABundle == nil && prov.Server.CAProvider == nil {
+			warnings = append(warnings, warnNoCAConfigured)
+		}
+		if store.GetKind() == esv1.ClusterSecretStoreKind &&
+			prov.Server.CAProvider != nil &&
+			prov.Server.CAProvider.Namespace == nil {
+			return warnings, errors.New("CAProvider.namespace must not be empty with ClusterSecretStore")
+		}
+		if store.GetKind() == esv1.SecretStoreKind &&
+			prov.Server.CAProvider != nil &&
+			prov.Server.CAProvider.Namespace != nil {
+			return warnings, errors.New("CAProvider.namespace must be empty with SecretStore")
+		}
+		if prov.Auth != nil && prov.Auth.Cert != nil {
+			if prov.Auth.Cert.ClientCert.Name == "" {
+				return warnings, errors.New("ClientCert.Name cannot be empty")
+			}
+			if prov.Auth.Cert.ClientCert.Key == "" {
+				return warnings, errors.New("ClientCert.Key cannot be empty")
+			}
+			if err := esutils.ValidateSecretSelector(store, prov.Auth.Cert.ClientCert); err != nil {
+				return warnings, err
+			}
+		}
+		if prov.Auth != nil && prov.Auth.Token != nil {
+			if prov.Auth.Token.BearerToken.Name == "" {
+				return warnings, errors.New("BearerToken.Name cannot be empty")
+			}
+			if prov.Auth.Token.BearerToken.Key == "" {
+				return warnings, errors.New("BearerToken.Key cannot be empty")
+			}
+			if err := esutils.ValidateSecretSelector(store, prov.Auth.Token.BearerToken); err != nil {
+				return warnings, err
+			}
+		}
+		if prov.Auth != nil && prov.Auth.ServiceAccount != nil {
+			if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.Auth.ServiceAccount); err != nil {
+				return warnings, err
+			}
+		}
+	} else if prov.ServiceAccountName == "" {
 		return nil, errMissingSA
 	}
+
 	if prov.Resource.Version == "" {
 		return nil, errMissingVersion
 	}
@@ -277,7 +359,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			}
 		}
 	}
-	return nil, nil
+	return warnings, nil
 }
 
 func getProvider(store esv1.GenericStore) (*esv1.CRDProvider, error) {

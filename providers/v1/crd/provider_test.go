@@ -27,8 +27,10 @@ import (
 	"k8s.io/client-go/dynamic"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/rest"
+	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 // fakeDiscover returns a discoverFn that always succeeds with the given plural name.
@@ -97,10 +99,11 @@ func TestProviderCapabilities(t *testing.T) {
 
 func TestValidateStore(t *testing.T) {
 	tests := []struct {
-		name    string
-		store   esv1.GenericStore
-		wantErr error
-		wantMsg string
+		name              string
+		store             esv1.GenericStore
+		wantErr           error
+		wantMsg           string
+		wantWarnSubstring string
 	}{
 		{
 			name:  "missing provider config is ignored",
@@ -204,26 +207,118 @@ func TestValidateStore(t *testing.T) {
 				}}},
 			}),
 		},
+		{
+			name: "explicit auth without serviceAccountName",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				Resource: widgetResource,
+				Server: esv1.KubernetesServer{
+					URL:      "https://k8s.example",
+					CABundle: []byte("fake-ca"),
+				},
+				Auth: &esv1.KubernetesAuth{
+					Token: &esv1.TokenAuth{
+						BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
+					},
+				},
+			}),
+		},
+		{
+			name: "explicit connection TLS CA warning",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				Resource: widgetResource,
+				Server: esv1.KubernetesServer{
+					URL: "https://k8s.example",
+				},
+				Auth: &esv1.KubernetesAuth{
+					Token: &esv1.TokenAuth{
+						BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
+					},
+				},
+			}),
+			wantWarnSubstring: "system certificate roots",
+		},
+		{
+			name: "ClusterSecretStore CAProvider needs namespace",
+			store: &esv1.ClusterSecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						CRD: &esv1.CRDProvider{
+							Resource: widgetResource,
+							Server: esv1.KubernetesServer{
+								URL: "https://x",
+								CAProvider: &esv1.CAProvider{
+									Type: esv1.CAProviderTypeSecret,
+									Name: "ca",
+									Key:  "k",
+								},
+							},
+							Auth: &esv1.KubernetesAuth{
+								Token: &esv1.TokenAuth{
+									BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantMsg: "CAProvider.namespace must not be empty",
+		},
+		{
+			name: "SecretStore rejects CAProvider.namespace",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						CRD: &esv1.CRDProvider{
+							Resource: widgetResource,
+							Server: esv1.KubernetesServer{
+								URL: "https://x",
+								CAProvider: &esv1.CAProvider{
+									Type:      esv1.CAProviderTypeSecret,
+									Name:      "ca",
+									Key:       "k",
+									Namespace: pointer.To("ns"),
+								},
+							},
+							Auth: &esv1.KubernetesAuth{
+								Token: &esv1.TokenAuth{
+									BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantMsg: "CAProvider.namespace must be empty with SecretStore",
+		},
 	}
 
 	p := &Provider{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := p.ValidateStore(tt.store)
-			if tt.wantErr == nil && tt.wantMsg == "" {
-				if err != nil {
-					t.Fatalf("ValidateStore() unexpected error: %v", err)
+			warnings, err := p.ValidateStore(tt.store)
+			if tt.wantErr != nil || tt.wantMsg != "" {
+				if err == nil {
+					t.Fatalf("ValidateStore() error = nil, want error")
+				}
+				if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
+					t.Fatalf("ValidateStore() error = %v, want %v", err, tt.wantErr)
+				}
+				if tt.wantMsg != "" && !strings.Contains(err.Error(), tt.wantMsg) {
+					t.Fatalf("ValidateStore() error = %q, want substring %q", err.Error(), tt.wantMsg)
 				}
 				return
 			}
-			if err == nil {
-				t.Fatalf("ValidateStore() error = nil, want error")
+			if err != nil {
+				t.Fatalf("ValidateStore() unexpected error: %v", err)
 			}
-			if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
-				t.Fatalf("ValidateStore() error = %v, want %v", err, tt.wantErr)
-			}
-			if tt.wantMsg != "" && !strings.Contains(err.Error(), tt.wantMsg) {
-				t.Fatalf("ValidateStore() error = %q, want substring %q", err.Error(), tt.wantMsg)
+			if tt.wantWarnSubstring != "" {
+				var b strings.Builder
+				for _, w := range warnings {
+					b.WriteString(w)
+				}
+				if !strings.Contains(b.String(), tt.wantWarnSubstring) {
+					t.Fatalf("ValidateStore() warnings = %v, want substring %q", warnings, tt.wantWarnSubstring)
+				}
 			}
 		})
 	}
@@ -281,17 +376,18 @@ func TestNewClientInternal(t *testing.T) {
 
 	t.Run("newClient returns getProvider error on nil store", func(t *testing.T) {
 		p := providerWithFakeDiscover("widgets")
-		_, err := p.newClient(ctx, nil, nil, &rest.Config{Host: "https://example.com"}, "default")
+		_, err := p.newClient(ctx, nil, nil, &rest.Config{Host: "https://example.com"}, nil, "default")
 		if !errors.Is(err, errMissingStore) {
 			t.Fatalf("newClient() error = %v, want %v", err, errMissingStore)
 		}
 	})
 
-	t.Run("newClientFromToken returns getProvider error on nil store", func(t *testing.T) {
+	t.Run("newClientWithRESTConfig returns getProvider error on nil store", func(t *testing.T) {
 		p := providerWithFakeDiscover("widgets")
-		_, err := p.newClientFromToken(nil, &rest.Config{Host: "https://example.com"}, "tok", "default")
+		cfg := &rest.Config{Host: "https://example.com", BearerToken: "tok"}
+		_, err := p.newClientWithRESTConfig(nil, cfg, "default")
 		if !errors.Is(err, errMissingStore) {
-			t.Fatalf("newClientFromToken() error = %v, want %v", err, errMissingStore)
+			t.Fatalf("newClientWithRESTConfig() error = %v, want %v", err, errMissingStore)
 		}
 	})
 
@@ -299,30 +395,33 @@ func TestNewClientInternal(t *testing.T) {
 		discErr := fmt.Errorf("group/version not registered")
 		p := &Provider{discoverFn: fakeDiscoverErr(discErr)}
 		store := makeStoreWithCRDProvider(&esv1.CRDProvider{ServiceAccountName: "reader", Resource: widgetResource})
-		_, err := p.newClientFromToken(store, &rest.Config{Host: "https://example.com"}, "tok", "default")
+		cfg := &rest.Config{Host: "https://example.com", BearerToken: "tok"}
+		_, err := p.newClientWithRESTConfig(store, cfg, "default")
 		if !errors.Is(err, discErr) {
-			t.Fatalf("newClientFromToken() error = %v, want %v", err, discErr)
+			t.Fatalf("newClientWithRESTConfig() error = %v, want %v", err, discErr)
 		}
 	})
 
 	t.Run("returns dynamic client creation error on bad host", func(t *testing.T) {
 		p := providerWithFakeDiscover("widgets")
 		store := makeStoreWithCRDProvider(&esv1.CRDProvider{ServiceAccountName: "reader", Resource: widgetResource})
-		_, err := p.newClientFromToken(store, &rest.Config{Host: "://bad-host"}, "tok", "default")
+		cfg := &rest.Config{Host: "://bad-host", BearerToken: "tok"}
+		_, err := p.newClientWithRESTConfig(store, cfg, "default")
 		if err == nil {
-			t.Fatalf("newClientFromToken() error = nil, want error")
+			t.Fatalf("newClientWithRESTConfig() error = nil, want error")
 		}
 		if !strings.Contains(err.Error(), "failed to create dynamic client") {
-			t.Fatalf("newClientFromToken() error = %q, want dynamic client creation error", err.Error())
+			t.Fatalf("newClientWithRESTConfig() error = %q, want dynamic client creation error", err.Error())
 		}
 	})
 
 	t.Run("creates client for namespaced store with discovered plural", func(t *testing.T) {
 		p := providerWithFakeDiscover("widgets")
 		store := makeStoreWithCRDProvider(&esv1.CRDProvider{ServiceAccountName: "reader", Resource: widgetResource})
-		client, err := p.newClientFromToken(store, &rest.Config{Host: "https://example.com"}, "tok", "app-ns")
+		cfg := &rest.Config{Host: "https://example.com", BearerToken: "tok"}
+		client, err := p.newClientWithRESTConfig(store, cfg, "app-ns")
 		if err != nil {
-			t.Fatalf("newClientFromToken() unexpected error: %v", err)
+			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
 		}
 		c, ok := client.(*Client)
 		if !ok {
@@ -345,9 +444,10 @@ func TestNewClientInternal(t *testing.T) {
 	t.Run("creates client for cluster store (empty namespace)", func(t *testing.T) {
 		p := providerWithFakeDiscover("widgets")
 		store := makeStoreWithCRDProvider(&esv1.CRDProvider{ServiceAccountName: "reader", Resource: widgetResource})
-		client, err := p.newClientFromToken(store, &rest.Config{Host: "https://example.com"}, "tok", "")
+		cfg := &rest.Config{Host: "https://example.com", BearerToken: "tok"}
+		client, err := p.newClientWithRESTConfig(store, cfg, "")
 		if err != nil {
-			t.Fatalf("newClientFromToken() unexpected error: %v", err)
+			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
 		}
 		c, ok := client.(*Client)
 		if !ok {
@@ -362,9 +462,10 @@ func TestNewClientInternal(t *testing.T) {
 		// Verify the server-resolved plural (not a heuristic) reaches the Client.
 		p := providerWithFakeDiscover("mycustomwidgets")
 		store := makeStoreWithCRDProvider(&esv1.CRDProvider{ServiceAccountName: "reader", Resource: widgetResource})
-		client, err := p.newClientFromToken(store, &rest.Config{Host: "https://example.com"}, "tok", "default")
+		cfg := &rest.Config{Host: "https://example.com", BearerToken: "tok"}
+		client, err := p.newClientWithRESTConfig(store, cfg, "default")
 		if err != nil {
-			t.Fatalf("newClientFromToken() unexpected error: %v", err)
+			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
 		}
 		c := client.(*Client)
 		gvr := c.buildGVR()
@@ -376,6 +477,26 @@ func TestNewClientInternal(t *testing.T) {
 		}
 		if gvr.Version != widgetResource.Version {
 			t.Fatalf("buildGVR() version = %q, want %q", gvr.Version, widgetResource.Version)
+		}
+	})
+
+	t.Run("remoteNamespace overrides store namespace on client", func(t *testing.T) {
+		p := providerWithFakeDiscover("widgets")
+		prov := &esv1.CRDProvider{
+			ServiceAccountName: "reader",
+			Resource:           widgetResource,
+			RemoteNamespace:    "remote-ns",
+		}
+		store := makeStoreWithCRDProvider(prov)
+		cfg := &rest.Config{Host: "https://example.com", BearerToken: "tok"}
+		targetNS := resolveCRDTargetNamespace(prov, "es-ns")
+		client, err := p.newClientWithRESTConfig(store, cfg, targetNS)
+		if err != nil {
+			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
+		}
+		c := client.(*Client)
+		if c.namespace != "remote-ns" {
+			t.Fatalf("client namespace = %q, want %q", c.namespace, "remote-ns")
 		}
 	})
 }

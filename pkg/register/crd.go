@@ -14,27 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package kubernetes implements a provider for Kubernetes secrets, allowing
-// External Secrets to read from and write to Kubernetes Secrets
-package kubernetes
+package register
 
 import (
-	"context"
-
-	"k8s.io/client-go/rest"
-
-	"github.com/external-secrets/external-secrets/runtime/esutils"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	crd "github.com/external-secrets/external-secrets/providers/v1/crd"
 )
 
-func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
-	return esutils.BuildRESTConfigFromKubernetesConnection(
-		ctx,
-		c.ctrlClient,
-		c.ctrlClientset,
-		c.storeKind,
-		c.namespace,
-		c.store.Server,
-		c.store.Auth,
-		c.store.AuthRef,
-	)
+func init() {
+	esv1.Register(crd.NewProvider(), crd.ProviderSpec(), crd.MaintenanceStatus())
 }

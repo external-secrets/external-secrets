@@ -16,6 +16,10 @@ limitations under the License.
 
 package v1
 
+import (
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+)
+
 // CRDProviderResource identifies a Kubernetes custom resource by its full
 // API coordinates: group, version and kind.
 type CRDProviderResource struct {
@@ -57,15 +61,40 @@ type CRDProviderWhitelist struct {
 }
 
 // CRDProvider configures a store to fetch data from arbitrary Kubernetes
-// custom resources in the local cluster, authenticated as a ServiceAccount.
+// custom resources. Use ServiceAccountName for legacy in-cluster auth, or
+// server/auth/authRef for the same connection options as the Kubernetes provider.
 type CRDProvider struct {
-	// ServiceAccountName is the name of the ServiceAccount used when
-	// accessing the Kubernetes API. The ServiceAccount must exist in the same
-	// namespace as the ExternalSecret (or in the controller namespace for a
-	// ClusterSecretStore).
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	ServiceAccountName string `json:"serviceAccountName"`
+	// ServiceAccountName is the name of the ServiceAccount used in legacy mode
+	// (no server URL, auth, or authRef): the controller uses in-cluster config
+	// and mints a token for this account. Ignored when server, auth, or authRef
+	// is set; use auth.serviceAccount instead for explicit connection mode.
+	// +optional
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
+	// Server configures the Kubernetes API address and TLS trust, same as the
+	// Kubernetes provider.
+	// +optional
+	Server KubernetesServer `json:"server,omitempty"`
+
+	// Auth configures authentication to the Kubernetes API, same as the
+	// Kubernetes provider. Required when Server.URL is set (unless using AuthRef).
+	// +optional
+	Auth *KubernetesAuth `json:"auth,omitempty"`
+
+	// AuthRef references a Secret containing a kubeconfig. Same semantics as the
+	// Kubernetes provider.
+	// +optional
+	AuthRef *esmeta.SecretKeySelector `json:"authRef,omitempty"`
+
+	// RemoteNamespace is the namespace used for namespaced API calls (Get/List).
+	// When empty, the SecretStore namespace (or cluster scope for ClusterSecretStore)
+	// is used, matching previous behavior.
+	// +optional
+	// +kubebuilder:default=default
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	RemoteNamespace string `json:"remoteNamespace,omitempty"`
 
 	// Resource identifies the CRD by its API group, version and kind.
 	// +kubebuilder:validation:Required
