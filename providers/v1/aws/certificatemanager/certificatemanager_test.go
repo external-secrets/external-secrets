@@ -40,30 +40,17 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// ---------------------------------------------------------------------------
-// Test certificate helpers
-// ---------------------------------------------------------------------------
-
-// testCerts holds PEM-encoded test certificate material.
 type testCerts struct {
-	// LeafPEM is the leaf certificate PEM block.
-	LeafPEM []byte
-	// IntermediatePEM is the intermediate CA certificate PEM block.
+	LeafPEM         []byte
 	IntermediatePEM []byte
-	// RootPEM is the root CA certificate PEM block (self-signed).
-	RootPEM []byte
-	// PrivateKeyPEM is the leaf private key.
-	PrivateKeyPEM []byte
-	// TLSCrt is the standard kubernetes.io/tls tls.crt value:
-	// leaf + intermediate concatenated (no root).
-	TLSCrt []byte
+	RootPEM         []byte
+	PrivateKeyPEM   []byte
+	TLSCrt          []byte
 }
 
-// generateTestCerts creates a minimal three-tier PKI (root → intermediate → leaf) for testing.
 func generateTestCerts(t *testing.T) testCerts {
 	t.Helper()
 
-	// Root CA (self-signed)
 	rootKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	rootTmpl := &x509.Certificate{
 		SerialNumber:          big.NewInt(1),
@@ -79,7 +66,6 @@ func generateTestCerts(t *testing.T) testCerts {
 	}
 	rootCert, _ := x509.ParseCertificate(rootDER)
 
-	// Intermediate CA (signed by root)
 	interKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	interTmpl := &x509.Certificate{
 		SerialNumber:          big.NewInt(2),
@@ -97,7 +83,6 @@ func generateTestCerts(t *testing.T) testCerts {
 	}
 	interCert, _ := x509.ParseCertificate(interDER)
 
-	// Leaf (signed by intermediate)
 	leafKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	leafTmpl := &x509.Certificate{
 		SerialNumber:   big.NewInt(3),
@@ -119,7 +104,6 @@ func generateTestCerts(t *testing.T) testCerts {
 	leafKeyDER, _ := x509.MarshalECPrivateKey(leafKey)
 	privKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: leafKeyDER})
 
-	// tls.crt = leaf + intermediate (no root, matching cert-manager output)
 	tlsCrt := append(leafPEM, interPEM...)
 
 	return testCerts{
@@ -131,11 +115,6 @@ func generateTestCerts(t *testing.T) testCerts {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Fake ACM client and test helpers
-// ---------------------------------------------------------------------------
-
-// fakeACMClient is a test double for ACMInterface.
 type fakeACMClient struct {
 	importCertificateFn func(ctx context.Context, params *acm.ImportCertificateInput, optFns ...func(*acm.Options)) (*acm.ImportCertificateOutput, error)
 	deleteCertificateFn func(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
@@ -164,7 +143,6 @@ func (f *fakeACMClient) RemoveTagsFromCertificate(ctx context.Context, params *a
 	return f.removeTagsFn(ctx, params, optFns...)
 }
 
-// pushSecretData implements esv1.PushSecretData for testing.
 type pushSecretData struct {
 	remoteKey string
 	secretKey string
@@ -177,7 +155,6 @@ func (p *pushSecretData) GetSecretKey() string               { return p.secretKe
 func (p *pushSecretData) GetProperty() string                { return p.property }
 func (p *pushSecretData) GetMetadata() *apiextensionsv1.JSON { return p.metadata }
 
-// remoteRef implements esv1.PushSecretRemoteRef for testing.
 type remoteRef struct {
 	remoteKey string
 	property  string
@@ -186,8 +163,6 @@ type remoteRef struct {
 func (r remoteRef) GetRemoteKey() string { return r.remoteKey }
 func (r remoteRef) GetProperty() string  { return r.property }
 
-// tlsSecret builds a standard kubernetes.io/tls secret where tls.crt holds the
-// provided PEM data (typically leaf + intermediate chain) and tls.key the private key.
 func tlsSecret(tlsCrt, tlsKey []byte) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-tls", Namespace: "default"},
@@ -198,7 +173,6 @@ func tlsSecret(tlsCrt, tlsKey []byte) *corev1.Secret {
 	}
 }
 
-// managedTags returns the tag set that marks a certificate as managed by ESO with a given remoteKey.
 func managedTags(remoteKey string) []types.Tag {
 	return []types.Tag{
 		{Key: aws.String(managedBy), Value: aws.String(externalSecrets)},
@@ -214,18 +188,12 @@ func newProvider(fake *fakeACMClient) *CertificateManager {
 	}
 }
 
-// clearARNCache removes all entries from the package-level ARN cache.
-// Must be called in tests that rely on or modify cache state.
 func clearARNCache() {
 	arnCache.Range(func(key, _ any) bool {
 		arnCache.Delete(key)
 		return true
 	})
 }
-
-// ---------------------------------------------------------------------------
-// splitCertificatePEM tests
-// ---------------------------------------------------------------------------
 
 func TestSplitCertificatePEM_LeafOnly(t *testing.T) {
 	certs := generateTestCerts(t)
@@ -244,7 +212,6 @@ func TestSplitCertificatePEM_LeafOnly(t *testing.T) {
 
 func TestSplitCertificatePEM_LeafAndIntermediate(t *testing.T) {
 	certs := generateTestCerts(t)
-	// tls.crt = leaf + intermediate (cert-manager format)
 	leaf, chain, err := splitCertificatePEM(certs.TLSCrt)
 	if err != nil {
 		t.Fatalf("splitCertificatePEM: %v", err)
@@ -265,7 +232,6 @@ func TestSplitCertificatePEM_NoCertificates(t *testing.T) {
 }
 
 func TestSplitCertificatePEM_InvalidLeafCertificate(t *testing.T) {
-	// Valid PEM structure but corrupt DER content.
 	badPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: []byte("not valid DER")})
 	_, _, err := splitCertificatePEM(badPEM)
 	if err == nil {
@@ -275,10 +241,6 @@ func TestSplitCertificatePEM_InvalidLeafCertificate(t *testing.T) {
 		t.Errorf("expected error to mention leaf certificate, got: %s", got)
 	}
 }
-
-// ---------------------------------------------------------------------------
-// PushSecret tests
-// ---------------------------------------------------------------------------
 
 func TestPushSecret_NewCertificate(t *testing.T) {
 	clearARNCache()
@@ -312,7 +274,6 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	}
 
 	psd := &pushSecretData{remoteKey: "my-cert"}
-	// tls.crt contains leaf + intermediate (standard cert-manager output)
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
@@ -324,7 +285,6 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	if string(gotChain) != string(certs.IntermediatePEM) {
 		t.Error("CertificateChain field should be the intermediate certificate")
 	}
-	// Management tags (including content hash) must be included atomically.
 	if len(gotTags) != 3 {
 		t.Fatalf("expected 3 management tags on new import, got %d", len(gotTags))
 	}
@@ -370,7 +330,6 @@ func TestPushSecret_LeafOnly_NoChainSent(t *testing.T) {
 	}
 
 	psd := &pushSecretData{remoteKey: "my-cert"}
-	// tls.crt contains only the leaf certificate — no chain should be sent to ACM.
 	secret := tlsSecret(certs.LeafPEM, certs.PrivateKeyPEM)
 
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
@@ -387,7 +346,6 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/existing"
 	var importedARN string
 
-	// Existing cert has a stale hash (simulates a cert-manager renewal).
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
@@ -484,7 +442,6 @@ func TestPushSecret_MissingCertKey(t *testing.T) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "bad-secret", Namespace: "default"},
 		Data: map[string][]byte{
-			// tls.crt is missing, only tls.key present.
 			"tls.key": []byte("KEY"),
 		},
 	}
@@ -499,7 +456,7 @@ func TestPushSecret_SecretKeyNotEmpty_Rejected(t *testing.T) {
 
 	psd := &pushSecretData{
 		remoteKey: "my-cert",
-		secretKey: "tls.crt", // must be empty for ACM
+		secretKey: "tls.crt",
 	}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
@@ -520,7 +477,6 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 	importCount := 0
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
-			// Simulate eventual consistency: ListCertificates never returns the cert.
 			return &acm.ListCertificatesOutput{}, nil
 		},
 		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
@@ -544,7 +500,6 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 	psd := &pushSecretData{remoteKey: "my-cert"}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
-	// First call: new import (ListCertificates returns empty, cache is empty).
 	provider := newProvider(fake)
 	if err := provider.PushSecret(context.Background(), secret, psd); err != nil {
 		t.Fatalf("first PushSecret: %v", err)
@@ -553,9 +508,7 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 		t.Fatalf("expected 1 import call after first push, got %d", importCount)
 	}
 
-	// Second call simulates a rapid re-reconciliation.
-	// ListCertificates still returns empty (eventual consistency), but the
-	// cache should let findCertificateARN find the cert via ListTagsForCertificate.
+	// Cache should resolve the ARN despite ListCertificates returning empty.
 	provider2 := newProvider(fake)
 	if err := provider2.PushSecret(context.Background(), secret, psd); err != nil {
 		t.Fatalf("second PushSecret: %v", err)
@@ -564,8 +517,6 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 		t.Fatalf("expected 2 import calls total, got %d", importCount)
 	}
 
-	// Verify the second import was a re-import (CertificateArn set), not a new import.
-	// We'll track this with a more detailed check.
 	importCount = 0
 	var secondImportHadARN bool
 	fake.importCertificateFn = func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
@@ -615,17 +566,13 @@ func TestPushSecret_CacheClearedOnDelete(t *testing.T) {
 	psd := &pushSecretData{remoteKey: "my-cert"}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
-	// Push to populate cache.
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
 		t.Fatalf("PushSecret: %v", err)
 	}
-
-	// Verify cache is populated.
 	if _, ok := arnCache.Load("my-cert"); !ok {
 		t.Fatal("expected ARN to be cached after PushSecret")
 	}
 
-	// Delete should clear the cache.
 	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: "my-cert"}); err != nil {
 		t.Fatalf("DeleteSecret: %v", err)
 	}
@@ -633,10 +580,6 @@ func TestPushSecret_CacheClearedOnDelete(t *testing.T) {
 		t.Error("expected ARN cache to be cleared after DeleteSecret")
 	}
 }
-
-// ---------------------------------------------------------------------------
-// SecretExists tests
-// ---------------------------------------------------------------------------
 
 func TestSecretExists_Found(t *testing.T) {
 	clearARNCache()
@@ -677,10 +620,6 @@ func TestSecretExists_NotFound(t *testing.T) {
 		t.Error("expected certificate to not exist")
 	}
 }
-
-// ---------------------------------------------------------------------------
-// DeleteSecret tests
-// ---------------------------------------------------------------------------
 
 func TestDeleteSecret_Managed(t *testing.T) {
 	clearARNCache()
@@ -724,12 +663,10 @@ func TestDeleteSecret_NotManagedByESO(t *testing.T) {
 			}, nil
 		},
 		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			// matchesTags will return false for "not-ours" remoteKey since tag has "other-cert".
 			return &acm.ListTagsForCertificateOutput{Tags: managedTags("other-cert")}, nil
 		},
 	}
 
-	// "not-ours" doesn't match "other-cert" tag, so findCertificateARN returns "".
 	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: "not-ours"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -759,14 +696,12 @@ func TestDeleteSecret_ExplicitlyTaggedAsNotManaged(t *testing.T) {
 			}, nil
 		},
 		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			// Only the remoteKeyTag, no managed-by tag — cert not imported by ESO.
 			return &acm.ListTagsForCertificateOutput{Tags: []types.Tag{
 				{Key: aws.String(remoteKeyTag), Value: aws.String("ext-cert")},
 			}}, nil
 		},
 	}
 
-	// findCertificateARN won't match because matchesTags requires BOTH tags, so no-op.
 	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: "ext-cert"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -776,8 +711,6 @@ func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
 	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/race"
 
-	// findCertificateARN succeeds (cert appears in ListCertificates), but by the time
-	// listTags is called for the management-check, the cert has already been deleted.
 	callCount := 0
 	fake := &fakeACMClient{
 		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
@@ -788,10 +721,8 @@ func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
 		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			callCount++
 			if callCount == 1 {
-				// First call: inside findCertificateARN — cert still exists with matching tags.
 				return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
 			}
-			// Second call: inside DeleteSecret's management check — cert is now gone.
 			return nil, &smithyFakeNotFound{}
 		},
 		deleteCertificateFn: func(_ context.Context, _ *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
@@ -805,17 +736,12 @@ func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
 	}
 }
 
-// smithyFakeNotFound is a minimal smithy.APIError stub for ResourceNotFoundException.
 type smithyFakeNotFound struct{}
 
 func (e *smithyFakeNotFound) Error() string                  { return "ResourceNotFoundException" }
 func (e *smithyFakeNotFound) ErrorCode() string              { return "ResourceNotFoundException" }
 func (e *smithyFakeNotFound) ErrorMessage() string           { return "certificate not found" }
 func (e *smithyFakeNotFound) ErrorFault() smithy.ErrorFault  { return smithy.FaultClient }
-
-// ---------------------------------------------------------------------------
-// Unsupported read operations
-// ---------------------------------------------------------------------------
 
 func TestGetSecret_Unsupported(t *testing.T) {
 	cm := newProvider(&fakeACMClient{})

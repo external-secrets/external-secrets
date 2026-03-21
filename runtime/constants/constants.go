@@ -21,7 +21,6 @@ package constants
 const (
 	ProviderAWSACM                      = "AWS/CertificateManager"
 	CallAWSACMImportCertificate         = "ImportCertificate"
-	CallAWSACMDescribeCertificate       = "DescribeCertificate"
 	CallAWSACMDeleteCertificate         = "DeleteCertificate"
 	CallAWSACMListCertificates          = "ListCertificates"
 	CallAWSACMAddTagsToCertificate      = "AddTagsToCertificate"

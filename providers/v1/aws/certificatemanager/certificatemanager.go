@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package certificatemanager implements an AWS Certificate Manager provider for External Secrets Operator.
-// It supports importing TLS certificates stored in Kubernetes secrets into ACM via PushSecret.
+// Package certificatemanager implements the AWS Certificate Manager provider for external-secrets.
 package certificatemanager
 
 import (
@@ -42,10 +41,8 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
-// PushSecretMetadataSpec contains metadata for pushing TLS certificates to AWS Certificate Manager.
+// PushSecretMetadataSpec contains metadata for pushing certificates to ACM.
 type PushSecretMetadataSpec struct {
-	// Tags are the AWS resource tags to apply to the certificate.
-	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
@@ -62,17 +59,15 @@ const (
 		"the whole kubernetes.io/tls secret is required (tls.crt and tls.key)"
 )
 
-// errCertificateNotFound is returned by listTags when the certificate no longer exists in ACM.
-var errCertificateNotFound = errors.New("certificate not found")
+var (
+	errCertificateNotFound = errors.New("certificate not found")
 
-// arnCache maps remoteKey → certificate ARN for recently imported certificates.
-// ACM's ListCertificates API has eventual consistency: a certificate may not
-// appear in the listing immediately after ImportCertificate returns. This cache
-// lets findCertificateARN verify a known ARN via the strongly-consistent
-// ListTagsForCertificate call instead of relying on list enumeration.
-var arnCache sync.Map
+	// arnCache mitigates eventual consistency of ListCertificates by caching
+	// remoteKey → ARN after a successful import.
+	arnCache sync.Map
+)
 
-// ACMInterface is the subset of the AWS ACM API used by this provider.
+// ACMInterface is a subset of the ACM API.
 type ACMInterface interface {
 	ImportCertificate(ctx context.Context, params *acm.ImportCertificateInput, optFns ...func(*acm.Options)) (*acm.ImportCertificateOutput, error)
 	DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
@@ -82,7 +77,7 @@ type ACMInterface interface {
 	RemoveTagsFromCertificate(ctx context.Context, params *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
 }
 
-// CertificateManager is a provider for AWS Certificate Manager.
+// CertificateManager is a provider for AWS ACM.
 type CertificateManager struct {
 	client       ACMInterface
 	referentAuth bool
@@ -103,17 +98,7 @@ func New(_ context.Context, cfg *aws.Config, referentAuth bool) (*CertificateMan
 	}, nil
 }
 
-// PushSecret imports a TLS certificate from the Kubernetes secret into AWS Certificate Manager.
-//
-// The source secret must be a standard kubernetes.io/tls secret:
-//   - tls.crt: PEM-encoded leaf certificate, optionally followed by intermediate certificates.
-//     The chain is split automatically — the leaf becomes the Certificate field and the
-//     intermediates become the CertificateChain field of the ACM ImportCertificate call.
-//   - tls.key: PEM-encoded private key.
-//
-// The PushSecret spec.data entry must have an empty secretKey (whole-secret mode) because
-// both tls.crt and tls.key are required for a single ACM import call.
-// The remoteKey is used to tag the certificate for future lookups.
+// PushSecret imports a kubernetes.io/tls secret into AWS Certificate Manager.
 func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
 	if psd.GetSecretKey() != "" {
 		return errors.New(errSecretKeyNotEmpty)
@@ -141,7 +126,6 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	remoteKey := psd.GetRemoteKey()
 	contentHash := computeContentHash(certPEM, privKeyPEM)
 
-	// Find an existing certificate tagged with this remote key.
 	existingARN, err := cm.findCertificateARN(ctx, remoteKey)
 	if err != nil {
 		return fmt.Errorf("failed to search for existing certificate: %w", err)
@@ -183,9 +167,7 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 		return cm.updateContentHash(ctx, existingARN, contentHash)
 	}
 
-	// New certificate: include management tags atomically with the first import
-	// to prevent duplicate certificates when the controller re-reconciles before
-	// a separate AddTagsToCertificate call would complete.
+	// Include management tags atomically with the first import.
 	input := &acm.ImportCertificateInput{
 		Certificate: leafPEM,
 		PrivateKey:  privKeyPEM,
@@ -216,7 +198,7 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	return nil
 }
 
-// SecretExists returns true if an ACM certificate tagged with the given remoteKey exists.
+// SecretExists checks if a certificate with the given remoteKey exists in ACM.
 func (cm *CertificateManager) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
 	arn, err := cm.findCertificateARN(ctx, remoteRef.GetRemoteKey())
 	if err != nil {
@@ -225,21 +207,18 @@ func (cm *CertificateManager) SecretExists(ctx context.Context, remoteRef esv1.P
 	return arn != "", nil
 }
 
-// DeleteSecret deletes the ACM certificate tagged with the given remoteKey, if it is managed by ESO.
+// DeleteSecret deletes the ACM certificate identified by remoteKey.
 func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	arn, err := cm.findCertificateARN(ctx, remoteRef.GetRemoteKey())
 	if err != nil {
 		return fmt.Errorf("failed to search for certificate to delete: %w", err)
 	}
 	if arn == "" {
-		// Already gone.
 		return nil
 	}
 
-	// Verify it is managed by ESO before deleting.
 	tags, err := cm.listTags(ctx, arn)
 	if errors.Is(err, errCertificateNotFound) {
-		// Deleted by another process between findCertificateARN and here — treat as no-op.
 		return nil
 	}
 	if err != nil {
@@ -261,27 +240,24 @@ func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.P
 	return nil
 }
 
-// GetSecret is not supported by the Certificate Manager provider.
 func (cm *CertificateManager) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
-// GetSecretMap is not supported by the Certificate Manager provider.
 func (cm *CertificateManager) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
-// GetAllSecrets is not supported by the Certificate Manager provider.
 func (cm *CertificateManager) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
-// Close is a no-op for the Certificate Manager provider.
+// Close closes the provider.
 func (cm *CertificateManager) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate validates that the provider credentials are reachable.
+// Validate checks if the provider is configured correctly.
 func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 	if cm.referentAuth {
 		return esv1.ValidationResultUnknown, nil
@@ -293,14 +269,6 @@ func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-// findCertificateARN searches ACM for a certificate tagged with the given remoteKey.
-// Returns the ARN of the matching certificate, or an empty string if not found.
-//
-// It first checks the in-process ARN cache (populated by PushSecret after a new
-// import) and verifies the cached ARN via ListTagsForCertificate, which is
-// strongly consistent for a known resource. This avoids the eventual-consistency
-// window of ListCertificates that can cause duplicate imports across rapid
-// back-to-back reconciliations.
 func (cm *CertificateManager) findCertificateARN(ctx context.Context, remoteKey string) (string, error) {
 	if cached, ok := arnCache.Load(remoteKey); ok {
 		arn := cached.(string)
@@ -349,8 +317,6 @@ func (cm *CertificateManager) findCertificateARN(ctx context.Context, remoteKey 
 	return "", nil
 }
 
-// listTags returns the ACM tags for the given certificate ARN.
-// It returns errCertificateNotFound if the certificate no longer exists.
 func (cm *CertificateManager) listTags(ctx context.Context, arn string) ([]types.Tag, error) {
 	out, err := cm.client.ListTagsForCertificate(ctx, &acm.ListTagsForCertificateInput{
 		CertificateArn: aws.String(arn),
@@ -366,7 +332,6 @@ func (cm *CertificateManager) listTags(ctx context.Context, arn string) ([]types
 	return out.Tags, nil
 }
 
-// syncTags reconciles user-defined tags on the certificate, preserving ESO management tags.
 func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredTags map[string]string) error {
 	current, err := cm.listTags(ctx, arn)
 	if err != nil {
@@ -378,7 +343,6 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 		currentMap[aws.ToString(t.Key)] = aws.ToString(t.Value)
 	}
 
-	// Remove tags that are no longer desired, skipping ESO management tags.
 	var toRemove []types.Tag
 	for k, v := range currentMap {
 		if isReservedTag(k) {
@@ -399,7 +363,6 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 		}
 	}
 
-	// Add or update desired tags.
 	var toAdd []types.Tag
 	for k, v := range desiredTags {
 		if isReservedTag(k) {
@@ -422,7 +385,6 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 	return nil
 }
 
-// isManagedByESO checks whether the certificate was originally imported by ESO.
 func isManagedByESO(tags []types.Tag) bool {
 	for _, t := range tags {
 		if aws.ToString(t.Key) == managedBy && aws.ToString(t.Value) == externalSecrets {
@@ -432,7 +394,6 @@ func isManagedByESO(tags []types.Tag) bool {
 	return false
 }
 
-// matchesTags returns true when the certificate carries both the ESO management tag and the matching remoteKey tag.
 func matchesTags(tags []types.Tag, remoteKey string) bool {
 	var hasManagedBy, hasRemoteKey bool
 	for _, t := range tags {
@@ -450,14 +411,10 @@ func matchesTags(tags []types.Tag, remoteKey string) bool {
 	return hasManagedBy && hasRemoteKey
 }
 
-// isReservedTag returns true for tag keys managed internally by ESO.
 func isReservedTag(key string) bool {
 	return key == managedBy || key == remoteKeyTag || key == contentHashTag
 }
 
-// computeContentHash returns a hex-encoded SHA-256 digest of the certificate
-// and private key bytes. This is stored as a tag on the ACM certificate so
-// subsequent reconciliations can skip redundant re-imports.
 func computeContentHash(certPEM, keyPEM []byte) string {
 	h := sha256.New()
 	h.Write(certPEM)
@@ -465,7 +422,6 @@ func computeContentHash(certPEM, keyPEM []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// getTagValue returns the value of the first tag matching the given key, or "".
 func getTagValue(tags []types.Tag, key string) string {
 	for _, t := range tags {
 		if aws.ToString(t.Key) == key {
@@ -475,7 +431,6 @@ func getTagValue(tags []types.Tag, key string) string {
 	return ""
 }
 
-// updateContentHash sets (or overwrites) the content-hash tag on the certificate.
 func (cm *CertificateManager) updateContentHash(ctx context.Context, arn, hash string) error {
 	_, err := cm.client.AddTagsToCertificate(ctx, &acm.AddTagsToCertificateInput{
 		CertificateArn: aws.String(arn),
@@ -485,11 +440,7 @@ func (cm *CertificateManager) updateContentHash(ctx context.Context, arn, hash s
 	return err
 }
 
-// splitCertificatePEM splits a PEM value that follows the standard kubernetes.io/tls format —
-// leaf certificate first, followed by zero or more intermediate certificates — into the leaf
-// and the intermediate chain.
-//
-// Returns (leaf, chain, nil). chain is nil when tls.crt contains only the leaf certificate.
+// splitCertificatePEM splits a PEM bundle into the leaf certificate and the remaining chain.
 func splitCertificatePEM(certPEM []byte) (leaf []byte, chain []byte, err error) {
 	var blocks []*pem.Block
 	rest := certPEM
@@ -519,7 +470,6 @@ func splitCertificatePEM(certPEM []byte) (leaf []byte, chain []byte, err error) 
 	return leaf, chain, nil
 }
 
-// constructMetadata parses the PushSecretMetadata from raw JSON, returning safe defaults when absent.
 func constructMetadata(data *apiextensionsv1.JSON) (*metadata.PushSecretMetadata[PushSecretMetadataSpec], error) {
 	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data)
 	if err != nil {
