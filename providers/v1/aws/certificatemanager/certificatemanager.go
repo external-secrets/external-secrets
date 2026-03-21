@@ -92,7 +92,9 @@ var log = ctrl.Log.WithName("provider").WithName("aws").WithName("certificateman
 // New creates a new CertificateManager client.
 func New(_ context.Context, cfg *aws.Config, referentAuth bool) (*CertificateManager, error) {
 	return &CertificateManager{
-		client:       acm.NewFromConfig(*cfg),
+		client: acm.NewFromConfig(*cfg, func(o *acm.Options) {
+			o.EndpointResolverV2 = customEndpointResolver{}
+		}),
 		referentAuth: referentAuth,
 		cfg:          cfg,
 	}, nil

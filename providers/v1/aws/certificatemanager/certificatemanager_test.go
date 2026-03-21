@@ -38,6 +38,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	fakeacm "github.com/external-secrets/external-secrets/providers/v1/aws/certificatemanager/fake"
 )
 
 type testCerts struct {
@@ -115,33 +116,6 @@ func generateTestCerts(t *testing.T) testCerts {
 	}
 }
 
-type fakeACMClient struct {
-	importCertificateFn func(ctx context.Context, params *acm.ImportCertificateInput, optFns ...func(*acm.Options)) (*acm.ImportCertificateOutput, error)
-	deleteCertificateFn func(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
-	listCertificatesFn  func(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
-	addTagsFn           func(ctx context.Context, params *acm.AddTagsToCertificateInput, optFns ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error)
-	listTagsFn          func(ctx context.Context, params *acm.ListTagsForCertificateInput, optFns ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error)
-	removeTagsFn        func(ctx context.Context, params *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
-}
-
-func (f *fakeACMClient) ImportCertificate(ctx context.Context, params *acm.ImportCertificateInput, optFns ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
-	return f.importCertificateFn(ctx, params, optFns...)
-}
-func (f *fakeACMClient) DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
-	return f.deleteCertificateFn(ctx, params, optFns...)
-}
-func (f *fakeACMClient) ListCertificates(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
-	return f.listCertificatesFn(ctx, params, optFns...)
-}
-func (f *fakeACMClient) AddTagsToCertificate(ctx context.Context, params *acm.AddTagsToCertificateInput, optFns ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
-	return f.addTagsFn(ctx, params, optFns...)
-}
-func (f *fakeACMClient) ListTagsForCertificate(ctx context.Context, params *acm.ListTagsForCertificateInput, optFns ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-	return f.listTagsFn(ctx, params, optFns...)
-}
-func (f *fakeACMClient) RemoveTagsFromCertificate(ctx context.Context, params *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
-	return f.removeTagsFn(ctx, params, optFns...)
-}
 
 type pushSecretData struct {
 	remoteKey string
@@ -180,9 +154,9 @@ func managedTags(remoteKey string) []types.Tag {
 	}
 }
 
-func newProvider(fake *fakeACMClient) *CertificateManager {
+func newProvider(fc *fakeacm.Client) *CertificateManager {
 	return &CertificateManager{
-		client:       fake,
+		client:       fc,
 		referentAuth: false,
 		cfg:          &aws.Config{},
 	}
@@ -249,11 +223,11 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 
 	var gotCert, gotChain []byte
 	var gotTags []types.Tag
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
 		},
-		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			if p.CertificateArn != nil {
 				t.Error("expected no CertificateArn on first import")
 			}
@@ -262,13 +236,13 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 			gotTags = p.Tags
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
 		},
-		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+		AddTagsToCertificateFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
 		},
-		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
 		},
 	}
@@ -310,21 +284,21 @@ func TestPushSecret_LeafOnly_NoChainSent(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/leaf-only"
 
 	var gotChain []byte
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
 		},
-		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			gotChain = p.CertificateChain
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
 		},
-		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+		AddTagsToCertificateFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
 		},
-		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
 		},
 	}
@@ -346,30 +320,30 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/existing"
 	var importedARN string
 
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
 				CertificateSummaryList: []types.CertificateSummary{
 					{CertificateArn: aws.String(arn)},
 				},
 			}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			tags := append(managedTags("my-cert"),
 				types.Tag{Key: aws.String(contentHashTag), Value: aws.String("stale-hash")})
 			return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
 		},
-		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importedARN = aws.ToString(p.CertificateArn)
 			if len(p.Tags) > 0 {
 				t.Error("Tags must not be set on re-import")
 			}
 			return &acm.ImportCertificateOutput{CertificateArn: p.CertificateArn}, nil
 		},
-		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+		AddTagsToCertificateFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
-		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
 		},
 	}
@@ -393,28 +367,28 @@ func TestPushSecret_SkipsReimportWhenUnchanged(t *testing.T) {
 	currentHash := computeContentHash(certs.TLSCrt, certs.PrivateKeyPEM)
 	importCalled := false
 
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
 				CertificateSummaryList: []types.CertificateSummary{
 					{CertificateArn: aws.String(arn)},
 				},
 			}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			tags := append(managedTags("my-cert"),
 				types.Tag{Key: aws.String(contentHashTag), Value: aws.String(currentHash)})
 			return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
 		},
-		importCertificateFn: func(_ context.Context, _ *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+		ImportCertificateFn: func(_ context.Context, _ *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importCalled = true
 			t.Error("ImportCertificate should not be called when content is unchanged")
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
 		},
-		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+		AddTagsToCertificateFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
-		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
 		},
 	}
@@ -432,8 +406,8 @@ func TestPushSecret_SkipsReimportWhenUnchanged(t *testing.T) {
 
 func TestPushSecret_MissingCertKey(t *testing.T) {
 	clearARNCache()
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
 		},
 	}
@@ -460,7 +434,7 @@ func TestPushSecret_SecretKeyNotEmpty_Rejected(t *testing.T) {
 	}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
-	err := newProvider(&fakeACMClient{}).PushSecret(context.Background(), secret, psd)
+	err := newProvider(&fakeacm.Client{}).PushSecret(context.Background(), secret, psd)
 	if err == nil {
 		t.Fatal("expected error when secretKey is non-empty")
 	}
@@ -475,24 +449,24 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/cached"
 
 	importCount := 0
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
 		},
-		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importCount++
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
 		},
-		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+		AddTagsToCertificateFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
-		listTagsFn: func(_ context.Context, p *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, p *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			if aws.ToString(p.CertificateArn) == arn {
 				return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
 			}
 			return &acm.ListTagsForCertificateOutput{}, nil
 		},
-		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
 		},
 	}
@@ -519,7 +493,7 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 
 	importCount = 0
 	var secondImportHadARN bool
-	fake.importCertificateFn = func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+	fake.ImportCertificateFn = func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 		importCount++
 		secondImportHadARN = p.CertificateArn != nil
 		return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
@@ -539,26 +513,26 @@ func TestPushSecret_CacheClearedOnDelete(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/to-delete-cache"
 
 	importCount := 0
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
 				CertificateSummaryList: []types.CertificateSummary{{CertificateArn: aws.String(arn)}},
 			}, nil
 		},
-		importCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
+		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importCount++
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
 		},
-		addTagsFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
+		AddTagsToCertificateFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
 		},
-		removeTagsFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
+		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
 		},
-		deleteCertificateFn: func(_ context.Context, _ *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
+		DeleteCertificateFn: func(_ context.Context, _ *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
 			return &acm.DeleteCertificateOutput{}, nil
 		},
 	}
@@ -584,13 +558,13 @@ func TestPushSecret_CacheClearedOnDelete(t *testing.T) {
 func TestSecretExists_Found(t *testing.T) {
 	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/abc"
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
 				CertificateSummaryList: []types.CertificateSummary{{CertificateArn: aws.String(arn)}},
 			}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
 		},
 	}
@@ -606,8 +580,8 @@ func TestSecretExists_Found(t *testing.T) {
 
 func TestSecretExists_NotFound(t *testing.T) {
 	clearARNCache()
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
 		},
 	}
@@ -626,16 +600,16 @@ func TestDeleteSecret_Managed(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/to-delete"
 	deleted := false
 
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
 				CertificateSummaryList: []types.CertificateSummary{{CertificateArn: aws.String(arn)}},
 			}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
 		},
-		deleteCertificateFn: func(_ context.Context, p *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
+		DeleteCertificateFn: func(_ context.Context, p *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
 			if aws.ToString(p.CertificateArn) != arn {
 				t.Errorf("expected ARN %q, got %q", arn, aws.ToString(p.CertificateArn))
 			}
@@ -656,13 +630,13 @@ func TestDeleteSecret_NotManagedByESO(t *testing.T) {
 	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/not-ours"
 
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
 				CertificateSummaryList: []types.CertificateSummary{{CertificateArn: aws.String(arn)}},
 			}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			return &acm.ListTagsForCertificateOutput{Tags: managedTags("other-cert")}, nil
 		},
 	}
@@ -674,8 +648,8 @@ func TestDeleteSecret_NotManagedByESO(t *testing.T) {
 
 func TestDeleteSecret_NotFound(t *testing.T) {
 	clearARNCache()
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{}, nil
 		},
 	}
@@ -689,13 +663,13 @@ func TestDeleteSecret_ExplicitlyTaggedAsNotManaged(t *testing.T) {
 	clearARNCache()
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/external"
 
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
 				CertificateSummaryList: []types.CertificateSummary{{CertificateArn: aws.String(arn)}},
 			}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			return &acm.ListTagsForCertificateOutput{Tags: []types.Tag{
 				{Key: aws.String(remoteKeyTag), Value: aws.String("ext-cert")},
 			}}, nil
@@ -712,20 +686,20 @@ func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/race"
 
 	callCount := 0
-	fake := &fakeACMClient{
-		listCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
+	fake := &fakeacm.Client{
+		ListCertificatesFn: func(_ context.Context, _ *acm.ListCertificatesInput, _ ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
 			return &acm.ListCertificatesOutput{
 				CertificateSummaryList: []types.CertificateSummary{{CertificateArn: aws.String(arn)}},
 			}, nil
 		},
-		listTagsFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
+		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			callCount++
 			if callCount == 1 {
 				return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
 			}
 			return nil, &smithyFakeNotFound{}
 		},
-		deleteCertificateFn: func(_ context.Context, _ *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
+		DeleteCertificateFn: func(_ context.Context, _ *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
 			t.Error("DeleteCertificate should not be called when cert is already gone")
 			return &acm.DeleteCertificateOutput{}, nil
 		},
@@ -744,7 +718,7 @@ func (e *smithyFakeNotFound) ErrorMessage() string           { return "certifica
 func (e *smithyFakeNotFound) ErrorFault() smithy.ErrorFault  { return smithy.FaultClient }
 
 func TestGetSecret_Unsupported(t *testing.T) {
-	cm := newProvider(&fakeACMClient{})
+	cm := newProvider(&fakeacm.Client{})
 	_, err := cm.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{})
 	if err == nil {
 		t.Fatal("expected error but got nil")
