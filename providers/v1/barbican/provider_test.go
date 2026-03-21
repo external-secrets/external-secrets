@@ -430,9 +430,7 @@ func makeValidSecretStore() *esv1.SecretStore {
 
 func makeSecretStoreWithValueUsername() *esv1.SecretStore {
 	store := makeValidSecretStore()
-	store.Spec.Provider.Barbican.Auth.Username = &esv1.BarbicanProviderUsernameRef{
-		Value: testUsername,
-	}
+	store.Spec.Provider.Barbican.Auth.Username.Value = testUsername
 	return store
 }
 
@@ -542,9 +540,7 @@ func makeSecretStoreWithAppCredAuth() *esv1.SecretStore {
 // Helper: application credential auth store with inline value for appCredID.
 func makeSecretStoreWithAppCredValueID() *esv1.SecretStore {
 	store := makeSecretStoreWithAppCredAuth()
-	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID = &esv1.BarbicanProviderAppCredIDRef{
-		Value: testAppCredID,
-	}
+	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID.Value = testAppCredID
 	return store
 }
 

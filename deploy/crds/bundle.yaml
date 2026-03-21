@@ -2867,7 +2867,7 @@ spec:
                           description: BarbicanAuth contains the authentication information for Barbican.
                           properties:
                             applicationCredentialID:
-                              description: Application Credential authentication fields.
+                              description: ID of the application credential used for authentication.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -2938,6 +2938,11 @@ spec:
                               type: object
                             authType:
                               default: password
+                              description: |-
+                                AuthType selects how Barbican authenticates.
+                                - "password": use username and password.
+                                - "applicationCredential": use application credential ID and secret.
+                                Defaults to "password".
                               enum:
                                 - password
                                 - applicationCredential
@@ -3015,9 +3020,13 @@ spec:
                           type: object
                           x-kubernetes-validations:
                             - message: password auth requires both username and password
-                              rule: self.authType != 'password' || (has(self.username) && has(self.password))
+                              rule: (has(self.authType) && self.authType == 'applicationCredential') || (has(self.username) && has(self.password))
                             - message: applicationCredential auth requires both applicationCredentialID and applicationCredentialSecret
                               rule: self.authType != 'applicationCredential' || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))
+                            - message: password auth should not include applicationCredential fields
+                              rule: (has(self.authType) && self.authType == 'applicationCredential') || (!has(self.applicationCredentialID) && !has(self.applicationCredentialSecret))
+                            - message: applicationCredential auth should not include password fields
+                              rule: self.authType != 'applicationCredential' || (!has(self.username) && !has(self.password))
                         authURL:
                           type: string
                         domainName:
@@ -14709,7 +14718,7 @@ spec:
                           description: BarbicanAuth contains the authentication information for Barbican.
                           properties:
                             applicationCredentialID:
-                              description: Application Credential authentication fields.
+                              description: ID of the application credential used for authentication (e.g., UUID or name).
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -14780,6 +14789,11 @@ spec:
                               type: object
                             authType:
                               default: password
+                              description: |-
+                                AuthType selects how Barbican authenticates.
+                                - "password": use username and password.
+                                - "applicationCredential": use application credential ID and secret.
+                                Defaults to "password".
                               enum:
                                 - password
                                 - applicationCredential
@@ -14857,9 +14871,13 @@ spec:
                           type: object
                           x-kubernetes-validations:
                             - message: password auth requires both username and password
-                              rule: self.authType != 'password' || (has(self.username) && has(self.password))
+                              rule: (has(self.authType) && self.authType == 'applicationCredential') || (has(self.username) && has(self.password))
                             - message: applicationCredential auth requires both applicationCredentialID and applicationCredentialSecret
                               rule: self.authType != 'applicationCredential' || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))
+                            - message: password auth should not include applicationCredential fields
+                              rule: (has(self.authType) && self.authType == 'applicationCredential') || (!has(self.applicationCredentialID) && !has(self.applicationCredentialSecret))
+                            - message: applicationCredential auth should not include password fields
+                              rule: self.authType != 'applicationCredential' || (!has(self.username) && !has(self.password))
                         authURL:
                           type: string
                         domainName:
