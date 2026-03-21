@@ -257,24 +257,6 @@ func TestSplitCertificatePEM_LeafAndIntermediate(t *testing.T) {
 	}
 }
 
-func TestSplitCertificatePEM_RootExcluded(t *testing.T) {
-	certs := generateTestCerts(t)
-	// tls.crt = leaf + intermediate + root (root must be stripped)
-	withRoot := append(certs.TLSCrt, certs.RootPEM...)
-
-	leaf, chain, err := splitCertificatePEM(withRoot)
-	if err != nil {
-		t.Fatalf("splitCertificatePEM: %v", err)
-	}
-	if string(leaf) != string(certs.LeafPEM) {
-		t.Error("leaf does not match first PEM block")
-	}
-	// Root must not appear in chain.
-	if string(chain) != string(certs.IntermediatePEM) {
-		t.Errorf("chain should contain only intermediate, not root")
-	}
-}
-
 func TestSplitCertificatePEM_NoCertificates(t *testing.T) {
 	_, _, err := splitCertificatePEM([]byte("not a certificate"))
 	if err == nil {

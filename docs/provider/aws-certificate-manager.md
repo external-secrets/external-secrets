@@ -65,8 +65,7 @@ The `remoteKey` field is used as a tag value (`external-secrets-remote-key`) to 
 The provider automatically splits the `tls.crt` PEM bundle:
 
 - The **first** PEM block is treated as the leaf certificate and passed as the `Certificate` field.
-- Any subsequent PEM blocks are treated as intermediate CA certificates and passed as the `CertificateChain` field.
-- **Root CA certificates** (self-signed) are automatically excluded from the chain, as ACM manages its own trust store and does not accept root certificates via `ImportCertificate`.
+- Any subsequent PEM blocks are passed as-is in the `CertificateChain` field.
 
 This matches the output format of cert-manager, which places the leaf certificate first, followed by intermediates.
 

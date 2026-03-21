@@ -19,7 +19,6 @@ limitations under the License.
 package certificatemanager
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
@@ -488,8 +487,7 @@ func (cm *CertificateManager) updateContentHash(ctx context.Context, arn, hash s
 
 // splitCertificatePEM splits a PEM value that follows the standard kubernetes.io/tls format —
 // leaf certificate first, followed by zero or more intermediate certificates — into the leaf
-// and the intermediate chain. Root CA certificates (self-signed) are excluded from the chain
-// because ACM manages its own trust store and does not accept roots via ImportCertificate.
+// and the intermediate chain.
 //
 // Returns (leaf, chain, nil). chain is nil when tls.crt contains only the leaf certificate.
 func splitCertificatePEM(certPEM []byte) (leaf []byte, chain []byte, err error) {
@@ -516,14 +514,6 @@ func splitCertificatePEM(certPEM []byte) (leaf []byte, chain []byte, err error) 
 	leaf = pem.EncodeToMemory(blocks[0])
 
 	for _, b := range blocks[1:] {
-		cert, parseErr := x509.ParseCertificate(b.Bytes)
-		if parseErr != nil {
-			return nil, nil, fmt.Errorf("failed to parse certificate in chain: %w", parseErr)
-		}
-		// Skip self-signed (root) certificates — ACM does not need them.
-		if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
-			continue
-		}
 		chain = append(chain, pem.EncodeToMemory(b)...)
 	}
 	return leaf, chain, nil
