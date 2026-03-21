@@ -1,7 +1,7 @@
 
 ## AWS Certificate Manager
 
-External Secrets Operator can manage certificates in [AWS Certificate Manager (ACM)](https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html) using `PushSecret`. This provider operates in **write-only mode** — it imports TLS certificates into ACM but does not support reading them back (ACM does not expose the private key or full certificate contents of imported certificates).
+External Secrets Operator can manage certificates in [AWS Certificate Manager (ACM)](https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html) using `PushSecret`. This provider operates in **write-only mode** — it imports TLS certificates into ACM but does not support reading them back.
 
 This is useful when you want to manage your TLS certificates in Kubernetes (for example, using [cert-manager](https://cert-manager.io/)) and automatically import them into ACM for use with AWS services like ALB, CloudFront, or API Gateway.
 
