@@ -116,7 +116,6 @@ func generateTestCerts(t *testing.T) testCerts {
 	}
 }
 
-
 type pushSecretData struct {
 	remoteKey string
 	secretKey string
@@ -712,10 +711,10 @@ func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
 
 type smithyFakeNotFound struct{}
 
-func (e *smithyFakeNotFound) Error() string                  { return "ResourceNotFoundException" }
-func (e *smithyFakeNotFound) ErrorCode() string              { return "ResourceNotFoundException" }
-func (e *smithyFakeNotFound) ErrorMessage() string           { return "certificate not found" }
-func (e *smithyFakeNotFound) ErrorFault() smithy.ErrorFault  { return smithy.FaultClient }
+func (e *smithyFakeNotFound) Error() string                 { return "ResourceNotFoundException" }
+func (e *smithyFakeNotFound) ErrorCode() string             { return "ResourceNotFoundException" }
+func (e *smithyFakeNotFound) ErrorMessage() string          { return "certificate not found" }
+func (e *smithyFakeNotFound) ErrorFault() smithy.ErrorFault { return smithy.FaultClient }
 
 func TestGetSecret_Unsupported(t *testing.T) {
 	cm := newProvider(&fakeacm.Client{})
@@ -727,4 +726,3 @@ func TestGetSecret_Unsupported(t *testing.T) {
 		t.Errorf("expected error %q, got %q", errNotImplemented, err.Error())
 	}
 }
-

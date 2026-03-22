@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
@@ -47,14 +48,14 @@ type PushSecretMetadataSpec struct {
 }
 
 const (
-	managedBy           = "managed-by"
-	externalSecrets     = "external-secrets"
-	remoteKeyTag        = "external-secrets-remote-key"
-	contentHashTag      = "external-secrets-content-hash"
-	tlsCertKey          = "tls.crt"
-	tlsPrivateKeyKey    = "tls.key"
-	errNotImplemented   = "operation not supported by AWS Certificate Manager provider"
-	errNotManagedByESO  = "certificate not managed by external-secrets"
+	managedBy            = "managed-by"
+	externalSecrets      = "external-secrets"
+	remoteKeyTag         = "external-secrets-remote-key"
+	contentHashTag       = "external-secrets-content-hash"
+	tlsCertKey           = "tls.crt"
+	tlsPrivateKeyKey     = "tls.key"
+	errNotImplemented    = "operation not supported by AWS Certificate Manager provider"
+	errNotManagedByESO   = "certificate not managed by external-secrets"
 	errSecretKeyNotEmpty = "secretKey must be empty for the AWS Certificate Manager provider: " +
 		"the whole kubernetes.io/tls secret is required (tls.crt and tls.key)"
 )
@@ -71,7 +72,10 @@ var (
 type ACMInterface interface {
 	ImportCertificate(ctx context.Context, params *acm.ImportCertificateInput, optFns ...func(*acm.Options)) (*acm.ImportCertificateOutput, error)
 	DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
+	DescribeCertificate(ctx context.Context, input *acm.DescribeCertificateInput, opts ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
+	ExportCertificate(ctx context.Context, input *acm.ExportCertificateInput, opts ...func(*acm.Options)) (*acm.ExportCertificateOutput, error)
 	ListCertificates(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
+	GetCertificate(ctx context.Context, input *acm.GetCertificateInput, opts ...func(*acm.Options)) (*acm.GetCertificateOutput, error)
 	AddTagsToCertificate(ctx context.Context, params *acm.AddTagsToCertificateInput, optFns ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error)
 	ListTagsForCertificate(ctx context.Context, params *acm.ListTagsForCertificateInput, optFns ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error)
 	RemoveTagsFromCertificate(ctx context.Context, params *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
@@ -79,9 +83,10 @@ type ACMInterface interface {
 
 // CertificateManager is a provider for AWS ACM.
 type CertificateManager struct {
+	cfg          *aws.Config
 	client       ACMInterface
 	referentAuth bool
-	cfg          *aws.Config
+	prefix       string
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -89,14 +94,15 @@ var _ esv1.SecretsClient = &CertificateManager{}
 
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("certificatemanager")
 
-// New creates a new CertificateManager client.
-func New(_ context.Context, cfg *aws.Config, referentAuth bool) (*CertificateManager, error) {
+// New creates and returns a new CertificateManager provider instance.
+func New(_ context.Context, cfg *aws.Config, prefix string, referentAuth bool) (*CertificateManager, error) {
 	return &CertificateManager{
+		cfg:          cfg,
+		referentAuth: referentAuth,
 		client: acm.NewFromConfig(*cfg, func(o *acm.Options) {
 			o.EndpointResolverV2 = customEndpointResolver{}
 		}),
-		referentAuth: referentAuth,
-		cfg:          cfg,
+		prefix: prefix,
 	}, nil
 }
 
@@ -242,8 +248,50 @@ func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.P
 	return nil
 }
 
-func (cm *CertificateManager) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return nil, errors.New(errNotImplemented)
+// GetSecret retrieves the certificate from AWS Certificate Manager.
+func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	certARN := ref.Key
+	if certARN == "" {
+		return nil, fmt.Errorf("certificate ARN must be specified in remoteRef.key")
+	}
+
+	_, err := cm.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
+		CertificateArn: aws.String(certARN),
+	})
+	if err != nil {
+		return nil, awsutil.SanitizeErr(err)
+	}
+
+	// Validate that passphrase is present - required for ExportCertificate
+	passphrase := ref.Property
+	if passphrase == "" {
+		return nil, fmt.Errorf("passphrase must be specified in remoteRef.property to export certificate %s", certARN)
+	}
+
+	exportOut, err := cm.client.ExportCertificate(ctx, &acm.ExportCertificateInput{
+		CertificateArn: aws.String(certARN),
+		Passphrase:     []byte(passphrase),
+	})
+	if err != nil {
+		return nil, awsutil.SanitizeErr(err)
+	}
+
+	var result string
+	if exportOut.Certificate != nil {
+		result += *exportOut.Certificate + "\n"
+	}
+	if exportOut.CertificateChain != nil {
+		result += *exportOut.CertificateChain + "\n"
+	}
+	if exportOut.PrivateKey != nil {
+		result += *exportOut.PrivateKey + "\n"
+	}
+
+	if result == "" {
+		return nil, fmt.Errorf("no data returned from ExportCertificate for %s (ensure it is exportable)", certARN)
+	}
+
+	return []byte(result), nil
 }
 
 func (cm *CertificateManager) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {

@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
-	awsacm "github.com/aws/aws-sdk-go-v2/service/acm"
+	"github.com/aws/aws-sdk-go-v2/service/acm"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -126,8 +126,8 @@ func validateRegion(prov *esv1.AWSProvider) error {
 		}
 		return nil
 	case esv1.AWSServiceCertificateManager:
-		resolver := awsacm.NewDefaultEndpointResolverV2()
-		_, err := resolver.ResolveEndpoint(context.TODO(), awsacm.EndpointParameters{
+		resolver := acm.NewDefaultEndpointResolverV2()
+		_, err := resolver.ResolveEndpoint(context.TODO(), acm.EndpointParameters{
 			Region: &prov.Region,
 		})
 		if err != nil {
@@ -173,7 +173,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		case esv1.AWSServiceParameterStore:
 			return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		case esv1.AWSServiceCertificateManager:
-			return certificatemanager.New(ctx, &cfg, true)
+			return certificatemanager.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}
@@ -230,7 +230,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	case esv1.AWSServiceParameterStore:
 		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	case esv1.AWSServiceCertificateManager:
-		return certificatemanager.New(ctx, cfg, false)
+		return certificatemanager.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }

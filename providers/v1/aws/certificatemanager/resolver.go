@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package certificatemanager implements AWS Certificate Manager provider for External Secrets Operator
 package certificatemanager
 
 import (
@@ -26,11 +27,13 @@ import (
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
 )
 
-// ACMEndpointEnv is the environment variable for a custom ACM endpoint.
+// ACMEndpointEnv is the environment variable for specifying a custom ACM endpoint.
 const ACMEndpointEnv = "AWS_ACM_ENDPOINT"
 
+// customEndpointResolver is a custom resolver for AWS Certificate Manager endpoint.
 type customEndpointResolver struct{}
 
+// ResolveEndpoint resolves the endpoint for the Certificate Manager service.
 func (c customEndpointResolver) ResolveEndpoint(ctx context.Context, params acm.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	endpoint := smithyendpoints.Endpoint{}
 	if v := os.Getenv(ACMEndpointEnv); v != "" {
