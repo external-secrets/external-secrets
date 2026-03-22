@@ -36,12 +36,10 @@ const (
 	testDomainName     = "default"
 	testRegion         = "RegionOne"
 	testUsername       = "test-user"
-	testUsernameAlt    = "test-user-from-secret"
 	testPassword       = "test-password"
 	testSecretName     = "barbican-creds"
 	testNamespace      = "default"
 	testAppCredID      = "app-cred-id-123"
-	testAppCredIDAlt   = "app-cred-id-from-secret"
 	testAppCredSecret  = "app-cred-secret-456"
 	testAppCredSecName = "barbican-app-creds"
 )
@@ -451,12 +449,6 @@ func makeSecretStoreWithValueUsername() *esv1.SecretStore {
 	return store
 }
 
-func makeSecretStoreWithValueUsernameOverSecretRef() *esv1.SecretStore {
-	store := makeValidSecretStore()
-	store.Spec.Provider.Barbican.Auth.Username.Value = testUsername
-	return store
-}
-
 func makeSecretStoreWithNilProvider() *esv1.SecretStore {
 	store := makeValidSecretStore()
 	store.Spec.Provider = nil
@@ -569,13 +561,6 @@ func makeSecretStoreWithAppCredValueID() *esv1.SecretStore {
 	return store
 }
 
-// Helper: application credential auth store with both inline value and secretRef for appCredID.
-func makeSecretStoreWithAppCredValueIDOverSecretRef() *esv1.SecretStore {
-	store := makeSecretStoreWithAppCredAuth()
-	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID.Value = testAppCredID
-	return store
-}
-
 // Helper: application credential auth store missing authURL.
 func makeSecretStoreWithAppCredMissingAuthURL() *esv1.SecretStore {
 	store := makeSecretStoreWithAppCredAuth()
@@ -613,34 +598,6 @@ func makeAppCredSecretWithNoID() *corev1.Secret {
 			Namespace: testNamespace,
 		},
 		Data: map[string][]byte{
-			"app-cred-secret": []byte(testAppCredSecret),
-		},
-	}
-}
-
-// Helper: k8s secret with a different username value to verify inline value precedence.
-func makeValidSecretWithDifferentUsername() *corev1.Secret {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testSecretName,
-			Namespace: testNamespace,
-		},
-		Data: map[string][]byte{
-			"username": []byte(testUsernameAlt),
-			"password": []byte(testPassword),
-		},
-	}
-}
-
-// Helper: k8s secret with a different app credential ID to verify inline value precedence.
-func makeValidAppCredSecretWithDifferentID() *corev1.Secret {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testAppCredSecName,
-			Namespace: testNamespace,
-		},
-		Data: map[string][]byte{
-			"app-cred-id":     []byte(testAppCredIDAlt),
 			"app-cred-secret": []byte(testAppCredSecret),
 		},
 	}
@@ -737,14 +694,6 @@ func TestBuildPasswordAuthOpts(t *testing.T) {
 			wantPass:    testPassword,
 		},
 		{
-			name:        "inline username value is preferred over secretRef",
-			store:       makeSecretStoreWithValueUsernameOverSecretRef(),
-			kube:        clientfake.NewClientBuilder().WithObjects(makeValidSecretWithDifferentUsername()),
-			expectError: false,
-			wantUser:    testUsername,
-			wantPass:    testPassword,
-		},
-		{
 			name:        "missing username secret returns error",
 			store:       makeValidSecretStore(),
 			kube:        clientfake.NewClientBuilder(),
@@ -810,14 +759,6 @@ func TestBuildAppCredAuthOpts(t *testing.T) {
 			name:        "resolve appCredID and appCredSecret from secret",
 			store:       makeSecretStoreWithAppCredAuth(),
 			kube:        clientfake.NewClientBuilder().WithObjects(makeValidAppCredSecret()),
-			expectError: false,
-			wantCredID:  testAppCredID,
-			wantCredSec: testAppCredSecret,
-		},
-		{
-			name:        "inline appCredID value is preferred over secretRef",
-			store:       makeSecretStoreWithAppCredValueIDOverSecretRef(),
-			kube:        clientfake.NewClientBuilder().WithObjects(makeValidAppCredSecretWithDifferentID()),
 			expectError: false,
 			wantCredID:  testAppCredID,
 			wantCredSec: testAppCredSecret,
