@@ -3022,11 +3022,11 @@ spec:
                             - message: password auth requires both username and password
                               rule: (has(self.authType) && self.authType == 'applicationCredential') || (has(self.username) && has(self.password))
                             - message: applicationCredential auth requires both applicationCredentialID and applicationCredentialSecret
-                              rule: self.authType != 'applicationCredential' || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))
+                              rule: (!has(self.authType) || self.authType != 'applicationCredential') || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))
                             - message: password auth should not include applicationCredential fields
                               rule: (has(self.authType) && self.authType == 'applicationCredential') || (!has(self.applicationCredentialID) && !has(self.applicationCredentialSecret))
                             - message: applicationCredential auth should not include password fields
-                              rule: self.authType != 'applicationCredential' || (!has(self.username) && !has(self.password))
+                              rule: (!has(self.authType) || self.authType != 'applicationCredential') || (!has(self.username) && !has(self.password))
                         authURL:
                           type: string
                         domainName:
@@ -14718,7 +14718,7 @@ spec:
                           description: BarbicanAuth contains the authentication information for Barbican.
                           properties:
                             applicationCredentialID:
-                              description: ID of the application credential used for authentication (e.g., UUID or name).
+                              description: ID of the application credential used for authentication.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -14833,7 +14833,7 @@ spec:
                                 - secretRef
                               type: object
                             username:
-                              description: Username / Password authentication fields.
+                              description: Username used for password authentication.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -14873,11 +14873,11 @@ spec:
                             - message: password auth requires both username and password
                               rule: (has(self.authType) && self.authType == 'applicationCredential') || (has(self.username) && has(self.password))
                             - message: applicationCredential auth requires both applicationCredentialID and applicationCredentialSecret
-                              rule: self.authType != 'applicationCredential' || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))
+                              rule: (!has(self.authType) || self.authType != 'applicationCredential') || (has(self.applicationCredentialID) && has(self.applicationCredentialSecret))
                             - message: password auth should not include applicationCredential fields
                               rule: (has(self.authType) && self.authType == 'applicationCredential') || (!has(self.applicationCredentialID) && !has(self.applicationCredentialSecret))
                             - message: applicationCredential auth should not include password fields
-                              rule: self.authType != 'applicationCredential' || (!has(self.username) && !has(self.password))
+                              rule: (!has(self.authType) || self.authType != 'applicationCredential') || (!has(self.username) && !has(self.password))
                         authURL:
                           type: string
                         domainName:

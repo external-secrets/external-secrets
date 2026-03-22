@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -314,26 +315,30 @@ func TestNewClient(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Stub the OpenStack auth/client boundary so happy-path cases succeed
+			// deterministically without a real OpenStack endpoint.
+			origAuthClient := authenticatedClient
+			origKeyManager := newKeyManagerV1
+			authenticatedClient = func(_ context.Context, _ gophercloud.AuthOptions) (*gophercloud.ProviderClient, error) {
+				return &gophercloud.ProviderClient{}, nil
+			}
+			newKeyManagerV1 = func(_ *gophercloud.ProviderClient, _ gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error) {
+				return &gophercloud.ServiceClient{}, nil
+			}
+			t.Cleanup(func() {
+				authenticatedClient = origAuthClient
+				newKeyManagerV1 = origKeyManager
+			})
+
 			provider := &Provider{}
 			fakeClient := tc.kube.Build()
-
-			// Note: This test will fail when trying to actually connect to OpenStack
-			// In a real test environment, we would need to mock the OpenStack client
 			_, err := provider.NewClient(context.Background(), tc.store, fakeClient, testNamespace)
 
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorMsg)
 			} else {
-				// Without an OpenStack mock we still get a connection error,
-				// but it must NOT be a config/validation error.
-				assert.Error(t, err)
-				assert.NotContains(t, err.Error(), "missing required field",
-					"happy-path case should not fail on config validation")
-				assert.NotContains(t, err.Error(), "unsupported auth type",
-					"happy-path case should not fail on auth type selection")
-				assert.NotContains(t, err.Error(), "provider barbican is nil",
-					"happy-path case should not fail on provider validation")
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -345,14 +350,24 @@ func TestNewClientAuthTypeDefaultsToPassword(t *testing.T) {
 	store := makeValidSecretStore()
 	assert.Nil(t, store.Spec.Provider.Barbican.Auth.AuthType, "AuthType should be nil for backward compatibility test")
 
+	// Stub the OpenStack boundary so the call succeeds deterministically.
+	origAuthClient := authenticatedClient
+	origKeyManager := newKeyManagerV1
+	authenticatedClient = func(_ context.Context, _ gophercloud.AuthOptions) (*gophercloud.ProviderClient, error) {
+		return &gophercloud.ProviderClient{}, nil
+	}
+	newKeyManagerV1 = func(_ *gophercloud.ProviderClient, _ gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error) {
+		return &gophercloud.ServiceClient{}, nil
+	}
+	t.Cleanup(func() {
+		authenticatedClient = origAuthClient
+		newKeyManagerV1 = origKeyManager
+	})
+
 	fakeClient := clientfake.NewClientBuilder().WithObjects(makeValidSecret()).Build()
 	provider := &Provider{}
-
-	// The call will fail at OpenStack connection, but should NOT fail on credential resolution
 	_, err := provider.NewClient(context.Background(), store, fakeClient, testNamespace)
-	assert.Error(t, err)
-	assert.NotContains(t, err.Error(), "missing required field")
-	assert.NotContains(t, err.Error(), "unsupported auth type")
+	assert.NoError(t, err)
 }
 
 func TestGetProviderWithAuthType(t *testing.T) {
@@ -429,6 +444,14 @@ func makeValidSecretStore() *esv1.SecretStore {
 }
 
 func makeSecretStoreWithValueUsername() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Username = &esv1.BarbicanProviderUsernameRef{
+		Value: testUsername,
+	}
+	return store
+}
+
+func makeSecretStoreWithValueUsernameOverSecretRef() *esv1.SecretStore {
 	store := makeValidSecretStore()
 	store.Spec.Provider.Barbican.Auth.Username.Value = testUsername
 	return store
@@ -539,6 +562,15 @@ func makeSecretStoreWithAppCredAuth() *esv1.SecretStore {
 
 // Helper: application credential auth store with inline value for appCredID.
 func makeSecretStoreWithAppCredValueID() *esv1.SecretStore {
+	store := makeSecretStoreWithAppCredAuth()
+	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID = &esv1.BarbicanProviderAppCredIDRef{
+		Value: testAppCredID,
+	}
+	return store
+}
+
+// Helper: application credential auth store with both inline value and secretRef for appCredID.
+func makeSecretStoreWithAppCredValueIDOverSecretRef() *esv1.SecretStore {
 	store := makeSecretStoreWithAppCredAuth()
 	store.Spec.Provider.Barbican.Auth.ApplicationCredentialID.Value = testAppCredID
 	return store
@@ -706,7 +738,7 @@ func TestBuildPasswordAuthOpts(t *testing.T) {
 		},
 		{
 			name:        "inline username value is preferred over secretRef",
-			store:       makeSecretStoreWithValueUsername(),
+			store:       makeSecretStoreWithValueUsernameOverSecretRef(),
 			kube:        clientfake.NewClientBuilder().WithObjects(makeValidSecretWithDifferentUsername()),
 			expectError: false,
 			wantUser:    testUsername,
@@ -784,7 +816,7 @@ func TestBuildAppCredAuthOpts(t *testing.T) {
 		},
 		{
 			name:        "inline appCredID value is preferred over secretRef",
-			store:       makeSecretStoreWithAppCredValueID(),
+			store:       makeSecretStoreWithAppCredValueIDOverSecretRef(),
 			kube:        clientfake.NewClientBuilder().WithObjects(makeValidAppCredSecretWithDifferentID()),
 			expectError: false,
 			wantCredID:  testAppCredID,
