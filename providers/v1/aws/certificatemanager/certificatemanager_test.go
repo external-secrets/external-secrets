@@ -18,12 +18,18 @@ package certificatemanager
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/pbkdf2"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -166,6 +172,26 @@ func clearARNCache() {
 		arnCache.Delete(key)
 		return true
 	})
+}
+
+func clearExportCache() {
+	exportCache.Range(func(key, _ any) bool {
+		exportCache.Delete(key)
+		return true
+	})
+}
+
+func exportableDescribe(serial string) fakeacm.DescribeCertificateFn {
+	return func(_ context.Context, _ *acm.DescribeCertificateInput, _ ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
+		return &acm.DescribeCertificateOutput{
+			Certificate: &types.CertificateDetail{
+				Serial: aws.String(serial),
+				Options: &types.CertificateOptions{
+					Export: types.CertificateExportEnabled,
+				},
+			},
+		}, nil
+	}
 }
 
 func TestSplitCertificatePEM_LeafOnly(t *testing.T) {
@@ -716,13 +742,323 @@ func (e *smithyFakeNotFound) ErrorCode() string             { return "ResourceNo
 func (e *smithyFakeNotFound) ErrorMessage() string          { return "certificate not found" }
 func (e *smithyFakeNotFound) ErrorFault() smithy.ErrorFault { return smithy.FaultClient }
 
-func TestGetSecret_Unsupported(t *testing.T) {
-	cm := newProvider(&fakeacm.Client{})
-	_, err := cm.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{})
-	if err == nil {
-		t.Fatal("expected error but got nil")
+func encryptPKCS8ForTest(t *testing.T, privateDER, passphrase []byte) []byte {
+	t.Helper()
+
+	salt := make([]byte, 16)
+	if _, err := rand.Read(salt); err != nil {
+		t.Fatalf("rand salt: %v", err)
 	}
-	if err.Error() != errNotImplemented {
-		t.Errorf("expected error %q, got %q", errNotImplemented, err.Error())
+	iv := make([]byte, aes.BlockSize)
+	if _, err := rand.Read(iv); err != nil {
+		t.Fatalf("rand iv: %v", err)
+	}
+
+	key, err := pbkdf2.Key(sha256.New, string(passphrase), salt, 2048, 32)
+	if err != nil {
+		t.Fatalf("pbkdf2: %v", err)
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		t.Fatalf("aes cipher: %v", err)
+	}
+
+	padded := addPKCS7Padding(privateDER, block.BlockSize())
+	encrypted := make([]byte, len(padded))
+	cipher.NewCBCEncrypter(block, iv).CryptBlocks(encrypted, padded)
+
+	kdfParamsBytes, _ := asn1.Marshal(struct {
+		Salt           []byte
+		IterationCount int
+		PRF            struct {
+			Algorithm asn1.ObjectIdentifier
+		}
+	}{salt, 2048, struct{ Algorithm asn1.ObjectIdentifier }{asn1.ObjectIdentifier{1, 2, 840, 113549, 2, 9}}})
+
+	ivBytes, _ := asn1.Marshal(iv)
+
+	paramsBytes, _ := asn1.Marshal(struct {
+		KDF struct {
+			Algorithm  asn1.ObjectIdentifier
+			Parameters asn1.RawValue
+		}
+		Enc struct {
+			Algorithm  asn1.ObjectIdentifier
+			Parameters asn1.RawValue
+		}
+	}{
+		KDF: struct {
+			Algorithm  asn1.ObjectIdentifier
+			Parameters asn1.RawValue
+		}{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 5, 12}, asn1.RawValue{FullBytes: kdfParamsBytes}},
+		Enc: struct {
+			Algorithm  asn1.ObjectIdentifier
+			Parameters asn1.RawValue
+		}{asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 42}, asn1.RawValue{FullBytes: ivBytes}},
+	})
+
+	epkiBytes, _ := asn1.Marshal(struct {
+		Algo struct {
+			Algorithm  asn1.ObjectIdentifier
+			Parameters asn1.RawValue
+		}
+		Data []byte
+	}{
+		Algo: struct {
+			Algorithm  asn1.ObjectIdentifier
+			Parameters asn1.RawValue
+		}{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 5, 13}, asn1.RawValue{FullBytes: paramsBytes}},
+		Data: encrypted,
+	})
+
+	return pem.EncodeToMemory(&pem.Block{Type: "ENCRYPTED PRIVATE KEY", Bytes: epkiBytes})
+}
+
+func addPKCS7Padding(data []byte, blockSize int) []byte {
+	padLen := blockSize - len(data)%blockSize
+	padding := make([]byte, padLen)
+	for i := range padding {
+		padding[i] = byte(padLen)
+	}
+	return append(data, padding...)
+}
+
+func TestGetSecret_ReturnsConcatenatedBundle(t *testing.T) {
+	clearExportCache()
+	certs := generateTestCerts(t)
+
+	pkcs8DER, _ := x509.MarshalPKCS8PrivateKey(func() *ecdsa.PrivateKey {
+		key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		return key
+	}())
+
+	fake := &fakeacm.Client{
+		DescribeCertificateFn: exportableDescribe("AA:BB:CC"),
+		ExportCertificateFn: func(_ context.Context, p *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
+			encPEM := encryptPKCS8ForTest(t, pkcs8DER, p.Passphrase)
+			return &acm.ExportCertificateOutput{
+				Certificate:      aws.String(string(certs.LeafPEM)),
+				CertificateChain: aws.String(string(certs.IntermediatePEM)),
+				PrivateKey:       aws.String(string(encPEM)),
+			}, nil
+		},
+	}
+
+	result, err := newProvider(fake).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: "arn:aws:acm:us-east-1:123456789012:certificate/test",
+	})
+	if err != nil {
+		t.Fatalf("GetSecret: %v", err)
+	}
+	if !strings.Contains(string(result), "-----BEGIN CERTIFICATE-----") {
+		t.Error("expected certificate in output")
+	}
+	if !strings.Contains(string(result), "-----BEGIN PRIVATE KEY-----") {
+		t.Error("expected decrypted private key in output")
+	}
+	if strings.Contains(string(result), "ENCRYPTED") {
+		t.Error("private key should be decrypted")
 	}
 }
+
+func TestGetSecret_CertOnly(t *testing.T) {
+	clearExportCache()
+	certs := generateTestCerts(t)
+
+	fake := &fakeacm.Client{
+		DescribeCertificateFn: exportableDescribe("DD:EE:FF"),
+		ExportCertificateFn: func(_ context.Context, _ *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
+			return &acm.ExportCertificateOutput{
+				Certificate: aws.String(string(certs.LeafPEM)),
+			}, nil
+		},
+	}
+
+	result, err := newProvider(fake).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: "arn:aws:acm:us-east-1:123456789012:certificate/test",
+	})
+	if err != nil {
+		t.Fatalf("GetSecret: %v", err)
+	}
+	if string(result) != string(certs.LeafPEM) {
+		t.Error("expected only the leaf certificate")
+	}
+}
+
+func TestGetSecret_EmptyARN(t *testing.T) {
+	_, err := newProvider(&fakeacm.Client{}).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{})
+	if err == nil {
+		t.Fatal("expected error for empty ARN")
+	}
+}
+
+func TestGetSecret_NotExportable(t *testing.T) {
+	clearExportCache()
+	exportCalled := false
+	fake := &fakeacm.Client{
+		DescribeCertificateFn: func(_ context.Context, _ *acm.DescribeCertificateInput, _ ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
+			return &acm.DescribeCertificateOutput{
+				Certificate: &types.CertificateDetail{
+					Serial: aws.String("11:22:33"),
+					Options: &types.CertificateOptions{
+						Export: types.CertificateExportDisabled,
+					},
+				},
+			}, nil
+		},
+		ExportCertificateFn: func(_ context.Context, _ *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
+			exportCalled = true
+			return nil, &smithyFakeValidation{}
+		},
+	}
+
+	_, err := newProvider(fake).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: "arn:aws:acm:us-east-1:123456789012:certificate/public",
+	})
+	if err == nil {
+		t.Fatal("expected error for non-exportable certificate")
+	}
+	if !strings.Contains(err.Error(), "not exportable") {
+		t.Errorf("expected not-exportable error message, got: %s", err.Error())
+	}
+	if exportCalled {
+		t.Error("ExportCertificate should not be called for non-exportable certificates")
+	}
+}
+
+func TestGetSecret_NotExportable_NilOptions(t *testing.T) {
+	clearExportCache()
+	fake := &fakeacm.Client{
+		DescribeCertificateFn: func(_ context.Context, _ *acm.DescribeCertificateInput, _ ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
+			return &acm.DescribeCertificateOutput{
+				Certificate: &types.CertificateDetail{
+					Serial: aws.String("44:55:66"),
+				},
+			}, nil
+		},
+	}
+
+	_, err := newProvider(fake).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: "arn:aws:acm:us-east-1:123456789012:certificate/no-options",
+	})
+	if err == nil {
+		t.Fatal("expected error when Options is nil")
+	}
+	if !strings.Contains(err.Error(), "not exportable") {
+		t.Errorf("expected not-exportable error, got: %s", err.Error())
+	}
+}
+
+func TestGetSecret_CacheHit(t *testing.T) {
+	clearExportCache()
+	const certARN = "arn:aws:acm:us-east-1:123456789012:certificate/cached"
+	cachedPEM := []byte("cached-pem-bundle")
+
+	exportCache.Store(certARN, exportCacheEntry{serial: "AA:BB", pem: cachedPEM})
+
+	exportCalled := false
+	fake := &fakeacm.Client{
+		DescribeCertificateFn: exportableDescribe("AA:BB"),
+		ExportCertificateFn: func(_ context.Context, _ *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
+			exportCalled = true
+			return nil, fmt.Errorf("should not be called")
+		},
+	}
+
+	result, err := newProvider(fake).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: certARN,
+	})
+	if err != nil {
+		t.Fatalf("GetSecret: %v", err)
+	}
+	if string(result) != string(cachedPEM) {
+		t.Errorf("expected cached PEM, got %q", string(result))
+	}
+	if exportCalled {
+		t.Error("ExportCertificate should not be called on cache hit")
+	}
+}
+
+func TestGetSecret_CacheMissOnSerialChange(t *testing.T) {
+	clearExportCache()
+	certs := generateTestCerts(t)
+	const certARN = "arn:aws:acm:us-east-1:123456789012:certificate/renewed"
+
+	exportCache.Store(certARN, exportCacheEntry{serial: "OLD:SERIAL", pem: []byte("old-pem")})
+
+	fake := &fakeacm.Client{
+		DescribeCertificateFn: exportableDescribe("NEW:SERIAL"),
+		ExportCertificateFn: func(_ context.Context, _ *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
+			return &acm.ExportCertificateOutput{
+				Certificate: aws.String(string(certs.LeafPEM)),
+			}, nil
+		},
+	}
+
+	result, err := newProvider(fake).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: certARN,
+	})
+	if err != nil {
+		t.Fatalf("GetSecret: %v", err)
+	}
+	if string(result) != string(certs.LeafPEM) {
+		t.Error("expected fresh export after serial change")
+	}
+
+	cached, ok := exportCache.Load(certARN)
+	if !ok {
+		t.Fatal("expected cache to be updated after export")
+	}
+	if cached.(exportCacheEntry).serial != "NEW:SERIAL" {
+		t.Error("cached serial should be updated")
+	}
+}
+
+func TestDecryptPKCS8PEM_Roundtrip(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	pkcs8DER, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		t.Fatalf("marshal pkcs8: %v", err)
+	}
+
+	passphrase := []byte("roundtrip-test-passphrase")
+	encPEM := encryptPKCS8ForTest(t, pkcs8DER, passphrase)
+
+	decPEM, err := decryptPKCS8PEM(encPEM, passphrase)
+	if err != nil {
+		t.Fatalf("decryptPKCS8PEM: %v", err)
+	}
+
+	block, _ := pem.Decode(decPEM)
+	if block == nil || block.Type != "PRIVATE KEY" {
+		t.Fatalf("expected PRIVATE KEY PEM block, got %v", block)
+	}
+	if _, err := x509.ParsePKCS8PrivateKey(block.Bytes); err != nil {
+		t.Fatalf("decrypted key is not valid PKCS#8: %v", err)
+	}
+}
+
+func TestDecryptPKCS8PEM_AlreadyUnencrypted(t *testing.T) {
+	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	pkcs8DER, _ := x509.MarshalPKCS8PrivateKey(key)
+	unencPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8DER})
+
+	result, err := decryptPKCS8PEM(unencPEM, []byte("unused"))
+	if err != nil {
+		t.Fatalf("decryptPKCS8PEM: %v", err)
+	}
+	if string(result) != string(unencPEM) {
+		t.Error("unencrypted PEM should be returned as-is")
+	}
+}
+
+type smithyFakeValidation struct{}
+
+func (e *smithyFakeValidation) Error() string                 { return "ValidationException" }
+func (e *smithyFakeValidation) ErrorCode() string             { return "ValidationException" }
+func (e *smithyFakeValidation) ErrorMessage() string          { return "certificate is not exportable" }
+func (e *smithyFakeValidation) ErrorFault() smithy.ErrorFault { return smithy.FaultClient }

@@ -26,6 +26,8 @@ const (
 	CallAWSACMAddTagsToCertificate      = "AddTagsToCertificate"
 	CallAWSACMListTagsForCertificate    = "ListTagsForCertificate"
 	CallAWSACMRemoveTagsFromCertificate = "RemoveTagsFromCertificate"
+	CallAWSACMDescribeCertificate       = "DescribeCertificate"
+	CallAWSACMExportCertificate         = "ExportCertificate"
 
 	ProviderAWSSM                 = "AWS/SecretsManager"
 	CallAWSSMGetSecretValue       = "GetSecretValue"

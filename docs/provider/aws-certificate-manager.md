@@ -1,9 +1,12 @@
 
 ## AWS Certificate Manager
 
-External Secrets Operator can manage certificates in [AWS Certificate Manager (ACM)](https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html) using `PushSecret`. This provider operates in **write-only mode** — it imports TLS certificates into ACM but does not support reading them back.
+External Secrets Operator integrates with [AWS Certificate Manager (ACM)](https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html) to support:
 
-This is useful when you want to manage your TLS certificates in Kubernetes (for example, using [cert-manager](https://cert-manager.io/)) and automatically import them into ACM for use with AWS services like ALB, CloudFront, or API Gateway.
+- **Exporting** certificates from ACM into Kubernetes via `ExternalSecret`.
+- **Importing** TLS certificates into ACM via `PushSecret` (e.g., certificates issued by [cert-manager](https://cert-manager.io/)).
+
+Both public and private ACM certificates can be exported, provided the export option was enabled when the certificate was requested. See [Exportable Certificates](#exportable-certificates) below for details.
 
 ### Authentication
 
@@ -21,7 +24,27 @@ To use ACM, create a `SecretStore` (or `ClusterSecretStore`) with `service: Cert
 
 ### IAM Policy
 
-The following IAM policy grants the permissions required by the ACM provider:
+The required IAM permissions depend on whether you use `ExternalSecret` (export), `PushSecret` (import), or both.
+
+#### Export only (`ExternalSecret`)
+
+``` json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "acm:DescribeCertificate",
+        "acm:ExportCertificate"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+#### Import only (`PushSecret`)
 
 ``` json
 {
@@ -43,7 +66,57 @@ The following IAM policy grants the permissions required by the ACM provider:
 }
 ```
 
-You can scope the `Resource` to specific certificate ARNs or use conditions to restrict imports to certain regions or accounts.
+#### Both export and import
+
+``` json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "acm:ImportCertificate",
+        "acm:DeleteCertificate",
+        "acm:DescribeCertificate",
+        "acm:ExportCertificate",
+        "acm:ListCertificates",
+        "acm:AddTagsToCertificate",
+        "acm:ListTagsForCertificate",
+        "acm:RemoveTagsFromCertificate"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+You can scope the `Resource` to specific certificate ARNs or use conditions to restrict access to certain regions or accounts.
+
+### ExternalSecret
+
+#### Exportable Certificates
+
+Both **public** and **private** ACM certificates can be exported, but the certificate must have been requested with the export option **enabled**. This option cannot be changed after the certificate is created — if it was not enabled at request time, the certificate is not exportable.
+
+Public exportable certificates are a **paid** feature. AWS provides the first 10,000 `ExportCertificate` API calls per month per account for free; exceeding this threshold incurs additional charges. See the [ACM pricing page](https://aws.amazon.com/certificate-manager/pricing/) for current pricing.
+
+#### Export Caching
+
+To minimize `ExportCertificate` API costs, the provider caches the exported PEM bundle in memory. On each reconciliation, it calls `DescribeCertificate` (a free API call) and compares the certificate serial number against the cached value. `ExportCertificate` is only called on the first access or when the serial number changes (i.e., the certificate was renewed or re-imported). The cache is not persisted and resets when the operator pod restarts.
+
+#### Usage
+
+Use `remoteRef.key` to specify the certificate ARN. The provider returns the certificate, chain, and decrypted private key as a single PEM bundle. Use [template functions](../guides/templating.md) such as `filterPEM` and `filterCertChain` to extract individual components:
+
+``` yaml
+{% include 'aws-acm-external-secret.yaml' %}
+```
+
+You can also extract just the leaf or intermediate certificates using `filterCertChain`:
+
+``` yaml
+{% include 'aws-acm-external-secret-chain.yaml' %}
+```
 
 ### PushSecret
 
@@ -86,39 +159,13 @@ A common pattern is to use [cert-manager](https://cert-manager.io/) to provision
 **1. Create a `Certificate` resource:**
 
 ``` yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: my-app-cert
-spec:
-  secretName: my-tls-cert
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  dnsNames:
-    - myapp.example.com
+{% include 'aws-acm-cert-manager-certificate.yaml' %}
 ```
 
 **2. Create a `PushSecret` to import the certificate into ACM:**
 
 ``` yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: PushSecret
-metadata:
-  name: acm-my-app-cert
-spec:
-  deletionPolicy: Delete
-  refreshInterval: 1h0m0s
-  secretStoreRefs:
-    - name: aws-certificate-manager
-      kind: SecretStore
-  selector:
-    secret:
-      name: my-tls-cert
-  data:
-    - match:
-        remoteRef:
-          remoteKey: my-app-certificate
+{% include 'aws-acm-cert-manager-push-secret.yaml' %}
 ```
 
 When cert-manager renews the certificate, the `PushSecret` controller will detect the change and re-import the updated certificate into ACM using the same ARN (identified by the `external-secrets-remote-key` tag). This keeps the ACM certificate in sync without creating duplicates.

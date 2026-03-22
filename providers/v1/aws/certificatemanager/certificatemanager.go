@@ -25,6 +25,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -60,25 +61,34 @@ const (
 		"the whole kubernetes.io/tls secret is required (tls.crt and tls.key)"
 )
 
+type exportCacheEntry struct {
+	serial string
+	pem    []byte
+}
+
 var (
 	errCertificateNotFound = errors.New("certificate not found")
 
 	// arnCache mitigates eventual consistency of ListCertificates by caching
 	// remoteKey → ARN after a successful import.
 	arnCache sync.Map
+
+	// exportCache caches ExportCertificate results keyed by ARN to avoid
+	// repeated paid API calls when the certificate has not changed.
+	exportCache sync.Map
 )
 
-// ACMInterface is a subset of the ACM API.
+// ACMInterface is a subset of the ACM API used by this provider.
+// see: https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/acm
 type ACMInterface interface {
-	ImportCertificate(ctx context.Context, params *acm.ImportCertificateInput, optFns ...func(*acm.Options)) (*acm.ImportCertificateOutput, error)
-	DeleteCertificate(ctx context.Context, params *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
-	DescribeCertificate(ctx context.Context, input *acm.DescribeCertificateInput, opts ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
-	ExportCertificate(ctx context.Context, input *acm.ExportCertificateInput, opts ...func(*acm.Options)) (*acm.ExportCertificateOutput, error)
-	ListCertificates(ctx context.Context, params *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
-	GetCertificate(ctx context.Context, input *acm.GetCertificateInput, opts ...func(*acm.Options)) (*acm.GetCertificateOutput, error)
-	AddTagsToCertificate(ctx context.Context, params *acm.AddTagsToCertificateInput, optFns ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error)
-	ListTagsForCertificate(ctx context.Context, params *acm.ListTagsForCertificateInput, optFns ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error)
-	RemoveTagsFromCertificate(ctx context.Context, params *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
+	ImportCertificate(ctx context.Context, input *acm.ImportCertificateInput, optFns ...func(*acm.Options)) (*acm.ImportCertificateOutput, error)
+	DeleteCertificate(ctx context.Context, input *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
+	DescribeCertificate(ctx context.Context, input *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
+	ExportCertificate(ctx context.Context, input *acm.ExportCertificateInput, optFns ...func(*acm.Options)) (*acm.ExportCertificateOutput, error)
+	ListCertificates(ctx context.Context, input *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
+	AddTagsToCertificate(ctx context.Context, input *acm.AddTagsToCertificateInput, optFns ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error)
+	ListTagsForCertificate(ctx context.Context, input *acm.ListTagsForCertificateInput, optFns ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error)
+	RemoveTagsFromCertificate(ctx context.Context, input *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
 }
 
 // CertificateManager is a provider for AWS ACM.
@@ -94,7 +104,7 @@ var _ esv1.SecretsClient = &CertificateManager{}
 
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("certificatemanager")
 
-// New creates and returns a new CertificateManager provider instance.
+// New constructs a CertificateManager Provider that is specific to a store.
 func New(_ context.Context, cfg *aws.Config, prefix string, referentAuth bool) (*CertificateManager, error) {
 	return &CertificateManager{
 		cfg:          cfg,
@@ -166,7 +176,7 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 		_, err = cm.client.ImportCertificate(ctx, input)
 		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMImportCertificate, err)
 		if err != nil {
-			return fmt.Errorf("failed to import certificate: %w", err)
+			return fmt.Errorf("failed to import certificate: %w", awsutil.SanitizeErr(err))
 		}
 
 		if err := cm.syncTags(ctx, existingARN, meta.Spec.Tags); err != nil {
@@ -193,7 +203,7 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	out, err := cm.client.ImportCertificate(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMImportCertificate, err)
 	if err != nil {
-		return fmt.Errorf("failed to import certificate: %w", err)
+		return fmt.Errorf("failed to import certificate: %w", awsutil.SanitizeErr(err))
 	}
 
 	certARN := aws.ToString(out.CertificateArn)
@@ -241,56 +251,78 @@ func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.P
 	})
 	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMDeleteCertificate, err)
 	if err != nil {
-		return fmt.Errorf("failed to delete certificate %s: %w", arn, err)
+		return fmt.Errorf("failed to delete certificate %s: %w", arn, awsutil.SanitizeErr(err))
 	}
 	arnCache.Delete(remoteRef.GetRemoteKey())
 	log.Info("deleted ACM certificate", "arn", arn, "remoteKey", remoteRef.GetRemoteKey())
 	return nil
 }
 
-// GetSecret retrieves the certificate from AWS Certificate Manager.
+// GetSecret returns a certificate from ACM as a concatenated PEM bundle.
+// ref.Key must be the certificate ARN. The certificate must have export enabled.
 func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	certARN := ref.Key
 	if certARN == "" {
 		return nil, fmt.Errorf("certificate ARN must be specified in remoteRef.key")
 	}
 
-	_, err := cm.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
+	descOut, err := cm.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
 		CertificateArn: aws.String(certARN),
 	})
+	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMDescribeCertificate, err)
 	if err != nil {
-		return nil, awsutil.SanitizeErr(err)
+		return nil, fmt.Errorf("failed to describe certificate %s: %w", certARN, awsutil.SanitizeErr(err))
 	}
 
-	// Validate that passphrase is present - required for ExportCertificate
-	passphrase := ref.Property
-	if passphrase == "" {
-		return nil, fmt.Errorf("passphrase must be specified in remoteRef.property to export certificate %s", certARN)
+	detail := descOut.Certificate
+	if detail.Options == nil || detail.Options.Export != types.CertificateExportEnabled {
+		return nil, fmt.Errorf("certificate %s is not exportable (Options.Export is not ENABLED)", certARN)
+	}
+
+	// Use the serial number to detect certificate changes and avoid
+	// redundant ExportCertificate calls (which are paid after 10k/month).
+	serial := aws.ToString(detail.Serial)
+	if cached, ok := exportCache.Load(certARN); ok {
+		entry := cached.(exportCacheEntry)
+		if entry.serial == serial {
+			return entry.pem, nil
+		}
+	}
+
+	passphrase, err := generatePassphrase()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate passphrase: %w", err)
 	}
 
 	exportOut, err := cm.client.ExportCertificate(ctx, &acm.ExportCertificateInput{
 		CertificateArn: aws.String(certARN),
-		Passphrase:     []byte(passphrase),
+		Passphrase:     passphrase,
 	})
+	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMExportCertificate, err)
 	if err != nil {
-		return nil, awsutil.SanitizeErr(err)
+		return nil, fmt.Errorf("failed to export certificate %s: %w", certARN, awsutil.SanitizeErr(err))
 	}
 
-	var result string
+	var parts []string
 	if exportOut.Certificate != nil {
-		result += *exportOut.Certificate + "\n"
+		parts = append(parts, strings.TrimRight(*exportOut.Certificate, "\r\n"))
 	}
 	if exportOut.CertificateChain != nil {
-		result += *exportOut.CertificateChain + "\n"
+		parts = append(parts, strings.TrimRight(*exportOut.CertificateChain, "\r\n"))
 	}
 	if exportOut.PrivateKey != nil {
-		result += *exportOut.PrivateKey + "\n"
+		dk, dkErr := decryptPKCS8PEM([]byte(*exportOut.PrivateKey), passphrase)
+		if dkErr != nil {
+			return nil, fmt.Errorf("failed to decrypt exported private key: %w", dkErr)
+		}
+		parts = append(parts, strings.TrimRight(string(dk), "\r\n"))
 	}
-
-	if result == "" {
-		return nil, fmt.Errorf("no data returned from ExportCertificate for %s (ensure it is exportable)", certARN)
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("no data returned from ExportCertificate for %s", certARN)
 	}
+	result := strings.Join(parts, "\n") + "\n"
 
+	exportCache.Store(certARN, exportCacheEntry{serial: serial, pem: []byte(result)})
 	return []byte(result), nil
 }
 
@@ -302,19 +334,20 @@ func (cm *CertificateManager) GetAllSecrets(_ context.Context, _ esv1.ExternalSe
 	return nil, errors.New(errNotImplemented)
 }
 
-// Close closes the provider.
 func (cm *CertificateManager) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate checks if the provider is configured correctly.
+// Validate checks if the client is configured correctly
+// and is able to retrieve secrets from the provider.
 func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
+	// skip validation stack because we do not have the client set with referent auth
 	if cm.referentAuth {
 		return esv1.ValidationResultUnknown, nil
 	}
 	_, err := cm.cfg.Credentials.Retrieve(context.Background())
 	if err != nil {
-		return esv1.ValidationResultError, err
+		return esv1.ValidationResultError, awsutil.SanitizeErr(err)
 	}
 	return esv1.ValidationResultReady, nil
 }
@@ -339,7 +372,7 @@ func (cm *CertificateManager) findCertificateARN(ctx context.Context, remoteKey 
 		})
 		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMListCertificates, err)
 		if err != nil {
-			return "", err
+			return "", awsutil.SanitizeErr(err)
 		}
 
 		for _, cert := range out.CertificateSummaryList {
@@ -377,7 +410,7 @@ func (cm *CertificateManager) listTags(ctx context.Context, arn string) ([]types
 		if errors.As(err, &aerr) && aerr.ErrorCode() == "ResourceNotFoundException" {
 			return nil, errCertificateNotFound
 		}
-		return nil, err
+		return nil, awsutil.SanitizeErr(err)
 	}
 	return out.Tags, nil
 }
@@ -409,7 +442,7 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 		})
 		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMRemoveTagsFromCertificate, err)
 		if err != nil {
-			return err
+			return awsutil.SanitizeErr(err)
 		}
 	}
 
@@ -429,7 +462,7 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 		})
 		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMAddTagsToCertificate, err)
 		if err != nil {
-			return err
+			return awsutil.SanitizeErr(err)
 		}
 	}
 	return nil
@@ -487,7 +520,10 @@ func (cm *CertificateManager) updateContentHash(ctx context.Context, arn, hash s
 		Tags:           []types.Tag{{Key: aws.String(contentHashTag), Value: aws.String(hash)}},
 	})
 	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMAddTagsToCertificate, err)
-	return err
+	if err != nil {
+		return awsutil.SanitizeErr(err)
+	}
+	return nil
 }
 
 // splitCertificatePEM splits a PEM bundle into the leaf certificate and the remaining chain.
