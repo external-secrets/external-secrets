@@ -26,9 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/template"
 )
 
@@ -198,7 +200,13 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		annotations = make(map[string]string)
 	}
 
-	if es.Spec.Target.Template != nil {
+	if es.Spec.Target.Template == nil {
+		// No template: propagate ExternalSecret's own labels and annotations
+		// so that tooling like ArgoCD (which injects tracking labels/annotations
+		// onto managed resources) can associate the created resource with the app.
+		esutils.MergeStringMap(labels, es.ObjectMeta.Labels)
+		esutils.MergeStringMap(annotations, es.ObjectMeta.Annotations)
+	} else {
 		for k, v := range es.Spec.Target.Template.Metadata.Labels {
 			labels[k] = v
 		}
@@ -235,6 +243,10 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 
 	ann[esv1.AnnotationDataHash] = hash
 	result.SetAnnotations(ann)
+
+	if err := controllerutil.SetControllerReference(es, result, r.Scheme); err != nil {
+		return nil, fmt.Errorf("failed to set controller reference: %w", err)
+	}
 
 	return result, nil
 }

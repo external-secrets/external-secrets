@@ -345,6 +345,7 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -396,6 +397,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -448,6 +450,116 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	assert.Equal(t, "This is a test", annotations["description"])
 }
 
+func TestApplyTemplateToManifest_PropagatesESLabelsAndAnnotations(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			Labels: map[string]string{
+				"app.kubernetes.io/instance": "my-argocd-app",
+				"custom-label":               "custom-value",
+			},
+			Annotations: map[string]string{
+				"argocd.argoproj.io/tracking-id": "my-argocd-app:external-secrets.io/ExternalSecret:default/test-es",
+			},
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-configmap",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	labels := result.GetLabels()
+	assert.Equal(t, "my-argocd-app", labels["app.kubernetes.io/instance"])
+	assert.Equal(t, "custom-value", labels["custom-label"])
+	assert.Equal(t, esv1.LabelManagedValue, labels[esv1.LabelManaged])
+
+	annotations := result.GetAnnotations()
+	assert.Equal(t, "my-argocd-app:external-secrets.io/ExternalSecret:default/test-es", annotations["argocd.argoproj.io/tracking-id"])
+}
+
+func TestApplyTemplateToManifest_TemplateMetadataWinsOverESLabels(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			Labels: map[string]string{
+				"app.kubernetes.io/instance": "my-argocd-app",
+			},
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-configmap",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				Template: &esv1.ExternalSecretTemplate{
+					EngineVersion: esv1.TemplateEngineV2,
+					Metadata: esv1.ExternalSecretTemplateMetadata{
+						Labels: map[string]string{
+							"app": "explicit-template-label",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	labels := result.GetLabels()
+	assert.Equal(t, "explicit-template-label", labels["app"])
+	assert.Empty(t, labels["app.kubernetes.io/instance"])
+	assert.Equal(t, esv1.LabelManagedValue, labels[esv1.LabelManaged])
+}
+
+func TestApplyTemplateToManifest_NoESLabels(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-configmap",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	labels := result.GetLabels()
+	assert.Equal(t, esv1.LabelManagedValue, labels[esv1.LabelManaged])
+	assert.Len(t, labels, 1)
+}
+
 func TestGetGenericResource(t *testing.T) {
 	// Setup
 	_ = esv1.AddToScheme(scheme.Scheme)
@@ -472,6 +584,7 @@ func TestGetGenericResource(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -513,6 +626,7 @@ func TestGetGenericResource_NotFound(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -553,6 +667,7 @@ func TestApplyTemplateToManifest_LiteralWithDeployment(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -634,6 +749,7 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
