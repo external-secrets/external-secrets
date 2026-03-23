@@ -28,8 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	toolscache "k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -183,8 +183,9 @@ func TestEnsureInformer_PropagatesCacheError(t *testing.T) {
 }
 
 func TestEnqueueHandler_OnDelete_UnwrapsTombstone(t *testing.T) {
-	_ = esv1.AddToScheme(scheme.Scheme)
-	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	s := runtime.NewScheme()
+	require.NoError(t, esv1.AddToScheme(s))
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(s).Build()
 
 	queue := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[ctrl.Request]())
 	log := ctrl.Log.WithName("test")
