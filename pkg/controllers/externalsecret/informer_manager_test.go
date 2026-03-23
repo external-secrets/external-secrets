@@ -28,10 +28,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	toolscache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 type fakeInformer struct{}
@@ -176,6 +180,61 @@ func TestEnsureInformer_PropagatesCacheError(t *testing.T) {
 	_, err := m.EnsureInformer(context.Background(), gvk, es)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "CRD not found")
+}
+
+func TestEnqueueHandler_OnDelete_UnwrapsTombstone(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+
+	queue := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[ctrl.Request]())
+	log := ctrl.Log.WithName("test")
+
+	obj := &unstructured.Unstructured{}
+	obj.SetName("my-config")
+	obj.SetNamespace("default")
+	obj.SetLabels(map[string]string{
+		"reconcile.external-secrets.io/managed": "true",
+	})
+
+	h := &enqueueHandler{
+		managerContext: context.Background(),
+		gvk:            schema.GroupVersionKind{Version: "v1", Kind: "ConfigMap"},
+		client:         fakeClient,
+		queue:          queue,
+		log:            log,
+	}
+
+	tombstone := toolscache.DeletedFinalStateUnknown{
+		Key: "default/my-config",
+		Obj: obj,
+	}
+
+	assert.NotPanics(t, func() {
+		h.OnDelete(tombstone)
+	})
+	assert.Equal(t, 0, queue.Len(), "no ES references the deleted object, so nothing should be enqueued")
+}
+
+func TestEnqueueHandler_OnDelete_DropsEventWithoutManagedLabel(t *testing.T) {
+	queue := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[ctrl.Request]())
+	log := ctrl.Log.WithName("test")
+
+	obj := &unstructured.Unstructured{}
+	obj.SetName("unmanaged-config")
+	obj.SetNamespace("default")
+
+	h := &enqueueHandler{
+		managerContext: context.Background(),
+		gvk:            schema.GroupVersionKind{Version: "v1", Kind: "ConfigMap"},
+		client:         nil,
+		queue:          queue,
+		log:            log,
+	}
+
+	assert.NotPanics(t, func() {
+		h.OnDelete(obj)
+	})
+	assert.Equal(t, 0, queue.Len())
 }
 
 func TestReleaseInformer_RemovesES(t *testing.T) {
