@@ -450,6 +450,67 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	assert.Equal(t, "This is a test", annotations["description"])
 }
 
+func TestApplyTemplateToManifest_SetsOwnerRefWhenCreationPolicyOwner(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			UID:       "abc-123",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name:           "test-configmap",
+				CreationPolicy: esv1.CreatePolicyOwner,
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	owners := result.GetOwnerReferences()
+	require.Len(t, owners, 1)
+	assert.Equal(t, "test-es", owners[0].Name)
+	assert.True(t, *owners[0].Controller)
+}
+
+func TestApplyTemplateToManifest_NoOwnerRefWhenCreationPolicyOrphan(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			UID:       "abc-123",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name:           "test-configmap",
+				CreationPolicy: esv1.CreatePolicyOrphan,
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	assert.Empty(t, result.GetOwnerReferences())
+}
+
 func TestApplyTemplateToManifest_PropagatesESLabelsAndAnnotations(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
