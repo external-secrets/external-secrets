@@ -244,8 +244,10 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	ann[esv1.AnnotationDataHash] = hash
 	result.SetAnnotations(ann)
 
-	if err := controllerutil.SetControllerReference(es, result, r.Scheme); err != nil {
-		return nil, fmt.Errorf("failed to set controller reference: %w", err)
+	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		if err := controllerutil.SetControllerReference(es, result, r.Scheme); err != nil {
+			return nil, fmt.Errorf("failed to set controller reference: %w", err)
+		}
 	}
 
 	return result, nil
