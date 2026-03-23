@@ -17,6 +17,7 @@ limitations under the License.
 package certificatemanager
 
 import (
+	"bytes"
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
@@ -111,7 +112,9 @@ func generateTestCerts(t *testing.T) testCerts {
 	leafKeyDER, _ := x509.MarshalECPrivateKey(leafKey)
 	privKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: leafKeyDER})
 
-	tlsCrt := append(leafPEM, interPEM...)
+	tlsCrt := make([]byte, 0, len(leafPEM)+len(interPEM))
+	tlsCrt = append(tlsCrt, leafPEM...)
+	tlsCrt = append(tlsCrt, interPEM...)
 
 	return testCerts{
 		LeafPEM:         leafPEM,
@@ -201,7 +204,7 @@ func TestSplitCertificatePEM_LeafOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("splitCertificatePEM: %v", err)
 	}
-	if string(leaf) != string(certs.LeafPEM) {
+	if !bytes.Equal(leaf, certs.LeafPEM) {
 		t.Error("leaf does not match input")
 	}
 	if len(chain) != 0 {
@@ -215,10 +218,10 @@ func TestSplitCertificatePEM_LeafAndIntermediate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("splitCertificatePEM: %v", err)
 	}
-	if string(leaf) != string(certs.LeafPEM) {
+	if !bytes.Equal(leaf, certs.LeafPEM) {
 		t.Error("leaf does not match first PEM block")
 	}
-	if string(chain) != string(certs.IntermediatePEM) {
+	if !bytes.Equal(chain, certs.IntermediatePEM) {
 		t.Error("chain does not match intermediate PEM block")
 	}
 }
@@ -278,10 +281,10 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
 		t.Fatalf("PushSecret: %v", err)
 	}
-	if string(gotCert) != string(certs.LeafPEM) {
+	if !bytes.Equal(gotCert, certs.LeafPEM) {
 		t.Error("Certificate field should be the leaf certificate only")
 	}
-	if string(gotChain) != string(certs.IntermediatePEM) {
+	if !bytes.Equal(gotChain, certs.IntermediatePEM) {
 		t.Error("CertificateChain field should be the intermediate certificate")
 	}
 	if len(gotTags) != 3 {
@@ -737,8 +740,8 @@ func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
 
 type smithyFakeNotFound struct{}
 
-func (e *smithyFakeNotFound) Error() string                 { return "ResourceNotFoundException" }
-func (e *smithyFakeNotFound) ErrorCode() string             { return "ResourceNotFoundException" }
+func (e *smithyFakeNotFound) Error() string                 { return errResourceNotFound }
+func (e *smithyFakeNotFound) ErrorCode() string             { return errResourceNotFound }
 func (e *smithyFakeNotFound) ErrorMessage() string          { return "certificate not found" }
 func (e *smithyFakeNotFound) ErrorFault() smithy.ErrorFault { return smithy.FaultClient }
 
@@ -881,7 +884,7 @@ func TestGetSecret_CertOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSecret: %v", err)
 	}
-	if string(result) != string(certs.LeafPEM) {
+	if !bytes.Equal(result, certs.LeafPEM) {
 		t.Error("expected only the leaf certificate")
 	}
 }
@@ -972,7 +975,7 @@ func TestGetSecret_CacheHit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSecret: %v", err)
 	}
-	if string(result) != string(cachedPEM) {
+	if !bytes.Equal(result, cachedPEM) {
 		t.Errorf("expected cached PEM, got %q", string(result))
 	}
 	if exportCalled {
@@ -1002,7 +1005,7 @@ func TestGetSecret_CacheMissOnSerialChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSecret: %v", err)
 	}
-	if string(result) != string(certs.LeafPEM) {
+	if !bytes.Equal(result, certs.LeafPEM) {
 		t.Error("expected fresh export after serial change")
 	}
 
@@ -1051,7 +1054,7 @@ func TestDecryptPKCS8PEM_AlreadyUnencrypted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decryptPKCS8PEM: %v", err)
 	}
-	if string(result) != string(unencPEM) {
+	if !bytes.Equal(result, unencPEM) {
 		t.Error("unencrypted PEM should be returned as-is")
 	}
 }

@@ -21,7 +21,7 @@ import (
 	"crypto/cipher"
 	"crypto/pbkdf2"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // required for PBKDF2 HMAC-SHA1 per RFC 8018
 	"crypto/sha256"
 	"encoding/asn1"
 	"encoding/pem"
@@ -194,7 +194,7 @@ func removePKCS7Padding(data []byte, blockSize int) ([]byte, error) {
 		return nil, errors.New("invalid PKCS#7 padding")
 	}
 	for i := len(data) - padLen; i < len(data); i++ {
-		if data[i] != byte(padLen) {
+		if data[i] != byte(padLen) { //nolint:gosec // padLen is bounded by blockSize (max 16)
 			return nil, errors.New("invalid PKCS#7 padding")
 		}
 	}

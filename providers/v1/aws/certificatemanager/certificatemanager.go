@@ -56,6 +56,7 @@ const (
 	tlsCertKey           = "tls.crt"
 	tlsPrivateKeyKey     = "tls.key"
 	errNotImplemented    = "operation not supported by AWS Certificate Manager provider"
+	errResourceNotFound  = "ResourceNotFoundException"
 	errNotManagedByESO   = "certificate not managed by external-secrets"
 	errSecretKeyNotEmpty = "secretKey must be empty for the AWS Certificate Manager provider: " +
 		"the whole kubernetes.io/tls secret is required (tls.crt and tls.key)"
@@ -326,14 +327,17 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 	return []byte(result), nil
 }
 
+// GetSecretMap is not supported by the ACM provider.
 func (cm *CertificateManager) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
+// GetAllSecrets is not supported by the ACM provider.
 func (cm *CertificateManager) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
+// Close is a no-op for the ACM provider.
 func (cm *CertificateManager) Close(_ context.Context) error {
 	return nil
 }
@@ -407,7 +411,7 @@ func (cm *CertificateManager) listTags(ctx context.Context, arn string) ([]types
 	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMListTagsForCertificate, err)
 	if err != nil {
 		var aerr smithy.APIError
-		if errors.As(err, &aerr) && aerr.ErrorCode() == "ResourceNotFoundException" {
+		if errors.As(err, &aerr) && aerr.ErrorCode() == errResourceNotFound {
 			return nil, errCertificateNotFound
 		}
 		return nil, awsutil.SanitizeErr(err)
@@ -527,7 +531,7 @@ func (cm *CertificateManager) updateContentHash(ctx context.Context, arn, hash s
 }
 
 // splitCertificatePEM splits a PEM bundle into the leaf certificate and the remaining chain.
-func splitCertificatePEM(certPEM []byte) (leaf []byte, chain []byte, err error) {
+func splitCertificatePEM(certPEM []byte) (leaf, chain []byte, err error) {
 	var blocks []*pem.Block
 	rest := certPEM
 	for {
