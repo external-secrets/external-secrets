@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -469,7 +468,7 @@ func TestValidateStore(t *testing.T) {
 								SecretRef: &esv1.OnePasswordAuthSecretRef{
 									ConnectToken: esmeta.SecretKeySelector{
 										Name:      mySecret,
-										Namespace: pointer.To("my-namespace"),
+										Namespace: new("my-namespace"),
 										Key:       token,
 									},
 								},
@@ -526,7 +525,7 @@ func TestValidateStore(t *testing.T) {
 								SecretRef: &esv1.OnePasswordAuthSecretRef{
 									ConnectToken: esmeta.SecretKeySelector{
 										Name:      mySecret,
-										Namespace: pointer.To("my-namespace"),
+										Namespace: new("my-namespace"),
 										Key:       token,
 									},
 								},
@@ -1190,7 +1189,7 @@ func TestGetAllSecrets(t *testing.T) {
 				{
 					checkNote: "find some with path only",
 					ref: esv1.ExternalSecretFind{
-						Path: pointer.To(myItem),
+						Path: new(myItem),
 					},
 					expectedMap: map[string][]byte{
 						key1: []byte(value1),
@@ -1219,7 +1218,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1.FindName{
 							RegExp: "key*",
 						},
-						Path: pointer.To(myOtherItem),
+						Path: new(myOtherItem),
 					},
 					expectedMap: map[string][]byte{
 						key3: []byte(value3),
@@ -1243,7 +1242,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1.FindName{
 							RegExp: "key*",
 						},
-						Path: pointer.To("no-exist"),
+						Path: new("no-exist"),
 					},
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,
@@ -1295,7 +1294,7 @@ func TestGetAllSecrets(t *testing.T) {
 				{
 					checkNote: "find with tags",
 					ref: esv1.ExternalSecretFind{
-						Path: pointer.To(myItem),
+						Path: new(myItem),
 						Tags: map[string]string{
 							"foo": "true",
 							"bar": "true",
@@ -1310,7 +1309,7 @@ func TestGetAllSecrets(t *testing.T) {
 				{
 					checkNote: "find with tags and get all",
 					ref: esv1.ExternalSecretFind{
-						Path: pointer.To(myItem),
+						Path: new(myItem),
 						Tags: map[string]string{
 							"foo": "true",
 						},
@@ -1415,7 +1414,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1.FindName{
 							RegExp: "^my-*",
 						},
-						Path: pointer.To(myOtherItem),
+						Path: new(myOtherItem),
 					},
 					expectedMap: map[string][]byte{
 						myOtherFilePNG: []byte(myOtherContents),
@@ -1438,7 +1437,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1.FindName{
 							RegExp: "^my-*",
 						},
-						Path: pointer.To("no-exist"),
+						Path: new("no-exist"),
 					},
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,
@@ -2492,16 +2491,16 @@ func (m *mockClient) GetFileContent(file *onepassword.File) ([]byte, error) { re
 func (m *mockClient) DownloadFile(file *onepassword.File, targetDirectory string, overwrite bool) (string, error) {
 	return "", nil
 }
-func (m *mockClient) LoadStructFromItemByUUID(config interface{}, itemUUID, vaultQuery string) error {
+func (m *mockClient) LoadStructFromItemByUUID(config any, itemUUID, vaultQuery string) error {
 	return nil
 }
-func (m *mockClient) LoadStructFromItemByTitle(config interface{}, itemTitle, vaultQuery string) error {
+func (m *mockClient) LoadStructFromItemByTitle(config any, itemTitle, vaultQuery string) error {
 	return nil
 }
-func (m *mockClient) LoadStructFromItem(config interface{}, itemQuery, vaultQuery string) error {
+func (m *mockClient) LoadStructFromItem(config any, itemQuery, vaultQuery string) error {
 	return nil
 }
-func (m *mockClient) LoadStruct(config interface{}) error { return nil }
+func (m *mockClient) LoadStruct(config any) error { return nil }
 
 func TestDeleteSecretWithEmptySections(t *testing.T) {
 	const vaultName = "vault1"

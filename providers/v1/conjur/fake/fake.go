@@ -53,15 +53,15 @@ func (mc *ConjurMockClient) RetrieveBatchSecrets(variableIDs []string) (map[stri
 	return secrets, nil
 }
 
-func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resources []map[string]interface{}, err error) {
+func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resources []map[string]any, err error) {
 	policyID := "conjur:policy:root"
 	if filter.Offset == 0 {
 		// First "page" of secrets: 2 static ones and 98 random ones
-		secrets := []map[string]interface{}{ //nolint:prealloc // static init + dynamic append
+		secrets := []map[string]any{ //nolint:prealloc // static init + dynamic append
 			{
 				"id": "conjur:variable:secret1",
-				"annotations": []interface{}{
-					map[string]interface{}{
+				"annotations": []any{
+					map[string]any{
 						"name":  "conjur/kind",
 						"value": "dummy",
 					},
@@ -70,13 +70,13 @@ func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resourc
 			{
 				"id":    "conjur:variable:secret2",
 				"owner": "conjur:policy:admin1",
-				"annotations": []interface{}{
-					map[string]interface{}{
+				"annotations": []any{
+					map[string]any{
 						"name":   "Description",
 						"policy": policyID,
 						"value":  "Lorem ipsum dolor sit amet",
 					},
-					map[string]interface{}{
+					map[string]any{
 						"name":   "conjur/kind",
 						"policy": policyID,
 						"value":  "password",
@@ -102,9 +102,9 @@ func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resourc
 	return generateRandomSecrets(50), nil
 }
 
-func generateRandomSecrets(count int) []map[string]interface{} {
-	var secrets []map[string]interface{}
-	for i := 0; i < count; i++ {
+func generateRandomSecrets(count int) []map[string]any {
+	secrets := make([]map[string]any, 0, count)
+	for range count {
 		//nolint:gosec
 		randomNumber := rand.Intn(10000)
 		secrets = append(secrets, generateRandomSecret(randomNumber))
@@ -112,10 +112,10 @@ func generateRandomSecrets(count int) []map[string]interface{} {
 	return secrets
 }
 
-func generateRandomSecret(num int) map[string]interface{} {
-	return map[string]interface{}{
+func generateRandomSecret(num int) map[string]any {
+	return map[string]any{
 		"id": fmt.Sprintf("conjur:variable:random/var_%d", num),
-		"annotations": []map[string]interface{}{
+		"annotations": []map[string]any{
 			{
 				"name":  "random_number",
 				"value": fmt.Sprintf("%d", num),

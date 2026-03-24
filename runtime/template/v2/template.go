@@ -19,6 +19,7 @@ package template
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"strings"
 	tpl "text/template"
 
@@ -87,9 +88,7 @@ func init() {
 	delete(sprigFuncs, "env")
 	delete(sprigFuncs, "expandenv")
 
-	for k, v := range sprigFuncs {
-		tplFuncs[k] = v
-	}
+	maps.Copy(tplFuncs, sprigFuncs)
 	fs := pflag.NewFlagSet("template", pflag.ExitOnError)
 	fs.StringVar(&leftDelim, "template-left-delimiter", "{{", "templating left delimiter")
 	fs.StringVar(&rightDelim, "template-right-delimiter", "}}", "templating right delimiter")
@@ -355,9 +354,7 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 			parsedMap, parsedOk := parsed.(map[string]any)
 
 			if existingOk && parsedOk {
-				for k, v := range parsedMap {
-					existingMap[k] = v
-				}
+				maps.Copy(existingMap, parsedMap)
 
 				current[lastPart] = existingMap
 			} else {

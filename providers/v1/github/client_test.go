@@ -45,7 +45,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -152,8 +151,8 @@ func TestPushSecret(t *testing.T) {
 				Name: "foo",
 			}, nil, nil),
 			getPublicKeyFn: withGetPublicKeyFn(&github.PublicKey{
-				Key:   ptr.To("broken"),
-				KeyID: ptr.To("123"),
+				Key:   new("broken"),
+				KeyID: new("123"),
 			}, nil, nil),
 			wantErr: errors.New("unable to decode public key"),
 		},
@@ -163,8 +162,8 @@ func TestPushSecret(t *testing.T) {
 				Name: "foo",
 			}, nil, nil),
 			getPublicKeyFn: withGetPublicKeyFn(&github.PublicKey{
-				Key:   ptr.To("Cg=="),
-				KeyID: ptr.To("123"),
+				Key:   new("Cg=="),
+				KeyID: new("123"),
 			}, nil, nil),
 			secret: &corev1.Secret{
 				Data: map[string][]byte{
@@ -184,8 +183,8 @@ func TestPushSecret(t *testing.T) {
 				Name: "foo",
 			}, nil, nil),
 			getPublicKeyFn: withGetPublicKeyFn(&github.PublicKey{
-				Key:   ptr.To("Zm9vYmFyCg=="),
-				KeyID: ptr.To("123"),
+				Key:   new("Zm9vYmFyCg=="),
+				KeyID: new("123"),
 			}, nil, nil),
 			secret: &corev1.Secret{
 				Data: map[string][]byte{
@@ -206,8 +205,8 @@ func TestPushSecret(t *testing.T) {
 				Name: "foo",
 			}, nil, nil),
 			getPublicKeyFn: withGetPublicKeyFn(&github.PublicKey{
-				Key:   ptr.To("Zm9vYmFyCg=="),
-				KeyID: ptr.To("123"),
+				Key:   new("Zm9vYmFyCg=="),
+				KeyID: new("123"),
 			}, nil, nil),
 			secret: &corev1.Secret{
 				Data: map[string][]byte{

@@ -31,7 +31,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestDoesConfigDependOnNamespace(t *testing.T) {
@@ -475,7 +474,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 								Type:      esv1.CAProviderTypeSecret,
 								Name:      caSecretName,
 								Key:       caSecretKey,
-								Namespace: esutils.Ptr("default"),
+								Namespace: new("default"),
 							},
 						},
 					},
@@ -523,7 +522,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 
 func makeSecretRefUsingNamespacedRef(namespace, name, key string) *esv1.SecretServerProviderRef {
 	return &esv1.SecretServerProviderRef{
-		SecretRef: &v1.SecretKeySelector{Namespace: esutils.Ptr(namespace), Name: name, Key: key},
+		SecretRef: &v1.SecretKeySelector{Namespace: new(namespace), Name: name, Key: key},
 	}
 }
 
