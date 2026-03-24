@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
-	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -240,7 +239,7 @@ func TestValidateStoreClusterScope(t *testing.T) {
 		{
 			name: "cluster: namespaced token passes",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
-				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: pointer.To("ns1")}
+				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
 			}),
 			wantErr: "",
 		},
@@ -254,14 +253,14 @@ func TestValidateStoreClusterScope(t *testing.T) {
 		{
 			name: "cluster: namespaced sa creds passes",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
-				nm.Auth.ServiceAccountCreds = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: pointer.To("ns1")}
+				nm.Auth.ServiceAccountCreds = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
 			}),
 			wantErr: "",
 		},
 		{
 			name: "cluster: ca cert requires namespace",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
-				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: pointer.To("ns1")}
+				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
 				nm.CAProvider = &esv1.NebiusCAProvider{Certificate: esmeta.SecretKeySelector{Name: "ca", Key: "tls.crt"}}
 			}),
 			wantErr: utilsErrRequireNamespace,
@@ -269,8 +268,8 @@ func TestValidateStoreClusterScope(t *testing.T) {
 		{
 			name: "cluster: namespaced ca cert passes",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
-				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: pointer.To("ns1")}
-				nm.CAProvider = &esv1.NebiusCAProvider{Certificate: esmeta.SecretKeySelector{Name: "ca", Key: "tls.crt", Namespace: pointer.To("ns1")}}
+				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
+				nm.CAProvider = &esv1.NebiusCAProvider{Certificate: esmeta.SecretKeySelector{Name: "ca", Key: "tls.crt", Namespace: new("ns1")}}
 			}),
 			wantErr: "",
 		},

@@ -664,7 +664,7 @@ func TestCreateOrGetMysteryboxClient_Concurrent_SingleClient(t *testing.T) {
 	start := make(chan struct{})
 
 	errs := make([]error, goroutines)
-	for i := 0; i < goroutines; i++ {
+	for i := range goroutines {
 		go func(ix int) {
 			defer wg.Done()
 			<-start
@@ -816,7 +816,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 	clients := make([]esv1.SecretsClient, goroutines)
 	errs := make([]error, goroutines)
 
-	for i := 0; i < goroutines; i++ {
+	for i := range goroutines {
 		go func(ix int) {
 			defer wg.Done()
 			<-start
@@ -827,7 +827,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 	close(start)
 	wg.Wait()
 
-	for i := 0; i < goroutines; i++ {
+	for i := range goroutines {
 		tassert.NoError(t, errs[i], "NewClient error: %w", errs[i])
 		msc := clients[i].(*SecretsClient)
 		got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k"})

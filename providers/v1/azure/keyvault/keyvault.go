@@ -55,7 +55,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	pointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -573,10 +572,10 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	secretParams := keyvault.SecretSetParameters{
 		Value: &val,
 		Tags: map[string]*string{
-			managedBy: pointer.To(managerLabel),
+			managedBy: new(managerLabel),
 		},
 		SecretAttributes: &keyvault.SecretAttributes{
-			Enabled: pointer.To(true),
+			Enabled: new(true),
 		},
 	}
 
@@ -618,7 +617,7 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 	params := keyvault.CertificateImportParameters{
 		Base64EncodedCertificate: &val,
 		Tags: map[string]*string{
-			managedBy: pointer.To(managerLabel),
+			managedBy: new(managerLabel),
 		},
 	}
 
@@ -679,7 +678,7 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 		Key:           &azkey,
 		KeyAttributes: &keyvault.KeyAttributes{},
 		Tags: map[string]*string{
-			managedBy: pointer.To(managerLabel),
+			managedBy: new(managerLabel),
 		},
 	}
 
@@ -903,8 +902,8 @@ func getProperty(secret, property, key string) ([]byte, error) {
 	}
 	res := gjson.Get(secret, property)
 	if !res.Exists() {
-		idx := strings.Index(property, ".")
-		if idx < 0 {
+		found := strings.Contains(property, ".")
+		if !found {
 			return nil, fmt.Errorf(errPropNotExist, property, key)
 		}
 		escaped := strings.ReplaceAll(property, ".", "\\.")

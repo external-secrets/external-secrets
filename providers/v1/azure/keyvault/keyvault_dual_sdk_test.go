@@ -45,13 +45,13 @@ func TestFeatureFlagRouting(t *testing.T) {
 		},
 		{
 			name:         "explicit_legacy_sdk",
-			useAzureSDK:  ptr.To(false),
+			useAzureSDK:  new(false),
 			expectNewSDK: false,
 			description:  "When UseAzureSDK is explicitly false, should use legacy SDK",
 		},
 		{
 			name:         "explicit_new_sdk",
-			useAzureSDK:  ptr.To(true),
+			useAzureSDK:  new(true),
 			expectNewSDK: true,
 			description:  "When UseAzureSDK is true, should use new SDK",
 		},
@@ -61,8 +61,8 @@ func TestFeatureFlagRouting(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create test provider with the specified feature flag
 			provider := &esv1.AzureKVProvider{
-				VaultURL:    ptr.To("https://test-vault.vault.azure.net/"),
-				TenantID:    ptr.To("test-tenant"),
+				VaultURL:    new("https://test-vault.vault.azure.net/"),
+				TenantID:    new("test-tenant"),
 				AuthType:    ptr.To(esv1.AzureServicePrincipal),
 				UseAzureSDK: tc.useAzureSDK,
 				AuthSecretRef: &esv1.AzureKVAuth{
@@ -115,13 +115,13 @@ func TestClientInitialization(t *testing.T) {
 	}{
 		{
 			name:                "legacy_client_init",
-			useAzureSDK:         ptr.To(false),
+			useAzureSDK:         new(false),
 			expectedErrorPrefix: "", // May succeed or fail with auth errors, but should not panic
 			description:         "Legacy client initialization should not panic",
 		},
 		{
 			name:                "new_sdk_client_init",
-			useAzureSDK:         ptr.To(true),
+			useAzureSDK:         new(true),
 			expectedErrorPrefix: "", // May succeed or fail with auth errors, but should not panic
 			description:         "New SDK client initialization should not panic",
 		},
@@ -130,8 +130,8 @@ func TestClientInitialization(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			provider := &esv1.AzureKVProvider{
-				VaultURL:    ptr.To("https://test-vault.vault.azure.net/"),
-				TenantID:    ptr.To("test-tenant"),
+				VaultURL:    new("https://test-vault.vault.azure.net/"),
+				TenantID:    new("test-tenant"),
 				AuthType:    ptr.To(esv1.AzureServicePrincipal),
 				UseAzureSDK: tc.useAzureSDK,
 				AuthSecretRef: &esv1.AzureKVAuth{
@@ -193,13 +193,13 @@ func TestConfigurationValidation(t *testing.T) {
 		},
 		{
 			name:        "false_feature_flag",
-			useAzureSDK: ptr.To(false),
+			useAzureSDK: new(false),
 			expectValid: true,
 			description: "False feature flag should be valid (legacy SDK)",
 		},
 		{
 			name:        "true_feature_flag",
-			useAzureSDK: ptr.To(true),
+			useAzureSDK: new(true),
 			expectValid: true,
 			description: "True feature flag should be valid (new SDK)",
 		},
@@ -208,8 +208,8 @@ func TestConfigurationValidation(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			provider := &esv1.AzureKVProvider{
-				VaultURL:    ptr.To("https://test-vault.vault.azure.net/"),
-				TenantID:    ptr.To("test-tenant"),
+				VaultURL:    new("https://test-vault.vault.azure.net/"),
+				TenantID:    new("test-tenant"),
 				AuthType:    ptr.To(esv1.AzureServicePrincipal),
 				UseAzureSDK: tc.useAzureSDK,
 				AuthSecretRef: &esv1.AzureKVAuth{
@@ -253,8 +253,8 @@ func TestConfigurationValidation(t *testing.T) {
 func TestBackwardCompatibility(t *testing.T) {
 	// Test that existing configurations without UseAzureSDK still work
 	provider := &esv1.AzureKVProvider{
-		VaultURL: ptr.To("https://test-vault.vault.azure.net/"),
-		TenantID: ptr.To("test-tenant"),
+		VaultURL: new("https://test-vault.vault.azure.net/"),
+		TenantID: new("test-tenant"),
 		AuthType: ptr.To(esv1.AzureServicePrincipal),
 		// UseAzureSDK intentionally omitted to test backward compatibility
 		AuthSecretRef: &esv1.AzureKVAuth{
@@ -309,19 +309,19 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 	}{
 		{
 			name:        "azure_stack_with_new_sdk_and_config",
-			useAzureSDK: ptr.To(true),
+			useAzureSDK: new(true),
 			envType:     esv1.AzureEnvironmentAzureStackCloud,
 			customConfig: &esv1.AzureCustomCloudConfig{
 				ActiveDirectoryEndpoint: "https://login.microsoftonline.com/",
-				KeyVaultEndpoint:        ptr.To("https://vault.local.azurestack.external/"),
-				KeyVaultDNSSuffix:       ptr.To(".vault.local.azurestack.external"),
+				KeyVaultEndpoint:        new("https://vault.local.azurestack.external/"),
+				KeyVaultDNSSuffix:       new(".vault.local.azurestack.external"),
 			},
 			expectError: false,
 			description: "Azure Stack with new SDK and custom config should be valid",
 		},
 		{
 			name:          "azure_stack_without_custom_config",
-			useAzureSDK:   ptr.To(true),
+			useAzureSDK:   new(true),
 			envType:       esv1.AzureEnvironmentAzureStackCloud,
 			customConfig:  nil,
 			expectError:   true,
@@ -330,7 +330,7 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 		},
 		{
 			name:        "azure_stack_with_legacy_sdk",
-			useAzureSDK: ptr.To(false),
+			useAzureSDK: new(false),
 			envType:     esv1.AzureEnvironmentAzureStackCloud,
 			customConfig: &esv1.AzureCustomCloudConfig{
 				ActiveDirectoryEndpoint: "https://login.microsoftonline.com/",
@@ -352,10 +352,10 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 		},
 		{
 			name:        "azure_stack_missing_aad_endpoint",
-			useAzureSDK: ptr.To(true),
+			useAzureSDK: new(true),
 			envType:     esv1.AzureEnvironmentAzureStackCloud,
 			customConfig: &esv1.AzureCustomCloudConfig{
-				KeyVaultEndpoint: ptr.To("https://vault.custom.cloud/"),
+				KeyVaultEndpoint: new("https://vault.custom.cloud/"),
 			},
 			expectError:   true,
 			expectedError: "activeDirectoryEndpoint is required in CustomCloudConfig",
@@ -363,7 +363,7 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 		},
 		{
 			name:        "custom_config_with_china_cloud",
-			useAzureSDK: ptr.To(true),
+			useAzureSDK: new(true),
 			envType:     esv1.AzureEnvironmentChinaCloud,
 			customConfig: &esv1.AzureCustomCloudConfig{
 				ActiveDirectoryEndpoint: "https://login.partner.microsoftonline.cn/",
@@ -373,7 +373,7 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 		},
 		{
 			name:         "public_cloud_without_custom_config",
-			useAzureSDK:  ptr.To(true),
+			useAzureSDK:  new(true),
 			envType:      esv1.AzureEnvironmentPublicCloud,
 			customConfig: nil,
 			expectError:  false,
@@ -384,8 +384,8 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			provider := &esv1.AzureKVProvider{
-				VaultURL:          ptr.To("https://test-vault.vault.azure.net/"),
-				TenantID:          ptr.To("test-tenant"),
+				VaultURL:          new("https://test-vault.vault.azure.net/"),
+				TenantID:          new("test-tenant"),
 				AuthType:          ptr.To(esv1.AzureServicePrincipal),
 				UseAzureSDK:       tc.useAzureSDK,
 				EnvironmentType:   tc.envType,
@@ -467,11 +467,11 @@ func TestGetCloudConfiguration(t *testing.T) {
 			name: "china_cloud_with_custom_endpoint",
 			provider: &esv1.AzureKVProvider{
 				EnvironmentType: esv1.AzureEnvironmentChinaCloud,
-				UseAzureSDK:     ptr.To(true),
+				UseAzureSDK:     new(true),
 				CustomCloudConfig: &esv1.AzureCustomCloudConfig{
 					ActiveDirectoryEndpoint: "https://login.partner.microsoftonline.cn/",
-					KeyVaultEndpoint:        ptr.To("https://vault.azure.cn/"),
-					ResourceManagerEndpoint: ptr.To("https://management.chinacloudapi.cn/"),
+					KeyVaultEndpoint:        new("https://vault.azure.cn/"),
+					ResourceManagerEndpoint: new("https://management.chinacloudapi.cn/"),
 				},
 			},
 			expectError: false,
@@ -481,10 +481,10 @@ func TestGetCloudConfiguration(t *testing.T) {
 			name: "azure_stack_with_config",
 			provider: &esv1.AzureKVProvider{
 				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
-				UseAzureSDK:     ptr.To(true),
+				UseAzureSDK:     new(true),
 				CustomCloudConfig: &esv1.AzureCustomCloudConfig{
 					ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
-					KeyVaultEndpoint:        ptr.To("https://vault.local.azurestack.external/"),
+					KeyVaultEndpoint:        new("https://vault.local.azurestack.external/"),
 				},
 			},
 			expectError: false,
@@ -494,7 +494,7 @@ func TestGetCloudConfiguration(t *testing.T) {
 			name: "azure_stack_without_new_sdk",
 			provider: &esv1.AzureKVProvider{
 				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
-				UseAzureSDK:     ptr.To(false),
+				UseAzureSDK:     new(false),
 				CustomCloudConfig: &esv1.AzureCustomCloudConfig{
 					ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
 				},
@@ -507,7 +507,7 @@ func TestGetCloudConfiguration(t *testing.T) {
 			name: "azure_stack_without_config",
 			provider: &esv1.AzureKVProvider{
 				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
-				UseAzureSDK:     ptr.To(true),
+				UseAzureSDK:     new(true),
 			},
 			expectError:   true,
 			expectedError: "CustomCloudConfig is required when EnvironmentType is AzureStackCloud",
