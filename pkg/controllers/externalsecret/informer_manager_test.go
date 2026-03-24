@@ -24,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -185,35 +186,71 @@ func TestEnsureInformer_PropagatesCacheError(t *testing.T) {
 func TestEnqueueHandler_OnDelete_UnwrapsTombstone(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, esv1.AddToScheme(s))
-	fakeClient := fakeclient.NewClientBuilder().WithScheme(s).Build()
+
+	gvk := schema.GroupVersionKind{Version: "v1", Kind: "ConfigMap"}
+	const (
+		esName = "my-es"
+		cmName = "my-config"
+		ns     = "default"
+	)
+
+	// ExternalSecret that targets the ConfigMap being deleted.
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{Name: esName, Namespace: ns},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: cmName,
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	// Register the same field index that enqueue() queries.
+	indexFunc := func(obj client.Object) []string {
+		e := obj.(*esv1.ExternalSecret)
+		if !isGenericTarget(e) {
+			return nil
+		}
+		tgvk := getTargetGVK(e)
+		return []string{fmt.Sprintf("%s/%s/%s/%s", tgvk.Group, tgvk.Version, tgvk.Kind, getTargetName(e))}
+	}
+
+	fakeClient := fakeclient.NewClientBuilder().
+		WithScheme(s).
+		WithIndex(&esv1.ExternalSecret{}, indexESTargetResourceField, indexFunc).
+		WithObjects(es).
+		Build()
 
 	queue := workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[ctrl.Request]())
 	log := ctrl.Log.WithName("test")
 
 	obj := &unstructured.Unstructured{}
-	obj.SetName("my-config")
-	obj.SetNamespace("default")
-	obj.SetLabels(map[string]string{
-		"reconcile.external-secrets.io/managed": "true",
-	})
+	obj.SetName(cmName)
+	obj.SetNamespace(ns)
+	obj.SetLabels(map[string]string{esv1.LabelManaged: esv1.LabelManagedValue})
 
 	h := &enqueueHandler{
 		managerContext: context.Background(),
-		gvk:            schema.GroupVersionKind{Version: "v1", Kind: "ConfigMap"},
+		gvk:            gvk,
 		client:         fakeClient,
 		queue:          queue,
 		log:            log,
 	}
 
+	// Wrap the deleted object in a tombstone (simulates interrupted watch reconnect).
 	tombstone := toolscache.DeletedFinalStateUnknown{
-		Key: "default/my-config",
+		Key: ns + "/" + cmName,
 		Obj: obj,
 	}
 
-	assert.NotPanics(t, func() {
-		h.OnDelete(tombstone)
-	})
-	assert.Equal(t, 0, queue.Len(), "no ES references the deleted object, so nothing should be enqueued")
+	// Without the tombstone fix, the label check fails on the wrapper and the
+	// event is silently dropped (queue stays empty). With the fix the tombstone
+	// is unwrapped, the ES is found via the field index, and a reconcile is queued.
+	h.OnDelete(tombstone)
+	assert.Equal(t, 1, queue.Len(), "ES targeting the deleted ConfigMap should be enqueued")
 }
 
 func TestEnqueueHandler_OnDelete_DropsEventWithoutManagedLabel(t *testing.T) {
