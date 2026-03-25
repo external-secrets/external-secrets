@@ -18,6 +18,7 @@ package fake
 
 import (
 	"context"
+	"maps"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -109,9 +110,7 @@ func (v *Client) GetPushSecretData() map[string]SetSecretCallArgs {
 	defer v.mu.RUnlock()
 	// Create a copy to avoid race conditions
 	result := make(map[string]SetSecretCallArgs, len(v.pushSecretData))
-	for k, v := range v.pushSecretData {
-		result[k] = v
-	}
+	maps.Copy(result, v.pushSecretData)
 	return result
 }
 

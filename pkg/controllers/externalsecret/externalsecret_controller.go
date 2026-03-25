@@ -489,7 +489,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 		// set the immutable flag on the secret if requested by the ExternalSecret
 		if externalSecret.Spec.Target.Immutable {
-			secret.Immutable = ptr.To(true)
+			secret.Immutable = new(true)
 		}
 
 		// only apply the template if the secret is mutable or if the secret is new (has no UID)

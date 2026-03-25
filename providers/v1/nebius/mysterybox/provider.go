@@ -240,7 +240,7 @@ func (p *Provider) initMysteryboxClientsCache() error {
 	var cache *lru.Cache
 	cache, err = lru.NewWithEvict(
 		mysteryboxConnectionsCacheSize,
-		func(key, _ interface{}) {
+		func(key, _ any) {
 			p.Logger.V(1).Info("Evicting a Nebius MysteryBox client", "apiDomain", key.(ClientCacheKey).APIDomain)
 
 			// We intentionally do not call Close() on the evicted client here.

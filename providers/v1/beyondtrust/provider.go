@@ -455,7 +455,7 @@ func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.Pus
 		return fmt.Errorf("Error getting metadata: %w", err)
 	}
 
-	var metaDataObject map[string]interface{}
+	var metaDataObject map[string]any
 	err = json.Unmarshal(data, &metaDataObject)
 	if err != nil {
 		return fmt.Errorf("Error in parameters: %w", err)
@@ -476,7 +476,7 @@ func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.Pus
 }
 
 // CreateSecret creates a secret in BeyondTrust Password Safe.
-func (p *Provider) CreateSecret(secret string, data map[string]interface{}, signAppinResponse entities.SignAppinResponse) error {
+func (p *Provider) CreateSecret(secret string, data map[string]any, signAppinResponse entities.SignAppinResponse) error {
 	logger := logging.NewLogrLogger(&ESOLogger)
 	secretObj, err := secrets.NewSecretObj(p.authenticate, logger, maxFileSecretSizeBytes, false)
 
@@ -519,7 +519,7 @@ func (p *Provider) CreateSecret(secret string, data map[string]interface{}, sign
 		Notes:       notes,
 	}
 
-	var configMap map[string]interface{}
+	var configMap map[string]any
 	switch strings.ToUpper(secretType) {
 	case "CREDENTIAL":
 
@@ -539,7 +539,7 @@ func (p *Provider) CreateSecret(secret string, data map[string]interface{}, sign
 			Owners:                  ownerDetailsGroupID,
 		}
 
-		configMap = map[string]interface{}{
+		configMap = map[string]any{
 			"3.0": secretCredentialDetailsConfig30,
 			"3.1": secretCredentialDetailsConfig31,
 		}
@@ -562,7 +562,7 @@ func (p *Provider) CreateSecret(secret string, data map[string]interface{}, sign
 			Owners:                  ownerDetailsGroupID,
 		}
 
-		configMap = map[string]interface{}{
+		configMap = map[string]any{
 			"3.0": secretFileDetailsConfig30,
 			"3.1": secretFileDetailsConfig31,
 		}
@@ -583,7 +583,7 @@ func (p *Provider) CreateSecret(secret string, data map[string]interface{}, sign
 			Owners:                  ownerDetailsGroupID,
 		}
 
-		configMap = map[string]interface{}{
+		configMap = map[string]any{
 			"3.0": secretTextDetailsConfig30,
 			"3.1": secretTextDetailsConfig31,
 		}

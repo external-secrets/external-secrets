@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -299,8 +298,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
-						MaxRetries:    ptr.To(int32(3)),
-						RetryInterval: ptr.To("not-an-interval"),
+						MaxRetries:    new(int32(3)),
+						RetryInterval: new("not-an-interval"),
 					}
 				}),
 			},
@@ -313,8 +312,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
-						MaxRetries:    ptr.To(int32(3)),
-						RetryInterval: ptr.To("10m"),
+						MaxRetries:    new(int32(3)),
+						RetryInterval: new("10m"),
 					}
 				}),
 				ns:            "default",
@@ -633,7 +632,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					s.Spec.Provider.Vault.Auth.Kubernetes = nil
 					s.Spec.Provider.Vault.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
 						Name:      "vault-token",
-						Namespace: ptr.To("default"),
+						Namespace: new("default"),
 						Key:       "token",
 					}
 				}),

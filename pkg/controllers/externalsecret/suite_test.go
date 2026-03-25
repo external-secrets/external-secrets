@@ -136,7 +136,7 @@ var _ = AfterSuite(func() {
 		// Need to sleep if the first stop fails due to a bug:
 		// https://github.com/kubernetes-sigs/controller-runtime/issues/1571
 		sleepTime := 1 * time.Millisecond
-		for i := 0; i < 12; i++ { // Exponentially sleep up to ~4s
+		for range 12 { // Exponentially sleep up to ~4s
 			if err = testEnv.Stop(); err == nil {
 				return
 			}
