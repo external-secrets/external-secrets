@@ -27,7 +27,6 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -52,7 +51,7 @@ func TestSetAuthNamespace(t *testing.T) {
 	store.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = nil
 	store.Spec.Provider.Vault.Auth.Kubernetes.SecretRef = &esmeta.SecretKeySelector{
 		Name:      "vault-secret",
-		Namespace: ptr.To("default"),
+		Namespace: new("default"),
 		Key:       "key",
 	}
 
@@ -85,7 +84,7 @@ func TestSetAuthNamespace(t *testing.T) {
 			args: args{
 				store: func(store *esv1.SecretStore) *esv1.SecretStore {
 					s := store.DeepCopy()
-					s.Spec.Provider.Vault.Namespace = ptr.To(teamNS)
+					s.Spec.Provider.Vault.Namespace = new(teamNS)
 					return s
 				}(store),
 				expected: result{Before: teamNS, During: teamNS, After: teamNS},
@@ -96,7 +95,7 @@ func TestSetAuthNamespace(t *testing.T) {
 			args: args{
 				store: func(store *esv1.SecretStore) *esv1.SecretStore {
 					s := store.DeepCopy()
-					s.Spec.Provider.Vault.Auth.Namespace = ptr.To(adminNS)
+					s.Spec.Provider.Vault.Auth.Namespace = new(adminNS)
 					return s
 				}(store),
 				expected: result{Before: "", During: adminNS, After: ""},
@@ -107,8 +106,8 @@ func TestSetAuthNamespace(t *testing.T) {
 			args: args{
 				store: func(store *esv1.SecretStore) *esv1.SecretStore {
 					s := store.DeepCopy()
-					s.Spec.Provider.Vault.Namespace = ptr.To(adminNS)
-					s.Spec.Provider.Vault.Auth.Namespace = ptr.To(adminNS)
+					s.Spec.Provider.Vault.Namespace = new(adminNS)
+					s.Spec.Provider.Vault.Auth.Namespace = new(adminNS)
 					return s
 				}(store),
 				expected: result{Before: adminNS, During: adminNS, After: adminNS},
@@ -119,8 +118,8 @@ func TestSetAuthNamespace(t *testing.T) {
 			args: args{
 				store: func(store *esv1.SecretStore) *esv1.SecretStore {
 					s := store.DeepCopy()
-					s.Spec.Provider.Vault.Namespace = ptr.To(teamNS)
-					s.Spec.Provider.Vault.Auth.Namespace = ptr.To(adminNS)
+					s.Spec.Provider.Vault.Namespace = new(teamNS)
+					s.Spec.Provider.Vault.Auth.Namespace = new(adminNS)
 					return s
 				}(store),
 				expected: result{Before: teamNS, During: adminNS, After: teamNS},
@@ -221,7 +220,7 @@ func TestCheckTokenTtl(t *testing.T) {
 		"LongTTLExpirable": {
 			message: "should cache if expirable token expires far into the future",
 			secret: &vault.Secret{
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"expire_time": "2024-01-01T00:00:00.000000000Z",
 					"ttl":         json.Number("3600"),
 					"type":        "service",
@@ -232,7 +231,7 @@ func TestCheckTokenTtl(t *testing.T) {
 		"ShortTTLExpirable": {
 			message: "should not cache if expirable token is about to expire",
 			secret: &vault.Secret{
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"expire_time": "2024-01-01T00:00:00.000000000Z",
 					"ttl":         json.Number("5"),
 					"type":        "service",
@@ -243,7 +242,7 @@ func TestCheckTokenTtl(t *testing.T) {
 		"ZeroTTLExpirable": {
 			message: "should not cache if expirable token has TTL of 0",
 			secret: &vault.Secret{
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"expire_time": "2024-01-01T00:00:00.000000000Z",
 					"ttl":         json.Number("0"),
 					"type":        "service",
@@ -254,7 +253,7 @@ func TestCheckTokenTtl(t *testing.T) {
 		"NonExpirable": {
 			message: "should cache if token is non-expirable",
 			secret: &vault.Secret{
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"expire_time": nil,
 					"ttl":         json.Number("0"),
 					"type":        "service",

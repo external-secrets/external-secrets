@@ -48,11 +48,11 @@ func TestCacheLeastRecentlyUsedIsRemovedFirst(t *testing.T) {
 	secretID := "0c82ecf4-d3f7-4960-8301-0def5230eee2"
 	maxEntryCount := 500
 
-	for i := 0; i < maxEntryCount; i++ {
+	for i := range maxEntryCount {
 		cache.Put(secretID, uint32(i+1), []byte{})
 	}
 
-	for i := 0; i < maxEntryCount; i++ {
+	for i := range maxEntryCount {
 		cache.Get(secretID, uint32(i+1))
 	}
 

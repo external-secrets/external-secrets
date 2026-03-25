@@ -19,6 +19,7 @@ package externalsecret
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -185,9 +186,9 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		obj.SetNamespace(es.Namespace)
 		switch gvk.Kind {
 		case "ConfigMap", "Secret":
-			obj.Object["data"] = map[string]interface{}{}
+			obj.Object["data"] = map[string]any{}
 		default:
-			obj.Object["spec"] = map[string]interface{}{}
+			obj.Object["spec"] = map[string]any{}
 		}
 	}
 
@@ -204,12 +205,8 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		esutils.MergeStringMap(labels, es.ObjectMeta.Labels)
 		esutils.MergeStringMap(annotations, es.ObjectMeta.Annotations)
 	} else {
-		for k, v := range es.Spec.Target.Template.Metadata.Labels {
-			labels[k] = v
-		}
-		for k, v := range es.Spec.Target.Template.Metadata.Annotations {
-			annotations[k] = v
-		}
+		maps.Copy(labels, es.Spec.Target.Template.Metadata.Labels)
+		maps.Copy(annotations, es.Spec.Target.Template.Metadata.Annotations)
 	}
 
 	labels[esv1.LabelManaged] = esv1.LabelManagedValue

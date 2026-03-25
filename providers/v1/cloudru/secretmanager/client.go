@@ -75,7 +75,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	// {"key": "value", another: "value"}
 	//
 	// but it will return "" when accessing to a property `another` (no quotes)
-	if err = json.Unmarshal(secret, &map[string]interface{}{}); err != nil {
+	if err = json.Unmarshal(secret, &map[string]any{}); err != nil {
 		return nil, fmt.Errorf("expecting the secret %q in JSON format, could not access property %q", ref.Key, ref.Property)
 	}
 

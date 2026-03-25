@@ -18,6 +18,8 @@ limitations under the License.
 package psmetrics
 
 import (
+	"maps"
+
 	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -67,9 +69,7 @@ func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecret
 	psInfo := make(map[string]string)
 	psInfo["name"] = ps.Name
 	psInfo["namespace"] = ps.Namespace
-	for k, v := range ps.Labels {
-		psInfo[k] = v
-	}
+	maps.Copy(psInfo, ps.Labels)
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(psInfo)
 	pushSecretCondition := GetGaugeVec(PushSecretStatusConditionKey)
 

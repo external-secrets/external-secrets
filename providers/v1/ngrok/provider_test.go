@@ -23,7 +23,6 @@ import (
 	"github.com/ngrok/ngrok-api-go/v7"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -250,7 +249,7 @@ var _ = Describe("Provider", func() {
 								SecretRef: &v1.SecretKeySelector{
 									Key:       "API_KEY",
 									Name:      "non-existent-secret",
-									Namespace: ptr.To("some-other-namespace"),
+									Namespace: new("some-other-namespace"),
 								},
 							},
 						},
@@ -275,7 +274,7 @@ var _ = Describe("Provider", func() {
 								SecretRef: &v1.SecretKeySelector{
 									Key:       "API_KEY",
 									Name:      ngrokCredentials.Name,
-									Namespace: ptr.To(namespace),
+									Namespace: new(namespace),
 								},
 							},
 						},

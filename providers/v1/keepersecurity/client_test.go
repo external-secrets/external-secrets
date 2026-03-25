@@ -789,8 +789,8 @@ func TestClientPushSecret(t *testing.T) {
 }
 
 func generateRecords() []*ksm.Record {
-	var records []*ksm.Record
-	for i := 0; i < 3; i++ {
+	records := make([]*ksm.Record, 0, 3)
+	for i := range 3 {
 		var record ksm.Record
 		if i == 0 {
 			record = ksm.Record{

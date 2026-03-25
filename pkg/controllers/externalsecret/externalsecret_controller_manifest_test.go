@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -312,7 +311,7 @@ func TestCreateSimpleManifest(t *testing.T) {
 				"config": []byte("my-config"),
 			},
 			validate: func(t *testing.T, obj *unstructured.Unstructured) {
-				spec, ok := obj.Object["spec"].(map[string]interface{})
+				spec, ok := obj.Object["spec"].(map[string]any)
 				require.True(t, ok, "spec should be map[string]interface{}")
 				data, ok := spec["data"].(map[string]string)
 				require.True(t, ok, "spec.data should be map[string]string")
@@ -325,7 +324,7 @@ func TestCreateSimpleManifest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Reconciler{}
 			obj := &unstructured.Unstructured{
-				Object: make(map[string]interface{}),
+				Object: make(map[string]any),
 			}
 			obj.SetKind(tt.kind)
 
@@ -627,14 +626,14 @@ func TestGetGenericResource(t *testing.T) {
 
 	// Create a ConfigMap to find
 	existingConfigMap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "v1",
 			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "test-cm",
 				"namespace": "default",
 			},
-			"data": map[string]interface{}{
+			"data": map[string]any{
 				"key": "value",
 			},
 		},
@@ -748,7 +747,7 @@ func TestApplyTemplateToManifest_LiteralWithDeployment(t *testing.T) {
 					TemplateFrom: []esv1.TemplateFrom{
 						{
 							Target: "spec",
-							Literal: ptr.To(`
+							Literal: new(`
 replicas: {{ .replicas }}
 selector:
   matchLabels:
@@ -830,7 +829,7 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 					TemplateFrom: []esv1.TemplateFrom{
 						{
 							Target:  "spec.slack",
-							Literal: ptr.To(`api_url: {{ .url }}`),
+							Literal: new(`api_url: {{ .url }}`),
 						},
 					},
 				},
@@ -839,18 +838,18 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 	}
 
 	existingResource := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "notification.toolkit.fluxcd.io/v1beta1",
 			"kind":       "Provider",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":            "test-slack-config",
 				"namespace":       "default",
 				"resourceVersion": "12345",
 				"uid":             "test-uid-123",
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"type": "slack",
-				"slack": map[string]interface{}{
+				"slack": map[string]any{
 					"channel":  "general",
 					"username": "bot",
 				},
@@ -902,33 +901,33 @@ func TestGenericTargetContentHash(t *testing.T) {
 		{
 			name: "hashes spec field",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{"key": "val"},
+				Object: map[string]any{
+					"spec": map[string]any{"key": "val"},
 				},
 			},
 		},
 		{
 			name: "hashes data field when no spec",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"data": map[string]interface{}{"key": "val"},
+				Object: map[string]any{
+					"data": map[string]any{"key": "val"},
 				},
 			},
 		},
 		{
 			name: "prefers spec over data",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{"a": "1"},
-					"data": map[string]interface{}{"b": "2"},
+				Object: map[string]any{
+					"spec": map[string]any{"a": "1"},
+					"data": map[string]any{"b": "2"},
 				},
 			},
 		},
 		{
 			name: "errors when neither spec nor data",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"status": map[string]interface{}{"ready": true},
+				Object: map[string]any{
+					"status": map[string]any{"ready": true},
 				},
 			},
 			wantErr: true,
@@ -949,11 +948,11 @@ func TestGenericTargetContentHash(t *testing.T) {
 	}
 
 	t.Run("spec preferred over data produces spec hash", func(t *testing.T) {
-		specData := map[string]interface{}{"a": "1"}
+		specData := map[string]any{"a": "1"}
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"spec": specData,
-				"data": map[string]interface{}{"b": "2"},
+				"data": map[string]any{"b": "2"},
 			},
 		}
 		hash, err := genericTargetContentHash(obj)
@@ -973,7 +972,7 @@ func TestIsGenericTargetValid(t *testing.T) {
 		}
 	}
 
-	makeTarget := func(uid string, labels map[string]string, annotations map[string]string, obj map[string]interface{}) *unstructured.Unstructured {
+	makeTarget := func(uid string, labels map[string]string, annotations map[string]string, obj map[string]any) *unstructured.Unstructured {
 		u := &unstructured.Unstructured{Object: obj}
 		if uid != "" {
 			u.SetUID(types.UID(uid))
@@ -996,15 +995,15 @@ func TestIsGenericTargetValid(t *testing.T) {
 	})
 
 	t.Run("empty UID is invalid", func(t *testing.T) {
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj := &unstructured.Unstructured{Object: map[string]any{}}
 		valid, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
 		require.NoError(t, err)
 		assert.False(t, valid)
 	})
 
 	t.Run("not managed is invalid", func(t *testing.T) {
-		obj := makeTarget("some-uid", map[string]string{}, nil, map[string]interface{}{
-			"spec": map[string]interface{}{"key": "val"},
+		obj := makeTarget("some-uid", map[string]string{}, nil, map[string]any{
+			"spec": map[string]any{"key": "val"},
 		})
 		valid, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
 		require.NoError(t, err)
@@ -1016,7 +1015,7 @@ func TestIsGenericTargetValid(t *testing.T) {
 			"some-uid",
 			map[string]string{esv1.LabelManaged: esv1.LabelManagedValue},
 			map[string]string{esv1.AnnotationDataHash: "wrong-hash"},
-			map[string]interface{}{"spec": map[string]interface{}{"key": "val"}},
+			map[string]any{"spec": map[string]any{"key": "val"}},
 		)
 		valid, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
 		require.NoError(t, err)
@@ -1024,13 +1023,13 @@ func TestIsGenericTargetValid(t *testing.T) {
 	})
 
 	t.Run("matching hash is valid", func(t *testing.T) {
-		specData := map[string]interface{}{"key": "val"}
+		specData := map[string]any{"key": "val"}
 		hash := esutils.ObjectHash(specData)
 		obj := makeTarget(
 			"some-uid",
 			map[string]string{esv1.LabelManaged: esv1.LabelManagedValue},
 			map[string]string{esv1.AnnotationDataHash: hash},
-			map[string]interface{}{"spec": specData},
+			map[string]any{"spec": specData},
 		)
 		valid, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
 		require.NoError(t, err)
@@ -1042,7 +1041,7 @@ func TestIsGenericTargetValid(t *testing.T) {
 			"some-uid",
 			map[string]string{esv1.LabelManaged: esv1.LabelManagedValue},
 			nil,
-			map[string]interface{}{"status": map[string]interface{}{}},
+			map[string]any{"status": map[string]any{}},
 		)
 		_, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
 		assert.Error(t, err)
