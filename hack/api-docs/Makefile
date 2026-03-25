@@ -59,7 +59,7 @@ stability-support.update:
 .PHONY: check
 check:
 	@echo "Checking for version: $(VERSION_TO_CHECK)"
-	cat $(ROOT)/docs/introduction/stability-support.md | grep "$(VERSION_TO_CHECK)"
+	grep -F "$(VERSION_TO_CHECK)" $(ROOT)/docs/introduction/stability-support.md
 
 .PHONY: build
 build: image generate $(SOURCES)
