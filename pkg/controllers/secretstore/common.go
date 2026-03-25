@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -95,7 +96,21 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 
 	// patch status when done processing
 	p := client.MergeFrom(ss.Copy())
+	storeUID := ss.GetObjectMeta().UID
 	defer func() {
+		current := ss.Copy()
+		if getErr := cl.Get(ctx, req.NamespacedName, current); getErr != nil {
+			if apierrors.IsNotFound(getErr) {
+				log.V(1).Info("store was deleted, skipping status patch")
+				return
+			}
+			log.Error(getErr, "unable to get store for status patch")
+			return
+		}
+		if current.GetObjectMeta().UID != storeUID {
+			log.V(1).Info("store was replaced, skipping status patch")
+			return
+		}
 		err := cl.Status().Patch(ctx, ss, p)
 		if err != nil {
 			log.Error(err, errPatchStatus)
