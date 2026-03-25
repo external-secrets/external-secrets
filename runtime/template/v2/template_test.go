@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -629,6 +629,64 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
+			name: "certSANs extract DNS SANs as comma-separated string",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .certificate | certSANs | join "," }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs extract first SAN with index",
+			tpl: map[string][]byte{
+				"primary-domain": []byte(`{{ index (.certificate | certSANs) 0 }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"primary-domain": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs with toJson",
+			tpl: map[string][]byte{
+				"sans-json": []byte(`{{ .certificate | certSANs | toJson }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans-json": []byte(`["gooble.com"]`),
+			},
+		},
+		{
+			name: "certSANs combined with filterPEM pipeline",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .secret | filterPEM "CERTIFICATE" | certSANs | join "," }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12Key + pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs with invalid PEM",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .certificate | certSANs }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte("not-a-pem"),
+			},
+			expErr: "failed to decode PEM block",
+		},
+		{
 			name: "htpasswd with sha1",
 			tpl: map[string][]byte{
 				".htpasswd": []byte(`{{ htpasswd .username .password "sha" }}`),
@@ -1211,7 +1269,7 @@ func TestNestedPathTargeting(t *testing.T) {
 		scope    esapi.TemplateScope
 		tpl      map[string][]byte
 		data     map[string][]byte
-		verify   func(t *testing.T, obj map[string]interface{})
+		verify   func(t *testing.T, obj map[string]any)
 		wantErr  bool
 		errorMsg string
 	}{
@@ -1229,9 +1287,9 @@ webhook_url: {{ .webhook }}
 				"url":     []byte("https://hooks.slack.com/services/XXX"),
 				"webhook": []byte("https://hooks.slack.com/services/YYY"),
 			},
-			verify: func(t *testing.T, obj map[string]interface{}) {
-				specMap := obj["spec"].(map[string]interface{})
-				slackMap := specMap["slack"].(map[string]interface{})
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				slackMap := specMap["slack"].(map[string]any)
 
 				// Should NOT have spec.slack.api_url.url (the bug with template variables)
 				apiURL := slackMap["api_url"]
@@ -1257,9 +1315,9 @@ api_url: {{ .url }}
 			data: map[string][]byte{
 				"url": []byte("https://hooks.slack.com/services/NEW"),
 			},
-			verify: func(t *testing.T, obj map[string]interface{}) {
-				specMap := obj["spec"].(map[string]interface{})
-				slackMap := specMap["slack"].(map[string]interface{})
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				slackMap := specMap["slack"].(map[string]any)
 
 				// Should have the new field from template
 				assert.Equal(t, "https://hooks.slack.com/services/NEW", slackMap["api_url"], "api_url should be set from template")
@@ -1281,9 +1339,9 @@ channel: {{ .new_channel }}
 			data: map[string][]byte{
 				"new_channel": []byte("alerts"),
 			},
-			verify: func(t *testing.T, obj map[string]interface{}) {
-				specMap := obj["spec"].(map[string]interface{})
-				slackMap := specMap["slack"].(map[string]interface{})
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				slackMap := specMap["slack"].(map[string]any)
 
 				// Should update the existing field
 				assert.Equal(t, "alerts", slackMap["channel"], "channel should be updated")
@@ -1299,10 +1357,10 @@ channel: {{ .new_channel }}
 		t.Run(tt.name, func(t *testing.T) {
 			// Use an unstructured object to test generic target behavior
 			obj := &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": "example.com/v1",
 					"kind":       "TestResource",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "test-resource",
 						"namespace": "default",
 					},
@@ -1311,8 +1369,8 @@ channel: {{ .new_channel }}
 
 			// For merge behavior tests, pre-populate the object with existing content
 			if strings.Contains(tt.name, "merge behavior") {
-				obj.Object["spec"] = map[string]interface{}{
-					"slack": map[string]interface{}{
+				obj.Object["spec"] = map[string]any{
+					"slack": map[string]any{
 						"channel":     "general",
 						"other_field": "test-value",
 					},
@@ -1321,8 +1379,8 @@ channel: {{ .new_channel }}
 
 			// For overwrite field test, pre-populate with different initial values
 			if strings.Contains(tt.name, "overwrite field") {
-				obj.Object["spec"] = map[string]interface{}{
-					"slack": map[string]interface{}{
+				obj.Object["spec"] = map[string]any{
+					"slack": map[string]any{
 						"channel":     "general",
 						"api_url":     "https://hooks.slack.com/existing",
 						"other_field": "test-value",

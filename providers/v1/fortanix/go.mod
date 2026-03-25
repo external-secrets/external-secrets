@@ -1,9 +1,8 @@
 module github.com/external-secrets/external-secrets/providers/v1/fortanix
 
-go 1.25.7
+go 1.26.1
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/fortanix/sdkms-client-go v0.4.1

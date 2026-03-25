@@ -87,10 +87,38 @@ runs:
         # Image SBOM (OS + application libs contained in the image)
         echo "Generating image SBOM for ${IMAGE_NAME}@${CONTAINER_DIGEST}"
         syft "${IMAGE_NAME}@${CONTAINER_DIGEST}" -o spdx-json=sbom.${IMAGE_TAG}.spdx.json
+        ORIGINAL_IMAGE_SBOM_SIZE="$(wc -c < sbom.${IMAGE_TAG}.spdx.json)"
+        echo "Original image SBOM size: ${ORIGINAL_IMAGE_SBOM_SIZE} bytes"
+
+        MAX_SBOM_SIZE_BYTES=10000000
+
+        echo "Deduplicating image SPDX package nodes and relationships"
+        bash ./hack/dedupe-spdx-gomod.sh \
+          --input sbom.${IMAGE_TAG}.spdx.json \
+          --output sbom.${IMAGE_TAG}.dedup.spdx.json
+
+        DEDUP_IMAGE_SBOM_SIZE="$(wc -c < sbom.${IMAGE_TAG}.dedup.spdx.json)"
+        echo "Deduplicated image SBOM size: ${DEDUP_IMAGE_SBOM_SIZE} bytes"
+
+        if [[ "${DEDUP_IMAGE_SBOM_SIZE}" -gt "${MAX_SBOM_SIZE_BYTES}" ]]; then
+          echo "Deduped image SBOM still above ${MAX_SBOM_SIZE_BYTES} bytes, dropping file ownership data"
+          bash ./hack/dedupe-spdx-gomod.sh \
+            --input sbom.${IMAGE_TAG}.spdx.json \
+            --output sbom.${IMAGE_TAG}.dedup.spdx.json \
+            --drop-file-ownership
+          DEDUP_IMAGE_SBOM_SIZE="$(wc -c < sbom.${IMAGE_TAG}.dedup.spdx.json)"
+          echo "Ownership-pruned deduplicated image SBOM size: ${DEDUP_IMAGE_SBOM_SIZE} bytes"
+        fi
+
+        if [[ "${DEDUP_IMAGE_SBOM_SIZE}" -gt "${MAX_SBOM_SIZE_BYTES}" ]]; then
+          echo "Image SBOM predicate is still too large (${DEDUP_IMAGE_SBOM_SIZE} bytes)."
+          echo "Refusing attestation to avoid Rekor submission retries/failure."
+          exit 1
+        fi
         echo "::endgroup::"
 
         echo "::group::Attest image SBOM"
-        cosign attest --yes --new-bundle-format=false --use-signing-config=false --predicate sbom.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
+        cosign attest --yes --new-bundle-format=false --use-signing-config=false --predicate sbom.${IMAGE_TAG}.dedup.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
         echo "::endgroup::"
 
         echo "::group::Verify image SBOM attestation"
@@ -104,10 +132,38 @@ runs:
         # Go modules SBOM (dependencies from the source tree)
         # Requires repository to be checked out before this composite action runs.
         syft dir:. -o spdx-json=sbom.gomod.${IMAGE_TAG}.spdx.json
+        ORIGINAL_GOMOD_SBOM_SIZE="$(wc -c < sbom.gomod.${IMAGE_TAG}.spdx.json)"
+        echo "Original Go modules SBOM size: ${ORIGINAL_GOMOD_SBOM_SIZE} bytes"
+
+        echo "Deduplicating Go modules SPDX package nodes and relationships"
+        bash ./hack/dedupe-spdx-gomod.sh \
+          --input sbom.gomod.${IMAGE_TAG}.spdx.json \
+          --output sbom.gomod.${IMAGE_TAG}.dedup.spdx.json
+
+        DEDUP_GOMOD_SBOM_SIZE="$(wc -c < sbom.gomod.${IMAGE_TAG}.dedup.spdx.json)"
+        echo "Deduplicated Go modules SBOM size: ${DEDUP_GOMOD_SBOM_SIZE} bytes"
+
+        # Rekor requests can fail when predicates are too large. If the deduped
+        # SBOM is still big, drop file ownership-heavy data and re-check size.
+        if [[ "${DEDUP_GOMOD_SBOM_SIZE}" -gt "${MAX_SBOM_SIZE_BYTES}" ]]; then
+          echo "Deduped SBOM still above ${MAX_SBOM_SIZE_BYTES} bytes, dropping file ownership data"
+          bash ./hack/dedupe-spdx-gomod.sh \
+            --input sbom.gomod.${IMAGE_TAG}.spdx.json \
+            --output sbom.gomod.${IMAGE_TAG}.dedup.spdx.json \
+            --drop-file-ownership
+          DEDUP_GOMOD_SBOM_SIZE="$(wc -c < sbom.gomod.${IMAGE_TAG}.dedup.spdx.json)"
+          echo "Ownership-pruned deduplicated Go modules SBOM size: ${DEDUP_GOMOD_SBOM_SIZE} bytes"
+        fi
+
+        if [[ "${DEDUP_GOMOD_SBOM_SIZE}" -gt "${MAX_SBOM_SIZE_BYTES}" ]]; then
+          echo "Go modules SBOM predicate is still too large (${DEDUP_GOMOD_SBOM_SIZE} bytes)."
+          echo "Refusing attestation to avoid Rekor submission retries/failure."
+          exit 1
+        fi
         echo "::endgroup::"
 
         echo "::group::Attest Go modules SBOM"
-        cosign attest --yes --new-bundle-format=false --use-signing-config=false --predicate sbom.gomod.${IMAGE_TAG}.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
+        cosign attest --yes --new-bundle-format=false --use-signing-config=false --predicate sbom.gomod.${IMAGE_TAG}.dedup.spdx.json --type spdx "${IMAGE_NAME}@${CONTAINER_DIGEST}"
         echo "::endgroup::"
 
         echo "::group::Verify Go modules SBOM attestation"

@@ -2280,8 +2280,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2307,8 +2307,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2472,8 +2472,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2499,8 +2499,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -7182,6 +7182,153 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.NebiusAuth">NebiusAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NebiusMysteryboxProvider">NebiusMysteryboxProvider</a>)
+</p>
+<p>
+<p>NebiusAuth defines the authentication method for the Nebius provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountCredsSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountCreds references a Kubernetes Secret key that contains a JSON
+document with service account credentials used to get an IAM token.</p>
+<p>Expected JSON structure:
+{
+&ldquo;subject-credentials&rdquo;: {
+&ldquo;alg&rdquo;: &ldquo;RS256&rdquo;,
+&ldquo;private-key&rdquo;: &ldquo;&mdash;&ndash;BEGIN PRIVATE KEY&mdash;&ndash;\n<private-key>\n&mdash;&ndash;END PRIVATE KEY&mdash;&ndash;\n&rdquo;,
+&ldquo;kid&rdquo;: &ldquo;<public-key-id>&rdquo;,
+&ldquo;iss&rdquo;: &ldquo;<issuer-service-account-id>&rdquo;,
+&ldquo;sub&rdquo;: &ldquo;<subject-service-account-id>&rdquo;
+}
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NebiusCAProvider">NebiusCAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NebiusMysteryboxProvider">NebiusMysteryboxProvider</a>)
+</p>
+<p>
+<p>NebiusCAProvider The provider for the CA bundle to use to validate Nebius server certificate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NebiusMysteryboxProvider">NebiusMysteryboxProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius Mysterybox provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiDomain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NebiusMysterybox API endpoint</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusAuth">
+NebiusAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines parameters to authenticate in MysteryBox</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusCAProvider">
+NebiusCAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate NebiusMysterybox server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.NgrokAuth">NgrokAuth
 </h3>
 <p>
@@ -9496,6 +9643,20 @@ BarbicanProvider
 <p>Barbican configures this store to sync secrets using the OpenStack Barbican provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nebiusmysterybox</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusMysteryboxProvider">
+NebiusMysteryboxProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.SecretStoreRef">SecretStoreRef
@@ -11479,8 +11640,8 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.
-Deprecated: use serviceAccountRef.Audiences instead</p>
+Defaults to a single audience <code>vault</code> it not specified.</p>
+<p>Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -11494,8 +11655,8 @@ int64
 <em>(Optional)</em>
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
-<code>serviceAccountRef</code>.
-Deprecated: this will be removed in the future.
+<code>serviceAccountRef</code>.</p>
+<p>Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>
@@ -15682,8 +15843,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -15872,8 +16033,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -23143,8 +23304,8 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.
-Deprecated: use serviceAccountRef.Audiences instead</p>
+Defaults to a single audience <code>vault</code> it not specified.</p>
+<p>Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -23158,8 +23319,8 @@ int64
 <em>(Optional)</em>
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
-<code>serviceAccountRef</code>.
-Deprecated: this will be removed in the future.
+<code>serviceAccountRef</code>.</p>
+<p>Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>

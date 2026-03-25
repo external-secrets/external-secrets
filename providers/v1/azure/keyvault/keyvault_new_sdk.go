@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,12 +23,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"regexp"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
@@ -75,7 +75,7 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 
 	// Prepare tags for new SDK
 	secretTags := map[string]*string{
-		managedBy: to.Ptr(managerLabel),
+		managedBy: new(managerLabel),
 	}
 	for k, v := range tags {
 		secretTags[k] = &v
@@ -132,7 +132,7 @@ func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName
 
 	// Prepare tags for new SDK
 	certTags := map[string]*string{
-		managedBy: to.Ptr(managerLabel),
+		managedBy: new(managerLabel),
 	}
 	for k, v := range tags {
 		certTags[k] = &v
@@ -192,7 +192,7 @@ func (a *Azure) setKeyVaultKeyWithNewSDK(ctx context.Context, secretName string,
 
 	// Prepare tags for new SDK
 	keyTags := map[string]*string{
-		managedBy: to.Ptr(managerLabel),
+		managedBy: new(managerLabel),
 	}
 	for k, v := range tags {
 		keyTags[k] = &v
@@ -201,7 +201,7 @@ func (a *Azure) setKeyVaultKeyWithNewSDK(ctx context.Context, secretName string,
 	params := azkeys.ImportKeyParameters{
 		Key: &azkey,
 		KeyAttributes: &azkeys.KeyAttributes{
-			Enabled: to.Ptr(true),
+			Enabled: new(true),
 		},
 		Tags: keyTags,
 	}
@@ -385,9 +385,7 @@ func buildCustomCloudConfiguration(config *esv1.AzureCustomCloudConfig, baseConf
 		Services:                     map[cloud.ServiceName]cloud.ServiceConfiguration{},
 	}
 
-	for k, v := range baseConfig.Services {
-		cloudConfig.Services[k] = v
-	}
+	maps.Copy(cloudConfig.Services, baseConfig.Services)
 
 	// Set Active Directory endpoint with custom value (required)
 	cloudConfig.ActiveDirectoryAuthorityHost = config.ActiveDirectoryEndpoint

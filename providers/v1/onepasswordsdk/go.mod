@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/1password/onepassword-sdk-go v0.3.1
@@ -50,6 +50,7 @@ require (
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

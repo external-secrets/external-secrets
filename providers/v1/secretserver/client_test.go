@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -159,7 +159,7 @@ func createEmptyFieldsSecret(id int) *server.Secret {
 
 func newTestClient(t *testing.T) esv1.SecretsClient {
 	// Build secrets list while handling any errors from createSecret
-	var secrets []*server.Secret
+	var secrets []*server.Secret //nolint:prealloc // populated incrementally
 
 	s, err := createSecret(1000, "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}")
 	require.NoError(t, err)
@@ -586,7 +586,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}{
 		"returns error indicating not supported": {
 			ref: esv1.ExternalSecretFind{
-				Path: esv1Ptr("some-path"),
+				Path: new("some-path"),
 			},
 			wantErr: true,
 			errMsg:  "getting all secrets is not supported by Delinea Secret Server at this time",
@@ -607,9 +607,4 @@ func TestGetAllSecrets(t *testing.T) {
 			assert.Equal(t, tc.errMsg, err.Error())
 		})
 	}
-}
-
-// Helper function to create string pointer.
-func esv1Ptr(s string) *string {
-	return &s
 }

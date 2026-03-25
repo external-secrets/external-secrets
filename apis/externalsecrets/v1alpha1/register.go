@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ var (
 
 var (
 	// PushSecretKind is the kind name used for PushSecret resources.
-	PushSecretKind = reflect.TypeOf(PushSecret{}).Name()
+	PushSecretKind = reflect.TypeFor[PushSecret]().Name()
 	// PushSecretGroupKind is the group/kind used for PushSecret resources.
 	PushSecretGroupKind = schema.GroupKind{Group: Group, Kind: PushSecretKind}.String()
 	// PushSecretKindAPIVersion is the kind/apiVersion used for PushSecret resources.
@@ -52,7 +52,7 @@ var (
 
 var (
 	// ClusterPushSecretKind is the kind name used for ClusterPushSecret resources.
-	ClusterPushSecretKind = reflect.TypeOf(ClusterPushSecret{}).Name()
+	ClusterPushSecretKind = reflect.TypeFor[ClusterPushSecret]().Name()
 	// ClusterPushSecretGroupKind is the group/kind used for ClusterPushSecret resources.
 	ClusterPushSecretGroupKind = schema.GroupKind{Group: Group, Kind: ClusterPushSecretKind}.String()
 	// ClusterPushSecretKindAPIVersion is the kind/apiVersion used for ClusterPushSecret resources.
