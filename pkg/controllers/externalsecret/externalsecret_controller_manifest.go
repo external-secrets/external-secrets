@@ -238,13 +238,22 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	ann[esv1.AnnotationDataHash] = hash
 	result.SetAnnotations(ann)
 
-	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
-		if err := controllerutil.SetControllerReference(es, result, r.Scheme); err != nil {
-			return nil, fmt.Errorf("failed to set controller reference: %w", err)
-		}
+	if err := r.setOwnerReferenceOnCreatePolicyOwner(es, result); err != nil {
+		return nil, err
 	}
 
 	return result, nil
+}
+
+// setOwnerReferenceOnCreatePolicyOwner sets the controller reference when creationPolicy is Owner.
+func (r *Reconciler) setOwnerReferenceOnCreatePolicyOwner(es *esv1.ExternalSecret, result *unstructured.Unstructured) error {
+	if es.Spec.Target.CreationPolicy != esv1.CreatePolicyOwner {
+		return nil
+	}
+	if err := controllerutil.SetControllerReference(es, result, r.Scheme); err != nil {
+		return fmt.Errorf("failed to set controller reference: %w", err)
+	}
+	return nil
 }
 
 // createSimpleManifest creates a simple resource without templates (e.g., ConfigMap with data field).
