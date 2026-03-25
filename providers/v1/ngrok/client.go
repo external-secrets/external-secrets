@@ -30,7 +30,6 @@ import (
 	"github.com/ngrok/ngrok-api-go/v7"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
@@ -140,9 +139,9 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	// If the secret exists, update it
 	_, err = c.secretsClient.Update(ctx, &ngrok.SecretUpdate{
 		ID:          existingSecret.ID,
-		Value:       ptr.To(string(value)),
-		Metadata:    ptr.To(string(metadataJSON)),
-		Description: ptr.To(psmd.Description),
+		Value:       new(string(value)),
+		Metadata:    new(string(metadataJSON)),
+		Description: new(psmd.Description),
 	})
 	return err
 }
