@@ -178,7 +178,6 @@ func TestEnsureInformer_PropagatesCacheError(t *testing.T) {
 	assert.Contains(t, err.Error(), "CRD not found")
 }
 
-
 func TestReleaseInformer_RemovesES(t *testing.T) {
 	fc := &fakeCache{}
 	log := ctrl.Log.WithName("test")
