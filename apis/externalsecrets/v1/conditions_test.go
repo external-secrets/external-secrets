@@ -62,7 +62,7 @@ func TestGetExternalSecretCondition(t *testing.T) {
 			got := GetExternalSecretCondition(status, tt.condType)
 
 			if diff := cmp.Diff(tt.expected, got); diff != "" {
-				t.Errorf("(-got, +want)\n%s", diff)
+				t.Errorf("(-want, +got)\n%s", diff)
 			}
 		})
 	}
