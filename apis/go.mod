@@ -1,4 +1,4 @@
-module github.com/external-secrets/external-secrets/apis
+module github.com/external-secrets/external-secrets/apis/v2
 
 go 1.26.2
 
