@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ func newSecretsCache(size int) *secretsCache {
 		cache: cache.Must(size, func(_ *cacheEntry) {
 			// No cleanup needed on eviction — entries are plain data with no external resources.
 		}),
-		keys:  make(map[string]map[cache.Key]struct{}),
+		keys: make(map[string]map[cache.Key]struct{}),
 	}
 }
 
