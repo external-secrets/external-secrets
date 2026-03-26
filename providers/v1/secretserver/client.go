@@ -36,7 +36,9 @@ import (
 
 const (
 	// errMsgNoMatchingSecrets is returned by getSecretByName when a search returns zero results.
-	errMsgNoMatchingSecrets = "no matching secrets"
+	// This preserves backward compatibility with the original error message used
+	// before the PushSecret feature was added.
+	errMsgNoMatchingSecrets = "unable to retrieve secret at this time"
 	// errMsgNotFound is returned when a secret is not found in a specific folder.
 	errMsgNotFound = "not found"
 	// errMsgAmbiguousName is returned by lookupSecretStrict when a plain name
@@ -54,7 +56,8 @@ const (
 //
 // This function uses case-insensitive substring matching with explicit exclusions
 // for false-positive patterns produced by our own code (e.g. "not found in secret"
-// from updateSecret or "not found in secret template" from createSecret).
+// from updateSecret or "not found in secret template" from createSecret) and
+// non-404 HTTP errors that happen to contain "not found" in their body.
 func isNotFoundError(err error) bool {
 	if err == nil {
 		return false
@@ -71,13 +74,19 @@ func isNotFoundError(err error) bool {
 		return true
 	}
 
-	// Generic "not found" substring — but exclude false positives from our own
-	// updateSecret / createSecret error messages.
+	// Generic "not found" substring — but exclude false positives.
 	if strings.Contains(msg, errMsgNotFound) {
 		// Patterns like "field X not found in secret" or "field X not found in secret template"
 		// are field-level errors, not secret-not-found errors.
 		if strings.Contains(msg, "not found in secret") {
 			return false
+		}
+		// Exclude non-404 HTTP errors that happen to contain "not found" in the body
+		// (e.g. "401 Unauthorized: user not found"). The SDK formats all HTTP errors
+		// as "<StatusCode> <StatusText>: <body>", so any message starting with a
+		// 3-digit code followed by a space is an HTTP error.
+		if len(msg) >= 4 && msg[3] == ' ' && msg[0] >= '0' && msg[0] <= '9' && msg[1] >= '0' && msg[1] <= '9' && msg[2] >= '0' && msg[2] <= '9' {
+			return false // non-404 HTTP error (404 was already handled above)
 		}
 		return true
 	}
@@ -138,10 +147,11 @@ var _ esv1.SecretsClient = &client{}
 //     - If using the secret "name" and multiple secrets are found,
 //     the first secret in the array will be the secret returned.
 //  3. Get the full secret as a JSON-encoded value by leaving ref.Property empty.
-//  4. Get a specific field value by matching ref.Property against field
-//     Slug or FieldName. If no field matches, fall back to gjson extraction
-//     from the first field's ItemValue (legacy single-field JSON blob pattern).
-//     Nested values are supported by specifying a gjson expression.
+//  4. Get a specific value by using a key from the JSON-formatted secret in
+//     Items.0.ItemValue via gjson (supports nested paths like "server.1").
+//     If the first field's ItemValue is not valid JSON or the gjson path
+//     does not match, fall back to matching ref.Property against each field's
+//     Slug or FieldName (useful for multi-field secrets).
 func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
@@ -160,22 +170,21 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		return jsonStr, nil
 	}
 
-	// First: match ref.Property against field Slug or FieldName.
-	// This is the primary lookup path for multi-field secrets.
-	for index := range secret.Fields {
-		if secret.Fields[index].Slug == ref.Property || secret.Fields[index].FieldName == ref.Property {
-			return []byte(secret.Fields[index].ItemValue), nil
-		}
-	}
-
-	// Fallback: legacy single-field JSON blob pattern.
-	// If the first field's ItemValue is valid JSON, try extracting ref.Property
-	// via gjson (supports nested paths like "server.1").
+	// Primary path: extract ref.Property from the first field's ItemValue via gjson.
+	// This preserves backward compatibility with the original single-field JSON blob pattern.
 	val := gjson.Get(string(jsonStr), "Items.0.ItemValue")
 	if val.Exists() && gjson.Valid(val.String()) {
 		out := gjson.Get(val.String(), ref.Property)
 		if out.Exists() {
 			return []byte(out.String()), nil
+		}
+	}
+
+	// Fallback: match ref.Property against field Slug or FieldName.
+	// This supports multi-field secrets where fields are accessed by name.
+	for index := range secret.Fields {
+		if secret.Fields[index].Slug == ref.Property || secret.Fields[index].FieldName == ref.Property {
+			return []byte(secret.Fields[index].ItemValue), nil
 		}
 	}
 

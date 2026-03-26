@@ -404,7 +404,7 @@ func TestGetSecretSecretServer(t *testing.T) {
 			},
 			want: []byte(`passwordvalue`),
 		},
-		"Secret from code: 'name' not found returns no matching secrets error": {
+		"Secret from code: 'name' not found returns unable to retrieve secret error": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "Secretnameerror",
 				Property: "password",
@@ -996,11 +996,6 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 }
 
-// Helper function to create string pointer.
-func esv1Ptr(s string) *string {
-	return &s
-}
-
 // TestIsNotFoundError tests the isNotFoundError function with various error formats.
 func TestIsNotFoundError(t *testing.T) {
 	testCases := map[string]struct {
@@ -1023,8 +1018,8 @@ func TestIsNotFoundError(t *testing.T) {
 			err:  errors.New("404 Not Found: "),
 			want: true,
 		},
-		"no matching secrets": {
-			err:  errors.New("no matching secrets"),
+		"unable to retrieve secret at this time": {
+			err:  errors.New("unable to retrieve secret at this time"),
 			want: true,
 		},
 		"unrelated error": {
@@ -1051,11 +1046,10 @@ func TestIsNotFoundError(t *testing.T) {
 			want: true,
 		},
 		"SDK HTTP 401 with not found in body": {
-			// Auth error that happens to contain "not found" — still matches
-			// the generic substring (this is an acceptable edge case since
-			// auth errors should not appear in secret-lookup code paths).
+			// Auth errors that happen to contain "not found" in the body should NOT
+			// be treated as secret-not-found errors. Only 404 is a true not-found.
 			err:  errors.New("401 Unauthorized: user not found"),
-			want: true,
+			want: false,
 		},
 		"SDK HTTP 500 error": {
 			err:  errors.New("500 Internal Server Error: something went wrong"),
@@ -1469,7 +1463,7 @@ func TestGetSecretByNameStrict(t *testing.T) {
 			wantErr: true,
 			errMsg:  "multiple secrets found with the same name",
 		},
-		"non-existent name returns no matching secrets": {
+		"non-existent name returns unable to retrieve secret error": {
 			name:    "does-not-exist",
 			wantErr: true,
 			errMsg:  errMsgNoMatchingSecrets,
@@ -1673,15 +1667,17 @@ func (e *emptyTemplateAPI) SecretTemplate(id int) (*server.SecretTemplate, error
 	return e.fakeAPI.SecretTemplate(id)
 }
 
-// TestGetSecretFieldPriorityOverGjson tests that field slug/name matching takes
-// priority over gjson extraction from Fields[0].ItemValue.
-func TestGetSecretFieldPriorityOverGjson(t *testing.T) {
+// TestGetSecretGjsonPriorityOverField tests that gjson extraction from
+// Fields[0].ItemValue takes priority over field Slug/FieldName matching.
+// This preserves backward compatibility: existing users relying on gjson
+// extraction from the first field's JSON blob are not broken.
+func TestGetSecretGjsonPriorityOverField(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a secret where:
 	// - Fields[0].ItemValue is JSON containing key "password"
 	// - Fields[1] has Slug "password" with a DIFFERENT value
-	// Field slug/name should win over gjson.
+	// gjson should win because it is checked first (backward compat).
 	s := &server.Secret{
 		ID:   100,
 		Name: "priority-test",
@@ -1706,8 +1702,8 @@ func TestGetSecretFieldPriorityOverGjson(t *testing.T) {
 		Property: "password",
 	})
 	assert.NoError(t, err)
-	// Field slug match should return "from-field-slug", NOT "from-json-blob"
-	assert.Equal(t, []byte("from-field-slug"), got)
+	// gjson extraction should return "from-json-blob" (backward compat takes precedence)
+	assert.Equal(t, []byte("from-json-blob"), got)
 }
 
 // TestGetSecretGjsonFallback tests that gjson extraction from Fields[0].ItemValue
