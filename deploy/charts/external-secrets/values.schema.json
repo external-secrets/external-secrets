@@ -637,6 +637,9 @@
         "processSecretStore": {
             "type": "boolean"
         },
+        "storeRequeueInterval": {
+            "type": "string"
+        },
         "rbac": {
             "type": "object",
             "properties": {
