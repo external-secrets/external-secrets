@@ -127,10 +127,10 @@ spec:
         jwt:
           serviceAccountRef:
             name: external-secrets
-            namespace: external-secrets   # required for ClusterSecretStore
+            namespace: external-secrets   # recommended for ClusterSecretStore
 ```
 
-**Key difference:** `ClusterSecretStore` requires `namespace` in `serviceAccountRef` and `secretRef`. `SecretStore` does not.
+**Key difference:** `ClusterSecretStore` should specify `namespace` in `serviceAccountRef` and `secretRef`. Both fields are optional in the API schema, but omitting them in a cluster-scoped store can cause ambiguous resolution.
 
 ### ExternalSecret (same for both options):
 
@@ -156,7 +156,7 @@ spec:
 
 ## How the Sync Loop Works
 
-The controller checks the external provider on the `refreshInterval` cadence and writes the result to the target K8s Secret. A `refreshInterval` of `1h` means the controller polls the provider once per hour. Setting it to `0` disables polling entirely; the secret syncs once at creation and never updates.
+The controller polls the external provider on the `refreshInterval` cadence and writes the result to the target K8s Secret. `refreshInterval: 1h` polls once per hour. `refreshInterval: 0` disables polling; the controller syncs the secret once at creation and never revisits it.
 
 ## Verification
 
@@ -189,13 +189,13 @@ kubectl annotate externalsecret <name> -n <namespace> force-sync=$(date +%s) --o
 
 ## Common Pitfalls
 
-1. **Missing `namespace` in refs.** `ClusterSecretStore` requires `namespace` in `serviceAccountRef` and `secretRef`. `SecretStore` does not.
+1. **Missing `namespace` in refs.** `ClusterSecretStore` should specify `namespace` in `serviceAccountRef` and `secretRef`. Both are `+optional` in the API schema, but omitting them in a cluster-scoped store can cause ambiguous resolution.
 2. **Auth misconfiguration.** Most sync failures trace back to auth. Check the provider-specific doc under `docs/provider/`.
 3. **Secret path mismatch.** Provider key names are exact. A trailing slash, wrong case, or missing path segment returns "not found."
 ### AWS-specific pitfalls
 
-5. **IRSA OIDC trust policy mismatch.** The IAM role's trust policy must reference the correct OIDC provider URL for the EKS cluster. A mismatch silently fails with "unable to create session." Verify with `aws iam get-role --role-name <role> | jq '.Role.AssumeRolePolicyDocument'`.
-6. **PushSecret needs extra permissions.** Syncing secrets *back* to AWS requires `CreateSecret`, `PutSecretValue`, `TagResource`, and `DeleteSecret` in addition to read permissions. See `docs/provider/aws-secrets-manager.md`.
+4. **IRSA OIDC trust policy mismatch.** The IAM role's trust policy must reference the correct OIDC provider URL for the EKS cluster. A mismatch silently fails with "unable to create session." Verify with `aws iam get-role --role-name <role> | jq '.Role.AssumeRolePolicyDocument'`.
+5. **PushSecret needs extra permissions.** Syncing secrets *back* to AWS requires `CreateSecret`, `PutSecretValue`, `TagResource`, and `DeleteSecret` in addition to read permissions. See `docs/provider/aws-secrets-manager.md`.
 
 ## Security Hardening Checklist
 

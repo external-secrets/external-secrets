@@ -21,10 +21,10 @@ CRDs exceed the 256KB annotation limit. Apply them with `kubectl apply --server-
 
 ## Project Layout
 
-Three binaries in `cmd/`: the **controller** reconciles ExternalSecrets into K8s Secrets, the **webhook** validates and defaults CRDs, and the **certcontroller** manages TLS certificates for the webhook.
+Single binary built from `main.go`. The **controller** reconciles ExternalSecrets into K8s Secrets. The **webhook** (validates and defaults CRDs) and **certcontroller** (manages webhook TLS) are subcommands registered via `rootCmd.AddCommand()`.
 
 ```
-cmd/                  # Entry points (controller, webhook, certcontroller)
+cmd/                  # Subcommands (controller, webhook, certcontroller)
 pkg/                  # Core logic (controllers, provider clients, template engine)
 apis/                 # API types (v1, v1beta1) — separate Go module
 providers/            # Provider implementations — each is a separate Go module
