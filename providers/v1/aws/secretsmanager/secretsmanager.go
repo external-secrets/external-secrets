@@ -917,11 +917,13 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		policyJSONMaps   map[string]any
 	)
 
-	if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
-		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
+	if currentPolicy != "" {
+		if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
+			return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
+		}
 	}
 	if err := json.Unmarshal([]byte(policyJSON), &policyJSONMaps); err != nil {
-		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
+		return fmt.Errorf("failed to unmarshal desired resource policy: %w", err)
 	}
 
 	if reflect.DeepEqual(currentPolicyMap, policyJSONMaps) {

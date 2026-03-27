@@ -1054,6 +1054,54 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithEmptyExistingResourcePolicy": {
+			reason: "sync a resource policy when no existing policy is present",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn:    fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:    fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:    fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:       fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:     fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(&awssm.GetResourcePolicyOutput{}, nil),
+					PutResourcePolicyFn: fakesm.NewPutResourcePolicyFn(&awssm.PutResourcePolicyOutput{}, nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"resourcePolicy": {
+										"blockPublicPolicy": true,
+										"policySourceRef": {
+											"kind": "ConfigMap",
+											"name": "resource-policy",
+											"key": "policy.json"
+									}
+								}
+							}
+						}`),
+					},
+				},
+				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "resource-policy",
+					},
+					Data: map[string]string{
+						"policy.json": `{"Version":"2012-10-17","Statement":[{"Sid":"DenyAll","Effect":"Deny","Principal":"*","Action":"secretsmanager:GetSecretValue","Resource":"*"}]}`,
+					},
+				}),
+			},
+			want: want{
+				err: nil,
+			},
+		},
 		"SetSecretWithExistingNonChangingResourcePolicy": {
 			reason: "sync an existing secret without syncing resource policy that has no change",
 			args: args{
