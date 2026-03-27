@@ -47,7 +47,7 @@ providers/v1/onboardbase/             @external-secrets/provider-onboardbase-rev
 providers/v1/onepassword/             @external-secrets/provider-onepassword-reviewers
 providers/v1/onepasswordsdk/          @external-secrets/provider-onepasswordsdk-reviewers
 providers/v1/oracle/                  @external-secrets/provider-oracle-reviewers
-pkg/provider/v1/ovh/                  @external-secrets/provider-ovh-reviewers
+providers/v1/ovh/                      @external-secrets/provider-ovh-reviewers
 providers/v1/passbolt/                @external-secrets/provider-passbolt-reviewers
 providers/v1/passworddepot/           @external-secrets/provider-passworddepot-reviewers
 providers/v1/previder/                @external-secrets/provider-previder-reviewers
