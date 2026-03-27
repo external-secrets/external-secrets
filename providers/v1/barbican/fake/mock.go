@@ -122,8 +122,8 @@ func (p MockPagination) LastMarker() (string, error) {
 	return "", nil
 }
 
-func (p MockPagination) GetBody() interface{} {
-	return map[string]interface{}{
+func (p MockPagination) GetBody() any {
+	return map[string]any{
 		"secrets": p.secrets,
 	}
 }

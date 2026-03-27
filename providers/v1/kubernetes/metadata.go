@@ -20,6 +20,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"maps"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -71,12 +72,8 @@ func mergeSourceMetadata(localSecret *v1.Secret, pushMeta *metadata.PushSecretMe
 
 	switch pushMeta.Spec.SourceMergePolicy {
 	case "", sourceMergePolicyMerge:
-		for k, v := range pushMeta.Spec.Labels {
-			labels[k] = v
-		}
-		for k, v := range pushMeta.Spec.Annotations {
-			annotations[k] = v
-		}
+		maps.Copy(labels, pushMeta.Spec.Labels)
+		maps.Copy(annotations, pushMeta.Spec.Annotations)
 	case sourceMergePolicyReplace:
 		labels = pushMeta.Spec.Labels
 		annotations = pushMeta.Spec.Annotations
@@ -109,12 +106,8 @@ func mergeTargetMetadata(
 
 	switch targetMergePolicy {
 	case "", targetMergePolicyMerge:
-		for k, v := range sourceLabels {
-			labels[k] = v
-		}
-		for k, v := range sourceAnnotations {
-			annotations[k] = v
-		}
+		maps.Copy(labels, sourceLabels)
+		maps.Copy(annotations, sourceAnnotations)
 	case targetMergePolicyReplace:
 		labels = sourceLabels
 		annotations = sourceAnnotations
