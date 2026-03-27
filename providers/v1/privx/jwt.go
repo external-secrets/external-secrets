@@ -1,3 +1,19 @@
+/*
+Copyright © 2026 SSH Communications
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package privx
 
 import (
@@ -19,7 +35,6 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/go-logr/logr"
 	jwt "github.com/golang-jwt/jwt/v5"
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -28,20 +43,27 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 var (
-	ErrInvalidPEMBlock          = errors.New("invalid PEM block")
+	// ErrInvalidPEMBlock is returned when the PEM block is invalid or cannot be decoded.
+	ErrInvalidPEMBlock = errors.New("invalid PEM block")
+
+	// ErrUnsupportedPrivateKeyAlg is returned when the private key algorithm is not supported.
 	ErrUnsupportedPrivateKeyAlg = errors.New("unsupported private key algorithm")
-	ErrUnsupportedPEMBlockType  = errors.New("unsupported PEM block type")
+
+	// ErrUnsupportedPEMBlockType is returned when the PEM block type is not supported.
+	ErrUnsupportedPEMBlockType = errors.New("unsupported PEM block type")
 )
 
 var (
-	ErrPrivXTokenExchangeBuildRequest = errors.New("privx token exchange: build request")
-	ErrPrivXTokenExchangeDoRequest    = errors.New("privx token exchange: do request")
-	ErrPrivXTokenExchangeBadStatus    = errors.New("privx token exchange: bad http status")
-	ErrPrivXTokenExchangeReadBody     = errors.New("privx token exchange: read response body")
-	ErrPrivXTokenExchangeDecodeJSON   = errors.New("privx token exchange: decode json")
+	// ErrPrivXTokenExchangeBadStatus is returned when the PrivX token exchange returns a non-success HTTP status.
+	ErrPrivXTokenExchangeBadStatus = errors.New("privx token exchange: bad http status")
+
+	// ErrTokenEmpty is returned when the access token is empty.
+	ErrTokenEmpty = errors.New("token debug: empty access token")
 )
 
 // ExchangeTokenRequest matches PrivX token exchange request fields.
@@ -79,7 +101,7 @@ func ExchangeToken(
 	baseURL = strings.TrimRight(baseURL, "/")
 	if reqBody.Token == "" {
 		// Keep it simple: server will also reject, but client-side guard is useful.
-		return out, fmt.Errorf("%w: empty token", ErrPrivXTokenExchangeBuildRequest)
+		return out, fmt.Errorf("%w: empty token", ErrTokenEmpty)
 	}
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 30 * time.Second}
@@ -87,26 +109,26 @@ func ExchangeToken(
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return out, fmt.Errorf("%w: marshal: %v", ErrPrivXTokenExchangeBuildRequest, err)
+		return out, fmt.Errorf("marshal: %w", err)
 	}
 
 	url := baseURL + "/auth/api/v1/token/login"
 	r, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
 	if err != nil {
-		return out, fmt.Errorf("%w: %v", ErrPrivXTokenExchangeBuildRequest, err)
+		return out, fmt.Errorf("privx token exchange: build request: %w", err)
 	}
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Accept", "application/json")
 
 	resp, err := httpClient.Do(r)
 	if err != nil {
-		return out, fmt.Errorf("%w: %v", ErrPrivXTokenExchangeDoRequest, err)
+		return out, fmt.Errorf("privx token exchange: do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return out, fmt.Errorf("%w: %v", ErrPrivXTokenExchangeReadBody, err)
+		return out, fmt.Errorf("privx token exchange: read response body: %w", err)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -119,7 +141,7 @@ func ExchangeToken(
 	}
 
 	if err := json.Unmarshal(respBody, &out); err != nil {
-		return out, fmt.Errorf("%w: %v; body=%s", ErrPrivXTokenExchangeDecodeJSON, err, strings.TrimSpace(string(respBody)))
+		return out, fmt.Errorf("privx token exchange: decode json: %w; body=%s", err, strings.TrimSpace(string(respBody)))
 	}
 
 	return out, nil
@@ -188,7 +210,11 @@ func createSignedJWT(
 // - privateKeyRef must point to a PEM-encoded RSA key (PKCS#1 or PKCS#8) stored in Secret.Data[ref.Key].
 // - aud is written as a JSON string (not an array) by using MapClaims.
 // - extraClaims are merged into the token claims (cannot overwrite reserved keys unless you do it explicitly).
-func createSignedJWT_RS256(
+//
+// This function will be useful in future versions of PrivX
+//
+//nolint:unused
+func createSignedJWTRS256(
 	ctx context.Context,
 	client kclient.Client,
 	namespace string,
@@ -199,6 +225,9 @@ func createSignedJWT_RS256(
 	ttl time.Duration,
 	extraClaims map[string]any,
 ) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	// Read PEM from Kubernetes Secret
 	pemStr, err := readSecretValue(ctx, client, namespace, privateKeyRef)
 	if err != nil {
@@ -240,7 +269,6 @@ func createSignedJWT_RS256(
 
 // getJWTFromPod reads the ServiceAccount JWT mounted into every pod by Kubernetes.
 func getJWTFromPod() (string, error) {
-
 	b, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {
 		return "", fmt.Errorf("read serviceaccount token: %w", err)
@@ -433,15 +461,11 @@ func detectJWTSigningKey(pemBytes []byte) (jwt.SigningMethod, any, error) {
 	}
 }
 
-var (
-	ErrTokenEmpty = errors.New("token debug: empty access token")
-)
-
 // LogOpaqueTokenResponse logs metadata of an OAuth token safely.
 // The access token itself is never logged. Instead, a short SHA256 fingerprint is logged.
-func logTokenResponse(logger logr.Logger, tr TokenResponse) error {
+func logTokenResponse(logger logr.Logger, tr TokenResponse) {
 	if tr.AccessToken == "" {
-		return ErrTokenEmpty
+		logger.Info("oauth token response is empty")
 	}
 
 	hash := sha256.Sum256([]byte(tr.AccessToken))
@@ -455,6 +479,4 @@ func logTokenResponse(logger logr.Logger, tr TokenResponse) error {
 		"accessTokenLen", len(tr.AccessToken),
 		"accessTokenFingerprint", fingerprint,
 	)
-
-	return nil
 }

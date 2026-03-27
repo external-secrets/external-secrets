@@ -1,12 +1,24 @@
 /*
-Implement the ESO SecretsClient
+Copyright © 2026 SSH Communications
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
+// Package privx implements the ESO SecretsClient for SSH PrivX
 package privx
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,20 +30,28 @@ import (
 	"github.com/SSHcom/privx-sdk-go/v2/api/rolestore"
 	"github.com/SSHcom/privx-sdk-go/v2/api/vault"
 	privxapi "github.com/SSHcom/privx-sdk-go/v2/restapi"
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 var (
-	ErrNoName                      = errors.New("No name provided for secret")
+	// ErrNoName is returned when no name is provided for the secret.
+	ErrNoName = errors.New("No name provided for secret")
+
+	// ErrUnsupportedDecodingStrategy is returned when the decoding strategy is not supported.
 	ErrUnsupportedDecodingStrategy = errors.New("unsupported decoding strategy")
-	ErrSecretDataMissing           = errors.New("secret data missing")
-	ErrPropertyNotFound            = errors.New("property not found in secret")
+
+	// ErrSecretDataMissing is returned when secret data is missing.
+	ErrSecretDataMissing = errors.New("secret data missing")
+
+	// ErrPropertyNotFound is returned when the requested property is not found in the secret.
+	ErrPropertyNotFound = errors.New("property not found in secret")
 )
 
-// Check during compile that we implement the interface
+// Check during compile that we implement the interface.
 var _ esv1.SecretsClient = (*SecretsClient)(nil)
 
 // SecretsClient provides access to PrivX secrets.
@@ -49,6 +69,9 @@ type SecretsClient struct {
 
 // GetSecret returns a single secret from the provider.
 func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	secret, err := c.vault.GetSecret(ref.Key)
 	if err != nil {
 		return nil, err
@@ -128,6 +151,9 @@ func (c *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, d
 
 // DeleteSecret will delete the secret from PrivX.
 func (c *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	err := c.vault.DeleteSecret(ref.GetRemoteKey())
 	if err == nil {
 		return nil
@@ -140,7 +166,9 @@ func (c *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 
 // SecretExists checks if a secret is already present in PrivX at the given location.
 func (c *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	remoteRef := esv1.ExternalSecretDataRemoteRef{Key: ref.GetRemoteKey()}
 	_, err := c.GetSecret(context.TODO(), remoteRef)
 	if err == nil {
@@ -159,7 +187,6 @@ func (c *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 // and is able to retrieve secrets from the provider.
 // If the validation result is unknown it will be ignored.
 func (c *SecretsClient) Validate() (esv1.ValidationResult, error) {
-
 	_, err := c.GetSecret(context.TODO(), esv1.ExternalSecretDataRemoteRef{Key: "2F0vZqCe0Z3XU5"})
 
 	if isNotFound(err) {
@@ -179,7 +206,9 @@ func (c *SecretsClient) GetSecretMap(
 	ctx context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 ) (map[string][]byte, error) {
-
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	secret, err := c.vault.GetSecret(ref.Key)
 	if err != nil {
 		return nil, err
@@ -241,6 +270,9 @@ func (c *SecretsClient) GetSecretMap(
 // for that secret (the whole secret.Data marshaled as JSON). This avoids key
 // collisions between secrets that may contain identical JSON keys internally.
 func (c *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	results := make(map[string][]byte)
 
 	if ref.Path != nil {
@@ -309,6 +341,9 @@ func (c *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 
 // Close closes the client and releases all resources.
 func (c *SecretsClient) Close(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	// Nothing to close or release.
 	return nil
 }
@@ -319,40 +354,6 @@ func (c *SecretsClient) Close(ctx context.Context) error {
 func isNotFound(err error) bool {
 	// PrivX loses the HTTP code so we need to test the error message
 	return strings.Contains(strings.ToLower(err.Error()), "secret not found")
-}
-
-// decode decodes a secret value according to DecodingStrategy
-//
-// See https://external-secrets.io/latest/guides/decoding-strategy/
-func decode(value []byte, strategy esv1.ExternalSecretDecodingStrategy) ([]byte, error) {
-	switch strategy {
-	case esv1.ExternalSecretDecodeBase64:
-		decoded, err := base64.StdEncoding.DecodeString(string(value))
-		if err != nil {
-			return nil, err
-		}
-		return decoded, nil
-	case esv1.ExternalSecretDecodeBase64URL:
-		decoded, err := base64.URLEncoding.DecodeString(string(value))
-		if err != nil {
-			return nil, err
-		}
-		return decoded, nil
-	case esv1.ExternalSecretDecodeNone, "":
-		return value, nil
-	case esv1.ExternalSecretDecodeAuto:
-		decoded, err := decode(value, esv1.ExternalSecretDecodeBase64)
-		if err == nil {
-			return decoded, nil
-		}
-		decoded, err = decode(value, esv1.ExternalSecretDecodeBase64URL)
-		if err == nil {
-			return decoded, nil
-		}
-		return value, nil
-	default:
-		return nil, fmt.Errorf("%w: %v", ErrUnsupportedDecodingStrategy, strategy)
-	}
 }
 
 // anyToBytes converts a JSON-unmarshaled value (interface{}) to []byte.
@@ -381,41 +382,3 @@ func anyToBytes(v any) ([]byte, error) {
 		return json.Marshal(t)
 	}
 }
-
-// rawToBytes converts a json.RawMessage into a byte slice suitable for secret return values.
-func rawToBytes(raw json.RawMessage) ([]byte, error) {
-	var v any
-	if err := json.Unmarshal(raw, &v); err != nil {
-		return nil, err
-	}
-	return anyToBytes(v)
-}
-
-// // convertValue converts a secret value based on the conversion strategy.
-// func convertValue(value []byte, strategy esv1.ExternalSecretConversionStrategy) ([]byte, error) {
-// 	switch strategy {
-// 	case esv1.ExternalSecretConversionDefault, "":
-// 		return value, nil
-// 	case esv1.ExternalSecretConversionUnicode:
-// 		if !utf8.Valid(value) {
-// 			return nil, fmt.Errorf("secret value is not valid UTF-8")
-// 		}
-// 		return []byte(string(value)), nil
-// 	default:
-// 		return value, nil
-// 	}
-// }
-
-// // rawMessageToByteMap converts a raw JSON to a byte map. The values remain raw.
-// func rawMessageToByteMap(raw json.RawMessage) (map[string][]byte, error) {
-// 	var tmp map[string]json.RawMessage
-// 	if err := json.Unmarshal(raw, &tmp); err != nil {
-// 		return nil, err
-// 	}
-
-// 	out := make(map[string][]byte, len(tmp))
-// 	for k, v := range tmp {
-// 		out[k] = v // json.RawMessage == []byte
-// 	}
-// 	return out, nil
-// }

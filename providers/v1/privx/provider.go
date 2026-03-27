@@ -1,6 +1,19 @@
 /*
-Implement the ESO Provider.
+Copyright © 2026 SSH Communications
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 package privx
 
 import (
@@ -12,32 +25,58 @@ import (
 	"github.com/SSHcom/privx-sdk-go/v2/api/vault"
 	"github.com/SSHcom/privx-sdk-go/v2/oauth"
 	privxapi "github.com/SSHcom/privx-sdk-go/v2/restapi"
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 var (
-	ErrNotImplemented             = errors.New("not implemented")
-	ErrInvalidJson                = errors.New("invalid JSON")
-	ErrInvalidJWT                 = errors.New("failed to decode JWT")
-	ErrEmptyAudience              = errors.New("audience is empty")
-	ErrReadNamespace              = errors.New("failed to read namespace")
-	ErrReadServiceAccount         = errors.New("failed to read serviceaccount name")
-	ErrInClusterConfig            = errors.New("failed to create in-cluster config")
-	ErrKubernetesClient           = errors.New("failed to create kubernetes client")
-	ErrCreateToken                = errors.New("failed to create serviceaccount token")
-	ErrEmptyReturnedToken         = errors.New("empty token returned")
-	ErrInvalidJWTFormat           = errors.New("invalid jwt format")
-	ErrDecodeJWTPayload           = errors.New("failed to decode jwt payload")
-	ErrParseJWTPayload            = errors.New("failed to parse jwt payload json")
+	// ErrNotImplemented is returned when the requested functionality is not implemented.
+	ErrNotImplemented = errors.New("not implemented")
+
+	// ErrInvalidJSON is returned when JSON decoding fails.
+	ErrInvalidJSON = errors.New("invalid JSON")
+
+	// ErrEmptyAudience is returned when the audience value is empty.
+	ErrEmptyAudience = errors.New("audience is empty")
+
+	// ErrReadNamespace is returned when reading the namespace fails.
+	ErrReadNamespace = errors.New("failed to read namespace")
+
+	// ErrReadServiceAccount is returned when reading the service account name fails.
+	ErrReadServiceAccount = errors.New("failed to read serviceaccount name")
+
+	// ErrInClusterConfig is returned when creating in-cluster Kubernetes config fails.
+	ErrInClusterConfig = errors.New("failed to create in-cluster config")
+
+	// ErrKubernetesClient is returned when creating the Kubernetes client fails.
+	ErrKubernetesClient = errors.New("failed to create kubernetes client")
+
+	// ErrCreateToken is returned when creating a service account token fails.
+	ErrCreateToken = errors.New("failed to create serviceaccount token")
+
+	// ErrEmptyReturnedToken is returned when the token returned by the API is empty.
+	ErrEmptyReturnedToken = errors.New("empty token returned")
+
+	// ErrInvalidJWTFormat is returned when the JWT format is invalid.
+	ErrInvalidJWTFormat = errors.New("invalid jwt format")
+
+	// ErrDecodeJWTPayload is returned when decoding the JWT payload fails.
+	ErrDecodeJWTPayload = errors.New("failed to decode jwt payload")
+
+	// ErrParseJWTPayload is returned when parsing the JWT payload JSON fails.
+	ErrParseJWTPayload = errors.New("failed to parse jwt payload json")
+
+	// ErrServiceAccountNameNotFound is returned when the service account name is not found in JWT claims.
 	ErrServiceAccountNameNotFound = errors.New("serviceaccount name not found in jwt claims")
 )
 
+// ErrNoStoreAuth is an error returned which details what is missing from authorisation.
 type ErrNoStoreAuth struct {
 	Field string
 }
@@ -63,7 +102,6 @@ func readSecretValue(
 	namespace string,
 	ref v1.SecretKeySelector,
 ) (string, error) {
-
 	var secret corev1.Secret
 	if err := client.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
@@ -77,9 +115,6 @@ func readSecretValue(
 		return "", fmt.Errorf("secret %s/%s missing key %q", namespace, ref.Name, ref.Key)
 	}
 
-	// logger := log.FromContext(ctx)
-	// logger.Info("Secret value for debugging", "key", ref.Key, "value", string(b))
-
 	return string(b), nil
 }
 
@@ -90,7 +125,6 @@ func privxAuth(
 	namespace string,
 	privxSpec *esv1.PrivxProvider,
 ) (privxapi.Authorizer, error) {
-
 	auth := privxapi.New(
 		privxapi.BaseURL(privxSpec.Host),
 	)
@@ -176,12 +210,10 @@ func privxAuth(
 			// map[string]any{"domain": "privx-service"},
 		)
 	} else {
-
 		// No OAuth tokens, no public key, use JWT with Kubernetes signature
 		// PrivX 44 or later
 		// "may not specify a duration less than 10 minutes"
 		token, err = getAudienceJWTFromPod(ctx, privxSpec.Host, 15*time.Minute)
-
 	}
 	if err != nil {
 		return nil, err
@@ -190,7 +222,7 @@ func privxAuth(
 	// Logging
 	decoded, err := decodeJWT(token)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidJWT, err)
+		return nil, fmt.Errorf("failed to decode JWT: %w", err)
 	}
 	logger := log.FromContext(ctx)
 	logger.Info("JWT token", "claims", decoded)
@@ -202,7 +234,7 @@ func privxAuth(
 		return nil, err
 	}
 
-	err = logTokenResponse(logger, tokenResponse)
+	logTokenResponse(logger, tokenResponse)
 	return oauth.WithToken("Bearer " + tokenResponse.AccessToken), nil
 }
 
@@ -213,7 +245,6 @@ func privxAPI(
 	namespace string,
 	privxSpec *esv1.PrivxProvider,
 ) (privxapi.Connector, error) {
-
 	auth, err := privxAuth(ctx, kube, namespace, privxSpec)
 	if err != nil {
 		return nil, err
@@ -232,7 +263,6 @@ func (p *Provider) NewClient(
 	kube kclient.Client,
 	namespace string,
 ) (esv1.SecretsClient, error) {
-
 	config := store.GetSpec().Provider.PrivX
 	conn, err := privxAPI(ctx, kube, namespace, config)
 	if err != nil {
@@ -251,8 +281,8 @@ func (p *Provider) NewClient(
 	return &client, nil
 }
 
+// ValidateStore checks the configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
-
 	if store.GetSpec().Provider == nil {
 		return nil, ErrNoStoreAuth{Field: "spec.provider"}
 	}
@@ -275,6 +305,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
+// Capabilities indicates, if store is read-only or read-write.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
