@@ -349,9 +349,12 @@ spec:
   data:
     - conversionStrategy: None
       metadata:
-        mergePolicy: Merge
-        labels:
-          anotherLabel: anotherValue
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          mergePolicy: Merge
+          labels:
+            anotherLabel: anotherValue
       match:
         secretKey: bestpokemon
         remoteRef:
