@@ -29,6 +29,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google/externalaccount"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -202,11 +203,7 @@ func (w *workloadIdentityFederation) getGCPServiceAccountFromAnnotation(ctx cont
 // readCredConfig is for loading the json cred config stored in the provided configmap.
 func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*externalaccount.Config, error) {
 	if w.config.CredConfig == nil {
-		cfg, err := w.generateExternalAccountConfig(ctx, nil)
-		if err != nil {
-			return nil, err
-		}
-		return cfg, nil
+		return w.generateExternalAccountConfig(ctx, nil)
 	}
 
 	key := types.NamespacedName{
@@ -248,7 +245,7 @@ func (w *workloadIdentityFederation) generateExternalAccountConfig(ctx context.C
 	if err := w.updateExternalAccountConfigWithAWSCredentialsSupplier(ctx, config); err != nil {
 		return nil, err
 	}
-	if err := w.getGCPServiceAccountFromAnnotation(ctx, config); err != nil {
+	if err := w.getGCPServiceAccountFromAnnotation(ctx, config); err != nil && !kerrors.IsNotFound(err) {
 		return nil, err
 	}
 	w.updateExternalAccountConfigWithDefaultValues(config)

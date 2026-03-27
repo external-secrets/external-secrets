@@ -366,6 +366,28 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(testAudience),
 					},
 				},
+			},
+		},
+		{
+			name: "successful with actual service account object",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+				Audience: testAudience,
+			},
+			kubeObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testConfigMapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(testAudience),
+					},
+				},
 				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      testServiceAccount,
@@ -381,6 +403,17 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 				}, nil
 			},
 			expectTokenSource: true,
+		},
+		{
+			name: "successful with missing service account -- Not Found errors from kube client should be handled gracefully",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+				Audience: testAudience,
+			},
 		},
 		{
 			name: "successful kubernetes service account token federation with GCP service account impersonation",
