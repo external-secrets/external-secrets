@@ -866,6 +866,19 @@ func (sm *SecretsManager) resolveResourcePolicy(ctx context.Context, policyRef *
 	}
 }
 
+// unmarshalPolicyJSON parses a JSON policy string into a map.
+// Returns nil map for empty input, allowing comparison with a populated policy.
+func unmarshalPolicyJSON(policy string) (map[string]any, error) {
+	if policy == "" {
+		return nil, nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(policy), &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // manageResourcePolicy applies or removes the resource policy based on metadata.
 func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string) error {
 	meta, err := sm.constructMetadataWithDefaults(metadata)
@@ -911,18 +924,13 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		currentPolicy = *currentPolicyOutput.ResourcePolicy
 	}
 
-	// convert to maps so we can do a stable comparison.
-	var (
-		currentPolicyMap map[string]any
-		policyJSONMaps   map[string]any
-	)
-
-	if currentPolicy != "" {
-		if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
-			return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
-		}
+	currentPolicyMap, err := unmarshalPolicyJSON(currentPolicy)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
 	}
-	if err := json.Unmarshal([]byte(policyJSON), &policyJSONMaps); err != nil {
+
+	policyJSONMaps, err := unmarshalPolicyJSON(policyJSON)
+	if err != nil {
 		return fmt.Errorf("failed to unmarshal desired resource policy: %w", err)
 	}
 
