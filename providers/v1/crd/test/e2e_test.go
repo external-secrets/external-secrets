@@ -80,6 +80,15 @@ const (
 	// Additional namespace for cross-namespace listing tests.
 	secondNamespace = "crd-e2e-test-2"
 	dbSpecName2     = "dbspec-e2e-ns2"
+
+	// Impersonation / access-denial fixtures.
+	// noAccessSAName is a ServiceAccount with NO RBAC for the test CRDs.
+	noAccessSAName = "crd-e2e-noaccess"
+	// impersonatorClusterRole grants saName the right to impersonate other SAs.
+	impersonatorClusterRole = "crd-e2e-impersonator"
+	// tokenSecretName is a legacy service-account-token Secret whose token is
+	// used as the BearerToken in the explicit-mode impersonation test.
+	tokenSecretName = "crd-reader-token"
 )
 
 // ── TestMain ──────────────────────────────────────────────────────────────────
@@ -176,8 +185,10 @@ func teardown() {
 	}
 
 	// Cluster-scoped resources.
-	_ = k8sClient.RbacV1().ClusterRoles().Delete(ctx, clusterRoleName, metav1.DeleteOptions{})
-	_ = k8sClient.RbacV1().ClusterRoleBindings().Delete(ctx, clusterRoleName, metav1.DeleteOptions{})
+	for _, name := range []string{clusterRoleName, impersonatorClusterRole} {
+		_ = k8sClient.RbacV1().ClusterRoles().Delete(ctx, name, metav1.DeleteOptions{})
+		_ = k8sClient.RbacV1().ClusterRoleBindings().Delete(ctx, name, metav1.DeleteOptions{})
+	}
 
 	clusterDBSpecGVR := schema.GroupVersionResource{Group: dbSpecGroup, Version: dbSpecVersion, Resource: clusterDBSpecPlural}
 	_ = dynClient.Resource(clusterDBSpecGVR).Delete(ctx, clusterDBSpecName, metav1.DeleteOptions{})
@@ -231,10 +242,38 @@ func ensureNamespace(ctx context.Context, name string) error {
 }
 
 func applyRBAC(ctx context.Context) error {
-	// ServiceAccount.
+	// Primary ServiceAccount (has CRD read + impersonation rights).
 	sa := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: saName, Namespace: testNamespace}}
 	if _, err := k8sClient.CoreV1().ServiceAccounts(testNamespace).Create(ctx, sa, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("create SA: %w", err)
+	}
+
+	// No-access ServiceAccount – deliberately has no RBAC for the test CRDs.
+	noAccessSA := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: noAccessSAName, Namespace: testNamespace}}
+	if _, err := k8sClient.CoreV1().ServiceAccounts(testNamespace).Create(ctx, noAccessSA, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("create no-access SA: %w", err)
+	}
+
+	// Legacy service-account-token Secret for saName.
+	// Used as a static BearerToken in the explicit-mode impersonation test so
+	// that the provider can connect to the local cluster without going through
+	// ctrlcfg.GetConfig() again.
+	tokenSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tokenSecretName,
+			Namespace: testNamespace,
+			Annotations: map[string]string{
+				"kubernetes.io/service-account.name": saName,
+			},
+		},
+		Type: corev1.SecretTypeServiceAccountToken,
+	}
+	if _, err := k8sClient.CoreV1().Secrets(testNamespace).Create(ctx, tokenSecret, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("create token secret: %w", err)
+	}
+	// Wait for the k8s token controller to populate the "token" key.
+	if err := waitForTokenSecret(ctx, testNamespace, tokenSecretName); err != nil {
+		return fmt.Errorf("wait for token secret: %w", err)
 	}
 
 	// ClusterRole – get/list on both CRD kinds.
@@ -252,18 +291,57 @@ func applyRBAC(ctx context.Context) error {
 		return fmt.Errorf("create ClusterRole: %w", err)
 	}
 
-	// ClusterRoleBinding.
+	// ClusterRoleBinding – bind saName to the CRD reader role.
 	crb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: clusterRoleName},
 		RoleRef:    rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: clusterRoleName},
-		Subjects: []rbacv1.Subject{
-			{Kind: "ServiceAccount", Name: saName, Namespace: testNamespace},
-		},
+		Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: saName, Namespace: testNamespace}},
 	}
 	if _, err := k8sClient.RbacV1().ClusterRoleBindings().Create(ctx, crb, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("create ClusterRoleBinding: %w", err)
 	}
+
+	// ClusterRole – grant saName the right to impersonate any ServiceAccount.
+	// This is required for the explicit-mode impersonation test: saName connects
+	// to the cluster, then impersonates noAccessSAName whose access review fails.
+	impersonatorRole := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: impersonatorClusterRole},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{"serviceaccounts"},
+				Verbs:     []string{"impersonate"},
+			},
+		},
+	}
+	if _, err := k8sClient.RbacV1().ClusterRoles().Create(ctx, impersonatorRole, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("create impersonator ClusterRole: %w", err)
+	}
+	impersonatorBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: impersonatorClusterRole},
+		RoleRef:    rbacv1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: impersonatorClusterRole},
+		Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: saName, Namespace: testNamespace}},
+	}
+	if _, err := k8sClient.RbacV1().ClusterRoleBindings().Create(ctx, impersonatorBinding, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("create impersonator ClusterRoleBinding: %w", err)
+	}
+
 	return nil
+}
+
+// waitForTokenSecret polls until the k8s token controller populates the "token"
+// key inside the service-account-token Secret (typically takes < 2 seconds).
+func waitForTokenSecret(ctx context.Context, namespace, name string) error {
+	return wait.PollUntilContextTimeout(ctx, time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		s, err := k8sClient.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return len(s.Data["token"]) > 0, nil
+	})
 }
 
 func applyTestObjects(ctx context.Context) error {
@@ -567,8 +645,8 @@ func TestClusterSecretStore_GetAllSecrets_AcrossNamespaces(t *testing.T) {
 	}
 
 	cases := []struct {
-		key           string
-		wantPassword  string
+		key          string
+		wantPassword string
 	}{
 		{testNamespace + "/" + dbSpecName, "e2e-password"},
 		{secondNamespace + "/" + dbSpecName2, "e2e-password-2"},
@@ -653,6 +731,135 @@ func TestClusterSecretStore_ClusterScopedKind_GetAllSecrets(t *testing.T) {
 			t.Errorf("GetAllSecrets() unexpected namespace prefix in key %q for cluster-scoped kind", k)
 		}
 	}
+}
+
+// ── Access-denial / impersonation tests ──────────────────────────────────────
+
+// TestLegacyMode_NoAccessSA_NewClientFails verifies that using a ServiceAccount
+// that has no RBAC permissions for the target CRD prevents the client from
+// being created. The provider performs a SelfSubjectAccessReview during
+// NewClient; a denial there propagates as an error to the caller.
+func TestLegacyMode_NoAccessSA_NewClientFails(t *testing.T) {
+	store := &esv1.SecretStore{
+		TypeMeta:   metav1.TypeMeta{Kind: esv1.SecretStoreKind, APIVersion: "external-secrets.io/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "e2e-noaccess-store", Namespace: testNamespace},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				CRD: &esv1.CRDProvider{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name: noAccessSAName,
+						// No namespace: SecretStore uses its own namespace.
+					},
+					Resource: esv1.CRDProviderResource{
+						Group:   dbSpecGroup,
+						Version: dbSpecVersion,
+						Kind:    dbSpecKind,
+					},
+				},
+			},
+		},
+	}
+
+	p := crdprovider.NewProvider()
+	_, err := p.NewClient(context.Background(), store, crClient, testNamespace)
+	if err == nil {
+		t.Fatal("NewClient() expected error for SA without CRD access, got nil")
+	}
+	if !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("NewClient() error = %q, want 'not allowed' message", err.Error())
+	}
+}
+
+// TestImpersonation_NoAccessSA_NewClientFails verifies the explicit-mode
+// impersonation path end-to-end:
+//
+//   - saName connects to the local cluster using its legacy token (auth.Token).
+//   - The provider sets Impersonate-User to noAccessSAName.
+//   - The SelfSubjectAccessReview executes as the impersonated identity.
+//   - Because noAccessSAName has no RBAC for the CRD, the review denies access
+//     and NewClient returns an error.
+//
+// This proves that the impersonated identity — not the connecting identity — is
+// the one that is access-checked.
+func TestImpersonation_NoAccessSA_NewClientFails(t *testing.T) {
+	caBundle, err := resolveCABundle()
+	if err != nil {
+		t.Fatalf("resolveCABundle: %v", err)
+	}
+	if len(caBundle) == 0 {
+		t.Skip("skipping: no CA bundle available (cluster uses system certs or insecure TLS)")
+	}
+
+	// Fetch the static token that was minted for saName during setup.
+	tokenSecret, err := k8sClient.CoreV1().Secrets(testNamespace).Get(
+		context.Background(), tokenSecretName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("get token secret: %v", err)
+	}
+	if len(tokenSecret.Data["token"]) == 0 {
+		t.Fatal("token secret has no 'token' key – token controller may not have run")
+	}
+
+	store := &esv1.ClusterSecretStore{
+		TypeMeta:   metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind, APIVersion: "external-secrets.io/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "e2e-impersonation-store"},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				CRD: &esv1.CRDProvider{
+					// Explicit connection: point at the local cluster using saName's token.
+					Server: esv1.KubernetesServer{
+						URL:      restCfg.Host,
+						CABundle: caBundle,
+					},
+					Auth: &esv1.KubernetesAuth{
+						Token: &esv1.TokenAuth{
+							// Reference the static token Secret created during setup.
+							// Namespace is required on ClusterSecretStore.
+							BearerToken: esmeta.SecretKeySelector{
+								Name:      tokenSecretName,
+								Key:       "token",
+								Namespace: ptr(testNamespace),
+							},
+						},
+					},
+					// Impersonation target: an SA with no CRD access.
+					// The SelfSubjectAccessReview will execute as this identity.
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name:      noAccessSAName,
+						Namespace: ptr(testNamespace),
+					},
+					Resource: esv1.CRDProviderResource{
+						Group:   dbSpecGroup,
+						Version: dbSpecVersion,
+						Kind:    dbSpecKind,
+					},
+				},
+			},
+		},
+	}
+
+	p := crdprovider.NewProvider()
+	_, err = p.NewClient(context.Background(), store, crClient, "")
+	if err == nil {
+		t.Fatal("NewClient() expected error for impersonated SA without CRD access, got nil")
+	}
+	if !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("NewClient() error = %q, want 'not allowed' message", err.Error())
+	}
+}
+
+// resolveCABundle returns the PEM-encoded CA certificate for the current
+// cluster. It checks the in-memory CAData first, then falls back to reading
+// CAFile. Returns (nil, nil) when the cluster is configured without a CA
+// (insecure or system-cert mode).
+func resolveCABundle() ([]byte, error) {
+	if len(restCfg.TLSClientConfig.CAData) > 0 {
+		return restCfg.TLSClientConfig.CAData, nil
+	}
+	if restCfg.TLSClientConfig.CAFile != "" {
+		return os.ReadFile(restCfg.TLSClientConfig.CAFile)
+	}
+	return nil, nil
 }
 
 // ── CRD definitions ───────────────────────────────────────────────────────────
