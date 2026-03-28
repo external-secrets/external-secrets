@@ -19,6 +19,7 @@ package certificatemanager
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
@@ -32,6 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
 	"github.com/aws/smithy-go"
+	"github.com/youmark/pkcs8"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -60,6 +62,8 @@ const (
 	errNotManagedByESO   = "certificate not managed by external-secrets"
 	errSecretKeyNotEmpty = "secretKey must be empty for the AWS Certificate Manager provider: " +
 		"the whole kubernetes.io/tls secret is required (tls.crt and tls.key)"
+	errSyncTags      = "failed to sync certificate tags: %w"
+	passphraseLength = 32
 )
 
 type exportCacheEntry struct {
@@ -77,6 +81,21 @@ var (
 	// exportCache caches ExportCertificate results keyed by ARN to avoid
 	// repeated paid API calls when the certificate has not changed.
 	exportCache sync.Map
+
+	passphraseChars = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	// generatePassphrase returns a random alphanumeric passphrase safe for
+	// the ACM ExportCertificate API (no #, $, or % characters).
+	generatePassphrase = func() ([]byte, error) {
+		b := make([]byte, passphraseLength)
+		if _, err := rand.Read(b); err != nil {
+			return nil, err
+		}
+		for i, v := range b {
+			b[i] = passphraseChars[int(v)%len(passphraseChars)]
+		}
+		return b, nil
+	}
 )
 
 // ACMInterface is a subset of the ACM API used by this provider.
@@ -151,53 +170,59 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	}
 
 	if existingARN != "" {
-		tags, err := cm.listTags(ctx, existingARN)
-		if err != nil {
-			return fmt.Errorf("failed to list tags for %s: %w", existingARN, err)
-		}
+		return cm.reimportCertificate(ctx, existingARN, leafPEM, chainPEM, privKeyPEM, contentHash, remoteKey, meta.Spec.Tags)
+	}
+	return cm.importNewCertificate(ctx, leafPEM, chainPEM, privKeyPEM, contentHash, remoteKey, meta.Spec.Tags)
+}
 
-		if getTagValue(tags, contentHashTag) == contentHash {
-			log.Info("certificate unchanged, skipping re-import", "arn", existingARN, "remoteKey", remoteKey)
-			if err := cm.syncTags(ctx, existingARN, meta.Spec.Tags); err != nil {
-				return fmt.Errorf("failed to sync certificate tags: %w", err)
-			}
-			return nil
-		}
-
-		input := &acm.ImportCertificateInput{
-			Certificate:    leafPEM,
-			PrivateKey:     privKeyPEM,
-			CertificateArn: aws.String(existingARN),
-		}
-		if len(chainPEM) > 0 {
-			input.CertificateChain = chainPEM
-		}
-		log.Info("re-importing existing ACM certificate", "arn", existingARN, "remoteKey", remoteKey)
-
-		_, err = cm.client.ImportCertificate(ctx, input)
-		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMImportCertificate, err)
-		if err != nil {
-			return fmt.Errorf("failed to import certificate: %w", awsutil.SanitizeErr(err))
-		}
-
-		if err := cm.syncTags(ctx, existingARN, meta.Spec.Tags); err != nil {
-			return fmt.Errorf("failed to sync certificate tags: %w", err)
-		}
-		return cm.updateContentHash(ctx, existingARN, contentHash)
+func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn string, leaf, chain, privKey []byte, contentHash, remoteKey string, tags map[string]string) error {
+	currentTags, err := cm.listTags(ctx, arn)
+	if err != nil {
+		return fmt.Errorf("failed to list tags for %s: %w", arn, err)
 	}
 
-	// Include management tags atomically with the first import.
+	if getTagValue(currentTags, contentHashTag) == contentHash {
+		log.Info("certificate unchanged, skipping re-import", "arn", arn, "remoteKey", remoteKey)
+		if err := cm.syncTags(ctx, arn, tags); err != nil {
+			return fmt.Errorf(errSyncTags, err)
+		}
+		return nil
+	}
+
 	input := &acm.ImportCertificateInput{
-		Certificate: leafPEM,
-		PrivateKey:  privKeyPEM,
+		Certificate:    leaf,
+		PrivateKey:     privKey,
+		CertificateArn: aws.String(arn),
+	}
+	if len(chain) > 0 {
+		input.CertificateChain = chain
+	}
+	log.Info("re-importing existing ACM certificate", "arn", arn, "remoteKey", remoteKey)
+
+	_, err = cm.client.ImportCertificate(ctx, input)
+	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMImportCertificate, err)
+	if err != nil {
+		return fmt.Errorf("failed to import certificate: %w", awsutil.SanitizeErr(err))
+	}
+
+	if err := cm.syncTags(ctx, arn, tags); err != nil {
+		return fmt.Errorf(errSyncTags, err)
+	}
+	return cm.updateContentHash(ctx, arn, contentHash)
+}
+
+func (cm *CertificateManager) importNewCertificate(ctx context.Context, leaf, chain, privKey []byte, contentHash, remoteKey string, tags map[string]string) error {
+	input := &acm.ImportCertificateInput{
+		Certificate: leaf,
+		PrivateKey:  privKey,
 		Tags: []types.Tag{
 			{Key: aws.String(managedBy), Value: aws.String(externalSecrets)},
 			{Key: aws.String(remoteKeyTag), Value: aws.String(remoteKey)},
 			{Key: aws.String(contentHashTag), Value: aws.String(contentHash)},
 		},
 	}
-	if len(chainPEM) > 0 {
-		input.CertificateChain = chainPEM
+	if len(chain) > 0 {
+		input.CertificateChain = chain
 	}
 	log.Info("importing new ACM certificate", "remoteKey", remoteKey)
 
@@ -210,10 +235,9 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	certARN := aws.ToString(out.CertificateArn)
 	arnCache.Store(remoteKey, certARN)
 
-	if err := cm.syncTags(ctx, certARN, meta.Spec.Tags); err != nil {
-		return fmt.Errorf("failed to sync certificate tags: %w", err)
+	if err := cm.syncTags(ctx, certARN, tags); err != nil {
+		return fmt.Errorf(errSyncTags, err)
 	}
-
 	return nil
 }
 
@@ -342,8 +366,7 @@ func (cm *CertificateManager) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate checks if the client is configured correctly
-// and is able to retrieve secrets from the provider.
+// Validate checks if the provider is configured correctly.
 func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 	// skip validation stack because we do not have the client set with referent auth
 	if cm.referentAuth {
@@ -357,18 +380,34 @@ func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 }
 
 func (cm *CertificateManager) findCertificateARN(ctx context.Context, remoteKey string) (string, error) {
-	if cached, ok := arnCache.Load(remoteKey); ok {
-		arn := cached.(string)
-		tags, err := cm.listTags(ctx, arn)
-		if err == nil && matchesTags(tags, remoteKey) {
-			return arn, nil
-		}
-		if !errors.Is(err, errCertificateNotFound) && err != nil {
-			return "", fmt.Errorf("failed to verify cached certificate %s: %w", arn, err)
-		}
-		arnCache.Delete(remoteKey)
+	arn, err := cm.findCachedARN(ctx, remoteKey)
+	if err != nil {
+		return "", err
 	}
+	if arn != "" {
+		return arn, nil
+	}
+	return cm.searchCertificatesByTag(ctx, remoteKey)
+}
 
+func (cm *CertificateManager) findCachedARN(ctx context.Context, remoteKey string) (string, error) {
+	cached, ok := arnCache.Load(remoteKey)
+	if !ok {
+		return "", nil
+	}
+	arn := cached.(string)
+	tags, err := cm.listTags(ctx, arn)
+	if err == nil && matchesTags(tags, remoteKey) {
+		return arn, nil
+	}
+	if err != nil && !errors.Is(err, errCertificateNotFound) {
+		return "", fmt.Errorf("failed to verify cached certificate %s: %w", arn, err)
+	}
+	arnCache.Delete(remoteKey)
+	return "", nil
+}
+
+func (cm *CertificateManager) searchCertificatesByTag(ctx context.Context, remoteKey string) (string, error) {
 	var nextToken *string
 	for {
 		out, err := cm.client.ListCertificates(ctx, &acm.ListCertificatesInput{
@@ -379,27 +418,38 @@ func (cm *CertificateManager) findCertificateARN(ctx context.Context, remoteKey 
 			return "", awsutil.SanitizeErr(err)
 		}
 
-		for _, cert := range out.CertificateSummaryList {
-			if cert.CertificateArn == nil {
-				continue
-			}
-			tags, err := cm.listTags(ctx, aws.ToString(cert.CertificateArn))
-			if errors.Is(err, errCertificateNotFound) {
-				continue
-			}
-			if err != nil {
-				return "", fmt.Errorf("failed to list tags for %s: %w", aws.ToString(cert.CertificateArn), err)
-			}
-			if matchesTags(tags, remoteKey) {
-				arnCache.Store(remoteKey, aws.ToString(cert.CertificateArn))
-				return aws.ToString(cert.CertificateArn), nil
-			}
+		arn, err := cm.findMatchInPage(ctx, out.CertificateSummaryList, remoteKey)
+		if err != nil {
+			return "", err
+		}
+		if arn != "" {
+			return arn, nil
 		}
 
 		if out.NextToken == nil {
-			break
+			return "", nil
 		}
 		nextToken = out.NextToken
+	}
+}
+
+func (cm *CertificateManager) findMatchInPage(ctx context.Context, certs []types.CertificateSummary, remoteKey string) (string, error) {
+	for _, cert := range certs {
+		if cert.CertificateArn == nil {
+			continue
+		}
+		certARN := aws.ToString(cert.CertificateArn)
+		tags, err := cm.listTags(ctx, certARN)
+		if errors.Is(err, errCertificateNotFound) {
+			continue
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to list tags for %s: %w", certARN, err)
+		}
+		if matchesTags(tags, remoteKey) {
+			arnCache.Store(remoteKey, certARN)
+			return certARN, nil
+		}
 	}
 	return "", nil
 }
@@ -425,21 +475,9 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 		return err
 	}
 
-	currentMap := make(map[string]string, len(current))
-	for _, t := range current {
-		currentMap[aws.ToString(t.Key)] = aws.ToString(t.Value)
-	}
+	currentMap := tagsToMap(current)
 
-	var toRemove []types.Tag
-	for k, v := range currentMap {
-		if isReservedTag(k) {
-			continue
-		}
-		if _, ok := desiredTags[k]; !ok {
-			toRemove = append(toRemove, types.Tag{Key: aws.String(k), Value: aws.String(v)})
-		}
-	}
-	if len(toRemove) > 0 {
+	if toRemove := tagsToRemove(currentMap, desiredTags); len(toRemove) > 0 {
 		_, err = cm.client.RemoveTagsFromCertificate(ctx, &acm.RemoveTagsFromCertificateInput{
 			CertificateArn: aws.String(arn),
 			Tags:           toRemove,
@@ -450,16 +488,7 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 		}
 	}
 
-	var toAdd []types.Tag
-	for k, v := range desiredTags {
-		if isReservedTag(k) {
-			continue
-		}
-		if currentMap[k] != v {
-			toAdd = append(toAdd, types.Tag{Key: aws.String(k), Value: aws.String(v)})
-		}
-	}
-	if len(toAdd) > 0 {
+	if toAdd := tagsToAdd(currentMap, desiredTags); len(toAdd) > 0 {
 		_, err = cm.client.AddTagsToCertificate(ctx, &acm.AddTagsToCertificateInput{
 			CertificateArn: aws.String(arn),
 			Tags:           toAdd,
@@ -470,6 +499,40 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 		}
 	}
 	return nil
+}
+
+func tagsToMap(tags []types.Tag) map[string]string {
+	m := make(map[string]string, len(tags))
+	for _, t := range tags {
+		m[aws.ToString(t.Key)] = aws.ToString(t.Value)
+	}
+	return m
+}
+
+func tagsToRemove(current, desired map[string]string) []types.Tag {
+	var tags []types.Tag
+	for k, v := range current {
+		if isReservedTag(k) {
+			continue
+		}
+		if _, ok := desired[k]; !ok {
+			tags = append(tags, types.Tag{Key: aws.String(k), Value: aws.String(v)})
+		}
+	}
+	return tags
+}
+
+func tagsToAdd(current, desired map[string]string) []types.Tag {
+	var tags []types.Tag
+	for k, v := range desired {
+		if isReservedTag(k) {
+			continue
+		}
+		if current[k] != v {
+			tags = append(tags, types.Tag{Key: aws.String(k), Value: aws.String(v)})
+		}
+	}
+	return tags
 }
 
 func isManagedByESO(tags []types.Tag) bool {
@@ -502,7 +565,11 @@ func isReservedTag(key string) bool {
 	return key == managedBy || key == remoteKeyTag || key == contentHashTag
 }
 
-func computeContentHash(certPEM, keyPEM []byte) string {
+// computeContentHash returns a hex-encoded SHA-256 digest of the certificate
+// and private key PEM. This is a content fingerprint used to detect changes
+// and avoid redundant ImportCertificate API calls (1 rps rate limit). It is
+// NOT used for any security or cryptographic purpose.
+func computeContentHash(certPEM, keyPEM []byte) string { //nolint:gosec // SHA-256 used as content fingerprint, not for security
 	h := sha256.New()
 	h.Write(certPEM)
 	h.Write(keyPEM)
@@ -569,4 +636,35 @@ func constructMetadata(data *apiextensionsv1.JSON) (*metadata.PushSecretMetadata
 		meta = &metadata.PushSecretMetadata[PushSecretMetadataSpec]{}
 	}
 	return meta, nil
+}
+
+// decryptPKCS8PEM decodes an "ENCRYPTED PRIVATE KEY" PEM block and returns the
+// decrypted key as a "PRIVATE KEY" PEM block. If the PEM is already unencrypted
+// it is returned as-is.
+func decryptPKCS8PEM(encryptedPEM, passphrase []byte) ([]byte, error) {
+	block, _ := pem.Decode(encryptedPEM)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM block")
+	}
+	if block.Type == "PRIVATE KEY" {
+		return encryptedPEM, nil
+	}
+	if block.Type != "ENCRYPTED PRIVATE KEY" {
+		return nil, fmt.Errorf("unexpected PEM type: %s", block.Type)
+	}
+
+	privateKey, err := pkcs8.ParsePKCS8PrivateKey(block.Bytes, passphrase)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt PKCS#8 private key: %w", err)
+	}
+
+	derBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal decrypted private key: %w", err)
+	}
+
+	return pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: derBytes,
+	}), nil
 }

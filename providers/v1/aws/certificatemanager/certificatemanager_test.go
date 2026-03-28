@@ -19,16 +19,11 @@ package certificatemanager
 import (
 	"bytes"
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/pbkdf2"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -40,6 +35,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
 	"github.com/aws/smithy-go"
+	"github.com/youmark/pkcs8"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -748,83 +744,17 @@ func (e *smithyFakeNotFound) ErrorFault() smithy.ErrorFault { return smithy.Faul
 func encryptPKCS8ForTest(t *testing.T, privateDER, passphrase []byte) []byte {
 	t.Helper()
 
-	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
-		t.Fatalf("rand salt: %v", err)
-	}
-	iv := make([]byte, aes.BlockSize)
-	if _, err := rand.Read(iv); err != nil {
-		t.Fatalf("rand iv: %v", err)
-	}
-
-	key, err := pbkdf2.Key(sha256.New, string(passphrase), salt, 2048, 32)
+	privKey, err := x509.ParsePKCS8PrivateKey(privateDER)
 	if err != nil {
-		t.Fatalf("pbkdf2: %v", err)
+		t.Fatalf("parse pkcs8: %v", err)
 	}
 
-	block, err := aes.NewCipher(key)
+	encryptedDER, err := pkcs8.MarshalPrivateKey(privKey, passphrase, nil)
 	if err != nil {
-		t.Fatalf("aes cipher: %v", err)
+		t.Fatalf("encrypt pkcs8: %v", err)
 	}
 
-	padded := addPKCS7Padding(privateDER, block.BlockSize())
-	encrypted := make([]byte, len(padded))
-	cipher.NewCBCEncrypter(block, iv).CryptBlocks(encrypted, padded)
-
-	kdfParamsBytes, _ := asn1.Marshal(struct {
-		Salt           []byte
-		IterationCount int
-		PRF            struct {
-			Algorithm asn1.ObjectIdentifier
-		}
-	}{salt, 2048, struct{ Algorithm asn1.ObjectIdentifier }{asn1.ObjectIdentifier{1, 2, 840, 113549, 2, 9}}})
-
-	ivBytes, _ := asn1.Marshal(iv)
-
-	paramsBytes, _ := asn1.Marshal(struct {
-		KDF struct {
-			Algorithm  asn1.ObjectIdentifier
-			Parameters asn1.RawValue
-		}
-		Enc struct {
-			Algorithm  asn1.ObjectIdentifier
-			Parameters asn1.RawValue
-		}
-	}{
-		KDF: struct {
-			Algorithm  asn1.ObjectIdentifier
-			Parameters asn1.RawValue
-		}{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 5, 12}, asn1.RawValue{FullBytes: kdfParamsBytes}},
-		Enc: struct {
-			Algorithm  asn1.ObjectIdentifier
-			Parameters asn1.RawValue
-		}{asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 42}, asn1.RawValue{FullBytes: ivBytes}},
-	})
-
-	epkiBytes, _ := asn1.Marshal(struct {
-		Algo struct {
-			Algorithm  asn1.ObjectIdentifier
-			Parameters asn1.RawValue
-		}
-		Data []byte
-	}{
-		Algo: struct {
-			Algorithm  asn1.ObjectIdentifier
-			Parameters asn1.RawValue
-		}{asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 5, 13}, asn1.RawValue{FullBytes: paramsBytes}},
-		Data: encrypted,
-	})
-
-	return pem.EncodeToMemory(&pem.Block{Type: "ENCRYPTED PRIVATE KEY", Bytes: epkiBytes})
-}
-
-func addPKCS7Padding(data []byte, blockSize int) []byte {
-	padLen := blockSize - len(data)%blockSize
-	padding := make([]byte, padLen)
-	for i := range padding {
-		padding[i] = byte(padLen)
-	}
-	return append(data, padding...)
+	return pem.EncodeToMemory(&pem.Block{Type: "ENCRYPTED PRIVATE KEY", Bytes: encryptedDER})
 }
 
 func TestGetSecret_ReturnsConcatenatedBundle(t *testing.T) {

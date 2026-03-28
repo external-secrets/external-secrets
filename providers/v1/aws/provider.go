@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // Package aws implements AWS provider interfaces for External Secrets Operator,
-// supporting SecretManager and ParameterStore services.
+// supporting SecretsManager, ParameterStore, and CertificateManager services.
 package aws
 
 import (
