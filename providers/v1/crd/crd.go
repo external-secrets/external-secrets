@@ -89,10 +89,14 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		list *unstructured.UnstructuredList
 		err  error
 	)
-	if c.namespace != "" {
-		list, err = c.dynClient.Resource(gvr).Namespace(c.namespace).List(ctx, metav1.ListOptions{})
+	ri := c.dynClient.Resource(gvr)
+	if c.namespaced {
+		if c.namespace == "" {
+			return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q", c.store.Resource.Kind)
+		}
+		list, err = ri.Namespace(c.namespace).List(ctx, metav1.ListOptions{})
 	} else {
-		list, err = c.dynClient.Resource(gvr).List(ctx, metav1.ListOptions{})
+		list, err = ri.List(ctx, metav1.ListOptions{})
 	}
 	if err != nil {
 		return nil, fmt.Errorf("crd: failed to list %s: %w", c.store.Resource.Kind, err)
@@ -173,10 +177,14 @@ func (c *Client) getObject(ctx context.Context, name string) (*unstructured.Unst
 		obj *unstructured.Unstructured
 		err error
 	)
-	if c.namespace != "" {
-		obj, err = c.dynClient.Resource(gvr).Namespace(c.namespace).Get(ctx, name, metav1.GetOptions{})
+	ri := c.dynClient.Resource(gvr)
+	if c.namespaced {
+		if c.namespace == "" {
+			return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q", c.store.Resource.Kind)
+		}
+		obj, err = ri.Namespace(c.namespace).Get(ctx, name, metav1.GetOptions{})
 	} else {
-		obj, err = c.dynClient.Resource(gvr).Get(ctx, name, metav1.GetOptions{})
+		obj, err = ri.Get(ctx, name, metav1.GetOptions{})
 	}
 	if err != nil {
 		if apierrors.IsNotFound(err) {

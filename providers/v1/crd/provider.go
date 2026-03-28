@@ -69,9 +69,10 @@ func resolveCRDTargetNamespace(prov *esv1.CRDProvider, storeNamespace string) st
 
 // Provider is the top-level CRD provider that implements esv1.Provider.
 type Provider struct {
-	// discoverFn resolves the plural resource name for a given GVK via the
-	// cluster discovery API. Overridable in tests without a live cluster.
-	discoverFn func(cfg *rest.Config, res esv1.CRDProviderResource) (string, error)
+	// discoverFn resolves the plural resource name and whether the kind is
+	// namespaced (vs cluster-scoped) via the cluster discovery API.
+	// Overridable in tests without a live cluster.
+	discoverFn func(cfg *rest.Config, res esv1.CRDProviderResource) (plural string, namespaced bool, err error)
 	// accessCheckFn verifies that the caller can read/list the resolved resource.
 	accessCheckFn func(cfg *rest.Config, res esv1.CRDProviderResource, plural, namespace string) error
 }
@@ -168,6 +169,8 @@ type Client struct {
 	namespace string
 	// plural is the server-discovered plural resource name (e.g. "widgets").
 	plural string
+	// namespaced is true when the API resource is namespace-scoped (from discovery).
+	namespaced bool
 }
 
 var _ esv1.SecretsClient = &Client{}
@@ -182,12 +185,16 @@ func (p *Provider) newClientWithRESTConfig(store esv1.GenericStore, authedCfg *r
 
 	// Validate that the requested group/version/kind is actually registered in
 	// the cluster before building the dynamic client.
-	plural, err := p.discoverFn(authedCfg, provSpec.Resource)
+	plural, resourceNamespaced, err := p.discoverFn(authedCfg, provSpec.Resource)
 	if err != nil {
 		return nil, err
 	}
+	accessNS := targetNamespace
+	if !resourceNamespaced {
+		accessNS = ""
+	}
 	if p.accessCheckFn != nil {
-		if err := p.accessCheckFn(authedCfg, provSpec.Resource, plural, targetNamespace); err != nil {
+		if err := p.accessCheckFn(authedCfg, provSpec.Resource, plural, accessNS); err != nil {
 			return nil, err
 		}
 	}
@@ -197,10 +204,11 @@ func (p *Provider) newClientWithRESTConfig(store esv1.GenericStore, authedCfg *r
 		return nil, fmt.Errorf("crd: failed to create dynamic client: %w", err)
 	}
 	return &Client{
-		store:     provSpec,
-		dynClient: dynClient,
-		namespace: targetNamespace,
-		plural:    plural,
+		store:      provSpec,
+		dynClient:  dynClient,
+		namespace:  targetNamespace,
+		plural:     plural,
+		namespaced: resourceNamespaced,
 	}, nil
 }
 
@@ -216,11 +224,11 @@ func (c *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) err
 
 // discoverResourceFromCluster uses the discovery API (authenticated as the SA)
 // to verify that the requested group/version/kind is registered in the cluster
-// and to resolve the correct plural resource name. Returns the plural name on success.
-func discoverResourceFromCluster(cfg *rest.Config, res esv1.CRDProviderResource) (string, error) {
+// and to resolve the correct plural resource name and scope (namespaced vs cluster).
+func discoverResourceFromCluster(cfg *rest.Config, res esv1.CRDProviderResource) (string, bool, error) {
 	dc, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
-		return "", fmt.Errorf("crd: failed to create discovery client: %w", err)
+		return "", false, fmt.Errorf("crd: failed to create discovery client: %w", err)
 	}
 
 	// ServerResourcesForGroupVersion returns the full resource list for the
@@ -232,7 +240,7 @@ func discoverResourceFromCluster(cfg *rest.Config, res esv1.CRDProviderResource)
 
 	resList, err := dc.ServerResourcesForGroupVersion(groupVersion)
 	if err != nil {
-		return "", fmt.Errorf("crd: group/version %q is not registered in the cluster: %w", groupVersion, err)
+		return "", false, fmt.Errorf("crd: group/version %q is not registered in the cluster: %w", groupVersion, err)
 	}
 
 	for _, r := range resList.APIResources {
@@ -241,11 +249,11 @@ func discoverResourceFromCluster(cfg *rest.Config, res esv1.CRDProviderResource)
 			continue
 		}
 		if strings.EqualFold(r.Kind, res.Kind) {
-			return r.Name, nil
+			return r.Name, r.Namespaced, nil
 		}
 	}
 
-	return "", fmt.Errorf("crd: kind %q not found in group/version %q", res.Kind, groupVersion)
+	return "", false, fmt.Errorf("crd: kind %q not found in group/version %q", res.Kind, groupVersion)
 }
 
 func ensureResourceAccess(cfg *rest.Config, res esv1.CRDProviderResource, plural, namespace string) error {

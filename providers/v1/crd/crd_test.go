@@ -82,18 +82,58 @@ func makeWidgetObject(name, namespace string, spec map[string]any) *unstructured
 
 func makeCRDClient(store *esv1.CRDProvider, namespace string, objs ...runtime.Object) *Client {
 	return &Client{
-		store:     store,
-		namespace: namespace,
-		plural:    "widgets",
-		dynClient: dynfake.NewSimpleDynamicClient(runtime.NewScheme(), objs...),
+		store:      store,
+		namespace:  namespace,
+		plural:     "widgets",
+		namespaced: true,
+		dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), objs...),
 	}
 }
 
 func TestClientBuildGVR(t *testing.T) {
-	c := &Client{store: makeCRDTestStore(), plural: "widgets"}
+	c := &Client{store: makeCRDTestStore(), plural: "widgets", namespaced: true}
 	gvr := c.buildGVR()
 	if gvr.Group != testResource.Group || gvr.Version != testResource.Version || gvr.Resource != "widgets" {
 		t.Fatalf("unexpected GVR: %+v", gvr)
+	}
+}
+
+func TestClientGetSecretClusterScoped(t *testing.T) {
+	obj := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "test.external-secrets.io/v1alpha1",
+		"kind":       "ClusterDBSpec",
+		"metadata": map[string]any{
+			"name": "clusterdbspec-sample",
+		},
+		"spec": map[string]any{
+			"password": "cluster-secret",
+		},
+	}}
+	store := &esv1.CRDProvider{
+		ServiceAccountName: "reader",
+		Resource: esv1.CRDProviderResource{
+			Group:   "test.external-secrets.io",
+			Version: "v1alpha1",
+			Kind:    "ClusterDBSpec",
+		},
+	}
+	// ExternalSecret lives in default; cluster-scoped Get must not use that namespace.
+	c := &Client{
+		store:      store,
+		namespace:  "default",
+		plural:     "clusterdbspecs",
+		namespaced: false,
+		dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), obj),
+	}
+	got, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key:      "clusterdbspec-sample",
+		Property: "spec.password",
+	})
+	if err != nil {
+		t.Fatalf("GetSecret() unexpected error: %v", err)
+	}
+	if string(got) != "cluster-secret" {
+		t.Fatalf("GetSecret() = %q, want %q", string(got), "cluster-secret")
 	}
 }
 

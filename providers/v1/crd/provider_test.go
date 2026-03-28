@@ -33,24 +33,29 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// fakeDiscover returns a discoverFn that always succeeds with the given plural name.
-func fakeDiscover(plural string) func(*rest.Config, esv1.CRDProviderResource) (string, error) {
-	return func(_ *rest.Config, _ esv1.CRDProviderResource) (string, error) {
-		return plural, nil
+// fakeDiscover returns a discoverFn that always succeeds with the given plural and scope.
+func fakeDiscover(plural string, namespaced bool) func(*rest.Config, esv1.CRDProviderResource) (string, bool, error) {
+	return func(_ *rest.Config, _ esv1.CRDProviderResource) (string, bool, error) {
+		return plural, namespaced, nil
 	}
 }
 
 // fakeDiscoverErr returns a discoverFn that always fails with the given error.
-func fakeDiscoverErr(err error) func(*rest.Config, esv1.CRDProviderResource) (string, error) {
-	return func(_ *rest.Config, _ esv1.CRDProviderResource) (string, error) {
-		return "", err
+func fakeDiscoverErr(err error) func(*rest.Config, esv1.CRDProviderResource) (string, bool, error) {
+	return func(_ *rest.Config, _ esv1.CRDProviderResource) (string, bool, error) {
+		return "", true, err
 	}
 }
 
 // providerWithFakeDiscover returns a Provider with a fake discovery function
 // and a fake dynamic client injected, bypassing both token fetch and the real cluster.
-func providerWithFakeDiscover(plural string) *Provider {
-	return &Provider{discoverFn: fakeDiscover(plural)}
+// namespaced defaults to true when omitted (namespace-scoped CRD).
+func providerWithFakeDiscover(plural string, namespaced ...bool) *Provider {
+	ns := true
+	if len(namespaced) > 0 {
+		ns = namespaced[0]
+	}
+	return &Provider{discoverFn: fakeDiscover(plural, ns)}
 }
 
 func makeStoreWithCRDProvider(prov *esv1.CRDProvider) esv1.GenericStore {
@@ -78,10 +83,11 @@ func newTestClient(store esv1.GenericStore, dynClient dynamic.Interface, plural,
 		return nil, err
 	}
 	return &Client{
-		store:     provSpec,
-		dynClient: dynClient,
-		namespace: namespace,
-		plural:    plural,
+		store:      provSpec,
+		dynClient:  dynClient,
+		namespace:  namespace,
+		plural:     plural,
+		namespaced: true,
 	}, nil
 }
 
@@ -497,6 +503,20 @@ func TestNewClientInternal(t *testing.T) {
 		c := client.(*Client)
 		if c.namespace != "remote-ns" {
 			t.Fatalf("client namespace = %q, want %q", c.namespace, "remote-ns")
+		}
+	})
+
+	t.Run("cluster-scoped discovery sets namespaced false on client", func(t *testing.T) {
+		p := providerWithFakeDiscover("clusterdbspecs", false)
+		store := makeStoreWithCRDProvider(&esv1.CRDProvider{ServiceAccountName: "reader", Resource: widgetResource})
+		cfg := &rest.Config{Host: "https://example.com", BearerToken: "tok"}
+		client, err := p.newClientWithRESTConfig(store, cfg, "default")
+		if err != nil {
+			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
+		}
+		c := client.(*Client)
+		if c.namespaced {
+			t.Fatalf("expected cluster-scoped client (namespaced=false)")
 		}
 	})
 }

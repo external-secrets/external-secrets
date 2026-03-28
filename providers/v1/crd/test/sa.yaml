@@ -38,3 +38,26 @@ subjects:
     name: crd-reader
     namespace: default
 ---
+# ClusterRole for cluster-scoped ClusterDBSpec (get/list at cluster scope).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crd-reader-clusterdbspec
+rules:
+  - apiGroups: ["test.external-secrets.io"]
+    resources: ["clusterdbspecs"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crd-reader-clusterdbspec
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crd-reader-clusterdbspec
+subjects:
+  - kind: ServiceAccount
+    name: crd-reader
+    namespace: default

@@ -1,0 +1,58 @@
+---
+# Cluster-scoped DBSpec (same spec/status shape as namespaced DBSpec).
+apiVersion: test.external-secrets.io/v1alpha1
+kind: ClusterDBSpec
+metadata:
+  name: clusterdbspec-sample
+spec:
+  user: cluster-app-user
+  password: cluster-super-secret
+  nestedFields:
+    - key: endpoint
+      val: db.shared.svc.cluster.local:5432
+    - key: fqdn
+      val: cluster-app-user:cluster-super-secret@db.shared.svc.cluster.local
+status:
+  - key: endpoint
+    val: db.shared.svc.cluster.local:5432
+  - key: fqdn
+    val: cluster-app-user:cluster-super-secret@db.shared.svc.cluster.local
+  - key: rotationDate
+    val: "2026-03-18T10:00:00Z"
+---
+# ClusterDBSpec is cluster-scoped: the controller discovers API scope and uses
+# cluster Get/List (remoteNamespace does not apply to the object path).
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: cluster-dbspec
+spec:
+  provider:
+    crd:
+      serviceAccountName: crd-reader
+      resource:
+        group: test.external-secrets.io
+        version: v1alpha1
+        kind: ClusterDBSpec
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: clusterdbspec-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: cluster-dbspec
+    kind: ClusterSecretStore
+  target:
+    name: clusterdbspec-secret
+  data:
+    - secretKey: password
+      remoteRef:
+        key: clusterdbspec-sample
+        property: spec.password
+    - secretKey: fqdn
+      remoteRef:
+        key: clusterdbspec-sample
+        property: spec.nestedFields[?key=='fqdn'].val | [0]
