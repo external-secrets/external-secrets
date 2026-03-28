@@ -449,7 +449,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	assert.Equal(t, "This is a test", annotations["description"])
 }
 
-func TestApplyTemplateToManifest_SetsOwnerRefWhenCreationPolicyOwner(t *testing.T) {
+func TestApplyTemplateToManifest_AppliesOwnershipWhenCreationPolicyOwner(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
@@ -479,6 +479,111 @@ func TestApplyTemplateToManifest_SetsOwnerRefWhenCreationPolicyOwner(t *testing.
 	require.Len(t, owners, 1)
 	assert.Equal(t, "test-es", owners[0].Name)
 	assert.True(t, *owners[0].Controller)
+	labels := result.GetLabels()
+	assert.Equal(t, esutils.ObjectHash("default/test-es"), labels[esv1.LabelOwner])
+}
+
+func TestApplyOwnership(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	isController := true
+
+	tests := []struct {
+		name           string
+		creationPolicy esv1.ExternalSecretCreationPolicy
+		existing       *unstructured.Unstructured
+		expectedErr    error
+		validate       func(t *testing.T, result *unstructured.Unstructured)
+	}{
+		{
+			name:           "removes LabelOwner when policy is not Owner",
+			creationPolicy: esv1.CreatePolicyOrphan,
+			existing: func() *unstructured.Unstructured {
+				u := &unstructured.Unstructured{}
+				u.SetLabels(map[string]string{
+					esv1.LabelOwner: esutils.ObjectHash("default/test-es"),
+				})
+				return u
+			}(),
+			validate: func(t *testing.T, result *unstructured.Unstructured) {
+				assert.Empty(t, result.GetLabels()[esv1.LabelOwner])
+			},
+		},
+		{
+			name:           "removes owner reference when policy changes from Owner to Orphan",
+			creationPolicy: esv1.CreatePolicyOrphan,
+			existing: func() *unstructured.Unstructured {
+				u := &unstructured.Unstructured{}
+				u.SetGroupVersionKind(schema.GroupVersionKind{Version: "v1", Kind: "ConfigMap"})
+				u.SetOwnerReferences([]metav1.OwnerReference{
+					{
+						APIVersion: esv1.SchemeGroupVersion.String(),
+						Kind:       esv1.ExtSecretKind,
+						Name:       "test-es",
+						UID:        "abc-123",
+						Controller: &isController,
+					},
+				})
+				return u
+			}(),
+			validate: func(t *testing.T, result *unstructured.Unstructured) {
+				assert.Empty(t, result.GetOwnerReferences())
+			},
+		},
+		{
+			name:           "returns ErrSecretIsOwned when owned by a different ExternalSecret",
+			creationPolicy: esv1.CreatePolicyOwner,
+			existing: func() *unstructured.Unstructured {
+				u := &unstructured.Unstructured{}
+				u.SetOwnerReferences([]metav1.OwnerReference{
+					{
+						APIVersion: esv1.SchemeGroupVersion.String(),
+						Kind:       esv1.ExtSecretKind,
+						Name:       "other-es",
+						UID:        "xyz-999",
+						Controller: &isController,
+					},
+				})
+				return u
+			}(),
+			expectedErr: ErrSecretIsOwned,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+			r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-es",
+					Namespace: "default",
+					UID:       "abc-123",
+				},
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Name:           "test-configmap",
+						CreationPolicy: tt.creationPolicy,
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "v1",
+							Kind:       "ConfigMap",
+						},
+					},
+				},
+			}
+
+			err := r.applyOwnership(es, tt.existing)
+
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+				return
+			}
+			require.NoError(t, err)
+			if tt.validate != nil {
+				tt.validate(t, tt.existing)
+			}
+		})
+	}
 }
 
 func TestApplyTemplateToManifest_NoOwnerRefWhenCreationPolicyOrphan(t *testing.T) {
