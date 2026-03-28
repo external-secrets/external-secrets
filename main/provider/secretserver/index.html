@@ -3870,15 +3870,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#referencing-secrets-in-multiple-items-secrets" class="md-nav__link">
+  <a href="#referencing-secrets-by-field-name-or-slug" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Referencing Secrets in multiple Items secrets
+        Referencing Secrets by Field Name or Slug
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Referencing Secrets in multiple Items secrets">
+    <nav class="md-nav" aria-label="Referencing Secrets by Field Name or Slug">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3886,6 +3886,78 @@
     <span class="md-ellipsis">
       
         Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pushing-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pushing Secrets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pushing Secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#remote-key-formats-for-pushsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remote Key Formats for PushSecret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#requirements-for-creating-new-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements for Creating New Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updating-existing-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Updating Existing Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletion-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deletion Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushing-without-a-property" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pushing Without a Property
       
     </span>
   </a>
@@ -5123,15 +5195,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#referencing-secrets-in-multiple-items-secrets" class="md-nav__link">
+  <a href="#referencing-secrets-by-field-name-or-slug" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Referencing Secrets in multiple Items secrets
+        Referencing Secrets by Field Name or Slug
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Referencing Secrets in multiple Items secrets">
+    <nav class="md-nav" aria-label="Referencing Secrets by Field Name or Slug">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -5139,6 +5211,78 @@
     <span class="md-ellipsis">
       
         Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pushing-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pushing Secrets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pushing Secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#remote-key-formats-for-pushsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remote Key Formats for PushSecret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#requirements-for-creating-new-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements for Creating New Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updating-existing-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Updating Existing Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletion-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deletion Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushing-without-a-property" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pushing Without a Property
       
     </span>
   </a>
@@ -5199,17 +5343,45 @@ spec.provider.secretserver.password.value: "yourpassword" <br /></p>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_K8S_SECRET&gt;</span>
 </code></pre></div></p>
 <h3 id="referencing-secrets">Referencing Secrets</h3>
-<p>Secrets may be referenced by:</p>
-<blockquote>
-<p>Secret ID<br />
-Secret Name<br />
-Secret Path (/FolderName/SecretName)<br /></p>
-</blockquote>
-<p>Please note if using the secret name or path,
-the name field must not contain spaces or control characters.<br />
-If multiple secrets are found, <em><code>only the first found secret will be returned</code></em>.</p>
-<p>Please note: <code>Retrieving a specific version of a secret is not yet supported.</code></p>
-<p>Note that because all Secret-Server/Platform secrets are JSON objects, you must specify the <code>remoteRef.property</code>
+<p>Secrets can be referenced using four different key formats in the <code>remoteRef.key</code> field:</p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Secret ID</td>
+<td><code>52622</code></td>
+<td>Numeric ID of the secret. Always unambiguous.</td>
+</tr>
+<tr>
+<td>Secret Name</td>
+<td><code>my-secret</code></td>
+<td>Name of the secret. If multiple secrets share the same name across different folders, the first match is returned.</td>
+</tr>
+<tr>
+<td>Secret Path</td>
+<td><code>/FolderName/SecretName</code></td>
+<td>Full folder path including the secret name. Uniquely identifies a secret across folders.</td>
+</tr>
+<tr>
+<td>Folder-scoped Name</td>
+<td><code>folderId:73/my-secret</code></td>
+<td>Name-based lookup scoped to a specific folder ID. Use this when multiple secrets share the same name in different folders and you need to target a specific one.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>If using the secret name or path, the name must not contain spaces or control characters.</li>
+<li>Retrieving a specific version of a secret is not yet supported.</li>
+<li>The <strong>folder-scoped name</strong> format (<code>folderId:&lt;id&gt;/&lt;name&gt;</code>) is particularly important when using <code>PushSecret</code> with <code>deletionPolicy: Delete</code>, because the deletion and existence-check operations need to identify the correct secret without access to metadata. See <a href="#pushing-secrets">Pushing Secrets</a> for details.</li>
+</ul>
+<p>Because all Secret-Server/Platform secrets are JSON objects, you must specify the <code>remoteRef.property</code>
 in your ExternalSecret configuration.<br />
 You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5268,15 +5440,15 @@ This allows you to specify a secret’s folder hierarchy and name in the format:
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretServerValue</span><span class="w">  </span><span class="c1"># Key in the Kubernetes Secret</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/secretFolder/secretname&quot;</span><span class="w">  </span><span class="c1"># Path format: /&lt;Folder&gt;/&lt;SecretName&gt;</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                    </span><span class="c1"># Optional: use gjson syntax to extract a specific field</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                    </span><span class="c1"># Optional: matched against field Slug/FieldName first, then gjson on Items.0.ItemValue as fallback</span>
 </code></pre></div>
 <h4 id="notes">Notes:</h4>
 <p>The path must exactly match the folder and secret name in Secret-Server/Platform.
 If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
-You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret.</p>
+You can still use property to match fields by Slug/FieldName, extract values from JSON-formatted secrets via gjson, or omit it to retrieve the entire secret.</p>
 <h3 id="preparing-your-secret">Preparing your secret</h3>
-<p>You can either retrieve your entire secret or you can use a JSON formatted string
-stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
+<p>You can either retrieve your entire secret, match a field by its Slug or FieldName, or use a JSON formatted string
+stored in your secret located at Items[0].ItemValue to retrieve a specific value using gjson syntax.<br />
 See example JSON secret below.</p>
 <h4 id="examples">Examples</h4>
 <p>Using the json formatted secret below:</p>
@@ -5343,8 +5515,8 @@ returns: The entire secret in JSON format as displayed below</p>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div>
-<h3 id="referencing-secrets-in-multiple-items-secrets">Referencing Secrets in multiple Items secrets</h3>
-<p>If there is more then one Item in the secret, it supports to retrieve them (all Item.*.ItemValue) looking up by Item.*.FieldName or Item.*.Slug, instead of the above behaviour to use gjson only on the first item Items.0.ItemValue only.</p>
+<h3 id="referencing-secrets-by-field-name-or-slug">Referencing Secrets by Field Name or Slug</h3>
+<p>When <code>property</code> is set, the provider first tries to match it against each field's <code>Slug</code> or <code>FieldName</code> and returns the corresponding <code>ItemValue</code>. This works for secrets with any number of fields. If no field matches, it falls back to treating the first field's <code>ItemValue</code> as JSON and extracting the property using gjson syntax (supporting nested paths like <code>"books.1"</code>).</p>
 <h4 id="examples_1">Examples</h4>
 <p>Using the json formatted secret below:</p>
 <ul>
@@ -5419,6 +5591,141 @@ returns: The entire secret in JSON format as displayed below</p>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
+</code></pre></div>
+<h3 id="pushing-secrets">Pushing Secrets</h3>
+<p>The Delinea Secret-Server/Platform provider supports pushing secrets from Kubernetes back to your Secret Server instance using the <code>PushSecret</code> resource. You can both create new secrets and update existing ones.</p>
+<h4 id="remote-key-formats-for-pushsecret">Remote Key Formats for PushSecret</h4>
+<p>When using <code>PushSecret</code>, the <code>remoteRef.remoteKey</code> field determines how the provider identifies
+the target secret in Secret Server. The same key formats described in <a href="#referencing-secrets">Referencing Secrets</a> apply here:</p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Example</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Secret ID</td>
+<td><code>52622</code></td>
+<td>Updating an existing secret by its numeric ID.</td>
+</tr>
+<tr>
+<td>Secret Name</td>
+<td><code>my-secret</code></td>
+<td>Simple environments where secret names are unique across all folders.</td>
+</tr>
+<tr>
+<td>Secret Path</td>
+<td><code>/FolderName/SecretName</code></td>
+<td>When you know the full folder path of the secret.</td>
+</tr>
+<tr>
+<td>Folder-scoped Name</td>
+<td><code>folderId:73/my-secret</code></td>
+<td><strong>Recommended for new secrets.</strong> Ensures all operations (push, delete, existence check) target the correct folder.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why the folder-scoped name format matters:</strong></p>
+<p>The <code>PushSecret</code> controller performs three distinct operations on secrets: <strong>push</strong> (create/update),
+<strong>delete</strong>, and <strong>existence check</strong>. While the push operation has access to the <code>metadata</code> field
+(which can carry a <code>folderId</code>), the delete and existence-check operations only receive the
+<code>remoteKey</code> and <code>property</code> — they do <strong>not</strong> have access to metadata.</p>
+<p>This means that if you use a plain secret name like <code>my-secret</code> and multiple secrets with that name
+exist in different folders, the delete and existence-check operations cannot distinguish between them
+and will act on the <strong>first match</strong> returned by the API.</p>
+<p>By using the <code>folderId:&lt;id&gt;/&lt;name&gt;</code> format (e.g., <code>folderId:73/my-secret</code>), the folder ID is
+encoded directly in the key and is available to <strong>all</strong> operations, ensuring consistent behavior.</p>
+<p><strong>Precedence rule:</strong> If both a <code>folderId</code> in the <code>remoteKey</code> and a <code>folderId</code> in the metadata are
+specified, the value from the <code>remoteKey</code> takes precedence for lookups. The metadata <code>folderId</code> and
+<code>secretTemplateId</code> are still required when <strong>creating</strong> a new secret (they tell the API which folder
+and template to use for the new secret).</p>
+<h4 id="requirements-for-creating-new-secrets">Requirements for Creating New Secrets</h4>
+<p>When creating a <strong>new</strong> secret in Secret Server, you must provide a <code>folderId</code> and a <code>secretTemplateId</code>. These are passed as <code>metadata</code> in the <code>PushSecret</code> spec:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">push-secret-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-k8s-secret</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;folderId:73/my-new-secret&quot;</span><span class="w"> </span><span class="c1"># Folder-scoped name ensures correct matching for all operations</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"> </span><span class="c1"># Maps to the &#39;Username&#39; field/slug in Secret Server</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">folderId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">73</span><span class="w"> </span><span class="c1"># Required for new secrets: folder to create the secret in</span>
+<span class="w">          </span><span class="nt">secretTemplateId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6098</span><span class="w"> </span><span class="c1"># Required for new secrets: template to use</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;folderId:73/my-new-secret&quot;</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"> </span><span class="c1"># Maps to the &#39;Password&#39; field/slug in Secret Server</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">folderId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">73</span>
+<span class="w">          </span><span class="nt">secretTemplateId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6098</span>
+</code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> The <code>folderId</code> in the <code>remoteKey</code> (<code>folderId:73/...</code>) is used when <strong>looking up</strong> the
+secret (for push, delete, and existence checks). The <code>folderId</code> and <code>secretTemplateId</code> in
+<code>metadata</code> are used when <strong>creating</strong> a new secret via the Secret Server API.</p>
+</blockquote>
+<h4 id="updating-existing-secrets">Updating Existing Secrets</h4>
+<p>When updating an existing secret, you do not strictly need the <code>folderId</code> or <code>secretTemplateId</code> metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.</p>
+<p>However, if multiple secrets share the same name across different folders, you should use either the
+<code>folderId:&lt;id&gt;/&lt;name&gt;</code> format, a path-based key, or a numeric ID to ensure the correct secret is
+updated. Using a plain name will update the <strong>first match</strong> returned by the API.</p>
+<h4 id="deletion-behavior">Deletion Behavior</h4>
+<p>The <code>PushSecret</code> resource allows you to configure what happens to the remote secret in Secret Server when the <code>PushSecret</code> itself is deleted, via the <code>PushSecret.spec.deletionPolicy</code> field. Supported values are:
+- <code>Retain</code>: (Default) The remote secret is left intact in Secret Server when the <code>PushSecret</code> is deleted.
+- <code>Delete</code>: The provider will attempt to delete the remote secret from Secret Server when the <code>PushSecret</code> is removed.</p>
+<p>When <code>Delete</code> is specified, the deletion operation is idempotent; if the secret has already been removed or cannot be found, the provider will safely ignore the error and proceed.</p>
+<p><strong>Important:</strong> The deletion operation does <strong>not</strong> have access to <code>metadata</code>. If your Secret Server
+has multiple secrets with the same name in different folders and you use <code>deletionPolicy: Delete</code>,
+you <strong>must</strong> use a key format that uniquely identifies the secret — either <code>folderId:&lt;id&gt;/&lt;name&gt;</code>,
+a full path (<code>/Folder/SecretName</code>), or a numeric ID. Using a plain name risks deleting the wrong
+secret.</p>
+<h4 id="pushing-without-a-property">Pushing Without a Property</h4>
+<p>If you omit <code>property</code> from the <code>remoteRef</code>, the provider writes the value selected by <code>data.match.secretKey</code> (e.g., the content stored under the <code>config</code> key in your Kubernetes Secret) into the <strong>first</strong> field of the Secret Server secret. This is useful when your secret value is a single JSON payload that you want to store in a text field like <code>Data</code> or <code>Notes</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">push-secret-json-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-k8s-json-secret</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span><span class="w"> </span><span class="c1"># The key in your k8s secret whose value will be pushed</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;folderId:73/my-new-json-secret&quot;</span>
+<span class="w">          </span><span class="c1"># property is omitted: the value is stored in the first template field</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">folderId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">73</span>
+<span class="w">          </span><span class="nt">secretTemplateId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6098</span>
 </code></pre></div>
 
 
