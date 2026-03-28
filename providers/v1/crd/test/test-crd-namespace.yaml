@@ -1,0 +1,113 @@
+---
+# Namespace "foo" — a team namespace whose DB credentials are stored in a DBSpec.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: foo
+
+---
+# DBSpec living in the "foo" namespace.
+# When fetched via a ClusterSecretStore the remoteRef.key must be "foo/dbspec-foo"
+# (namespace/objectName). The provider discovers that DBSpec is namespaced, splits
+# the key on the first '/', and performs a namespaced Get against the foo namespace.
+apiVersion: test.external-secrets.io/v1alpha1
+kind: DBSpec
+metadata:
+  name: dbspec-foo
+  namespace: foo
+spec:
+  user: foo-user
+  password: foo-secret
+  nestedFields:
+    - key: endpoint
+      val: db.foo.svc.cluster.local:5432
+    - key: fqdn
+      val: foo-user:foo-secret@db.foo.svc.cluster.local
+status:
+  - key: endpoint
+    val: db.foo.svc.cluster.local:5432
+  - key: fqdn
+    val: foo-user:foo-secret@db.foo.svc.cluster.local
+  - key: rotationDate
+    val: "2026-03-18T10:00:00Z"
+
+---
+# ClusterSecretStore that targets *all* DBSpec objects across *all* namespaces.
+# No remoteNamespace is set, so the provider will list cluster-wide. Individual
+# ExternalSecrets address a specific namespace by using "namespace/name" keys.
+#
+# Key rules for ClusterSecretStore + namespaced kind (DBSpec):
+#   - remoteRef.key = "namespace/objectName"  → reads from that namespace
+#   - remoteRef.key = "objectName"            → rejected (namespace is required)
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: all-namespaces-dbspec
+spec:
+  provider:
+    crd:
+      # Legacy mode: mint an in-cluster token for crd-reader.
+      # namespace is required for ClusterSecretStore so the controller knows
+      # where the SA lives.
+      serviceAccountRef:
+        name: crd-reader
+        namespace: default
+      resource:
+        group: test.external-secrets.io
+        version: v1alpha1
+        kind: DBSpec
+      # remoteNamespace is intentionally omitted — the store spans all namespaces.
+      # Scope individual lookups via the "namespace/name" key format below.
+
+---
+# RBAC — the existing crd-reader ServiceAccount needs cluster-wide read on DBSpec.
+# Apply this in addition to the Role/RoleBinding in sa.yaml.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crd-reader-dbspec-all-namespaces
+rules:
+  - apiGroups: ["test.external-secrets.io"]
+    resources: ["dbspecs"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crd-reader-dbspec-all-namespaces
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crd-reader-dbspec-all-namespaces
+subjects:
+  - kind: ServiceAccount
+    name: crd-reader
+    namespace: default
+
+---
+# ExternalSecret in the "default" namespace fetching credentials from the DBSpec
+# that lives in the "foo" namespace. The key uses the "foo/dbspec-foo" form so the
+# provider knows which namespace to query.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: foo-dbspec-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: all-namespaces-dbspec
+    kind: ClusterSecretStore
+  target:
+    name: foo-dbspec-secret
+  data:
+    - secretKey: password
+      remoteRef:
+        # "foo/dbspec-foo" → namespace=foo, objectName=dbspec-foo
+        key: foo/dbspec-foo
+        property: spec.password
+    - secretKey: fqdn
+      remoteRef:
+        key: foo/dbspec-foo
+        property: spec.nestedFields[?key=='fqdn'].val | [0]

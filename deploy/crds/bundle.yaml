@@ -3738,9 +3738,11 @@ spec:
                         remoteNamespace:
                           default: default
                           description: |-
-                            RemoteNamespace is the namespace used for namespaced API calls (Get/List).
-                            When empty, the SecretStore namespace (or cluster scope for ClusterSecretStore)
-                            is used, matching previous behavior.
+                            RemoteNamespace is the default namespace for namespaced API calls on SecretStore.
+                            For ClusterSecretStore with a namespaced resource, when set it limits dataFrom
+                            List to that namespace (keys in the result map are object names only). When
+                            empty, List spans all namespaces and keys are namespace/objectName. Per-entry
+                            namespace for Get uses remoteRef.key namespace/objectName for ClusterSecretStore.
                           maxLength: 63
                           minLength: 1
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
@@ -3812,13 +3814,46 @@ spec:
                               description: configures the Kubernetes server Address.
                               type: string
                           type: object
-                        serviceAccountName:
+                        serviceAccountRef:
                           description: |-
-                            ServiceAccountName is the name of the ServiceAccount used in legacy mode
-                            (no server URL, auth, or authRef): the controller uses in-cluster config
-                            and mints a token for this account. Ignored when server, auth, or authRef
-                            is set; use auth.serviceAccount instead for explicit connection mode.
-                          type: string
+                            ServiceAccountRef references the ServiceAccount used for authentication.
+
+                            Legacy mode (no server/auth/authRef): the controller mints a short-lived
+                            token for this SA and uses it against the local cluster. For SecretStore
+                            the namespace field is ignored (the SA must be in the store's namespace).
+                            For ClusterSecretStore, namespace is required so the controller knows
+                            where the SA lives; when omitted it defaults to "default".
+
+                            Explicit mode (server + auth or authRef): serviceAccountRef is optional.
+                            When set, the controller impersonates this SA on the remote cluster after
+                            connecting via auth/authRef. For SecretStore the SA namespace is the store
+                            namespace; for ClusterSecretStore, namespace must be set explicitly.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
                         whitelist:
                           description: |-
                             Whitelist optionally restricts which object names and requested properties
@@ -3833,8 +3868,10 @@ spec:
                                 properties:
                                   name:
                                     description: |-
-                                      Name is an optional regular expression matched against the requested
-                                      resource object name.
+                                      Name is an optional regular expression matched against the remote reference
+                                      key: for SecretStore this is the object name; for ClusterSecretStore with
+                                      a namespaced resource it is namespace/objectName when listing across namespaces,
+                                      otherwise the object name (or full key including namespace/objectName for Get).
                                     type: string
                                   properties:
                                     description: |-
@@ -15781,9 +15818,11 @@ spec:
                         remoteNamespace:
                           default: default
                           description: |-
-                            RemoteNamespace is the namespace used for namespaced API calls (Get/List).
-                            When empty, the SecretStore namespace (or cluster scope for ClusterSecretStore)
-                            is used, matching previous behavior.
+                            RemoteNamespace is the default namespace for namespaced API calls on SecretStore.
+                            For ClusterSecretStore with a namespaced resource, when set it limits dataFrom
+                            List to that namespace (keys in the result map are object names only). When
+                            empty, List spans all namespaces and keys are namespace/objectName. Per-entry
+                            namespace for Get uses remoteRef.key namespace/objectName for ClusterSecretStore.
                           maxLength: 63
                           minLength: 1
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
@@ -15855,13 +15894,46 @@ spec:
                               description: configures the Kubernetes server Address.
                               type: string
                           type: object
-                        serviceAccountName:
+                        serviceAccountRef:
                           description: |-
-                            ServiceAccountName is the name of the ServiceAccount used in legacy mode
-                            (no server URL, auth, or authRef): the controller uses in-cluster config
-                            and mints a token for this account. Ignored when server, auth, or authRef
-                            is set; use auth.serviceAccount instead for explicit connection mode.
-                          type: string
+                            ServiceAccountRef references the ServiceAccount used for authentication.
+
+                            Legacy mode (no server/auth/authRef): the controller mints a short-lived
+                            token for this SA and uses it against the local cluster. For SecretStore
+                            the namespace field is ignored (the SA must be in the store's namespace).
+                            For ClusterSecretStore, namespace is required so the controller knows
+                            where the SA lives; when omitted it defaults to "default".
+
+                            Explicit mode (server + auth or authRef): serviceAccountRef is optional.
+                            When set, the controller impersonates this SA on the remote cluster after
+                            connecting via auth/authRef. For SecretStore the SA namespace is the store
+                            namespace; for ClusterSecretStore, namespace must be set explicitly.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
                         whitelist:
                           description: |-
                             Whitelist optionally restricts which object names and requested properties
@@ -15876,8 +15948,10 @@ spec:
                                 properties:
                                   name:
                                     description: |-
-                                      Name is an optional regular expression matched against the requested
-                                      resource object name.
+                                      Name is an optional regular expression matched against the remote reference
+                                      key: for SecretStore this is the object name; for ClusterSecretStore with
+                                      a namespaced resource it is namespace/objectName when listing across namespaces,
+                                      otherwise the object name (or full key including namespace/objectName for Get).
                                     type: string
                                   properties:
                                     description: |-

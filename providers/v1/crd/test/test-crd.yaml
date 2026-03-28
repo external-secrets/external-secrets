@@ -20,6 +20,9 @@ status:
   - key: rotationDate
     val: "2026-03-18T10:00:00Z"
 ---
+# CRD provider (SecretStore): remoteRef.key must be the object name only — '/' is invalid.
+# Objects are read in the store's effective namespace (this SecretStore's metadata.namespace,
+# or provider.crd.remoteNamespace when set).
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
@@ -28,7 +31,11 @@ metadata:
 spec:
   provider:
     crd:
-      serviceAccountName: crd-reader
+      # Legacy mode: mint an in-cluster token for crd-reader.
+      # For SecretStore the namespace field on serviceAccountRef is ignored;
+      # the SA is always expected in the store's own namespace.
+      serviceAccountRef:
+        name: crd-reader
       resource:
         group: test.external-secrets.io
         version: v1alpha1

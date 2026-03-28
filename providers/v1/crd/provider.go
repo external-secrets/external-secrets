@@ -44,7 +44,7 @@ var (
 	errMissingCRDProvider = errors.New("missing CRD provider configuration")
 	errMissingKind        = errors.New("resource.kind is required")
 	errMissingVersion     = errors.New("resource.version is required")
-	errMissingSA          = errors.New("serviceAccountName is required in legacy mode (set server/auth or authRef for explicit connection)")
+	errMissingSA          = errors.New("serviceAccountRef is required in legacy mode (set server/auth or authRef for explicit connection)")
 	errKindIsSecret       = errors.New("kind \"Secret\" is not allowed: use the Kubernetes provider to read Kubernetes Secrets")
 	errEmptyWhitelistRule = errors.New("whitelist rule must define name or properties")
 )
@@ -65,6 +65,34 @@ func resolveCRDTargetNamespace(prov *esv1.CRDProvider, storeNamespace string) st
 		return prov.RemoteNamespace
 	}
 	return storeNamespace
+}
+
+// resolveLegacySANamespace returns the namespace in which the SA token is minted for
+// legacy (in-cluster) mode. For SecretStore the namespace is always the store's own
+// namespace. For ClusterSecretStore it comes from serviceAccountRef.namespace when set,
+// falling back to "default".
+func resolveLegacySANamespace(storeKind, storeNamespace string, ref *esmeta.ServiceAccountSelector) string {
+	if storeKind == esv1.ClusterSecretStoreKind {
+		if ref.Namespace != nil {
+			return *ref.Namespace
+		}
+		return "default"
+	}
+	return storeNamespace
+}
+
+// resolveImpersonationNamespace returns the SA namespace to use when building the
+// Impersonate-User header for explicit (remote cluster) mode. For SecretStore the store
+// namespace is authoritative; for ClusterSecretStore the ref must carry an explicit
+// namespace.
+func resolveImpersonationNamespace(storeKind, storeNamespace string, ref *esmeta.ServiceAccountSelector) (string, error) {
+	if storeKind == esv1.ClusterSecretStoreKind {
+		if ref.Namespace == nil || *ref.Namespace == "" {
+			return "", fmt.Errorf("crd: serviceAccountRef.namespace is required for impersonation with ClusterSecretStore")
+		}
+		return *ref.Namespace, nil
+	}
+	return storeNamespace, nil
 }
 
 // Provider is the top-level CRD provider that implements esv1.Provider.
@@ -128,22 +156,26 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 		if err != nil {
 			return nil, fmt.Errorf("crd: failed to prepare api connection: %w", err)
 		}
+		// Optional impersonation: if serviceAccountRef is set, impersonate that
+		// SA on the remote cluster after connecting via auth/authRef.
+		if provSpec.ServiceAccountRef != nil {
+			impersonateNS, err := resolveImpersonationNamespace(storeKind, namespace, provSpec.ServiceAccountRef)
+			if err != nil {
+				return nil, err
+			}
+			cfg.Impersonate = rest.ImpersonationConfig{
+				UserName: fmt.Sprintf("system:serviceaccount:%s:%s", impersonateNS, provSpec.ServiceAccountRef.Name),
+			}
+		}
 		return p.newClientWithRESTConfig(store, cfg, targetNS)
 	}
 
-	saNamespace := namespace
-	if saNamespace == "" {
-		// ClusterSecretStore - fall back to "default" as the SA namespace.
-		saNamespace = "default"
-	}
-
-	// Legacy: in-cluster API server + short-lived token for ServiceAccountName.
-	token, err := esutils.FetchServiceAccountToken(ctx, esmeta.ServiceAccountSelector{
-		Name: provSpec.ServiceAccountName,
-	}, saNamespace)
+	// Legacy mode: in-cluster API server + short-lived token for serviceAccountRef.
+	saNamespace := resolveLegacySANamespace(storeKind, namespace, provSpec.ServiceAccountRef)
+	token, err := esutils.FetchServiceAccountToken(ctx, *provSpec.ServiceAccountRef, saNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("crd: failed to fetch token for serviceaccount %s/%s: %w",
-			saNamespace, provSpec.ServiceAccountName, err)
+			saNamespace, provSpec.ServiceAccountRef.Name, err)
 	}
 
 	authedCfg := rest.CopyConfig(ctrlCfg)
@@ -171,6 +203,8 @@ type Client struct {
 	plural string
 	// namespaced is true when the API resource is namespace-scoped (from discovery).
 	namespaced bool
+	// storeKind is SecretStore or ClusterSecretStore (controls remoteRef.key parsing).
+	storeKind string
 }
 
 var _ esv1.SecretsClient = &Client{}
@@ -209,6 +243,7 @@ func (p *Provider) newClientWithRESTConfig(store esv1.GenericStore, authedCfg *r
 		namespace:  targetNamespace,
 		plural:     plural,
 		namespaced: resourceNamespaced,
+		storeKind:  store.GetKind(),
 	}, nil
 }
 
@@ -337,8 +372,23 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 				return warnings, err
 			}
 		}
-	} else if prov.ServiceAccountName == "" {
-		return nil, errMissingSA
+		// Optional impersonation ref in explicit mode.
+		if prov.ServiceAccountRef != nil {
+			if prov.ServiceAccountRef.Name == "" {
+				return warnings, errors.New("serviceAccountRef.name must not be empty")
+			}
+			if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.ServiceAccountRef); err != nil {
+				return warnings, err
+			}
+		}
+	} else {
+		// Legacy mode: serviceAccountRef is required.
+		if prov.ServiceAccountRef == nil || prov.ServiceAccountRef.Name == "" {
+			return nil, errMissingSA
+		}
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.ServiceAccountRef); err != nil {
+			return nil, err
+		}
 	}
 
 	if prov.Resource.Version == "" {

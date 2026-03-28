@@ -20,22 +20,31 @@ metadata:
 spec:
   provider:
     crd:
-      serviceAccountName: crd-reader
+      # Legacy mode: mint a short-lived in-cluster token for crd-reader.
+      # For SecretStore the namespace field is optional (defaults to the store's namespace).
+      serviceAccountRef:
+        name: crd-reader
       resource:
         group: ""       # empty group = core Kubernetes API
         version: v1
         kind: ConfigMap
 
-# For a remote API server or non-legacy auth, use the same server/auth/authRef
-# fields as the Kubernetes provider, for example:
+# For a remote API server, use the same server/auth/authRef fields as the
+# Kubernetes provider. serviceAccountRef is then optional: when set the
+# controller impersonates that SA on the remote cluster.
+#
+# Example — connect as an SA token, then impersonate a scoped reader:
 #   crd:
 #     server:
-#       url: https://kubernetes.default.svc
+#       url: https://remote.k8s.example
 #       caBundle: LS0tLS...
 #     auth:
-#       serviceAccount:
-#         name: crd-reader
+#       serviceAccount:           # SA that authenticates to the remote cluster
+#         name: crd-bridge
 #         namespace: default
+#     serviceAccountRef:         # SA to impersonate on the remote cluster
+#       name: crd-reader
+#       namespace: default
 #     remoteNamespace: default   # optional; namespaced Get/List target
 #     resource:
 #       group: example.io

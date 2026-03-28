@@ -41,8 +41,10 @@ type CRDProviderResource struct {
 
 // CRDProviderWhitelistRule defines a single allow rule for CRD reads.
 type CRDProviderWhitelistRule struct {
-	// Name is an optional regular expression matched against the requested
-	// resource object name.
+	// Name is an optional regular expression matched against the remote reference
+	// key: for SecretStore this is the object name; for ClusterSecretStore with
+	// a namespaced resource it is namespace/objectName when listing across namespaces,
+	// otherwise the object name (or full key including namespace/objectName for Get).
 	// +optional
 	Name string `json:"name,omitempty"`
 
@@ -61,15 +63,44 @@ type CRDProviderWhitelist struct {
 }
 
 // CRDProvider configures a store to fetch data from arbitrary Kubernetes
-// custom resources. Use ServiceAccountName for legacy in-cluster auth, or
-// server/auth/authRef for the same connection options as the Kubernetes provider.
+// custom resources.
+//
+// # Authentication modes
+//
+// Legacy (in-cluster): set serviceAccountRef only. The controller uses in-cluster
+// config and mints a short-lived token for the referenced ServiceAccount, which is
+// then used to read CRDs from the local cluster.
+//
+// Explicit (remote cluster): set server + auth (or authRef). The auth.serviceAccount
+// identifies the SA whose token is used to authenticate against the remote cluster.
+// Optionally, set serviceAccountRef to impersonate a different identity on that remote
+// cluster: the controller will set the Kubernetes Impersonate-User header to
+// "system:serviceaccount/<namespace>/<name>" after connecting.
+//
+// # Remote reference keys
+//
+//   - SecretStore: the key is the object name only; '/' is not allowed. The API
+//     namespace is always the store namespace (ExternalSecret namespace, or
+//     remoteNamespace when set), never part of the key.
+//   - ClusterSecretStore: use "namespace/objectName" to read a namespaced CR;
+//     a key without '/' addresses a cluster-scoped CR by object name. For
+//     dataFrom Find with a namespaced kind, listing uses all namespaces unless
+//     remoteNamespace is set, and result keys are "namespace/objectName".
 type CRDProvider struct {
-	// ServiceAccountName is the name of the ServiceAccount used in legacy mode
-	// (no server URL, auth, or authRef): the controller uses in-cluster config
-	// and mints a token for this account. Ignored when server, auth, or authRef
-	// is set; use auth.serviceAccount instead for explicit connection mode.
+	// ServiceAccountRef references the ServiceAccount used for authentication.
+	//
+	// Legacy mode (no server/auth/authRef): the controller mints a short-lived
+	// token for this SA and uses it against the local cluster. For SecretStore
+	// the namespace field is ignored (the SA must be in the store's namespace).
+	// For ClusterSecretStore, namespace is required so the controller knows
+	// where the SA lives; when omitted it defaults to "default".
+	//
+	// Explicit mode (server + auth or authRef): serviceAccountRef is optional.
+	// When set, the controller impersonates this SA on the remote cluster after
+	// connecting via auth/authRef. For SecretStore the SA namespace is the store
+	// namespace; for ClusterSecretStore, namespace must be set explicitly.
 	// +optional
-	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 
 	// Server configures the Kubernetes API address and TLS trust, same as the
 	// Kubernetes provider.
@@ -86,9 +117,11 @@ type CRDProvider struct {
 	// +optional
 	AuthRef *esmeta.SecretKeySelector `json:"authRef,omitempty"`
 
-	// RemoteNamespace is the namespace used for namespaced API calls (Get/List).
-	// When empty, the SecretStore namespace (or cluster scope for ClusterSecretStore)
-	// is used, matching previous behavior.
+	// RemoteNamespace is the default namespace for namespaced API calls on SecretStore.
+	// For ClusterSecretStore with a namespaced resource, when set it limits dataFrom
+	// List to that namespace (keys in the result map are object names only). When
+	// empty, List spans all namespaces and keys are namespace/objectName. Per-entry
+	// namespace for Get uses remoteRef.key namespace/objectName for ClusterSecretStore.
 	// +optional
 	// +kubebuilder:default=default
 	// +kubebuilder:validation:MinLength:=1

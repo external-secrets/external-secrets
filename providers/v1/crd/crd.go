@@ -36,10 +36,10 @@ import (
 )
 
 // GetSecret retrieves a single value from a CRD object.
-// ref.Key is the object name; ref.Property is an optional JMESPath expression.
+// ref.Key is interpreted per store kind (see parseRemoteRefKey); ref.Property is an optional JMESPath expression.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Key == "" {
-		return nil, errors.New("crd: ref.key (object name) must not be empty")
+		return nil, errors.New("crd: ref.key must not be empty")
 	}
 	requestedKeys := requestedPropertyKeys(ref.Property)
 	allowed, err := c.matchesWhitelistRule(ref.Key, requestedKeys)
@@ -59,7 +59,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 // GetSecretMap returns a map of key/value pairs extracted from a CRD object.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if ref.Key == "" {
-		return nil, errors.New("crd: ref.key (object name) must not be empty")
+		return nil, errors.New("crd: ref.key must not be empty")
 	}
 	requestedKeys := requestedPropertyKeys(ref.Property)
 	allowed, err := c.matchesWhitelistRule(ref.Key, requestedKeys)
@@ -80,8 +80,11 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return jsonBytesToMap(raw)
 }
 
-// GetAllSecrets lists CRD objects whose names match the store Name pattern
-// (regex) and returns a map of objectName to serialised value.
+// GetAllSecrets lists CRD objects whose logical keys match the store Name pattern
+// (regex) and returns a map of logicalKey to serialised value.
+// For SecretStore (namespaced kind), listing is limited to the store namespace and keys are object names.
+// For ClusterSecretStore with a namespaced kind, listing is all namespaces unless remoteNamespace is set;
+// keys are namespace/name. Cluster-scoped kinds use object names only.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	gvr := c.buildGVR()
 
@@ -91,10 +94,24 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	)
 	ri := c.dynClient.Resource(gvr)
 	if c.namespaced {
-		if c.namespace == "" {
-			return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q", c.store.Resource.Kind)
+		switch c.storeKind {
+		case esv1.SecretStoreKind:
+			if c.namespace == "" {
+				return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q with SecretStore", c.store.Resource.Kind)
+			}
+			list, err = ri.Namespace(c.namespace).List(ctx, metav1.ListOptions{})
+		case esv1.ClusterSecretStoreKind:
+			if c.store.RemoteNamespace != "" {
+				list, err = ri.Namespace(c.store.RemoteNamespace).List(ctx, metav1.ListOptions{})
+			} else {
+				list, err = ri.List(ctx, metav1.ListOptions{})
+			}
+		default:
+			if c.namespace == "" {
+				return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q", c.store.Resource.Kind)
+			}
+			list, err = ri.Namespace(c.namespace).List(ctx, metav1.ListOptions{})
 		}
-		list, err = ri.Namespace(c.namespace).List(ctx, metav1.ListOptions{})
 	} else {
 		list, err = ri.List(ctx, metav1.ListOptions{})
 	}
@@ -117,11 +134,14 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	result := make(map[string][]byte, len(list.Items))
 	for i := range list.Items {
 		item := &list.Items[i]
-		name := item.GetName()
-		if re != nil && !re.MatchString(name) {
+		logicalKey := item.GetName()
+		if c.namespaced && c.storeKind == esv1.ClusterSecretStoreKind && c.store.RemoteNamespace == "" {
+			logicalKey = item.GetNamespace() + "/" + item.GetName()
+		}
+		if re != nil && !re.MatchString(logicalKey) {
 			continue
 		}
-		allowed, err := c.matchesWhitelistRule(name, nil)
+		allowed, err := c.matchesWhitelistRule(logicalKey, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -131,9 +151,9 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 
 		b, err := extractValue(item, "", nil)
 		if err != nil {
-			return nil, fmt.Errorf("crd: failed to extract value from %s/%s: %w", c.store.Resource.Kind, name, err)
+			return nil, fmt.Errorf("crd: failed to extract value from %s/%s: %w", c.store.Resource.Kind, logicalKey, err)
 		}
-		result[name] = b
+		result[logicalKey] = b
 	}
 	return esutils.ConvertKeys(ref.ConversionStrategy, result)
 }
@@ -170,27 +190,48 @@ func (c *Client) buildGVR() schema.GroupVersionResource {
 	}
 }
 
-// getObject fetches a single named CRD object from the cluster.
-func (c *Client) getObject(ctx context.Context, name string) (*unstructured.Unstructured, error) {
+// getObject fetches a CRD object using remoteRef.key semantics (see parseRemoteRefKey).
+func (c *Client) getObject(ctx context.Context, remoteKey string) (*unstructured.Unstructured, error) {
+	objName, keyNS, err := parseRemoteRefKey(c.storeKind, remoteKey)
+	if err != nil {
+		return nil, err
+	}
+
 	gvr := c.buildGVR()
-	var (
-		obj *unstructured.Unstructured
-		err error
-	)
 	ri := c.dynClient.Resource(gvr)
+
 	if c.namespaced {
-		if c.namespace == "" {
+		var requestNS string
+		switch {
+		case keyNS != nil:
+			requestNS = *keyNS
+		case c.storeKind == esv1.SecretStoreKind:
+			requestNS = c.namespace
+		default:
+			return nil, fmt.Errorf("crd: namespaced resource kind %q requires remoteRef.key in the form namespace/objectName when using ClusterSecretStore", c.store.Resource.Kind)
+		}
+		if requestNS == "" {
 			return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q", c.store.Resource.Kind)
 		}
-		obj, err = ri.Namespace(c.namespace).Get(ctx, name, metav1.GetOptions{})
-	} else {
-		obj, err = ri.Get(ctx, name, metav1.GetOptions{})
+		obj, err := ri.Namespace(requestNS).Get(ctx, objName, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, esv1.NoSecretError{}
+			}
+			return nil, fmt.Errorf("crd: failed to get %s %s/%s: %w", c.store.Resource.Kind, requestNS, objName, err)
+		}
+		return obj, nil
 	}
+
+	if keyNS != nil {
+		return nil, fmt.Errorf("crd: cluster-scoped resource kind %q does not allow '/' in remoteRef.key (use object name only)", c.store.Resource.Kind)
+	}
+	obj, err := ri.Get(ctx, objName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, esv1.NoSecretError{}
 		}
-		return nil, fmt.Errorf("crd: failed to get %s/%s: %w", c.store.Resource.Kind, name, err)
+		return nil, fmt.Errorf("crd: failed to get %s/%s: %w", c.store.Resource.Kind, objName, err)
 	}
 	return obj, nil
 }

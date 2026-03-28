@@ -29,6 +29,7 @@ import (
 	dynfake "k8s.io/client-go/dynamic/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type testPushSecretData struct{}
@@ -58,8 +59,8 @@ var testResource = esv1.CRDProviderResource{
 
 func makeCRDTestStore(rules ...esv1.CRDProviderWhitelistRule) *esv1.CRDProvider {
 	store := &esv1.CRDProvider{
-		ServiceAccountName: "reader",
-		Resource:           testResource,
+		ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
+		Resource:          testResource,
 	}
 	if len(rules) > 0 {
 		store.Whitelist = &esv1.CRDProviderWhitelist{Rules: rules}
@@ -86,12 +87,13 @@ func makeCRDClient(store *esv1.CRDProvider, namespace string, objs ...runtime.Ob
 		namespace:  namespace,
 		plural:     "widgets",
 		namespaced: true,
+		storeKind:  esv1.SecretStoreKind,
 		dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), objs...),
 	}
 }
 
 func TestClientBuildGVR(t *testing.T) {
-	c := &Client{store: makeCRDTestStore(), plural: "widgets", namespaced: true}
+	c := &Client{store: makeCRDTestStore(), plural: "widgets", namespaced: true, storeKind: esv1.SecretStoreKind}
 	gvr := c.buildGVR()
 	if gvr.Group != testResource.Group || gvr.Version != testResource.Version || gvr.Resource != "widgets" {
 		t.Fatalf("unexpected GVR: %+v", gvr)
@@ -110,7 +112,7 @@ func TestClientGetSecretClusterScoped(t *testing.T) {
 		},
 	}}
 	store := &esv1.CRDProvider{
-		ServiceAccountName: "reader",
+		ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
 		Resource: esv1.CRDProviderResource{
 			Group:   "test.external-secrets.io",
 			Version: "v1alpha1",
@@ -123,6 +125,7 @@ func TestClientGetSecretClusterScoped(t *testing.T) {
 		namespace:  "default",
 		plural:     "clusterdbspecs",
 		namespaced: false,
+		storeKind:  esv1.ClusterSecretStoreKind,
 		dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), obj),
 	}
 	got, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
@@ -256,6 +259,71 @@ func TestClientGetSecret(t *testing.T) {
 			t.Fatalf("GetSecret() error = %v, want NoSecretError", err)
 		}
 	})
+
+	t.Run("slash in key is rejected for SecretStore", func(t *testing.T) {
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "other/item-a"})
+		if err == nil || !strings.Contains(err.Error(), "must not contain '/'") {
+			t.Fatalf("GetSecret() error = %v, want slash rejection", err)
+		}
+	})
+}
+
+func TestClientGetSecretClusterSecretStoreNamespacedKey(t *testing.T) {
+	obj := makeWidgetObject("item-a", "ns1", map[string]any{"password": "pw1"})
+	c := &Client{
+		store:      makeCRDTestStore(),
+		namespace:  "",
+		plural:     "widgets",
+		namespaced: true,
+		storeKind:  esv1.ClusterSecretStoreKind,
+		dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), obj),
+	}
+
+	t.Run("bare object name is invalid for namespaced kind", func(t *testing.T) {
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "item-a"})
+		if err == nil || !strings.Contains(err.Error(), "namespace/objectName") {
+			t.Fatalf("GetSecret() error = %v, want namespace/objectName requirement", err)
+		}
+	})
+
+	t.Run("namespace/objectName resolves object", func(t *testing.T) {
+		got, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "ns1/item-a",
+			Property: "spec.password",
+		})
+		if err != nil {
+			t.Fatalf("GetSecret() unexpected error: %v", err)
+		}
+		if string(got) != "pw1" {
+			t.Fatalf("GetSecret() = %q, want %q", string(got), "pw1")
+		}
+	})
+
+	t.Run("cluster-scoped rejects slash in key", func(t *testing.T) {
+		clusterObj := &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "example.io/v1alpha1",
+			"kind":       "Widget",
+			"metadata": map[string]any{
+				"name": "global",
+			},
+			"spec": map[string]any{"password": "x"},
+		}}
+		cc := &Client{
+			store:      makeCRDTestStore(),
+			namespace:  "default",
+			plural:     "widgets",
+			namespaced: false,
+			storeKind:  esv1.ClusterSecretStoreKind,
+			dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), clusterObj),
+		}
+		_, err := cc.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "ns/global",
+			Property: "spec.password",
+		})
+		if err == nil || !strings.Contains(err.Error(), "does not allow '/'") {
+			t.Fatalf("GetSecret() error = %v, want cluster-scoped slash rejection", err)
+		}
+	})
 }
 
 func TestClientGetSecretMap(t *testing.T) {
@@ -332,6 +400,32 @@ func TestClientGetAllSecrets(t *testing.T) {
 		}
 		if _, ok := got["app-a"]; !ok {
 			t.Fatalf("GetAllSecrets() missing expected key app-a")
+		}
+	})
+
+	t.Run("ClusterSecretStore namespaced kind uses namespace/name keys", func(t *testing.T) {
+		o1 := makeWidgetObject("app-a", "ns1", map[string]any{"password": "a"})
+		o2 := makeWidgetObject("sys-b", "ns2", map[string]any{"password": "b"})
+		c := &Client{
+			store:      makeCRDTestStore(),
+			namespace:  "",
+			plural:     "widgets",
+			namespaced: true,
+			storeKind:  esv1.ClusterSecretStoreKind,
+			dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), o1, o2),
+		}
+		got, err := c.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+		if err != nil {
+			t.Fatalf("GetAllSecrets() unexpected error: %v", err)
+		}
+		if len(got) != 2 {
+			t.Fatalf("GetAllSecrets() len = %d, want 2", len(got))
+		}
+		if _, ok := got["ns1/app-a"]; !ok {
+			t.Fatalf("GetAllSecrets() missing expected key ns1/app-a")
+		}
+		if _, ok := got["ns2/sys-b"]; !ok {
+			t.Fatalf("GetAllSecrets() missing expected key ns2/sys-b")
 		}
 	})
 }

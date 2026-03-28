@@ -20,8 +20,11 @@ status:
   - key: rotationDate
     val: "2026-03-18T10:00:00Z"
 ---
-# ClusterDBSpec is cluster-scoped: the controller discovers API scope and uses
-# cluster Get/List (remoteNamespace does not apply to the object path).
+# ClusterDBSpec is cluster-scoped: remoteRef.key is the object name (no '/').
+# For a namespaced CR kind with ClusterSecretStore, use remoteRef.key "namespace/objectName";
+# without '/', namespaced kinds require that form. Cluster-scoped kinds reject '/' in the key.
+#
+# The controller discovers API scope and uses cluster vs namespaced Get/List accordingly.
 apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
@@ -29,7 +32,12 @@ metadata:
 spec:
   provider:
     crd:
-      serviceAccountName: crd-reader
+      # Legacy mode: mint an in-cluster token for crd-reader.
+      # For ClusterSecretStore, namespace specifies where the SA lives.
+      # Omitting namespace defaults to "default".
+      serviceAccountRef:
+        name: crd-reader
+        namespace: default
       resource:
         group: test.external-secrets.io
         version: v1alpha1
