@@ -31,7 +31,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/template"
 )
 
@@ -201,13 +200,13 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		annotations = make(map[string]string)
 	}
 
-	if es.Spec.Target.Template == nil {
-		esutils.MergeStringMap(labels, es.ObjectMeta.Labels)
-		esutils.MergeStringMap(annotations, es.ObjectMeta.Annotations)
-	} else {
-		maps.Copy(labels, es.Spec.Target.Template.Metadata.Labels)
-		maps.Copy(annotations, es.Spec.Target.Template.Metadata.Annotations)
+	srcLabels, srcAnnotations := es.ObjectMeta.Labels, es.ObjectMeta.Annotations
+	if es.Spec.Target.Template != nil {
+		srcLabels = es.Spec.Target.Template.Metadata.Labels
+		srcAnnotations = es.Spec.Target.Template.Metadata.Annotations
 	}
+	maps.Copy(labels, srcLabels)
+	maps.Copy(annotations, srcAnnotations)
 
 	labels[esv1.LabelManaged] = esv1.LabelManagedValue
 
