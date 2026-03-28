@@ -20,9 +20,11 @@ status:
   - key: rotationDate
     val: "2026-03-18T10:00:00Z"
 ---
-# CRD provider (SecretStore): remoteRef.key must be the object name only — '/' is invalid.
-# Objects are read in the store's effective namespace (this SecretStore's metadata.namespace,
-# or provider.crd.remoteNamespace when set).
+# CRD provider (SecretStore):
+#   - remoteRef.key must be the object name only — '/' is invalid.
+#   - Objects are read from the store's namespace (metadata.namespace), or from
+#     remoteNamespace when set.
+#   - whitelist.rules[].namespace is silently ignored (namespace is always fixed).
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
@@ -40,6 +42,14 @@ spec:
         group: test.external-secrets.io
         version: v1alpha1
         kind: DBSpec
+      # Optional whitelist — restrict readable objects/properties.
+      # For SecretStore the namespace filter in each rule has no effect.
+      #
+      # whitelist:
+      #   rules:
+      #     - name: "^dbspec-.*$"          # only objects named "dbspec-*"
+      #     - properties:
+      #         - "^spec\\.password$"      # only the spec.password field
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret

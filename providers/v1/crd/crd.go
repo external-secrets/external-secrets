@@ -41,8 +41,16 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	if ref.Key == "" {
 		return nil, errors.New("crd: ref.key must not be empty")
 	}
+	objectName, keyNamespace, err := parseRemoteRefKey(c.storeKind, ref.Key)
+	if err != nil {
+		return nil, err
+	}
+	ns := ""
+	if keyNamespace != nil {
+		ns = *keyNamespace
+	}
 	requestedKeys := requestedPropertyKeys(ref.Property)
-	allowed, err := c.matchesWhitelistRule(ref.Key, requestedKeys)
+	allowed, err := c.matchesWhitelistRule(objectName, ns, requestedKeys)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +69,16 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	if ref.Key == "" {
 		return nil, errors.New("crd: ref.key must not be empty")
 	}
+	objectName, keyNamespace, err := parseRemoteRefKey(c.storeKind, ref.Key)
+	if err != nil {
+		return nil, err
+	}
+	ns := ""
+	if keyNamespace != nil {
+		ns = *keyNamespace
+	}
 	requestedKeys := requestedPropertyKeys(ref.Property)
-	allowed, err := c.matchesWhitelistRule(ref.Key, requestedKeys)
+	allowed, err := c.matchesWhitelistRule(objectName, ns, requestedKeys)
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +150,16 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	result := make(map[string][]byte, len(list.Items))
 	for i := range list.Items {
 		item := &list.Items[i]
-		logicalKey := item.GetName()
+		objName := item.GetName()
+		objNS := item.GetNamespace()
+		logicalKey := objName
 		if c.namespaced && c.storeKind == esv1.ClusterSecretStoreKind && c.store.RemoteNamespace == "" {
-			logicalKey = item.GetNamespace() + "/" + item.GetName()
+			logicalKey = objNS + "/" + objName
 		}
 		if re != nil && !re.MatchString(logicalKey) {
 			continue
 		}
-		allowed, err := c.matchesWhitelistRule(logicalKey, nil)
+		allowed, err := c.matchesWhitelistRule(objName, objNS, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -306,22 +324,41 @@ func requestedPropertyKeys(property string) []string {
 	return []string{property}
 }
 
-func (c *Client) matchesWhitelistRule(name string, requestedKeys []string) (bool, error) {
+// matchesWhitelistRule checks whether the given object (identified by its bare
+// name and namespace) is permitted by the store's whitelist rules.
+// objectName is always the bare name without any namespace prefix.
+// namespace is the object's namespace; it is only considered when the store is
+// a ClusterSecretStore and rule.Namespace is set – for SecretStore the field
+// is ignored because the namespace is implicitly fixed to the store namespace.
+func (c *Client) matchesWhitelistRule(objectName, namespace string, requestedKeys []string) (bool, error) {
 	if c.store.Whitelist == nil || len(c.store.Whitelist.Rules) == 0 {
 		return true, nil
 	}
 
 	for _, rule := range c.store.Whitelist.Rules {
+		// Name check: matches against the bare object name only.
 		nameMatches := true
 		if rule.Name != "" {
 			re, err := regexp.Compile(rule.Name)
 			if err != nil {
 				return false, fmt.Errorf("crd: invalid whitelist name regex %q: %w", rule.Name, err)
 			}
-			nameMatches = re.MatchString(name)
+			nameMatches = re.MatchString(objectName)
 		}
 		if !nameMatches {
 			continue
+		}
+
+		// Namespace check: only applied for ClusterSecretStore when rule.Namespace
+		// is set and the object actually carries a namespace.
+		if rule.Namespace != "" && c.storeKind == esv1.ClusterSecretStoreKind && namespace != "" {
+			re, err := regexp.Compile(rule.Namespace)
+			if err != nil {
+				return false, fmt.Errorf("crd: invalid whitelist namespace regex %q: %w", rule.Namespace, err)
+			}
+			if !re.MatchString(namespace) {
+				continue
+			}
 		}
 
 		if len(rule.Properties) == 0 {

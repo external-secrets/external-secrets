@@ -17,12 +17,22 @@ limitations under the License.
 // Package e2e contains end-to-end tests for the CRD provider.
 //
 // Tests are guarded by the "e2e" build tag and require a reachable Kubernetes
-// cluster. Point KUBECONFIG at the desired cluster before running:
+// cluster. The suite creates all required fixtures (CRDs, Namespaces,
+// ServiceAccounts, RBAC, custom resource objects) at startup and removes them
+// on exit. No Helm chart or ESO controller installation is needed.
 //
-//	go test -tags e2e ./providers/v1/crd/test/... -v
+// # Running
 //
-// The suite creates all required fixtures (CRDs, Namespace, ServiceAccount,
-// RBAC, custom resource objects) at startup and removes them on exit.
-// A pre-existing cluster is the only prerequisite – no Helm chart or ESO
-// controller installation is needed.
+// providers/v1/crd has its own go.mod. Run from inside that directory with
+// GOWORK=off so Go uses the local module rather than the workspace root:
+//
+//	cd providers/v1/crd
+//	GOWORK=off KUBECONFIG=~/.kube/config go test -tags e2e ./test/... -v
+//
+// # Coverage
+//
+// The suite covers SecretStore and ClusterSecretStore scenarios for both
+// namespaced and cluster-scoped CRD kinds, including key-format validation,
+// value extraction, cross-namespace listing, and access-control verification
+// (legacy SA token mode and explicit-mode impersonation).
 package e2e

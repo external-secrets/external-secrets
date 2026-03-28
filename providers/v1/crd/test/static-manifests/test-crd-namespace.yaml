@@ -58,6 +58,25 @@ spec:
         kind: DBSpec
       # remoteNamespace is intentionally omitted — the store spans all namespaces.
       # Scope individual lookups via the "namespace/name" key format below.
+      #
+      # Optional whitelist: restrict which namespaces and/or object names this
+      # store is permitted to read. Each rule must satisfy ALL non-empty filters;
+      # a request is allowed when at least one rule matches.
+      # The namespace filter is only evaluated for ClusterSecretStore — it is
+      # silently ignored for SecretStore (where the namespace is always implicit).
+      #
+      # whitelist:
+      #   rules:
+      #     # Allow any DBSpec object in the "foo" namespace.
+      #     - namespace: "^foo$"
+      #
+      #     # Allow objects named "db-*" in "prod" or "staging" namespaces.
+      #     - name: "^db-.*$"
+      #       namespace: "^(prod|staging)$"
+      #
+      #     # Allow any object, but only spec.password may be read.
+      #     - properties:
+      #         - "^spec\\.password$"
 
 ---
 # RBAC — the existing crd-reader ServiceAccount needs cluster-wide read on DBSpec.

@@ -402,12 +402,17 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 	if prov.Whitelist != nil {
 		for i, rule := range prov.Whitelist.Rules {
-			if rule.Name == "" && len(rule.Properties) == 0 {
+			if rule.Name == "" && rule.Namespace == "" && len(rule.Properties) == 0 {
 				return nil, fmt.Errorf("crd: whitelist.rules[%d]: %w", i, errEmptyWhitelistRule)
 			}
 			if rule.Name != "" {
 				if _, err := regexp.Compile(rule.Name); err != nil {
 					return nil, fmt.Errorf("crd: invalid whitelist.rules[%d].name regex %q: %w", i, rule.Name, err)
+				}
+			}
+			if rule.Namespace != "" {
+				if _, err := regexp.Compile(rule.Namespace); err != nil {
+					return nil, fmt.Errorf("crd: invalid whitelist.rules[%d].namespace regex %q: %w", i, rule.Namespace, err)
 				}
 			}
 			for j, prop := range rule.Properties {

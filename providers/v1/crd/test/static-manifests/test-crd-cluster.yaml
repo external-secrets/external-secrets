@@ -42,6 +42,15 @@ spec:
         group: test.external-secrets.io
         version: v1alpha1
         kind: ClusterDBSpec
+      # Optional whitelist — restrict readable objects/properties.
+      # ClusterDBSpec is cluster-scoped so the namespace filter has no effect
+      # (objects carry no namespace). The name filter matches the bare object name.
+      #
+      # whitelist:
+      #   rules:
+      #     - name: "^clusterdbspec-.*$"   # only objects named "clusterdbspec-*"
+      #     - properties:
+      #         - "^spec\\.password$"      # only the spec.password field
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret

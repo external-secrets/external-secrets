@@ -51,6 +51,10 @@ func makeWhitelistRule(name string, properties ...string) esv1.CRDProviderWhitel
 	return esv1.CRDProviderWhitelistRule{Name: name, Properties: properties}
 }
 
+func makeWhitelistRuleNS(namespace, name string, properties ...string) esv1.CRDProviderWhitelistRule {
+	return esv1.CRDProviderWhitelistRule{Namespace: namespace, Name: name, Properties: properties}
+}
+
 var testResource = esv1.CRDProviderResource{
 	Group:   "example.io",
 	Version: "v1alpha1",
@@ -533,4 +537,158 @@ func TestWhitelistMatching(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestWhitelistNamespaceField verifies that rule.Namespace is honoured for
+// ClusterSecretStore and silently ignored for SecretStore.
+func TestWhitelistNamespaceField(t *testing.T) {
+	obj := makeWidgetObject("item-a", "ns1", map[string]any{"password": "pw1"})
+
+	makeCSS := func(rules ...esv1.CRDProviderWhitelistRule) *Client {
+		return &Client{
+			store:      makeCRDTestStore(rules...),
+			namespace:  "",
+			plural:     "widgets",
+			namespaced: true,
+			storeKind:  esv1.ClusterSecretStoreKind,
+			dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), obj),
+		}
+	}
+
+	t.Run("ClusterSecretStore: namespace rule allows matching namespace", func(t *testing.T) {
+		c := makeCSS(makeWhitelistRuleNS("^ns1$", ""))
+		got, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "ns1/item-a",
+			Property: "spec.password",
+		})
+		if err != nil {
+			t.Fatalf("GetSecret() unexpected error: %v", err)
+		}
+		if string(got) != "pw1" {
+			t.Fatalf("GetSecret() = %q, want %q", string(got), "pw1")
+		}
+	})
+
+	t.Run("ClusterSecretStore: namespace rule denies non-matching namespace", func(t *testing.T) {
+		c := makeCSS(makeWhitelistRuleNS("^prod$", ""))
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "ns1/item-a",
+			Property: "spec.password",
+		})
+		if err == nil || !strings.Contains(err.Error(), "denied by whitelist") {
+			t.Fatalf("GetSecret() error = %v, want whitelist denial", err)
+		}
+	})
+
+	t.Run("ClusterSecretStore: namespace regex matches via pattern", func(t *testing.T) {
+		c := makeCSS(makeWhitelistRuleNS("^ns.*$", ""))
+		got, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "ns1/item-a",
+			Property: "spec.password",
+		})
+		if err != nil {
+			t.Fatalf("GetSecret() unexpected error: %v", err)
+		}
+		if string(got) != "pw1" {
+			t.Fatalf("GetSecret() = %q, want %q", string(got), "pw1")
+		}
+	})
+
+	t.Run("ClusterSecretStore: both namespace and name must match", func(t *testing.T) {
+		c := makeCSS(makeWhitelistRuleNS("^ns1$", "^other-.*$"))
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "ns1/item-a",
+			Property: "spec.password",
+		})
+		if err == nil || !strings.Contains(err.Error(), "denied by whitelist") {
+			t.Fatalf("GetSecret() error = %v, want whitelist denial (name mismatch)", err)
+		}
+	})
+
+	t.Run("SecretStore: namespace rule is ignored (SecretStore namespace is implicit)", func(t *testing.T) {
+		// Even with a namespace rule that would not match "ns1", SecretStore
+		// ignores rule.Namespace entirely and the request succeeds.
+		c := makeCRDClient(makeCRDTestStore(makeWhitelistRuleNS("^prod$", "")), "ns1", obj)
+		got, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "item-a",
+			Property: "spec.password",
+		})
+		if err != nil {
+			t.Fatalf("GetSecret() unexpected error: %v", err)
+		}
+		if string(got) != "pw1" {
+			t.Fatalf("GetSecret() = %q, want %q", string(got), "pw1")
+		}
+	})
+
+	t.Run("invalid namespace regex returns error", func(t *testing.T) {
+		c := makeCSS(makeWhitelistRuleNS("(invalid", ""))
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "ns1/item-a",
+			Property: "spec.password",
+		})
+		if err == nil || !strings.Contains(err.Error(), "invalid whitelist namespace regex") {
+			t.Fatalf("GetSecret() error = %v, want invalid namespace regex error", err)
+		}
+	})
+}
+
+// TestWhitelistNamespaceGetAllSecrets verifies namespace whitelist filtering in GetAllSecrets.
+func TestWhitelistNamespaceGetAllSecrets(t *testing.T) {
+	o1 := makeWidgetObject("app-a", "ns1", map[string]any{"password": "a"})
+	o2 := makeWidgetObject("app-b", "ns2", map[string]any{"password": "b"})
+
+	makeCSS := func(rules ...esv1.CRDProviderWhitelistRule) *Client {
+		return &Client{
+			store:      makeCRDTestStore(rules...),
+			namespace:  "",
+			plural:     "widgets",
+			namespaced: true,
+			storeKind:  esv1.ClusterSecretStoreKind,
+			dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), o1, o2),
+		}
+	}
+
+	t.Run("namespace rule allows only matching namespace", func(t *testing.T) {
+		c := makeCSS(makeWhitelistRuleNS("^ns1$", ""))
+		got, err := c.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+		if err != nil {
+			t.Fatalf("GetAllSecrets() unexpected error: %v", err)
+		}
+		if len(got) != 1 {
+			t.Fatalf("GetAllSecrets() len = %d, want 1", len(got))
+		}
+		if _, ok := got["ns1/app-a"]; !ok {
+			t.Fatalf("GetAllSecrets() missing expected key ns1/app-a; got %v", got)
+		}
+	})
+
+	t.Run("namespace rule combined with name rule", func(t *testing.T) {
+		// Allow anything in ns1 OR objects named app-b anywhere.
+		c := makeCSS(
+			makeWhitelistRuleNS("^ns1$", ""),
+			makeWhitelistRuleNS("", "^app-b$"),
+		)
+		got, err := c.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+		if err != nil {
+			t.Fatalf("GetAllSecrets() unexpected error: %v", err)
+		}
+		if len(got) != 2 {
+			t.Fatalf("GetAllSecrets() len = %d, want 2; got %v", len(got), got)
+		}
+	})
+
+	t.Run("namespace regex pattern filters correctly", func(t *testing.T) {
+		c := makeCSS(makeWhitelistRuleNS("^ns2$", ""))
+		got, err := c.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+		if err != nil {
+			t.Fatalf("GetAllSecrets() unexpected error: %v", err)
+		}
+		if len(got) != 1 {
+			t.Fatalf("GetAllSecrets() len = %d, want 1", len(got))
+		}
+		if _, ok := got["ns2/app-b"]; !ok {
+			t.Fatalf("GetAllSecrets() missing expected key ns2/app-b; got %v", got)
+		}
+	})
 }

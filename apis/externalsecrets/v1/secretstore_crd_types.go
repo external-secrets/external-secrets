@@ -41,12 +41,17 @@ type CRDProviderResource struct {
 
 // CRDProviderWhitelistRule defines a single allow rule for CRD reads.
 type CRDProviderWhitelistRule struct {
-	// Name is an optional regular expression matched against the remote reference
-	// key: for SecretStore this is the object name; for ClusterSecretStore with
-	// a namespaced resource it is namespace/objectName when listing across namespaces,
-	// otherwise the object name (or full key including namespace/objectName for Get).
+	// Name is an optional regular expression matched against the bare object name.
+	// For both SecretStore and ClusterSecretStore this is always the object name
+	// without any namespace prefix (e.g. "my-db-spec", not "prod/my-db-spec").
 	// +optional
 	Name string `json:"name,omitempty"`
+
+	// Namespace is an optional regular expression matched against the namespace of
+	// the object. Applies only when a ClusterSecretStore is used; it is ignored
+	// for SecretStore (where the namespace is fixed to the store namespace).
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
 
 	// Properties is an optional list of regular expressions matched against
 	// requested property keys (for example: "spec.secretValue").
@@ -55,6 +60,8 @@ type CRDProviderWhitelistRule struct {
 }
 
 // CRDProviderWhitelist configures allow-list rules for CRD reads.
+// If any rules are present, a request must satisfy ALL non-empty filters of at
+// least one rule; requests that match no rule are denied.
 type CRDProviderWhitelist struct {
 	// Rules is a list of allow rules. If rules are set, at least one rule must
 	// match for a request to be allowed.
