@@ -24,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +32,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/template"
 )
 
@@ -237,21 +239,64 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	ann[esv1.AnnotationDataHash] = hash
 	result.SetAnnotations(ann)
 
-	if err := r.setOwnerReferenceOnCreatePolicyOwner(es, result); err != nil {
+	if err := r.applyOwnership(es, result); err != nil {
 		return nil, err
 	}
 
 	return result, nil
 }
 
-// setOwnerReferenceOnCreatePolicyOwner sets the controller reference when creationPolicy is Owner.
-func (r *Reconciler) setOwnerReferenceOnCreatePolicyOwner(es *esv1.ExternalSecret, result *unstructured.Unstructured) error {
-	if es.Spec.Target.CreationPolicy != esv1.CreatePolicyOwner {
-		return nil
+// applyOwnership manages the owner reference and owner label on the target manifest resource.
+func (r *Reconciler) applyOwnership(es *esv1.ExternalSecret, result *unstructured.Unstructured) error {
+	// get information about the current owner of the resource
+	//  - we ignore the API version as it can change over time
+	//  - we ignore the UID for consistency with the SetControllerReference function
+	currentOwner := metav1.GetControllerOf(result)
+	ownerIsESKind := false
+	ownerIsCurrentES := false
+	if currentOwner != nil {
+		currentOwnerGK := schema.FromAPIVersionAndKind(currentOwner.APIVersion, currentOwner.Kind).GroupKind()
+		ownerIsESKind = currentOwnerGK.String() == esv1.ExtSecretGroupKind
+		ownerIsCurrentES = ownerIsESKind && currentOwner.Name == es.Name
 	}
-	if err := controllerutil.SetControllerReference(es, result, r.Scheme); err != nil {
-		return fmt.Errorf("failed to set controller reference: %w", err)
+
+	// if another ExternalSecret is the owner, we should return an error
+	// otherwise the controller will fight with itself to update the resource.
+	// note, this does not prevent other controllers from owning the resource.
+	if ownerIsESKind && !ownerIsCurrentES {
+		return fmt.Errorf("%w: %s", ErrSecretIsOwned, currentOwner.Name)
 	}
+
+	// if the CreationPolicy is Owner, we should set ourselves as the owner of the resource
+	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		if err := controllerutil.SetControllerReference(es, result, r.Scheme); err != nil {
+			return fmt.Errorf("%w: %w", ErrSecretSetCtrlRef, err)
+		}
+	}
+
+	// if the creation policy is not Owner, we should remove ourselves as the owner
+	// this could happen if the creation policy was changed after the resource was created
+	if es.Spec.Target.CreationPolicy != esv1.CreatePolicyOwner && ownerIsCurrentES {
+		if err := controllerutil.RemoveControllerReference(es, result, r.Scheme); err != nil {
+			return fmt.Errorf("%w: %w", ErrSecretRemoveCtrlRef, err)
+		}
+	}
+
+	labels := result.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	// we also use a label to keep track of the owner of the resource
+	// this lets us remove resources that are no longer needed if the target name changes
+	// the label should not be set if the creation policy is not Owner
+	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		labels[esv1.LabelOwner] = esutils.ObjectHash(fmt.Sprintf("%v/%v", es.Namespace, es.Name))
+	} else {
+		delete(labels, esv1.LabelOwner)
+	}
+	result.SetLabels(labels)
+
 	return nil
 }
 
