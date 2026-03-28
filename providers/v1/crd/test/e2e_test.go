@@ -20,6 +20,7 @@ package e2e
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -374,7 +375,7 @@ func TestSecretStore_GetSecret_ByProperty(t *testing.T) {
 }
 
 // TestSecretStore_GetSecret_WholeObject verifies that omitting Property returns
-// the full serialised object.
+// the full serialised object and that nested fields are accessible.
 func TestSecretStore_GetSecret_WholeObject(t *testing.T) {
 	c := newClient(t, makeSecretStore(testNamespace), testNamespace)
 
@@ -384,9 +385,14 @@ func TestSecretStore_GetSecret_WholeObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSecret() error: %v", err)
 	}
-	if !strings.Contains(string(got), "e2e-password") {
-		t.Fatalf("GetSecret() body does not contain expected value; got: %s", string(got))
+
+	// Deserialise and verify specific fields rather than doing a substring match.
+	var obj map[string]any
+	if err := jsonUnmarshal(got, &obj); err != nil {
+		t.Fatalf("GetSecret() returned non-JSON body: %v\nbody: %s", err, got)
 	}
+	assertNestedString(t, obj, "e2e-password", "spec", "password")
+	assertNestedString(t, obj, "e2e-user", "spec", "user")
 }
 
 // TestSecretStore_GetSecret_SlashInKeyRejected verifies that a '/' in the key
@@ -444,7 +450,8 @@ func TestSecretStore_GetSecretMap(t *testing.T) {
 }
 
 // TestSecretStore_GetAllSecrets verifies that listing without a filter returns
-// all CRD objects in the store namespace and that keys are plain object names.
+// all CRD objects in the store namespace with correct values, and that objects
+// from other namespaces are not included.
 func TestSecretStore_GetAllSecrets(t *testing.T) {
 	c := newClient(t, makeSecretStore(testNamespace), testNamespace)
 
@@ -453,10 +460,17 @@ func TestSecretStore_GetAllSecrets(t *testing.T) {
 		t.Fatalf("GetAllSecrets() error: %v", err)
 	}
 
-	// At least dbSpecName must appear.
-	if _, ok := got[dbSpecName]; !ok {
+	// Primary object must be present with correct password.
+	raw, ok := got[dbSpecName]
+	if !ok {
 		t.Fatalf("GetAllSecrets() result keys=%v, missing %q", keys(got), dbSpecName)
 	}
+	var obj map[string]any
+	if err := jsonUnmarshal(raw, &obj); err != nil {
+		t.Fatalf("GetAllSecrets()[%q] returned non-JSON: %v", dbSpecName, err)
+	}
+	assertNestedString(t, obj, "e2e-password", "spec", "password")
+
 	// The secondary-namespace object must NOT appear (store is namespaced).
 	if _, ok := got[dbSpecName2]; ok {
 		t.Fatalf("GetAllSecrets() unexpectedly returned cross-namespace key %q", dbSpecName2)
@@ -464,7 +478,7 @@ func TestSecretStore_GetAllSecrets(t *testing.T) {
 }
 
 // TestSecretStore_GetAllSecrets_RegexpFilter verifies that the regex name
-// filter is applied server-side and only matching objects are returned.
+// filter returns only matching objects with correct values.
 func TestSecretStore_GetAllSecrets_RegexpFilter(t *testing.T) {
 	c := newClient(t, makeSecretStore(testNamespace), testNamespace)
 
@@ -477,9 +491,15 @@ func TestSecretStore_GetAllSecrets_RegexpFilter(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("GetAllSecrets() len=%d, want 1; keys=%v", len(got), keys(got))
 	}
-	if _, ok := got[dbSpecName]; !ok {
+	raw, ok := got[dbSpecName]
+	if !ok {
 		t.Fatalf("GetAllSecrets() missing expected key %q; got %v", dbSpecName, keys(got))
 	}
+	var obj map[string]any
+	if err := jsonUnmarshal(raw, &obj); err != nil {
+		t.Fatalf("GetAllSecrets()[%q] returned non-JSON: %v", dbSpecName, err)
+	}
+	assertNestedString(t, obj, "e2e-password", "spec", "password")
 }
 
 // ── ClusterSecretStore + namespaced kind tests ────────────────────────────────
@@ -536,8 +556,8 @@ func TestClusterSecretStore_BareNameRejected(t *testing.T) {
 }
 
 // TestClusterSecretStore_GetAllSecrets_AcrossNamespaces verifies that listing
-// without remoteNamespace returns objects from all namespaces and that keys use
-// the "namespace/objectName" form.
+// without remoteNamespace returns objects from all namespaces, keys use the
+// "namespace/objectName" form, and each entry contains the correct value.
 func TestClusterSecretStore_GetAllSecrets_AcrossNamespaces(t *testing.T) {
 	c := newClient(t, makeClusterSecretStore(dbSpecKind), "")
 
@@ -546,14 +566,25 @@ func TestClusterSecretStore_GetAllSecrets_AcrossNamespaces(t *testing.T) {
 		t.Fatalf("GetAllSecrets() error: %v", err)
 	}
 
-	wantKey1 := testNamespace + "/" + dbSpecName
-	wantKey2 := secondNamespace + "/" + dbSpecName2
-
-	if _, ok := got[wantKey1]; !ok {
-		t.Errorf("GetAllSecrets() missing expected key %q; got %v", wantKey1, keys(got))
+	cases := []struct {
+		key           string
+		wantPassword  string
+	}{
+		{testNamespace + "/" + dbSpecName, "e2e-password"},
+		{secondNamespace + "/" + dbSpecName2, "e2e-password-2"},
 	}
-	if _, ok := got[wantKey2]; !ok {
-		t.Errorf("GetAllSecrets() missing expected key %q; got %v", wantKey2, keys(got))
+	for _, tc := range cases {
+		raw, ok := got[tc.key]
+		if !ok {
+			t.Errorf("GetAllSecrets() missing expected key %q; got %v", tc.key, keys(got))
+			continue
+		}
+		var obj map[string]any
+		if err := jsonUnmarshal(raw, &obj); err != nil {
+			t.Errorf("GetAllSecrets()[%q] returned non-JSON: %v", tc.key, err)
+			continue
+		}
+		assertNestedString(t, obj, tc.wantPassword, "spec", "password")
 	}
 }
 
@@ -594,7 +625,8 @@ func TestClusterSecretStore_ClusterScopedKind_SlashInKeyRejected(t *testing.T) {
 }
 
 // TestClusterSecretStore_ClusterScopedKind_GetAllSecrets verifies that listing
-// a cluster-scoped kind returns plain object names (no namespace prefix).
+// a cluster-scoped kind returns plain object names (no namespace prefix) and
+// that each entry carries the correct value.
 func TestClusterSecretStore_ClusterScopedKind_GetAllSecrets(t *testing.T) {
 	c := newClient(t, makeClusterSecretStore(clusterDBSpecKind), "")
 
@@ -602,9 +634,19 @@ func TestClusterSecretStore_ClusterScopedKind_GetAllSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAllSecrets() error: %v", err)
 	}
-	if _, ok := got[clusterDBSpecName]; !ok {
+
+	raw, ok := got[clusterDBSpecName]
+	if !ok {
 		t.Fatalf("GetAllSecrets() missing expected key %q; got %v", clusterDBSpecName, keys(got))
 	}
+
+	// Verify the object's password field.
+	var obj map[string]any
+	if err := jsonUnmarshal(raw, &obj); err != nil {
+		t.Fatalf("GetAllSecrets()[%q] returned non-JSON: %v", clusterDBSpecName, err)
+	}
+	assertNestedString(t, obj, "cluster-password", "spec", "password")
+
 	// Ensure no keys carry a namespace prefix.
 	for k := range got {
 		if strings.Contains(k, "/") {
@@ -689,6 +731,40 @@ func clusterDBSpecObject(name, user, password string) *unstructured.Unstructured
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
+
+// jsonUnmarshal decodes raw JSON bytes into a map.
+func jsonUnmarshal(b []byte, v any) error {
+	return json.Unmarshal(b, v)
+}
+
+// assertNestedString walks the nested map by the given path of keys and fails
+// the test if the terminal value does not equal want.
+func assertNestedString(t *testing.T, obj map[string]any, want string, path ...string) {
+	t.Helper()
+	cur := obj
+	for i, key := range path[:len(path)-1] {
+		next, ok := cur[key]
+		if !ok {
+			t.Errorf("field %q not found (path %v up to index %d)", key, path, i)
+			return
+		}
+		m, ok := next.(map[string]any)
+		if !ok {
+			t.Errorf("field %q is %T, want map[string]any", key, next)
+			return
+		}
+		cur = m
+	}
+	last := path[len(path)-1]
+	got, ok := cur[last]
+	if !ok {
+		t.Errorf("field %q not found in object", last)
+		return
+	}
+	if got != want {
+		t.Errorf("field %v = %q, want %q", path, got, want)
+	}
+}
 
 func isNoSecretError(err error) bool {
 	var nse esv1.NoSecretError
