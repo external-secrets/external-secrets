@@ -105,7 +105,7 @@ func parseFolderPrefix(key string) (folderID int, name string, hasFolderPrefix b
 
 	rest := strings.TrimPrefix(key, folderPrefix) // "<id>/<name>"
 
-	slashIdx := strings.Index(rest, "/")
+	slashIdx := strings.Index(rest, "/") //nolint:modernize // Need index of first slash to separate folder ID from name
 	if slashIdx < 0 {
 		// "folderId:73" with no slash/name — treat as not having the prefix.
 		return 0, key, false
