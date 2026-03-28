@@ -71,6 +71,12 @@ type exportCacheEntry struct {
 	pem    []byte
 }
 
+type certBundle struct {
+	leaf    []byte
+	chain   []byte
+	privKey []byte
+}
+
 var (
 	errCertificateNotFound = errors.New("certificate not found")
 
@@ -156,11 +162,12 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 		return fmt.Errorf("key %q not found or empty in secret %s/%s", tlsPrivateKeyKey, secret.Namespace, secret.Name)
 	}
 
-	leafPEM, chainPEM, err := splitCertificatePEM(certPEM)
+	leaf, chain, err := splitCertificatePEM(certPEM)
 	if err != nil {
 		return fmt.Errorf("failed to parse %q: %w", tlsCertKey, err)
 	}
 
+	bundle := certBundle{leaf: leaf, chain: chain, privKey: privKeyPEM}
 	remoteKey := psd.GetRemoteKey()
 	contentHash := computeContentHash(certPEM, privKeyPEM)
 
@@ -170,12 +177,12 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	}
 
 	if existingARN != "" {
-		return cm.reimportCertificate(ctx, existingARN, leafPEM, chainPEM, privKeyPEM, contentHash, remoteKey, meta.Spec.Tags)
+		return cm.reimportCertificate(ctx, existingARN, bundle, contentHash, remoteKey, meta.Spec.Tags)
 	}
-	return cm.importNewCertificate(ctx, leafPEM, chainPEM, privKeyPEM, contentHash, remoteKey, meta.Spec.Tags)
+	return cm.importNewCertificate(ctx, bundle, contentHash, remoteKey, meta.Spec.Tags)
 }
 
-func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn string, leaf, chain, privKey []byte, contentHash, remoteKey string, tags map[string]string) error {
+func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn string, b certBundle, contentHash, remoteKey string, tags map[string]string) error {
 	currentTags, err := cm.listTags(ctx, arn)
 	if err != nil {
 		return fmt.Errorf("failed to list tags for %s: %w", arn, err)
@@ -190,12 +197,12 @@ func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn strin
 	}
 
 	input := &acm.ImportCertificateInput{
-		Certificate:    leaf,
-		PrivateKey:     privKey,
+		Certificate:    b.leaf,
+		PrivateKey:     b.privKey,
 		CertificateArn: aws.String(arn),
 	}
-	if len(chain) > 0 {
-		input.CertificateChain = chain
+	if len(b.chain) > 0 {
+		input.CertificateChain = b.chain
 	}
 	log.Info("re-importing existing ACM certificate", "arn", arn, "remoteKey", remoteKey)
 
@@ -211,18 +218,18 @@ func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn strin
 	return cm.updateContentHash(ctx, arn, contentHash)
 }
 
-func (cm *CertificateManager) importNewCertificate(ctx context.Context, leaf, chain, privKey []byte, contentHash, remoteKey string, tags map[string]string) error {
+func (cm *CertificateManager) importNewCertificate(ctx context.Context, b certBundle, contentHash, remoteKey string, tags map[string]string) error {
 	input := &acm.ImportCertificateInput{
-		Certificate: leaf,
-		PrivateKey:  privKey,
+		Certificate: b.leaf,
+		PrivateKey:  b.privKey,
 		Tags: []types.Tag{
 			{Key: aws.String(managedBy), Value: aws.String(externalSecrets)},
 			{Key: aws.String(remoteKeyTag), Value: aws.String(remoteKey)},
 			{Key: aws.String(contentHashTag), Value: aws.String(contentHash)},
 		},
 	}
-	if len(chain) > 0 {
-		input.CertificateChain = chain
+	if len(b.chain) > 0 {
+		input.CertificateChain = b.chain
 	}
 	log.Info("importing new ACM certificate", "remoteKey", remoteKey)
 
