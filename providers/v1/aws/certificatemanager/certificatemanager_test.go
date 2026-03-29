@@ -105,8 +105,8 @@ func generateTestCerts(t *testing.T) testCerts {
 	interPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: interDER})
 	rootPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rootDER})
 
-	leafKeyDER, _ := x509.MarshalECPrivateKey(leafKey)
-	privKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: leafKeyDER})
+	leafKeyDER, _ := x509.MarshalPKCS8PrivateKey(leafKey)
+	privKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: leafKeyDER})
 
 	tlsCrt := make([]byte, 0, len(leafPEM)+len(interPEM))
 	tlsCrt = append(tlsCrt, leafPEM...)
