@@ -93,6 +93,14 @@ var _ esv1.Provider = (*Provider)(nil)
 
 // Provider implements the ESO Provider interface for PrivX.
 type Provider struct {
+	// newClient is the function that actually returns a new client.
+	// Tests can replace this function to create a fake client.
+	newClient func(
+		ctx context.Context,
+		store esv1.GenericStore,
+		kube kclient.Client,
+		namespace string,
+	) (esv1.SecretsClient, error)
 }
 
 // readSecretValue gets a Kubernetes Secret as a string.
@@ -263,6 +271,20 @@ func (p *Provider) NewClient(
 	kube kclient.Client,
 	namespace string,
 ) (esv1.SecretsClient, error) {
+	if p.newClient == nil {
+		return newRealClient(ctx, store, kube, namespace)
+	}
+	return p.newClient(ctx, store, kube, namespace)
+}
+
+// newRealClient returns a new PrivX Client.
+func newRealClient(
+	ctx context.Context,
+	store esv1.GenericStore,
+	kube kclient.Client,
+	namespace string,
+) (esv1.SecretsClient, error) {
+
 	config := store.GetSpec().Provider.PrivX
 	conn, err := privxAPI(ctx, kube, namespace, config)
 	if err != nil {
@@ -270,8 +292,10 @@ func (p *Provider) NewClient(
 	}
 
 	client := SecretsClient{
-		conn:              conn,
-		vault:             vault.New(conn),
+		conn: conn,
+		vault: &sdkVaultClient{
+			v: vault.New(conn),
+		},
 		store:             store,
 		kube:              kube,
 		namespace:         namespace,
@@ -312,7 +336,9 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
-	return &Provider{}
+	return &Provider{
+		newClient: newRealClient,
+	}
 }
 
 // ProviderSpec returns the provider specification for registration.

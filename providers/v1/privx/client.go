@@ -57,7 +57,7 @@ var _ esv1.SecretsClient = (*SecretsClient)(nil)
 // SecretsClient provides access to PrivX secrets.
 type SecretsClient struct {
 	conn      privxapi.Connector
-	vault     *vault.Vault // PrivX Vault instance
+	vault     VaultClient // PrivX Vault instance, or a fake test client
 	store     esv1.GenericStore
 	kube      kclient.Client
 	namespace string
@@ -281,7 +281,7 @@ func (c *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 	if ref.Tags != nil {
 		return results, fmt.Errorf("parameter %q: %w", "ref.Tags", ErrNotImplemented)
 	}
-	if ref.ConversionStrategy != esv1.ExternalSecretConversionDefault {
+	if ref.ConversionStrategy != "" && ref.ConversionStrategy != esv1.ExternalSecretConversionDefault {
 		return results, fmt.Errorf("parameter %q: %w", "ref.ConversionStrategy", ErrNotImplemented)
 	}
 
