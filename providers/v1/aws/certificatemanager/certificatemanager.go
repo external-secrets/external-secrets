@@ -419,6 +419,17 @@ func (cm *CertificateManager) searchCertificatesByTag(ctx context.Context, remot
 	for {
 		out, err := cm.client.ListCertificates(ctx, &acm.ListCertificatesInput{
 			NextToken: nextToken,
+			Includes: &types.Filters{
+				KeyTypes: []types.KeyAlgorithm{
+					types.KeyAlgorithmRsa1024,
+					types.KeyAlgorithmRsa2048,
+					types.KeyAlgorithmRsa3072,
+					types.KeyAlgorithmRsa4096,
+					types.KeyAlgorithmEcPrime256v1,
+					types.KeyAlgorithmEcSecp384r1,
+					types.KeyAlgorithmEcSecp521r1,
+				},
+			},
 		})
 		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMListCertificates, err)
 		if err != nil {
@@ -576,7 +587,7 @@ func isReservedTag(key string) bool {
 // and private key PEM. This is a content fingerprint used to detect changes
 // and avoid redundant ImportCertificate API calls (1 rps rate limit). It is
 // NOT used for any security or cryptographic purpose.
-func computeContentHash(certPEM, keyPEM []byte) string { //nolint:gosec // SHA-256 used as content fingerprint, not for security
+func computeContentHash(certPEM, keyPEM []byte) string {
 	h := sha256.New()
 	h.Write(certPEM)
 	h.Write(keyPEM)
