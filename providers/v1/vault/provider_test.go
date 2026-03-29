@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -299,8 +298,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
-						MaxRetries:    ptr.To(int32(3)),
-						RetryInterval: ptr.To("not-an-interval"),
+						MaxRetries:    new(int32(3)),
+						RetryInterval: new("not-an-interval"),
 					}
 				}),
 			},
@@ -313,8 +312,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
-						MaxRetries:    ptr.To(int32(3)),
-						RetryInterval: ptr.To("10m"),
+						MaxRetries:    new(int32(3)),
+						RetryInterval: new("10m"),
 					}
 				}),
 				ns:            "default",
@@ -633,7 +632,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					s.Spec.Provider.Vault.Auth.Kubernetes = nil
 					s.Spec.Provider.Vault.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
 						Name:      "vault-token",
-						Namespace: ptr.To("default"),
+						Namespace: new("default"),
 						Key:       "token",
 					}
 				}),
@@ -744,8 +743,19 @@ func vaultTest(t *testing.T, _ string, tc testCase) {
 		prov.NewVaultClient = NewVaultClient
 	}
 	_, err := prov.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
-	if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
-		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
+
+	if tc.want.err == nil {
+		if err != nil {
+			t.Errorf("newClient() unexpected error = %v", err)
+		}
+		return
+	}
+	if err == nil {
+		t.Errorf("newClient() error = nil, wantErr %v", tc.want.err)
+		return
+	}
+	if tc.want.err.Error() != err.Error() {
+		t.Errorf("newClient() error = %v, wantErr %v", err, tc.want.err)
 	}
 }
 

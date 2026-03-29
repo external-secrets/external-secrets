@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -86,6 +86,10 @@ type SecretStoreProvider struct {
 	// Vault configures this store to sync secrets using the HashiCorp Vault provider.
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
+
+	// OVHcloud configures this store to sync secrets using the OVHcloud provider.
+	// +optional
+	OVHcloud *OvhProvider `json:"ovh,omitempty"`
 
 	// GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
 	// +optional
@@ -219,6 +223,10 @@ type SecretStoreProvider struct {
 	// Barbican configures this store to sync secrets using the OpenStack Barbican provider
 	// +optional
 	Barbican *BarbicanProvider `json:"barbican,omitempty"`
+
+	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
+	// +optional
+	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -591,6 +591,81 @@ func TestGetAllSecrets(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ProviderKubernetes.GetAllSecrets() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSecretExists(t *testing.T) {
+	tests := []struct {
+		name      string
+		secrets   map[string]*v1.Secret
+		clientErr error
+		ref       v1alpha1.PushSecretRemoteRef
+		want      bool
+		wantErr   bool
+	}{
+		{
+			name: "secret exists without property",
+			secrets: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte("foobar"),
+					},
+				},
+			},
+			ref:  v1alpha1.PushSecretRemoteRef{RemoteKey: "mysec"},
+			want: true,
+		},
+		{
+			name:    "secret does not exist",
+			secrets: map[string]*v1.Secret{},
+			ref:     v1alpha1.PushSecretRemoteRef{RemoteKey: "mysec"},
+			want:    false,
+		},
+		{
+			name: "secret exists and property exists",
+			secrets: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte("foobar"),
+					},
+				},
+			},
+			ref:  v1alpha1.PushSecretRemoteRef{RemoteKey: "mysec", Property: "token"},
+			want: true,
+		},
+		{
+			name: "secret exists but property does not",
+			secrets: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte("foobar"),
+					},
+				},
+			},
+			ref:  v1alpha1.PushSecretRemoteRef{RemoteKey: "mysec", Property: "missing"},
+			want: false,
+		},
+		{
+			name:      "client error is propagated",
+			clientErr: errors.New(errSomethingWentWrong),
+			ref:       v1alpha1.PushSecretRemoteRef{RemoteKey: "mysec"},
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &Client{
+				userSecretClient: &fakeClient{t: t, secretMap: tt.secrets, err: tt.clientErr},
+			}
+			got, err := p.SecretExists(context.Background(), tt.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SecretExists() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("SecretExists() = %v, want %v", got, tt.want)
 			}
 		})
 	}

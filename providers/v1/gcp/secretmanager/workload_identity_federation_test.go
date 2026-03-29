@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -74,12 +74,12 @@ var (
 )
 
 func createValidK8sExternalAccountConfig(audience string) string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":               externalAccountCredentialType,
 		"audience":           audience,
 		"subject_token_type": workloadIdentitySubjectTokenType,
 		"token_url":          workloadIdentityTokenURL,
-		"credential_source": map[string]interface{}{
+		"credential_source": map[string]any{
 			"file": "/var/run/secrets/oidc_token",
 		},
 		"token_info_url": workloadIdentityTokenInfoURL,
@@ -89,13 +89,13 @@ func createValidK8sExternalAccountConfig(audience string) string {
 }
 
 func createValidAWSExternalAccountConfig(audience string) string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":                              externalAccountCredentialType,
 		"audience":                          audience,
 		"subject_token_type":                workloadIdentitySubjectTokenType,
 		"token_url":                         workloadIdentityTokenURL,
 		"service_account_impersonation_url": testServiceAccountImpersonationURL,
-		"credential_source": map[string]interface{}{
+		"credential_source": map[string]any{
 			"environment_id":           "aws1",
 			"url":                      testAwsTokenIPV4URL,
 			"region_url":               testAwsRegionIPv4URL,
@@ -107,7 +107,7 @@ func createValidAWSExternalAccountConfig(audience string) string {
 }
 
 func createInvalidTypeExternalAccountConfig() string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":     "service_account",
 		"audience": testAudience,
 	}
@@ -116,12 +116,12 @@ func createInvalidTypeExternalAccountConfig() string {
 }
 
 func createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(audience string) string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":               externalAccountCredentialType,
 		"audience":           audience,
 		"subject_token_type": workloadIdentitySubjectTokenType,
 		"token_url":          workloadIdentityTokenURL,
-		"credential_source": map[string]interface{}{
+		"credential_source": map[string]any{
 			"file": autoMountedServiceAccountTokenPath,
 		},
 		"token_info_url": workloadIdentityTokenInfoURL,
@@ -131,12 +131,12 @@ func createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(audience st
 }
 
 func createInvalidK8sExternalAccountConfigWithUnallowedTokenURL(audience string) string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":               externalAccountCredentialType,
 		"audience":           audience,
 		"subject_token_type": workloadIdentitySubjectTokenType,
 		"token_url":          "https://example.com",
-		"credential_source": map[string]interface{}{
+		"credential_source": map[string]any{
 			"file": "/var/run/secrets/oidc_token",
 		},
 		"token_info_url": workloadIdentityTokenInfoURL,

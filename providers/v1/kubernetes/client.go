@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -105,9 +106,20 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 }
 
 // SecretExists checks if a secret exists in Kubernetes.
-// This method is not implemented and always returns an error.
-func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	secret, err := c.userSecretClient.Get(ctx, ref.GetRemoteKey(), metav1.GetOptions{})
+	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if ref.GetProperty() != "" {
+		_, ok := secret.Data[ref.GetProperty()]
+		return ok, nil
+	}
+	return true, nil
 }
 
 // PushSecret creates or updates a secret in Kubernetes.
@@ -166,9 +178,7 @@ func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, pushMeta *me
 
 	// case 1: push the whole secret
 	if remoteRef.GetProperty() == "" {
-		for k, v := range localSecret.Data {
-			remoteSecret.Data[k] = v
-		}
+		maps.Copy(remoteSecret.Data, localSecret.Data)
 		return nil
 	}
 
@@ -279,8 +289,8 @@ func getPropertyMap(key, property string, tmpMap map[string][]byte) (map[string]
 	var retMap map[string][]byte
 	jsonStr := string(byteArr)
 	// We need to search if a given key with a . exists before using gjson operations.
-	idx := strings.Index(property, ".")
-	if idx > -1 {
+	found := strings.Contains(property, ".")
+	if found {
 		refProperty := strings.ReplaceAll(property, ".", "\\.")
 		retMap, err = getMapFromValues(refProperty, jsonStr)
 		if err != nil {
