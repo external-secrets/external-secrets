@@ -164,10 +164,11 @@ func PushSecretWithTags(prov *Provider) func(f *framework.Framework) (string, fu
 			tc.VerifyPushSecretOutcome = func(_ *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
 				waitForPushSecretReady(tc)
 
+				var arn *string
 				Eventually(func() bool {
-					return prov.FindCertificateByRemoteKey(remoteKey) != nil
+					arn = prov.FindCertificateByRemoteKey(remoteKey)
+					return arn != nil
 				}, time.Minute*3, time.Second*10).Should(BeTrue(), "certificate should exist in ACM with remote key %s", remoteKey)
-				arn := prov.FindCertificateByRemoteKey(remoteKey)
 
 				tags := prov.GetCertificateTags(aws.ToString(arn))
 				Expect(hasTagValue(tags, "environment", "e2e-test")).To(BeTrue(), "should have environment tag")

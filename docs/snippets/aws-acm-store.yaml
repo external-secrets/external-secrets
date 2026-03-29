@@ -6,7 +6,7 @@ spec:
   provider:
     aws:
       service: CertificateManager
-      region: eu-central-1
+      region: us-east-1
       auth:
         secretRef:
           accessKeyIDSecretRef:

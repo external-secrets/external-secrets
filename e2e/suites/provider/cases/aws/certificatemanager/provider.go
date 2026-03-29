@@ -197,9 +197,10 @@ func (s *Provider) SetupMountedIRSAStore() {
 }
 
 func (s *Provider) TeardownMountedIRSAStore() {
-	s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.ClusterSecretStore{
+	s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: awscommon.MountedIRSAStoreName(s.framework),
+			Name:      awscommon.MountedIRSAStoreName(s.framework),
+			Namespace: s.framework.Namespace.Name,
 		},
 	})
 }
