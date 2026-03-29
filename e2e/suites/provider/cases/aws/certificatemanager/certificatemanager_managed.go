@@ -38,8 +38,8 @@ var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws"
 
 	DescribeTable("push ACM secrets",
 		framework.TableFuncWithPushSecret(f, prov, nil),
-		framework.Compose(withStaticAuth, f, PushSecretImport(prov, types.KeyAlgorithmRsa2048), usePushStaticAuth),
-		framework.Compose(withStaticAuth, f, PushSecretImport(prov, types.KeyAlgorithmEcPrime256v1), usePushStaticAuth),
+		framework.Compose(awscommon.WithReferencedIRSA, f, PushSecretImport(prov, types.KeyAlgorithmRsa2048), usePushStaticAuth),
+		framework.Compose(awscommon.WithReferencedIRSA, f, PushSecretImport(prov, types.KeyAlgorithmEcPrime256v1), usePushStaticAuth),
 		framework.Compose(awscommon.WithReferencedIRSA, f, PushSecretWithTags(prov), usePushClusterSecretStore),
 		framework.Compose(awscommon.WithReferencedIRSA, f, PushSecretDelete(prov), usePushClusterSecretStore),
 	)
@@ -65,8 +65,8 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "certificatemana
 
 	DescribeTable("push ACM secrets",
 		framework.TableFuncWithPushSecret(f, prov, nil),
-		framework.Compose(withStaticAuth, f, PushSecretImport(prov, types.KeyAlgorithmRsa2048), usePushStaticAuth),
-		framework.Compose(withStaticAuth, f, PushSecretImport(prov, types.KeyAlgorithmEcPrime256v1), usePushStaticAuth),
+		framework.Compose(awscommon.WithMountedIRSA, f, PushSecretImport(prov, types.KeyAlgorithmRsa2048), usePushStaticAuth),
+		framework.Compose(awscommon.WithMountedIRSA, f, PushSecretImport(prov, types.KeyAlgorithmEcPrime256v1), usePushStaticAuth),
 		framework.Compose(awscommon.WithMountedIRSA, f, PushSecretWithTags(prov), usePushMountedIRSAStore),
 		framework.Compose(awscommon.WithMountedIRSA, f, PushSecretDelete(prov), usePushMountedIRSAStore),
 	)

@@ -90,7 +90,8 @@ func PushSecretImport(prov *Provider, keyAlgorithm acmtypes.KeyAlgorithm) func(f
 				waitForPushSecretReady(tc)
 
 				Eventually(func() bool {
-					return prov.FindCertificateByRemoteKey(remoteKey) != nil
+					arn, err := prov.FindCertificateByRemoteKey(remoteKey)
+					return err == nil && arn != nil
 				}, time.Minute*3, time.Second*10).Should(BeTrue(), "certificate should exist in ACM with remote key %s", remoteKey)
 
 				err := tc.Framework.CRClient.Delete(GinkgoT().Context(), tc.PushSecret)
@@ -165,16 +166,17 @@ func PushSecretWithTags(prov *Provider) func(f *framework.Framework) (string, fu
 				waitForPushSecretReady(tc)
 
 				var arn *string
+				var err error
 				Eventually(func() bool {
-					arn = prov.FindCertificateByRemoteKey(remoteKey)
-					return arn != nil
+					arn, err = prov.FindCertificateByRemoteKey(remoteKey)
+					return err == nil && arn != nil
 				}, time.Minute*3, time.Second*10).Should(BeTrue(), "certificate should exist in ACM with remote key %s", remoteKey)
 
 				tags := prov.GetCertificateTags(aws.ToString(arn))
 				Expect(hasTagValue(tags, "environment", "e2e-test")).To(BeTrue(), "should have environment tag")
 				Expect(hasTagValue(tags, "team", "platform")).To(BeTrue(), "should have team tag")
 
-				err := tc.Framework.CRClient.Delete(GinkgoT().Context(), tc.PushSecret)
+				err = tc.Framework.CRClient.Delete(GinkgoT().Context(), tc.PushSecret)
 				Expect(err).ToNot(HaveOccurred())
 				prov.DeleteSecret(remoteKey)
 			}
@@ -233,14 +235,16 @@ func PushSecretDelete(prov *Provider) func(f *framework.Framework) (string, func
 				waitForPushSecretReady(tc)
 
 				Eventually(func() bool {
-					return prov.FindCertificateByRemoteKey(remoteKey) != nil
+					arn, err := prov.FindCertificateByRemoteKey(remoteKey)
+					return err == nil && arn != nil
 				}, time.Minute*3, time.Second*10).Should(BeTrue(), "certificate should exist before deletion")
 
 				err := tc.Framework.CRClient.Delete(GinkgoT().Context(), tc.PushSecret)
 				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(func() bool {
-					return prov.FindCertificateByRemoteKey(remoteKey) == nil
+					arn, err := prov.FindCertificateByRemoteKey(remoteKey)
+					return err == nil && arn == nil
 				}, time.Minute*3, time.Second*10).Should(BeTrue(), "certificate should be deleted from ACM")
 			}
 		}

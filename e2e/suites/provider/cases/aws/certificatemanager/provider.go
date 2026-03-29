@@ -117,20 +117,19 @@ func (s *Provider) CreateSecret(key string, _ framework.SecretEntry) {
 
 // DeleteSecret removes a certificate from ACM by looking up the remote-key tag.
 func (s *Provider) DeleteSecret(key string) {
-	arn := s.FindCertificateByRemoteKey(key)
+	arn, err := s.FindCertificateByRemoteKey(key)
+	Expect(err).ToNot(HaveOccurred())
 	if arn == nil {
 		return
 	}
-	_, err := s.client.DeleteCertificate(GinkgoT().Context(), &acm.DeleteCertificateInput{
+	_, err = s.client.DeleteCertificate(GinkgoT().Context(), &acm.DeleteCertificateInput{
 		CertificateArn: arn,
 	})
-	if err != nil {
-		log.Logf("failed to delete certificate %s: %v", aws.ToString(arn), err)
-	}
+	Expect(err).ToNot(HaveOccurred(), "failed to delete certificate %s", aws.ToString(arn))
 }
 
 // FindCertificateByRemoteKey searches for a certificate in ACM with the matching remote-key tag.
-func (s *Provider) FindCertificateByRemoteKey(remoteKey string) *string {
+func (s *Provider) FindCertificateByRemoteKey(remoteKey string) (*string, error) {
 	paginator := acm.NewListCertificatesPaginator(s.client, &acm.ListCertificatesInput{
 		Includes: &types.Filters{
 			KeyTypes: []types.KeyAlgorithm{
@@ -147,7 +146,7 @@ func (s *Provider) FindCertificateByRemoteKey(remoteKey string) *string {
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(GinkgoT().Context())
 		if err != nil {
-			return nil
+			return nil, err
 		}
 		for _, cert := range page.CertificateSummaryList {
 			if cert.CertificateArn == nil {
@@ -157,14 +156,14 @@ func (s *Provider) FindCertificateByRemoteKey(remoteKey string) *string {
 				CertificateArn: cert.CertificateArn,
 			})
 			if err != nil {
-				continue
+				return nil, err
 			}
 			if hasTagValue(tags.Tags, "external-secrets-remote-key", remoteKey) {
-				return cert.CertificateArn
+				return cert.CertificateArn, nil
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // GetCertificateTags returns the tags for a certificate given its ARN.
