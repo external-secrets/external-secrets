@@ -344,6 +344,7 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -395,6 +396,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -447,6 +449,282 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	assert.Equal(t, "This is a test", annotations["description"])
 }
 
+func TestApplyTemplateToManifest_AppliesOwnershipWhenCreationPolicyOwner(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			UID:       "abc-123",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name:           "test-configmap",
+				CreationPolicy: esv1.CreatePolicyOwner,
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	owners := result.GetOwnerReferences()
+	require.Len(t, owners, 1)
+	assert.Equal(t, "test-es", owners[0].Name)
+	assert.True(t, *owners[0].Controller)
+	labels := result.GetLabels()
+	assert.Equal(t, esutils.ObjectHash("default/test-es"), labels[esv1.LabelOwner])
+}
+
+func TestApplyOwnership(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	isController := true
+
+	tests := []struct {
+		name           string
+		creationPolicy esv1.ExternalSecretCreationPolicy
+		existing       *unstructured.Unstructured
+		expectedErr    error
+		validate       func(t *testing.T, result *unstructured.Unstructured)
+	}{
+		{
+			name:           "removes LabelOwner when policy is not Owner",
+			creationPolicy: esv1.CreatePolicyOrphan,
+			existing: func() *unstructured.Unstructured {
+				u := &unstructured.Unstructured{}
+				u.SetLabels(map[string]string{
+					esv1.LabelOwner: esutils.ObjectHash("default/test-es"),
+				})
+				return u
+			}(),
+			validate: func(t *testing.T, result *unstructured.Unstructured) {
+				assert.Empty(t, result.GetLabels()[esv1.LabelOwner])
+			},
+		},
+		{
+			name:           "removes owner reference when policy changes from Owner to Orphan",
+			creationPolicy: esv1.CreatePolicyOrphan,
+			existing: func() *unstructured.Unstructured {
+				u := &unstructured.Unstructured{}
+				u.SetGroupVersionKind(schema.GroupVersionKind{Version: "v1", Kind: "ConfigMap"})
+				u.SetOwnerReferences([]metav1.OwnerReference{
+					{
+						APIVersion: esv1.SchemeGroupVersion.String(),
+						Kind:       esv1.ExtSecretKind,
+						Name:       "test-es",
+						UID:        "abc-123",
+						Controller: &isController,
+					},
+				})
+				return u
+			}(),
+			validate: func(t *testing.T, result *unstructured.Unstructured) {
+				assert.Empty(t, result.GetOwnerReferences())
+			},
+		},
+		{
+			name:           "returns ErrSecretIsOwned when owned by a different ExternalSecret",
+			creationPolicy: esv1.CreatePolicyOwner,
+			existing: func() *unstructured.Unstructured {
+				u := &unstructured.Unstructured{}
+				u.SetOwnerReferences([]metav1.OwnerReference{
+					{
+						APIVersion: esv1.SchemeGroupVersion.String(),
+						Kind:       esv1.ExtSecretKind,
+						Name:       "other-es",
+						UID:        "xyz-999",
+						Controller: &isController,
+					},
+				})
+				return u
+			}(),
+			expectedErr: ErrSecretIsOwned,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+			r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-es",
+					Namespace: "default",
+					UID:       "abc-123",
+				},
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Name:           "test-configmap",
+						CreationPolicy: tt.creationPolicy,
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "v1",
+							Kind:       "ConfigMap",
+						},
+					},
+				},
+			}
+
+			err := r.applyOwnership(es, tt.existing)
+
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+				return
+			}
+			require.NoError(t, err)
+			if tt.validate != nil {
+				tt.validate(t, tt.existing)
+			}
+		})
+	}
+}
+
+func TestApplyTemplateToManifest_NoOwnerRefWhenCreationPolicyOrphan(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			UID:       "abc-123",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name:           "test-configmap",
+				CreationPolicy: esv1.CreatePolicyOrphan,
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	assert.Empty(t, result.GetOwnerReferences())
+}
+
+func TestApplyTemplateToManifest_PropagatesESLabelsAndAnnotations(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			Labels: map[string]string{
+				"app.kubernetes.io/instance": "my-argocd-app",
+				"custom-label":               "custom-value",
+			},
+			Annotations: map[string]string{
+				"argocd.argoproj.io/tracking-id": "my-argocd-app:external-secrets.io/ExternalSecret:default/test-es",
+			},
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-configmap",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	labels := result.GetLabels()
+	assert.Equal(t, "my-argocd-app", labels["app.kubernetes.io/instance"])
+	assert.Equal(t, "custom-value", labels["custom-label"])
+	assert.Equal(t, esv1.LabelManagedValue, labels[esv1.LabelManaged])
+
+	annotations := result.GetAnnotations()
+	assert.Equal(t, "my-argocd-app:external-secrets.io/ExternalSecret:default/test-es", annotations["argocd.argoproj.io/tracking-id"])
+}
+
+func TestApplyTemplateToManifest_TemplateMetadataWinsOverESLabels(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			Labels: map[string]string{
+				"app.kubernetes.io/instance": "my-argocd-app",
+			},
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-configmap",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				Template: &esv1.ExternalSecretTemplate{
+					EngineVersion: esv1.TemplateEngineV2,
+					Metadata: esv1.ExternalSecretTemplateMetadata{
+						Labels: map[string]string{
+							"app": "explicit-template-label",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	labels := result.GetLabels()
+	assert.Equal(t, "explicit-template-label", labels["app"])
+	assert.Empty(t, labels["app.kubernetes.io/instance"])
+	assert.Equal(t, esv1.LabelManagedValue, labels[esv1.LabelManaged])
+}
+
+func TestApplyTemplateToManifest_NoESLabels(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Name: "test-configmap",
+				Manifest: &esv1.ManifestReference{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+			},
+		},
+	}
+
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+
+	require.NoError(t, err)
+	labels := result.GetLabels()
+	assert.Equal(t, esv1.LabelManagedValue, labels[esv1.LabelManaged])
+	assert.Len(t, labels, 1)
+}
+
 func TestGetGenericResource(t *testing.T) {
 	// Setup
 	_ = esv1.AddToScheme(scheme.Scheme)
@@ -471,6 +749,7 @@ func TestGetGenericResource(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -512,6 +791,7 @@ func TestGetGenericResource_NotFound(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -552,6 +832,7 @@ func TestApplyTemplateToManifest_LiteralWithDeployment(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
@@ -633,6 +914,7 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 
 	r := &Reconciler{
 		Client: fakeClient,
+		Scheme: scheme.Scheme,
 	}
 
 	es := &esv1.ExternalSecret{
