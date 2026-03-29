@@ -8,13 +8,7 @@ External Secrets Operator integrates with [AWS Certificate Manager (ACM)](https:
 
 Both public and private ACM certificates can be exported, provided the export option was enabled when the certificate was requested. See [Exportable Certificates](#exportable-certificates) below for details.
 
-### Authentication
-
-The ACM provider uses the same authentication mechanisms as the other AWS providers. See [AWS Access](aws-access.md) for details on configuring authentication via `secretRef`, IRSA, Pod Identity, and other supported methods.
-
 ### SecretStore
-
-To use ACM, create a `SecretStore` (or `ClusterSecretStore`) with `service: CertificateManager`:
 
 ``` yaml
 {% include 'aws-acm-store.yaml' %}
@@ -98,7 +92,7 @@ You can scope the `Resource` to specific certificate ARNs or use conditions to r
 
 Both **public** and **private** ACM certificates can be exported, but the certificate must have been requested with the export option **enabled**. This option cannot be changed after the certificate is created — if it was not enabled at request time, the certificate is not exportable.
 
-Public exportable certificates are a **paid** feature. AWS provides the first 10,000 `ExportCertificate` API calls per month per account for free; exceeding this threshold incurs additional charges. See the [ACM pricing page](https://aws.amazon.com/certificate-manager/pricing/) for current pricing.
+Requesting a public certificate with the export option enabled is a **paid** feature — AWS charges a fee upon issuance and again on each renewal. Separately, the `ExportCertificate` API is free for the first 10,000 calls per month per account; exceeding this threshold incurs additional per-call charges. See the [ACM pricing page](https://aws.amazon.com/certificate-manager/pricing/) for current details.
 
 #### Export Caching
 
@@ -170,4 +164,4 @@ A common pattern is to use [cert-manager](https://cert-manager.io/) to provision
 
 When cert-manager renews the certificate, the `PushSecret` controller will detect the change and re-import the updated certificate into ACM using the same ARN (identified by the `external-secrets-remote-key` tag). This keeps the ACM certificate in sync without creating duplicates.
 
-If the `PushSecret` is deleted and `deletionPolicy` is set to `Delete`, the imported certificate will be removed from ACM.
+If the `PushSecret` is deleted and `deletionPolicy` is set to `Delete`, the imported certificate will be removed from ACM (provided it is not in use).
