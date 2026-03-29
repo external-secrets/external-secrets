@@ -35,12 +35,13 @@ import (
 )
 
 type workloadIdentityFederationTest struct {
-	name              string
-	wifConfig         *esv1.GCPWorkloadIdentityFederation
-	kubeObjects       []client.Object
-	genSAToken        func(context.Context, []string, string, string) (*authv1.TokenRequest, error)
-	expectError       string
-	expectTokenSource bool
+	name                   string
+	wifConfig              *esv1.GCPWorkloadIdentityFederation
+	kubeObjects            []client.Object
+	genSAToken             func(context.Context, []string, string, string) (*authv1.TokenRequest, error)
+	expectError            string
+	expectTokenSource      bool
+	expectImpersonationURL string
 }
 
 const (
@@ -422,7 +423,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 					},
 				}, nil
 			},
-			expectTokenSource: true,
+			expectImpersonationURL: testServiceAccountImpersonationURL,
+			expectTokenSource:      true,
 		},
 		{
 			name: "valid AWS credentials secret",
@@ -583,6 +585,12 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 				config:           tc.wifConfig,
 				isClusterKind:    true,
 				namespace:        testNamespace,
+			}
+
+			if tc.expectImpersonationURL != "" {
+				cfg, cfgErr := wif.generateExternalAccountConfig(context.Background(), nil)
+				assert.NoError(t, cfgErr)
+				assert.Equal(t, tc.expectImpersonationURL, cfg.ServiceAccountImpersonationURL)
 			}
 
 			ts, err := wif.TokenSource(context.Background())
