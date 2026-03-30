@@ -907,6 +907,17 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 	if err != nil {
 		return fmt.Errorf("failed to resolve resource policy: %w", err)
 	}
+	if policyJSON == "" {
+		deletePolicyInput := &awssm.DeleteResourcePolicyInput{
+			SecretId: secretID,
+		}
+		_, err = sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
+		if err != nil {
+			return fmt.Errorf("failed to delete resource policy: %w", err)
+		}
+		return nil
+	}
 
 	getCurrentPolicyInput := &awssm.GetResourcePolicyInput{
 		SecretId: secretID,
