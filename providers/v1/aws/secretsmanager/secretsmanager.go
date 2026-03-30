@@ -879,6 +879,20 @@ func unmarshalPolicyJSON(policy string) (map[string]any, error) {
 	return m, nil
 }
 
+func (sm *SecretsManager) deleteResourcePolicy(ctx context.Context, secretID *string) error {
+	deletePolicyInput := &awssm.DeleteResourcePolicyInput{
+		SecretId: secretID,
+	}
+	_, err := sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
+
+	var nf *types.ResourceNotFoundException
+	if err != nil && !errors.As(err, &nf) {
+		return fmt.Errorf("failed to delete resource policy: %w", err)
+	}
+	return nil
+}
+
 // manageResourcePolicy applies or removes the resource policy based on metadata.
 func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string) error {
 	meta, err := sm.constructMetadataWithDefaults(metadata)
@@ -888,18 +902,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 
 	// Delete policy if policyRef is nil and the policy exists.
 	if meta.Spec.ResourcePolicy == nil {
-		deletePolicyInput := &awssm.DeleteResourcePolicyInput{
-			SecretId: secretID,
-		}
-		_, err = sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
-
-		var nf *types.ResourceNotFoundException
-		if err != nil && !errors.As(err, &nf) {
-			return fmt.Errorf("failed to delete resource policy: %w", err)
-		}
-
-		return nil
+		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
 	// Normal flow, is to create the policy.
@@ -908,15 +911,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		return fmt.Errorf("failed to resolve resource policy: %w", err)
 	}
 	if policyJSON == "" {
-		deletePolicyInput := &awssm.DeleteResourcePolicyInput{
-			SecretId: secretID,
-		}
-		_, err = sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
-		if err != nil {
-			return fmt.Errorf("failed to delete resource policy: %w", err)
-		}
-		return nil
+		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
 	getCurrentPolicyInput := &awssm.GetResourcePolicyInput{
