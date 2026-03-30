@@ -39,12 +39,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -96,17 +93,6 @@ type storeInfo struct {
 	Labels map[string]string
 }
 
-type generationChangedOrDeletionPredicate struct {
-	predicate.GenerationChangedPredicate
-}
-
-func (generationChangedOrDeletionPredicate) Update(e event.UpdateEvent) bool {
-	if e.ObjectNew.GetDeletionTimestamp() != nil {
-		return true
-	}
-	return e.ObjectNew.GetGeneration() != e.ObjectOld.GetGeneration()
-}
-
 // SetupWithManager sets up the controller with the Manager.
 // It configures the controller to watch PushSecret resources and
 // manages indexing for efficient lookups based on secret stores and deletion policies.
@@ -143,7 +129,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
-		For(&esapi.PushSecret{}, builder.WithPredicates(generationChangedOrDeletionPredicate{})).
+		For(&esapi.PushSecret{}).
 		Complete(r)
 }
 
