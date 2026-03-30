@@ -196,12 +196,13 @@ func (s *Provider) SetupMountedIRSAStore() {
 }
 
 func (s *Provider) TeardownMountedIRSAStore() {
-	s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.SecretStore{
+	err := s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      awscommon.MountedIRSAStoreName(s.framework),
 			Namespace: s.framework.Namespace.Name,
 		},
 	})
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *Provider) SetupReferencedIRSAStore() {
@@ -232,11 +233,12 @@ func (s *Provider) SetupReferencedIRSAStore() {
 }
 
 func (s *Provider) TeardownReferencedIRSAStore() {
-	s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.ClusterSecretStore{
+	err := s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: awscommon.ReferencedIRSAStoreName(s.framework),
 		},
 	})
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func hasTagValue(tags []types.Tag, key, value string) bool {

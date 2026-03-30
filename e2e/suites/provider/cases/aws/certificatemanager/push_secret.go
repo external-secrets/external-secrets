@@ -87,6 +87,8 @@ func PushSecretImport(prov *Provider, keyAlgorithm acmtypes.KeyAlgorithm) func(f
 				},
 			}
 			tc.VerifyPushSecretOutcome = func(_ *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
+				defer prov.DeleteSecret(remoteKey)
+
 				waitForPushSecretReady(tc)
 
 				Eventually(func() bool {
@@ -96,7 +98,6 @@ func PushSecretImport(prov *Provider, keyAlgorithm acmtypes.KeyAlgorithm) func(f
 
 				err := tc.Framework.CRClient.Delete(GinkgoT().Context(), tc.PushSecret)
 				Expect(err).ToNot(HaveOccurred())
-				prov.DeleteSecret(remoteKey)
 			}
 		}
 	}
@@ -163,6 +164,8 @@ func PushSecretWithTags(prov *Provider) func(f *framework.Framework) (string, fu
 				},
 			}
 			tc.VerifyPushSecretOutcome = func(_ *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
+				defer prov.DeleteSecret(remoteKey)
+
 				waitForPushSecretReady(tc)
 
 				var arn *string
@@ -178,7 +181,6 @@ func PushSecretWithTags(prov *Provider) func(f *framework.Framework) (string, fu
 
 				err = tc.Framework.CRClient.Delete(GinkgoT().Context(), tc.PushSecret)
 				Expect(err).ToNot(HaveOccurred())
-				prov.DeleteSecret(remoteKey)
 			}
 		}
 	}
@@ -232,6 +234,8 @@ func PushSecretDelete(prov *Provider) func(f *framework.Framework) (string, func
 				},
 			}
 			tc.VerifyPushSecretOutcome = func(_ *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
+				defer prov.DeleteSecret(remoteKey)
+
 				waitForPushSecretReady(tc)
 
 				Eventually(func() bool {
