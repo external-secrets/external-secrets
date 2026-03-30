@@ -69,9 +69,9 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 	}
 
 	BeforeAll(func() {
-		config, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
+		cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
 		Expect(err).ToNot(HaveOccurred())
-		prov.client = acm.NewFromConfig(config)
+		prov.client = acm.NewFromConfig(cfg)
 	})
 
 	BeforeEach(func() {
