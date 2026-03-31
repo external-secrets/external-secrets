@@ -11321,8 +11321,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>VaultRole is a vault role that we defines to specify the spesific
-vault role</p>
+<p>VaultRole specifies the Vault role to use for TLS certificate authentication.</p>
 </td>
 </tr>
 <tr>
