@@ -18670,7 +18670,7 @@ spec:
                                       type: string
                                   type: object
                                 vaultRole:
-                                  description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                                  description: VaultRole specifies the Vault role to use for TLS certificate authentication. If empty, the default role will be used.
                                   type: string
                               type: object
                             gcp:
@@ -25698,7 +25698,7 @@ spec:
                                           type: string
                                       type: object
                                     vaultRole:
-                                      description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                                      description: VaultRole specifies the Vault role to use for TLS certificate authentication. If empty, the default role will be used.
                                       type: string
                                   type: object
                                 gcp:
@@ -28388,7 +28388,7 @@ spec:
                                   type: string
                               type: object
                             vaultRole:
-                              description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                              description: VaultRole specifies the Vault role to use for TLS certificate authentication. If empty, the default role will be used.
                               type: string
                           type: object
                         gcp:
