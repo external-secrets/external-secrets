@@ -6736,6 +6736,11 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                vaultRole:
+                                  description: |-
+                                    VaultRole is a vault role that we defines to specify the spesific
+                                    vault role
+                                  type: string
                               type: object
                             gcp:
                               description: |-
@@ -18666,6 +18671,11 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                vaultRole:
+                                  description: |-
+                                    VaultRole is a vault role that we defines to specify the spesific
+                                    vault role
+                                  type: string
                               type: object
                             gcp:
                               description: |-
@@ -25691,6 +25701,11 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
+                                    vaultRole:
+                                      description: |-
+                                        VaultRole is a vault role that we defines to specify the spesific
+                                        vault role
+                                      type: string
                                   type: object
                                 gcp:
                                   description: |-
@@ -28378,6 +28393,11 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            vaultRole:
+                              description: |-
+                                VaultRole is a vault role that we defines to specify the spesific
+                                vault role
+                              type: string
                           type: object
                         gcp:
                           description: |-

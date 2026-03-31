@@ -338,6 +338,11 @@ type VaultCertAuth struct {
 	// +optional
 	Path string `json:"path"`
 
+	// VaultRole is a vault role that we defines to specify the spesific
+	// vault role
+	// +optional
+	VaultRole string `json:"vaultRole,omitempty"`
+
 	// ClientCert is a certificate to authenticate using the Cert Vault
 	// authentication method
 	// +optional
