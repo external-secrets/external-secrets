@@ -115,9 +115,10 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-// GetSecret retrieves a secret from Keeper Security by its ID.
+// GetSecret retrieves a secret from Keeper Security by ID or name.
+// It first attempts to find the secret by ID, then falls back to name lookup.
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	record, err := c.findSecretByID(ref.Key)
+	record, err := c.findSecretByIDOrName(ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -125,15 +126,14 @@ func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	if err != nil {
 		return nil, err
 	}
-	// GetSecret retrieves a secret from Keeper Security by its ID.
-	// If ref.Property is specified, it returns only that property's value.
 
 	return secret.getItem(ref)
 }
 
 // GetSecretMap retrieves a secret from Keeper Security and returns it as a map.
+// It first attempts to find the secret by ID, then falls back to name lookup.
 func (c *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	record, err := c.findSecretByID(ref.Key)
+	record, err := c.findSecretByIDOrName(ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +141,6 @@ func (c *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemo
 	if err != nil {
 		return nil, err
 	}
-	// GetSecretMap retrieves a secret from Keeper Security and returns it as a map.
-	// If ref.Property is specified, it returns only that property as a map entry.
 
 	return secret.getItems(ref)
 }
@@ -203,7 +201,7 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 		// Currently only supports pushing individual secret values, not entire secrets.
 	}
 
-	record, err := c.findSecretByName(parts[0])
+	record, err := c.findSecretByName(parts[0], true)
 	if err != nil {
 		return err
 	}
@@ -225,7 +223,7 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1.PushSecretRemote
 	if err != nil {
 		return err
 	}
-	secret, err := c.findSecretByName(parts[0])
+	secret, err := c.findSecretByName(parts[0], true)
 	if err != nil {
 		return err
 	} else if secret == nil {
@@ -353,25 +351,46 @@ func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 	return records[0], nil
 }
 
-func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
+func (c *Client) findSecretByIDOrName(key string) (*ksm.Record, error) {
+	// First attempt: try to find by ID
+	record, err := c.findSecretByID(key)
+	if err == nil {
+		return record, nil
+	} else if err.Error() != errKeeperSecurityNoSecretsFound {
+		return nil, err
+	}
+
+	// If ID lookup fails, try name-based lookup
+	record, err = c.findSecretByName(key, false)
+	if err != nil {
+		return nil, err
+	}
+	if record == nil {
+		return nil, fmt.Errorf(errKeeperSecuritySecretNotFound, key, errors.New("secret not found by ID or name"))
+	}
+
+	return record, nil
+}
+
+func (c *Client) findSecretByName(name string, onlyEsoSecretType bool) (*ksm.Record, error) {
 	records, err := c.ksmClient.GetSecretsByTitle(name)
 	if err != nil {
 		return nil, err
 	}
 
-	// filter in-place, preserve only records of type externalSecretType
 	n := 0
 	for _, record := range records {
-		if record.Type() == externalSecretType {
+		if !onlyEsoSecretType || record.Type() == externalSecretType {
 			records[n] = record
 			n++
 		}
 	}
 	records = records[:n]
 
-	// record not found is not an error - handled differently:
+	// record not found is not an error in all cases - handled differently:
 	// PushSecret will create new record instead
 	// DeleteSecret will consider record already deleted (no error)
+	// GetSecret will error
 	if len(records) == 0 {
 		return nil, nil
 	} else if len(records) == 1 {

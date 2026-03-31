@@ -421,6 +421,9 @@ func TestClientGetSecret(t *testing.T) {
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
 						return nil, errors.New("not found")
 					},
+					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
+						return nil, errors.New("not found")
+					},
 				},
 				folderID: folderID,
 			},
@@ -447,6 +450,59 @@ func TestClientGetSecret(t *testing.T) {
 				ref: esv1.ExternalSecretDataRemoteRef{
 					Key:      record0,
 					Property: "invalid",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Get secret by name",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						// Return error for ID lookup to trigger name lookup
+						return nil, errors.New("secret not found by ID")
+					},
+					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
+						// Return a record when looked up by name
+						if recordTitle == "test-secret-name" {
+							return []*ksm.Record{generateRecords()[0]}, nil
+						}
+						return nil, errors.New("secret not found by name")
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: "test-secret-name",
+				},
+			},
+			want:    []byte(outputRecord0),
+			wantErr: false,
+		},
+		{
+			name: "Get secret by name with multiple matches",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						// Return error for ID lookup to trigger name lookup
+						return nil, errors.New("secret not found by ID")
+					},
+					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
+						// Return multiple records with same name (should cause error)
+						if recordTitle == "duplicate-secret-name" {
+							return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
+						}
+						return nil, errors.New("secret not found by name")
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: "duplicate-secret-name",
 				},
 			},
 			wantErr: true,
@@ -581,6 +637,9 @@ func TestClientGetSecretMap(t *testing.T) {
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return nil, errors.New("not found")
+					},
+					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
 						return nil, errors.New("not found")
 					},
 				},
