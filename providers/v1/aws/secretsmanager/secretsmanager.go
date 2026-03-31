@@ -911,22 +911,11 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		currentPolicy = *currentPolicyOutput.ResourcePolicy
 	}
 
-	// convert to maps so we can do a stable comparison.
-	var (
-		currentPolicyMap map[string]any
-		policyJSONMaps   map[string]any
-	)
-
-	if currentPolicy != "" {
-		if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
-			return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
-		}
+	match, err := resourcePoliciesMatch(currentPolicy, policyJSON)
+	if err != nil {
+		return err
 	}
-	if err := json.Unmarshal([]byte(policyJSON), &policyJSONMaps); err != nil {
-		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
-	}
-
-	if reflect.DeepEqual(currentPolicyMap, policyJSONMaps) {
+	if match {
 		return nil
 	}
 
@@ -945,6 +934,26 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 	}
 
 	return nil
+}
+
+// resourcePoliciesMatch compares two resource policy JSON strings for equality.
+// An empty currentPolicy is treated as nil (no existing policy).
+func resourcePoliciesMatch(currentPolicy, desiredPolicy string) (bool, error) {
+	var (
+		currentPolicyMap map[string]any
+		desiredPolicyMap map[string]any
+	)
+
+	if currentPolicy != "" {
+		if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
+			return false, fmt.Errorf("failed to unmarshal current resource policy: %w", err)
+		}
+	}
+	if err := json.Unmarshal([]byte(desiredPolicy), &desiredPolicyMap); err != nil {
+		return false, fmt.Errorf("failed to unmarshal desired resource policy: %w", err)
+	}
+
+	return reflect.DeepEqual(currentPolicyMap, desiredPolicyMap), nil
 }
 
 // computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
