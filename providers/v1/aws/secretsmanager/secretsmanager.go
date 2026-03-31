@@ -935,12 +935,12 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
 	}
 
-	policyJSONMaps, err := unmarshalPolicyJSON(policyJSON)
+	desiredPolicyMap, err := unmarshalPolicyJSON(policyJSON)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal desired resource policy: %w", err)
 	}
 
-	if reflect.DeepEqual(currentPolicyMap, policyJSONMaps) {
+	if reflect.DeepEqual(currentPolicyMap, desiredPolicyMap) {
 		return nil
 	}
 
