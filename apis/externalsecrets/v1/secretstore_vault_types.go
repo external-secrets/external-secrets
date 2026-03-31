@@ -338,8 +338,7 @@ type VaultCertAuth struct {
 	// +optional
 	Path string `json:"path"`
 
-	// VaultRole is a vault role that we defines to specify the spesific
-	// vault role
+	// VaultRole specifies the Vault role to use for TLS certificate authentication.
 	// +optional
 	VaultRole string `json:"vaultRole,omitempty"`
 
