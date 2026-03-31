@@ -11314,6 +11314,19 @@ in Vault, e.g: &ldquo;cert&rdquo;</p>
 </tr>
 <tr>
 <td>
+<code>vaultRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VaultRole is a vault role that we defines to specify the spesific
+vault role</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clientCert</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
