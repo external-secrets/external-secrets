@@ -1189,3 +1189,30 @@ var _ onepassword.VaultsAPI = &fakeClient{}
 var _ onepassword.ItemsAPI = &fakeLister{}
 var _ onepassword.SecretsAPI = &fakeClientWithCounter{}
 var _ onepassword.ItemsAPI = &fakeListerWithCounter{}
+
+func TestIsNativeItemID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid native ID", "gdpvdudxrico74msloimk7qjna", true},
+		{"valid native ID all letters", "abcdefghijklmnopqrstuvwxyz", true},
+		{"valid native ID with digits", "abcdefghij0123456789abcdef", true},
+		{"too short", "gdpvdudxrico74msloimk7qjn", false},
+		{"too long", "gdpvdudxrico74msloimk7qjnaa", false},
+		{"empty string", "", false},
+		{"contains uppercase", "Gdpvdudxrico74msloimk7qjna", false},
+		{"contains special char", "gdpvdudxrico7-msloimk7qjna", false},
+		{"RFC 4122 UUID", "687adbe7-e6d2-4059-9a62-dbb95d291143", false},
+		{"item title", "My App (Production)", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isNativeItemID(tt.input)
+			if got != tt.expected {
+				t.Errorf("isNativeItemID(%q) = %v, want %v", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
