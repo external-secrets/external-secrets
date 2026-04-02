@@ -32,7 +32,7 @@ python-dateutil==2.9.0.post0
 PyYAML==6.0.3
 pyyaml_env_tag==1.1
 regex==2026.3.32
-requests==2.32.5
+requests==2.33.1
 six==1.17.0
 termcolor==3.3.0
 tornado==6.5.5
