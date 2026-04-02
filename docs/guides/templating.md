@@ -9,7 +9,7 @@ Each data value is interpreted as a [Go template](https://golang.org/pkg/text/te
     Consider using camelcase when defining  **.'spec.data.secretkey'**, example: serviceAccountToken
 
     If your secret keys contain **`-` (dashes)**, you will need to reference them using **`index`** </br>
-    Example: {% raw %}**`{{ index .data "service-account-token" }}`**{% endraw %}
+    Example: **`{% raw %}{{ index .data "service-account-token" }}{% endraw %}`**
 
 ## Helm
 
