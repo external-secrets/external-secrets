@@ -87,7 +87,7 @@ func init() {
 	sprigFuncs := sprig.TxtFuncMap()
 	delete(sprigFuncs, "env")
 	delete(sprigFuncs, "expandenv")
-
+	delete(sprigFuncs, "getHostByName")
 	maps.Copy(tplFuncs, sprigFuncs)
 	fs := pflag.NewFlagSet("template", pflag.ExitOnError)
 	fs.StringVar(&leftDelim, "template-left-delimiter", "{{", "templating left delimiter")
