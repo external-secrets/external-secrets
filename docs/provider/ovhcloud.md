@@ -26,8 +26,8 @@ metadata:
 spec:
   provider:
     ovh:
-      server: <kms-endpoint>
-      okmsid: <okms-id>
+      server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
       auth:
         token:
           tokenSecretRef:
@@ -51,8 +51,8 @@ metadata:
 spec:
   provider:
     ovh:
-      server: "https://eu-west-rbx.okms.ovh.net"
-      okmsid: "734b9b45-8b1a-469c-b140-b10bd6540017"
+      server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
       auth:
         mtls:
           certSecretRef:
@@ -381,8 +381,8 @@ metadata:
 spec:
   provider:
     ovh:
-      server: <kms-endpoint>
-      okmsid: <okms-id>
+      server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
       auth:
         token:
           tokenSecretRef:
@@ -478,8 +478,8 @@ metadata:
 spec:
   provider:
     ovh:
-      server: <kms-endpoint>
-      okmsid: <okms-id>
+      server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
       auth:
         token:
           tokenSecretRef:
