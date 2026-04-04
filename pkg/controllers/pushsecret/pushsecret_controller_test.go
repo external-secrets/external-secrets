@@ -44,8 +44,14 @@ import (
 )
 
 const (
-	testAdminUser = "admin"
-	testLocalhost = "localhost"
+	testAdminUser            = "admin"
+	testLocalhost            = "localhost"
+	testDBHost               = "db-host"
+	testDBPort               = "db-port"
+	testAppName              = "app-name"
+	testDBRegexp             = "^db-.*"
+	testAPIKey               = "api-key"
+	testDuplicateRemoteKeyErr = "duplicate remote key"
 )
 
 var (
@@ -1413,8 +1419,8 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
-			"db-host":     []byte(testLocalhost),
-			"db-port":     []byte("5432"),
+			testDBHost:     []byte(testLocalhost),
+			testDBPort:     []byte("5432"),
 			"db-username": []byte(testAdminUser),
 		}
 		// Replace data with dataTo that matches all keys
@@ -1458,9 +1464,9 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
-			"db-host":     []byte(testLocalhost),
-			"db-port":     []byte("5432"),
-			"app-name":    []byte("myapp"),
+			testDBHost:     []byte(testLocalhost),
+			testDBPort:     []byte("5432"),
+			testAppName:    []byte("myapp"),
 			"app-version": []byte("1.0"),
 		}
 		// Use dataTo with regex to match only db-* keys
@@ -1471,7 +1477,7 @@ var _ = Describe("PushSecret controller", func() {
 					Name: PushSecretStore,
 				},
 				Match: &v1alpha1.PushSecretDataToMatch{
-					RegExp: "^db-.*",
+					RegExp: testDBRegexp,
 				},
 			},
 		}
@@ -1486,7 +1492,7 @@ var _ = Describe("PushSecret controller", func() {
 				}
 				// Check db-* keys were pushed
 				for key := range setSecretArgs {
-					if key != "db-host" && key != "db-port" {
+					if key != testDBHost && key != testDBPort {
 						return false
 					}
 				}
@@ -1502,8 +1508,8 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
-			"db-host": []byte(testLocalhost),
-			"db-port": []byte("5432"),
+			testDBHost: []byte(testLocalhost),
+			testDBPort: []byte("5432"),
 		}
 		// Use dataTo with regex rewrite to add prefix
 		tc.pushsecret.Spec.Data = nil
@@ -1513,7 +1519,7 @@ var _ = Describe("PushSecret controller", func() {
 					Name: PushSecretStore,
 				},
 				Match: &v1alpha1.PushSecretDataToMatch{
-					RegExp: "^db-.*",
+					RegExp: testDBRegexp,
 				},
 				Rewrite: []v1alpha1.PushSecretRewrite{
 					{
@@ -1726,9 +1732,9 @@ var _ = Describe("PushSecret controller", func() {
 		}
 
 		tc.secret.Data = map[string][]byte{
-			"db-host":  []byte(testLocalhost),
-			"api-key":  []byte("secret123"),
-			"app-name": []byte("myapp"),
+			testDBHost:  []byte(testLocalhost),
+			testAPIKey:  []byte("secret123"),
+			testAppName: []byte("myapp"),
 		}
 
 		// Configure multiple stores
@@ -1745,7 +1751,7 @@ var _ = Describe("PushSecret controller", func() {
 					Kind: "SecretStore",
 				},
 				Match: &v1alpha1.PushSecretDataToMatch{
-					RegExp: "^db-.*",
+					RegExp: testDBRegexp,
 				},
 			},
 			{
@@ -1801,16 +1807,16 @@ var _ = Describe("PushSecret controller", func() {
 				secondStoreSynced := updatedPS.Status.SyncedPushSecrets[secondStoreKey]
 
 				// First store should have: db-host and app-name (both from storeRef entries)
-				_, hasDbHost := firstStoreSynced["db-host"]
-				_, hasAppNameFirst := firstStoreSynced["app-name"]
+				_, hasDbHost := firstStoreSynced[testDBHost]
+				_, hasAppNameFirst := firstStoreSynced[testAppName]
 				// First store should NOT have api-key (targeted to second store)
-				_, hasApiKeyFirst := firstStoreSynced["api-key"]
+				_, hasApiKeyFirst := firstStoreSynced[testAPIKey]
 
 				// Second store should have: api-key and app-name (both from storeRef entries)
-				_, hasApiKey := secondStoreSynced["api-key"]
-				_, hasAppNameSecond := secondStoreSynced["app-name"]
+				_, hasApiKey := secondStoreSynced[testAPIKey]
+				_, hasAppNameSecond := secondStoreSynced[testAppName]
 				// Second store should NOT have db-host (targeted to first store)
-				_, hasDbHostSecond := secondStoreSynced["db-host"]
+				_, hasDbHostSecond := secondStoreSynced[testDBHost]
 
 				return hasDbHost && hasAppNameFirst && !hasApiKeyFirst &&
 					hasApiKey && hasAppNameSecond && !hasDbHostSecond
@@ -1878,7 +1884,7 @@ var _ = Describe("PushSecret controller", func() {
 		// Template creates api-key from token
 		tc.pushsecret.Spec.Template = &esv1.ExternalSecretTemplate{
 			Data: map[string]string{
-				"api-key": "Bearer {{ .token }}",
+				testAPIKey: "Bearer {{ .token }}",
 			},
 		}
 		// dataTo matches config-* keys
@@ -1896,7 +1902,7 @@ var _ = Describe("PushSecret controller", func() {
 		tc.pushsecret.Spec.Data = []v1alpha1.PushSecretData{
 			{
 				Match: v1alpha1.PushSecretMatch{
-					SecretKey: "api-key",
+					SecretKey: testAPIKey,
 					RemoteRef: v1alpha1.PushSecretRemoteRef{
 						RemoteKey: "credentials/api-key",
 					},
@@ -1924,8 +1930,8 @@ var _ = Describe("PushSecret controller", func() {
 
 	failDataToDuplicateAcrossEntries := func(tc *testCase) {
 		tc.secret.Data = map[string][]byte{
-			"db-host": []byte(testLocalhost),
-			"db-port": []byte("5432"),
+			testDBHost: []byte(testLocalhost),
+			testDBPort: []byte("5432"),
 		}
 		// Create two dataTo entries that both produce the same remote key "app/config"
 		tc.pushsecret.Spec.Data = nil
@@ -1980,8 +1986,8 @@ var _ = Describe("PushSecret controller", func() {
 
 	failDataToAndDataDuplicateRemoteKey := func(tc *testCase) {
 		tc.secret.Data = map[string][]byte{
-			"db-host": []byte(testLocalhost),
-			"api-key": []byte("secret123"),
+			testDBHost: []byte(testLocalhost),
+			testAPIKey: []byte("secret123"),
 		}
 		// Create dataTo entry and explicit data that map to the same remote key
 		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{
@@ -2005,7 +2011,7 @@ var _ = Describe("PushSecret controller", func() {
 		tc.pushsecret.Spec.Data = []v1alpha1.PushSecretData{
 			{
 				Match: v1alpha1.PushSecretMatch{
-					SecretKey: "api-key",
+					SecretKey: testAPIKey,
 					RemoteRef: v1alpha1.PushSecretRemoteRef{
 						RemoteKey: "myapp/config", // Same remote key as dataTo produces
 					},
@@ -2216,7 +2222,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Keys with same value - tests deterministic key mapping
 		tc.secret.Data = map[string][]byte{
-			"db-host":    []byte("same-value"),
+			testDBHost:    []byte("same-value"),
 			"cache-host": []byte("same-value"),
 		}
 		tc.pushsecret.Spec.Data = nil
@@ -2984,7 +2990,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 			err := validateRemoteKeyUniqueness(entries)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("duplicate remote key"))
+			Expect(err.Error()).To(ContainSubstring(testDuplicateRemoteKeyErr))
 		})
 
 		It("should pass for same remote key with different properties", func() {
@@ -3007,7 +3013,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 			err := validateRemoteKeyUniqueness(entries)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("duplicate remote key"))
+			Expect(err.Error()).To(ContainSubstring(testDuplicateRemoteKeyErr))
 		})
 	})
 
@@ -3055,7 +3061,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 			_, err := mergeDataEntries(dataTo, explicit, secret)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("duplicate remote key"))
+			Expect(err.Error()).To(ContainSubstring(testDuplicateRemoteKeyErr))
 		})
 	})
 })
