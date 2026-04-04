@@ -13,8 +13,8 @@ Ask these three questions in order. Each answer narrows the setup.
 
 **2. "Which platform runs your cluster, and which secret provider do you use?"**
 
-- The platform determines the auth method. The provider determines which `docs/provider/<name>.md` to reference.
-- Look up `docs/provider/<provider>-access.md` for auth configuration specific to the user's setup.
+- The platform determines the auth method. The provider determines which doc to reference.
+- Look up `docs/provider/<provider>.md` for provider-specific configuration. Exception: AWS uses `docs/provider/aws-access.md` for auth and separate docs per service (`aws-secrets-manager.md`, `aws-parameter-store.md`).
 - Default rule: pick platform-native short-lived credentials over static secrets.
 
 **3. "What path or prefix do your secrets follow in the provider?" (e.g., `prod/team-a/*`, `secret/data/myapp/*`)**
@@ -62,16 +62,7 @@ See `docs/guides/multi-tenancy.md` and `docs/guides/security-best-practices.md`.
 
 ## Installation
 
-```bash
-helm repo add external-secrets https://charts.external-secrets.io
-helm repo update
-helm install external-secrets external-secrets/external-secrets \
-  -n external-secrets --create-namespace
-```
-
-When applying CRDs manually (not via Helm), use `kubectl apply --server-side`. ESO CRDs exceed the 256KB annotation limit.
-
-See `docs/introduction/getting-started.md`.
+See `docs/introduction/getting-started.md` for installation instructions. When applying CRDs manually (not via Helm), use `kubectl apply --server-side` — ESO CRDs exceed the 256KB annotation limit.
 
 ## What to Generate
 
@@ -194,7 +185,7 @@ kubectl annotate externalsecret <name> -n <namespace> force-sync=$(date +%s) --o
 3. **Secret path mismatch.** Provider key names are exact. A trailing slash, wrong case, or missing path segment returns "not found."
 ### AWS-specific pitfalls
 
-4. **IRSA OIDC trust policy mismatch.** The IAM role's trust policy must reference the correct OIDC provider URL for the EKS cluster. A mismatch silently fails with "unable to create session." Verify with `aws iam get-role --role-name <role> | jq '.Role.AssumeRolePolicyDocument'`.
+4. **IRSA OIDC trust policy mismatch.** The IAM role's trust policy must reference the correct OIDC provider URL for the EKS cluster. A mismatch causes silent auth failure with "unable to create session." Verify with `aws iam get-role --role-name <role> | jq '.Role.AssumeRolePolicyDocument'`.
 5. **PushSecret needs extra permissions.** Syncing secrets *back* to AWS requires `CreateSecret`, `PutSecretValue`, `TagResource`, and `DeleteSecret` in addition to read permissions. See `docs/provider/aws-secrets-manager.md`.
 
 ## Security Hardening Checklist

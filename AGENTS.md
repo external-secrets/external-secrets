@@ -4,53 +4,13 @@ Kubernetes operator that synchronizes secrets from external providers (AWS Secre
 
 ## Build and Test
 
-Use `make` targets. Do not run `go test`, `golangci-lint`, or `helm` commands directly.
-
-```bash
-make generate        # Generate code and CRDs
-make test            # Run unit tests (requires envtest)
-make test.e2e        # Run end-to-end tests
-make lint            # Run golangci-lint
-make reviewable      # Full pre-PR check: generate, lint, docs, manifests, helm, tests
-make check-diff      # Verify branch is clean after reviewable
-make docker.build    # Build Docker image for all architectures
-make docs.serve      # Serve docs locally
-```
-
-CRDs exceed the 256KB annotation limit. Apply them with `kubectl apply --server-side`.
+Use `make` targets — refer to the Makefile for available commands. Do not run `go test`, `golangci-lint`, or `helm` directly.
 
 ## Project Layout
 
 Single binary built from `main.go`. The **controller** reconciles ExternalSecrets into K8s Secrets. The **webhook** (validates and defaults CRDs) and **certcontroller** (manages webhook TLS) are subcommands registered via `rootCmd.AddCommand()`.
 
-```
-cmd/                  # Subcommands (controller, webhook, certcontroller)
-pkg/                  # Core logic (controllers, provider clients, template engine)
-apis/                 # API types (v1, v1beta1) — separate Go module
-providers/            # Provider implementations — each is a separate Go module
-generators/           # Generator implementations — separate Go modules
-runtime/              # Shared runtime utilities — separate Go module
-e2e/                  # End-to-end tests — separate Go module
-deploy/charts/        # Helm chart
-config/crds/          # CRD source
-docs/                 # MkDocs documentation site
-docs/provider/        # Provider-specific setup and auth docs
-docs/guides/          # Guides (multi-tenancy, security, templating)
-hack/                 # Build tooling, API doc generation
-terraform/            # Terraform modules
-```
-
 Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have their own `go.mod`.
-
-## Key Docs for Setup Tasks
-
-When a user asks to set up ESO, read these before generating manifests:
-
-- `docs/guides/ai-setup-guide.md` — decision flow for store scope, auth, and credential scoping
-- `docs/guides/multi-tenancy.md` — SecretStore vs ClusterSecretStore tradeoffs
-- `docs/guides/security-best-practices.md` — hardening checklist
-- `docs/provider/aws-access.md` — AWS auth methods (IRSA, Pod Identity, static keys)
-- `docs/introduction/getting-started.md` — installation and first ExternalSecret
 
 ## Non-Obvious Patterns
 
