@@ -43,15 +43,6 @@ should match snapshot of default values:
                 - --enable-partial-cache=true
               image: ghcr.io/external-secrets/external-secrets:v2.2.0
               imagePullPolicy: IfNotPresent
-              livenessProbe:
-                failureThreshold: 5
-                httpGet:
-                  path: /healthz
-                  port: ready
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                successThreshold: 1
-                timeoutSeconds: 5
               name: cert-controller
               ports:
                 - containerPort: 8080

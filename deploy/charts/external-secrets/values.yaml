@@ -551,7 +551,7 @@ webhook:
 
 
   livenessProbe:
-    enabled: true
+    enabled: false
     port: 8081
     timeoutSeconds: 5
     failureThreshold: 5
@@ -710,7 +710,7 @@ certController:
       annotations: {}
 
   livenessProbe:
-    enabled: true
+    enabled: false
     port: 8081
     timeoutSeconds: 5
     failureThreshold: 5
