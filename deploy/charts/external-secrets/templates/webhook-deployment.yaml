@@ -75,7 +75,7 @@ spec:
           - --cert-dir={{ .Values.webhook.certDir }}
           - --check-interval={{ .Values.webhook.certCheckInterval }}
           - --metrics-addr=:{{ .Values.webhook.metrics.listen.port }}
-          - --healthz-addr={{ .Values.webhook.livenessProbe.spec.address }}:{{ .Values.webhook.livenessProbe.spec.port }}
+          - --healthz-addr={{ .Values.webhook.readinessProbe.address }}:{{ .Values.webhook.readinessProbe.port }}
           - --loglevel={{ .Values.webhook.log.level }}
           - --zap-time-encoding={{ .Values.webhook.log.timeEncoding }}
           {{- if .Values.webhook.lookaheadInterval }}
@@ -98,22 +98,30 @@ spec:
             - containerPort: {{ .Values.webhook.port }}
               protocol: TCP
               name: webhook
-            {{- if or .Values.webhook.livenessProbe.enabled .Values.webhook.readinessProbe.enabled }}
-            - name: live
+            - containerPort: {{ .Values.webhook.readinessProbe.port }}
               protocol: TCP
-              {{- if eq (kindOf .Values.webhook.livenessProbe.spec.httpGet.port) "string" }}
-              containerPort: {{ .Values.webhook.livenessProbe.spec.port }}
-              {{- else }}
-              containerPort: {{ .Values.webhook.livenessProbe.spec.httpGet.port }}
-              {{- end }}
-            {{- end }}
+              name: ready
           {{- if .Values.webhook.livenessProbe.enabled }}
           livenessProbe:
-          {{- toYaml (omit .Values.webhook.livenessProbe.spec "address" "port") | nindent 12 }}
+            httpGet:
+              port: ready 
+              path: /healthz
+            initialDelaySeconds: {{ .Values.webhook.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.webhook.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.webhook.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.webhook.livenessProbe.successThreshold }}
           {{- end }}
           {{- if .Values.webhook.readinessProbe.enabled }}
           readinessProbe:
-          {{- toYaml .Values.webhook.readinessProbe.spec | nindent 12 }}
+            httpGet:
+              port: ready
+              path: /readyz
+            initialDelaySeconds: {{ .Values.webhook.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.webhook.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.webhook.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.webhook.readinessProbe.successThreshold }}
           {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:

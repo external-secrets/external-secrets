@@ -47,9 +47,9 @@ should match snapshot of default values:
                 failureThreshold: 5
                 httpGet:
                   path: /healthz
-                  port: live
-                initialDelaySeconds: 20
-                periodSeconds: 5
+                  port: ready
+                initialDelaySeconds: 10
+                periodSeconds: 10
                 successThreshold: 1
                 timeoutSeconds: 5
               name: cert-controller
@@ -58,15 +58,15 @@ should match snapshot of default values:
                   name: metrics
                   protocol: TCP
                 - containerPort: 8081
-                  name: live
+                  name: ready
                   protocol: TCP
               readinessProbe:
                 failureThreshold: 3
                 httpGet:
                   path: /readyz
-                  port: live
-                initialDelaySeconds: 20
-                periodSeconds: 5
+                  port: ready
+                initialDelaySeconds: 10
+                periodSeconds: 10
                 successThreshold: 1
                 timeoutSeconds: 5
               securityContext:
