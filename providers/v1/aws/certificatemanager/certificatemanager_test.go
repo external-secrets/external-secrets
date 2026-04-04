@@ -44,6 +44,14 @@ import (
 	fakeacm "github.com/external-secrets/external-secrets/providers/v1/aws/certificatemanager/fake"
 )
 
+const (
+	testRemoteKey  = "my-cert"
+	pemPrivateKey  = "PRIVATE KEY"
+	errPushSecret  = "PushSecret: %v"
+	errGetSecret   = "GetSecret: %v"
+	errExpectedTag = "expected tag %q=%q, got %q"
+)
+
 type testCerts struct {
 	LeafPEM         []byte
 	IntermediatePEM []byte
@@ -106,7 +114,7 @@ func generateTestCerts(t *testing.T) testCerts {
 	rootPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rootDER})
 
 	leafKeyDER, _ := x509.MarshalPKCS8PrivateKey(leafKey)
-	privKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: leafKeyDER})
+	privKeyPEM := pem.EncodeToMemory(&pem.Block{Type: pemPrivateKey, Bytes: leafKeyDER})
 
 	tlsCrt := make([]byte, 0, len(leafPEM)+len(interPEM))
 	tlsCrt = append(tlsCrt, leafPEM...)
@@ -264,18 +272,18 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+			return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 		},
 		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
 		},
 	}
 
-	psd := &pushSecretData{remoteKey: "my-cert"}
+	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
-		t.Fatalf("PushSecret: %v", err)
+		t.Fatalf(errPushSecret, err)
 	}
 	if !bytes.Equal(gotCert, certs.LeafPEM) {
 		t.Error("Certificate field should be the leaf certificate only")
@@ -291,14 +299,14 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 		tagMap[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
 	}
 	if tagMap[managedBy] != externalSecrets {
-		t.Errorf("expected tag %q=%q, got %q", managedBy, externalSecrets, tagMap[managedBy])
+		t.Errorf(errExpectedTag, managedBy, externalSecrets, tagMap[managedBy])
 	}
-	if tagMap[remoteKeyTag] != "my-cert" {
-		t.Errorf("expected tag %q=%q, got %q", remoteKeyTag, "my-cert", tagMap[remoteKeyTag])
+	if tagMap[remoteKeyTag] != testRemoteKey {
+		t.Errorf(errExpectedTag, remoteKeyTag, testRemoteKey, tagMap[remoteKeyTag])
 	}
 	expectedHash := computeContentHash(certs.TLSCrt, certs.PrivateKeyPEM)
 	if tagMap[contentHashTag] != expectedHash {
-		t.Errorf("expected tag %q=%q, got %q", contentHashTag, expectedHash, tagMap[contentHashTag])
+		t.Errorf(errExpectedTag, contentHashTag, expectedHash, tagMap[contentHashTag])
 	}
 }
 
@@ -320,18 +328,18 @@ func TestPushSecret_LeafOnly_NoChainSent(t *testing.T) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+			return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 		},
 		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
 		},
 	}
 
-	psd := &pushSecretData{remoteKey: "my-cert"}
+	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := tlsSecret(certs.LeafPEM, certs.PrivateKeyPEM)
 
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
-		t.Fatalf("PushSecret: %v", err)
+		t.Fatalf(errPushSecret, err)
 	}
 	if len(gotChain) != 0 {
 		t.Error("CertificateChain should be nil when tls.crt contains only the leaf")
@@ -353,7 +361,7 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 			}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			tags := append(managedTags("my-cert"),
+			tags := append(managedTags(testRemoteKey),
 				types.Tag{Key: aws.String(contentHashTag), Value: aws.String("stale-hash")})
 			return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
 		},
@@ -372,11 +380,11 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 		},
 	}
 
-	psd := &pushSecretData{remoteKey: "my-cert"}
+	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
-		t.Fatalf("PushSecret: %v", err)
+		t.Fatalf(errPushSecret, err)
 	}
 	if importedARN != arn {
 		t.Errorf("expected CertificateArn %q, got %q", arn, importedARN)
@@ -400,7 +408,7 @@ func TestPushSecret_SkipsReimportWhenUnchanged(t *testing.T) {
 			}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			tags := append(managedTags("my-cert"),
+			tags := append(managedTags(testRemoteKey),
 				types.Tag{Key: aws.String(contentHashTag), Value: aws.String(currentHash)})
 			return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
 		},
@@ -417,11 +425,11 @@ func TestPushSecret_SkipsReimportWhenUnchanged(t *testing.T) {
 		},
 	}
 
-	psd := &pushSecretData{remoteKey: "my-cert"}
+	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
-		t.Fatalf("PushSecret: %v", err)
+		t.Fatalf(errPushSecret, err)
 	}
 	if importCalled {
 		t.Error("ImportCertificate was called despite unchanged content")
@@ -436,7 +444,7 @@ func TestPushSecret_MissingCertKey(t *testing.T) {
 		},
 	}
 
-	psd := &pushSecretData{remoteKey: "my-cert"}
+	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "bad-secret", Namespace: "default"},
 		Data: map[string][]byte{
@@ -453,7 +461,7 @@ func TestPushSecret_SecretKeyNotEmpty_Rejected(t *testing.T) {
 	certs := generateTestCerts(t)
 
 	psd := &pushSecretData{
-		remoteKey: "my-cert",
+		remoteKey: testRemoteKey,
 		secretKey: "tls.crt",
 	}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
@@ -486,7 +494,7 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 		},
 		ListTagsForCertificateFn: func(_ context.Context, p *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			if aws.ToString(p.CertificateArn) == arn {
-				return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+				return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 			}
 			return &acm.ListTagsForCertificateOutput{}, nil
 		},
@@ -495,7 +503,7 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 		},
 	}
 
-	psd := &pushSecretData{remoteKey: "my-cert"}
+	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
 	provider := newProvider(fake)
@@ -551,7 +559,7 @@ func TestPushSecret_CacheClearedOnDelete(t *testing.T) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+			return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 		},
 		RemoveTagsFromCertificateFn: func(_ context.Context, _ *acm.RemoveTagsFromCertificateInput, _ ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 			return &acm.RemoveTagsFromCertificateOutput{}, nil
@@ -561,20 +569,20 @@ func TestPushSecret_CacheClearedOnDelete(t *testing.T) {
 		},
 	}
 
-	psd := &pushSecretData{remoteKey: "my-cert"}
+	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := tlsSecret(certs.TLSCrt, certs.PrivateKeyPEM)
 
 	if err := newProvider(fake).PushSecret(context.Background(), secret, psd); err != nil {
-		t.Fatalf("PushSecret: %v", err)
+		t.Fatalf(errPushSecret, err)
 	}
-	if _, ok := arnCache.Load("my-cert"); !ok {
+	if _, ok := arnCache.Load(testRemoteKey); !ok {
 		t.Fatal("expected ARN to be cached after PushSecret")
 	}
 
-	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: "my-cert"}); err != nil {
+	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: testRemoteKey}); err != nil {
 		t.Fatalf("DeleteSecret: %v", err)
 	}
-	if _, ok := arnCache.Load("my-cert"); ok {
+	if _, ok := arnCache.Load(testRemoteKey); ok {
 		t.Error("expected ARN cache to be cleared after DeleteSecret")
 	}
 }
@@ -589,11 +597,11 @@ func TestSecretExists_Found(t *testing.T) {
 			}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+			return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 		},
 	}
 
-	exists, err := newProvider(fake).SecretExists(context.Background(), remoteRef{remoteKey: "my-cert"})
+	exists, err := newProvider(fake).SecretExists(context.Background(), remoteRef{remoteKey: testRemoteKey})
 	if err != nil {
 		t.Fatalf("SecretExists: %v", err)
 	}
@@ -631,7 +639,7 @@ func TestDeleteSecret_Managed(t *testing.T) {
 			}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+			return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 		},
 		DeleteCertificateFn: func(_ context.Context, p *acm.DeleteCertificateInput, _ ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error) {
 			if aws.ToString(p.CertificateArn) != arn {
@@ -642,7 +650,7 @@ func TestDeleteSecret_Managed(t *testing.T) {
 		},
 	}
 
-	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: "my-cert"}); err != nil {
+	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: testRemoteKey}); err != nil {
 		t.Fatalf("DeleteSecret: %v", err)
 	}
 	if !deleted {
@@ -719,7 +727,7 @@ func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			callCount++
 			if callCount == 1 {
-				return &acm.ListTagsForCertificateOutput{Tags: managedTags("my-cert")}, nil
+				return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 			}
 			return nil, &smithyFakeNotFound{}
 		},
@@ -729,7 +737,7 @@ func TestDeleteSecret_DeletedBetweenFindAndListTags(t *testing.T) {
 		},
 	}
 
-	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: "my-cert"}); err != nil {
+	if err := newProvider(fake).DeleteSecret(context.Background(), remoteRef{remoteKey: testRemoteKey}); err != nil {
 		t.Fatalf("expected no-op when cert disappears between find and verify, got: %v", err)
 	}
 }
@@ -782,7 +790,7 @@ func TestGetSecret_ReturnsConcatenatedBundle(t *testing.T) {
 		Key: "arn:aws:acm:us-east-1:123456789012:certificate/test",
 	})
 	if err != nil {
-		t.Fatalf("GetSecret: %v", err)
+		t.Fatalf(errGetSecret, err)
 	}
 	if !strings.Contains(string(result), "-----BEGIN CERTIFICATE-----") {
 		t.Error("expected certificate in output")
@@ -812,7 +820,7 @@ func TestGetSecret_CertOnly(t *testing.T) {
 		Key: "arn:aws:acm:us-east-1:123456789012:certificate/test",
 	})
 	if err != nil {
-		t.Fatalf("GetSecret: %v", err)
+		t.Fatalf(errGetSecret, err)
 	}
 	if !bytes.Equal(result, certs.LeafPEM) {
 		t.Error("expected only the leaf certificate")
@@ -903,7 +911,7 @@ func TestGetSecret_CacheHit(t *testing.T) {
 		Key: certARN,
 	})
 	if err != nil {
-		t.Fatalf("GetSecret: %v", err)
+		t.Fatalf(errGetSecret, err)
 	}
 	if !bytes.Equal(result, cachedPEM) {
 		t.Errorf("expected cached PEM, got %q", string(result))
@@ -933,7 +941,7 @@ func TestGetSecret_CacheMissOnSerialChange(t *testing.T) {
 		Key: certARN,
 	})
 	if err != nil {
-		t.Fatalf("GetSecret: %v", err)
+		t.Fatalf(errGetSecret, err)
 	}
 	if !bytes.Equal(result, certs.LeafPEM) {
 		t.Error("expected fresh export after serial change")
@@ -967,7 +975,7 @@ func TestDecryptPKCS8PEM_Roundtrip(t *testing.T) {
 	}
 
 	block, _ := pem.Decode(decPEM)
-	if block == nil || block.Type != "PRIVATE KEY" {
+	if block == nil || block.Type != pemPrivateKey {
 		t.Fatalf("expected PRIVATE KEY PEM block, got %v", block)
 	}
 	if _, err := x509.ParsePKCS8PrivateKey(block.Bytes); err != nil {
@@ -978,7 +986,7 @@ func TestDecryptPKCS8PEM_Roundtrip(t *testing.T) {
 func TestDecryptPKCS8PEM_AlreadyUnencrypted(t *testing.T) {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	pkcs8DER, _ := x509.MarshalPKCS8PrivateKey(key)
-	unencPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8DER})
+	unencPEM := pem.EncodeToMemory(&pem.Block{Type: pemPrivateKey, Bytes: pkcs8DER})
 
 	result, err := decryptPKCS8PEM(unencPEM, []byte("unused"))
 	if err != nil {
