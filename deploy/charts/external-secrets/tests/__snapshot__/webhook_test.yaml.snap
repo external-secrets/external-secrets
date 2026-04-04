@@ -41,6 +41,15 @@ should match snapshot of default values:
                 - --zap-time-encoding=epoch
               image: ghcr.io/external-secrets/external-secrets:v2.3.0
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /healthz
+                  port: live
+                initialDelaySeconds: 20
+                periodSeconds: 5
+                successThreshold: 1
+                timeoutSeconds: 5
               name: webhook
               ports:
                 - containerPort: 8080
@@ -50,14 +59,17 @@ should match snapshot of default values:
                   name: webhook
                   protocol: TCP
                 - containerPort: 8081
+                  name: live
                   protocol: TCP
-                  name: ready
               readinessProbe:
+                failureThreshold: 3
                 httpGet:
                   path: /readyz
-                  port: ready
+                  port: live
                 initialDelaySeconds: 20
                 periodSeconds: 5
+                successThreshold: 1
+                timeoutSeconds: 5
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities:

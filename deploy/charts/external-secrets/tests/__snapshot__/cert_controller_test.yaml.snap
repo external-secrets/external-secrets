@@ -43,20 +43,32 @@ should match snapshot of default values:
                 - --enable-partial-cache=true
               image: ghcr.io/external-secrets/external-secrets:v2.3.0
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /healthz
+                  port: live
+                initialDelaySeconds: 20
+                periodSeconds: 5
+                successThreshold: 1
+                timeoutSeconds: 5
               name: cert-controller
               ports:
                 - containerPort: 8080
                   name: metrics
                   protocol: TCP
                 - containerPort: 8081
+                  name: live
                   protocol: TCP
-                  name: ready
               readinessProbe:
+                failureThreshold: 3
                 httpGet:
                   path: /readyz
-                  port: ready
+                  port: live
                 initialDelaySeconds: 20
                 periodSeconds: 5
+                successThreshold: 1
+                timeoutSeconds: 5
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities:
