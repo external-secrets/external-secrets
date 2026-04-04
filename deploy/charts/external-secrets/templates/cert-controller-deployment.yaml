@@ -76,7 +76,7 @@ spec:
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook
           - --secret-namespace={{ template "external-secrets.namespace" . }}
           - --metrics-addr=:{{ .Values.certController.metrics.listen.port }}
-          - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
+          - --healthz-addr={{ .Values.certController.livenessProbe.spec.address }}:{{ .Values.certController.livenessProbe.spec.port }}
           - --loglevel={{ .Values.certController.log.level }}
           - --zap-time-encoding={{ .Values.certController.log.timeEncoding }}
           {{- if not .Values.crds.createClusterSecretStore }}
@@ -103,31 +103,33 @@ spec:
             - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
               name: metrics
-            - containerPort: {{ .Values.certController.readinessProbe.port }}
+            {{- if or .Values.certController.livenessProbe.enabled .Values.certController.readinessProbe.enabled }}
+            - name: live
               protocol: TCP
-              name: ready
+              {{- if eq (kindOf .Values.certController.livenessProbe.spec.httpGet.port) "string" }}
+              containerPort: {{ .Values.certController.livenessProbe.spec.port }}
+              {{- else }}
+              containerPort: {{ .Values.certController.livenessProbe.spec.httpGet.port }}
+              {{- end }}
+            {{- end }}
             {{- if and .Values.certController.startupProbe.enabled (not .Values.certController.startupProbe.useReadinessProbePort) }}
             - containerPort: {{ .Values.certController.startupProbe.port }}
               protocol: TCP
               name: startup
             {{- end }}
-          readinessProbe:
-            httpGet:
-              port: ready
-              path: /readyz
-            initialDelaySeconds: 20
-            periodSeconds: 5
+          {{- if .Values.certController.livenessProbe.enabled }}
           livenessProbe:
-            httpGet:
-              port: ready
-              path: /healthz
-            initialDelaySeconds: 20
-            periodSeconds: 5
+          {{- toYaml (omit .Values.certController.livenessProbe.spec "address" "port") | nindent 12 }}
+          {{- end }}
+          {{- if .Values.certController.readinessProbe.enabled }}
+          readinessProbe:
+          {{- toYaml .Values.certController.readinessProbe.spec | nindent 12 }}
+          {{- end }}
           {{- if .Values.certController.startupProbe.enabled }}
           startupProbe:
             httpGet:
               {{- if .Values.certController.startupProbe.useReadinessProbePort }}
-              port: ready
+              port: live
               {{- else }}
               port: startup
               {{- end }}

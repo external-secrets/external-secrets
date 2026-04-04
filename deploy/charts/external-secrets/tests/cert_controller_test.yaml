@@ -91,9 +91,9 @@ tests:
       - equal:
           path: spec.template.spec.hostNetwork
           value: true
-  - it: should override readinessProbe port
+  - it: should override livenessProbe port
     set:
-      certController.readinessProbe.port: 8082
+      certController.livenessProbe.spec.port: 8082
     templates:
       - cert-controller-deployment.yaml
     asserts:
@@ -102,7 +102,7 @@ tests:
           value: "--healthz-addr=:8082"
       - equal:
           path: spec.template.spec.containers[0].ports[1].name
-          value: ready
+          value: live
       - equal:
           path: spec.template.spec.containers[0].ports[1].protocol
           value: TCP
@@ -239,12 +239,12 @@ tests:
           value:
             httpGet:
               path: /readyz
-              port: ready
+              port: live
             initialDelaySeconds: 20
             periodSeconds: 5
       - equal:
           path: spec.template.spec.containers[0].ports[1].name
-          value: ready
+          value: live
       - notExists:
           path: spec.template.spec.containers[0].ports[2]
   - it: should override the startup Probe port
