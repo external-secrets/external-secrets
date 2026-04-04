@@ -66,8 +66,8 @@ should match snapshot of default values:
                 httpGet:
                   path: /readyz
                   port: ready
-                initialDelaySeconds: 10
-                periodSeconds: 10
+                initialDelaySeconds: 20
+                periodSeconds: 5
                 successThreshold: 1
                 timeoutSeconds: 5
               securityContext:
