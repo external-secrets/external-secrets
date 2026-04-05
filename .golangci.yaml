@@ -24,6 +24,7 @@ linters:
     - govet
     - ineffassign
     - misspell
+    - modernize # A suite of analyzers that suggest simplifications to Go code, using modern language and library features. https://golangci-lint.run/docs/linters/configuration/#modernize
     - nakedret
     - nolintlint
     - prealloc
@@ -74,7 +75,12 @@ linters:
     #        - QF1008
     misspell:
       locale: US
+    modernize:
+      disable:
+        - omitzero
   exclusions:
+    paths:
+      - runtime/template/v2/sprig
     rules:
       # Exclude some linters from running on tests files.
       - path: _test(ing)?\.go

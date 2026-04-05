@@ -32,7 +32,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -94,8 +93,8 @@ func TestGenerate(t *testing.T) {
 					return &ecr.GetAuthorizationTokenOutput{
 						AuthorizationData: []ecrtypes.AuthorizationData{
 							{
-								AuthorizationToken: utilpointer.To(base64.StdEncoding.EncodeToString([]byte("uuser:pass"))),
-								ProxyEndpoint:      utilpointer.To("foo"),
+								AuthorizationToken: new(base64.StdEncoding.EncodeToString([]byte("uuser:pass"))),
+								ProxyEndpoint:      new("foo"),
 								ExpiresAt:          &t,
 							},
 						},
@@ -134,7 +133,7 @@ spec:
 					t := time.Unix(5678, 0)
 					return &ecrpublic.GetAuthorizationTokenOutput{
 						AuthorizationData: &ecrpublictypes.AuthorizationData{
-							AuthorizationToken: utilpointer.To(base64.StdEncoding.EncodeToString([]byte("pubuser:pubpass"))),
+							AuthorizationToken: new(base64.StdEncoding.EncodeToString([]byte("pubuser:pubpass"))),
 							ExpiresAt:          &t,
 						},
 					}, nil

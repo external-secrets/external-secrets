@@ -64,9 +64,9 @@ type Tokener interface {
 // Kubernetes service account token, and cloud provider-specific methods.
 func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, k8sAuth *esv1.AkeylessKubernetesAuth) (string, error) {
 	authBody := akeyless.NewAuthWithDefaults()
-	authBody.AccessId = akeyless.PtrString(accessID)
+	authBody.AccessId = new(accessID)
 	if accType == "api_key" || accType == "access_key" {
-		authBody.AccessKey = akeyless.PtrString(accTypeParam)
+		authBody.AccessKey = new(accTypeParam)
 	} else if accType == "k8s" {
 		jwtString, err := a.getK8SServiceAccountJWT(ctx, k8sAuth)
 		if err != nil {
@@ -74,16 +74,16 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 		}
 		jwtStringBase64 := base64.StdEncoding.EncodeToString([]byte(jwtString))
 		K8SAuthConfigName := accTypeParam
-		authBody.AccessType = akeyless.PtrString(accType)
-		authBody.K8sServiceAccountToken = akeyless.PtrString(jwtStringBase64)
-		authBody.K8sAuthConfigName = akeyless.PtrString(K8SAuthConfigName)
+		authBody.AccessType = new(accType)
+		authBody.K8sServiceAccountToken = new(jwtStringBase64)
+		authBody.K8sAuthConfigName = new(K8SAuthConfigName)
 	} else {
 		cloudID, err := a.getCloudID(accType, accTypeParam)
 		if err != nil {
 			return "", errors.New("Require Cloud ID " + err.Error())
 		}
-		authBody.AccessType = akeyless.PtrString(accType)
-		authBody.CloudId = akeyless.PtrString(cloudID)
+		authBody.AccessType = new(accType)
+		authBody.CloudId = new(cloudID)
 	}
 
 	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()

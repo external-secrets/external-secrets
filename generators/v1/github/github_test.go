@@ -116,7 +116,7 @@ func TestGenerate(t *testing.T) {
 					},
 				}).Build(),
 				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
 kind: GithubToken
 spec:
   appID: "0000000"
@@ -131,7 +131,7 @@ spec:
       secretRef:
         name: "testName"
         namespace: "foo"
-        key: "privateKey"`, server.URL)),
+        key: "privateKey"`, server.URL),
 				},
 			},
 			want: map[string][]byte{
@@ -157,7 +157,7 @@ spec:
 					},
 				}).Build(),
 				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
 kind: GithubToken
 spec:
   appID: "0000000"
@@ -172,7 +172,7 @@ spec:
       secretRef:
         name: "testName"
         namespace: "foo"
-        key: "privateKey"`, badServer.URL)),
+        key: "privateKey"`, badServer.URL),
 				},
 			},
 			assertErr: func(t *testing.T, err error) {

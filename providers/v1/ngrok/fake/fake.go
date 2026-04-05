@@ -36,7 +36,7 @@ func GenerateRandomString(length int) string {
 
 	sb := strings.Builder{}
 	sb.Grow(length)
-	for i := 0; i < length; i++ {
+	for range length {
 		sb.WriteByte(charset[seededRand.Intn(len(charset))])
 	}
 	return sb.String()

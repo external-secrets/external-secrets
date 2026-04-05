@@ -9,7 +9,7 @@ Each data value is interpreted as a [Go template](https://golang.org/pkg/text/te
     Consider using camelcase when defining  **.'spec.data.secretkey'**, example: serviceAccountToken
 
     If your secret keys contain **`-` (dashes)**, you will need to reference them using **`index`** </br>
-    Example: **`\{\{ index .data "service-account-token" \}\}`**
+    Example: **`{% raw %}{{ index .data "service-account-token" }}{% endraw %}`**
 
 ## Helm
 
@@ -136,6 +136,16 @@ In case you have a secret that contains a (partial) certificate chain you can ex
 {% include 'filtercertchain-template-v2-external-secret.yaml' %}
 ```
 
+### Extract Subject Alternative Names (SANs) from Certificate
+
+You can use the `certSANs` function to extract Subject Alternative Names from a PEM-encoded certificate. It returns a list of all SANs including DNS names, IP addresses, email addresses, and URIs. This is useful when you need to know which domains or IPs a certificate covers.
+
+You can combine `certSANs` with `filterPEM` and `filterCertChain` to first extract the leaf certificate from a chain and then get its SANs:
+
+```yaml
+{% include 'certsans-template-v2-external-secret.yaml' %}
+```
+
 ### RSA Decryption Data From Provider
 
 When a provider returns RSA-encrypted values, you can decrypt them directly in the template using the `rsaDecrypt` functions (engine v2).
@@ -200,6 +210,7 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 | pemTruststoreToPKCS12Pass| Same as `pemTruststoreToPKCS12`. Uses the provided password to encrypt the PKCS#12 archive.                                                                                                                                            |
 | filterPEM        | Filters PEM blocks with a specific type from a list of PEM blocks.                                                                                                                                                           |
 | filterCertChain  | Filters PEM block(s) with a specific certificate type (`leaf`, `intermediate` or `root`)  from a certificate chain of PEM blocks (PEM blocks with type `CERTIFICATE`). |
+| certSANs         | Extracts Subject Alternative Names (SANs) from a PEM-encoded certificate and returns them as a list of strings. Includes DNS names, IP addresses, email addresses, and URIs. |
 | jwkPublicKeyPem  | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details.                                   |
 | jwkPrivateKeyPem | Takes an json-serialized JWK as `string` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey) for details. |
 | rsaDecrypt | Decrypts RSA ciphertext using a PEM private key. Usage: ``<rsaDecrypt "SCHEME" "HASH" ciphertext privateKeyPEM>`` or ``<privateKeyPEM \| rsaDecrypt "SCHEME" "HASH" ciphertext>``. **SCHEME**: supported values are `"None"` and `"RSA-OAEP"`. **HASH**: supported values are `"SHA1"` and `"SHA256"`. **Ciphertext** must be binary — use `b64dec` or `decodingStrategy: Base64` to convert Base64 payloads. |
