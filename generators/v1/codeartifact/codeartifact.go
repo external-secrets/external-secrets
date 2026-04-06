@@ -34,7 +34,7 @@ import (
 	awsauth "github.com/external-secrets/external-secrets/providers/v1/aws/auth"
 )
 
-type codeArtifactAPI interface {
+type AuthorizationTokenGetter interface {
 	GetAuthorizationToken(ctx context.Context, params *codeartifact.GetAuthorizationTokenInput, optFuncs ...func(*codeartifact.Options)) (*codeartifact.GetAuthorizationTokenOutput, error)
 }
 
@@ -123,9 +123,9 @@ func fetchCodeArtifactToken(
 	}, nil, nil
 }
 
-type codeArtifactFactoryFunc func(cfg *aws.Config) codeArtifactAPI
+type codeArtifactFactoryFunc func(cfg *aws.Config) AuthorizationTokenGetter
 
-func codeArtifactFactory(cfg *aws.Config) codeArtifactAPI {
+func codeArtifactFactory(cfg *aws.Config) AuthorizationTokenGetter {
 	return codeartifact.NewFromConfig(*cfg)
 }
 

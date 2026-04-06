@@ -122,7 +122,7 @@ spec:
 				tt.args.jsonSpec,
 				tt.args.kube,
 				tt.args.namespace,
-				func(cfg *aws.Config) codeArtifactAPI {
+				func(cfg *aws.Config) AuthorizationTokenGetter {
 					return &FakeCodeArtifact{
 						authTokenFunc: tt.args.authTokenFunc,
 					}
