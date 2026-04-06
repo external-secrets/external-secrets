@@ -143,6 +143,10 @@ type FakeCodeArtifact struct {
 	authTokenFunc func(*codeartifact.GetAuthorizationTokenInput) (*codeartifact.GetAuthorizationTokenOutput, error)
 }
 
-func (f *FakeCodeArtifact) GetAuthorizationToken(ctx context.Context, params *codeartifact.GetAuthorizationTokenInput, optFns ...func(*codeartifact.Options)) (*codeartifact.GetAuthorizationTokenOutput, error) {
+func (f *FakeCodeArtifact) GetAuthorizationToken(
+	ctx context.Context,
+	params *codeartifact.GetAuthorizationTokenInput,
+	optFns ...func(*codeartifact.Options),
+) (*codeartifact.GetAuthorizationTokenOutput, error) {
 	return f.authTokenFunc(params)
 }
