@@ -41,6 +41,8 @@ var (
 )
 
 var (
+	// CodeArtifactAuthorizationTokenKind is the kind name for CodeArtifactAuthorizationToken resource.
+	CodeArtifactAuthorizationTokenKind = reflect.TypeFor[CodeArtifactAuthorizationToken]().Name()
 	// ECRAuthorizationTokenKind is the kind name for ECRAuthorizationToken resource.
 	ECRAuthorizationTokenKind = reflect.TypeFor[ECRAuthorizationToken]().Name()
 	// STSSessionTokenKind is the kind name for STSSessionToken resource.
@@ -96,6 +98,7 @@ func init() {
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
 	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
 	SchemeBuilder.Register(&CloudsmithAccessToken{}, &CloudsmithAccessTokenList{})
+	SchemeBuilder.Register(&CodeArtifactAuthorizationToken{}, &CodeArtifactAuthorizationTokenList{})
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
