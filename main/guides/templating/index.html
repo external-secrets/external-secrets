@@ -5400,6 +5400,7 @@ Example: <strong><code>{{ index .data "service-account-token" }}</code></strong>
 <span class="w">  </span><span class="err">...</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>You may either pass <code>bcrypt</code>, to use that hashing algorithm, or <code>sha</code>, to use the <code>SHA-1</code> hashing algorithm, as an argument. <code>bcrypt</code> is considered more secure, but some applications may not support it.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5415,7 +5416,7 @@ Example: <strong><code>{{ index .data "service-account-token" }}</code></strong>
 <span class="w">        </span><span class="nt">literal</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
 <span class="w">          </span><span class="no">{{- $creds := list }}</span>
 <span class="w">          </span><span class="no">{{- range $user, $pw := . }}</span>
-<span class="w">            </span><span class="no">{{- $creds = append $creds (printf &quot;%s&quot; (htpasswd $user $pw)) }}</span>
+<span class="w">            </span><span class="no">{{- $creds = append $creds (printf &quot;%s&quot; (htpasswd $user $pw &quot;bcrypt&quot;)) }}</span>
 <span class="w">          </span><span class="no">{{- end }}</span>
 <span class="w">          </span><span class="no">auth: {{ $creds | join &quot;\n&quot; | quote }}</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
