@@ -84,10 +84,6 @@ To sync the entire secret into a single 1Password item, the following configurat
 
 ```yaml
 {% include '1passwordsdk-push-secret-all-keys.yaml' %}
-```
-
-Each key of the secret will be pushed as a separate field in the same 1Password item. The field name will be the same as the Kuberntes secret key name.
-All fields of the 1Password item will be concealed.
 
 ### Supported Functionality
 
