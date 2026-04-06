@@ -152,6 +152,7 @@ spec:
                                       - ACRAccessToken
                                       - ClusterGenerator
                                       - CloudsmithAccessToken
+                                      - CodeArtifactAuthorizationToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -387,6 +388,7 @@ spec:
                                       - ACRAccessToken
                                       - ClusterGenerator
                                       - CloudsmithAccessToken
+                                      - CodeArtifactAuthorizationToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -957,6 +959,7 @@ spec:
                                     enum:
                                       - ACRAccessToken
                                       - ClusterGenerator
+                                      - CodeArtifactAuthorizationToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -1150,6 +1153,7 @@ spec:
                                     enum:
                                       - ACRAccessToken
                                       - ClusterGenerator
+                                      - CodeArtifactAuthorizationToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -1817,6 +1821,7 @@ spec:
                                 - ACRAccessToken
                                 - ClusterGenerator
                                 - CloudsmithAccessToken
+                                - CodeArtifactAuthorizationToken
                                 - ECRAuthorizationToken
                                 - Fake
                                 - GCRAccessToken
@@ -12341,6 +12346,7 @@ spec:
                                   - ACRAccessToken
                                   - ClusterGenerator
                                   - CloudsmithAccessToken
+                                  - CodeArtifactAuthorizationToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
@@ -12576,6 +12582,7 @@ spec:
                                   - ACRAccessToken
                                   - ClusterGenerator
                                   - CloudsmithAccessToken
+                                  - CodeArtifactAuthorizationToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
@@ -13032,6 +13039,7 @@ spec:
                                 enum:
                                   - ACRAccessToken
                                   - ClusterGenerator
+                                  - CodeArtifactAuthorizationToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
@@ -13225,6 +13233,7 @@ spec:
                                 enum:
                                   - ACRAccessToken
                                   - ClusterGenerator
+                                  - CodeArtifactAuthorizationToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
@@ -13719,6 +13728,7 @@ spec:
                             - ACRAccessToken
                             - ClusterGenerator
                             - CloudsmithAccessToken
+                            - CodeArtifactAuthorizationToken
                             - ECRAuthorizationToken
                             - Fake
                             - GCRAccessToken
@@ -24679,6 +24689,151 @@ spec:
                         - serviceAccountRef
                         - serviceSlug
                       type: object
+                    codeArtifactAuthorizationTokenSpec:
+                      description: CodeArtifactAuthorizationTokenSpec defines the desired state to generate an AWS CodeArtifact authorization token.
+                      properties:
+                        auth:
+                          description: Auth defines how to authenticate with AWS
+                          properties:
+                            jwt:
+                              description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
+                              properties:
+                                serviceAccountRef:
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              type: object
+                            secretRef:
+                              description: |-
+                                AWSAuthSecretRef holds secret references for AWS credentials
+                                both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+                              properties:
+                                accessKeyIDSecretRef:
+                                  description: The AccessKeyID is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretAccessKeySecretRef:
+                                  description: The SecretAccessKey is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                sessionTokenSecretRef:
+                                  description: |-
+                                    The SessionToken used for authentication
+                                    This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+                                    see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                        domain:
+                          description: Domain is the name of the CodeArtifact domain.
+                          type: string
+                        domainOwner:
+                          description: DomainOwner is the 12-digit AWS account ID that owns the CodeArtifact domain.
+                          type: string
+                        region:
+                          description: Region specifies the region to operate in.
+                          type: string
+                        role:
+                          description: |-
+                            You can assume a role before making calls to the
+                            desired AWS service.
+                          type: string
+                      required:
+                        - domain
+                        - domainOwner
+                        - region
+                      type: object
                     ecrAuthorizationTokenSpec:
                       description: ECRAuthorizationTokenSpec defines the desired state to generate an AWS ECR authorization token.
                       properties:
@@ -26649,6 +26804,7 @@ spec:
                   enum:
                     - ACRAccessToken
                     - CloudsmithAccessToken
+                    - CodeArtifactAuthorizationToken
                     - ECRAuthorizationToken
                     - Fake
                     - GCRAccessToken
@@ -26665,6 +26821,205 @@ spec:
               required:
                 - generator
                 - kind
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    external-secrets.io/component: controller
+  name: codeartifactauthorizationtokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: CodeArtifactAuthorizationToken
+    listKind: CodeArtifactAuthorizationTokenList
+    plural: codeartifactauthorizationtokens
+    singular: codeartifactauthorizationtoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            CodeArtifactAuthorizationToken uses the GetAuthorizationToken API to retrieve an
+            authorization token for AWS CodeArtifact.
+            The authorization token is a temporary bearer token that can be used to authenticate
+            package manager clients (pip, npm, maven, gradle, etc.) against a CodeArtifact repository.
+            For more information, see:
+            https://docs.aws.amazon.com/codeartifact/latest/ug/tokens-authentication.html
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: CodeArtifactAuthorizationTokenSpec defines the desired state to generate an AWS CodeArtifact authorization token.
+              properties:
+                auth:
+                  description: Auth defines how to authenticate with AWS
+                  properties:
+                    jwt:
+                      description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
+                      properties:
+                        serviceAccountRef:
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      type: object
+                    secretRef:
+                      description: |-
+                        AWSAuthSecretRef holds secret references for AWS credentials
+                        both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+                      properties:
+                        accessKeyIDSecretRef:
+                          description: The AccessKeyID is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        secretAccessKeySecretRef:
+                          description: The SecretAccessKey is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        sessionTokenSecretRef:
+                          description: |-
+                            The SessionToken used for authentication
+                            This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+                            see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                      type: object
+                  type: object
+                domain:
+                  description: Domain is the name of the CodeArtifact domain.
+                  type: string
+                domainOwner:
+                  description: DomainOwner is the 12-digit AWS account ID that owns the CodeArtifact domain.
+                  type: string
+                region:
+                  description: Region specifies the region to operate in.
+                  type: string
+                role:
+                  description: |-
+                    You can assume a role before making calls to the
+                    desired AWS service.
+                  type: string
+              required:
+                - domain
+                - domainOwner
+                - region
               type: object
           type: object
       served: true
