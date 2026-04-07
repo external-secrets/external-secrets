@@ -1370,6 +1370,20 @@ func TestPushSecretFieldType(t *testing.T) {
 	}
 }
 
+func TestUpdateFieldValueChangesFieldType(t *testing.T) {
+	// Regression test: updateFieldValue must update FieldType when spec.fieldType changes,
+	// not only when Value changes.
+	fields := []onepassword.ItemField{
+		{Title: "myfield", Value: "secret", FieldType: onepassword.ItemFieldTypeConcealed},
+	}
+
+	updated, err := updateFieldValue(fields, "myfield", "secret", onepassword.ItemFieldTypeText)
+	require.NoError(t, err)
+	require.Len(t, updated, 1)
+	assert.Equal(t, onepassword.ItemFieldTypeText, updated[0].FieldType, "FieldType should be updated even when Value is unchanged")
+	assert.Equal(t, "secret", updated[0].Value)
+}
+
 func TestGenerateNewItemFieldHasNonEmptyID(t *testing.T) {
 	// Regression test: fields created without an ID cause "duplicate field ids" errors
 	// when two PushSecret data entries target the same 1Password item.

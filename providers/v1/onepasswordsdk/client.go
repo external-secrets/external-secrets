@@ -353,6 +353,9 @@ func updateFieldValue(fields []onepassword.ItemField, title, newVal string, fiel
 	if fields[index].Value != newVal {
 		fields[index].Value = newVal
 	}
+	if fields[index].FieldType != fieldType {
+		fields[index].FieldType = fieldType
+	}
 
 	return fields, nil
 }
