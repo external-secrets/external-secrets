@@ -504,8 +504,6 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	if mdata != nil && mdata.Spec.Tags != nil {
 		providerItem.Tags = mdata.Spec.Tags
 	}
-	// Rebuild fields: keep only those still present in secret.Data (deletions are reflected),
-	// updating values in place, then append any new keys.
 	kept := providerItem.Fields[:0]
 	for _, f := range providerItem.Fields {
 		if v, ok := secret.Data[f.Title]; ok {
@@ -602,7 +600,7 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 	return item, nil
 }
 
-// SecretExists returns true if the item exists, and if property is specified, if a field with that title exists.
+// SecretExists returns true if the item exists, and if a property is specified, if a field with that title exists.
 func (p *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	item, err := p.findItem(ctx, ref.GetRemoteKey())
 	if errors.Is(err, ErrKeyNotFound) {
@@ -614,7 +612,11 @@ func (p *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 
 	property := ref.GetProperty()
 	if property == "" {
-		return true, nil
+		type secretKeyGetter interface{ GetSecretKey() string }
+		if sk, ok := ref.(secretKeyGetter); ok && sk.GetSecretKey() == "" {
+			return true, nil
+		}
+		property = defaultFieldLabel
 	}
 
 	for _, f := range item.Fields {
