@@ -44,13 +44,13 @@ import (
 )
 
 const (
-	testAdminUser            = "admin"
-	testLocalhost            = "localhost"
-	testDBHost               = "db-host"
-	testDBPort               = "db-port"
-	testAppName              = "app-name"
-	testDBRegexp             = "^db-.*"
-	testAPIKey               = "api-key"
+	testAdminUser             = "admin"
+	testLocalhost             = "localhost"
+	testDBHost                = "db-host"
+	testDBPort                = "db-port"
+	testAppName               = "app-name"
+	testDBRegexp              = "^db-.*"
+	testAPIKey                = "api-key"
 	testDuplicateRemoteKeyErr = "duplicate remote key"
 )
 
@@ -1419,8 +1419,8 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
-			testDBHost:     []byte(testLocalhost),
-			testDBPort:     []byte("5432"),
+			testDBHost:    []byte(testLocalhost),
+			testDBPort:    []byte("5432"),
 			"db-username": []byte(testAdminUser),
 		}
 		// Replace data with dataTo that matches all keys
@@ -1464,9 +1464,9 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
-			testDBHost:     []byte(testLocalhost),
-			testDBPort:     []byte("5432"),
-			testAppName:    []byte("myapp"),
+			testDBHost:    []byte(testLocalhost),
+			testDBPort:    []byte("5432"),
+			testAppName:   []byte("myapp"),
 			"app-version": []byte("1.0"),
 		}
 		// Use dataTo with regex to match only db-* keys
@@ -2222,7 +2222,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		// Keys with same value - tests deterministic key mapping
 		tc.secret.Data = map[string][]byte{
-			testDBHost:    []byte("same-value"),
+			testDBHost:   []byte("same-value"),
 			"cache-host": []byte("same-value"),
 		}
 		tc.pushsecret.Spec.Data = nil
