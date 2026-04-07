@@ -14,6 +14,8 @@ global:
   #    matchLabelKeys:
   #      - pod-template-hash
   affinity: {}
+  # -- Global hostAliases to be applied to all deployments
+  hostAliases: []
   # -- Global pod labels to be applied to all deployments
   podLabels: {}
   # -- Global pod annotations to be applied to all deployments
@@ -351,9 +353,9 @@ livenessProbe:
   enabled: false
   # -- The body of the liveness probe settings.
   spec:
-    # -- Address for liveness probe.
+    # -- Bind address for the health server used by both liveness and readiness probes (--live-addr flag).
     address: ""
-    # -- Named port for liveness probe.
+    # -- Port for the health server used by both liveness and readiness probes (--live-addr flag).
     port: 8082
     # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
     timeoutSeconds: 5
@@ -372,6 +374,29 @@ livenessProbe:
       port: live
       # -- Path for liveness probe.
       path: /healthz
+
+readinessProbe:
+  # -- Determines whether the readiness probe is enabled. Disabled by default. Enabling this will auto-start the health server (--live-addr) even if livenessProbe is disabled. Health server address/port are configured via livenessProbe.spec.address and livenessProbe.spec.port.
+  enabled: false
+  # -- The body of the readiness probe settings (standard Kubernetes probe spec).
+  spec:
+    # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
+    timeoutSeconds: 5
+    # -- Number of consecutive probe failures that should occur before considering the probe as failed.
+    failureThreshold: 3
+    # -- Period in seconds for K8s to start performing probes.
+    periodSeconds: 10
+    # -- Number of successful probes to mark probe successful.
+    successThreshold: 1
+    # -- Delay in seconds for the container to start before performing the initial probe.
+    initialDelaySeconds: 10
+    # -- Handler for readiness probe.
+    httpGet:
+      # -- Set this value to 'live' (for named port) or an integer for readiness probes.
+      # @schema type: [string, integer]
+      port: live
+      # -- Path for readiness probe.
+      path: /readyz
 
 nodeSelector: {}
 
@@ -446,6 +471,9 @@ webhook:
     # If not set and create is true, a name is generated using the fullname template.
     name: ""
   nodeSelector: {}
+
+  # -- Specifies `hostAliases` to webhook deployment
+  hostAliases: []
 
   certManager:
     # -- Enabling cert-manager support will disable the built in secret and
@@ -632,6 +660,9 @@ certController:
     name: ""
   nodeSelector: {}
 
+  # -- Specifies `hostAliases` to cert-controller deployment
+  hostAliases: []
+
   tolerations: []
 
   topologySpreadConstraints: []
@@ -735,6 +766,9 @@ dnsPolicy: ClusterFirst
 
 # -- Specifies `dnsOptions` to deployment
 dnsConfig: {}
+
+# -- Specifies `hostAliases` to deployment
+hostAliases: []
 
 # -- Any extra pod spec on the deployment
 podSpecExtra: {}

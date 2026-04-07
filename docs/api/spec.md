@@ -584,197 +584,6 @@ CAProvider
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.AlibabaAuth">AlibabaAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaProvider">AlibabaProvider</a>)
-</p>
-<p>
-<p>AlibabaAuth contains a secretRef for credentials.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>secretRef</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaAuthSecretRef">
-AlibabaAuthSecretRef
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-<tr>
-<td>
-<code>rrsa</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaRRSAAuth">
-AlibabaRRSAAuth
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaAuthSecretRef">AlibabaAuthSecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaAuth">AlibabaAuth</a>)
-</p>
-<p>
-<p>AlibabaAuthSecretRef holds secret references for Alibaba credentials.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>accessKeyIDSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>The AccessKeyID is used for authentication</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>accessKeySecretSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>The AccessKeySecret is used for authentication</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaProvider">AlibabaProvider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
-</p>
-<p>
-<p>AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaAuth">
-AlibabaAuth
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>regionID</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Alibaba Region to be used for the provider</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.AlibabaRRSAAuth">AlibabaRRSAAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AlibabaAuth">AlibabaAuth</a>)
-</p>
-<p>
-<p>AlibabaRRSAAuth authenticates against Alibaba using RRSA.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>oidcProviderArn</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>oidcTokenFilePath</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>roleArn</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>sessionName</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
 </h3>
 <p>
@@ -1965,6 +1774,7 @@ string
 <a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
 <a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>, 
 <a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
@@ -2471,8 +2281,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2498,8 +2308,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2663,8 +2473,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2690,8 +2500,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -3584,113 +3394,6 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>SecretRef references a key in a secret that will be used as value.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.Device42Auth">Device42Auth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.Device42Provider">Device42Provider</a>)
-</p>
-<p>
-<p>Device42Auth defines the authentication method for the Device42 provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>secretRef</code></br>
-<em>
-<a href="#external-secrets.io/v1.Device42SecretRef">
-Device42SecretRef
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.Device42Provider">Device42Provider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
-</p>
-<p>
-<p>Device42Provider configures a store to sync secrets with a Device42 instance.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>host</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>URL configures the Device42 instance URL.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1.Device42Auth">
-Device42Auth
-</a>
-</em>
-</td>
-<td>
-<p>Auth configures how secret-manager authenticates with a Device42 instance.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.Device42SecretRef">Device42SecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.Device42Auth">Device42Auth</a>)
-</p>
-<p>
-<p>Device42SecretRef contains the secret reference for accessing the Device42 instance.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>credentials</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Username / Password is used for authentication.</p>
 </td>
 </tr>
 </tbody>
@@ -6130,6 +5833,11 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.GenericClusterStoreValidator">GenericClusterStoreValidator
+</h3>
+<p>
+<p>GenericClusterStoreValidator implements webhook validation for ClusterSecretStore resources.</p>
+</p>
 <h3 id="external-secrets.io/v1.GenericStore">GenericStore
 </h3>
 <p>
@@ -6139,7 +5847,7 @@ or a namespaced SecretStore.</p>
 <h3 id="external-secrets.io/v1.GenericStoreValidator">GenericStoreValidator
 </h3>
 <p>
-<p>GenericStoreValidator implements webhook validation for SecretStore and ClusterSecretStore resources.</p>
+<p>GenericStoreValidator implements webhook validation for SecretStore resources.</p>
 </p>
 <h3 id="external-secrets.io/v1.GithubAppAuth">GithubAppAuth
 </h3>
@@ -7475,6 +7183,153 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.NebiusAuth">NebiusAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NebiusMysteryboxProvider">NebiusMysteryboxProvider</a>)
+</p>
+<p>
+<p>NebiusAuth defines the authentication method for the Nebius provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountCredsSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountCreds references a Kubernetes Secret key that contains a JSON
+document with service account credentials used to get an IAM token.</p>
+<p>Expected JSON structure:
+{
+&ldquo;subject-credentials&rdquo;: {
+&ldquo;alg&rdquo;: &ldquo;RS256&rdquo;,
+&ldquo;private-key&rdquo;: &ldquo;&mdash;&ndash;BEGIN PRIVATE KEY&mdash;&ndash;\n<private-key>\n&mdash;&ndash;END PRIVATE KEY&mdash;&ndash;\n&rdquo;,
+&ldquo;kid&rdquo;: &ldquo;<public-key-id>&rdquo;,
+&ldquo;iss&rdquo;: &ldquo;<issuer-service-account-id>&rdquo;,
+&ldquo;sub&rdquo;: &ldquo;<subject-service-account-id>&rdquo;
+}
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NebiusCAProvider">NebiusCAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NebiusMysteryboxProvider">NebiusMysteryboxProvider</a>)
+</p>
+<p>
+<p>NebiusCAProvider The provider for the CA bundle to use to validate Nebius server certificate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NebiusMysteryboxProvider">NebiusMysteryboxProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius Mysterybox provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiDomain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NebiusMysterybox API endpoint</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusAuth">
+NebiusAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines parameters to authenticate in MysteryBox</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusCAProvider">
+NebiusCAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate NebiusMysterybox server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.NgrokAuth">NgrokAuth
 </h3>
 <p>
@@ -8317,6 +8172,227 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <p>Fingerprint is the fingerprint of the API private key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhAuth">OvhAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhProvider">OvhProvider</a>)
+</p>
+<p>
+<p>OvhAuth tells the controller how to authenticate to OVHcloud&rsquo;s Secret Manager, either using mTLS or a token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mtls</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientMTLS">
+OvhClientMTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientToken">
+OvhClientToken
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientMTLS defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager using mTLS.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientToken">OvhClientToken
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientToken defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager using a token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhProvider">OvhProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OvhProvider holds the configuration to synchronize secrets with OVHcloud&rsquo;s Secret Manager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>specifies the OKMS server endpoint.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>okmsid</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>specifies the OKMS ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>casRequired</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Enables or disables check-and-set (CAS) (default: false).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>okmsTimeout</code></br>
+<em>
+uint32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Setup a timeout in seconds when requests to the KMS are made (default: 30).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhAuth">
+OvhAuth
+</a>
+</em>
+</td>
+<td>
+<p>Authentication method (mtls or token).</p>
 </td>
 </tr>
 </tbody>
@@ -9328,6 +9404,20 @@ VaultProvider
 </tr>
 <tr>
 <td>
+<code>ovh</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhProvider">
+OvhProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OVHcloud configures this store to sync secrets using the OVHcloud provider.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>gcpsm</code></br>
 <em>
 <a href="#external-secrets.io/v1.GCPSMProvider">
@@ -9423,20 +9513,6 @@ GitlabProvider
 <td>
 <em>(Optional)</em>
 <p>GitLab configures this store to sync secrets using GitLab Variables provider</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>alibaba</code></br>
-<em>
-<a href="#external-secrets.io/v1.AlibabaProvider">
-AlibabaProvider
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Alibaba configures this store to sync secrets using Alibaba Cloud provider</p>
 </td>
 </tr>
 <tr>
@@ -9707,20 +9783,6 @@ PassboltProvider
 </tr>
 <tr>
 <td>
-<code>device42</code></br>
-<em>
-<a href="#external-secrets.io/v1.Device42Provider">
-Device42Provider
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Device42 configures this store to sync secrets using the Device42 provider</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>dvls</code></br>
 <em>
 <a href="#external-secrets.io/v1.DVLSProvider">
@@ -9815,6 +9877,20 @@ BarbicanProvider
 <td>
 <em>(Optional)</em>
 <p>Barbican configures this store to sync secrets using the OpenStack Barbican provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nebiusmysterybox</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusMysteryboxProvider">
+NebiusMysteryboxProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
 </td>
 </tr>
 </tbody>
@@ -11800,8 +11876,8 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.
-Deprecated: use serviceAccountRef.Audiences instead</p>
+Defaults to a single audience <code>vault</code> it not specified.</p>
+<p>Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -11815,8 +11891,8 @@ int64
 <em>(Optional)</em>
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
-<code>serviceAccountRef</code>.
-Deprecated: this will be removed in the future.
+<code>serviceAccountRef</code>.</p>
+<p>Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>
@@ -16003,8 +16079,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -16193,8 +16269,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -18473,7 +18549,7 @@ map[string]string
 <h3 id="external-secrets.io/v1beta1.ExternalSecretValidator">ExternalSecretValidator
 </h3>
 <p>
-<p>ExternalSecretValidator implements webhook validation for ExternalSecret resources.</p>
+<p>ExternalSecretValidator implements a validating webhook for ExternalSecrets.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.FakeProvider">FakeProvider
 </h3>
@@ -18917,6 +18993,11 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GenericClusterStoreValidator">GenericClusterStoreValidator
+</h3>
+<p>
+<p>GenericClusterStoreValidator provides validation for ClusterSecretStore resources.</p>
+</p>
 <h3 id="external-secrets.io/v1beta1.GenericStore">GenericStore
 </h3>
 <p>
@@ -18926,7 +19007,7 @@ or a namespaced SecretStore.</p>
 <h3 id="external-secrets.io/v1beta1.GenericStoreValidator">GenericStoreValidator
 </h3>
 <p>
-<p>GenericStoreValidator provides validation for SecretStore and ClusterSecretStore resources.</p>
+<p>GenericStoreValidator provides validation for SecretStore resources.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.GithubAppAuth">GithubAppAuth
 </h3>
@@ -23459,8 +23540,8 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.
-Deprecated: use serviceAccountRef.Audiences instead</p>
+Defaults to a single audience <code>vault</code> it not specified.</p>
+<p>Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -23474,8 +23555,8 @@ int64
 <em>(Optional)</em>
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
-<code>serviceAccountRef</code>.
-Deprecated: this will be removed in the future.
+<code>serviceAccountRef</code>.</p>
+<p>Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>

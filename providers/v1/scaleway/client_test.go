@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
@@ -381,7 +380,7 @@ func TestGetAllSecrets(t *testing.T) {
 		},
 		"find secrets by path": {
 			ref: esv1.ExternalSecretFind{
-				Path: esutils.Ptr("/subpath"),
+				Path: new("/subpath"),
 			},
 			response: map[string][]byte{
 				db.secret("nested-secret").name: db.secret("nested-secret").mustGetVersion("latest_enabled").data,

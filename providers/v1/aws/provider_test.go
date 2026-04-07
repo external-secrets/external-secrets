@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pointer "k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -277,7 +276,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1.AWSAuthSecretRef{
 										AccessKeyID: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.To("unacceptable"),
+											Namespace: new("unacceptable"),
 										},
 									},
 								},
@@ -301,7 +300,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1.AWSAuthSecretRef{
 										SecretAccessKey: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.To("unacceptable"),
+											Namespace: new("unacceptable"),
 										},
 									},
 								},
@@ -403,7 +402,7 @@ func TestValidateStore(t *testing.T) {
 									JWTAuth: &esv1.AWSJWTAuth{
 										ServiceAccountRef: &esmeta.ServiceAccountSelector{
 											Name:      "foobar",
-											Namespace: pointer.To("unacceptable"),
+											Namespace: new("unacceptable"),
 										},
 									},
 								},

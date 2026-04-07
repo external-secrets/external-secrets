@@ -251,3 +251,202 @@ tests:
     asserts:
       - notExists:
           path: spec.template.spec.hostUsers
+  - it: should not have hostAliases by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostAliases
+  - it: should add hostAliases when configured
+    set:
+      hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "example.local"
+            - "example"
+        - ip: "10.0.0.1"
+          hostnames:
+            - "internal.example.com"
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "example.local"
+                - "example"
+            - ip: "10.0.0.1"
+              hostnames:
+                - "internal.example.com"
+  - it: should use global hostAliases when root level not set
+    set:
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.200"
+              hostnames:
+                - "global.example.com"
+  - it: should prefer root level hostAliases over global
+    set:
+      hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "root.example.com"
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "root.example.com"
+  - it: should add readinessProbe with defaults when enabled
+    set:
+      readinessProbe:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe
+          value:
+            timeoutSeconds: 5
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            initialDelaySeconds: 10
+            httpGet:
+              port: live
+              path: /readyz
+      - equal:
+          path: spec.template.spec.containers[0].ports[1]
+          value:
+            containerPort: 8082
+            protocol: TCP
+            name: live
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--live-addr=:8082"
+      - notExists:
+          path: spec.template.spec.containers[0].livenessProbe
+  - it: should not render probes or health server when both probes are disabled
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].livenessProbe
+      - notExists:
+          path: spec.template.spec.containers[0].readinessProbe
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--live-addr=:8082"
+  - it: should render both probes when both are enabled
+    set:
+      livenessProbe:
+        enabled: true
+      readinessProbe:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            timeoutSeconds: 5
+            failureThreshold: 5
+            periodSeconds: 10
+            successThreshold: 1
+            initialDelaySeconds: 10
+            httpGet:
+              port: live
+              path: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe
+          value:
+            timeoutSeconds: 5
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            initialDelaySeconds: 10
+            httpGet:
+              port: live
+              path: /readyz
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--live-addr=:8082"
+  - it: should use livenessProbe.spec.port for health server even when only readiness is enabled
+    set:
+      livenessProbe:
+        spec:
+          port: 9090
+      readinessProbe:
+        enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--live-addr=:9090"
+      - equal:
+          path: spec.template.spec.containers[0].ports[1]
+          value:
+            containerPort: 9090
+            protocol: TCP
+            name: live
+      - notExists:
+          path: spec.template.spec.containers[0].livenessProbe
+  - it: should use numeric httpGet.port for health server when liveness httpGet.port is numeric
+    set:
+      livenessProbe:
+        enabled: true
+        spec:
+          httpGet:
+            port: 8080
+            path: /healthz
+      readinessProbe:
+        enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--live-addr=:8080"
+      - equal:
+          path: spec.template.spec.containers[0].ports[1]
+          value:
+            containerPort: 8080
+            protocol: TCP
+            name: live
+  - it: should use custom address for health server
+    set:
+      livenessProbe:
+        enabled: true
+        spec:
+          address: "127.0.0.1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--live-addr=127.0.0.1:8082"
+  - it: should customize readinessProbe spec independently
+    set:
+      readinessProbe:
+        enabled: true
+        spec:
+          timeoutSeconds: 3
+          failureThreshold: 5
+          periodSeconds: 15
+          successThreshold: 2
+          initialDelaySeconds: 20
+          httpGet:
+            port: live
+            path: /readyz
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe
+          value:
+            timeoutSeconds: 3
+            failureThreshold: 5
+            periodSeconds: 15
+            successThreshold: 2
+            initialDelaySeconds: 20
+            httpGet:
+              port: live
+              path: /readyz

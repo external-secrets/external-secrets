@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -115,6 +116,33 @@ func filterCertChain(certType, input string) (string, error) {
 
 func isRootCertificate(cert *x509.Certificate) bool {
 	return cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId)
+}
+
+// certSANs extracts Subject Alternative Names (SANs) from a PEM-encoded certificate.
+// It returns a list of all SANs including DNS names, IP addresses, email addresses, and URIs.
+func certSANs(input string) ([]string, error) {
+	input = trimJunk(input)
+	block, _ := pem.Decode([]byte(input))
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	sans := make([]string, 0, len(cert.DNSNames)+len(cert.IPAddresses)+len(cert.EmailAddresses)+len(cert.URIs))
+	sans = append(sans, cert.DNSNames...)
+	for _, ip := range cert.IPAddresses {
+		sans = append(sans, ip.String())
+	}
+	sans = append(sans, cert.EmailAddresses...)
+	for _, uri := range cert.URIs {
+		sans = append(sans, uri.String())
+	}
+
+	return sans, nil
 }
 
 func pemEncode(thing []byte, kind string) (string, error) {

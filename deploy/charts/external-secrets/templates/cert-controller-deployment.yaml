@@ -89,6 +89,9 @@ spec:
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
           {{- end }}
+          {{- if .Values.leaderElect }}
+          - --enable-leader-election=true
+          {{- end }}
           {{- range $key, $value := .Values.certController.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
@@ -145,6 +148,10 @@ spec:
       {{- if .Values.certController.extraVolumes }}
       volumes:
       {{- toYaml .Values.certController.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.hostAliases | default .Values.global.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.certController.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:

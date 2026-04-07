@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -272,7 +272,7 @@ spec:
 					func(cl *fake.VaultClient) {
 						cl.MockLogical.ReadWithDataWithContextFn = func(ctx context.Context, path string, data map[string][]string) (*vaultapi.Secret, error) {
 							return &vaultapi.Secret{
-								Data: map[string]interface{}{
+								Data: map[string]any{
 									"key": "value",
 								},
 							}, nil
@@ -363,7 +363,7 @@ spec:
 						cl.MockLogical.ReadWithDataWithContextFn = func(ctx context.Context, path string, data map[string][]string) (*vaultapi.Secret, error) {
 							return &vaultapi.Secret{
 								LeaseID: "123",
-								Data: map[string]interface{}{
+								Data: map[string]any{
 									"key": "value",
 								},
 							}, nil

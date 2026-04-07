@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -298,10 +298,29 @@ func TestClientGetAllSecrets(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "success_path_only",
+			ref: esv1.ExternalSecretFind{
+				Path: func() *string {
+					s := "oss/snmp-auths"
+					return &s
+				}(),
+			},
+			setup: func(mock *fake.MockSecretProvider) {
+				mock.MockListSecrets([]*smsV2.Secret{
+					{Id: keyID, Name: "secret1", Path: "oss/snmp-auths/secret1"},
+				}, nil)
+				mock.MockAccessSecretVersion([]byte(`value1`), nil)
+			},
+			wantPayload: map[string][]byte{
+				"oss/snmp-auths/secret1": []byte(`value1`),
+			},
+			wantErr: nil,
+		},
+		{
 			name:        "error_no_filters",
 			ref:         esv1.ExternalSecretFind{},
 			wantPayload: nil,
-			wantErr:     errors.New("at least one of the following fields must be set: tags, name"),
+			wantErr:     errors.New("at least one of the following fields must be set: tags, name, path"),
 		},
 		{
 			name: "error_list_secrets",

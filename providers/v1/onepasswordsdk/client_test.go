@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package onepasswordsdk
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -100,7 +101,7 @@ func TestProviderGetSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Provider{
+			p := &SecretsClient{
 				client:      tt.client(),
 				vaultPrefix: "op://vault/",
 			}
@@ -270,7 +271,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Provider{
+			p := &SecretsClient{
 				client:      tt.client(),
 				vaultPrefix: "op://vault/",
 			}
@@ -315,7 +316,7 @@ func TestProviderValidate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Provider{
+			p := &SecretsClient{
 				client:      tt.client(),
 				vaultPrefix: tt.vaultPrefix,
 			}
@@ -419,7 +420,7 @@ func TestPushSecret(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
 			lister := tt.lister()
-			p := &Provider{
+			p := &SecretsClient{
 				client: &onepassword.Client{
 					SecretsAPI: fc,
 					VaultsAPI:  fc,
@@ -545,7 +546,7 @@ func TestDeleteItemField(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := t.Context()
 			lister := testCase.lister()
-			p := &Provider{
+			p := &SecretsClient{
 				client: &onepassword.Client{
 					SecretsAPI: fc,
 					VaultsAPI:  fc,
@@ -569,7 +570,7 @@ func TestGetVault(t *testing.T) {
 		},
 	}
 
-	p := &Provider{
+	p := &SecretsClient{
 		client: &onepassword.Client{
 			VaultsAPI: fc,
 		},
@@ -652,6 +653,69 @@ func (f *fakeFileLister) ReplaceDocument(ctx context.Context, item onepassword.I
 
 var _ onepassword.ItemsFilesAPI = (*fakeFileLister)(nil)
 
+type statefulFakeLister struct {
+	listAllResult []onepassword.ItemOverview
+	items         map[string]onepassword.Item
+	deletedItems  map[string]bool
+	createCalled  bool
+	putCalled     bool
+	deleteCalled  bool
+	fileLister    onepassword.ItemsFilesAPI
+}
+
+func (f *statefulFakeLister) Create(ctx context.Context, params onepassword.ItemCreateParams) (onepassword.Item, error) {
+	f.createCalled = true
+	return onepassword.Item{}, nil
+}
+
+func (f *statefulFakeLister) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
+	if f.deletedItems != nil && f.deletedItems[itemID] {
+		return onepassword.Item{}, fmt.Errorf("item not found")
+	}
+	if item, ok := f.items[itemID]; ok {
+		return item, nil
+	}
+	return onepassword.Item{}, fmt.Errorf("item not found")
+}
+
+func (f *statefulFakeLister) Put(ctx context.Context, item onepassword.Item) (onepassword.Item, error) {
+	f.putCalled = true
+	if f.items == nil {
+		f.items = make(map[string]onepassword.Item)
+	}
+	f.items[item.ID] = item
+	return item, nil
+}
+
+func (f *statefulFakeLister) Delete(ctx context.Context, vaultID, itemID string) error {
+	f.deleteCalled = true
+	if f.deletedItems == nil {
+		f.deletedItems = make(map[string]bool)
+	}
+	f.deletedItems[itemID] = true
+	delete(f.items, itemID)
+	f.listAllResult = nil
+	return nil
+}
+
+func (f *statefulFakeLister) Archive(ctx context.Context, vaultID, itemID string) error {
+	return nil
+}
+
+func (f *statefulFakeLister) List(ctx context.Context, vaultID string, opts ...onepassword.ItemListFilter) ([]onepassword.ItemOverview, error) {
+	return f.listAllResult, nil
+}
+
+func (f *statefulFakeLister) Shares() onepassword.ItemsSharesAPI {
+	return nil
+}
+
+func (f *statefulFakeLister) Files() onepassword.ItemsFilesAPI {
+	return f.fileLister
+}
+
+var _ onepassword.ItemsAPI = (*statefulFakeLister)(nil)
+
 type fakeClient struct {
 	resolveResult   string
 	resolveError    error
@@ -673,6 +737,87 @@ func (f *fakeClient) ResolveAll(ctx context.Context, secretReferences []string) 
 	return f.resolveAll, f.resolveAllError
 }
 
+func TestDeleteMultipleFieldsFromSameItem(t *testing.T) {
+	fc := &fakeClient{
+		listAllResult: []onepassword.VaultOverview{
+			{
+				ID:    "test",
+				Title: "test",
+			},
+		},
+	}
+
+	t.Run("deleting second field after item was deleted should not error", func(t *testing.T) {
+		fl := &statefulFakeLister{
+			listAllResult: []onepassword.ItemOverview{
+				{
+					ID:       "test-item-id",
+					Title:    "key",
+					Category: "login",
+					VaultID:  "vault-id",
+				},
+			},
+			items: map[string]onepassword.Item{
+				"test-item-id": {
+					ID:       "test-item-id",
+					Title:    "key",
+					Category: "login",
+					VaultID:  "vault-id",
+					Fields: []onepassword.ItemField{
+						{
+							ID:        "field-1",
+							Title:     "username",
+							FieldType: onepassword.ItemFieldTypeConcealed,
+							Value:     "testuser",
+						},
+						{
+							ID:        "field-2",
+							Title:     "password",
+							FieldType: onepassword.ItemFieldTypeConcealed,
+							Value:     "testpass",
+						},
+					},
+				},
+			},
+		}
+
+		p := &SecretsClient{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+		}
+
+		ctx := t.Context()
+
+		err := p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "username",
+		})
+		require.NoError(t, err, "first field deletion should succeed")
+		assert.True(t, fl.putCalled, "Put should have been called to update the item")
+		assert.False(t, fl.deleteCalled, "Delete should not have been called yet")
+
+		fl.putCalled = false
+
+		err = p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "password",
+		})
+		require.NoError(t, err, "second field deletion should succeed")
+		assert.True(t, fl.deleteCalled, "Delete should have been called to remove the item")
+
+		fl.listAllResult = nil
+
+		err = p.DeleteSecret(ctx, &v1alpha1.PushSecretRemoteRef{
+			RemoteKey: "key",
+			Property:  "some-other-field",
+		})
+		require.NoError(t, err, "deleting a field from an already-deleted item should not error (this is the bug!)")
+	})
+}
+
 func TestCachingGetSecret(t *testing.T) {
 	t.Run("cache hit returns cached value", func(t *testing.T) {
 		fcWithCounter := &fakeClientWithCounter{
@@ -681,7 +826,7 @@ func TestCachingGetSecret(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fcWithCounter,
 				VaultsAPI:  fcWithCounter.fakeClient,
@@ -714,7 +859,7 @@ func TestCachingGetSecret(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fcWithCounter,
 				VaultsAPI:  fcWithCounter.fakeClient,
@@ -762,7 +907,7 @@ func TestCachingGetSecretMap(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fc,
 				VaultsAPI:  fc,
@@ -812,7 +957,7 @@ func TestCacheInvalidationPushSecret(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fcWithCounter,
 				VaultsAPI:  fcWithCounter.fakeClient,
@@ -878,7 +1023,7 @@ func TestCacheInvalidationDeleteSecret(t *testing.T) {
 			},
 		}
 
-		p := &Provider{
+		p := &SecretsClient{
 			client: &onepassword.Client{
 				SecretsAPI: fcWithCounter,
 				VaultsAPI:  fcWithCounter.fakeClient,
@@ -913,7 +1058,7 @@ func TestCacheInvalidationDeleteSecret(t *testing.T) {
 
 func TestInvalidateCacheByPrefix(t *testing.T) {
 	t.Run("invalidates all entries with prefix", func(t *testing.T) {
-		p := &Provider{
+		p := &SecretsClient{
 			vaultPrefix: "op://vault/",
 			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
 		}
@@ -939,7 +1084,7 @@ func TestInvalidateCacheByPrefix(t *testing.T) {
 	})
 
 	t.Run("handles nil cache gracefully", func(t *testing.T) {
-		p := &Provider{
+		p := &SecretsClient{
 			vaultPrefix: "op://vault/",
 			cache:       nil,
 		}
@@ -949,7 +1094,7 @@ func TestInvalidateCacheByPrefix(t *testing.T) {
 	})
 
 	t.Run("does not invalidate entries with similar prefixes", func(t *testing.T) {
-		p := &Provider{
+		p := &SecretsClient{
 			vaultPrefix: "op://vault/",
 			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
 		}
@@ -1044,3 +1189,30 @@ var _ onepassword.VaultsAPI = &fakeClient{}
 var _ onepassword.ItemsAPI = &fakeLister{}
 var _ onepassword.SecretsAPI = &fakeClientWithCounter{}
 var _ onepassword.ItemsAPI = &fakeListerWithCounter{}
+
+func TestIsNativeItemID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid native ID", "gdpvdudxrico74msloimk7qjna", true},
+		{"valid native ID all letters", "abcdefghijklmnopqrstuvwxyz", true},
+		{"valid native ID with digits", "abcdefghij0123456789abcdef", true},
+		{"too short", "gdpvdudxrico74msloimk7qjn", false},
+		{"too long", "gdpvdudxrico74msloimk7qjnaa", false},
+		{"empty string", "", false},
+		{"contains uppercase", "Gdpvdudxrico74msloimk7qjna", false},
+		{"contains special char", "gdpvdudxrico7-msloimk7qjna", false},
+		{"RFC 4122 UUID", "687adbe7-e6d2-4059-9a62-dbb95d291143", false},
+		{"item title", "My App (Production)", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isNativeItemID(tt.input)
+			if got != tt.expected {
+				t.Errorf("isNativeItemID(%q) = %v, want %v", tt.input, got, tt.expected)
+			}
+		})
+	}
+}

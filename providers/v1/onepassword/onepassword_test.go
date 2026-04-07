@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -38,8 +37,9 @@ import (
 
 const (
 	// vaults and items.
-	myVault, myVaultID, myVaultUUID          = "my-vault", "my-vault-id", "39c31136-d086-47e9-a52c-8fe330d2669a"
-	myItem, myItemID, myItemUUID             = "my-item", "my-item-id", "687adbe7-e6d2-4059-9a62-dbb95d291143"
+	myVault, myVaultID                       = "my-vault", "my-vault-id"
+	myItem, myItemID                         = "my-item", "my-item-id"
+	myNativeItemID                           = "gdpvdudxrico74msloimk7qjna"
 	mySharedVault, mySharedVaultID           = "my-shared-vault", "my-shared-vault-id"
 	mySharedItem, mySharedItemID             = "my-shared-item", "my-shared-item-id"
 	myOtherVault, myOtherVaultID             = "my-other-vault", "my-other-vault-id"
@@ -120,22 +120,30 @@ func TestFindItem(t *testing.T) {
 			},
 		},
 		{
-			setupNote: "uuid: valid basic: one vault, one item, one field",
+			setupNote: "native item ID: one vault, one item, one field",
 			provider: &ProviderOnePassword{
-				vaults: map[string]int{myVaultUUID: 1},
+				vaults: map[string]int{myVault: 1},
 				client: fake.NewMockClient().
-					AddPredictableVaultUUID(myVaultUUID).
-					AddPredictableItemWithFieldUUID(myVaultUUID, myItemUUID, key1, value1),
+					AddPredictableVault(myVault).
+					AppendItem(myVaultID, onepassword.Item{
+						ID:    myNativeItemID,
+						Title: "My App (Production)",
+						Vault: onepassword.ItemVault{ID: myVaultID},
+					}).
+					AppendItemField(myVaultID, myNativeItemID, onepassword.ItemField{
+						Label: key1,
+						Value: value1,
+					}),
 			},
 			checks: []check{
 				{
-					checkNote:    "pass",
-					findItemName: myItemUUID,
+					checkNote:    "find by native item ID",
+					findItemName: myNativeItemID,
 					expectedErr:  nil,
 					expectedItem: &onepassword.Item{
-						ID:    myItemUUID,
-						Title: myItemUUID,
-						Vault: onepassword.ItemVault{ID: myVaultUUID},
+						ID:    myNativeItemID,
+						Title: "My App (Production)",
+						Vault: onepassword.ItemVault{ID: myVaultID},
 						Fields: []*onepassword.ItemField{
 							{
 								Label: key1,
@@ -460,7 +468,7 @@ func TestValidateStore(t *testing.T) {
 								SecretRef: &esv1.OnePasswordAuthSecretRef{
 									ConnectToken: esmeta.SecretKeySelector{
 										Name:      mySecret,
-										Namespace: pointer.To("my-namespace"),
+										Namespace: new("my-namespace"),
 										Key:       token,
 									},
 								},
@@ -517,7 +525,7 @@ func TestValidateStore(t *testing.T) {
 								SecretRef: &esv1.OnePasswordAuthSecretRef{
 									ConnectToken: esmeta.SecretKeySelector{
 										Name:      mySecret,
-										Namespace: pointer.To("my-namespace"),
+										Namespace: new("my-namespace"),
 										Key:       token,
 									},
 								},
@@ -1181,7 +1189,7 @@ func TestGetAllSecrets(t *testing.T) {
 				{
 					checkNote: "find some with path only",
 					ref: esv1.ExternalSecretFind{
-						Path: pointer.To(myItem),
+						Path: new(myItem),
 					},
 					expectedMap: map[string][]byte{
 						key1: []byte(value1),
@@ -1210,7 +1218,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1.FindName{
 							RegExp: "key*",
 						},
-						Path: pointer.To(myOtherItem),
+						Path: new(myOtherItem),
 					},
 					expectedMap: map[string][]byte{
 						key3: []byte(value3),
@@ -1234,7 +1242,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1.FindName{
 							RegExp: "key*",
 						},
-						Path: pointer.To("no-exist"),
+						Path: new("no-exist"),
 					},
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,
@@ -1286,7 +1294,7 @@ func TestGetAllSecrets(t *testing.T) {
 				{
 					checkNote: "find with tags",
 					ref: esv1.ExternalSecretFind{
-						Path: pointer.To(myItem),
+						Path: new(myItem),
 						Tags: map[string]string{
 							"foo": "true",
 							"bar": "true",
@@ -1301,7 +1309,7 @@ func TestGetAllSecrets(t *testing.T) {
 				{
 					checkNote: "find with tags and get all",
 					ref: esv1.ExternalSecretFind{
-						Path: pointer.To(myItem),
+						Path: new(myItem),
 						Tags: map[string]string{
 							"foo": "true",
 						},
@@ -1406,7 +1414,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1.FindName{
 							RegExp: "^my-*",
 						},
-						Path: pointer.To(myOtherItem),
+						Path: new(myOtherItem),
 					},
 					expectedMap: map[string][]byte{
 						myOtherFilePNG: []byte(myOtherContents),
@@ -1429,7 +1437,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1.FindName{
 							RegExp: "^my-*",
 						},
-						Path: pointer.To("no-exist"),
+						Path: new("no-exist"),
 					},
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,
@@ -1581,6 +1589,33 @@ func TestSortVaults(t *testing.T) {
 		if !reflect.DeepEqual(got, tc.expected) {
 			t.Errorf("onepassword.sortVaults(...): -expected, +got:\n-%#v\n+%#v\n", tc.expected, got)
 		}
+	}
+}
+
+func TestIsNativeItemID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"valid native ID", "gdpvdudxrico74msloimk7qjna", true},
+		{"valid native ID all letters", "abcdefghijklmnopqrstuvwxyz", true},
+		{"valid native ID with digits", "abcdefghij0123456789abcdef", true},
+		{"too short", "gdpvdudxrico74msloimk7qjn", false},
+		{"too long", "gdpvdudxrico74msloimk7qjnaa", false},
+		{"empty string", "", false},
+		{"contains uppercase", "Gdpvdudxrico74msloimk7qjna", false},
+		{"contains special char", "gdpvdudxrico7-msloimk7qjna", false},
+		{"RFC 4122 UUID", "687adbe7-e6d2-4059-9a62-dbb95d291143", false},
+		{"item title", "My App (Production)", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isNativeItemID(tt.input)
+			if got != tt.expected {
+				t.Errorf("isNativeItemID(%q) = %v, want %v", tt.input, got, tt.expected)
+			}
+		})
 	}
 }
 
@@ -2456,16 +2491,105 @@ func (m *mockClient) GetFileContent(file *onepassword.File) ([]byte, error) { re
 func (m *mockClient) DownloadFile(file *onepassword.File, targetDirectory string, overwrite bool) (string, error) {
 	return "", nil
 }
-func (m *mockClient) LoadStructFromItemByUUID(config interface{}, itemUUID, vaultQuery string) error {
+func (m *mockClient) LoadStructFromItemByUUID(config any, itemUUID, vaultQuery string) error {
 	return nil
 }
-func (m *mockClient) LoadStructFromItemByTitle(config interface{}, itemTitle, vaultQuery string) error {
+func (m *mockClient) LoadStructFromItemByTitle(config any, itemTitle, vaultQuery string) error {
 	return nil
 }
-func (m *mockClient) LoadStructFromItem(config interface{}, itemQuery, vaultQuery string) error {
+func (m *mockClient) LoadStructFromItem(config any, itemQuery, vaultQuery string) error {
 	return nil
 }
-func (m *mockClient) LoadStruct(config interface{}) error { return nil }
+func (m *mockClient) LoadStruct(config any) error { return nil }
+
+func TestDeleteSecretWithEmptySections(t *testing.T) {
+	const vaultName = "vault1"
+	vault := onepassword.Vault{
+		ID:   vaultName,
+		Name: vaultName,
+	}
+
+	t.Run("item with empty section should be deleted when last field is removed", func(t *testing.T) {
+		deleteCalled := false
+		updateCalled := false
+
+		mockClient := fake.NewMockClient()
+		mockClient.MockVaults = map[string][]onepassword.Vault{
+			vaultName: {vault},
+		}
+		mockClient.MockItems = map[string][]onepassword.Item{
+			vaultName: {
+				{
+					ID:    "item-id",
+					Title: "test-item",
+					Vault: onepassword.ItemVault{ID: vaultName},
+					Sections: []*onepassword.ItemSection{
+						{ID: "", Label: ""},
+					},
+				},
+			},
+		}
+		mockClient.MockItemFields = map[string]map[string][]*onepassword.ItemField{
+			vaultName: {
+				"item-id": {
+					{ID: "field-1", Label: "password", Value: "secret"},
+				},
+			},
+		}
+		mockClient.DeleteItemValidateFunc = func(item *onepassword.Item, s string) error {
+			deleteCalled = true
+			return nil
+		}
+		mockClient.UpdateItemValidateFunc = func(item *onepassword.Item, s string) (*onepassword.Item, error) {
+			updateCalled = true
+			return item, nil
+		}
+
+		provider := &ProviderOnePassword{
+			vaults: map[string]int{vaultName: 1},
+			client: mockClient,
+		}
+
+		err := provider.DeleteSecret(context.Background(), fakeRef{
+			key:  "test-item",
+			prop: "password",
+		})
+
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+		if !deleteCalled {
+			t.Error("expected DeleteItem to be called when item has no fields and only empty sections")
+		}
+		if updateCalled {
+			t.Error("expected UpdateItem not to be called")
+		}
+	})
+
+	t.Run("item not found should not error", func(t *testing.T) {
+		mockClient := fake.NewMockClient()
+		mockClient.MockVaults = map[string][]onepassword.Vault{
+			vaultName: {vault},
+		}
+		mockClient.MockItems = map[string][]onepassword.Item{
+			vaultName: {},
+		}
+
+		provider := &ProviderOnePassword{
+			vaults: map[string]int{vaultName: 1},
+			client: mockClient,
+		}
+
+		err := provider.DeleteSecret(context.Background(), fakeRef{
+			key:  "non-existent-item",
+			prop: "password",
+		})
+
+		if err != nil {
+			t.Errorf("expected no error when item not found, got %v", err)
+		}
+	})
+}
 
 func TestRetryClient(t *testing.T) {
 	tests := []struct {

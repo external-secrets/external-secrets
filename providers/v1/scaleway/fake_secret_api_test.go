@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package scaleway
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 
@@ -79,7 +80,7 @@ func buildDB(f *fakeSecretAPI) *fakeSecretAPI {
 
 		for _, version := range secret.versions {
 			if len(version.data) == 0 && !version.dontFillData {
-				version.data = []byte(fmt.Sprintf("some data for secret %s version %d: %s", secret.id, version.revision, uuid.NewString()))
+				version.data = fmt.Appendf(nil, "some data for secret %s version %d: %s", secret.id, version.revision, uuid.NewString())
 			}
 		}
 
@@ -263,10 +264,8 @@ func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest)
 	if filter.Tags != nil {
 		filters = append(filters, func(fs *fakeSecret) bool {
 			for _, requiredTag := range filter.Tags {
-				for _, secretTag := range fs.tags {
-					if requiredTag == secretTag {
-						return true
-					}
+				if slices.Contains(fs.tags, requiredTag) {
+					return true
 				}
 			}
 			return false
@@ -332,10 +331,7 @@ func (f *fakeSecretAPI) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 		return nil, fmt.Errorf("invalid page offset (page = %d, page size = %d, total = %d)", page, pageSize, len(matches))
 	}
 
-	endOffset := page * pageSize
-	if endOffset > len(matches) {
-		endOffset = len(matches)
-	}
+	endOffset := min(page*pageSize, len(matches))
 
 	for _, secret := range matches[startOffset:endOffset] {
 		response.Secrets = append(response.Secrets, &smapi.Secret{
