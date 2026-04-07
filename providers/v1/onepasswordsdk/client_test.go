@@ -1449,12 +1449,17 @@ func TestIsNativeItemID(t *testing.T) {
 }
 
 func TestPushAllKeys(t *testing.T) {
+	const (
+		testExistingItem = "existing-item"
+		testOldKey       = "old-key"
+	)
+
 	fc := &fakeClient{listAllResult: []onepassword.VaultOverview{{ID: "vault-id", Title: "vault"}}}
 
 	existingItem := onepassword.Item{
-		ID: "item-id", Title: "existing-item", VaultID: "vault-id",
+		ID: "item-id", Title: testExistingItem, VaultID: "vault-id",
 		Fields: []onepassword.ItemField{
-			{ID: "old-key", Title: "old-key", Value: "old-val", FieldType: onepassword.ItemFieldTypeConcealed},
+			{ID: testOldKey, Title: testOldKey, Value: "old-val", FieldType: onepassword.ItemFieldTypeConcealed},
 		},
 	}
 
@@ -1505,9 +1510,9 @@ func TestPushAllKeys(t *testing.T) {
 	})
 
 	t.Run("updates existing item with all secret keys", func(t *testing.T) {
-		fl := newLister(onepassword.Item{ID: "item-id", Title: "existing-item", VaultID: "vault-id"})
+		fl := newLister(onepassword.Item{ID: "item-id", Title: testExistingItem, VaultID: "vault-id"})
 		p := &SecretsClient{client: &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl}, vaultID: "vault-id"}
-		require.NoError(t, p.PushSecret(t.Context(), secret("key1", "value1", "key2", "value2"), ref("", "existing-item")))
+		require.NoError(t, p.PushSecret(t.Context(), secret("key1", "value1", "key2", "value2"), ref("", testExistingItem)))
 		assert.False(t, fl.createCalled)
 		require.True(t, fl.putCalled)
 		fm := fieldsMap(fl.putItem.Fields)
@@ -1525,14 +1530,14 @@ func TestPushAllKeys(t *testing.T) {
 	})
 
 	t.Run("removes fields deleted from the secret", func(t *testing.T) {
-		fl := newLister(existingItem) // existingItem has field "old-key"
+		fl := newLister(existingItem) // existingItem has field testOldKey
 		p := &SecretsClient{client: &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl}, vaultID: "vault-id"}
-		// secret no longer contains "old-key", only "new-key"
-		require.NoError(t, p.PushSecret(t.Context(), secret("new-key", "new-val"), ref("", "existing-item")))
+		// secret no longer contains testOldKey, only "new-key"
+		require.NoError(t, p.PushSecret(t.Context(), secret("new-key", "new-val"), ref("", testExistingItem)))
 		require.True(t, fl.putCalled)
 		fm := fieldsMap(fl.putItem.Fields)
 		assert.Equal(t, "new-val", fm["new-key"].Value, "new field must be added")
-		_, stillThere := fm["old-key"]
+		_, stillThere := fm[testOldKey]
 		assert.False(t, stillThere, "deleted key must be removed from the 1Password item")
 	})
 }
