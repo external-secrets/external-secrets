@@ -43,6 +43,10 @@ const (
 	itemCachePrefix         = "item:"
 	fileCachePrefix         = "file:"
 	defaultFieldLabel       = "password"
+
+	errMsgUpdateItem    = "failed to update item: %w"
+	errMsgCreateItem    = "failed to create item: %w"
+	errMsgParsePushMeta = "failed to parse push secret metadata: %w"
 )
 
 // ErrKeyNotFound is returned when a key is not found in the 1Password Vaults.
@@ -139,7 +143,7 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf("failed to update item: %w", err)
+		return fmt.Errorf(errMsgUpdateItem, err)
 	}
 
 	p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
@@ -287,7 +291,7 @@ func getObjType(documentType onepassword.ItemCategory, property string) (string,
 func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.PushSecretData) error {
 	mdata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
 	if err != nil {
-		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+		return fmt.Errorf(errMsgParsePushMeta, err)
 	}
 
 	label := ref.GetProperty()
@@ -316,7 +320,7 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 	})
 	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
-		return fmt.Errorf("failed to create item: %w", err)
+		return fmt.Errorf(errMsgCreateItem, err)
 	}
 
 	p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
@@ -419,7 +423,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 	providerItem, err := p.findItem(ctx, title)
 	if errors.Is(err, ErrKeyNotFound) {
 		if err = p.createItem(ctx, val, ref); err != nil {
-			return fmt.Errorf("failed to create item: %w", err)
+			return fmt.Errorf(errMsgCreateItem, err)
 		}
 
 		return nil
@@ -436,7 +440,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 
 	mdata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
 	if err != nil {
-		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+		return fmt.Errorf(errMsgParsePushMeta, err)
 	}
 	if mdata != nil && mdata.Spec.Tags != nil {
 		providerItem.Tags = mdata.Spec.Tags
@@ -455,7 +459,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf("failed to update item: %w", err)
+		return fmt.Errorf(errMsgUpdateItem, err)
 	}
 
 	p.invalidateCacheByPrefix(p.constructRefKey(title))
@@ -468,7 +472,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, ref esv1.PushSecretData) error {
 	mdata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
 	if err != nil {
-		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+		return fmt.Errorf(errMsgParsePushMeta, err)
 	}
 
 	var tags []string
@@ -523,7 +527,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf("failed to update item: %w", err)
+		return fmt.Errorf(errMsgUpdateItem, err)
 	}
 	p.invalidateCacheByPrefix(p.constructRefKey(title))
 	p.invalidateItemCache(title)
