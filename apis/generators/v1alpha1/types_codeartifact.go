@@ -23,6 +23,7 @@ import (
 // CodeArtifactAuthorizationTokenSpec defines the desired state to generate an AWS CodeArtifact authorization token.
 type CodeArtifactAuthorizationTokenSpec struct {
 	// Region specifies the region to operate in.
+	// +kubebuilder:validation:MinLength=1
 	Region string `json:"region"`
 
 	// Auth defines how to authenticate with AWS
@@ -35,9 +36,11 @@ type CodeArtifactAuthorizationTokenSpec struct {
 	Role string `json:"role,omitempty"`
 
 	// Domain is the name of the CodeArtifact domain.
+	// +kubebuilder:validation:MinLength=1
 	Domain string `json:"domain"`
 
 	// DomainOwner is the 12-digit AWS account ID that owns the CodeArtifact domain.
+	// +kubebuilder:validation:Pattern=`^[0-9]{12}$`
 	DomainOwner string `json:"domainOwner"`
 }
 
