@@ -9,7 +9,7 @@ Each data value is interpreted as a [Go template](https://golang.org/pkg/text/te
     Consider using camelcase when defining  **.'spec.data.secretkey'**, example: serviceAccountToken
 
     If your secret keys contain **`-` (dashes)**, you will need to reference them using **`index`** </br>
-    Example: {% raw %}**`{{ index .data "service-account-token" }}`**{% endraw %}
+    Example: **`{% raw %}{{ index .data "service-account-token" }}{% endraw %}`**
 
 ## Helm
 
@@ -68,6 +68,8 @@ Suppose you have multiple key-value pairs within your provider secret like
   ...
 }
 ```
+
+You may either pass `bcrypt`, to use that hashing algorithm, or `sha`, to use the `SHA-1` hashing algorithm, as an argument. `bcrypt` is considered more secure, but some applications may not support it.
 
 ```yaml
 {% include 'template-v2-literal-example.yaml' %}
