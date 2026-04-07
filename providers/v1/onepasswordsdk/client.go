@@ -470,7 +470,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 
 // createAllKeysItem creates a new item with all keys from secret.Data.
 func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Secret, title string, tags []string) error {
-	var fields []onepassword.ItemField
+	fields := make([]onepassword.ItemField, 0, len(secret.Data))
 	for k, v := range secret.Data {
 		fields = append(fields, generateNewItemField(k, string(v), onepassword.ItemFieldTypeConcealed))
 	}
