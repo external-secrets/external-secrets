@@ -34,6 +34,7 @@ import (
 	awsauth "github.com/external-secrets/external-secrets/providers/v1/aws/auth"
 )
 
+// AuthorizationTokenGetter is the interface for retrieving an AWS CodeArtifact authorization token.
 type AuthorizationTokenGetter interface {
 	GetAuthorizationToken(ctx context.Context, params *codeartifact.GetAuthorizationTokenInput, optFuncs ...func(*codeartifact.Options)) (*codeartifact.GetAuthorizationTokenOutput, error)
 }
