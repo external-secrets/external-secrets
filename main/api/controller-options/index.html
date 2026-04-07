@@ -5063,6 +5063,18 @@
 <td>Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.</td>
 </tr>
 <tr>
+<td><code>--enable-vault-token-cache</code></td>
+<td>boolean</td>
+<td>false</td>
+<td>Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.</td>
+</tr>
+<tr>
+<td><code>--vault-token-cache-size</code></td>
+<td>int</td>
+<td>0</td>
+<td>Maximum size of Vault token cache. Only used if --enable-vault-token-cache is set.</td>
+</tr>
+<tr>
 <td><code>--experimental-enable-aws-session-cache</code></td>
 <td>boolean</td>
 <td>false</td>

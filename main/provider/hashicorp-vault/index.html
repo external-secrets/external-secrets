@@ -3489,6 +3489,67 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-cache-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token Cache Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Token Cache Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cache-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-token-caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Token Caching
+      
+    </span>
+  </a>
+  
+</li>
+        
           <li class="md-nav__item">
   <a href="#read-your-writes" class="md-nav__link">
     <span class="md-ellipsis">
@@ -5488,6 +5549,67 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-cache-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token Cache Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Token Cache Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cache-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cache Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-token-caching" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Token Caching
+      
+    </span>
+  </a>
+  
+</li>
+        
           <li class="md-nav__item">
   <a href="#read-your-writes" class="md-nav__link">
     <span class="md-ellipsis">
@@ -6262,6 +6384,34 @@ and pick the best fit for your environment and Vault configuration.</p>
 <span class="w">        </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kubernetes-team&quot;</span>
 <span class="w">        </span><span class="c1"># ...</span>
 </code></pre></div>
+<h3 id="token-cache-configuration">Token Cache Configuration</h3>
+<p>The Vault provider supports token caching to improve performance by reusing Vault tokens across multiple requests instead of creating new ones each time. This is particularly useful when using authentication methods that generate short-lived tokens.</p>
+<h4 id="configuration-flags">Configuration Flags</h4>
+<p>The following command-line flags control the Vault token cache behavior:</p>
+<ul>
+<li><code>--enable-vault-token-cache</code>: Enable Vault token cache (default: <code>false</code>)</li>
+<li><code>--vault-token-cache-size</code>: Maximum size of the Vault token cache (default: <code>262144</code>)</li>
+</ul>
+<h4 id="usage">Usage</h4>
+<p>To enable token caching, set the <code>--enable-vault-token-cache</code> flag to <code>true</code>:</p>
+<div class="highlight"><pre><span></span><code>external-secrets<span class="w"> </span>--enable-vault-token-cache<span class="w"> </span>--vault-token-cache-size<span class="o">=</span><span class="m">262144</span>
+</code></pre></div>
+<h4 id="cache-behavior">Cache Behavior</h4>
+<ul>
+<li><strong>Cache Key</strong>: The cache uses a combination of the SecretStore name, namespace, and kind as the cache key</li>
+<li><strong>Token Validation</strong>: Before using a cached token, the provider validates its TTL to ensure it hasn't expired</li>
+<li><strong>Cache Eviction</strong>: When the cache reaches its maximum size, the least recently used tokens are evicted</li>
+<li><strong>Token Revocation</strong>: When tokens are evicted from the cache, they are properly revoked from Vault</li>
+</ul>
+<h4 id="when-to-use-token-caching">When to Use Token Caching</h4>
+<p>Token caching is beneficial when:
+- Using authentication methods that generate short-lived tokens (e.g., AppRole, Kubernetes auth)
+- Running multiple ExternalSecrets that use the same SecretStore
+- Experiencing high token generation overhead</p>
+<p>Token caching should <strong>not</strong> be used when:
+- Using static tokens (no performance benefit)
+- Security requirements mandate fresh tokens for each request
+- Memory usage is a concern</p>
 <h4 id="read-your-writes">Read Your Writes</h4>
 <p>Vault 1.10.0 and later encodes information in the token to detect the case
 when a server is behind. If a Vault server does not have information about
