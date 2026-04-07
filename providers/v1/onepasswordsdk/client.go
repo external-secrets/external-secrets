@@ -468,6 +468,28 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 	return nil
 }
 
+// createAllKeysItem creates a new item with all keys from secret.Data.
+func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Secret, title string, tags []string) error {
+	var fields []onepassword.ItemField
+	for k, v := range secret.Data {
+		fields = append(fields, generateNewItemField(k, string(v), onepassword.ItemFieldTypeConcealed))
+	}
+	_, err := p.client.Items().Create(ctx, onepassword.ItemCreateParams{
+		Category: onepassword.ItemCategoryServer,
+		VaultID:  p.vaultID,
+		Title:    title,
+		Fields:   fields,
+		Tags:     tags,
+	})
+	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsCreate, err)
+	if err != nil {
+		return fmt.Errorf(errMsgCreateItem, err)
+	}
+	p.invalidateCacheByPrefix(p.constructRefKey(title))
+	p.invalidateItemCache(title)
+	return nil
+}
+
 // pushAllKeys pushes all keys from secret.Data as separate fields on a single 1Password item.
 func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, ref esv1.PushSecretData) error {
 	mdata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
@@ -484,24 +506,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	providerItem, err := p.findItem(ctx, title)
 
 	if errors.Is(err, ErrKeyNotFound) {
-		var fields []onepassword.ItemField
-		for k, v := range secret.Data {
-			fields = append(fields, generateNewItemField(k, string(v), onepassword.ItemFieldTypeConcealed))
-		}
-		_, err = p.client.Items().Create(ctx, onepassword.ItemCreateParams{
-			Category: onepassword.ItemCategoryServer,
-			VaultID:  p.vaultID,
-			Title:    title,
-			Fields:   fields,
-			Tags:     tags,
-		})
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsCreate, err)
-		if err != nil {
-			return fmt.Errorf("failed to create item: %w", err)
-		}
-		p.invalidateCacheByPrefix(p.constructRefKey(title))
-		p.invalidateItemCache(title)
-		return nil
+		return p.createAllKeysItem(ctx, secret, title, tags)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to find item: %w", err)
