@@ -21,6 +21,7 @@
 - [Mercedes-Benz Tech Innovation](https://www.mercedes-benz-techinnovation.com/)
 - [Mixpanel](https://mixpanel.com)
 - [OpenClassrooms](https://openclassrooms.com)
+- [OVHcloud](https://www.ovhcloud.com)
 - [Pento](https://www.pento.io/)
 - [Petco Health and Wellness Company, Inc](https://www.petco.com/)
 - [Pets at Home Group plc](https://petsathome.com)
