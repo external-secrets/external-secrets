@@ -959,7 +959,6 @@ spec:
                                     enum:
                                       - ACRAccessToken
                                       - ClusterGenerator
-                                      - CodeArtifactAuthorizationToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -1153,7 +1152,6 @@ spec:
                                     enum:
                                       - ACRAccessToken
                                       - ClusterGenerator
-                                      - CodeArtifactAuthorizationToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -13039,7 +13037,6 @@ spec:
                                 enum:
                                   - ACRAccessToken
                                   - ClusterGenerator
-                                  - CodeArtifactAuthorizationToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
@@ -13233,7 +13230,6 @@ spec:
                                 enum:
                                   - ACRAccessToken
                                   - ClusterGenerator
-                                  - CodeArtifactAuthorizationToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
