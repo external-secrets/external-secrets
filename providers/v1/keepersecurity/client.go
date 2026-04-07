@@ -366,7 +366,7 @@ func (c *Client) findSecretByIDOrName(key string) (*ksm.Record, error) {
 		return nil, err
 	}
 	if record == nil {
-		return nil, fmt.Errorf(errKeeperSecuritySecretNotFound, key, errors.New("secret not found by ID or name"))
+		return nil, fmt.Errorf(errKeeperSecurityNoSecretsFound)
 	}
 
 	return record, nil
