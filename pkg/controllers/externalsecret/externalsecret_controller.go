@@ -525,10 +525,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			if err != nil {
 				return fmt.Errorf(errApplyTemplate, err)
 			}
+		}
 
-			if err := validateNullBytePolicy(externalSecret, secret); err != nil {
-				return err
-			}
+		if err := validateNullBytePolicy(externalSecret, secret); err != nil {
+			return err
 		}
 
 		// we also use a label to keep track of the owner of the secret
