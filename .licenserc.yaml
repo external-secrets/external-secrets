@@ -24,5 +24,6 @@ header:
     - "**/*.go"
   paths-ignore:
     - "runtime/template/v2/pem_chain.go"
+    - "runtime/template/v2/sprig/**"
 
   comment: on-failure
