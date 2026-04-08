@@ -6710,6 +6710,16 @@ string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>getByTitleFallback</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.KubernetesAuth">KubernetesAuth

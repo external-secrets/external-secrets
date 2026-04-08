@@ -5336,6 +5336,8 @@ spec:
                           type: object
                         folderID:
                           type: string
+                        getByTitleFallback:
+                          type: boolean
                       required:
                         - authRef
                         - folderID
@@ -17406,6 +17408,8 @@ spec:
                           type: object
                         folderID:
                           type: string
+                        getByTitleFallback:
+                          type: boolean
                       required:
                         - authRef
                         - folderID

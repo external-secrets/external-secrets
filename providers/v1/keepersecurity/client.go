@@ -67,8 +67,9 @@ const (
 
 // Client represents a KeeperSecurity client that can interact with the KeeperSecurity API.
 type Client struct {
-	ksmClient SecurityClient
-	folderID  string
+	ksmClient          SecurityClient
+	folderID           string
+	getByTitleFallback bool
 }
 
 // SecurityClient defines the interface for interacting with KeeperSecurity's API.
@@ -117,11 +118,24 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 
 // GetSecret retrieves a secret from Keeper Security by ID or name.
 // It first attempts to find the secret by ID, then falls back to name lookup.
+// The name lookup must be opted in by setting getByTitleFallback on the provider.
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	record, err := c.findSecretByIDOrName(ref.Key)
+	record, err := c.findSecretByID(ref.Key)
 	if err != nil {
 		return nil, err
 	}
+
+	if record == nil && c.getByTitleFallback {
+		record, err = c.findSecretByName(ref.Key, false)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if record == nil {
+		return nil, errors.New(errKeeperSecurityNoSecretsFound)
+	}
+
 	secret, err := c.getValidKeeperSecret(record)
 	if err != nil {
 		return nil, err
@@ -131,9 +145,8 @@ func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 }
 
 // GetSecretMap retrieves a secret from Keeper Security and returns it as a map.
-// It first attempts to find the secret by ID, then falls back to name lookup.
 func (c *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	record, err := c.findSecretByIDOrName(ref.Key)
+	record, err := c.findSecretByID(ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -345,31 +358,10 @@ func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 	}
 
 	if len(records) == 0 {
-		return nil, errors.New(errKeeperSecurityNoSecretsFound)
+		return nil, nil
 	}
 
 	return records[0], nil
-}
-
-func (c *Client) findSecretByIDOrName(key string) (*ksm.Record, error) {
-	// First attempt: try to find by ID
-	record, err := c.findSecretByID(key)
-	if err == nil {
-		return record, nil
-	} else if err.Error() != errKeeperSecurityNoSecretsFound {
-		return nil, err
-	}
-
-	// If ID lookup fails, try name-based lookup
-	record, err = c.findSecretByName(key, false)
-	if err != nil {
-		return nil, err
-	}
-	if record == nil {
-		return nil, fmt.Errorf(errKeeperSecurityNoSecretsFound)
-	}
-
-	return record, nil
 }
 
 func (c *Client) findSecretByName(name string, onlyEsoSecretType bool) (*ksm.Record, error) {

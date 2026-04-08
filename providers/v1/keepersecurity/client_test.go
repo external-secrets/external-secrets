@@ -284,8 +284,9 @@ func TestClientGetAllSecrets(t *testing.T) {
 
 func TestClientGetSecret(t *testing.T) {
 	type fields struct {
-		ksmClient SecurityClient
-		folderID  string
+		ksmClient          SecurityClient
+		folderID           string
+		getByTitleFallback bool
 	}
 	type args struct {
 		ctx context.Context
@@ -306,7 +307,8 @@ func TestClientGetSecret(t *testing.T) {
 						return []*ksm.Record{generateRecords()[0]}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: false,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -326,7 +328,8 @@ func TestClientGetSecret(t *testing.T) {
 						return []*ksm.Record{generateRecords()[0]}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: false,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -345,7 +348,8 @@ func TestClientGetSecret(t *testing.T) {
 						return []*ksm.Record{generateRecordWithLabels()}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: false,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -365,7 +369,8 @@ func TestClientGetSecret(t *testing.T) {
 						return []*ksm.Record{generateRecordWithLabels()}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: false,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -384,7 +389,8 @@ func TestClientGetSecret(t *testing.T) {
 						return []*ksm.Record{generateRecordWithLabels()}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: false,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -403,7 +409,8 @@ func TestClientGetSecret(t *testing.T) {
 						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: false,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -415,17 +422,96 @@ func TestClientGetSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Get non existing secret",
+			name: "Get secret by ID",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
+					},
+				},
+				folderID:           folderID,
+				getByTitleFallback: false,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: record0,
+				},
+			},
+			want:    []byte(outputRecord0),
+			wantErr: false,
+		},
+		{
+			name: "Get secret by ID (with fallback)",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
+					},
+				},
+				folderID:           folderID,
+				getByTitleFallback: true,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: record0,
+				},
+			},
+			want:    []byte(outputRecord0),
+			wantErr: false,
+		},
+		{
+			name: "Get non existing secret with client error",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
 						return nil, errors.New("not found")
 					},
-					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
-						return nil, errors.New("not found")
+				},
+				folderID:           folderID,
+				getByTitleFallback: false,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: "record5",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Get non existing secret",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: false,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: "record5",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Get non existing secret with fallback",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{}, nil
+					},
+					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
+						return []*ksm.Record{}, nil
+					},
+				},
+				folderID:           folderID,
+				getByTitleFallback: true,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -443,7 +529,8 @@ func TestClientGetSecret(t *testing.T) {
 						return []*ksm.Record{generateRecords()[0]}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: false,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -459,23 +546,20 @@ func TestClientGetSecret(t *testing.T) {
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
-						// Return error for ID lookup to trigger name lookup
-						return nil, errors.New("secret not found by ID")
+						// Return empty list to trigger name lookup
+						return []*ksm.Record{}, nil
 					},
 					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
-						// Return a record when looked up by name
-						if recordTitle == "test-secret-name" {
-							return []*ksm.Record{generateRecords()[0]}, nil
-						}
-						return nil, errors.New("secret not found by name")
+						return []*ksm.Record{generateRecords()[0]}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: true,
 			},
 			args: args{
 				ctx: context.Background(),
 				ref: esv1.ExternalSecretDataRemoteRef{
-					Key: "test-secret-name",
+					Key: record0,
 				},
 			},
 			want:    []byte(outputRecord0),
@@ -486,23 +570,20 @@ func TestClientGetSecret(t *testing.T) {
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
-						// Return error for ID lookup to trigger name lookup
-						return nil, errors.New("secret not found by ID")
+						// Return empty list to trigger name lookup
+						return []*ksm.Record{}, nil
 					},
 					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
-						// Return multiple records with same name (should cause error)
-						if recordTitle == "duplicate-secret-name" {
-							return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
-						}
-						return nil, errors.New("secret not found by name")
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
 					},
 				},
-				folderID: folderID,
+				folderID:           folderID,
+				getByTitleFallback: true,
 			},
 			args: args{
 				ctx: context.Background(),
 				ref: esv1.ExternalSecretDataRemoteRef{
-					Key: "duplicate-secret-name",
+					Key: record0,
 				},
 			},
 			wantErr: true,
@@ -511,8 +592,9 @@ func TestClientGetSecret(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				ksmClient: tt.fields.ksmClient,
-				folderID:  tt.fields.folderID,
+				ksmClient:          tt.fields.ksmClient,
+				folderID:           tt.fields.folderID,
+				getByTitleFallback: tt.fields.getByTitleFallback,
 			}
 			got, err := c.GetSecret(tt.args.ctx, tt.args.ref)
 			if (err != nil) != tt.wantErr {
@@ -637,10 +719,7 @@ func TestClientGetSecretMap(t *testing.T) {
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
-						return nil, errors.New("not found")
-					},
-					GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
-						return nil, errors.New("not found")
+						return nil, errors.New(errKeeperSecurityNoSecretsFound)
 					},
 				},
 				folderID: folderID,
