@@ -39,9 +39,9 @@ type Provider struct{}
 
 var _ esv1.Provider = &Provider{}
 
-// Capabilities returns the provider capabilities — write-only.
+// Capabilities returns the provider capabilities — read and write.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreWriteOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient creates a new Gitea secrets client.
@@ -72,11 +72,17 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	}
 	g.baseClient = giteaClient
 
+	// Wire variable (read) functions — default to org scope.
+	g.getVariableFn = g.orgGetVariableFn
+	g.listVariablesFn = g.orgListVariablesFn
+
 	if provider.Repository != "" {
 		g.createOrUpdateFn = g.repoCreateOrUpdateSecret
 		g.listSecretsFn = g.repoListSecretsFn
 		g.deleteSecretFn = g.repoDeleteSecretsFn
 		g.getSecretFn = g.repoGetSecretFn
+		g.getVariableFn = g.repoGetVariableFn
+		g.listVariablesFn = g.repoListVariablesFn
 	}
 
 	return g, nil
