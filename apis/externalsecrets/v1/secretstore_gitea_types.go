@@ -31,12 +31,12 @@ type GiteaProvider struct {
 	Auth GiteaAuth `json:"auth"`
 
 	// Organization is the Gitea organization to sync secrets into.
-	// Mutually exclusive with User.
+	// Required when targeting organization-scoped or repository-scoped secrets.
 	// +optional
 	Organization string `json:"organization,omitempty"`
 
-	// Repository scopes secrets to a specific repository.
-	// Requires Organization or User to also be set.
+	// Repository scopes secrets to a specific repository within the Organization.
+	// Requires Organization to also be set.
 	// +optional
 	Repository string `json:"repository,omitempty"`
 }
