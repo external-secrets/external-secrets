@@ -20,6 +20,8 @@ package onepasswordsdk
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -296,12 +298,17 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 		tags = mdata.Spec.Tags
 	}
 
+	field, err := generateNewItemField(label, string(val))
+	if err != nil {
+		return fmt.Errorf("failed to generate item field: %w", err)
+	}
+
 	_, err = p.client.Items().Create(ctx, onepassword.ItemCreateParams{
 		Category: onepassword.ItemCategoryServer,
 		VaultID:  p.vaultID,
 		Title:    ref.GetRemoteKey(),
 		Fields: []onepassword.ItemField{
-			generateNewItemField(label, string(val)),
+			field,
 		},
 		Tags: tags,
 	})
@@ -338,7 +345,11 @@ func updateFieldValue(fields []onepassword.ItemField, title, newVal string) ([]o
 		}
 	}
 	if !found {
-		return append(fields, generateNewItemField(title, newVal)), nil
+		f, err := generateNewItemField(title, newVal)
+		if err != nil {
+			return nil, err
+		}
+		return append(fields, f), nil
 	}
 
 	if fields[index].Value != newVal {
@@ -348,15 +359,32 @@ func updateFieldValue(fields []onepassword.ItemField, title, newVal string) ([]o
 	return fields, nil
 }
 
+// generateFieldID generates a unique field ID.
+// 1Password SDK requires each field within an item to have a unique ID.
+// Without this, pushing multiple fields to the same item results in
+// "item contained duplicate field ids" errors.
+func generateFieldID() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to generate field ID: %w", err)
+	}
+	return hex.EncodeToString(b), nil
+}
+
 // generateNewItemField generates a new item field with the given label and value.
-func generateNewItemField(title, newVal string) onepassword.ItemField {
+func generateNewItemField(title, newVal string) (onepassword.ItemField, error) {
+	id, err := generateFieldID()
+	if err != nil {
+		return onepassword.ItemField{}, err
+	}
 	field := onepassword.ItemField{
+		ID:        id,
 		Title:     title,
 		Value:     newVal,
 		FieldType: onepassword.ItemFieldTypeConcealed,
 	}
 
-	return field
+	return field, nil
 }
 
 // PushSecret creates or updates a secret in 1Password.
