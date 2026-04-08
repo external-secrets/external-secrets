@@ -120,13 +120,32 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 // It first attempts to find the secret by ID, then falls back to name lookup.
 // The name lookup must be opted in by setting getByTitleFallback on the provider.
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	record, err := c.findSecretByID(ref.Key)
+	secret, err := c.findByIdWithNameFallback(ref.Key)
+	if err != nil {
+		return nil, err
+	}
+	return secret.getItem(ref)
+}
+
+// GetSecretMap retrieves a secret from Keeper Security and returns it as a map.
+func (c *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	secret, err := c.findByIdWithNameFallback(ref.Key)
+	if err != nil {
+		return nil, err
+	}
+	return secret.getItems(ref)
+}
+
+// It first attempts to find the secret by ID, then falls back to name lookup.
+// The name lookup must be opted in by setting getByTitleFallback on the provider.
+func (c *Client) findByIdWithNameFallback(key string) (*Secret, error) {
+	record, err := c.findSecretByID(key)
 	if err != nil {
 		return nil, err
 	}
 
 	if record == nil && c.getByTitleFallback {
-		record, err = c.findSecretByName(ref.Key, false)
+		record, err = c.findSecretByName(key, false)
 		if err != nil {
 			return nil, err
 		}
@@ -140,24 +159,8 @@ func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	if err != nil {
 		return nil, err
 	}
-
-	return secret.getItem(ref)
+	return secret, nil
 }
-
-// GetSecretMap retrieves a secret from Keeper Security and returns it as a map.
-func (c *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	record, err := c.findSecretByID(ref.Key)
-	if err != nil {
-		return nil, err
-	}
-	secret, err := c.getValidKeeperSecret(record)
-	if err != nil {
-		return nil, err
-	}
-
-	return secret.getItems(ref)
-}
-
 // GetAllSecrets retrieves all secrets from Keeper Security that match the given criteria.
 func (c *Client) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
