@@ -35,9 +35,12 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 func newIntegrationClient(t *testing.T) *Client {
@@ -52,10 +55,23 @@ func newIntegrationClient(t *testing.T) *Client {
 		t.Skip("GITEA_URL / GITEA_TOKEN / GITEA_ORG not set")
 	}
 
+	// Store the PAT in a fake K8s secret so getToken() works for methods that
+	// use direct HTTP (e.g. orgDeleteSecretsFn, org variable operations).
+	k8sSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "gitea-pat", Namespace: "default"},
+		Data:       map[string][]byte{"token": []byte(token)},
+	}
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(k8sSecret).Build()
+
 	provider := &esv1.GiteaProvider{
 		URL:          url,
 		Organization: org,
 		Repository:   repo,
+		Auth: esv1.GiteaAuth{
+			SecretRef: esmeta.SecretKeySelector{Name: "gitea-pat", Key: "token"},
+		},
 	}
 
 	store := &esv1.SecretStore{
@@ -72,6 +88,9 @@ func newIntegrationClient(t *testing.T) *Client {
 		provider:   provider,
 		baseClient: gc,
 		store:      store,
+		crClient:   fakeClient,
+		namespace:  "default",
+		storeKind:  "SecretStore",
 	}
 
 	if repo != "" {
