@@ -20,12 +20,61 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
-
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-func TestValidateNullBytePolicy(t *testing.T) {
+func TestValidateFetchedSecretValue(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		policy  esv1.ExternalSecretNullBytePolicy
+		key     string
+		value   []byte
+		wantErr string
+	}{
+		{
+			name:   "zero value policy behaves like ignore",
+			policy: "",
+			key:    "payload",
+			value:  []byte(nullByteSecretVal),
+		},
+		{
+			name:   "ignores null bytes when policy is not fail",
+			policy: esv1.ExternalSecretNullBytePolicyIgnore,
+			key:    "payload",
+			value:  []byte(nullByteSecretVal),
+		},
+		{
+			name:   "allows nil values",
+			policy: esv1.ExternalSecretNullBytePolicyFail,
+			key:    "payload",
+			value:  nil,
+		},
+		{
+			name:   "allows fetched data without null bytes",
+			policy: esv1.ExternalSecretNullBytePolicyFail,
+			key:    "payload",
+			value:  []byte("QQBC"),
+		},
+		{
+			name:    "fails on fetched data containing null bytes",
+			policy:  esv1.ExternalSecretNullBytePolicyFail,
+			key:     "payload",
+			value:   []byte(nullByteSecretVal),
+			wantErr: `fetched secret value for key "payload" contains null bytes`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assertFetchedSecretValidationError(t, validateFetchedSecretValue(tt.policy, tt.key, tt.value), tt.wantErr)
+		})
+	}
+}
+
+func TestValidateFetchedSecretMap(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -35,39 +84,9 @@ func TestValidateNullBytePolicy(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:   "zero value policy behaves like ignore",
-			policy: "",
-			data: map[string][]byte{
-				"payload": []byte(nullByteSecretVal),
-			},
-		},
-		{
-			name:   "ignores null bytes when policy is not fail",
-			policy: esv1.ExternalSecretNullBytePolicyIgnore,
-			data: map[string][]byte{
-				"payload": []byte(nullByteSecretVal),
-			},
-		},
-		{
 			name:   "allows nil secret data map",
 			policy: esv1.ExternalSecretNullBytePolicyFail,
 			data:   nil,
-		},
-		{
-			name:   "allows rendered data without null bytes",
-			policy: esv1.ExternalSecretNullBytePolicyFail,
-			data: map[string][]byte{
-				"payload": []byte("QQBC"),
-			},
-		},
-		{
-			name:   "fails on the offending key when rendered data contains null bytes",
-			policy: esv1.ExternalSecretNullBytePolicyFail,
-			data: map[string][]byte{
-				"safe":    []byte("value"),
-				"payload": []byte(nullByteSecretVal),
-			},
-			wantErr: `target secret key "payload" contains null bytes`,
 		},
 		{
 			name:   "reports the first offending key in sorted order",
@@ -76,44 +95,32 @@ func TestValidateNullBytePolicy(t *testing.T) {
 				"zeta":  []byte(nullByteSecretVal),
 				"alpha": []byte("C\x00D"),
 			},
-			wantErr: `target secret key "alpha" contains null bytes`,
+			wantErr: `fetched secret value for key "alpha" contains null bytes`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-
-			es := &esv1.ExternalSecret{
-				Spec: esv1.ExternalSecretSpec{
-					Target: esv1.ExternalSecretTarget{
-						NullBytePolicy: tt.policy,
-					},
-				},
-			}
-			secret := &v1.Secret{
-				Data: tt.data,
-			}
-
-			assertValidateNullBytePolicyError(t, validateNullBytePolicy(es, secret), tt.wantErr)
+			assertFetchedSecretValidationError(t, validateFetchedSecretMap(tt.policy, tt.data), tt.wantErr)
 		})
 	}
 }
 
-func assertValidateNullBytePolicyError(t *testing.T, err error, wantErr string) {
+func assertFetchedSecretValidationError(t *testing.T, err error, wantErr string) {
 	t.Helper()
 
 	if wantErr == "" {
 		if err != nil {
-			t.Fatalf("validateNullBytePolicy() unexpected error = %v", err)
+			t.Fatalf("unexpected error = %v", err)
 		}
 		return
 	}
 
 	if err == nil {
-		t.Fatalf("validateNullBytePolicy() error = nil, want substring %q", wantErr)
+		t.Fatalf("error = nil, want substring %q", wantErr)
 	}
 	if got := err.Error(); !strings.Contains(got, wantErr) {
-		t.Fatalf("validateNullBytePolicy() error = %q, want substring %q", got, wantErr)
+		t.Fatalf("error = %q, want substring %q", got, wantErr)
 	}
 }

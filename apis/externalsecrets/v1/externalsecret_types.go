@@ -78,15 +78,15 @@ const (
 	DeletionPolicyRetain ExternalSecretDeletionPolicy = "Retain"
 )
 
-// ExternalSecretNullBytePolicy defines how rendered secret data containing NUL bytes should be handled.
+// ExternalSecretNullBytePolicy defines how fetched secret data containing NUL bytes should be handled.
 // +kubebuilder:validation:Enum=Ignore;Fail
 type ExternalSecretNullBytePolicy string
 
 const (
-	// ExternalSecretNullBytePolicyIgnore allows rendered secret data to contain NUL bytes.
+	// ExternalSecretNullBytePolicyIgnore allows fetched secret data to contain NUL bytes.
 	ExternalSecretNullBytePolicyIgnore ExternalSecretNullBytePolicy = "Ignore"
 
-	// ExternalSecretNullBytePolicyFail fails reconciliation if rendered secret data contains NUL bytes.
+	// ExternalSecretNullBytePolicyFail fails reconciliation if fetched secret data contains NUL bytes.
 	ExternalSecretNullBytePolicyFail ExternalSecretNullBytePolicy = "Fail"
 )
 
@@ -255,11 +255,6 @@ type ExternalSecretTarget struct {
 	// +optional
 	Manifest *ManifestReference `json:"manifest,omitempty"`
 
-	// NullBytePolicy controls how ESO handles rendered secret data containing NUL bytes.
-	// +optional
-	// +kubebuilder:default="Ignore"
-	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
-
 	// Immutable defines if the final secret will be immutable
 	// +optional
 	Immutable bool `json:"immutable,omitempty"`
@@ -309,6 +304,11 @@ type ExternalSecretDataRemoteRef struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
+	// +kubebuilder:default="Ignore"
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
 // ExternalSecretMetadataPolicy defines policies for fetching metadata from provider secrets.
@@ -494,6 +494,11 @@ type ExternalSecretFind struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+	// +kubebuilder:default="Ignore"
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
 // FindName defines criteria for finding secrets by name patterns.

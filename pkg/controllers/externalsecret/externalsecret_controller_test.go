@@ -36,7 +36,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -60,7 +59,6 @@ const (
 	existingLabelKey   = "existing-label-key"
 	existingLabelValue = "existing-label-value"
 	nullByteSecretVal  = "A\x00B"
-	nullByteBase64Val  = "QQBC"
 )
 
 var (
@@ -2128,8 +2126,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 		}
 	}
-	failWhenRenderedSecretContainsNullBytes := func(tc *testCase) {
-		tc.externalSecret.Spec.Target.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
+	failWhenFetchedSecretContainsNullBytes := func(tc *testCase) {
+		tc.externalSecret.Spec.Data[0].RemoteRef.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
 		fakeProvider.WithGetSecret([]byte(nullByteSecretVal), nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
 			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
@@ -2149,35 +2147,19 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			}, time.Second, interval).Should(BeTrue())
 		}
 	}
-	allowTemplateConversionWhenRenderedSecretHasNoNullBytes := func(tc *testCase) {
-		tc.externalSecret.Spec.Target.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
-		tc.externalSecret.Spec.Target.Template = &esv1.ExternalSecretTemplate{
-			Data: map[string]string{
-				targetProp: "{{ .targetProperty | b64enc }}",
+	failWhenExtractedSecretContainsNullBytes := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1.ExternalSecretDataRemoteRef{
+					Key:            remoteKey,
+					NullBytePolicy: esv1.ExternalSecretNullBytePolicyFail,
+				},
 			},
 		}
-		fakeProvider.WithGetSecret([]byte(nullByteSecretVal), nil)
-		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
-			Expect(string(secret.Data[targetProp])).To(Equal(nullByteBase64Val))
-		}
-	}
-	failWhenImmutableExistingSecretContainsNullBytes := func(tc *testCase) {
-		tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyOrphan
-		tc.externalSecret.Spec.Target.Immutable = true
-		tc.externalSecret.Spec.Target.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
-
-		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
-			Data: map[string][]byte{
-				targetProp: []byte(nullByteSecretVal),
-			},
-			Immutable: ptr.To(true),
-		}, client.FieldOwner(FakeManager))).To(Succeed())
-
-		fakeProvider.WithGetSecret([]byte("safe"), nil)
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"payload": []byte(nullByteSecretVal),
+		}, nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
 			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
@@ -2185,10 +2167,48 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			}
 			return true
 		}
-		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.Immutable).ToNot(BeNil())
-			Expect(*secret.Immutable).To(BeTrue())
-			Expect(secret.Data[targetProp]).To(Equal([]byte(nullByteSecretVal)))
+		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
+			secretLookupKey := types.NamespacedName{
+				Name:      tc.targetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Consistently(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, &v1.Secret{})
+				return apierrors.IsNotFound(err)
+			}, time.Second, interval).Should(BeTrue())
+		}
+	}
+	failWhenFoundSecretContainsNullBytes := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1.ExternalSecretFind{
+					Name: &esv1.FindName{
+						RegExp: "foobar",
+					},
+					NullBytePolicy: esv1.ExternalSecretNullBytePolicyFail,
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecrets(map[string][]byte{
+			"payload": []byte(nullByteSecretVal),
+		}, nil)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
+			secretLookupKey := types.NamespacedName{
+				Name:      tc.targetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Consistently(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, &v1.Secret{})
+				return apierrors.IsNotFound(err)
+			}, time.Second, interval).Should(BeTrue())
 		}
 	}
 	useClusterSecretStore := func(tc *testCase) {
@@ -2464,9 +2484,9 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should sync template from keys and values", syncTemplateFromKeysAndValues),
 		Entry("should sync template from literal", syncTemplateFromLiteral),
-		Entry("should fail when rendered secret data contains null bytes and nullBytePolicy=Fail", failWhenRenderedSecretContainsNullBytes),
-		Entry("should allow template conversion when nullBytePolicy=Fail and rendered data has no null bytes", allowTemplateConversionWhenRenderedSecretHasNoNullBytes),
-		Entry("should fail when an immutable existing secret contains null bytes and nullBytePolicy=Fail", failWhenImmutableExistingSecretContainsNullBytes),
+		Entry("should fail when fetched secret data contains null bytes and remoteRef.nullBytePolicy=Fail", failWhenFetchedSecretContainsNullBytes),
+		Entry("should fail when extracted secret data contains null bytes and extract.nullBytePolicy=Fail", failWhenExtractedSecretContainsNullBytes),
+		Entry("should fail when found secret data contains null bytes and find.nullBytePolicy=Fail", failWhenFoundSecretContainsNullBytes),
 		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
 		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),

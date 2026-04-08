@@ -18,7 +18,6 @@ limitations under the License.
 package externalsecret
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -527,10 +526,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			}
 		}
 
-		if err := validateNullBytePolicy(externalSecret, secret); err != nil {
-			return err
-		}
-
 		// we also use a label to keep track of the owner of the secret
 		// this lets us remove secrets that are no longer needed if the target secret name changes
 		if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
@@ -854,29 +849,6 @@ func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger,
 			return err
 		}
 		log.V(1).Info("deleted managed secret", "secret", secretName)
-	}
-
-	return nil
-}
-
-func validateNullBytePolicy(es *esv1.ExternalSecret, secret *v1.Secret) error {
-	if es.Spec.Target.NullBytePolicy != esv1.ExternalSecretNullBytePolicyFail {
-		return nil
-	}
-
-	keys := make([]string, 0, len(secret.Data))
-	for key := range secret.Data {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-
-	for _, key := range keys {
-		if bytes.IndexByte(secret.Data[key], 0) >= 0 {
-			return fmt.Errorf(
-				"target secret key %q contains null bytes; use a text-safe format such as PEM/base64 or transform the value with spec.target.template",
-				key,
-			)
-		}
 	}
 
 	return nil
