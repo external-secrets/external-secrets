@@ -59,6 +59,8 @@ const (
 	annotationValue    = "annotation-value"
 	existingLabelKey   = "existing-label-key"
 	existingLabelValue = "existing-label-value"
+	nullByteSecretVal  = "A\x00B"
+	nullByteBase64Val  = "QQBC"
 )
 
 var (
@@ -2128,7 +2130,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	}
 	failWhenRenderedSecretContainsNullBytes := func(tc *testCase) {
 		tc.externalSecret.Spec.Target.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
-		fakeProvider.WithGetSecret([]byte("A\x00B"), nil)
+		fakeProvider.WithGetSecret([]byte(nullByteSecretVal), nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
 			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
@@ -2154,9 +2156,9 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				targetProp: "{{ .targetProperty | b64enc }}",
 			},
 		}
-		fakeProvider.WithGetSecret([]byte("A\x00B"), nil)
+		fakeProvider.WithGetSecret([]byte(nullByteSecretVal), nil)
 		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
-			Expect(string(secret.Data[targetProp])).To(Equal("QQBC"))
+			Expect(string(secret.Data[targetProp])).To(Equal(nullByteBase64Val))
 		}
 	}
 	failWhenImmutableExistingSecretContainsNullBytes := func(tc *testCase) {
@@ -2170,7 +2172,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Namespace: ExternalSecretNamespace,
 			},
 			Data: map[string][]byte{
-				targetProp: []byte("A\x00B"),
+				targetProp: []byte(nullByteSecretVal),
 			},
 			Immutable: ptr.To(true),
 		}, client.FieldOwner(FakeManager))).To(Succeed())
@@ -2186,7 +2188,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
 			Expect(secret.Immutable).ToNot(BeNil())
 			Expect(*secret.Immutable).To(BeTrue())
-			Expect(secret.Data[targetProp]).To(Equal([]byte("A\x00B")))
+			Expect(secret.Data[targetProp]).To(Equal([]byte(nullByteSecretVal)))
 		}
 	}
 	useClusterSecretStore := func(tc *testCase) {

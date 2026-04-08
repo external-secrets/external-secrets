@@ -38,14 +38,14 @@ func TestValidateNullBytePolicy(t *testing.T) {
 			name:   "zero value policy behaves like ignore",
 			policy: "",
 			data: map[string][]byte{
-				"payload": []byte("A\x00B"),
+				"payload": []byte(nullByteSecretVal),
 			},
 		},
 		{
 			name:   "ignores null bytes when policy is not fail",
 			policy: esv1.ExternalSecretNullBytePolicyIgnore,
 			data: map[string][]byte{
-				"payload": []byte("A\x00B"),
+				"payload": []byte(nullByteSecretVal),
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestValidateNullBytePolicy(t *testing.T) {
 			policy: esv1.ExternalSecretNullBytePolicyFail,
 			data: map[string][]byte{
 				"safe":    []byte("value"),
-				"payload": []byte("A\x00B"),
+				"payload": []byte(nullByteSecretVal),
 			},
 			wantErr: `target secret key "payload" contains null bytes`,
 		},
@@ -73,7 +73,7 @@ func TestValidateNullBytePolicy(t *testing.T) {
 			name:   "reports the first offending key in sorted order",
 			policy: esv1.ExternalSecretNullBytePolicyFail,
 			data: map[string][]byte{
-				"zeta":  []byte("A\x00B"),
+				"zeta":  []byte(nullByteSecretVal),
 				"alpha": []byte("C\x00D"),
 			},
 			wantErr: `target secret key "alpha" contains null bytes`,
@@ -95,18 +95,25 @@ func TestValidateNullBytePolicy(t *testing.T) {
 				Data: tt.data,
 			}
 
-			err := validateNullBytePolicy(es, secret)
-			if tt.wantErr == "" && err != nil {
-				t.Fatalf("validateNullBytePolicy() unexpected error = %v", err)
-			}
-			if tt.wantErr != "" {
-				if err == nil {
-					t.Fatalf("validateNullBytePolicy() error = nil, want substring %q", tt.wantErr)
-				}
-				if got := err.Error(); !strings.Contains(got, tt.wantErr) {
-					t.Fatalf("validateNullBytePolicy() error = %q, want substring %q", got, tt.wantErr)
-				}
-			}
+			assertValidateNullBytePolicyError(t, validateNullBytePolicy(es, secret), tt.wantErr)
 		})
+	}
+}
+
+func assertValidateNullBytePolicyError(t *testing.T, err error, wantErr string) {
+	t.Helper()
+
+	if wantErr == "" {
+		if err != nil {
+			t.Fatalf("validateNullBytePolicy() unexpected error = %v", err)
+		}
+		return
+	}
+
+	if err == nil {
+		t.Fatalf("validateNullBytePolicy() error = nil, want substring %q", wantErr)
+	}
+	if got := err.Error(); !strings.Contains(got, wantErr) {
+		t.Fatalf("validateNullBytePolicy() error = %q, want substring %q", got, wantErr)
 	}
 }
