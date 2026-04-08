@@ -110,13 +110,14 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&Reconciler{
-		Client:                    k8sManager.GetClient(),
-		SecretClient:              secretClient,
-		RestConfig:                cfg,
-		Scheme:                    k8sManager.GetScheme(),
-		Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
-		RequeueInterval:           time.Second,
-		ClusterSecretStoreEnabled: true,
+		Client:                             k8sManager.GetClient(),
+		SecretClient:                       secretClient,
+		EnableSecretAPIReadOnCacheMismatch: true,
+		RestConfig:                         cfg,
+		Scheme:                             k8sManager.GetScheme(),
+		Log:                                ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
+		RequeueInterval:                    time.Second,
+		ClusterSecretStoreEnabled:          true,
 	}).SetupWithManager(ctx, k8sManager, controller.Options{
 		MaxConcurrentReconciles: 1,
 		RateLimiter:             ctrlcommon.BuildRateLimiter(),
