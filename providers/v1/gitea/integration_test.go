@@ -24,7 +24,10 @@ package gitea
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	giteasdk "code.gitea.io/sdk/gitea"
@@ -76,11 +79,15 @@ func newIntegrationClient(t *testing.T) *Client {
 		c.listSecretsFn    = c.repoListSecretsFn
 		c.deleteSecretFn   = c.repoDeleteSecretsFn
 		c.getSecretFn      = c.repoGetSecretFn
+		c.getVariableFn    = c.repoGetVariableFn
+		c.listVariablesFn  = c.repoListVariablesFn
 	} else {
 		c.createOrUpdateFn = c.orgCreateOrUpdateSecret
 		c.listSecretsFn    = c.orgListSecretsFn
 		c.deleteSecretFn   = c.orgDeleteSecretsFn
 		c.getSecretFn      = c.orgGetSecretFn
+		c.getVariableFn    = c.orgGetVariableFn
+		c.listVariablesFn  = c.orgListVariablesFn
 	}
 
 	return c
@@ -146,4 +153,55 @@ func TestIntegration_Validate(t *testing.T) {
 	result, err := c.Validate()
 	require.NoError(t, err)
 	assert.Equal(t, esv1.ValidationResultReady, result)
+}
+
+func TestIntegration_GetSecret_Variable(t *testing.T) {
+	c := newIntegrationClient(t)
+	ctx := context.Background()
+
+	url := os.Getenv("GITEA_URL")
+	token := os.Getenv("GITEA_TOKEN")
+	org := os.Getenv("GITEA_ORG")
+	repo := os.Getenv("GITEA_REPO")
+
+	const varName = "ESO_INTEGRATION_VAR"
+	const varValue = "integration-test-value"
+
+	// Create the variable via the Gitea REST API directly (SDK has no org variable write methods).
+	gc, err := giteasdk.NewClient(url, giteasdk.SetToken(token))
+	require.NoError(t, err)
+
+	if repo != "" {
+		_, err = gc.CreateRepoActionVariable(org, repo, varName, varValue)
+		require.NoError(t, err, "should be able to create repo variable via API")
+		t.Cleanup(func() { _, _ = gc.DeleteRepoActionVariable(org, repo, varName) })
+	} else {
+		// Org variable create: POST /api/v1/orgs/{org}/actions/variables/{variablename}
+		apiURL := fmt.Sprintf("%s/api/v1/orgs/%s/actions/variables/%s", strings.TrimRight(url, "/"), org, varName)
+		body := fmt.Sprintf(`{"name":%q,"data":%q}`, varName, varValue)
+		req, _ := http.NewRequest(http.MethodPost, apiURL, strings.NewReader(body))
+		req.Header.Set("Authorization", "token "+token)
+		req.Header.Set("Content-Type", "application/json")
+		resp, doErr := http.DefaultClient.Do(req)
+		require.NoError(t, doErr)
+		resp.Body.Close()
+		require.True(t, resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusNoContent,
+			"expected 201/204 creating org variable, got %d", resp.StatusCode)
+
+		t.Cleanup(func() {
+			delURL := fmt.Sprintf("%s/api/v1/orgs/%s/actions/variables/%s", strings.TrimRight(url, "/"), org, varName)
+			delReq, _ := http.NewRequest(http.MethodDelete, delURL, nil)
+			delReq.Header.Set("Authorization", "token "+token)
+			delResp, _ := http.DefaultClient.Do(delReq)
+			if delResp != nil {
+				delResp.Body.Close()
+			}
+		})
+	}
+
+	// Read it back via GetSecret.
+	ref := esv1.ExternalSecretDataRemoteRef{Key: varName}
+	got, err := c.GetSecret(ctx, ref)
+	require.NoError(t, err)
+	assert.Equal(t, varValue, string(got))
 }
