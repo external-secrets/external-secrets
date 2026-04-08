@@ -111,6 +111,11 @@ type SecretStoreProvider struct {
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
 
+	// Gitea configures this store to push Gitea Actions secrets using the Gitea API provider.
+	// Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from Gitea.
+	// +optional
+	Gitea *GiteaProvider `json:"gitea,omitempty"`
+
 	// Github configures this store to push GitHub Actions secrets using the GitHub API provider.
 	// Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
 	// +optional
