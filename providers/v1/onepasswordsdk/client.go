@@ -422,11 +422,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 	title := ref.GetRemoteKey()
 	providerItem, err := p.findItem(ctx, title)
 	if errors.Is(err, ErrKeyNotFound) {
-		if err = p.createItem(ctx, val, ref); err != nil {
-			return fmt.Errorf(errMsgCreateItem, err)
-		}
-
-		return nil
+		return p.createItem(ctx, val, ref)
 	} else if err != nil {
 		return fmt.Errorf("failed to find item: %w", err)
 	}
@@ -469,10 +465,10 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 }
 
 // createAllKeysItem creates a new item with all keys from secret.Data.
-func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Secret, title string, tags []string) error {
+func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Secret, title string, tags []string, fieldType onepassword.ItemFieldType) error {
 	fields := make([]onepassword.ItemField, 0, len(secret.Data))
 	for k, v := range secret.Data {
-		fields = append(fields, generateNewItemField(k, string(v), onepassword.ItemFieldTypeConcealed))
+		fields = append(fields, generateNewItemField(k, string(v), fieldType))
 	}
 	_, err := p.client.Items().Create(ctx, onepassword.ItemCreateParams{
 		Category: onepassword.ItemCategoryServer,
@@ -502,20 +498,23 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 		tags = mdata.Spec.Tags
 	}
 
+	fieldType := onepassword.ItemFieldTypeConcealed
+	if mdata != nil {
+		fieldType = resolveFieldType(mdata.Spec.FieldType)
+	}
+
 	title := ref.GetRemoteKey()
 	providerItem, err := p.findItem(ctx, title)
 
 	if errors.Is(err, ErrKeyNotFound) {
-		return p.createAllKeysItem(ctx, secret, title, tags)
+		return p.createAllKeysItem(ctx, secret, title, tags, fieldType)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to find item: %w", err)
 	}
 
 	providerItem.Fields = normalizeItemFields(providerItem.Fields)
-	if mdata != nil && mdata.Spec.Tags != nil {
-		providerItem.Tags = mdata.Spec.Tags
-	}
+	providerItem.Tags = tags
 	kept := providerItem.Fields[:0]
 	for _, f := range providerItem.Fields {
 		if v, ok := secret.Data[f.Title]; ok {
@@ -525,7 +524,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	}
 	for k, v := range secret.Data {
 		if countFieldsWithLabel(k, kept) == 0 {
-			kept = append(kept, generateNewItemField(k, string(v), onepassword.ItemFieldTypeConcealed))
+			kept = append(kept, generateNewItemField(k, string(v), fieldType))
 		}
 	}
 	providerItem.Fields = kept
@@ -624,10 +623,6 @@ func (p *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 
 	property := ref.GetProperty()
 	if property == "" {
-		type secretKeyGetter interface{ GetSecretKey() string }
-		if sk, ok := ref.(secretKeyGetter); ok && sk.GetSecretKey() == "" {
-			return true, nil
-		}
 		property = defaultFieldLabel
 	}
 

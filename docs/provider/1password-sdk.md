@@ -84,6 +84,7 @@ To sync the entire secret into a single 1Password item, the following configurat
 
 ```yaml
 {% include '1passwordsdk-push-secret-all-keys.yaml' %}
+```
 
 ### Supported Functionality
 
