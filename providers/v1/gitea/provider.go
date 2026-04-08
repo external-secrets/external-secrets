@@ -90,7 +90,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 
 func getProvider(store esv1.GenericStore) (*esv1.GiteaProvider, error) {
 	spc := store.GetSpec()
-	if spc == nil || spc.Provider.Gitea == nil {
+	if spc == nil || spc.Provider == nil || spc.Provider.Gitea == nil {
 		return nil, errors.New(errUnexpectedStoreSpec)
 	}
 	return spc.Provider.Gitea, nil

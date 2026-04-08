@@ -34,11 +34,22 @@ func (g *Client) repoCreateOrUpdateSecret(_ context.Context, name, value string)
 	return err
 }
 
-// repoListSecretsFn lists all Actions secrets for a repository.
-// Note: the SDK method is ListRepoActionSecret (singular).
+// repoListSecretsFn lists all Actions secrets for a repository, paginating through all pages.
 func (g *Client) repoListSecretsFn(_ context.Context) ([]*giteasdk.Secret, error) {
-	secrets, _, err := g.baseClient.ListRepoActionSecret(g.provider.Organization, g.provider.Repository, giteasdk.ListRepoActionSecretOption{})
-	return secrets, err
+	var all []*giteasdk.Secret
+	opts := giteasdk.ListRepoActionSecretOption{ListOptions: giteasdk.ListOptions{Page: 1, PageSize: 50}}
+	for {
+		page, resp, err := g.baseClient.ListRepoActionSecret(g.provider.Organization, g.provider.Repository, opts)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, page...)
+		if resp.LastPage <= opts.Page {
+			break
+		}
+		opts.Page++
+	}
+	return all, nil
 }
 
 func (g *Client) repoDeleteSecretsFn(_ context.Context, remoteRef esv1.PushSecretRemoteRef) error {
@@ -46,8 +57,8 @@ func (g *Client) repoDeleteSecretsFn(_ context.Context, remoteRef esv1.PushSecre
 	return err
 }
 
-func (g *Client) repoGetSecretFn(_ context.Context, ref esv1.PushSecretRemoteRef) (*giteasdk.Secret, error) {
-	secrets, _, err := g.baseClient.ListRepoActionSecret(g.provider.Organization, g.provider.Repository, giteasdk.ListRepoActionSecretOption{})
+func (g *Client) repoGetSecretFn(ctx context.Context, ref esv1.PushSecretRemoteRef) (*giteasdk.Secret, error) {
+	secrets, err := g.repoListSecretsFn(ctx)
 	if err != nil {
 		return nil, err
 	}
