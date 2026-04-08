@@ -40,11 +40,22 @@ func (g *Client) orgCreateOrUpdateSecret(_ context.Context, name, value string) 
 	return nil
 }
 
-// orgListSecretsFn lists all Actions secrets for the organisation.
-// Note: the SDK method is ListOrgActionSecret (singular), not ListOrgActionSecrets.
+// orgListSecretsFn lists all Actions secrets for the organisation, paginating through all pages.
 func (g *Client) orgListSecretsFn(_ context.Context) ([]*giteasdk.Secret, error) {
-	secrets, _, err := g.baseClient.ListOrgActionSecret(g.provider.Organization, giteasdk.ListOrgActionSecretOption{})
-	return secrets, err
+	var all []*giteasdk.Secret
+	opts := giteasdk.ListOrgActionSecretOption{ListOptions: giteasdk.ListOptions{Page: 1, PageSize: 50}}
+	for {
+		page, resp, err := g.baseClient.ListOrgActionSecret(g.provider.Organization, opts)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, page...)
+		if resp.LastPage <= opts.Page {
+			break
+		}
+		opts.Page++
+	}
+	return all, nil
 }
 
 // orgDeleteSecretsFn deletes an organisation Actions secret.
@@ -82,8 +93,8 @@ func (g *Client) orgDeleteSecretsFn(ctx context.Context, remoteRef esv1.PushSecr
 	return nil
 }
 
-func (g *Client) orgGetSecretFn(_ context.Context, ref esv1.PushSecretRemoteRef) (*giteasdk.Secret, error) {
-	secrets, _, err := g.baseClient.ListOrgActionSecret(g.provider.Organization, giteasdk.ListOrgActionSecretOption{})
+func (g *Client) orgGetSecretFn(ctx context.Context, ref esv1.PushSecretRemoteRef) (*giteasdk.Secret, error) {
+	secrets, err := g.orgListSecretsFn(ctx)
 	if err != nil {
 		return nil, err
 	}
