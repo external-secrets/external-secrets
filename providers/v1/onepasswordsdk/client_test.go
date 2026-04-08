@@ -635,7 +635,11 @@ type fakeFileLister struct {
 	readContent []byte
 }
 
-func (f *fakeFileLister) Attach(ctx context.Context, item onepassword.Item, fileParams onepassword.FileCreateParams) (onepassword.Item, error) {
+func (f *fakeFileLister) Attach(
+	ctx context.Context,
+	item onepassword.Item,
+	fileParams onepassword.FileCreateParams,
+) (onepassword.Item, error) {
 	return onepassword.Item{}, nil
 }
 
@@ -647,7 +651,11 @@ func (f *fakeFileLister) Delete(ctx context.Context, item onepassword.Item, sect
 	return onepassword.Item{}, nil
 }
 
-func (f *fakeFileLister) ReplaceDocument(ctx context.Context, item onepassword.Item, docParams onepassword.DocumentCreateParams) (onepassword.Item, error) {
+func (f *fakeFileLister) ReplaceDocument(
+	ctx context.Context,
+	item onepassword.Item,
+	docParams onepassword.DocumentCreateParams,
+) (onepassword.Item, error) {
 	return onepassword.Item{}, nil
 }
 
@@ -702,7 +710,11 @@ func (f *statefulFakeLister) Archive(ctx context.Context, vaultID, itemID string
 	return nil
 }
 
-func (f *statefulFakeLister) List(ctx context.Context, vaultID string, opts ...onepassword.ItemListFilter) ([]onepassword.ItemOverview, error) {
+func (f *statefulFakeLister) List(
+	ctx context.Context,
+	vaultID string,
+	opts ...onepassword.ItemListFilter,
+) ([]onepassword.ItemOverview, error) {
 	return f.listAllResult, nil
 }
 
@@ -1168,7 +1180,11 @@ func (f *fakeListerWithCounter) Archive(ctx context.Context, vaultID, itemID str
 	return f.fakeLister.Archive(ctx, vaultID, itemID)
 }
 
-func (f *fakeListerWithCounter) List(ctx context.Context, vaultID string, opts ...onepassword.ItemListFilter) ([]onepassword.ItemOverview, error) {
+func (f *fakeListerWithCounter) List(
+	ctx context.Context,
+	vaultID string,
+	opts ...onepassword.ItemListFilter,
+) ([]onepassword.ItemOverview, error) {
 	return f.fakeLister.List(ctx, vaultID, opts...)
 }
 
@@ -1215,4 +1231,55 @@ func TestIsNativeItemID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGenerateNewItemFieldHasUniqueID(t *testing.T) {
+	field, err := generateNewItemField("username", "admin")
+	require.NoError(t, err)
+	assert.NotEmpty(t, field.ID, "field ID must not be empty")
+	assert.Equal(t, "username", field.Title)
+	assert.Equal(t, "admin", field.Value)
+	assert.Equal(t, onepassword.ItemFieldTypeConcealed, field.FieldType)
+}
+
+func TestGenerateNewItemFieldIDsAreUnique(t *testing.T) {
+	seen := make(map[string]bool)
+	for i := 0; i < 100; i++ {
+		field, err := generateNewItemField("field", "value")
+		require.NoError(t, err)
+		require.NotEmpty(t, field.ID)
+		require.False(t, seen[field.ID], "duplicate field ID generated: %s", field.ID)
+		seen[field.ID] = true
+	}
+}
+
+func TestUpdateFieldValueMultipleFieldsUniqueIDs(t *testing.T) {
+	// Simulate pushing multiple different properties to the same item.
+	// Each new field must get a unique ID so the 1Password API does not
+	// reject the update with "item contained duplicate field ids".
+	firstField, err := generateNewItemField("password", "secret123")
+	require.NoError(t, err)
+	fields := []onepassword.ItemField{firstField}
+
+	fields, err = updateFieldValue(fields, "username", "admin")
+	require.NoError(t, err)
+	require.Len(t, fields, 2)
+
+	fields, err = updateFieldValue(fields, "host", "db.example.com")
+	require.NoError(t, err)
+	require.Len(t, fields, 3)
+
+	// All IDs must be non-empty and unique.
+	ids := make(map[string]bool)
+	for _, f := range fields {
+		assert.NotEmpty(t, f.ID, "field %q must have a non-empty ID", f.Title)
+		assert.False(t, ids[f.ID], "duplicate field ID %q found", f.ID)
+		ids[f.ID] = true
+	}
+}
+
+func TestGenerateFieldIDFormat(t *testing.T) {
+	id, err := generateFieldID()
+	require.NoError(t, err)
+	assert.Regexp(t, `^[0-9a-f]{32}$`, id, "field ID should be 32 lowercase hex characters (16 bytes)")
 }
