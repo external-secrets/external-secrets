@@ -78,6 +78,18 @@ const (
 	DeletionPolicyRetain ExternalSecretDeletionPolicy = "Retain"
 )
 
+// ExternalSecretNullBytePolicy defines how rendered secret data containing NUL bytes should be handled.
+// +kubebuilder:validation:Enum=Ignore;Fail
+type ExternalSecretNullBytePolicy string
+
+const (
+	// ExternalSecretNullBytePolicyIgnore allows rendered secret data to contain NUL bytes.
+	ExternalSecretNullBytePolicyIgnore ExternalSecretNullBytePolicy = "Ignore"
+
+	// ExternalSecretNullBytePolicyFail fails reconciliation if rendered secret data contains NUL bytes.
+	ExternalSecretNullBytePolicyFail ExternalSecretNullBytePolicy = "Fail"
+)
+
 // ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
 type ExternalSecretTemplateMetadata struct {
 	// +optional
@@ -242,6 +254,11 @@ type ExternalSecretTarget struct {
 	// Warning: Using Generic target. Make sure access policies and encryption are properly configured.
 	// +optional
 	Manifest *ManifestReference `json:"manifest,omitempty"`
+
+	// NullBytePolicy controls how ESO handles rendered secret data containing NUL bytes.
+	// +optional
+	// +kubebuilder:default="Ignore"
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 
 	// Immutable defines if the final secret will be immutable
 	// +optional

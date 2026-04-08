@@ -2125,6 +2125,39 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 		}
 	}
+	failWhenRenderedSecretContainsNullBytes := func(tc *testCase) {
+		tc.externalSecret.Spec.Target.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
+		fakeProvider.WithGetSecret([]byte("A\x00B"), nil)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
+			secretLookupKey := types.NamespacedName{
+				Name:      tc.targetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Consistently(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, &v1.Secret{})
+				return apierrors.IsNotFound(err)
+			}, time.Second, interval).Should(BeTrue())
+		}
+	}
+	allowTemplateConversionWhenRenderedSecretHasNoNullBytes := func(tc *testCase) {
+		tc.externalSecret.Spec.Target.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
+		tc.externalSecret.Spec.Target.Template = &esv1.ExternalSecretTemplate{
+			Data: map[string]string{
+				targetProp: "{{ .targetProperty | b64enc }}",
+			},
+		}
+		fakeProvider.WithGetSecret([]byte("A\x00B"), nil)
+		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal("QQBC"))
+		}
+	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -2398,6 +2431,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should sync template from keys and values", syncTemplateFromKeysAndValues),
 		Entry("should sync template from literal", syncTemplateFromLiteral),
+		Entry("should fail when rendered secret data contains null bytes and nullBytePolicy=Fail", failWhenRenderedSecretContainsNullBytes),
+		Entry("should allow template conversion when nullBytePolicy=Fail and rendered data has no null bytes", allowTemplateConversionWhenRenderedSecretHasNoNullBytes),
 		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
 		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),

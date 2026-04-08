@@ -530,6 +530,13 @@ spec:
                           minLength: 1
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                           type: string
+                        nullBytePolicy:
+                          default: Ignore
+                          description: NullBytePolicy controls how ESO handles rendered secret data containing NUL bytes.
+                          enum:
+                            - Ignore
+                            - Fail
+                          type: string
                         template:
                           description: Template defines a blueprint for the created Secret resource.
                           properties:
@@ -12858,6 +12865,13 @@ spec:
                       maxLength: 253
                       minLength: 1
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    nullBytePolicy:
+                      default: Ignore
+                      description: NullBytePolicy controls how ESO handles rendered secret data containing NUL bytes.
+                      enum:
+                        - Ignore
+                        - Fail
                       type: string
                     template:
                       description: Template defines a blueprint for the created Secret resource.
