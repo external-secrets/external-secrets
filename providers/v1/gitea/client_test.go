@@ -255,3 +255,129 @@ func fakeStore(kind string) esv1.GenericStore {
 	}
 	return &esv1.SecretStore{}
 }
+
+// --- variable read helpers --------------------------------------------------
+
+func withGetVariableFn(value string, err error) func(context.Context, esv1.ExternalSecretDataRemoteRef) (string, error) {
+	return func(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (string, error) {
+		return value, err
+	}
+}
+
+func withListVariablesFn(vars map[string][]byte, err error) func(context.Context) (map[string][]byte, error) {
+	return func(_ context.Context) (map[string][]byte, error) {
+		return vars, err
+	}
+}
+
+// --- GetSecret --------------------------------------------------------------
+
+func TestGetSecret(t *testing.T) {
+	tests := []struct {
+		name          string
+		getVariableFn func(context.Context, esv1.ExternalSecretDataRemoteRef) (string, error)
+		ref           esv1.ExternalSecretDataRemoteRef
+		wantValue     []byte
+		wantErrMsg    string
+	}{
+		{
+			name:          "simple success",
+			getVariableFn: withGetVariableFn("hello", nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR"},
+			wantValue:     []byte("hello"),
+		},
+		{
+			name:          "property extraction from JSON value",
+			getVariableFn: withGetVariableFn(`{"user":"alice","pass":"s3cr3t"}`, nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR", Property: "user"},
+			wantValue:     []byte("alice"),
+		},
+		{
+			name:          "property not found in JSON object",
+			getVariableFn: withGetVariableFn(`{"user":"alice"}`, nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR", Property: "missing"},
+			wantErrMsg:    `property "missing" not found in variable`,
+		},
+		{
+			name:          "variable not found error propagated",
+			getVariableFn: withGetVariableFn("", errors.New("variable \"MY_VAR\" not found")),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR"},
+			wantErrMsg:    "not found",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &Client{}
+			g.getVariableFn = tt.getVariableFn
+			got, err := g.GetSecret(context.Background(), tt.ref)
+			if tt.wantErrMsg != "" {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.wantErrMsg)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.wantValue, got)
+			}
+		})
+	}
+}
+
+// --- GetAllSecrets ----------------------------------------------------------
+
+func TestGetAllSecrets(t *testing.T) {
+	allVars := map[string][]byte{
+		"APP_SECRET":  []byte("abc"),
+		"APP_TOKEN":   []byte("tok"),
+		"OTHER_THING": []byte("xyz"),
+	}
+
+	tests := []struct {
+		name            string
+		listVariablesFn func(context.Context) (map[string][]byte, error)
+		ref             esv1.ExternalSecretFind
+		wantKeys        []string
+		wantErrMsg      string
+	}{
+		{
+			name:            "returns all when no name filter",
+			listVariablesFn: withListVariablesFn(allVars, nil),
+			ref:             esv1.ExternalSecretFind{},
+			wantKeys:        []string{"APP_SECRET", "APP_TOKEN", "OTHER_THING"},
+		},
+		{
+			name:            "filters by name regexp",
+			listVariablesFn: withListVariablesFn(allVars, nil),
+			ref:             esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "^APP_"}},
+			wantKeys:        []string{"APP_SECRET", "APP_TOKEN"},
+		},
+		{
+			name:            "list error propagated",
+			listVariablesFn: withListVariablesFn(nil, errors.New("api failure")),
+			ref:             esv1.ExternalSecretFind{},
+			wantErrMsg:      "api failure",
+		},
+		{
+			name:            "invalid regexp returns error",
+			listVariablesFn: withListVariablesFn(allVars, nil),
+			ref:             esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "[invalid"}},
+			wantErrMsg:      "could not compile",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &Client{}
+			g.listVariablesFn = tt.listVariablesFn
+			got, err := g.GetAllSecrets(context.Background(), tt.ref)
+			if tt.wantErrMsg != "" {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.wantErrMsg)
+			} else {
+				require.NoError(t, err)
+				gotKeys := make([]string, 0, len(got))
+				for k := range got {
+					gotKeys = append(gotKeys, k)
+				}
+				assert.ElementsMatch(t, tt.wantKeys, gotKeys)
+			}
+		})
+	}
+}

@@ -27,9 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/find"
 )
-
-const errWriteOnlyProvider = "not implemented - this provider supports write-only operations"
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
@@ -46,6 +45,8 @@ type Client struct {
 	listSecretsFn    func(ctx context.Context) ([]*giteasdk.Secret, error)
 	deleteSecretFn   func(ctx context.Context, ref esv1.PushSecretRemoteRef) error
 	getSecretFn      func(ctx context.Context, ref esv1.PushSecretRemoteRef) (*giteasdk.Secret, error)
+	getVariableFn    func(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (string, error)
+	listVariablesFn  func(ctx context.Context) (map[string][]byte, error)
 }
 
 // DeleteSecret deletes a secret from Gitea Actions.
@@ -90,19 +91,62 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 	return nil
 }
 
-// GetAllSecrets is not implemented — this provider is write-only.
-func (g *Client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf(errWriteOnlyProvider)
+// GetSecret reads a Gitea Actions Variable by name.
+// If ref.Property is set and the variable value is a JSON object, the specified property is extracted.
+func (g *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	value, err := g.getVariableFn(context.Background(), ref)
+	if err != nil {
+		return nil, err
+	}
+	if ref.Property != "" {
+		var obj map[string]string
+		if err := json.Unmarshal([]byte(value), &obj); err == nil {
+			if v, ok := obj[ref.Property]; ok {
+				return []byte(v), nil
+			}
+			return nil, fmt.Errorf("property %q not found in variable", ref.Property)
+		}
+	}
+	return []byte(value), nil
 }
 
-// GetSecret is not implemented — this provider is write-only.
-func (g *Client) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return nil, fmt.Errorf(errWriteOnlyProvider)
+// GetSecretMap reads a Gitea Actions Variable and returns its value parsed as a JSON object.
+func (g *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	value, err := g.getVariableFn(context.Background(), ref)
+	if err != nil {
+		return nil, err
+	}
+	var obj map[string]string
+	if err := json.Unmarshal([]byte(value), &obj); err != nil {
+		return nil, fmt.Errorf("variable %q value is not a JSON object: %w", ref.Key, err)
+	}
+	result := make(map[string][]byte, len(obj))
+	for k, v := range obj {
+		result[k] = []byte(v)
+	}
+	return result, nil
 }
 
-// GetSecretMap is not implemented — this provider is write-only.
-func (g *Client) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, fmt.Errorf(errWriteOnlyProvider)
+// GetAllSecrets lists all Gitea Actions Variables, optionally filtered by ref.Name regexp.
+func (g *Client) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	all, err := g.listVariablesFn(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if ref.Name == nil {
+		return all, nil
+	}
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]byte)
+	for k, v := range all {
+		if matcher.MatchName(k) {
+			out[k] = v
+		}
+	}
+	return out, nil
 }
 
 // Close is a no-op for this provider.
