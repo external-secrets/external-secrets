@@ -27096,6 +27096,7 @@ spec:
                     - VaultDynamicSecret
                     - Webhook
                     - Grafana
+                    - MFA
                   type: string
               required:
                 - generator
