@@ -21,6 +21,7 @@ package vaultwarden
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -48,16 +49,38 @@ const (
 	envVaultwardenClientID       = "VAULTWARDEN_CLIENT_ID"
 	envVaultwardenClientSecret   = "VAULTWARDEN_CLIENT_SECRET"
 	envVaultwardenMasterPassword = "VAULTWARDEN_MASTER_PASSWORD"
-	// envVaultwardenInsecure allows skipping TLS verification when testing
-	// against a local Vaultwarden instance with a self-signed certificate.
-	envVaultwardenInsecure = "VAULTWARDEN_INSECURE"
+	// envVaultwardenCABundle is the path to a PEM file containing a custom CA
+	// certificate, needed when testing against a Vaultwarden instance that uses
+	// a self-signed certificate.
+	envVaultwardenCABundle = "VAULTWARDEN_CA_BUNDLE_FILE"
 )
 
-// integrationTLSConfig returns a TLS config for integration tests.
-// TLS verification is skipped only when VAULTWARDEN_INSECURE=true is set.
-func integrationTLSConfig() *tls.Config {
-	skipVerify := os.Getenv(envVaultwardenInsecure) == "true"
-	return &tls.Config{InsecureSkipVerify: skipVerify, MinVersion: tls.VersionTLS12} //nolint:gosec
+// buildTLSConfig builds a TLS config for integration tests.
+// If VAULTWARDEN_CA_BUNDLE_FILE points to a PEM file, that CA is trusted.
+// Otherwise the system certificate pool is used.
+// Returns the config and any error (call sites in TestMain handle the error directly).
+func buildTLSConfig() (*tls.Config, error) {
+	cfg := &tls.Config{MinVersion: tls.VersionTLS12}
+	if caFile := os.Getenv(envVaultwardenCABundle); caFile != "" {
+		pem, err := os.ReadFile(caFile)
+		if err != nil {
+			return nil, fmt.Errorf("reading %s: %w", envVaultwardenCABundle, err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pem) {
+			return nil, fmt.Errorf("parsing CA bundle from %s", caFile)
+		}
+		cfg.RootCAs = pool
+	}
+	return cfg, nil
+}
+
+// integrationTLSConfig is the test-helper wrapper that calls t.Fatal on error.
+func integrationTLSConfig(t *testing.T) *tls.Config {
+	t.Helper()
+	cfg, err := buildTLSConfig()
+	require.NoError(t, err)
+	return cfg
 }
 
 // fakePushSecretData is a local implementation of esv1.PushSecretData for tests.
@@ -144,7 +167,7 @@ func buildIntegrationClient(t *testing.T) *Client {
 
 	httpClient := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: integrationTLSConfig(),
+			TLSClientConfig: integrationTLSConfig(t),
 		},
 	}
 
@@ -214,8 +237,13 @@ func TestMain(m *testing.M) {
 				},
 			},
 		}
+		tlsCfg, err := buildTLSConfig()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "vaultwarden integration: %v\n", err)
+			os.Exit(1)
+		}
 		sharedClient = &Client{
-			httpClient: &http.Client{Transport: &http.Transport{TLSClientConfig: integrationTLSConfig()}},
+			httpClient: &http.Client{Transport: &http.Transport{TLSClientConfig: tlsCfg}},
 			provider:   store.Spec.Provider.Vaultwarden,
 			crClient:   kubeClient,
 			namespace:  integrationNamespace,
