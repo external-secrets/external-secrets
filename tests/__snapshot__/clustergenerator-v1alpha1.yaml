@@ -55,7 +55,7 @@ spec:
             name: string
             namespace: string
       domain: string
-      domainOwner: "123456789012"
+      domainOwner: string
       region: string
       role: string
     ecrAuthorizationTokenSpec:

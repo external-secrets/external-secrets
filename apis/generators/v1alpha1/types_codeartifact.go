@@ -39,8 +39,8 @@ type CodeArtifactAuthorizationTokenSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	Domain string `json:"domain"`
 
-	// DomainOwner is the 12-digit AWS account ID that owns the CodeArtifact domain.
-	// +kubebuilder:validation:Pattern=`^[0-9]{12}$`
+	// DomainOwner is the AWS account ID that owns the CodeArtifact domain.
+	// +kubebuilder:validation:MinLength=1
 	DomainOwner string `json:"domainOwner"`
 }
 

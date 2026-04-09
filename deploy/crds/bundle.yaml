@@ -25096,8 +25096,8 @@ spec:
                           minLength: 1
                           type: string
                         domainOwner:
-                          description: DomainOwner is the 12-digit AWS account ID that owns the CodeArtifact domain.
-                          pattern: ^[0-9]{12}$
+                          description: DomainOwner is the AWS account ID that owns the CodeArtifact domain.
+                          minLength: 1
                           type: string
                         region:
                           description: Region specifies the region to operate in.
@@ -27287,8 +27287,8 @@ spec:
                   minLength: 1
                   type: string
                 domainOwner:
-                  description: DomainOwner is the 12-digit AWS account ID that owns the CodeArtifact domain.
-                  pattern: ^[0-9]{12}$
+                  description: DomainOwner is the AWS account ID that owns the CodeArtifact domain.
+                  minLength: 1
                   type: string
                 region:
                   description: Region specifies the region to operate in.
