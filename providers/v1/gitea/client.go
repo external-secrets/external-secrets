@@ -92,27 +92,28 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 }
 
 // GetSecret reads a Gitea Actions Variable by name.
-// If ref.Property is set and the variable value is a JSON object, the specified property is extracted.
-func (g *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	value, err := g.getVariableFn(context.Background(), ref)
+// If ref.Property is set, the variable value must be a JSON object and the specified property is extracted.
+func (g *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	value, err := g.getVariableFn(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 	if ref.Property != "" {
 		var obj map[string]string
-		if err := json.Unmarshal([]byte(value), &obj); err == nil {
-			if v, ok := obj[ref.Property]; ok {
-				return []byte(v), nil
-			}
-			return nil, fmt.Errorf("property %q not found in variable", ref.Property)
+		if err := json.Unmarshal([]byte(value), &obj); err != nil {
+			return nil, fmt.Errorf("property %q requested but variable value is not a JSON object: %w", ref.Property, err)
 		}
+		if v, ok := obj[ref.Property]; ok {
+			return []byte(v), nil
+		}
+		return nil, fmt.Errorf("property %q not found in variable", ref.Property)
 	}
 	return []byte(value), nil
 }
 
 // GetSecretMap reads a Gitea Actions Variable and returns its value parsed as a JSON object.
-func (g *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	value, err := g.getVariableFn(context.Background(), ref)
+func (g *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	value, err := g.getVariableFn(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +129,8 @@ func (g *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemo
 }
 
 // GetAllSecrets lists all Gitea Actions Variables, optionally filtered by ref.Name regexp.
-func (g *Client) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	all, err := g.listVariablesFn(context.Background())
+func (g *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	all, err := g.listVariablesFn(ctx)
 	if err != nil {
 		return nil, err
 	}
