@@ -56,6 +56,8 @@ func withListSecretsFn(secrets []*giteasdk.Secret, err error) func(context.Conte
 	}
 }
 
+const testRemoteKey = "remote-foo"
+
 // makePushRef is a small helper to build a PushSecretData for tests.
 func makePushRef(secretKey, remoteKey string) esv1alpha1.PushSecretData {
 	return esv1alpha1.PushSecretData{
@@ -129,7 +131,7 @@ func TestPushSecret(t *testing.T) {
 		{
 			name:             "success with specific key",
 			secret:           secretWithFoo,
-			remoteRef:        makePushRef("foo", "remote-foo"),
+			remoteRef:        makePushRef("foo", testRemoteKey),
 			createOrUpdateFn: withCreateOrUpdateFn(nil),
 		},
 		{
@@ -148,7 +150,7 @@ func TestPushSecret(t *testing.T) {
 		{
 			name:             "createOrUpdate error",
 			secret:           secretWithFoo,
-			remoteRef:        makePushRef("foo", "remote-foo"),
+			remoteRef:        makePushRef("foo", testRemoteKey),
 			createOrUpdateFn: withCreateOrUpdateFn(errors.New("api error")),
 			wantErrMsg:       "failed to push secret",
 		},
@@ -190,7 +192,7 @@ func TestDeleteSecret(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := &Client{}
 			g.deleteSecretFn = tt.deleteSecretFn
-			err := g.DeleteSecret(context.Background(), makePushRef("", "remote-foo"))
+			err := g.DeleteSecret(context.Background(), makePushRef("", testRemoteKey))
 			if tt.wantErrMsg != "" {
 				require.Error(t, err)
 				assert.ErrorContains(t, err, tt.wantErrMsg)
@@ -297,6 +299,12 @@ func TestGetSecret(t *testing.T) {
 			getVariableFn: withGetVariableFn(`{"user":"alice"}`, nil),
 			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR", Property: "missing"},
 			wantErrMsg:    `property "missing" not found in variable`,
+		},
+		{
+			name:          "property on non-JSON value returns error",
+			getVariableFn: withGetVariableFn("plain-text", nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR", Property: "key"},
+			wantErrMsg:    "not a JSON object",
 		},
 		{
 			name:          "variable not found error propagated",
