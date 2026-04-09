@@ -87,6 +87,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
 
+	// Vaultwarden configures this store to sync secrets from a self-hosted Vaultwarden instance.
+	// +optional
+	Vaultwarden *VaultwardenProvider `json:"vaultwarden,omitempty"`
+
 	// OVHcloud configures this store to sync secrets using the OVHcloud provider.
 	// +optional
 	OVHcloud *OvhProvider `json:"ovh,omitempty"`
