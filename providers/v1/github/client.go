@@ -123,10 +123,17 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 		return fmt.Errorf("box.SealAnonymous failed with error %w", err)
 	}
 	name := remoteRef.GetRemoteKey()
-	visibility := "all"
+	visibility := g.provider.OrgSecretVisibility
+	if visibility == "" {
+		visibility = "all"
+	}
 	if githubSecret != nil {
 		name = githubSecret.Name
-		visibility = githubSecret.Visibility
+		// Preserve existing visibility unless the provider config explicitly differs,
+		// so that out-of-band changes to visibility are not silently overwritten.
+		if githubSecret.Visibility != "" && g.provider.OrgSecretVisibility == "" {
+			visibility = githubSecret.Visibility
+		}
 	}
 	encryptedString := base64.StdEncoding.EncodeToString(encryptedBytes)
 	keyID := publicKey.GetKeyID()

@@ -47,6 +47,14 @@ type GithubProvider struct {
 	// environment will be used to fetch secrets from a particular environment within a github repository
 	//+optional
 	Environment string `json:"environment,omitempty"`
+
+	// orgSecretVisibility specifies the visibility of organization secrets pushed via PushSecret.
+	// Valid values are "all", "private", or "selected". Defaults to "all".
+	// Only applies when pushing org-level secrets (i.e. no repository is set).
+	//+optional
+	//+kubebuilder:default="all"
+	//+kubebuilder:validation:Enum=all;private;selected
+	OrgSecretVisibility string `json:"orgSecretVisibility,omitempty"`
 }
 
 // GithubAppAuth defines the GitHub App authentication mechanism for the GitHub provider.
