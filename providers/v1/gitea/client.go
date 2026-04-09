@@ -99,12 +99,12 @@ func (g *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		return nil, err
 	}
 	if ref.Property != "" {
-		var obj map[string]string
+		var obj map[string]json.RawMessage
 		if err := json.Unmarshal([]byte(value), &obj); err != nil {
 			return nil, fmt.Errorf("property %q requested but variable value is not a JSON object: %w", ref.Property, err)
 		}
-		if v, ok := obj[ref.Property]; ok {
-			return []byte(v), nil
+		if raw, ok := obj[ref.Property]; ok {
+			return jsonRawToBytes(raw), nil
 		}
 		return nil, fmt.Errorf("property %q not found in variable", ref.Property)
 	}
@@ -117,13 +117,13 @@ func (g *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	if err != nil {
 		return nil, err
 	}
-	var obj map[string]string
+	var obj map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(value), &obj); err != nil {
 		return nil, fmt.Errorf("variable %q value is not a JSON object: %w", ref.Key, err)
 	}
 	result := make(map[string][]byte, len(obj))
-	for k, v := range obj {
-		result[k] = []byte(v)
+	for k, raw := range obj {
+		result[k] = jsonRawToBytes(raw)
 	}
 	return result, nil
 }
@@ -153,6 +153,17 @@ func (g *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 // Close is a no-op for this provider.
 func (g *Client) Close(_ context.Context) error {
 	return nil
+}
+
+// jsonRawToBytes converts a json.RawMessage to a byte slice.
+// JSON strings are returned unquoted; all other JSON values (numbers, booleans,
+// objects, arrays) are returned as their raw JSON representation.
+func jsonRawToBytes(raw json.RawMessage) []byte {
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		return []byte(s)
+	}
+	return []byte(raw)
 }
 
 // Validate checks that the client can communicate with the Gitea API.
