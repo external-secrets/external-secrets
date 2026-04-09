@@ -101,6 +101,9 @@ type Client struct {
 
 var _ esv1.SecretsClient = &Client{}
 
+// bearerToken returns the Authorization header value for a given access token.
+const bearerPrefix = "Bearer "
+
 // Close is a no-op; the HTTP client is reusable and has no per-session state.
 func (c *Client) Close(_ context.Context) error {
 	return nil
@@ -133,48 +136,64 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	if err != nil {
 		return nil, err
 	}
-
 	ciphers, err := c.listCiphersWithToken(ctx, accessToken)
 	if err != nil {
 		return nil, err
 	}
-
 	cipher, err := findCipherByName(ciphers, ref.Key, symEncKey, symMacKey)
 	if err != nil {
 		return nil, err
 	}
-
 	if ref.Property != "" {
-		// First check cipher custom fields.
-		for _, f := range cipher.Fields {
-			fieldName, err := crypto.DecryptString(f.Name, symEncKey, symMacKey)
-			if err != nil {
-				continue
-			}
-			if fieldName == ref.Property {
-				val, err := crypto.DecryptString(f.Value, symEncKey, symMacKey)
-				if err != nil {
-					return nil, fmt.Errorf("vaultwarden: decrypting field value: %w", err)
-				}
-				return []byte(val), nil
-			}
-		}
-		// Fall back to Notes JSON (used by secrets written by this provider).
-		if cipher.Notes != "" {
-			notes, err := crypto.DecryptString(cipher.Notes, symEncKey, symMacKey)
-			if err == nil {
-				var obj map[string]json.RawMessage
-				if json.Unmarshal([]byte(notes), &obj) == nil {
-					if raw, ok := obj[ref.Property]; ok {
-						return jsonRawToBytes(raw), nil
-					}
-				}
-			}
-		}
-		return nil, fmt.Errorf("vaultwarden: field %q not found in secret %q", ref.Property, ref.Key)
+		return getCipherProperty(cipher, ref.Property, symEncKey, symMacKey)
 	}
+	return getCipherValue(cipher, ref.Key, symEncKey, symMacKey)
+}
 
-	// SecureNote: return notes.
+// getCipherProperty looks up a named property from a cipher's custom fields,
+// falling back to the cipher's Notes JSON for secrets written by this provider.
+func getCipherProperty(cipher *vaultwardenCipher, property string, symEncKey, symMacKey []byte) ([]byte, error) {
+	for _, f := range cipher.Fields {
+		name, err := crypto.DecryptString(f.Name, symEncKey, symMacKey)
+		if err != nil {
+			continue
+		}
+		if name == property {
+			val, err := crypto.DecryptString(f.Value, symEncKey, symMacKey)
+			if err != nil {
+				return nil, fmt.Errorf("vaultwarden: decrypting field value: %w", err)
+			}
+			return []byte(val), nil
+		}
+	}
+	if v := getCipherPropertyFromNotes(cipher, property, symEncKey, symMacKey); v != nil {
+		return v, nil
+	}
+	return nil, fmt.Errorf("vaultwarden: field %q not found in secret %q", property, cipher.Name)
+}
+
+// getCipherPropertyFromNotes attempts to extract a property from Notes JSON.
+func getCipherPropertyFromNotes(cipher *vaultwardenCipher, property string, symEncKey, symMacKey []byte) []byte {
+	if cipher.Notes == "" {
+		return nil
+	}
+	notes, err := crypto.DecryptString(cipher.Notes, symEncKey, symMacKey)
+	if err != nil {
+		return nil
+	}
+	var obj map[string]json.RawMessage
+	if json.Unmarshal([]byte(notes), &obj) != nil {
+		return nil
+	}
+	if raw, ok := obj[property]; ok {
+		return jsonRawToBytes(raw)
+	}
+	return nil
+}
+
+// getCipherValue returns the primary value of a cipher:
+// Notes for SecureNote (type 2), password for Login (type 1).
+func getCipherValue(cipher *vaultwardenCipher, key string, symEncKey, symMacKey []byte) ([]byte, error) {
 	if cipher.Type == 2 {
 		val, err := crypto.DecryptString(cipher.Notes, symEncKey, symMacKey)
 		if err != nil {
@@ -182,8 +201,6 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		}
 		return []byte(val), nil
 	}
-
-	// Login: return password.
 	if cipher.Login != nil {
 		val, err := crypto.DecryptString(cipher.Login.Password, symEncKey, symMacKey)
 		if err != nil {
@@ -191,8 +208,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		}
 		return []byte(val), nil
 	}
-
-	return nil, fmt.Errorf("vaultwarden: secret %q has no usable value", ref.Key)
+	return nil, fmt.Errorf("vaultwarden: secret %q has no usable value", key)
 }
 
 // GetSecretMap returns a map of keys to values by parsing the cipher's decrypted notes as JSON.
@@ -239,45 +255,62 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	if err != nil {
 		return nil, err
 	}
-
 	ciphers, err := c.listCiphersWithToken(ctx, accessToken)
 	if err != nil {
 		return nil, err
 	}
-
-	var nameRe *regexp.Regexp
-	if ref.Name != nil && ref.Name.RegExp != "" {
-		nameRe, err = regexp.Compile(ref.Name.RegExp)
-		if err != nil {
-			return nil, fmt.Errorf("vaultwarden: invalid name regexp %q: %w", ref.Name.RegExp, err)
-		}
+	nameRe, err := compileNameRegexp(ref)
+	if err != nil {
+		return nil, err
 	}
-
 	out := make(map[string][]byte)
-	for _, cipher := range ciphers {
-		if cipher.DeletedDate != nil {
-			continue
+	for i := range ciphers {
+		name, val, ok := decryptCipherEntry(&ciphers[i], nameRe, symEncKey, symMacKey)
+		if ok {
+			out[name] = val
 		}
-		name, err := crypto.DecryptString(cipher.Name, symEncKey, symMacKey)
-		if err != nil {
-			continue
-		}
-		if nameRe != nil && !nameRe.MatchString(name) {
-			continue
-		}
-
-		var val string
-		if cipher.Type == 2 {
-			val, err = crypto.DecryptString(cipher.Notes, symEncKey, symMacKey)
-		} else if cipher.Login != nil {
-			val, err = crypto.DecryptString(cipher.Login.Password, symEncKey, symMacKey)
-		}
-		if err != nil {
-			continue
-		}
-		out[name] = []byte(val)
 	}
 	return out, nil
+}
+
+// compileNameRegexp returns a compiled regexp from the find ref, or nil if none is set.
+func compileNameRegexp(ref esv1.ExternalSecretFind) (*regexp.Regexp, error) {
+	if ref.Name == nil || ref.Name.RegExp == "" {
+		return nil, nil
+	}
+	re, err := regexp.Compile(ref.Name.RegExp)
+	if err != nil {
+		return nil, fmt.Errorf("vaultwarden: invalid name regexp %q: %w", ref.Name.RegExp, err)
+	}
+	return re, nil
+}
+
+// decryptCipherEntry decrypts a cipher's name and value, applying the optional name filter.
+// Returns (name, value, true) on success or ("", nil, false) if the entry should be skipped.
+func decryptCipherEntry(cipher *vaultwardenCipher, nameRe *regexp.Regexp, symEncKey, symMacKey []byte) (string, []byte, bool) {
+	if cipher.DeletedDate != nil {
+		return "", nil, false
+	}
+	name, err := crypto.DecryptString(cipher.Name, symEncKey, symMacKey)
+	if err != nil || (nameRe != nil && !nameRe.MatchString(name)) {
+		return "", nil, false
+	}
+	val, err := decryptCipherPrimaryValue(cipher, symEncKey, symMacKey)
+	if err != nil {
+		return "", nil, false
+	}
+	return name, []byte(val), true
+}
+
+// decryptCipherPrimaryValue returns the primary plaintext value of a cipher.
+func decryptCipherPrimaryValue(cipher *vaultwardenCipher, symEncKey, symMacKey []byte) (string, error) {
+	if cipher.Type == 2 {
+		return crypto.DecryptString(cipher.Notes, symEncKey, symMacKey)
+	}
+	if cipher.Login != nil {
+		return crypto.DecryptString(cipher.Login.Password, symEncKey, symMacKey)
+	}
+	return "", nil
 }
 
 // PushSecret writes a secret value to Vaultwarden as a SecureNote cipher.
@@ -287,103 +320,94 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	if err != nil {
 		return err
 	}
-
-	// Determine the value to push.
-	var value []byte
-	if key := data.GetSecretKey(); key != "" {
-		val, ok := secret.Data[key]
-		if !ok {
-			return fmt.Errorf("vaultwarden: key %q not found in secret %s/%s", key, secret.Namespace, secret.Name)
-		}
-		value = val
-	} else {
-		// Convert []byte values to strings so json.Marshal does not base64-encode them,
-		// preserving round-trip fidelity with GetSecretMap.
-		strData := make(map[string]string, len(secret.Data))
-		for k, v := range secret.Data {
-			strData[k] = string(v)
-		}
-		value, err = json.Marshal(strData)
-		if err != nil {
-			return fmt.Errorf("vaultwarden: marshalling secret data: %w", err)
-		}
+	value, err := buildPushValue(secret, data)
+	if err != nil {
+		return err
 	}
-
 	cipherName := data.GetRemoteKey()
-
-	// Encrypt name and notes.
-	encName, err := crypto.EncryptString(cipherName, symEncKey, symMacKey)
+	bodyBytes, err := c.buildCipherBody(cipherName, string(value), symEncKey, symMacKey)
 	if err != nil {
-		return fmt.Errorf("vaultwarden: encrypting cipher name: %w", err)
+		return err
 	}
-	encNotes, err := crypto.EncryptString(string(value), symEncKey, symMacKey)
-	if err != nil {
-		return fmt.Errorf("vaultwarden: encrypting cipher notes: %w", err)
-	}
-
-	body := cipherCreateBody{
-		Type:           2,
-		Name:           encName,
-		Notes:          encNotes,
-		SecureNote:     &secureNoteObj{Type: 0},
-		FolderID:       nil,
-		OrganizationID: nil,
-	}
-
-	// Check if a cipher with this name already exists.
 	ciphers, err := c.listCiphersWithToken(ctx, accessToken)
 	if err != nil {
 		return err
 	}
-
 	existing := findCipherByNameNoErr(ciphers, cipherName, symEncKey, symMacKey)
+	return c.upsertCipher(ctx, accessToken, existing, bodyBytes)
+}
 
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return fmt.Errorf("vaultwarden: marshalling cipher body: %w", err)
+// buildPushValue extracts the value to push from the Kubernetes secret.
+// If a specific key is requested, that key's raw bytes are returned.
+// Otherwise all data keys are JSON-marshalled as a string map.
+func buildPushValue(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, error) {
+	if key := data.GetSecretKey(); key != "" {
+		val, ok := secret.Data[key]
+		if !ok {
+			return nil, fmt.Errorf("vaultwarden: key %q not found in secret %s/%s", key, secret.Namespace, secret.Name)
+		}
+		return val, nil
 	}
+	// Convert []byte values to strings so json.Marshal does not base64-encode them,
+	// preserving round-trip fidelity with GetSecretMap.
+	strData := make(map[string]string, len(secret.Data))
+	for k, v := range secret.Data {
+		strData[k] = string(v)
+	}
+	b, err := json.Marshal(strData)
+	if err != nil {
+		return nil, fmt.Errorf("vaultwarden: marshalling secret data: %w", err)
+	}
+	return b, nil
+}
 
+// buildCipherBody encrypts the cipher name and notes and serialises the body.
+func (c *Client) buildCipherBody(name, notes string, symEncKey, symMacKey []byte) ([]byte, error) {
+	encName, err := crypto.EncryptString(name, symEncKey, symMacKey)
+	if err != nil {
+		return nil, fmt.Errorf("vaultwarden: encrypting cipher name: %w", err)
+	}
+	encNotes, err := crypto.EncryptString(notes, symEncKey, symMacKey)
+	if err != nil {
+		return nil, fmt.Errorf("vaultwarden: encrypting cipher notes: %w", err)
+	}
+	b, err := json.Marshal(cipherCreateBody{
+		Type:       2,
+		Name:       encName,
+		Notes:      encNotes,
+		SecureNote: &secureNoteObj{Type: 0},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("vaultwarden: marshalling cipher body: %w", err)
+	}
+	return b, nil
+}
+
+// upsertCipher sends a PUT (update) or POST (create) request depending on whether existing is set.
+func (c *Client) upsertCipher(ctx context.Context, accessToken string, existing *vaultwardenCipher, bodyBytes []byte) error {
 	base := strings.TrimRight(c.provider.URL, "/")
-
+	var method, url string
 	if existing != nil {
-		// Update existing cipher.
-		putURL := fmt.Sprintf("%s/api/ciphers/%s", base, existing.ID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, putURL, bytes.NewReader(bodyBytes))
-		if err != nil {
-			return fmt.Errorf("vaultwarden: building update request: %w", err)
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+accessToken)
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("vaultwarden: updating cipher: %w", err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			body, _ := io.ReadAll(resp.Body)
-			return fmt.Errorf("vaultwarden: update cipher returned HTTP %d: %s", resp.StatusCode, body)
-		}
-		return nil
+		method = http.MethodPut
+		url = fmt.Sprintf("%s/api/ciphers/%s", base, existing.ID)
+	} else {
+		method = http.MethodPost
+		url = base + "/api/ciphers"
 	}
-
-	// Create new cipher.
-	postURL := base + "/api/ciphers"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, postURL, bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(bodyBytes))
 	if err != nil {
-		return fmt.Errorf("vaultwarden: building create request: %w", err)
+		return fmt.Errorf("vaultwarden: building cipher request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
+	req.Header.Set("Authorization", bearerPrefix+accessToken)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("vaultwarden: creating cipher: %w", err)
+		return fmt.Errorf("vaultwarden: cipher request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("vaultwarden: create cipher returned HTTP %d: %s", resp.StatusCode, body)
+		return fmt.Errorf("vaultwarden: cipher request returned HTTP %d: %s", resp.StatusCode, body)
 	}
 	return nil
 }
@@ -412,7 +436,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	if err != nil {
 		return fmt.Errorf("vaultwarden: building delete request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Authorization", bearerPrefix+accessToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -449,7 +473,7 @@ func (c *Client) listCiphersWithToken(ctx context.Context, accessToken string) (
 	if err != nil {
 		return nil, fmt.Errorf("vaultwarden: building ciphers request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Authorization", bearerPrefix+accessToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
