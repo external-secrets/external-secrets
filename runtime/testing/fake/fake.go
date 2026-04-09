@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package fake
 
 import (
 	"context"
+	"maps"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 var _ esv1.Provider = &Client{}
@@ -94,8 +96,9 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 
 func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	v.mu.Lock()
+	value, _ := esutils.ExtractSecretData(data, secret)
 	v.pushSecretData[data.GetRemoteKey()] = SetSecretCallArgs{
-		Value:     secret.Data[data.GetSecretKey()],
+		Value:     value,
 		RemoteRef: data,
 	}
 	fn := v.SetSecretFn
@@ -109,9 +112,7 @@ func (v *Client) GetPushSecretData() map[string]SetSecretCallArgs {
 	defer v.mu.RUnlock()
 	// Create a copy to avoid race conditions
 	result := make(map[string]SetSecretCallArgs, len(v.pushSecretData))
-	for k, v := range v.pushSecretData {
-		result[k] = v
-	}
+	maps.Copy(result, v.pushSecretData)
 	return result
 }
 

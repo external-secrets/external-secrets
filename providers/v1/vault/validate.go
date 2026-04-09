@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -184,7 +185,10 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
 		return esv1.ValidationResultUnknown, nil
 	}
-	_, err := checkToken(context.Background(), c.token)
+	if c.tokenExpiryTime != nil && c.tokenExpiryTime.After(time.Now()) {
+		return esv1.ValidationResultReady, nil
+	}
+	_, _, err := checkToken(context.Background(), c.token)
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf(errInvalidCredentials, err)
 	}

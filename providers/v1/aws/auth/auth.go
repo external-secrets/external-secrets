@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -197,15 +197,21 @@ func NewGeneratorSession(
 			return nil, err
 		}
 	}
-	awscfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
+
+	// Build config options - use WithCredentialsProvider during loading
+	// to prevent the default credential chain (including EC2 IMDS) from being used
+	// when explicit credentials are provided
+	var loadCfgOpts []func(*config.LoadOptions) error
 	if credsProvider != nil {
-		awscfg.Credentials = credsProvider
+		loadCfgOpts = append(loadCfgOpts, config.WithCredentialsProvider(credsProvider))
 	}
 	if region != "" {
-		awscfg.Region = region
+		loadCfgOpts = append(loadCfgOpts, config.WithRegion(region))
+	}
+
+	awscfg, err := config.LoadDefaultConfig(ctx, loadCfgOpts...)
+	if err != nil {
+		return nil, err
 	}
 
 	if role != "" {

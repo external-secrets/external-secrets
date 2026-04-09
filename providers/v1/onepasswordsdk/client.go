@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/1password/onepassword-sdk-go"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/kube-openapi/pkg/validation/strfmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
@@ -46,6 +46,16 @@ const (
 
 // ErrKeyNotFound is returned when a key is not found in the 1Password Vaults.
 var ErrKeyNotFound = errors.New("key not found")
+
+// nativeItemIDPattern matches a 1Password item ID per the Connect
+// server OpenAPI spec (^[\da-z]{26}$). Despite being called "UUIDs"
+// in 1Password's SDK and docs, they are not RFC 4122 UUIDs.
+// https://github.com/1Password/connect/blob/7485a59/docs/openapi/spec.yaml#L73-L75
+var nativeItemIDPattern = regexp.MustCompile(`^[\da-z]{26}$`)
+
+func isNativeItemID(s string) bool {
+	return nativeItemIDPattern.MatchString(s)
+}
 
 // PushSecretMetadataSpec defines the metadata configuration for pushing secrets to 1Password.
 type PushSecretMetadataSpec struct {
@@ -430,7 +440,7 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 	var item onepassword.Item
 	var err error
 
-	if strfmt.IsUUID(name) {
+	if isNativeItemID(name) {
 		item, err = p.client.Items().Get(ctx, p.vaultID, name)
 		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
 		if err != nil {

@@ -107,6 +107,12 @@ spec:
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
           {{- end }}
+          {{- if .Values.vault.enableTokenCache }}
+          - --enable-vault-token-cache=true
+          {{- end }}
+          {{- if and .Values.vault.enableTokenCache .Values.vault.tokenCacheSize }}
+          - --vault-token-cache-size={{ .Values.vault.tokenCacheSize }}
+          {{- end }}
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
@@ -124,7 +130,7 @@ spec:
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
-          {{- if .Values.livenessProbe.enabled }}
+          {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
           {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
           - --live-addr={{ .Values.livenessProbe.spec.address }}:{{ .Values.livenessProbe.spec.port }}
           {{- else }}
@@ -141,7 +147,7 @@ spec:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
-            {{- if .Values.livenessProbe.enabled }}
+            {{- if or .Values.livenessProbe.enabled .Values.readinessProbe.enabled }}
             - name: live
               protocol: TCP
               {{- if eq (kindOf .Values.livenessProbe.spec.httpGet.port) "string" }}
@@ -153,6 +159,10 @@ spec:
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
           {{- toYaml (omit .Values.livenessProbe.spec "address" "port") | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+          {{- toYaml .Values.readinessProbe.spec | nindent 12 }}
           {{- end }}
           {{- with .Values.extraEnv }}
           env:

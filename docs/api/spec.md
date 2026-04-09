@@ -1774,6 +1774,7 @@ string
 <a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
 <a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>, 
 <a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
@@ -2280,8 +2281,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2307,8 +2308,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2472,8 +2473,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2499,8 +2500,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -4550,7 +4551,8 @@ list during merge operations.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
 <p>ExternalSecretRewriteRegexp defines configuration for rewriting secrets using regular expressions.</p>
@@ -4591,7 +4593,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
 <p>ExternalSecretRewriteTransform defines configuration for transforming secrets using templates.</p>
@@ -8175,6 +8178,227 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.OvhAuth">OvhAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhProvider">OvhProvider</a>)
+</p>
+<p>
+<p>OvhAuth tells the controller how to authenticate to OVHcloud&rsquo;s Secret Manager, either using mTLS or a token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mtls</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientMTLS">
+OvhClientMTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientToken">
+OvhClientToken
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientMTLS defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager using mTLS.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientToken">OvhClientToken
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientToken defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager using a token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhProvider">OvhProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OvhProvider holds the configuration to synchronize secrets with OVHcloud&rsquo;s Secret Manager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>specifies the OKMS server endpoint.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>okmsid</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>specifies the OKMS ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>casRequired</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Enables or disables check-and-set (CAS) (default: false).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>okmsTimeout</code></br>
+<em>
+uint32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Setup a timeout in seconds when requests to the KMS are made (default: 30).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhAuth">
+OvhAuth
+</a>
+</em>
+</td>
+<td>
+<p>Authentication method (mtls or token).</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.PassboltAuth">PassboltAuth
 </h3>
 <p>
@@ -9178,6 +9402,20 @@ VaultProvider
 <td>
 <em>(Optional)</em>
 <p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ovh</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhProvider">
+OvhProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OVHcloud configures this store to sync secrets using the OVHcloud provider.</p>
 </td>
 </tr>
 <tr>
@@ -11640,8 +11878,8 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.
-Deprecated: use serviceAccountRef.Audiences instead</p>
+Defaults to a single audience <code>vault</code> it not specified.</p>
+<p>Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -11655,8 +11893,8 @@ int64
 <em>(Optional)</em>
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
-<code>serviceAccountRef</code>.
-Deprecated: this will be removed in the future.
+<code>serviceAccountRef</code>.</p>
+<p>Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>
@@ -13122,7 +13360,22 @@ PushSecretSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Secret Data that should be pushed to providers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataTo</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">
+[]PushSecretDataTo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DataTo defines bulk push rules that expand source Secret keys into provider entries.</p>
 </td>
 </tr>
 <tr>
@@ -13181,7 +13434,8 @@ PushSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>)
+<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
 </p>
 <p>
 <p>PushSecretConversionStrategy defines how secret values are converted when pushed to providers.</p>
@@ -13256,6 +13510,143 @@ PushSecretConversionStrategy
 <td>
 <em>(Optional)</em>
 <p>Used to define a conversion Strategy for the secret keys</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
+</p>
+<p>
+<p>PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretStoreRef">
+PushSecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<p>StoreRef specifies which SecretStore to push to. Required.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>remoteKey</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RemoteKey is the name of the single provider secret that will receive ALL
+matched keys bundled as a JSON object (e.g. {&ldquo;DB_HOST&rdquo;:&ldquo;&hellip;&rdquo;,&ldquo;DB_USER&rdquo;:&ldquo;&hellip;&rdquo;}).
+When set, per-key expansion is skipped and a single push is performed.
+The provider&rsquo;s store prefix (if any) is still prepended to this value.
+When not set, each matched key is pushed as its own individual provider secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>match</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataToMatch">
+PushSecretDataToMatch
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Match pattern for selecting keys from the source Secret.
+If not specified, all keys are selected.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rewrite</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">
+[]PushSecretRewrite
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Rewrite operations to transform keys before pushing to the provider.
+Operations are applied sequentially.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Metadata is metadata attached to the secret.
+The structure of metadata is provider specific, please look it up in the provider documentation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conversionStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretConversionStrategy">
+PushSecretConversionStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a conversion Strategy for the secret keys</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretDataToMatch">PushSecretDataToMatch
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
+</p>
+<p>
+<p>PushSecretDataToMatch defines pattern matching for key selection.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Regexp matches keys by regular expression.
+If not specified, all keys are matched.</p>
 </td>
 </tr>
 </tbody>
@@ -13407,6 +13798,53 @@ string
 <td>
 <em>(Optional)</em>
 <p>Name of the property in the resulting secret</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
+</p>
+<p>
+<p>PushSecretRewrite defines how to transform secret keys before pushing.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteRegexp">
+ExternalSecretRewriteRegexp
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to rewrite with regular expressions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transform</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteTransform">
+ExternalSecretRewriteTransform
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to apply string transformation on the secrets.</p>
 </td>
 </tr>
 </tbody>
@@ -13598,7 +14036,22 @@ PushSecretSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Secret Data that should be pushed to providers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataTo</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">
+[]PushSecretDataTo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DataTo defines bulk push rules that expand source Secret keys into provider entries.</p>
 </td>
 </tr>
 <tr>
@@ -13772,6 +14225,7 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
 </p>
 <p>
@@ -15843,8 +16297,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -16033,8 +16487,8 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
-Deprecated: Use NamespaceSelectors instead.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -23304,8 +23758,8 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.
-Deprecated: use serviceAccountRef.Audiences instead</p>
+Defaults to a single audience <code>vault</code> it not specified.</p>
+<p>Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -23319,8 +23773,8 @@ int64
 <em>(Optional)</em>
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
-<code>serviceAccountRef</code>.
-Deprecated: this will be removed in the future.
+<code>serviceAccountRef</code>.</p>
+<p>Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>

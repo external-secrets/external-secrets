@@ -1,18 +1,18 @@
-// /*
-// Copyright © 2025 ESO Maintainer Team
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// */
+/*
+Copyright © The ESO Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package mysterybox
 
@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
-	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -240,7 +239,7 @@ func TestValidateStoreClusterScope(t *testing.T) {
 		{
 			name: "cluster: namespaced token passes",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
-				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: pointer.To("ns1")}
+				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
 			}),
 			wantErr: "",
 		},
@@ -254,14 +253,14 @@ func TestValidateStoreClusterScope(t *testing.T) {
 		{
 			name: "cluster: namespaced sa creds passes",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
-				nm.Auth.ServiceAccountCreds = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: pointer.To("ns1")}
+				nm.Auth.ServiceAccountCreds = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
 			}),
 			wantErr: "",
 		},
 		{
 			name: "cluster: ca cert requires namespace",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
-				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: pointer.To("ns1")}
+				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
 				nm.CAProvider = &esv1.NebiusCAProvider{Certificate: esmeta.SecretKeySelector{Name: "ca", Key: "tls.crt"}}
 			}),
 			wantErr: utilsErrRequireNamespace,
@@ -269,8 +268,8 @@ func TestValidateStoreClusterScope(t *testing.T) {
 		{
 			name: "cluster: namespaced ca cert passes",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
-				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: pointer.To("ns1")}
-				nm.CAProvider = &esv1.NebiusCAProvider{Certificate: esmeta.SecretKeySelector{Name: "ca", Key: "tls.crt", Namespace: pointer.To("ns1")}}
+				nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
+				nm.CAProvider = &esv1.NebiusCAProvider{Certificate: esmeta.SecretKeySelector{Name: "ca", Key: "tls.crt", Namespace: new("ns1")}}
 			}),
 			wantErr: "",
 		},
@@ -304,7 +303,7 @@ func TestValidateStore_APIDomainCases(t *testing.T) {
 		nm.Auth.Token = esmeta.SecretKeySelector{Name: "tok", Key: "k"}
 		return st
 	}
-	cases := []struct {
+	cases := []struct { //nolint:prealloc // struct literal with dynamic appends below
 		name   string
 		domain string
 		valid  bool

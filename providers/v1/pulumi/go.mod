@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/pulumi
 
-go 1.25.7
+go 1.26.1
 
 require (
 	dario.cat/mergo v1.0.2
@@ -16,7 +16,6 @@ require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.1-0.20241028115027-8cb06fe3c8b0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect

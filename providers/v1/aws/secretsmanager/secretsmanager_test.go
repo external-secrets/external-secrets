@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -468,8 +467,8 @@ func TestSetSecret(t *testing.T) {
 			Value: &externalSecrets,
 		},
 		{
-			Key:   ptr.To("taname1"),
-			Value: ptr.To("tagvalue1"),
+			Key:   new("taname1"),
+			Value: new("tagvalue1"),
 		},
 	}
 
@@ -1023,14 +1022,14 @@ func TestSetSecret(t *testing.T) {
 						ARN: &arn,
 						Tags: []types.Tag{
 							{Key: &managedBy, Value: &externalSecrets},
-							{Key: ptr.To("team"), Value: ptr.To("paradox")},
+							{Key: new("team"), Value: new("paradox")},
 						},
 					}, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					TagResourceFn: fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil, func(input *awssm.TagResourceInput) {
 						assert.Len(t, input.Tags, 2)
 						assert.Contains(t, input.Tags, types.Tag{Key: &managedBy, Value: &externalSecrets})
-						assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("env"), Value: ptr.To("sandbox")})
+						assert.Contains(t, input.Tags, types.Tag{Key: new("env"), Value: new("sandbox")})
 					}),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil, func(input *awssm.UntagResourceInput) {
 						assert.Len(t, input.TagKeys, 1)
@@ -1299,7 +1298,7 @@ func TestPushSecretTagsUpdatedWhenValueUnchanged(t *testing.T) {
 	require.NotNil(t, capturedTagInput, "TagResourceInput should be captured")
 	assert.Len(t, capturedTagInput.Tags, 2)
 	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: &managedBy, Value: &externalSecrets})
-	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: ptr.To("newTag"), Value: ptr.To("newValue")})
+	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: new("newTag"), Value: new("newValue")})
 }
 
 func TestPushSecretResourcePolicyUpdatedWhenValueUnchanged(t *testing.T) {
@@ -1730,7 +1729,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				Name: &esv1.FindName{
 					RegExp: secretName,
 				},
-				Path: ptr.To(secretPath),
+				Path: new(secretPath),
 			},
 			secretName:    secretName,
 			secretVersion: secretVersion,
@@ -1742,7 +1741,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name:          ptr.To(secretName),
+							Name:          new(secretName),
 							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
@@ -1760,7 +1759,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				Name: &esv1.FindName{
 					RegExp: secretName,
 				},
-				Path: ptr.To(secretPath),
+				Path: new(secretPath),
 			},
 			secretName:    secretName,
 			secretVersion: secretVersion,
@@ -1769,7 +1768,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name: ptr.To(secretName),
+							Name: new(secretName),
 						},
 					},
 				}, errBoom
@@ -1801,7 +1800,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.ListSecretsOutput{
 					SecretList: []types.SecretListEntry{
 						{
-							Name: ptr.To("other-secret"),
+							Name: new("other-secret"),
 						},
 					},
 				}, nil
@@ -1810,7 +1809,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name: ptr.To("other-secret"),
+							Name: new("other-secret"),
 						},
 					},
 				}, nil
@@ -1846,7 +1845,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name:          ptr.To(secretName),
+							Name:          new(secretName),
 							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
@@ -1869,18 +1868,18 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			listSecretsFn: func(_ context.Context, input *awssm.ListSecretsInput, _ ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
 				allSecrets := []types.SecretListEntry{
 					{
-						Name: ptr.To(secretName),
+						Name: new(secretName),
 						Tags: []types.Tag{
-							{Key: ptr.To("foo"), Value: ptr.To("bar")},
+							{Key: new("foo"), Value: new("bar")},
 						},
 					},
 					{
-						Name: ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+						Name: new(fmt.Sprintf("%ssomeothertext", secretName)),
 					},
 					{
-						Name: ptr.To("unmatched-secret"),
+						Name: new("unmatched-secret"),
 						Tags: []types.Tag{
-							{Key: ptr.To("foo"), Value: ptr.To("bar")},
+							{Key: new("foo"), Value: new("bar")},
 						},
 					},
 				}
@@ -1932,20 +1931,20 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			getSecretValueFn: func(_ context.Context, input *awssm.GetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
 				if *input.SecretId == secretName {
 					return &awssm.GetSecretValueOutput{
-						Name:          ptr.To(secretName),
+						Name:          new(secretName),
 						VersionStages: []string{secretVersion},
 						SecretBinary:  []byte(secretValue),
 					}, nil
 				}
 				if *input.SecretId == "unmatched-secret" {
 					return &awssm.GetSecretValueOutput{
-						Name:          ptr.To("unmatched-secret"),
+						Name:          new("unmatched-secret"),
 						VersionStages: []string{secretVersion},
 						SecretBinary:  []byte("othervalue"),
 					}, nil
 				}
 				return &awssm.GetSecretValueOutput{
-					Name:          ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+					Name:          new(fmt.Sprintf("%ssomeothertext", secretName)),
 					VersionStages: []string{secretVersion},
 					SecretBinary:  []byte("someothervalue"),
 				}, nil
@@ -1967,7 +1966,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name:          ptr.To(secretName),
+							Name:          new(secretName),
 							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
@@ -2279,8 +2278,8 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				"key2": "value2",
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("value1")},
-				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+				{Key: new("key1"), Value: new("value1")},
+				{Key: new("key2"), Value: new("value2")},
 			},
 			modified: false,
 		},
@@ -2296,9 +2295,9 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				managedBy: externalSecrets,
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("value1")},
-				{Key: ptr.To("key2"), Value: ptr.To("value2")},
-				{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)},
+				{Key: new("key1"), Value: new("value1")},
+				{Key: new("key2"), Value: new("value2")},
+				{Key: new(managedBy), Value: new(externalSecrets)},
 			},
 			modified: false,
 		},
@@ -2312,8 +2311,8 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				"key2": "value2",
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("value1")},
-				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+				{Key: new("key1"), Value: new("value1")},
+				{Key: new("key2"), Value: new("value2")},
 			},
 			modified: true,
 		},
@@ -2326,7 +2325,7 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				"key1": "newValue",
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("newValue")},
+				{Key: new("key1"), Value: new("newValue")},
 			},
 			modified: true,
 		},
@@ -2344,7 +2343,7 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				"key1": "value1",
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("value1")},
+				{Key: new("key1"), Value: new("value1")},
 			},
 			modified: true,
 		},
@@ -2393,8 +2392,8 @@ func TestPatchTags(t *testing.T) {
 			expectUntag:  false,
 			expectTag:    true,
 			assertsTag: func(input *awssm.TagResourceInput) {
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)})
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("a"), Value: ptr.To("2")})
+				assert.Contains(t, input.Tags, types.Tag{Key: new(managedBy), Value: new(externalSecrets)})
+				assert.Contains(t, input.Tags, types.Tag{Key: new("a"), Value: new("2")})
 			},
 			assertsUntag: func(input *awssm.UntagResourceInput) {
 				assert.Fail(t, "Expected UntagResource to not be called")
@@ -2420,9 +2419,9 @@ func TestPatchTags(t *testing.T) {
 			expectUntag:  false,
 			expectTag:    true,
 			assertsTag: func(input *awssm.TagResourceInput) {
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)})
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("a"), Value: ptr.To("1")})
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("b"), Value: ptr.To("2")})
+				assert.Contains(t, input.Tags, types.Tag{Key: new(managedBy), Value: new(externalSecrets)})
+				assert.Contains(t, input.Tags, types.Tag{Key: new("a"), Value: new("1")})
+				assert.Contains(t, input.Tags, types.Tag{Key: new("b"), Value: new("2")})
 			},
 			assertsUntag: func(input *awssm.UntagResourceInput) {
 				assert.Fail(t, "Expected UntagResource to not be called")
@@ -2445,10 +2444,10 @@ func TestPatchTags(t *testing.T) {
 			}
 
 			sm := &SecretsManager{client: fakeClient}
-			metaMap := map[string]interface{}{
+			metaMap := map[string]any{
 				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
 				"kind":       "PushSecretMetadata",
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"description": "adding managed-by tag explicitly",
 					"tags":        tt.metaTags,
 				},

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -86,6 +86,10 @@ type SecretStoreProvider struct {
 	// Vault configures this store to sync secrets using the HashiCorp Vault provider.
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
+
+	// OVHcloud configures this store to sync secrets using the OVHcloud provider.
+	// +optional
+	OVHcloud *OvhProvider `json:"ovh,omitempty"`
 
 	// GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
 	// +optional
