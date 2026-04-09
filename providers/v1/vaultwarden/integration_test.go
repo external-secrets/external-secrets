@@ -48,7 +48,17 @@ const (
 	envVaultwardenClientID       = "VAULTWARDEN_CLIENT_ID"
 	envVaultwardenClientSecret   = "VAULTWARDEN_CLIENT_SECRET"
 	envVaultwardenMasterPassword = "VAULTWARDEN_MASTER_PASSWORD"
+	// envVaultwardenInsecure allows skipping TLS verification when testing
+	// against a local Vaultwarden instance with a self-signed certificate.
+	envVaultwardenInsecure = "VAULTWARDEN_INSECURE"
 )
+
+// integrationTLSConfig returns a TLS config for integration tests.
+// TLS verification is skipped only when VAULTWARDEN_INSECURE=true is set.
+func integrationTLSConfig() *tls.Config {
+	skipVerify := os.Getenv(envVaultwardenInsecure) == "true"
+	return &tls.Config{InsecureSkipVerify: skipVerify, MinVersion: tls.VersionTLS12} //nolint:gosec
+}
 
 // fakePushSecretData is a local implementation of esv1.PushSecretData for tests.
 type fakePushSecretData struct {
@@ -132,10 +142,9 @@ func buildIntegrationClient(t *testing.T) *Client {
 		},
 	}
 
-	// TODO: support custom CA via provider config.
 	httpClient := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+			TLSClientConfig: integrationTLSConfig(),
 		},
 	}
 
@@ -206,7 +215,7 @@ func TestMain(m *testing.M) {
 			},
 		}
 		sharedClient = &Client{
-			httpClient: &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}, //nolint:gosec
+			httpClient: &http.Client{Transport: &http.Transport{TLSClientConfig: integrationTLSConfig()}},
 			provider:   store.Spec.Provider.Vaultwarden,
 			crClient:   kubeClient,
 			namespace:  integrationNamespace,
