@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -60,8 +61,12 @@ func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, kube cl
 		tlsConfig.RootCAs = pool
 	}
 	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
+			TLSClientConfig:       tlsConfig,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 15 * time.Second,
+			IdleConnTimeout:       90 * time.Second,
 		},
 	}
 	return &Client{
