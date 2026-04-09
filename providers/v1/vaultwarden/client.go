@@ -145,6 +145,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	}
 
 	if ref.Property != "" {
+		// First check cipher custom fields.
 		for _, f := range cipher.Fields {
 			fieldName, err := crypto.DecryptString(f.Name, symEncKey, symMacKey)
 			if err != nil {
@@ -156,6 +157,18 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 					return nil, fmt.Errorf("vaultwarden: decrypting field value: %w", err)
 				}
 				return []byte(val), nil
+			}
+		}
+		// Fall back to Notes JSON (used by secrets written by this provider).
+		if cipher.Notes != "" {
+			notes, err := crypto.DecryptString(cipher.Notes, symEncKey, symMacKey)
+			if err == nil {
+				var obj map[string]json.RawMessage
+				if json.Unmarshal([]byte(notes), &obj) == nil {
+					if raw, ok := obj[ref.Property]; ok {
+						return jsonRawToBytes(raw), nil
+					}
+				}
 			}
 		}
 		return nil, fmt.Errorf("vaultwarden: field %q not found in secret %q", ref.Property, ref.Key)
@@ -284,7 +297,13 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		}
 		value = val
 	} else {
-		value, err = json.Marshal(secret.Data)
+		// Convert []byte values to strings so json.Marshal does not base64-encode them,
+		// preserving round-trip fidelity with GetSecretMap.
+		strData := make(map[string]string, len(secret.Data))
+		for k, v := range secret.Data {
+			strData[k] = string(v)
+		}
+		value, err = json.Marshal(strData)
 		if err != nil {
 			return fmt.Errorf("vaultwarden: marshalling secret data: %w", err)
 		}
