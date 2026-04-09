@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -57,7 +58,10 @@ func listVariablesHTTP(ctx context.Context, baseURL, token, path string) (map[st
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read variables list response: %w", err)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status %d listing variables: %s", resp.StatusCode, body)
 	}
@@ -78,9 +82,9 @@ func (g *Client) orgGetVariableFn(ctx context.Context, ref esv1.ExternalSecretDa
 	if err != nil {
 		return "", err
 	}
-	url := fmt.Sprintf("%s/api/v1/orgs/%s/actions/variables/%s",
-		strings.TrimRight(g.provider.URL, "/"), g.provider.Organization, ref.Key)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	endpoint := fmt.Sprintf("%s/api/v1/orgs/%s/actions/variables/%s",
+		strings.TrimRight(g.provider.URL, "/"), url.PathEscape(g.provider.Organization), url.PathEscape(ref.Key))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to build request: %w", err)
 	}
@@ -92,7 +96,10 @@ func (g *Client) orgGetVariableFn(ctx context.Context, ref esv1.ExternalSecretDa
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return "", fmt.Errorf("failed to read org variable response: %w", readErr)
+	}
 	if resp.StatusCode == http.StatusNotFound {
 		return "", fmt.Errorf("variable %q not found in org %s", ref.Key, g.provider.Organization)
 	}
@@ -114,5 +121,5 @@ func (g *Client) orgListVariablesFn(ctx context.Context) (map[string][]byte, err
 		return nil, err
 	}
 	return listVariablesHTTP(ctx, g.provider.URL, token,
-		fmt.Sprintf("/api/v1/orgs/%s/actions/variables", g.provider.Organization))
+		fmt.Sprintf("/api/v1/orgs/%s/actions/variables", url.PathEscape(g.provider.Organization)))
 }
