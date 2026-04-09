@@ -29,6 +29,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	giteasdk "code.gitea.io/sdk/gitea"
 	"github.com/stretchr/testify/assert"
@@ -125,7 +126,7 @@ func TestIntegration_PushExistsDelete(t *testing.T) {
 	c := newIntegrationClient(t)
 	ctx := context.Background()
 
-	ref := pushRef("password", "ESO_INTEGRATION_TEST")
+	ref := pushRef("password", fmt.Sprintf("ESO_INTEGRATION_TEST_%d", time.Now().UnixNano()))
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-secret"},
 		Data:       map[string][]byte{"password": []byte("supersecret")},
@@ -154,7 +155,7 @@ func TestIntegration_PushUpdate(t *testing.T) {
 	c := newIntegrationClient(t)
 	ctx := context.Background()
 
-	ref := pushRef("val", "ESO_UPDATE_TEST")
+	ref := pushRef("val", fmt.Sprintf("ESO_UPDATE_TEST_%d", time.Now().UnixNano()))
 	t.Cleanup(func() { _ = c.DeleteSecret(ctx, ref) })
 
 	for _, v := range []string{"first-value", "second-value"} {
@@ -183,7 +184,7 @@ func TestIntegration_GetSecret_Variable(t *testing.T) {
 	org := os.Getenv("GITEA_ORG")
 	repo := os.Getenv("GITEA_REPO")
 
-	const varName = "ESO_INTEGRATION_VAR"
+	varName := fmt.Sprintf("ESO_INTEGRATION_VAR_%d", time.Now().UnixNano())
 	const varValue = "integration-test-value"
 
 	// Create the variable via the Gitea REST API directly (SDK has no org variable write methods).
@@ -198,10 +199,14 @@ func TestIntegration_GetSecret_Variable(t *testing.T) {
 		// Org variable create: POST /api/v1/orgs/{org}/actions/variables/{variablename}
 		apiURL := fmt.Sprintf("%s/api/v1/orgs/%s/actions/variables/%s", strings.TrimRight(url, "/"), org, varName)
 		body := fmt.Sprintf(`{"name":%q,"data":%q}`, varName, varValue)
-		req, _ := http.NewRequest(http.MethodPost, apiURL, strings.NewReader(body))
+		createCtx, createCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer createCancel()
+		req, err := http.NewRequestWithContext(createCtx, http.MethodPost, apiURL, strings.NewReader(body))
+		require.NoError(t, err)
 		req.Header.Set("Authorization", "token "+token)
 		req.Header.Set("Content-Type", "application/json")
-		resp, doErr := http.DefaultClient.Do(req)
+		httpC := &http.Client{Timeout: 15 * time.Second}
+		resp, doErr := httpC.Do(req)
 		require.NoError(t, doErr)
 		resp.Body.Close()
 		require.True(t, resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusNoContent,
@@ -209,9 +214,14 @@ func TestIntegration_GetSecret_Variable(t *testing.T) {
 
 		t.Cleanup(func() {
 			delURL := fmt.Sprintf("%s/api/v1/orgs/%s/actions/variables/%s", strings.TrimRight(url, "/"), org, varName)
-			delReq, _ := http.NewRequest(http.MethodDelete, delURL, nil)
+			delCtx, delCancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer delCancel()
+			delReq, delErr := http.NewRequestWithContext(delCtx, http.MethodDelete, delURL, nil)
+			if delErr != nil {
+				return
+			}
 			delReq.Header.Set("Authorization", "token "+token)
-			delResp, _ := http.DefaultClient.Do(delReq)
+			delResp, _ := httpC.Do(delReq)
 			if delResp != nil {
 				delResp.Body.Close()
 			}
