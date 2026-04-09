@@ -2130,7 +2130,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		tc.externalSecret.Spec.Data[0].RemoteRef.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
 		fakeProvider.WithGetSecret([]byte(nullByteSecretVal), nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2161,7 +2161,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			"payload": []byte(nullByteSecretVal),
 		}, nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2194,7 +2194,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			"payload": []byte(nullByteSecretVal),
 		}, nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
