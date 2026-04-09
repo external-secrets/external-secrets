@@ -127,7 +127,7 @@ func Decrypt(es EncString, encKey, macKey []byte) ([]byte, error) {
 		return nil, errors.New("ciphertext is not a multiple of AES block size")
 	}
 	plaintext := make([]byte, len(es.CT))
-	cipher.NewCBCDecrypter(block, es.IV).CryptBlocks(plaintext, es.CT)
+	cipher.NewCBCDecrypter(block, es.IV).CryptBlocks(plaintext, es.CT) // NOSONAR — AES-256-CBC is mandated by the Bitwarden wire protocol; MAC is verified before decryption (Encrypt-then-MAC)
 
 	plaintext, err = pkcs7Unpad(plaintext)
 	if err != nil {
@@ -166,7 +166,7 @@ func Encrypt(plaintext, encKey, macKey []byte) (string, error) {
 		return "", fmt.Errorf("aes.NewCipher: %w", err)
 	}
 	ct := make([]byte, len(padded))
-	cipher.NewCBCEncrypter(block, iv).CryptBlocks(ct, padded)
+	cipher.NewCBCEncrypter(block, iv).CryptBlocks(ct, padded) // NOSONAR — AES-256-CBC is mandated by the Bitwarden wire protocol; MAC is appended after encryption (Encrypt-then-MAC)
 
 	h := hmac.New(sha256.New, macKey)
 	h.Write(iv)
