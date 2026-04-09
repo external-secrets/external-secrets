@@ -22,7 +22,9 @@ package vaultwarden
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,10 +51,17 @@ func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, kube cl
 	if err != nil {
 		return nil, err
 	}
-	// TODO: support custom CA via provider config.
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+	if len(prov.CABundle) > 0 {
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(prov.CABundle) {
+			return nil, fmt.Errorf("vaultwarden: failed to parse CABundle")
+		}
+		tlsConfig.RootCAs = pool
+	}
 	httpClient := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+			TLSClientConfig: tlsConfig,
 		},
 	}
 	return &Client{
