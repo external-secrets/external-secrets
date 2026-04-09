@@ -87,10 +87,6 @@ type SecretStoreProvider struct {
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
 
-	// Vaultwarden configures this store to sync secrets from a self-hosted Vaultwarden instance.
-	// +optional
-	Vaultwarden *VaultwardenProvider `json:"vaultwarden,omitempty"`
-
 	// GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
 	// +optional
 	GCPSM *GCPSMProvider `json:"gcpsm,omitempty"`
