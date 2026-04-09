@@ -38,11 +38,11 @@ func (g *Client) repoGetVariableFn(_ context.Context, ref esv1.ExternalSecretDat
 
 // repoListVariablesFn lists all repository-level Actions variables.
 // The SDK has no list method for repo variables, so we use direct HTTP (shared helper from org_variables.go).
-func (g *Client) repoListVariablesFn(_ context.Context) (map[string][]byte, error) {
-	token, err := g.getToken(context.Background())
+func (g *Client) repoListVariablesFn(ctx context.Context) (map[string][]byte, error) {
+	token, err := g.getToken(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return listVariablesHTTP(g.provider.URL, token,
+	return listVariablesHTTP(ctx, g.provider.URL, token,
 		fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables", g.provider.Organization, g.provider.Repository))
 }
