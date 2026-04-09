@@ -289,10 +289,22 @@ func TestGetSecret(t *testing.T) {
 			wantValue:     []byte("hello"),
 		},
 		{
-			name:          "property extraction from JSON value",
+			name:          "property extraction from JSON string value",
 			getVariableFn: withGetVariableFn(`{"user":"alice","pass":"s3cr3t"}`, nil),
 			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR", Property: "user"},
 			wantValue:     []byte("alice"),
+		},
+		{
+			name:          "property extraction from JSON number value",
+			getVariableFn: withGetVariableFn(`{"count":42,"enabled":true}`, nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR", Property: "count"},
+			wantValue:     []byte("42"),
+		},
+		{
+			name:          "property extraction from JSON bool value",
+			getVariableFn: withGetVariableFn(`{"count":42,"enabled":true}`, nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR", Property: "enabled"},
+			wantValue:     []byte("true"),
 		},
 		{
 			name:          "property not found in JSON object",
