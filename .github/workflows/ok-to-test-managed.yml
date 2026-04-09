@@ -28,10 +28,9 @@ jobs:
       uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
       env:
         APP_ID: ${{ secrets.APP_ID }}
-        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       with:
         app-id: ${{ env.APP_ID }}
-        private-key: ${{ env.PRIVATE_KEY }}
+        private-key: ${{ secrets.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
 
     - name: Slash Command Dispatch

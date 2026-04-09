@@ -19,10 +19,9 @@ jobs:
         id: app-token
         env:
           APP_ID: ${{ secrets.APP_ID }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         with:
           app-id: ${{ env.APP_ID }}
-          private-key: ${{ env.PRIVATE_KEY }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
       # This first step will fail if there's no metadata and so the approval
       # will not occur.
       - name: Dependabot metadata
