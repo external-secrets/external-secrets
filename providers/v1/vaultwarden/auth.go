@@ -138,13 +138,18 @@ func (c *Client) fetchProfile(ctx context.Context, accessToken string) (*vaultwa
 // getSymKey fetches (or returns a cached) access token and symmetric key material.
 // It authenticates with Vaultwarden, fetches the account profile, derives the master key,
 // and decrypts the user's symmetric encryption key. Results are cached for 5 minutes.
+//
+// The mutex is held only for the cache check and cache write; the expensive HTTP calls
+// and key derivation run outside the lock so concurrent reconciles are not serialized
+// behind network latency and crypto work.
 func (c *Client) getSymKey(ctx context.Context) (accessToken string, symEncKey, symMacKey []byte, err error) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if c.cache != nil && time.Now().Before(c.cache.expiresAt) {
-		return c.cache.accessToken, c.cache.symEncKey, c.cache.symMacKey, nil
+		tok, enc, mac := c.cache.accessToken, c.cache.symEncKey, c.cache.symMacKey
+		c.mu.Unlock()
+		return tok, enc, mac, nil
 	}
+	c.mu.Unlock()
 
 	tokenResp, err := c.fetchToken(ctx)
 	if err != nil {
@@ -190,14 +195,17 @@ func (c *Client) getSymKey(ctx context.Context) (accessToken string, symEncKey, 
 		return "", nil, nil, fmt.Errorf("vaultwarden: symmetric key too short (%d bytes)", len(symKeyBytes))
 	}
 
+	c.mu.Lock()
 	c.cache = &cachedToken{
 		accessToken: tokenResp.AccessToken,
 		symEncKey:   symKeyBytes[0:32],
 		symMacKey:   symKeyBytes[32:64],
 		expiresAt:   time.Now().Add(5 * time.Minute),
 	}
+	tok, enc, mac := c.cache.accessToken, c.cache.symEncKey, c.cache.symMacKey
+	c.mu.Unlock()
 
-	return c.cache.accessToken, c.cache.symEncKey, c.cache.symMacKey, nil
+	return tok, enc, mac, nil
 }
 
 // getProvider extracts the VaultwardenProvider config from a generic store.

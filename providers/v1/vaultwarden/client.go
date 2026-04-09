@@ -423,15 +423,6 @@ func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return cipher != nil, nil
 }
 
-// listCiphers fetches a fresh token and then retrieves all ciphers.
-func (c *Client) listCiphers(ctx context.Context) ([]vaultwardenCipher, error) {
-	tokenResp, err := c.fetchToken(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return c.listCiphersWithToken(ctx, tokenResp.AccessToken)
-}
-
 // listCiphersWithToken retrieves all ciphers using the provided bearer token.
 func (c *Client) listCiphersWithToken(ctx context.Context, accessToken string) ([]vaultwardenCipher, error) {
 	ciphersURL := strings.TrimRight(c.provider.URL, "/") + "/api/ciphers"
