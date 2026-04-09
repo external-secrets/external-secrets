@@ -135,53 +135,6 @@ func (c *Client) fetchProfile(ctx context.Context, accessToken string) (*vaultwa
 	return &profile, nil
 }
 
-// deriveSymKey derives the user's symmetric encryption key by:
-//  1. Reading the master password from Kubernetes.
-//  2. Deriving the master key with the given KDF parameters and email.
-//  3. Stretching it into enc/mac halves.
-//  4. Decrypting the encrypted symmetric key blob (encKeyBlob) from the API.
-//
-// email is the account email used as KDF salt (from the profile response).
-// Returns symEncKey (bytes 0–31) and symMacKey (bytes 32–63).
-func (c *Client) deriveSymKey(ctx context.Context, email, encKeyBlob string, kdf, iter int, mem, par *int) (encK, macK []byte, err error) {
-	masterPassword, err := c.resolveSecretKeyRef(ctx, c.provider.Auth.SecretRef.MasterPassword)
-	if err != nil {
-		return nil, nil, fmt.Errorf("vaultwarden: reading masterPassword: %w", err)
-	}
-
-	memVal, parVal := 0, 0
-	if mem != nil {
-		memVal = *mem
-	}
-	if par != nil {
-		parVal = *par
-	}
-
-	masterKey, err := crypto.DeriveKey(masterPassword, email, kdf, iter, memVal, parVal)
-	if err != nil {
-		return nil, nil, fmt.Errorf("vaultwarden: deriving master key: %w", err)
-	}
-
-	stretchedEnc, stretchedMac, err := crypto.StretchKey(masterKey)
-	if err != nil {
-		return nil, nil, fmt.Errorf("vaultwarden: stretching master key: %w", err)
-	}
-
-	encKeyES, err := crypto.ParseEncString(encKeyBlob)
-	if err != nil {
-		return nil, nil, fmt.Errorf("vaultwarden: parsing encKeyBlob: %w", err)
-	}
-	symKeyBytes, err := crypto.Decrypt(encKeyES, stretchedEnc, stretchedMac)
-	if err != nil {
-		return nil, nil, fmt.Errorf("vaultwarden: decrypting symmetric key: %w", err)
-	}
-	if len(symKeyBytes) < 64 {
-		return nil, nil, fmt.Errorf("vaultwarden: symmetric key too short (%d bytes)", len(symKeyBytes))
-	}
-
-	return symKeyBytes[0:32], symKeyBytes[32:64], nil
-}
-
 // getSymKey fetches (or returns a cached) access token and symmetric key material.
 // It authenticates with Vaultwarden, fetches the account profile, derives the master key,
 // and decrypts the user's symmetric encryption key. Results are cached for 5 minutes.
