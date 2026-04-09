@@ -123,6 +123,9 @@ func Decrypt(es EncString, encKey, macKey []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("aes.NewCipher: %w", err)
 	}
+	if len(es.IV) != aes.BlockSize {
+		return nil, fmt.Errorf("invalid IV length %d (expected %d)", len(es.IV), aes.BlockSize)
+	}
 	if len(es.CT)%aes.BlockSize != 0 {
 		return nil, errors.New("ciphertext is not a multiple of AES block size")
 	}
