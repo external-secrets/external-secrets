@@ -19,6 +19,7 @@ package gitea
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
@@ -44,5 +45,5 @@ func (g *Client) repoListVariablesFn(ctx context.Context) (map[string][]byte, er
 		return nil, err
 	}
 	return listVariablesHTTP(ctx, g.provider.URL, token,
-		fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables", g.provider.Organization, g.provider.Repository))
+		fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables", url.PathEscape(g.provider.Organization), url.PathEscape(g.provider.Repository)))
 }
