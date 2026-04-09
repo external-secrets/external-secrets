@@ -58,6 +58,7 @@ const (
 	annotationValue    = "annotation-value"
 	existingLabelKey   = "existing-label-key"
 	existingLabelValue = "existing-label-value"
+	nullByteSecretVal  = "A\x00B"
 )
 
 var (
@@ -280,7 +281,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			// default condition: es should be ready
 			targetSecretName: ExternalSecretTargetSecretName,
 			checkCondition: func(es *esv1.ExternalSecret) bool {
-				cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+				cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 				if cond == nil || cond.Status != v1.ConditionTrue {
 					return false
 				}
@@ -1659,14 +1660,14 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			"bar/foo": []byte(BarValue),
 		}, nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
 			return true
 		}
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1708,14 +1709,14 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			"bar/foo": []byte(BarValue),
 		}, nil)
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
 			return true
 		}
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1847,7 +1848,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		fakeProvider.WithGetSecret(nil, errors.New("boom"))
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Millisecond * 100}
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1871,8 +1872,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 					return false
 				}
 				// condition must now be true!
-				cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
-				if cond == nil && cond.Status != v1.ConditionTrue {
+				cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+				if cond == nil || cond.Status != v1.ConditionTrue {
 					return false
 				}
 				return true
@@ -1885,7 +1886,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	storeMissingErrCondition := func(tc *testCase) {
 		tc.externalSecret.Spec.SecretStoreRef.Name = "nonexistent"
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1911,7 +1912,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		})
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
 			// condition must be false
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -1933,7 +1934,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	ignoreMismatchController := func(tc *testCase) {
 		tc.secretStore.GetSpec().Controller = "nop"
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			return cond == nil
 		}
 		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
@@ -1968,7 +1969,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		)).To(BeTrue())
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			return cond == nil
 		}
 	}
@@ -2125,6 +2126,91 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 		}
 	}
+	failWhenFetchedSecretContainsNullBytes := func(tc *testCase) {
+		tc.externalSecret.Spec.Data[0].RemoteRef.NullBytePolicy = esv1.ExternalSecretNullBytePolicyFail
+		fakeProvider.WithGetSecret([]byte(nullByteSecretVal), nil)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
+			secretLookupKey := types.NamespacedName{
+				Name:      tc.targetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Consistently(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, &v1.Secret{})
+				return apierrors.IsNotFound(err)
+			}, time.Second, interval).Should(BeTrue())
+		}
+	}
+	failWhenExtractedSecretContainsNullBytes := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1.ExternalSecretDataRemoteRef{
+					Key:            remoteKey,
+					NullBytePolicy: esv1.ExternalSecretNullBytePolicyFail,
+				},
+			},
+		}
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"payload": []byte(nullByteSecretVal),
+		}, nil)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
+			secretLookupKey := types.NamespacedName{
+				Name:      tc.targetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Consistently(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, &v1.Secret{})
+				return apierrors.IsNotFound(err)
+			}, time.Second, interval).Should(BeTrue())
+		}
+	}
+	failWhenFoundSecretContainsNullBytes := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1.ExternalSecretFind{
+					Name: &esv1.FindName{
+						RegExp: "foobar",
+					},
+					NullBytePolicy: esv1.ExternalSecretNullBytePolicyFail,
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecrets(map[string][]byte{
+			"payload": []byte(nullByteSecretVal),
+		}, nil)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkExternalSecret = func(_ *esv1.ExternalSecret) {
+			secretLookupKey := types.NamespacedName{
+				Name:      tc.targetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Consistently(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, &v1.Secret{})
+				return apierrors.IsNotFound(err)
+			}, time.Second, interval).Should(BeTrue())
+		}
+	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -2158,7 +2244,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2175,7 +2261,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2195,7 +2281,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2237,7 +2323,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2267,7 +2353,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2319,7 +2405,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
 			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1.ConditionReasonSecretSyncedError {
 				return false
 			}
@@ -2398,6 +2484,9 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should sync template from keys and values", syncTemplateFromKeysAndValues),
 		Entry("should sync template from literal", syncTemplateFromLiteral),
+		Entry("should fail when fetched secret data contains null bytes and remoteRef.nullBytePolicy=Fail", failWhenFetchedSecretContainsNullBytes),
+		Entry("should fail when extracted secret data contains null bytes and extract.nullBytePolicy=Fail", failWhenExtractedSecretContainsNullBytes),
+		Entry("should fail when found secret data contains null bytes and find.nullBytePolicy=Fail", failWhenFoundSecretContainsNullBytes),
 		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
 		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),
@@ -2659,6 +2748,103 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			})
 			Expect(h1).To(Equal(h2))
 		})
+	})
+})
+
+var _ = Describe("ExternalSecret update predicate", func() {
+	It("should ignore status-only updates", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+			Status: esv1.ExternalSecretStatus{
+				RefreshTime: metav1.Now(),
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Status.RefreshTime = metav1.NewTime(time.Now().Add(time.Minute))
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeFalse())
+	})
+
+	It("should enqueue when generation changes", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Generation = 2
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when labels change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Labels: map[string]string{
+					"app": "a",
+				},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Labels["app"] = "b"
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when annotations change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Annotations: map[string]string{
+					"note": "a",
+				},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Annotations["note"] = "b"
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when deletion timestamp changes", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+			},
+		}
+		newES := oldES.DeepCopy()
+		now := metav1.Now()
+		newES.DeletionTimestamp = &now
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
+	})
+
+	It("should enqueue when finalizers change", func() {
+		oldES := &esv1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "foo",
+				Namespace:  "default",
+				Generation: 1,
+				Finalizers: []string{"external-secrets.io/finalizer"},
+			},
+		}
+		newES := oldES.DeepCopy()
+		newES.Finalizers = nil
+
+		Expect(shouldEnqueueExternalSecretUpdate(oldES, newES)).To(BeTrue())
 	})
 })
 

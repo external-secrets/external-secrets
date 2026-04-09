@@ -113,6 +113,13 @@ spec:
                                   - None
                                   - Fetch
                                 type: string
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               property:
                                 description: Used to select a specific property of the Provider value (if a map), if supported
                                 type: string
@@ -240,6 +247,13 @@ spec:
                                   - None
                                   - Fetch
                                 type: string
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               property:
                                 description: Used to select a specific property of the Provider value (if a map), if supported
                                 type: string
@@ -277,6 +291,13 @@ spec:
                                     description: Finds secrets base
                                     type: string
                                 type: object
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               path:
                                 description: A root path to start the find operations.
                                 type: string
@@ -12442,6 +12463,13 @@ spec:
                               - None
                               - Fetch
                             type: string
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           property:
                             description: Used to select a specific property of the Provider value (if a map), if supported
                             type: string
@@ -12569,6 +12597,13 @@ spec:
                               - None
                               - Fetch
                             type: string
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           property:
                             description: Used to select a specific property of the Provider value (if a map), if supported
                             type: string
@@ -12606,6 +12641,13 @@ spec:
                                 description: Finds secrets base
                                 type: string
                             type: object
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           path:
                             description: A root path to start the find operations.
                             type: string

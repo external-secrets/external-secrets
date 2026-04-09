@@ -24,6 +24,7 @@ import (
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/azure"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/conjur"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/delinea"
+	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/fake"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/gcp"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/kubernetes"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/scaleway"
