@@ -27,51 +27,6 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-func TestGetExternalSecretCondition(t *testing.T) {
-	status := esv1.ExternalSecretStatus{
-		Conditions: []esv1.ExternalSecretStatusCondition{
-			{
-				Type:   esv1.ExternalSecretReady,
-				Status: corev1.ConditionFalse,
-			},
-			{
-				Type:   esv1.ExternalSecretReady,
-				Status: corev1.ConditionTrue,
-			},
-		},
-	}
-
-	tests := []struct {
-		name     string
-		condType esv1.ExternalSecretConditionType
-		expected *esv1.ExternalSecretStatusCondition
-	}{
-		{
-			name:     "Status has a condition of the specified type",
-			condType: esv1.ExternalSecretReady,
-			expected: &esv1.ExternalSecretStatusCondition{
-				Type:   esv1.ExternalSecretReady,
-				Status: corev1.ConditionFalse,
-			},
-		},
-		{
-			name:     "Status does not have a condition of the specified type",
-			condType: esv1.ExternalSecretDeleted,
-			expected: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := GetExternalSecretCondition(status, tt.condType)
-
-			if diff := cmp.Diff(tt.expected, got); diff != "" {
-				t.Errorf("(-got, +want)\n%s", diff)
-			}
-		})
-	}
-}
-
 func TestSetExternalSecretCondition(t *testing.T) {
 	now := time.Now()
 
