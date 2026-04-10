@@ -1,0 +1,102 @@
+{{- if and .Values.providers.enabled .Values.rbac.create }}
+{{- range .Values.providers.list }}
+{{- if .enabled }}
+{{- $root := $ }}
+{{- $provider := include "external-secrets.provider.mergeDefaults" (dict "provider" . "root" $root) | fromYaml }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "external-secrets.provider.fullname" (dict "provider" $provider "root" $root) }}
+  labels:
+    {{- include "external-secrets.provider.labels" (dict "provider" $provider "root" $root) | nindent 4 }}
+rules:
+  # All providers need to read their own provider configuration CRDs
+  - apiGroups:
+    - "provider.external-secrets.io"
+    resources:
+    - "fakes"
+    - "kubernetes"
+    - "secretsmanagers"
+    - "parameterstores"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  # Providers that support generators need to read generator CRDs
+  - apiGroups:
+    - "generators.external-secrets.io"
+    resources:
+    - "fakes"
+    - "passwords"
+    - "ecrauthorizationtokens"
+    - "stssessiontokens"
+    - "gcraccesstokens"
+    - "uuids"
+    - "vaultdynamicsecrets"
+    - "acraccesstokens"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  - apiGroups:
+    - ""
+    resources:
+    - "secrets"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+{{- if eq $provider.type "kubernetes" }}
+  # Kubernetes provider needs to read service accounts for auth
+  - apiGroups:
+    - ""
+    resources:
+    - "serviceaccounts"
+    verbs:
+    - "get"
+  # Kubernetes provider needs to get service account tokens
+  - apiGroups:
+    - ""
+    resources:
+    - "serviceaccounts/token"
+    verbs:
+    - "create"
+  - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - selfsubjectrulesreviews
+    verbs:
+    - create
+{{- end }}
+{{- if eq $provider.type "aws" }}
+  # AWS provider may need access to AWS credentials stored in secrets
+  - apiGroups:
+    - ""
+    resources:
+    - "secrets"
+    - "configmaps"
+    verbs:
+    - "get"
+    - "list"
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "external-secrets.provider.fullname" (dict "provider" $provider "root" $root) }}
+  labels:
+    {{- include "external-secrets.provider.labels" (dict "provider" $provider "root" $root) | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "external-secrets.provider.fullname" (dict "provider" $provider "root" $root) }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "external-secrets.provider.serviceAccountName" (dict "provider" $provider "root" $root) }}
+    namespace: {{ include "external-secrets.namespace" $root }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+

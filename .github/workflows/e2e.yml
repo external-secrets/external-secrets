@@ -18,7 +18,22 @@ env:
 jobs:
 
   integration-trusted:
+    name: integration-trusted (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+        - name: classic
+          make_target: test.e2e
+          allow_failure: false
+        - name: v2
+          make_target: test.e2e.v2
+          allow_failure: true
+        - name: v2-operational
+          make_target: test.e2e.v2.operational
+          allow_failure: true
+    continue-on-error: ${{ matrix.suite.allow_failure }}
     permissions:
       id-token: write #for oidc auth with aws/gcp/azure
       contents: read  #for checkout
@@ -53,7 +68,7 @@ jobs:
       GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
       GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
     steps:
-    - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+    - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
       with:
         egress-policy: audit
 
@@ -66,10 +81,27 @@ jobs:
       run: git fetch --prune --unshallow
 
     - uses: ./.github/actions/e2e
+      with:
+        make-target: ${{ matrix.suite.make_target }}
 
   # Repo owner has commented /ok-to-test on a (fork-based) pull request
   integration-fork:
+    name: integration-fork (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+        - name: classic
+          make_target: test.e2e
+          allow_failure: false
+        - name: v2
+          make_target: test.e2e.v2
+          allow_failure: true
+        - name: v2-operational
+          make_target: test.e2e.v2.operational
+          allow_failure: true
+    continue-on-error: ${{ matrix.suite.allow_failure }}
     permissions:
       id-token: write      #for oidc auth with aws/gcp/azure
       contents: read       #for checkout
@@ -105,7 +137,7 @@ jobs:
       GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
       GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
     steps:
-    - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+    - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
       with:
         egress-policy: audit
 
@@ -121,8 +153,10 @@ jobs:
 
     - id: e2e
       uses: ./.github/actions/e2e
+      with:
+        make-target: ${{ matrix.suite.make_target }}
     - id: create_token
-      if: always()
+      if: always() && matrix.suite.name == 'classic'
       uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
       env:
         APP_ID: ${{ secrets.APP_ID }}
@@ -132,7 +166,7 @@ jobs:
         owner: ${{ github.repository_owner }}
 
     - name: Update on Succeess
-      if: always() && steps.e2e.conclusion == 'success'
+      if: always() && matrix.suite.name == 'classic' && steps.e2e.conclusion == 'success'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}
@@ -140,7 +174,7 @@ jobs:
         body: |
             [Bot] - :white_check_mark: [e2e for ${{ env.TARGET_SHA }} passed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
     - name: Update on Failure
-      if: always() &&  steps.e2e.conclusion != 'success'
+      if: always() && matrix.suite.name == 'classic' && steps.e2e.conclusion != 'success'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}

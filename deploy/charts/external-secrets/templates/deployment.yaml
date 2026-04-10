@@ -115,6 +115,8 @@ spec:
           {{- end }}
           {{- if and .Values.vault.enableTokenCache .Values.vault.tokenCacheSize }}
           - --vault-token-cache-size={{ .Values.vault.tokenCacheSize }}
+          {{- if .Values.v2.enabled }}
+          - --enable-v2-providers=true
           {{- end }}
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}

@@ -174,6 +174,7 @@ func makeDefaultExternalSecretTestCase(f *Framework) *TestCase {
 				RefreshInterval: &metav1.Duration{Duration: time.Second * 5},
 				SecretStoreRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
+					Kind: f.DefaultSecretStoreRefKind,
 				},
 				Target: esv1.ExternalSecretTarget{
 					Name: TargetSecretName,
@@ -195,7 +196,9 @@ func makeDefaultPushSecretTestCase(f *Framework) *TestCase {
 				RefreshInterval: &metav1.Duration{Duration: time.Second * 5},
 				SecretStoreRefs: []esv1alpha1.PushSecretStoreRef{
 					{
-						Name: f.Namespace.Name,
+						Name:       f.Namespace.Name,
+						Kind:       f.DefaultPushSecretStoreRefKind,
+						APIVersion: f.DefaultPushSecretStoreRefAPIVersion,
 					},
 				},
 			},

@@ -30,10 +30,10 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
-// Provider implements the esv1.Provider interface for Pulumi ESC.
+// Provider implements the esv1.ProviderInterface interface for Pulumi ESC.
 type Provider struct{}
 
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 const (
 	errClusterStoreRequiresNamespace = "cluster store requires namespace"
@@ -157,7 +157,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 
