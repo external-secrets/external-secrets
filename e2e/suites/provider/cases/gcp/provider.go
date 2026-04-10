@@ -19,19 +19,16 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
 	// nolint
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	. "github.com/onsi/gomega"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -40,6 +37,10 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	gcpsm "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // nolint // Better to keep names consistent even if it stutters;
@@ -53,10 +54,73 @@ type GcpProvider struct {
 	clusterLocation string
 	clusterName     string
 	controllerClass string
+	access          gcpAccessConfig
+}
+
+type gcpAccessConfig struct {
+	Credentials        string
+	ProjectID          string
+	ServiceAccountName string
+	ClusterLocation    string
+	ClusterName        string
+}
+
+func newGCPAccessConfigFromEnv() gcpAccessConfig {
+	return gcpAccessConfig{
+		Credentials:        os.Getenv("GCP_SERVICE_ACCOUNT_KEY"),
+		ProjectID:          os.Getenv("GCP_FED_PROJECT_ID"),
+		ServiceAccountName: os.Getenv("GCP_KSA_NAME"),
+		ClusterLocation:    os.Getenv("GCP_FED_REGION"),
+		ClusterName:        os.Getenv("GCP_GKE_CLUSTER"),
+	}
+}
+
+func (c gcpAccessConfig) missingStaticEnv() []string {
+	var missing []string
+	if c.Credentials == "" {
+		missing = append(missing, "GCP_SERVICE_ACCOUNT_KEY")
+	}
+	if c.ProjectID == "" {
+		missing = append(missing, "GCP_FED_PROJECT_ID")
+	}
+	return missing
+}
+
+func (c gcpAccessConfig) missingManagedEnv() []string {
+	var missing []string
+	if c.ServiceAccountName == "" {
+		missing = append(missing, "GCP_KSA_NAME")
+	}
+	if c.ClusterLocation == "" {
+		missing = append(missing, "GCP_FED_REGION")
+	}
+	if c.ClusterName == "" {
+		missing = append(missing, "GCP_GKE_CLUSTER")
+	}
+	return missing
+}
+
+func skipIfGCPStaticEnvMissing(access gcpAccessConfig) {
+	if missing := access.missingStaticEnv(); len(missing) > 0 {
+		Skip("missing GCP e2e environment: " + strings.Join(missing, ", "))
+	}
+}
+
+func skipIfGCPManagedEnvMissing(access gcpAccessConfig) {
+	if missing := access.missingManagedEnv(); len(missing) > 0 {
+		Skip("missing GCP managed identity environment: " + strings.Join(missing, ", "))
+	}
 }
 
 func NewGCPProvider(f *framework.Framework, credentials, projectID string,
 	clusterLocation string, clusterName string, serviceAccountName string, serviceAccountNamespace string, controllerClass string) *GcpProvider {
+	access := gcpAccessConfig{
+		Credentials:        credentials,
+		ProjectID:          projectID,
+		ServiceAccountName: serviceAccountName,
+		ClusterLocation:    clusterLocation,
+		ClusterName:        clusterName,
+	}
 	prov := &GcpProvider{
 		credentials:             credentials,
 		projectID:               projectID,
@@ -66,30 +130,22 @@ func NewGCPProvider(f *framework.Framework, credentials, projectID string,
 		ServiceAccountName:      serviceAccountName,
 		ServiceAccountNamespace: serviceAccountNamespace,
 		controllerClass:         controllerClass,
+		access:                  access,
 	}
 
 	BeforeEach(func() {
+		skipIfGCPStaticEnvMissing(prov.access)
 		prov.CreateSAKeyStore()
 		prov.CreateReferentSAKeyStore()
-		prov.CreateSpecifcSASecretStore()
-		prov.CreatePodIDStore()
-	})
-
-	AfterEach(func() {
-		prov.DeleteSpecifcSASecretStore()
 	})
 
 	return prov
 }
 
 func NewFromEnv(f *framework.Framework, controllerClass string) *GcpProvider {
-	projectID := os.Getenv("GCP_FED_PROJECT_ID")
-	credentials := os.Getenv("GCP_SERVICE_ACCOUNT_KEY")
-	serviceAccountName := os.Getenv("GCP_KSA_NAME")
+	access := newGCPAccessConfigFromEnv()
 	serviceAccountNamespace := "default"
-	clusterLocation := os.Getenv("GCP_FED_REGION")
-	clusterName := os.Getenv("GCP_GKE_CLUSTER")
-	return NewGCPProvider(f, credentials, projectID, clusterLocation, clusterName, serviceAccountName, serviceAccountNamespace, controllerClass)
+	return NewGCPProvider(f, access.Credentials, access.ProjectID, access.ClusterLocation, access.ClusterName, access.ServiceAccountName, serviceAccountNamespace, controllerClass)
 }
 
 func (s *GcpProvider) getClient(ctx context.Context) (client *secretmanager.Client, err error) {
@@ -286,5 +342,8 @@ func (s *GcpProvider) DeleteSpecifcSASecretStore() {
 			Name: s.SAClusterSecretStoreName(),
 		},
 	})
+	if apierrors.IsNotFound(err) {
+		return
+	}
 	Expect(err).ToNot(HaveOccurred())
 }

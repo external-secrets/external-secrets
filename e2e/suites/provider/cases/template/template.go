@@ -21,21 +21,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	"github.com/external-secrets/external-secrets/runtime/testing/fake"
-
-	// nolint
-	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/runtime/testing/fake"
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+	// nolint
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("[template]", Label("template"), func() {

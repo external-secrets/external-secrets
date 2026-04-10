@@ -17,12 +17,15 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // SetupWebhookWithManager configures the webhook manager for the SecretStore.
 func (c *SecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, c).
+		WithDefaulter(&secretStoreDefaulter{}).
 		WithValidator(&GenericStoreValidator{}).
 		Complete()
 }
@@ -30,6 +33,25 @@ func (c *SecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // SetupWebhookWithManager configures the webhook manager for the ClusterSecretStore.
 func (c *ClusterSecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, c).
+		WithDefaulter(&clusterSecretStoreDefaulter{}).
 		WithValidator(&GenericClusterStoreValidator{}).
 		Complete()
+}
+
+type secretStoreDefaulter struct{}
+
+func (d *secretStoreDefaulter) Default(_ context.Context, store *SecretStore) error {
+	if store.Spec.RuntimeRef != nil && store.Spec.RuntimeRef.Kind == "" {
+		store.Spec.RuntimeRef.Kind = StoreRuntimeRefKindProviderClass
+	}
+	return nil
+}
+
+type clusterSecretStoreDefaulter struct{}
+
+func (d *clusterSecretStoreDefaulter) Default(_ context.Context, store *ClusterSecretStore) error {
+	if store.Spec.RuntimeRef != nil && store.Spec.RuntimeRef.Kind == "" {
+		store.Spec.RuntimeRef.Kind = StoreRuntimeRefKindClusterProviderClass
+	}
+	return nil
 }

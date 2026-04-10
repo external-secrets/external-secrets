@@ -45,7 +45,7 @@ const (
 	errAPIKeySecretRefKeyIsRequired  = "apiKey.secretRef.key is required"
 )
 
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 // Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
@@ -126,7 +126,7 @@ func validateSecretStoreRef(store esv1.GenericStore, ref *esv1.FortanixProviderS
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

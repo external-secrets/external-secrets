@@ -19,20 +19,33 @@ package e2e
 import (
 	"testing"
 
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
-	// nolint
-	. "github.com/onsi/gomega"
-
+	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
-	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases"
 	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+
+	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	// nolint
+	. "github.com/onsi/gomega"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	if framework.IsV2ProviderMode() {
+		By("installing eso in provider v2 mode")
+		addon.InstallGlobalAddon(addon.NewESO(
+			addon.WithCRDs(),
+			addon.WithV2Namespace(),
+			addon.WithV2KubernetesProvider(),
+			addon.WithV2FakeProvider(),
+			addon.WithV2AWSProvider(),
+		))
+		return nil
+	}
+
 	By("installing eso")
 	addon.InstallGlobalAddon(addon.NewESO(addon.WithCRDs()))
 
@@ -50,18 +63,24 @@ var _ = SynchronizedAfterSuite(func() {
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
 	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
-	Expect(err).ToNot(HaveOccurred())
-	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+	if err == nil {
+		for _, generatorState := range generatorStates.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	} else if !util.IsMissingAPIResourceError(err) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
 	By("Deleting all ClusterExternalSecrets")
 	externalSecretsList := &v1.ClusterExternalSecretList{}
 	err = cfg.CRClient.List(GinkgoT().Context(), externalSecretsList)
-	Expect(err).ToNot(HaveOccurred())
-	for _, externalSecret := range externalSecretsList.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &externalSecret)
+	if err == nil {
+		for _, externalSecret := range externalSecretsList.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &externalSecret)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	} else if !util.IsMissingAPIResourceError(err) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 

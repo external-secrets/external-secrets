@@ -19,15 +19,14 @@ package flux
 import (
 	"testing"
 
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
-	// nolint
-	. "github.com/onsi/gomega"
-
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	// nolint
+	. "github.com/onsi/gomega"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -46,9 +45,12 @@ var _ = SynchronizedAfterSuite(func() {
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
 	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
-	Expect(err).ToNot(HaveOccurred())
-	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+	if err == nil {
+		for _, generatorState := range generatorStates.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	} else if !util.IsMissingAPIResourceError(err) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
