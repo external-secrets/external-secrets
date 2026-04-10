@@ -6045,6 +6045,21 @@ string
 <p>environment will be used to fetch secrets from a particular environment within a github repository</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>orgSecretVisibility</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+Valid values are &ldquo;all&rdquo; or &ldquo;private&rdquo;.
+When unset, new secrets are created with visibility &ldquo;all&rdquo; and existing secrets preserve
+whatever visibility they already have in GitHub.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GitlabAuth">GitlabAuth
