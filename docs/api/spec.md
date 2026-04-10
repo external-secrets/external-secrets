@@ -25602,7 +25602,7 @@ string
 </em>
 </td>
 <td>
-<p>DomainOwner is the 12-digit AWS account ID that owns the CodeArtifact domain.</p>
+<p>DomainOwner is the AWS account ID that owns the CodeArtifact domain.</p>
 </td>
 </tr>
 </table>
@@ -25685,7 +25685,7 @@ string
 </em>
 </td>
 <td>
-<p>DomainOwner is the 12-digit AWS account ID that owns the CodeArtifact domain.</p>
+<p>DomainOwner is the AWS account ID that owns the CodeArtifact domain.</p>
 </td>
 </tr>
 </tbody>
