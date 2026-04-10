@@ -70,6 +70,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		log.Error(err, "validation failed")
 		r.setNotReadyCondition(&store, "ValidationFailed", err.Error())
+		store.Status.Capabilities = ""
 		if updateErr := r.Status().Update(ctx, &store); updateErr != nil {
 			log.Error(updateErr, "failed to update status")
 			return ctrl.Result{}, updateErr
@@ -101,7 +102,12 @@ func (r *Reconciler) validateStoreAndGetCapabilities(ctx context.Context, store 
 		return "", fmt.Errorf("provider address is required")
 	}
 
-	tlsSecretNamespace := grpc.NamespaceFromAddress(store.Spec.Config.Address, store.Spec.Config.ProviderRef.Namespace)
+	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(
+		store.Spec.Config.Address,
+		"",
+		"",
+		store.Spec.Config.ProviderRef.Namespace,
+	)
 
 	// Load TLS configuration
 	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, r.Client, store.Spec.Config.Address, tlsSecretNamespace)
@@ -183,8 +189,14 @@ func (r *Reconciler) setCondition(store *esv1.ClusterProvider, newCondition esv1
 	// Find existing condition
 	for i, condition := range store.Status.Conditions {
 		if condition.Type == newCondition.Type {
-			// Only update if status changed
-			if condition.Status != newCondition.Status {
+			// Preserve LastTransitionTime unless the condition status actually changes.
+			if condition.Status == newCondition.Status {
+				newCondition.LastTransitionTime = condition.LastTransitionTime
+			}
+
+			if condition.Status != newCondition.Status ||
+				condition.Reason != newCondition.Reason ||
+				condition.Message != newCondition.Message {
 				store.Status.Conditions[i] = newCondition
 			}
 			// Update metrics

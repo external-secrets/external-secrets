@@ -107,6 +107,20 @@ func NamespaceFromAddress(address, fallbackNamespace string) string {
 	return fallbackNamespace
 }
 
+// ResolveTLSSecretNamespace determines the namespace of the TLS secret used to connect
+// to a provider. Service DNS addresses win, otherwise the namespace precedence is:
+// auth namespace, resource namespace, providerRef namespace.
+func ResolveTLSSecretNamespace(address, authNamespace, resourceNamespace, providerRefNamespace string) string {
+	fallbackNamespace := authNamespace
+	if fallbackNamespace == "" {
+		fallbackNamespace = resourceNamespace
+	}
+	if fallbackNamespace == "" {
+		fallbackNamespace = providerRefNamespace
+	}
+	return NamespaceFromAddress(address, fallbackNamespace)
+}
+
 // ToGRPCTLSConfig converts TLSConfig to a *tls.Config suitable for gRPC.
 func (t *TLSConfig) ToGRPCTLSConfig() (*tls.Config, error) {
 	// Load client certificate

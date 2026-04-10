@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -48,12 +49,20 @@ func ProviderAddress(providerName string) string {
 func GetClusterCABundle(f *framework.Framework, namespace string) []byte {
 	var caBundle []byte
 	krc := &corev1.ConfigMap{}
-	err := f.CRClient.Get(context.Background(),
-		types.NamespacedName{Name: "kube-root-ca.crt", Namespace: namespace},
-		krc)
-	if err == nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := wait.PollUntilContextTimeout(ctx, 250*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		if err := f.CRClient.Get(ctx, types.NamespacedName{Name: "kube-root-ca.crt", Namespace: namespace}, krc); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
 		caBundle = []byte(krc.Data["ca.crt"])
-	}
+		return len(caBundle) > 0, nil
+	})
+	Expect(err).NotTo(HaveOccurred())
 	return caBundle
 }
 
