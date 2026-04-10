@@ -284,11 +284,12 @@ func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig,
 		return nil, fmt.Errorf("provider address is required in %s %q", cfg.kindStr, cfg.name)
 	}
 
-	tlsSecretNamespace := cfg.resourceNamespace
-	if tlsSecretNamespace == "" {
-		tlsSecretNamespace = cfg.config.ProviderRef.Namespace
-	}
-	tlsSecretNamespace = grpc.NamespaceFromAddress(cfg.config.Address, tlsSecretNamespace)
+	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(
+		cfg.config.Address,
+		authNamespace,
+		cfg.resourceNamespace,
+		cfg.config.ProviderRef.Namespace,
+	)
 
 	// Load TLS configuration
 	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, m.client, cfg.config.Address, tlsSecretNamespace)

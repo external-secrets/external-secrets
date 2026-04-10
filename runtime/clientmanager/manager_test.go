@@ -18,11 +18,23 @@ package clientmanager
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
+	"net"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	pb "github.com/external-secrets/external-secrets/proto/provider"
 )
 
 func TestManagerGet(t *testing.T) {
@@ -448,6 +461,383 @@ func TestGetV2ProviderFeatureGateFromSourceRef(t *testing.T) {
 	assert.ErrorContains(t, err, "v2 provider support is disabled")
 }
 
+func TestGetV2ClusterProviderManifestScopeUsesManifestNamespaceForTLS(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	scheme := newManagerTestScheme(t)
+	server, address, tlsSecret := newRecordingProviderServer(t)
+
+	const manifestNamespace = "tenant-a"
+	const referencedConfigNamespace = "provider-config-ns"
+
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster-provider",
+		},
+		Spec: esv1.ClusterProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: address,
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "kubernetes-backend",
+				},
+			},
+			AuthenticationScope: esv1.AuthenticationScopeManifestNamespace,
+			Conditions: []esv1.ClusterSecretStoreCondition{
+				{
+					Namespaces: []string{manifestNamespace},
+				},
+			},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: manifestNamespace,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": manifestNamespace,
+				},
+			}},
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: referencedConfigNamespace}},
+			clusterProvider,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: manifestNamespace,
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "default", false)
+
+	client, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: clusterProvider.Name,
+		Kind: esv1.ClusterProviderKindStr,
+	}, manifestNamespace, nil)
+	require.NoError(t, err)
+
+	result, err := client.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+
+	req := server.LastValidateRequest()
+	require.NotNil(t, req)
+	assert.Equal(t, manifestNamespace, req.SourceNamespace)
+	require.NotNil(t, req.ProviderRef)
+	assert.Equal(t, "kubernetes-backend", req.ProviderRef.Name)
+	assert.Equal(t, "", req.ProviderRef.Namespace)
+
+	require.Len(t, mgr.v2PooledConnections, 1)
+}
+
+func TestGetV2ClusterProviderRejectsProviderNamespaceWithoutNamespace(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	scheme := newManagerTestScheme(t)
+	const manifestNamespace = "tenant-a"
+
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster-provider",
+		},
+		Spec: esv1.ClusterProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: "127.0.0.1:9443",
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "kubernetes-backend",
+				},
+			},
+			AuthenticationScope: esv1.AuthenticationScopeProviderNamespace,
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: manifestNamespace,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": manifestNamespace,
+				},
+			}},
+			clusterProvider,
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "default", false)
+
+	_, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: clusterProvider.Name,
+		Kind: esv1.ClusterProviderKindStr,
+	}, manifestNamespace, nil)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "authenticationScope=ProviderNamespace")
+	assert.ErrorContains(t, err, "providerRef.namespace is empty")
+}
+
+func TestGetV2ClusterProviderProviderScopeUsesProviderNamespaceForTLS(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	scheme := newManagerTestScheme(t)
+	server, address, tlsSecret := newRecordingProviderServer(t)
+
+	const manifestNamespace = "tenant-a"
+	const referencedConfigNamespace = "provider-config-ns"
+
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster-provider",
+		},
+		Spec: esv1.ClusterProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: address,
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "kubernetes-backend",
+					Namespace:  referencedConfigNamespace,
+				},
+			},
+			AuthenticationScope: esv1.AuthenticationScopeProviderNamespace,
+			Conditions: []esv1.ClusterSecretStoreCondition{
+				{
+					Namespaces: []string{manifestNamespace},
+				},
+			},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: manifestNamespace,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": manifestNamespace,
+				},
+			}},
+			clusterProvider,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: referencedConfigNamespace,
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "default", false)
+
+	client, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: clusterProvider.Name,
+		Kind: esv1.ClusterProviderKindStr,
+	}, manifestNamespace, nil)
+	require.NoError(t, err)
+
+	result, err := client.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+
+	req := server.LastValidateRequest()
+	require.NotNil(t, req)
+	assert.Equal(t, referencedConfigNamespace, req.SourceNamespace)
+	require.NotNil(t, req.ProviderRef)
+	assert.Equal(t, "kubernetes-backend", req.ProviderRef.Name)
+	assert.Equal(t, referencedConfigNamespace, req.ProviderRef.Namespace)
+
+	require.Len(t, mgr.v2PooledConnections, 1)
+}
+
+func TestGetV2ClusterProviderRejectsDeniedNamespace(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	scheme := newManagerTestScheme(t)
+	const manifestNamespace = "tenant-a"
+
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster-provider",
+		},
+		Spec: esv1.ClusterProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: "127.0.0.1:9443",
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "kubernetes-backend",
+					Namespace:  "provider-config-ns",
+				},
+			},
+			Conditions: []esv1.ClusterSecretStoreCondition{
+				{
+					NamespaceRegexes: []string{`other-.*`},
+				},
+			},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: manifestNamespace,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": manifestNamespace,
+				},
+			}},
+			clusterProvider,
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "default", false)
+
+	_, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: clusterProvider.Name,
+		Kind: esv1.ClusterProviderKindStr,
+	}, manifestNamespace, nil)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "denied by spec.conditions")
+}
+
+func TestGetV2ProviderInvalidatesGenerationCacheAndReleasesPoolReferences(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	scheme := newManagerTestScheme(t)
+	server, address, tlsSecret := newRecordingProviderServer(t)
+
+	const manifestNamespace = "tenant-a"
+	const referencedConfigNamespace = "provider-config-ns"
+
+	provider := &esv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "provider",
+			Namespace: manifestNamespace,
+			Generation: 1,
+		},
+		Spec: esv1.ProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: address,
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "kubernetes-backend",
+					Namespace:  referencedConfigNamespace,
+				},
+			},
+		},
+	}
+
+	tlsSecretObject := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "external-secrets-provider-tls",
+			Namespace: manifestNamespace,
+		},
+		Data: tlsSecret,
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: manifestNamespace,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": manifestNamespace,
+				},
+			}},
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: referencedConfigNamespace}},
+			provider,
+			tlsSecretObject,
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "default", false)
+
+	firstClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: provider.Name,
+		Kind: esv1.ProviderKindStr,
+	}, manifestNamespace, nil)
+	require.NoError(t, err)
+
+	ready, err := firstClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, ready)
+
+	req := server.LastValidateRequest()
+	require.NotNil(t, req)
+	assert.Equal(t, manifestNamespace, req.SourceNamespace)
+	require.NotNil(t, req.ProviderRef)
+	assert.Equal(t, "kubernetes-backend", req.ProviderRef.Name)
+	assert.Equal(t, referencedConfigNamespace, req.ProviderRef.Namespace)
+
+	cachedClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: provider.Name,
+		Kind: esv1.ProviderKindStr,
+	}, manifestNamespace, nil)
+	require.NoError(t, err)
+	assert.Same(t, firstClient, cachedClient)
+	require.Len(t, mgr.v2PooledConnections, 1)
+
+	provider.Generation = 2
+	require.NoError(t, kubeClient.Update(context.Background(), provider))
+
+	secondClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: provider.Name,
+		Kind: esv1.ProviderKindStr,
+	}, manifestNamespace, nil)
+	require.NoError(t, err)
+	assert.NotSame(t, firstClient, secondClient)
+
+	ready, err = secondClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, ready)
+
+	require.Len(t, mgr.v2PooledConnections, 2)
+
+	require.NoError(t, mgr.Close(context.Background()))
+	assert.Empty(t, mgr.clientMap)
+	assert.Empty(t, mgr.v2PooledConnections)
+
+	assert.Equal(t, 2, server.ValidateCallCount())
+}
+
 type WrapProvider struct {
 	newClientFunc func(
 		context.Context,
@@ -512,4 +902,163 @@ func (c *MockFakeClient) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretF
 func (c *MockFakeClient) Close(_ context.Context) error {
 	c.closeCalled = true
 	return nil
+}
+
+func newManagerTestScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+	return scheme
+}
+
+func resetGlobalV2ConnectionPoolForTest(t *testing.T) {
+	t.Helper()
+
+	if globalV2ConnectionPool != nil {
+		_ = globalV2ConnectionPool.Close()
+	}
+	globalV2ConnectionPool = nil
+	globalV2ConnectionPoolOnce = sync.Once{}
+	t.Cleanup(func() {
+		if globalV2ConnectionPool != nil {
+			_ = globalV2ConnectionPool.Close()
+		}
+		globalV2ConnectionPool = nil
+		globalV2ConnectionPoolOnce = sync.Once{}
+	})
+}
+
+type recordingProviderServer struct {
+	pb.UnimplementedSecretStoreProviderServer
+
+	mu               sync.Mutex
+	validateRequests []*pb.ValidateRequest
+}
+
+func newRecordingProviderServer(t *testing.T) (*recordingProviderServer, string, map[string][]byte) {
+	t.Helper()
+
+	serverCert, serverKey, clientCert, clientKey, caCert := newMutualTLSArtifacts(t, "127.0.0.1")
+
+	caPool := x509.NewCertPool()
+	require.True(t, caPool.AppendCertsFromPEM(caCert))
+
+	tlsCert, err := tls.X509KeyPair(serverCert, serverKey)
+	require.NoError(t, err)
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	recorder := &recordingProviderServer{}
+	grpcServer := grpc.NewServer(grpc.Creds(credentials.NewTLS(&tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		Certificates: []tls.Certificate{tlsCert},
+		ClientCAs:    caPool,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+	})))
+	pb.RegisterSecretStoreProviderServer(grpcServer, recorder)
+
+	go func() {
+		_ = grpcServer.Serve(lis)
+	}()
+
+	t.Cleanup(func() {
+		grpcServer.Stop()
+		_ = lis.Close()
+	})
+
+	return recorder, lis.Addr().String(), map[string][]byte{
+		"ca.crt":     caCert,
+		"client.crt": clientCert,
+		"client.key": clientKey,
+	}
+}
+
+func (s *recordingProviderServer) Validate(_ context.Context, req *pb.ValidateRequest) (*pb.ValidateResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.validateRequests = append(s.validateRequests, req)
+	return &pb.ValidateResponse{Valid: true}, nil
+}
+
+func (s *recordingProviderServer) LastValidateRequest() *pb.ValidateRequest {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(s.validateRequests) == 0 {
+		return nil
+	}
+	return s.validateRequests[len(s.validateRequests)-1]
+}
+
+func (s *recordingProviderServer) ValidateCallCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return len(s.validateRequests)
+}
+
+func newMutualTLSArtifacts(t *testing.T, host string) (serverCertPEM, serverKeyPEM, clientCertPEM, clientKeyPEM, caCertPEM []byte) {
+	t.Helper()
+
+	caKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	caTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName: "clientmanager-test-ca",
+		},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+
+	caDER, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, &caKey.PublicKey, caKey)
+	require.NoError(t, err)
+	caCert, err := x509.ParseCertificate(caDER)
+	require.NoError(t, err)
+
+	serverCertPEM, serverKeyPEM = newSignedCertificateForTest(t, caCert, caKey, 2, host, []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth})
+	clientCertPEM, clientKeyPEM = newSignedCertificateForTest(t, caCert, caKey, 3, "client", []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth})
+	caCertPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER})
+
+	return serverCertPEM, serverKeyPEM, clientCertPEM, clientKeyPEM, caCertPEM
+}
+
+func newSignedCertificateForTest(t *testing.T, caCert *x509.Certificate, caKey *rsa.PrivateKey, serial int64, host string, usages []x509.ExtKeyUsage) ([]byte, []byte) {
+	t.Helper()
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(serial),
+		Subject: pkix.Name{
+			CommonName: host,
+		},
+		NotBefore:   time.Now().Add(-time.Hour),
+		NotAfter:    time.Now().Add(24 * time.Hour),
+		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage: usages,
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		template.IPAddresses = []net.IP{ip}
+	} else {
+		template.DNSNames = []string{host}
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, caCert, &key.PublicKey, caKey)
+	require.NoError(t, err)
+
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	return certPEM, keyPEM
 }
