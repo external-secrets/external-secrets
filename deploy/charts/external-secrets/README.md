@@ -53,6 +53,13 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
+| certController.livenessProbe.enabled | bool | `false` |  |
+| certController.livenessProbe.failureThreshold | int | `5` |  |
+| certController.livenessProbe.initialDelaySeconds | int | `10` |  |
+| certController.livenessProbe.periodSeconds | int | `10` |  |
+| certController.livenessProbe.port | int | `8081` |  |
+| certController.livenessProbe.successThreshold | int | `1` |  |
+| certController.livenessProbe.timeoutSeconds | int | `5` |  |
 | certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Certificate Controller |
 | certController.metrics.listen.port | int | `8080` |  |
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
@@ -65,8 +72,14 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.podSecurityContext.enabled | bool | `true` |  |
 | certController.priorityClassName | string | `""` | Pod priority class name. |
 | certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
-| certController.readinessProbe.address | string | `""` | Address for readiness probe |
-| certController.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
+| certController.readinessProbe.address | string | `""` |  |
+| certController.readinessProbe.enabled | bool | `true` |  |
+| certController.readinessProbe.failureThreshold | int | `3` |  |
+| certController.readinessProbe.initialDelaySeconds | int | `20` |  |
+| certController.readinessProbe.periodSeconds | int | `5` |  |
+| certController.readinessProbe.port | int | `8081` |  |
+| certController.readinessProbe.successThreshold | int | `1` |  |
+| certController.readinessProbe.timeoutSeconds | int | `5` |  |
 | certController.replicaCount | int | `1` |  |
 | certController.requeueInterval | string | `"5m"` |  |
 | certController.resources | object | `{}` |  |
@@ -256,6 +269,13 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
+| webhook.livenessProbe.enabled | bool | `false` |  |
+| webhook.livenessProbe.failureThreshold | int | `5` |  |
+| webhook.livenessProbe.initialDelaySeconds | int | `10` |  |
+| webhook.livenessProbe.periodSeconds | int | `10` |  |
+| webhook.livenessProbe.port | int | `8081` |  |
+| webhook.livenessProbe.successThreshold | int | `1` |  |
+| webhook.livenessProbe.timeoutSeconds | int | `5` |  |
 | webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Webhook |
 | webhook.lookaheadInterval | string | `""` | Specifies the lookaheadInterval for certificate validity |
 | webhook.metrics.listen.port | int | `8080` |  |
@@ -269,8 +289,14 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podSecurityContext.enabled | bool | `true` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
-| webhook.readinessProbe.address | string | `""` | Address for readiness probe |
-| webhook.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
+| webhook.readinessProbe.address | string | `""` |  |
+| webhook.readinessProbe.enabled | bool | `true` |  |
+| webhook.readinessProbe.failureThreshold | int | `3` |  |
+| webhook.readinessProbe.initialDelaySeconds | int | `20` |  |
+| webhook.readinessProbe.periodSeconds | int | `5` |  |
+| webhook.readinessProbe.port | int | `8081` |  |
+| webhook.readinessProbe.successThreshold | int | `1` |  |
+| webhook.readinessProbe.timeoutSeconds | int | `5` |  |
 | webhook.replicaCount | int | `1` |  |
 | webhook.resources | object | `{}` |  |
 | webhook.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
