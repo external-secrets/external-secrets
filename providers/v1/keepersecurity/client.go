@@ -145,9 +145,15 @@ func (c *Client) findByIDWithNameFallback(key string) (*Secret, error) {
 	}
 
 	if record == nil && c.getByTitleFallback {
-		record, err = c.findSecretByName(key, false)
+		records, err := c.ksmClient.GetSecretsByTitle(key)
 		if err != nil {
 			return nil, err
+		}
+
+		if len(records) > 1 {
+			return nil, errors.New(errKeeperSecuritySecretNotUnique)
+		} else if len(records) == 1 {
+			record = records[0]
 		}
 	}
 
@@ -218,7 +224,7 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 		// Currently only supports pushing individual secret values, not entire secrets.
 	}
 
-	record, err := c.findSecretByName(parts[0], true)
+	record, err := c.findSecretByName(parts[0])
 	if err != nil {
 		return err
 	}
@@ -240,7 +246,7 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1.PushSecretRemote
 	if err != nil {
 		return err
 	}
-	secret, err := c.findSecretByName(parts[0], true)
+	secret, err := c.findSecretByName(parts[0])
 	if err != nil {
 		return err
 	} else if secret == nil {
@@ -368,25 +374,25 @@ func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 	return records[0], nil
 }
 
-func (c *Client) findSecretByName(name string, onlyEsoSecretType bool) (*ksm.Record, error) {
+func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
 	records, err := c.ksmClient.GetSecretsByTitle(name)
 	if err != nil {
 		return nil, err
 	}
 
+	// filter in-place, preserve only records of type externalSecretType
 	n := 0
 	for _, record := range records {
-		if !onlyEsoSecretType || record.Type() == externalSecretType {
+		if record.Type() == externalSecretType {
 			records[n] = record
 			n++
 		}
 	}
 	records = records[:n]
 
-	// record not found is not an error in all cases - handled differently:
+	// record not found is not an error - handled differently:
 	// PushSecret will create new record instead
 	// DeleteSecret will consider record already deleted (no error)
-	// GetSecret will error
 	if len(records) == 0 {
 		return nil, nil
 	} else if len(records) == 1 {
