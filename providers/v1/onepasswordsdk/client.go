@@ -514,11 +514,14 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	}
 
 	providerItem.Fields = normalizeItemFields(providerItem.Fields)
-	providerItem.Tags = tags
-	kept := providerItem.Fields[:0]
+	if tags != nil {
+		providerItem.Tags = tags
+	}
+	kept := make([]onepassword.ItemField, 0, len(providerItem.Fields))
 	for _, f := range providerItem.Fields {
 		if v, ok := secret.Data[f.Title]; ok {
 			f.Value = string(v)
+			f.FieldType = fieldType
 			kept = append(kept, f)
 		}
 	}
@@ -623,7 +626,7 @@ func (p *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 
 	property := ref.GetProperty()
 	if property == "" {
-		property = defaultFieldLabel
+		return true, nil // item exists; pushAllKeys handles field-level reconciliation
 	}
 
 	for _, f := range item.Fields {

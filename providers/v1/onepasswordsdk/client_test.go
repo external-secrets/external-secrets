@@ -1253,6 +1253,21 @@ func TestSecretExists(t *testing.T) {
 			wantExists:  false,
 			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
 		},
+		{
+			name: "pushAllKeys scenario: item exists with no fields returns true",
+			ref:  v1alpha1.PushSecretRemoteRef{RemoteKey: "key"},
+			lister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "item-id", Title: "key", VaultID: "vault-id"},
+				},
+				getResult: onepassword.Item{
+					ID: "item-id", Title: "key", VaultID: "vault-id",
+					Fields: []onepassword.ItemField{},
+				},
+			},
+			wantExists:  true,
+			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
+		},
 	}
 
 	for _, tt := range tests {
