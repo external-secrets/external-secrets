@@ -120,7 +120,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 // It first attempts to find the secret by ID, then falls back to name lookup.
 // The name lookup must be opted in by setting getByTitleFallback on the provider.
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	secret, err := c.findByIdWithNameFallback(ref.Key)
+	secret, err := c.findByIDWithNameFallback(ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 
 // GetSecretMap retrieves a secret from Keeper Security and returns it as a map.
 func (c *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	secret, err := c.findByIdWithNameFallback(ref.Key)
+	secret, err := c.findByIDWithNameFallback(ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (c *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemo
 
 // It first attempts to find the secret by ID, then falls back to name lookup.
 // The name lookup must be opted in by setting getByTitleFallback on the provider.
-func (c *Client) findByIdWithNameFallback(key string) (*Secret, error) {
+func (c *Client) findByIDWithNameFallback(key string) (*Secret, error) {
 	record, err := c.findSecretByID(key)
 	if err != nil {
 		return nil, err
@@ -161,6 +161,7 @@ func (c *Client) findByIdWithNameFallback(key string) (*Secret, error) {
 	}
 	return secret, nil
 }
+
 // GetAllSecrets retrieves all secrets from Keeper Security that match the given criteria.
 func (c *Client) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
