@@ -93,6 +93,7 @@ kubectl run --rm \
   --env="SECRETSERVER_URL=${SECRETSERVER_URL:-}" \
   --env="GRAFANA_URL=${GRAFANA_URL:-}" \
   --env="GRAFANA_TOKEN=${GRAFANA_TOKEN:-}" \
+  --env="E2E_PROVIDER_MODE=${E2E_PROVIDER_MODE:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \

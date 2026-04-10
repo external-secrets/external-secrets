@@ -75,9 +75,16 @@ func (f *Framework) printESDebugLogs(esName, esNamespace string) {
 	}
 
 	// print most recent logs of default eso installation
-	podList, err := f.KubeClientSet.CoreV1().Pods("default").List(
+	esoNamespace := "default"
+	labelSelector := "app.kubernetes.io/instance=eso,app.kubernetes.io/name=external-secrets"
+	if IsV2ProviderMode() {
+		esoNamespace = "external-secrets-system"
+		labelSelector = "app.kubernetes.io/instance=external-secrets,app.kubernetes.io/name=external-secrets"
+	}
+
+	podList, err := f.KubeClientSet.CoreV1().Pods(esoNamespace).List(
 		GinkgoT().Context(),
-		metav1.ListOptions{LabelSelector: "app.kubernetes.io/instance=eso,app.kubernetes.io/name=external-secrets"})
+		metav1.ListOptions{LabelSelector: labelSelector})
 	Expect(err).ToNot(HaveOccurred())
 	numLines := int64(60)
 	for i := range podList.Items {

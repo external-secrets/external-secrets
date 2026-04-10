@@ -18,7 +18,19 @@ env:
 jobs:
 
   integration-trusted:
+    name: integration-trusted (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+        - name: classic
+          make_target: test.e2e
+          allow_failure: false
+        - name: v2
+          make_target: test.e2e.v2
+          allow_failure: true
+    continue-on-error: ${{ matrix.suite.allow_failure }}
     permissions:
       id-token: write #for oidc auth with aws/gcp/azure
       contents: read  #for checkout
@@ -66,10 +78,24 @@ jobs:
       run: git fetch --prune --unshallow
 
     - uses: ./.github/actions/e2e
+      with:
+        make-target: ${{ matrix.suite.make_target }}
 
   # Repo owner has commented /ok-to-test on a (fork-based) pull request
   integration-fork:
+    name: integration-fork (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+        - name: classic
+          make_target: test.e2e
+          allow_failure: false
+        - name: v2
+          make_target: test.e2e.v2
+          allow_failure: true
+    continue-on-error: ${{ matrix.suite.allow_failure }}
     permissions:
       id-token: write      #for oidc auth with aws/gcp/azure
       contents: read       #for checkout
@@ -121,8 +147,10 @@ jobs:
 
     - id: e2e
       uses: ./.github/actions/e2e
+      with:
+        make-target: ${{ matrix.suite.make_target }}
     - id: create_token
-      if: always()
+      if: always() && matrix.suite.name == 'classic'
       uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
       env:
         APP_ID: ${{ secrets.APP_ID }}
@@ -132,7 +160,7 @@ jobs:
         owner: ${{ github.repository_owner }}
 
     - name: Update on Succeess
-      if: always() && steps.e2e.conclusion == 'success'
+      if: always() && matrix.suite.name == 'classic' && steps.e2e.conclusion == 'success'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}
@@ -140,7 +168,7 @@ jobs:
         body: |
             [Bot] - :white_check_mark: [e2e for ${{ env.TARGET_SHA }} passed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
     - name: Update on Failure
-      if: always() &&  steps.e2e.conclusion != 'success'
+      if: always() && matrix.suite.name == 'classic' && steps.e2e.conclusion != 'success'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}
