@@ -61,8 +61,11 @@ func (mc *GitlabMockProjectsClient) WithValue(output []*gitlab.ProjectGroup, res
 }
 
 type GitlabMockProjectVariablesClient struct {
-	getVariable   func(pid any, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
-	listVariables func(pid any, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
+	getVariable    func(pid any, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	listVariables  func(pid any, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
+	createVariable func(pid any, opt *gitlab.CreateProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	updateVariable func(pid any, key string, opt *gitlab.UpdateProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	removeVariable func(pid any, key string, opt *gitlab.RemoveProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.Response, error)
 }
 
 func (mc *GitlabMockProjectVariablesClient) GetVariable(pid any, key string, _ *gitlab.GetProjectVariableOptions, _ ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
@@ -71,6 +74,36 @@ func (mc *GitlabMockProjectVariablesClient) GetVariable(pid any, key string, _ *
 
 func (mc *GitlabMockProjectVariablesClient) ListVariables(pid any, _ *gitlab.ListProjectVariablesOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
 	return mc.listVariables(pid)
+}
+
+func (mc *GitlabMockProjectVariablesClient) CreateVariable(pid any, opt *gitlab.CreateProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
+	if mc.createVariable != nil {
+		return mc.createVariable(pid, opt, options...)
+	}
+	// Default implementation for tests that don't need create
+	return &gitlab.ProjectVariable{
+		Key:   *opt.Key,
+		Value: *opt.Value,
+	}, &gitlab.Response{Response: &http.Response{StatusCode: http.StatusCreated}}, nil
+}
+
+func (mc *GitlabMockProjectVariablesClient) UpdateVariable(pid any, key string, opt *gitlab.UpdateProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
+	if mc.updateVariable != nil {
+		return mc.updateVariable(pid, key, opt, options...)
+	}
+	// Default implementation for tests that don't need update
+	return &gitlab.ProjectVariable{
+		Key:   key,
+		Value: *opt.Value,
+	}, &gitlab.Response{Response: &http.Response{StatusCode: http.StatusOK}}, nil
+}
+
+func (mc *GitlabMockProjectVariablesClient) RemoveVariable(pid any, key string, opt *gitlab.RemoveProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.Response, error) {
+	if mc.removeVariable != nil {
+		return mc.removeVariable(pid, key, opt, options...)
+	}
+	// Default implementation for tests that don't need remove
+	return &gitlab.Response{Response: &http.Response{StatusCode: http.StatusNoContent}}, nil
 }
 
 func (mc *GitlabMockProjectVariablesClient) WithValue(response APIResponse[[]*gitlab.ProjectVariable]) {
@@ -131,8 +164,11 @@ func makeAPIResponse(page, pages int) *gitlab.Response {
 }
 
 type GitlabMockGroupVariablesClient struct {
-	getVariable   func(gid any, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
-	listVariables func(gid any, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
+	getVariable    func(gid any, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	listVariables  func(gid any, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
+	createVariable func(gid any, opt *gitlab.CreateGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	updateVariable func(gid any, key string, opt *gitlab.UpdateGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	removeVariable func(gid any, key string, opt *gitlab.RemoveGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.Response, error)
 }
 
 func (mc *GitlabMockGroupVariablesClient) GetVariable(gid any, key string, _ *gitlab.GetGroupVariableOptions, _ ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
@@ -141,6 +177,36 @@ func (mc *GitlabMockGroupVariablesClient) GetVariable(gid any, key string, _ *gi
 
 func (mc *GitlabMockGroupVariablesClient) ListVariables(gid any, _ *gitlab.ListGroupVariablesOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error) {
 	return mc.listVariables(gid)
+}
+
+func (mc *GitlabMockGroupVariablesClient) CreateVariable(gid any, opt *gitlab.CreateGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
+	if mc.createVariable != nil {
+		return mc.createVariable(gid, opt, options...)
+	}
+	// Default implementation for tests that don't need create
+	return &gitlab.GroupVariable{
+		Key:   *opt.Key,
+		Value: *opt.Value,
+	}, &gitlab.Response{Response: &http.Response{StatusCode: http.StatusCreated}}, nil
+}
+
+func (mc *GitlabMockGroupVariablesClient) UpdateVariable(gid any, key string, opt *gitlab.UpdateGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
+	if mc.updateVariable != nil {
+		return mc.updateVariable(gid, key, opt, options...)
+	}
+	// Default implementation for tests that don't need update
+	return &gitlab.GroupVariable{
+		Key:   key,
+		Value: *opt.Value,
+	}, &gitlab.Response{Response: &http.Response{StatusCode: http.StatusOK}}, nil
+}
+
+func (mc *GitlabMockGroupVariablesClient) RemoveVariable(gid any, key string, opt *gitlab.RemoveGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.Response, error) {
+	if mc.removeVariable != nil {
+		return mc.removeVariable(gid, key, opt, options...)
+	}
+	// Default implementation for tests that don't need remove
+	return &gitlab.Response{Response: &http.Response{StatusCode: http.StatusNoContent}}, nil
 }
 
 func (mc *GitlabMockGroupVariablesClient) WithValue(output *gitlab.GroupVariable, response *gitlab.Response, err error) {
