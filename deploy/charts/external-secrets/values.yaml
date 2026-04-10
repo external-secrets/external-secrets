@@ -557,11 +557,24 @@ webhook:
       annotations: {}
 
 
-  readinessProbe:
-    # -- Address for readiness probe
-    address: ""
-    # -- ReadinessProbe port for kubelet
+  livenessProbe:
+    enabled: false
     port: 8081
+    timeoutSeconds: 5
+    failureThreshold: 5
+    periodSeconds: 10
+    successThreshold: 1
+    initialDelaySeconds: 10
+
+  readinessProbe:
+    enabled: true
+    address: ""
+    port: 8081
+    timeoutSeconds: 5
+    failureThreshold: 3
+    periodSeconds: 5
+    successThreshold: 1
+    initialDelaySeconds: 20
 
 
     ## -- Extra environment variables to add to container.
@@ -703,11 +716,24 @@ certController:
       # -- Additional service annotations
       annotations: {}
 
-  readinessProbe:
-    # -- Address for readiness probe
-    address: ""
-    # -- ReadinessProbe port for kubelet
+  livenessProbe:
+    enabled: false
     port: 8081
+    timeoutSeconds: 5
+    failureThreshold: 5
+    periodSeconds: 10
+    successThreshold: 1
+    initialDelaySeconds: 10
+
+  readinessProbe:
+    enabled: true
+    address: ""
+    port: 8081
+    timeoutSeconds: 5
+    failureThreshold: 3
+    periodSeconds: 5
+    successThreshold: 1
+    initialDelaySeconds: 20
 
   startupProbe:
     # -- Enabled determines if the startup probe should be used or not. By default it's enabled

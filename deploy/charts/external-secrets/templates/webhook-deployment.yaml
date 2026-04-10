@@ -101,12 +101,28 @@ spec:
             - containerPort: {{ .Values.webhook.readinessProbe.port }}
               protocol: TCP
               name: ready
+          {{- if .Values.webhook.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              port: ready 
+              path: /healthz
+            initialDelaySeconds: {{ .Values.webhook.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.webhook.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.webhook.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.webhook.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.webhook.readinessProbe.enabled }}
           readinessProbe:
             httpGet:
               port: ready
               path: /readyz
-            initialDelaySeconds: 20
-            periodSeconds: 5
+            initialDelaySeconds: {{ .Values.webhook.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.webhook.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.webhook.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.webhook.readinessProbe.successThreshold }}
+          {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}

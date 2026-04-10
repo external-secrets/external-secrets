@@ -111,12 +111,28 @@ spec:
               protocol: TCP
               name: startup
             {{- end }}
+          {{- if .Values.certController.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              port: ready
+              path: /healthz
+            initialDelaySeconds: {{ .Values.certController.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.certController.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.certController.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.certController.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.certController.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.certController.readinessProbe.enabled }}
           readinessProbe:
             httpGet:
               port: ready
               path: /readyz
-            initialDelaySeconds: 20
-            periodSeconds: 5
+            initialDelaySeconds: {{ .Values.certController.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.certController.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.certController.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.certController.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.certController.readinessProbe.successThreshold }}
+          {{- end }}
           {{- if .Values.certController.startupProbe.enabled }}
           startupProbe:
             httpGet:
