@@ -3243,6 +3243,19 @@ string
 </tr>
 <tr>
 <td>
+<code>vault</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Vault is the name or UUID of the vault to fetch secrets from.
+When omitted, the vault must be specified in the secret key using the legacy format &ldquo;<vault-id>/<entry-id>&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>insecure</code></br>
 <em>
 bool
