@@ -7652,6 +7652,114 @@ spec:
                       required:
                         - server
                       type: object
+                    vaultwarden:
+                      description: Vaultwarden configures this store to sync secrets from a self-hosted Vaultwarden instance.
+                      properties:
+                        auth:
+                          description: Auth configures how ESO authenticates with Vaultwarden using a personal API key.
+                          properties:
+                            secretRef:
+                              description: VaultwardenSecretRef contains selectors for the three credentials needed to access Vaultwarden.
+                              properties:
+                                clientID:
+                                  description: ClientID is the OAuth2 client_id of the Vaultwarden personal API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                clientSecret:
+                                  description: ClientSecret is the OAuth2 client_secret of the Vaultwarden personal API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                masterPassword:
+                                  description: MasterPassword is the Vaultwarden account master password used to decrypt vault items.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - clientID
+                                - clientSecret
+                                - masterPassword
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        caBundle:
+                          description: |-
+                            CABundle is a PEM-encoded CA certificate bundle used to validate the Vaultwarden server certificate.
+                            If omitted, the system CA pool is used.
+                          format: byte
+                          type: string
+                        url:
+                          description: URL is the base URL of the Vaultwarden instance, e.g. https://vault.example.com
+                          type: string
+                      required:
+                        - auth
+                        - url
+                      type: object
                     volcengine:
                       description: Volcengine configures this store to sync secrets using the Volcengine provider
                       properties:
@@ -19742,6 +19850,114 @@ spec:
                           type: string
                       required:
                         - server
+                      type: object
+                    vaultwarden:
+                      description: Vaultwarden configures this store to sync secrets from a self-hosted Vaultwarden instance.
+                      properties:
+                        auth:
+                          description: Auth configures how ESO authenticates with Vaultwarden using a personal API key.
+                          properties:
+                            secretRef:
+                              description: VaultwardenSecretRef contains selectors for the three credentials needed to access Vaultwarden.
+                              properties:
+                                clientID:
+                                  description: ClientID is the OAuth2 client_id of the Vaultwarden personal API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                clientSecret:
+                                  description: ClientSecret is the OAuth2 client_secret of the Vaultwarden personal API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                masterPassword:
+                                  description: MasterPassword is the Vaultwarden account master password used to decrypt vault items.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - clientID
+                                - clientSecret
+                                - masterPassword
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        caBundle:
+                          description: |-
+                            CABundle is a PEM-encoded CA certificate bundle used to validate the Vaultwarden server certificate.
+                            If omitted, the system CA pool is used.
+                          format: byte
+                          type: string
+                        url:
+                          description: URL is the base URL of the Vaultwarden instance, e.g. https://vault.example.com
+                          type: string
+                      required:
+                        - auth
+                        - url
                       type: object
                     volcengine:
                       description: Volcengine configures this store to sync secrets using the Volcengine provider
