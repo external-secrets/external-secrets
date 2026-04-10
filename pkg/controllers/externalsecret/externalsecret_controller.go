@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -119,6 +120,9 @@ const (
 	eventDeletedOrphaned          = "secret deleted because it was orphaned"
 	eventMissingProviderSecret    = "secret does not exist at provider using spec.dataFrom[%d]"
 	eventMissingProviderSecretKey = "secret does not exist at provider using spec.dataFrom[%d] (key=%s)"
+
+	// cacheSyncRetryDelay is used when partial and full secret caches are temporarily out of sync.
+	cacheSyncRetryDelay = 200 * time.Millisecond
 )
 
 // these errors are explicitly defined so we can detect them with `errors.Is()`.
@@ -137,17 +141,19 @@ const (
 // Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
-	SecretClient              client.Client
-	Log                       logr.Logger
-	Scheme                    *runtime.Scheme
-	RestConfig                *rest.Config
-	ControllerClass           string
-	RequeueInterval           time.Duration
-	ClusterSecretStoreEnabled bool
-	EnableFloodGate           bool
-	EnableGeneratorState      bool
-	AllowGenericTargets       bool
-	recorder                  record.EventRecorder
+	SecretClient                       client.Client
+	APIReader                          client.Reader
+	EnableSecretAPIReadOnCacheMismatch bool
+	Log                                logr.Logger
+	Scheme                             *runtime.Scheme
+	RestConfig                         *rest.Config
+	ControllerClass                    string
+	RequeueInterval                    time.Duration
+	ClusterSecretStoreEnabled          bool
+	EnableFloodGate                    bool
+	EnableGeneratorState               bool
+	AllowGenericTargets                bool
+	recorder                           record.EventRecorder
 
 	// informerManager manages dynamic informers for generic targets
 	informerManager InformerManager
@@ -334,13 +340,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// ensure the full cache is up-to-date
 	// NOTE: this prevents race conditions between the partial and full cache.
-	//       we return an error so we get an exponential backoff if we end up looping,
-	//       for example, during high cluster load and frequent updates to the target secret by other controllers.
-	if secretPartial.UID != existingSecret.UID || secretPartial.ResourceVersion != existingSecret.ResourceVersion {
-		err = fmt.Errorf(errSecretCachesNotSynced, secretName)
-		log.Error(err, logErrorSecretCacheNotSynced, "secretName", secretName, "secretNamespace", externalSecret.Namespace)
+	//       if enabled, we verify against the API server before retrying to avoid unnecessary error backoff
+	//       when the cache is temporarily stale.
+	existingSecret, cacheNotSynced, getErr := r.resolveSecretCacheMismatch(ctx, client.ObjectKey{Name: secretName, Namespace: externalSecret.Namespace}, secretPartial, existingSecret)
+	if getErr != nil && !apierrors.IsNotFound(getErr) {
+		log.Error(getErr, logErrorGetSecret, "secretName", secretName, "secretNamespace", externalSecret.Namespace)
 		syncCallsError.With(resourceLabels).Inc()
-		return ctrl.Result{}, err
+		return ctrl.Result{}, getErr
+	}
+	if cacheNotSynced {
+		log.V(1).Info(logErrorSecretCacheNotSynced, "secretName", secretName, "secretNamespace", externalSecret.Namespace)
+		return ctrl.Result{RequeueAfter: cacheSyncRetryDelay}, nil
 	}
 
 	// refresh will be skipped if ALL the following conditions are met:
@@ -780,7 +790,7 @@ func (r *Reconciler) getRequeueResult(externalSecret *esv1.ExternalSecret) ctrl.
 }
 
 func (r *Reconciler) markAsDone(externalSecret *esv1.ExternalSecret, start time.Time, log logr.Logger, reason, msg string) {
-	oldReadyCondition := GetExternalSecretCondition(externalSecret.Status, esv1.ExternalSecretReady)
+	oldReadyCondition := esv1.GetExternalSecretCondition(externalSecret.Status, esv1.ExternalSecretReady)
 	newReadyCondition := NewExternalSecretCondition(esv1.ExternalSecretReady, v1.ConditionTrue, reason, msg)
 	SetExternalSecretCondition(externalSecret, *newReadyCondition)
 
@@ -1220,6 +1230,9 @@ func genericTargetContentHash(obj *unstructured.Unstructured) (string, error) {
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
+	if r.APIReader == nil {
+		r.APIReader = mgr.GetAPIReader()
+	}
 	// Initialize informer manager only if generic targets are allowed
 	if r.AllowGenericTargets && r.informerManager == nil {
 		r.informerManager = NewInformerManager(ctx, mgr.GetCache(), r.Client, r.Log.WithName("informer-manager"))
@@ -1265,10 +1278,17 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return hasLabel && value == esv1.LabelManagedValue
 	})
 
+	// filter ExternalSecret updates to avoid requeueing on status-only changes.
+	externalSecretPredicate := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return shouldEnqueueExternalSecretUpdate(e.ObjectOld, e.ObjectNew)
+		},
+	}
+
 	// Build the controller
 	builder := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
-		For(&esv1.ExternalSecret{}).
+		For(&esv1.ExternalSecret{}, builder.WithPredicates(externalSecretPredicate)).
 		// we cant use Owns(), as we don't set ownerReferences when the creationPolicy is not Owner.
 		// we use WatchesMetadata() to reduce memory usage, as otherwise we have to process full secret objects.
 		WatchesMetadata(
@@ -1284,6 +1304,73 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	return builder.Complete(r)
+}
+
+// shouldEnqueueExternalSecretUpdate returns true for spec/metadata updates that can affect reconciliation behavior,
+// while ignoring status-only updates.
+func shouldEnqueueExternalSecretUpdate(oldObj, newObj client.Object) bool {
+	oldES, oldOK := oldObj.(*esv1.ExternalSecret)
+	newES, newOK := newObj.(*esv1.ExternalSecret)
+	if !oldOK || !newOK {
+		return true
+	}
+
+	if oldES.GetGeneration() != newES.GetGeneration() {
+		return true
+	}
+
+	if !equality.Semantic.DeepEqual(oldES.GetLabels(), newES.GetLabels()) {
+		return true
+	}
+
+	if !equality.Semantic.DeepEqual(oldES.GetAnnotations(), newES.GetAnnotations()) {
+		return true
+	}
+
+	if !equality.Semantic.DeepEqual(oldES.GetFinalizers(), newES.GetFinalizers()) {
+		return true
+	}
+
+	oldDeletion := oldES.GetDeletionTimestamp()
+	newDeletion := newES.GetDeletionTimestamp()
+	if oldDeletion == nil && newDeletion == nil {
+		return false
+	}
+	if oldDeletion == nil || newDeletion == nil {
+		return true
+	}
+
+	return !oldDeletion.Equal(newDeletion)
+}
+
+// resolveSecretCacheMismatch optionally uses a direct API read when the partial
+// and full secret caches disagree. It returns the secret to continue with,
+// whether the caches should still be treated as out of sync, and any read error.
+func (r *Reconciler) resolveSecretCacheMismatch(ctx context.Context, key client.ObjectKey, secretPartial *metav1.PartialObjectMetadata, existingSecret *v1.Secret) (*v1.Secret, bool, error) {
+	if secretPartial.UID == existingSecret.UID && secretPartial.ResourceVersion == existingSecret.ResourceVersion {
+		return existingSecret, false, nil
+	}
+
+	if !r.EnableSecretAPIReadOnCacheMismatch {
+		return nil, true, nil
+	}
+
+	authoritativeSecret := &v1.Secret{}
+	secretReader := r.APIReader
+	if secretReader == nil {
+		secretReader = r.SecretClient
+	}
+
+	err := secretReader.Get(ctx, key, authoritativeSecret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, false, err
+	}
+
+	if secretPartial.UID != authoritativeSecret.UID || secretPartial.ResourceVersion != authoritativeSecret.ResourceVersion {
+		return nil, true, nil
+	}
+
+	return authoritativeSecret, false, nil
 }
 
 func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Object) []reconcile.Request {
