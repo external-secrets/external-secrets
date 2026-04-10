@@ -44,6 +44,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
+	fakeprovider "github.com/external-secrets/external-secrets/providers/v1/fake"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
@@ -3249,6 +3250,7 @@ func init() {
 			Service: esv1.AWSServiceSecretsManager,
 		},
 	}, esv1.MaintenanceStatusMaintained)
+	esv1.ForceRegister(fakeprovider.NewProvider(), fakeprovider.ProviderSpec(), fakeprovider.MaintenanceStatus())
 
 	ctrlmetrics.SetUpLabelNames(false)
 	esmetrics.SetUpMetrics()

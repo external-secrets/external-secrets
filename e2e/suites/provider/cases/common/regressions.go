@@ -19,14 +19,15 @@ package common
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // StatusNotUpdatedAfterSuccessfulSync validates that a successful sync does not trigger

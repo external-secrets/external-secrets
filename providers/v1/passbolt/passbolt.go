@@ -339,7 +339,7 @@ func buildHTTPClient(ctx context.Context, config *esv1.PassboltProvider, kube kc
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &ProviderPassbolt{}
 }
 

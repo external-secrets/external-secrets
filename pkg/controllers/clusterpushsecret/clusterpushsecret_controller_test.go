@@ -518,7 +518,6 @@ var _ = Describe("ClusterPushSecret controller", func() {
 							SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 								{
 									Name: updateStoreName,
-									Kind: "SecretStore",
 								},
 							},
 							UpdatePolicy: "Replace",

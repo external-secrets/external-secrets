@@ -17,14 +17,13 @@ limitations under the License.
 package aws
 
 import (
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
 )
 
 const (

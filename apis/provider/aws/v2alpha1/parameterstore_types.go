@@ -1,0 +1,93 @@
+/*
+Copyright © The ESO Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v2alpha1
+
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+)
+
+// ParameterStoreSpec defines the desired state of ParameterStore.
+type ParameterStoreSpec struct {
+	// Auth defines the information necessary to authenticate against AWS
+	// if not set aws sdk will infer credentials from your environment
+	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
+	// +optional
+	Auth v1.AWSAuth `json:"auth,omitempty"`
+
+	// Role is a Role ARN which the provider will assume
+	// +optional
+	Role string `json:"role,omitempty"`
+
+	// AWS Region to be used for the provider
+	Region string `json:"region"`
+
+	// AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
+	// +optional
+	AdditionalRoles []string `json:"additionalRoles,omitempty"`
+
+	// AWS External ID set on assumed IAM roles
+	ExternalID string `json:"externalID,omitempty"`
+
+	// AWS STS assume role session tags
+	// +optional
+	SessionTags []*v1.Tag `json:"sessionTags,omitempty"`
+
+	// AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
+	// +optional
+	TransitiveTagKeys []string `json:"transitiveTagKeys,omitempty"`
+
+	// Prefix adds a prefix to all retrieved values.
+	// +optional
+	Prefix string `json:"prefix,omitempty"`
+}
+
+// ParameterStoreStatus defines the observed state of ParameterStore.
+type ParameterStoreStatus struct {
+	// Conditions represent the latest available observations of the resource's state.
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced,categories={externalsecrets},shortName=ssm
+// +kubebuilder:printcolumn:name="Region",type=string,JSONPath=`.spec.region`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// ParameterStore is the Schema for AWS Parameter Store provider configuration.
+type ParameterStore struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ParameterStoreSpec   `json:"spec,omitempty"`
+	Status ParameterStoreStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// ParameterStoreList contains a list of ParameterStore.
+type ParameterStoreList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ParameterStore `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&ParameterStore{}, &ParameterStoreList{})
+}

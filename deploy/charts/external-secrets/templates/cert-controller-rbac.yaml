@@ -84,6 +84,7 @@ rules:
     - {{ printf "%s-webhook" (include "external-secrets.fullname" .) | quote }}
     verbs:
     - "update"
+    - "create"
     - "patch"
   - apiGroups:
     - "coordination.k8s.io"

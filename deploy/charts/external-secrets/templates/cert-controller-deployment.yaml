@@ -92,6 +92,14 @@ spec:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
           {{- end }}
+          {{- if and .Values.v2.enabled .Values.providers.enabled }}
+          - --provider-namespace={{ template "external-secrets.namespace" . }}
+            {{- range .Values.providers.list }}
+            {{- if .enabled }}
+          - --provider-service-names={{ include "external-secrets.provider.servicename" (dict "provider" . "root" $) }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
           {{- range $key, $value := .Values.certController.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}

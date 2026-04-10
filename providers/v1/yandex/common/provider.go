@@ -40,7 +40,7 @@ import (
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.Provider = &YandexCloudProvider{}
+var _ esv1.ProviderInterface = &YandexCloudProvider{}
 
 // YandexCloudProvider implements the Provider interface for Yandex.Cloud services.
 type YandexCloudProvider struct {

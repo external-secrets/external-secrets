@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	_ esv1.Provider = &Provider{}
+	_ esv1.ProviderInterface = &Provider{}
 )
 
 // Provider implements the ESO Provider interface for OpenBao.
@@ -84,7 +84,7 @@ func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{
 		HTTPClientFactory: func() *http.Client {
 			return &http.Client{

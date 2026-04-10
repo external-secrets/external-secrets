@@ -17,10 +17,11 @@ limitations under the License.
 package scaleway
 
 import (
-	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/onsi/gomega"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+
+	"github.com/external-secrets/external-secrets-e2e/framework"
 )
 
 const remoteRefPrefix = "name:"

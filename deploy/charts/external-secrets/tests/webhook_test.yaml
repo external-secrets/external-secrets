@@ -5,7 +5,7 @@ templates:
   - webhook-service.yaml
   - webhook-certificate.yaml
   - validatingwebhook.yaml
-  - crds/externalsecret.yaml
+  - crds/external-secrets.io_externalsecret.yaml
 tests:
   - it: should match snapshot of default values
     asserts:
@@ -182,7 +182,7 @@ tests:
           value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
     templates:
       - validatingwebhook.yaml
-      - crds/externalsecret.yaml
+      - crds/external-secrets.io_externalsecret.yaml
   - it: should not add annotations to the webhook
     set:
       webhook.create: true
@@ -194,7 +194,7 @@ tests:
           # value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
     templates:
       - validatingwebhook.yaml
-      - crds/externalsecret.yaml
+      - crds/external-secrets.io_externalsecret.yaml
   - it: should have the correct labels
     set:
       webhook.create: true

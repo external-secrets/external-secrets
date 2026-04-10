@@ -1,0 +1,30 @@
+{{- if .Values.providers.enabled }}
+{{- range .Values.providers.list }}
+{{- if .enabled }}
+{{- $root := $ }}
+{{- $provider := include "external-secrets.provider.mergeDefaults" (dict "provider" . "root" $root) | fromYaml }}
+{{- if and $provider.metrics $provider.metrics.enabled $provider.metrics.serviceMonitor $provider.metrics.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "external-secrets.provider.fullname" (dict "provider" $provider "root" $root) }}
+  namespace: {{ $provider.metrics.serviceMonitor.namespace | default (include "external-secrets.namespace" $root) }}
+  labels:
+    {{- include "external-secrets.provider.labels" (dict "provider" $provider "root" $root) | nindent 4 }}
+    {{- with $provider.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "external-secrets.provider.selectorLabels" (dict "provider" $provider "root" $root) | nindent 6 }}
+  endpoints:
+  - port: metrics
+    interval: {{ $provider.metrics.serviceMonitor.interval | default "30s" }}
+    scrapeTimeout: {{ $provider.metrics.serviceMonitor.scrapeTimeout | default "10s" }}
+    path: /metrics
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

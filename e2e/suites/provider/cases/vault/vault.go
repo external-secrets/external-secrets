@@ -20,19 +20,19 @@ import (
 	"fmt"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const (
