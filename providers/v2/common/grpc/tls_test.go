@@ -144,6 +144,20 @@ func TestLoadClientTLSConfig(t *testing.T) {
 		}
 	})
 
+	t.Run("missing_secret", func(t *testing.T) {
+		scheme := runtime.NewScheme()
+		utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+
+		kubeClient := fakeclient.NewClientBuilder().
+			WithScheme(scheme).
+			Build()
+
+		_, err := LoadClientTLSConfig(context.Background(), kubeClient, "127.0.0.1:9443", "tenant-a")
+		if err == nil || err.Error() == "" {
+			t.Fatalf("expected missing secret error, got %v", err)
+		}
+	})
+
 	t.Run("missing_secret_data", func(t *testing.T) {
 		kubeClient := newTLSSecretClient(t, map[string][]byte{
 			"ca.crt": []byte("ca"),
@@ -193,6 +207,21 @@ func TestTLSConfigToGRPCTLSConfig(t *testing.T) {
 		}).ToGRPCTLSConfig()
 		if err == nil {
 			t.Fatal("expected invalid keypair to fail")
+		}
+	})
+
+	t.Run("invalid_ca", func(t *testing.T) {
+		serverName := "127.0.0.1"
+		_, _, clientCertPEM, clientKeyPEM, _ := newTLSArtifactsForTest(t, serverName)
+
+		_, err := (&TLSConfig{
+			CACert:     []byte("not-a-ca"),
+			ClientCert: clientCertPEM,
+			ClientKey:  clientKeyPEM,
+			ServerName: serverName,
+		}).ToGRPCTLSConfig()
+		if err == nil || err.Error() != "failed to parse CA certificate" {
+			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 }

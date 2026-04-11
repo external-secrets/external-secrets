@@ -143,6 +143,69 @@ func TestConnectionPoolCleanupIdleConnectionsRemovesReleasedConnection(t *testin
 	}
 }
 
+func TestConnectionPoolCheckConnectionHealthRemovesShutdownConnection(t *testing.T) {
+	address, tlsConfig := newPoolTestServer(t)
+
+	pool := NewConnectionPool(PoolConfig{
+		MaxIdleTime:         time.Minute,
+		MaxLifetime:         time.Minute,
+		HealthCheckInterval: time.Hour,
+	})
+	defer func() {
+		_ = pool.Close()
+	}()
+
+	_, err := pool.Get(context.Background(), address, tlsConfig)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	pool.Release(address, tlsConfig)
+
+	key := pool.connectionKey(address, tlsConfig)
+	pooled := pool.connections[key]
+	if pooled == nil {
+		t.Fatalf("expected pooled connection for key %q", key)
+	}
+
+	if err := pooled.conn.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
+	pool.checkConnectionHealth()
+
+	if _, ok := pool.connections[key]; ok {
+		t.Fatalf("expected unhealthy pooled connection %q to be removed", key)
+	}
+}
+
+func TestConnectionPoolCloseClearsTrackedConnections(t *testing.T) {
+	address, tlsConfig := newPoolTestServer(t)
+
+	pool := NewConnectionPool(PoolConfig{
+		MaxIdleTime:         time.Minute,
+		MaxLifetime:         time.Minute,
+		HealthCheckInterval: time.Hour,
+	})
+
+	_, err := pool.Get(context.Background(), address, tlsConfig)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	pool.Release(address, tlsConfig)
+
+	if len(pool.connections) != 1 {
+		t.Fatalf("expected one tracked connection, got %d", len(pool.connections))
+	}
+
+	if err := pool.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
+	if len(pool.connections) != 0 {
+		t.Fatalf("expected no tracked connections after close, got %d", len(pool.connections))
+	}
+}
+
 func newPoolTestServer(t *testing.T) (string, *TLSConfig) {
 	t.Helper()
 
