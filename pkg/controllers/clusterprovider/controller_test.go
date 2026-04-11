@@ -29,20 +29,21 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/status"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 )
 
@@ -394,6 +395,77 @@ func TestSetNotReadyConditionUpdatesReasonAndMessageWithoutChangingTransitionTim
 	}
 }
 
+func TestFindClusterProvidersForKubernetesProviderEnqueuesMatchingProviders(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&esv1.ClusterProvider{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "match",
+				},
+				Spec: esv1.ClusterProviderSpec{
+					Config: esv1.ProviderConfig{
+						ProviderRef: esv1.ProviderReference{
+							APIVersion: k8sv2alpha1.GroupVersion.String(),
+							Kind:       k8sv2alpha1.Kind,
+							Name:       "backend",
+							Namespace:  "config-ns",
+						},
+					},
+				},
+			},
+			&esv1.ClusterProvider{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "wrong-name",
+				},
+				Spec: esv1.ClusterProviderSpec{
+					Config: esv1.ProviderConfig{
+						ProviderRef: esv1.ProviderReference{
+							APIVersion: k8sv2alpha1.GroupVersion.String(),
+							Kind:       k8sv2alpha1.Kind,
+							Name:       "other",
+							Namespace:  "config-ns",
+						},
+					},
+				},
+			},
+			&esv1.ClusterProvider{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "wrong-namespace",
+				},
+				Spec: esv1.ClusterProviderSpec{
+					Config: esv1.ProviderConfig{
+						ProviderRef: esv1.ProviderReference{
+							APIVersion: k8sv2alpha1.GroupVersion.String(),
+							Kind:       k8sv2alpha1.Kind,
+							Name:       "backend",
+							Namespace:  "other-ns",
+						},
+					},
+				},
+			},
+		).
+		Build()
+
+	requests := findClusterProvidersForKubernetesProvider(context.Background(), kubeClient, &k8sv2alpha1.Kubernetes{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "backend",
+			Namespace: "config-ns",
+		},
+	})
+
+	if len(requests) != 1 {
+		t.Fatalf("expected one reconcile request, got %#v", requests)
+	}
+	if requests[0].NamespacedName != (client.ObjectKey{Name: "match"}) {
+		t.Fatalf("unexpected reconcile request: %#v", requests[0])
+	}
+}
+
 func newClusterProviderGRPCServer(t *testing.T) (*recordingClusterProviderGRPCServer, string, map[string][]byte) {
 	t.Helper()
 
@@ -457,8 +529,8 @@ func newClusterProviderTLSArtifacts(t *testing.T, host string) (serverCertPEM, s
 	}
 
 	caTemplate := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{CommonName: "cluster-provider-controller-test-ca"},
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "cluster-provider-controller-test-ca"},
 		NotBefore:             time.Now().Add(-time.Hour),
 		NotAfter:              time.Now().Add(24 * time.Hour),
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
@@ -491,11 +563,11 @@ func newClusterProviderSignedTLSCert(t *testing.T, caCert *x509.Certificate, caK
 
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(serial),
-		Subject: pkix.Name{CommonName: host},
-		NotBefore:   time.Now().Add(-time.Hour),
-		NotAfter:    time.Now().Add(24 * time.Hour),
-		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage: usages,
+		Subject:      pkix.Name{CommonName: host},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(24 * time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:  usages,
 	}
 
 	if ip := net.ParseIP(host); ip != nil {
