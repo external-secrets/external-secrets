@@ -100,6 +100,38 @@ func TestResolvedStoreInfoSupportsProviderKinds(t *testing.T) {
 	}
 }
 
+func TestResolvedStoreInfoInfersOmittedProviderKinds(t *testing.T) {
+	providerInfo, ok := resolvedStoreInfo(esapi.PushSecretStoreRef{
+		Name: "provider",
+	}, &esv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "provider",
+			Labels: map[string]string{"team": "a"},
+		},
+	})
+	if !ok {
+		t.Fatal("expected provider store info to resolve")
+	}
+	if providerInfo.Kind != esv1.ProviderKindStr {
+		t.Fatalf("expected kind %q, got %#v", esv1.ProviderKindStr, providerInfo)
+	}
+
+	clusterProviderInfo, ok := resolvedStoreInfo(esapi.PushSecretStoreRef{
+		Name: "cluster-provider",
+	}, &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "cluster-provider",
+			Labels: map[string]string{"scope": "cluster"},
+		},
+	})
+	if !ok {
+		t.Fatal("expected cluster provider store info to resolve")
+	}
+	if clusterProviderInfo.Kind != esv1.ClusterProviderKindStr {
+		t.Fatalf("expected kind %q, got %#v", esv1.ClusterProviderKindStr, clusterProviderInfo)
+	}
+}
+
 func TestValidateDataToMatchesResolvedStoresSupportsProviderKinds(t *testing.T) {
 	err := validateDataToMatchesResolvedStores([]esapi.PushSecretDataTo{
 		{
@@ -232,6 +264,92 @@ func TestPushSecretToProvidersV2UsesProviderPath(t *testing.T) {
 	}
 	if string(server.pushRequest.PushSecretData.Metadata) != `{"owner":"eso"}` {
 		t.Fatalf("unexpected metadata: %q", string(server.pushRequest.PushSecretData.Metadata))
+	}
+	if synced["Provider/provider"]["remote/path/property"].Match.SecretKey != "token" {
+		t.Fatalf("unexpected synced map: %#v", synced)
+	}
+}
+
+func TestPushSecretToProvidersV2UsesProviderPathWhenKindOmitted(t *testing.T) {
+	previous := clientmanager.V2ProvidersEnabled()
+	clientmanager.SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		clientmanager.SetV2ProvidersEnabled(previous)
+	})
+
+	scheme := newPushSecretTestScheme(t)
+	server, address, tlsSecret := newPushSecretProviderServer(t)
+
+	provider := &esv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "provider",
+			Namespace: "tenant-a",
+			Labels:    map[string]string{"team": "a"},
+		},
+		Spec: esv1.ProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: address,
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "backend",
+				},
+			},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(provider, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "external-secrets-provider-tls",
+				Namespace: "tenant-a",
+			},
+			Data: tlsSecret,
+		}).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	mgr := clientmanager.NewManager(kubeClient, "", false)
+	defer func() {
+		_ = mgr.Close(context.Background())
+	}()
+
+	ps := esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Spec: esapi.PushSecretSpec{
+			SecretStoreRefs: []esapi.PushSecretStoreRef{{
+				Name: "provider",
+			}},
+			Data: []esapi.PushSecretData{{
+				Match: esapi.PushSecretMatch{
+					SecretKey: "token",
+					RemoteRef: esapi.PushSecretRemoteRef{
+						RemoteKey: "remote/path",
+						Property:  "property",
+					},
+				},
+				Metadata: &apiextensionsv1.JSON{Raw: []byte(`{"owner":"eso"}`)},
+			}},
+		},
+	}
+
+	secret := &corev1.Secret{
+		Data: map[string][]byte{"token": []byte("value")},
+	}
+
+	synced, err := r.PushSecretToProvidersV2(context.Background(), map[esapi.PushSecretStoreRef]interface{}{
+		{Name: "provider"}: provider,
+	}, ps, secret, mgr)
+	if err != nil {
+		t.Fatalf("PushSecretToProvidersV2() error = %v", err)
+	}
+
+	if server.pushRequest == nil {
+		t.Fatal("expected push request to be recorded")
 	}
 	if synced["Provider/provider"]["remote/path/property"].Match.SecretKey != "token" {
 		t.Fatalf("unexpected synced map: %#v", synced)
@@ -435,6 +553,286 @@ func TestDeleteSecretFromProvidersV2UsesClusterProviderPath(t *testing.T) {
 		t.Fatalf("unexpected source namespace: %q", server.deleteRequest.SourceNamespace)
 	}
 	if server.deleteRequest.RemoteRef == nil || server.deleteRequest.RemoteRef.RemoteKey != "remote/path" || server.deleteRequest.RemoteRef.Property != "property" {
+		t.Fatalf("unexpected delete ref: %#v", server.deleteRequest.RemoteRef)
+	}
+	if _, ok := result["ClusterProvider/cluster-provider"]; ok {
+		t.Fatalf("expected synced state to be cleaned up, got %#v", result)
+	}
+}
+
+func TestDeleteSecretFromProvidersV2UsesClusterProviderPathWhenKindOmitted(t *testing.T) {
+	previous := clientmanager.V2ProvidersEnabled()
+	clientmanager.SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		clientmanager.SetV2ProvidersEnabled(previous)
+	})
+
+	scheme := newPushSecretTestScheme(t)
+	server, address, tlsSecret := newPushSecretProviderServer(t)
+
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "cluster-provider",
+			Labels: map[string]string{"scope": "cluster"},
+		},
+		Spec: esv1.ClusterProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: address,
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "backend",
+				},
+			},
+			AuthenticationScope: esv1.AuthenticationScopeManifestNamespace,
+			Conditions: []esv1.ClusterSecretStoreCondition{{
+				Namespaces: []string{"tenant-a"},
+			}},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			clusterProvider,
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: "tenant-a",
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": "tenant-a",
+				},
+			}},
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: "tenant-a",
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	ps := &esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Status: esapi.PushSecretStatus{
+			SyncedPushSecrets: esapi.SyncedPushSecretsMap{
+				"ClusterProvider/cluster-provider": {
+					"remote/path": {
+						Match: esapi.PushSecretMatch{
+							SecretKey: "token",
+							RemoteRef: esapi.PushSecretRemoteRef{
+								RemoteKey: "remote/path",
+								Property:  "property",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]interface{}{
+		{Name: "cluster-provider"}: clusterProvider,
+	})
+	if err != nil {
+		t.Fatalf("DeleteSecretFromProvidersV2() error = %v", err)
+	}
+
+	if server.deleteRequest == nil {
+		t.Fatal("expected delete request to be recorded")
+	}
+	if _, ok := result["ClusterProvider/cluster-provider"]; ok {
+		t.Fatalf("expected synced state to be cleaned up, got %#v", result)
+	}
+}
+
+func TestGetSecretStoresV2ResolvesClusterProviderWhenKindOmitted(t *testing.T) {
+	previous := clientmanager.V2ProvidersEnabled()
+	clientmanager.SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		clientmanager.SetV2ProvidersEnabled(previous)
+	})
+
+	scheme := newPushSecretTestScheme(t)
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster-provider",
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(clusterProvider).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	ps := esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Spec: esapi.PushSecretSpec{
+			SecretStoreRefs: []esapi.PushSecretStoreRef{{
+				Name: "cluster-provider",
+			}},
+		},
+	}
+
+	stores, err := r.GetSecretStoresV2(context.Background(), ps)
+	if err != nil {
+		t.Fatalf("GetSecretStoresV2() error = %v", err)
+	}
+
+	store, ok := stores[esapi.PushSecretStoreRef{Name: "cluster-provider"}]
+	if !ok {
+		t.Fatalf("expected cluster provider store, got %#v", stores)
+	}
+	if _, ok := store.(*esv1.ClusterProvider); !ok {
+		t.Fatalf("expected ClusterProvider, got %T", store)
+	}
+}
+
+func TestGetSecretStoresV2SupportsSecretStoreLabelSelectors(t *testing.T) {
+	scheme := newPushSecretTestScheme(t)
+	selectedStore := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "selected",
+			Namespace: "tenant-a",
+			Labels:    map[string]string{"env": "test"},
+		},
+	}
+	otherNamespaceStore := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "other-namespace",
+			Namespace: "tenant-b",
+			Labels:    map[string]string{"env": "test"},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(selectedStore, otherNamespaceStore).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	ps := esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Spec: esapi.PushSecretSpec{
+			SecretStoreRefs: []esapi.PushSecretStoreRef{{
+				Kind: esv1.SecretStoreKind,
+				LabelSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"env": "test"},
+				},
+			}},
+		},
+	}
+
+	stores, err := r.GetSecretStoresV2(context.Background(), ps)
+	if err != nil {
+		t.Fatalf("GetSecretStoresV2() error = %v", err)
+	}
+
+	if len(stores) != 1 {
+		t.Fatalf("expected one resolved store, got %#v", stores)
+	}
+
+	store, ok := stores[esapi.PushSecretStoreRef{Name: "selected", Kind: esv1.SecretStoreKind}]
+	if !ok {
+		t.Fatalf("expected selected store, got %#v", stores)
+	}
+	if _, ok := store.(*esv1.SecretStore); !ok {
+		t.Fatalf("expected SecretStore, got %T", store)
+	}
+}
+
+func TestDeleteSecretFromProvidersV2DeletesRemovedStoreEvenWhenNoLongerReferenced(t *testing.T) {
+	previous := clientmanager.V2ProvidersEnabled()
+	clientmanager.SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		clientmanager.SetV2ProvidersEnabled(previous)
+	})
+
+	scheme := newPushSecretTestScheme(t)
+	server, address, tlsSecret := newPushSecretProviderServer(t)
+
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster-provider",
+		},
+		Spec: esv1.ClusterProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: address,
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "backend",
+				},
+			},
+			AuthenticationScope: esv1.AuthenticationScopeManifestNamespace,
+			Conditions: []esv1.ClusterSecretStoreCondition{{
+				Namespaces: []string{"tenant-a"},
+			}},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			clusterProvider,
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: "tenant-a",
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": "tenant-a",
+				},
+			}},
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: "tenant-a",
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	ps := &esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Status: esapi.PushSecretStatus{
+			SyncedPushSecrets: esapi.SyncedPushSecretsMap{
+				"ClusterProvider/cluster-provider": {
+					"remote/path": {
+						Match: esapi.PushSecretMatch{
+							SecretKey: "token",
+							RemoteRef: esapi.PushSecretRemoteRef{
+								RemoteKey: "remote/path",
+								Property:  "property",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]interface{}{})
+	if err != nil {
+		t.Fatalf("DeleteSecretFromProvidersV2() error = %v", err)
+	}
+
+	if server.deleteRequest == nil {
+		t.Fatal("expected delete request to be recorded")
+	}
+	if server.deleteRequest.RemoteRef == nil || server.deleteRequest.RemoteRef.RemoteKey != "remote/path" {
 		t.Fatalf("unexpected delete ref: %#v", server.deleteRequest.RemoteRef)
 	}
 	if _, ok := result["ClusterProvider/cluster-provider"]; ok {
