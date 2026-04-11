@@ -88,13 +88,13 @@ var _ = Describe("[kubernetes] v2 cluster provider", Label("kubernetes", "v2", "
 
 		updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName("manifest-recovery"), "missing-service-account")
 
-		externalSecretName := s.createExternalSecret(clusterProviderName, targetSecretName, remoteSecretName)
+		externalSecretName := s.createExternalSecretWithRefresh(clusterProviderName, targetSecretName, remoteSecretName, time.Hour)
 		s.waitForExternalSecretFailure(externalSecretName)
 		s.expectNoTargetSecret(targetSecretName)
 
 		updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName("manifest-recovery"), s.serviceAccount)
 
-		s.waitForExternalSecretValue(externalSecretName, targetSecretName, "manifest-recovered")
+		s.waitForExternalSecretValueWithin(externalSecretName, targetSecretName, "manifest-recovered", 30*time.Second)
 	})
 
 	It("recovers after repairing cluster provider auth when authenticationScope=ProviderNamespace", func() {
@@ -110,13 +110,13 @@ var _ = Describe("[kubernetes] v2 cluster provider", Label("kubernetes", "v2", "
 
 		updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName("provider-recovery"), "missing-service-account")
 
-		externalSecretName := s.createExternalSecret(clusterProviderName, targetSecretName, remoteSecretName)
+		externalSecretName := s.createExternalSecretWithRefresh(clusterProviderName, targetSecretName, remoteSecretName, time.Hour)
 		s.waitForExternalSecretFailure(externalSecretName)
 		s.expectNoTargetSecret(targetSecretName)
 
 		updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName("provider-recovery"), s.serviceAccount)
 
-		s.waitForExternalSecretValue(externalSecretName, targetSecretName, "provider-recovered")
+		s.waitForExternalSecretValueWithin(externalSecretName, targetSecretName, "provider-recovered", 30*time.Second)
 	})
 
 	It("denies workload namespaces that do not match ClusterProvider conditions", func() {
@@ -230,6 +230,10 @@ func (s *clusterProviderV2Scenario) createRemoteSecret(name, value string) {
 }
 
 func (s *clusterProviderV2Scenario) createExternalSecret(clusterProviderName, targetSecretName, remoteSecretName string) string {
+	return s.createExternalSecretWithRefresh(clusterProviderName, targetSecretName, remoteSecretName, defaultV2RefreshInterval)
+}
+
+func (s *clusterProviderV2Scenario) createExternalSecretWithRefresh(clusterProviderName, targetSecretName, remoteSecretName string, refreshInterval time.Duration) string {
 	externalSecretName := fmt.Sprintf("%s-external-secret", s.namePrefix)
 	Expect(s.f.CRClient.Create(context.Background(), &esv1.ExternalSecret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -237,7 +241,7 @@ func (s *clusterProviderV2Scenario) createExternalSecret(clusterProviderName, ta
 			Namespace: s.workloadNamespace,
 		},
 		Spec: esv1.ExternalSecretSpec{
-			RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
+			RefreshInterval: &metav1.Duration{Duration: refreshInterval},
 			SecretStoreRef: esv1.SecretStoreRef{
 				Name: clusterProviderName,
 				Kind: esv1.ClusterProviderKindStr,
@@ -270,6 +274,10 @@ func (s *clusterProviderV2Scenario) createExternalSecret(clusterProviderName, ta
 }
 
 func (s *clusterProviderV2Scenario) waitForExternalSecretValue(externalSecretName, targetSecretName, expectedValue string) {
+	s.waitForExternalSecretValueWithin(externalSecretName, targetSecretName, expectedValue, defaultV2WaitTimeout)
+}
+
+func (s *clusterProviderV2Scenario) waitForExternalSecretValueWithin(externalSecretName, targetSecretName, expectedValue string, timeout time.Duration) {
 	Eventually(func(g Gomega) {
 		var externalSecret esv1.ExternalSecret
 		g.Expect(s.f.CRClient.Get(context.Background(), types.NamespacedName{
@@ -285,8 +293,11 @@ func (s *clusterProviderV2Scenario) waitForExternalSecretValue(externalSecretNam
 			Name:      targetSecretName,
 			Namespace: s.workloadNamespace,
 		}, &syncedSecret)).To(Succeed())
-		g.Expect(syncedSecret.Data["value"]).To(Equal([]byte(expectedValue)))
-	}, defaultV2WaitTimeout, defaultV2PollInterval).Should(Succeed())
+		g.Expect(syncedSecret.Type).To(Equal(corev1.SecretTypeOpaque))
+		g.Expect(syncedSecret.Data).To(Equal(map[string][]byte{
+			"value": []byte(expectedValue),
+		}))
+	}, timeout, defaultV2PollInterval).Should(Succeed())
 }
 
 func (s *clusterProviderV2Scenario) waitForExternalSecretFailure(externalSecretName string) {
