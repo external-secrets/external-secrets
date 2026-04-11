@@ -230,14 +230,14 @@ var rootCmd = &cobra.Command{
 		}
 
 		if enableGeneratorStateReconciler {
-		  if err = (&generatorstate.Reconciler{
-		  	Client:     mgr.GetClient(),
-		  	Log:        ctrl.Log.WithName("controllers").WithName("GeneratorState"),
-		  	Scheme:     mgr.GetScheme(),
-			  RestConfig: mgr.GetConfig(),
-		  }).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
-	  		setupLog.Error(err, errCreateController, "controller", "GeneratorState")
-  			os.Exit(1)
+			if err = (&generatorstate.Reconciler{
+				Client:     mgr.GetClient(),
+				Log:        ctrl.Log.WithName("controllers").WithName("GeneratorState"),
+				Scheme:     mgr.GetScheme(),
+				RestConfig: mgr.GetConfig(),
+			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "GeneratorState")
+				os.Exit(1)
 			}
 		}
 
