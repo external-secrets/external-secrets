@@ -19,6 +19,7 @@ package addon
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -62,29 +63,52 @@ func (c *HelmChart) Setup(cfg *Config) error {
 
 // Install adds the chart repo and installs the helm chart.
 func (c *HelmChart) Install() error {
-	args := []string{
-		"dependency", "update", filepath.Join(AssetDir(), "deploy/charts/external-secrets"),
-	}
-	log.Logf("updating chart dependencies with args: %+q", args)
-	cmd := exec.Command("helm", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("unable to run update cmd: %w: %s", err, string(output))
+	if helmDependencyUpdateEnabled() {
+		args := []string{
+			"dependency", "update", filepath.Join(AssetDir(), "deploy/charts/external-secrets"),
+		}
+		log.Logf("updating chart dependencies with args: %+q", args)
+		cmd := exec.Command("helm", args...)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("unable to run update cmd: %w: %s", err, string(output))
+		}
 	}
 
-	err = c.addRepo()
+	err := c.addRepo()
 	if err != nil {
 		return err
 	}
 
-	args = []string{"install", c.ReleaseName, c.Chart,
-		"--dependency-update",
+	args := c.installArgs()
+	log.Logf("installing chart with args: %+q", args)
+	cmd := exec.Command("helm", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("unable to run cmd: %w: %s", err, string(output))
+	}
+
+	log.Logf("finished running chart install")
+
+	return nil
+}
+
+func helmDependencyUpdateEnabled() bool {
+	return os.Getenv("E2E_SKIP_HELM_DEPENDENCY_UPDATE") != "true"
+}
+
+func (c *HelmChart) installArgs() []string {
+	args := []string{"install", c.ReleaseName, c.Chart}
+	if helmDependencyUpdateEnabled() {
+		args = append(args, "--dependency-update")
+	}
+	args = append(args,
 		"--debug",
 		"--wait",
 		"--timeout", "600s",
 		"-o", "yaml",
 		"--namespace", c.Namespace,
-	}
+	)
 
 	if c.ChartVersion != "" {
 		args = append(args, "--version", c.ChartVersion)
@@ -99,17 +123,7 @@ func (c *HelmChart) Install() error {
 	}
 
 	args = append(args, c.Args...)
-
-	log.Logf("installing chart with args: %+q", args)
-	cmd = exec.Command("helm", args...)
-	output, err = cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("unable to run cmd: %w: %s", err, string(output))
-	}
-
-	log.Logf("finished running chart install")
-
-	return nil
+	return args
 }
 
 // Uninstall removes the chart aswell as the repo.
