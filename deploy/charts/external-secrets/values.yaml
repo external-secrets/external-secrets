@@ -69,22 +69,22 @@ crds:
   createClusterPushSecret: true
   # -- If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false.
   createPushSecret: true
-  # -- If true, create CRDs for External Secret. If set to false you must also set processExternalSecret: false.
-  createExternalSecret: true 
+  # -- If true, create CRDs for External Secret.
+  createExternalSecret: true
   # -- If true, create CRDs for Arc Access Token
   createACRAccessToken: true
   # -- If true, create CRDs for Cloud Smith Access Token
   createCloudsmithAccessToken: true
   # -- If true, create CRDs for Ecr Authorization Token
-  createECRAuthorizationToken: true 
+  createECRAuthorizationToken: true
   # -- If true, create CRDs for Fake
   createFake: true
   # -- If true, create CRDs for Gcr Access Token
-  createGCRAccessToken: true 
+  createGCRAccessToken: true
   # -- If true, create CRDs for Generator State. If set to false you must also set processGeneratorState: false.
-  createGeneratorState: true 
+  createGeneratorState: true
   # -- If true, create CRDs for Github Access Token
-  createGithubAccessToken: true 
+  createGithubAccessToken: true
   # -- If true, create CRDs for Grafana
   createGrafana: true
   # -- If true, create CRDs for Mfa

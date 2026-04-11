@@ -79,7 +79,7 @@ rules:
     - "get"
     - "update"
     - "patch"
-  {{- if .Values.processGeneratorState}}
+  {{- if .Values.processGeneratorState }}
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
@@ -253,7 +253,7 @@ rules:
       - "get"
       - "watch"
       - "list"
-  {{- if .Values.processGeneratorState}}
+  {{- if .Values.processGeneratorState }}
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
@@ -279,7 +279,7 @@ rules:
       - "get"
       - "watch"
       - "list"
-  {{- end}}
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
@@ -319,7 +319,7 @@ rules:
       - "deletecollection"
       - "patch"
       - "update"
-  {{- if .Values.processGeneratorState}}
+  {{- if .Values.processGeneratorState }}
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
@@ -347,7 +347,7 @@ rules:
       - "deletecollection"
       - "patch"
       - "update"
-  {{- end}}
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}

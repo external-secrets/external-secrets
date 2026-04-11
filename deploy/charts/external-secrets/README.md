@@ -101,7 +101,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false. |
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false. |
 | crds.createECRAuthorizationToken | bool | `true` | If true, create CRDs for Ecr Authorization Token |
-| crds.createExternalSecret | bool | `true` | If true, create CRDs for External Secret. If set to false you must also set processExternalSecret: false. |
+| crds.createExternalSecret | bool | `true` | If true, create CRDs for External Secret. |
 | crds.createFake | bool | `true` | If true, create CRDs for Fake |
 | crds.createGCRAccessToken | bool | `true` | If true, create CRDs for Gcr Access Token |
 | crds.createGeneratorState | bool | `true` | If true, create CRDs for Generator State. If set to false you must also set processGeneratorState: false. |
