@@ -28,8 +28,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	ctrlreconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 	"github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 )
@@ -210,11 +213,47 @@ func (r *Reconciler) setCondition(store *esv1.ClusterProvider, newCondition esv1
 	UpdateStatusCondition(store, newCondition)
 }
 
+func findClusterProvidersForKubernetesProvider(ctx context.Context, kubeClient client.Client, obj client.Object) []ctrlreconcile.Request {
+	kubernetesProvider, ok := obj.(*k8sv2alpha1.Kubernetes)
+	if !ok {
+		return nil
+	}
+
+	var providers esv1.ClusterProviderList
+	if err := kubeClient.List(ctx, &providers); err != nil {
+		return nil
+	}
+
+	requests := make([]ctrlreconcile.Request, 0, len(providers.Items))
+	for i := range providers.Items {
+		provider := providers.Items[i]
+		ref := provider.Spec.Config.ProviderRef
+		if ref.APIVersion != k8sv2alpha1.GroupVersion.String() ||
+			ref.Kind != k8sv2alpha1.Kind ||
+			ref.Name != kubernetesProvider.Name ||
+			ref.Namespace != kubernetesProvider.Namespace {
+			continue
+		}
+
+		requests = append(requests, ctrlreconcile.Request{
+			NamespacedName: client.ObjectKeyFromObject(&provider),
+		})
+	}
+
+	return requests
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1.ClusterProvider{}).
+		Watches(
+			&k8sv2alpha1.Kubernetes{},
+			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
+				return findClusterProvidersForKubernetesProvider(ctx, r.Client, obj)
+			}),
+		).
 		Owns(&corev1.Secret{}). // Watch secrets that might be used for auth
 		Complete(r)
 }

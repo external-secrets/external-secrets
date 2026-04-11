@@ -192,7 +192,6 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 		})
 
 		updateKubernetesProviderServiceAccount(f, f.Namespace.Name, providerConfigName(f.Namespace.Name, ""), "missing-service-account")
-		triggerProviderConnectionReconcile(f, f.Namespace.Name, f.Namespace.Name, "broken-auth")
 
 		brokenProvider := frameworkv2.WaitForProviderConnectionNotReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 		Expect(brokenProvider.Status.Capabilities).To(BeEmpty())
@@ -226,7 +225,6 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 		expectSecretToBeAbsent(f, f.Namespace.Name, "provider-v2-recovery-target")
 
 		updateKubernetesProviderServiceAccount(f, f.Namespace.Name, providerConfigName(f.Namespace.Name, ""), frameworkv2.DefaultSAName)
-		triggerProviderConnectionReconcile(f, f.Namespace.Name, f.Namespace.Name, "repaired-auth")
 
 		repairedProvider := frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 		Expect(repairedProvider.Status.Capabilities).To(Equal(esv1.ProviderReadWrite))
@@ -266,20 +264,6 @@ func updateKubernetesProviderServiceAccount(f *framework.Framework, namespace, n
 	}
 	providerConfig.Spec.Auth.ServiceAccount.Name = serviceAccountName
 	Expect(f.CRClient.Update(context.Background(), &providerConfig)).To(Succeed())
-}
-
-func triggerProviderConnectionReconcile(f *framework.Framework, namespace, name, value string) {
-	var provider esv1.Provider
-	Expect(f.CRClient.Get(context.Background(), types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, &provider)).To(Succeed())
-
-	if provider.Annotations == nil {
-		provider.Annotations = make(map[string]string)
-	}
-	provider.Annotations["e2e.external-secrets.io/reconcile"] = value
-	Expect(f.CRClient.Update(context.Background(), &provider)).To(Succeed())
 }
 
 func waitForExternalSecretReadyStatus(f *framework.Framework, namespace, name string, expectedStatus corev1.ConditionStatus) {
