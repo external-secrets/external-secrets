@@ -90,8 +90,8 @@ commonLabels: {}
 # than one instance of external-secrets operates at a time.
 leaderElect: false
 
-# -- ID of the lease object used for leader election. 
-# Leave empty to use the default ('external-secrets-controller'). 
+# -- ID of the lease object used for leader election.
+# Leave empty to use the default ('external-secrets-controller').
 # Set to a unique value when running multiple independent ESO deployments in the same namespace.
 leaderElectionID: ""
 
