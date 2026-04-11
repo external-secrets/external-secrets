@@ -118,7 +118,7 @@ func TestValidateStoreAndGetCapabilitiesUsesCapabilitiesOnly(t *testing.T) {
 	if server.validateRequest != nil {
 		t.Fatalf("expected Validate not to be called, got %#v", server.validateRequest)
 	}
-	assertClusterProviderReference(t, server.capabilitiesRequest.ProviderRef, store.Spec.Config.ProviderRef)
+	assertClusterProviderReference(t, server.capabilitiesRequest.ProviderRef, store.Spec.Config.ProviderRef, esv1.ClusterProviderKindStr)
 	if server.capabilitiesRequest.SourceNamespace != "" {
 		t.Fatalf("expected empty source namespace, got %q", server.capabilitiesRequest.SourceNamespace)
 	}
@@ -509,7 +509,7 @@ func newClusterProviderGRPCServer(t *testing.T) (*recordingClusterProviderGRPCSe
 	}
 }
 
-func assertClusterProviderReference(t *testing.T, got *pb.ProviderReference, want esv1.ProviderReference) {
+func assertClusterProviderReference(t *testing.T, got *pb.ProviderReference, want esv1.ProviderReference, wantStoreRefKind string) {
 	t.Helper()
 
 	if got == nil {
@@ -517,6 +517,9 @@ func assertClusterProviderReference(t *testing.T, got *pb.ProviderReference, wan
 	}
 	if got.ApiVersion != want.APIVersion || got.Kind != want.Kind || got.Name != want.Name || got.Namespace != want.Namespace {
 		t.Fatalf("unexpected provider ref: got=%#v want=%#v", got, want)
+	}
+	if got.StoreRefKind != wantStoreRefKind {
+		t.Fatalf("unexpected store ref kind: got=%q want=%q", got.StoreRefKind, wantStoreRefKind)
 	}
 }
 

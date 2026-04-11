@@ -121,11 +121,11 @@ func TestValidateStoreAndGetCapabilitiesSendsProviderReferenceAndNamespace(t *te
 	if caps != esv1.ProviderReadWrite {
 		t.Fatalf("expected ProviderReadWrite, got %q", caps)
 	}
-	assertProviderReference(t, server.validateRequest.ProviderRef, store.Spec.Config.ProviderRef)
+	assertProviderReference(t, server.validateRequest.ProviderRef, store.Spec.Config.ProviderRef, esv1.ProviderKindStr)
 	if server.validateRequest.SourceNamespace != "tenant-a" {
 		t.Fatalf("unexpected validate source namespace: %q", server.validateRequest.SourceNamespace)
 	}
-	assertProviderReference(t, server.capabilitiesRequest.ProviderRef, store.Spec.Config.ProviderRef)
+	assertProviderReference(t, server.capabilitiesRequest.ProviderRef, store.Spec.Config.ProviderRef, esv1.ProviderKindStr)
 	if server.capabilitiesRequest.SourceNamespace != "tenant-a" {
 		t.Fatalf("unexpected capabilities source namespace: %q", server.capabilitiesRequest.SourceNamespace)
 	}
@@ -493,7 +493,7 @@ func newProviderGRPCServer(t *testing.T) (*recordingProviderGRPCServer, string, 
 	}
 }
 
-func assertProviderReference(t *testing.T, got *pb.ProviderReference, want esv1.ProviderReference) {
+func assertProviderReference(t *testing.T, got *pb.ProviderReference, want esv1.ProviderReference, wantStoreRefKind string) {
 	t.Helper()
 
 	if got == nil {
@@ -501,6 +501,9 @@ func assertProviderReference(t *testing.T, got *pb.ProviderReference, want esv1.
 	}
 	if got.ApiVersion != want.APIVersion || got.Kind != want.Kind || got.Name != want.Name || got.Namespace != want.Namespace {
 		t.Fatalf("unexpected provider ref: got=%#v want=%#v", got, want)
+	}
+	if got.StoreRefKind != wantStoreRefKind {
+		t.Fatalf("unexpected store ref kind: got=%q want=%q", got.StoreRefKind, wantStoreRefKind)
 	}
 }
 
