@@ -19,6 +19,7 @@ import (
 	"errors"
 	"testing"
 
+	"google.golang.org/protobuf/reflect/protoreflect"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,17 +59,17 @@ type fakeSecretsClient struct {
 	getAllSecretsErr      error
 	getAllSecretsFind     esv1.ExternalSecretFind
 
-	pushSecretErr     error
-	pushSecretSecret  *corev1.Secret
-	pushSecretData    esv1.PushSecretData
-	deleteSecretErr   error
-	deleteSecretRef   esv1.PushSecretRemoteRef
-	secretExistsResp  bool
-	secretExistsErr   error
-	secretExistsRef   esv1.PushSecretRemoteRef
-	validateResult    esv1.ValidationResult
-	validateErr       error
-	closeCalled       bool
+	pushSecretErr    error
+	pushSecretSecret *corev1.Secret
+	pushSecretData   esv1.PushSecretData
+	deleteSecretErr  error
+	deleteSecretRef  esv1.PushSecretRemoteRef
+	secretExistsResp bool
+	secretExistsErr  error
+	secretExistsRef  esv1.PushSecretRemoteRef
+	validateResult   esv1.ValidationResult
+	validateErr      error
+	closeCalled      bool
 }
 
 func (f *fakeSecretsClient) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -384,6 +385,70 @@ func TestServerPushDeleteAndExistsMapWriteRequests(t *testing.T) {
 	}
 }
 
+func TestServerPushSecretForwardsKubernetesSecretMetadata(t *testing.T) {
+	mapper := &specMapperRecorder{
+		spec: &esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{Fake: &esv1.FakeProvider{}}},
+	}
+	fakeClient := &fakeSecretsClient{}
+
+	server := NewServer(nil, ProviderMapping{
+		schema.GroupVersionKind{Group: "provider.external-secrets.io", Version: "v2alpha1", Kind: "Fake"}: &fakeProviderInterface{
+			caps: esv1.SecretStoreReadWrite,
+			newClient: func(context.Context, esv1.GenericStore, client.Client, string) (esv1.SecretsClient, error) {
+				return fakeClient, nil
+			},
+		},
+	}, mapper.mapRef)
+
+	req := &pb.PushSecretRequest{
+		ProviderRef: &pb.ProviderReference{
+			ApiVersion: "provider.external-secrets.io/v2alpha1",
+			Kind:       "Fake",
+			Name:       "backend",
+		},
+		SourceNamespace: "tenant-a",
+		SecretData: map[string][]byte{
+			".dockerconfigjson": []byte("payload"),
+		},
+		PushSecretData: &pb.PushSecretData{
+			RemoteKey: "remote/path",
+			SecretKey: ".dockerconfigjson",
+			Property:  "property",
+			Metadata:  []byte(`{"owner":"eso"}`),
+		},
+	}
+	if !setPushSecretRequestStringField(req, "secret_type", string(corev1.SecretTypeDockerConfigJson)) {
+		t.Errorf("push request is missing secret_type field")
+	}
+	if !setPushSecretRequestStringMapField(req, "secret_labels", map[string]string{"team": "platform"}) {
+		t.Errorf("push request is missing secret_labels field")
+	}
+	if !setPushSecretRequestStringMapField(req, "secret_annotations", map[string]string{"owner": "eso"}) {
+		t.Errorf("push request is missing secret_annotations field")
+	}
+
+	_, err := server.PushSecret(context.Background(), req)
+	if err != nil {
+		t.Fatalf("PushSecret() error = %v", err)
+	}
+
+	if fakeClient.pushSecretSecret == nil {
+		t.Fatal("expected pushed secret to be recorded")
+	}
+	if got, want := string(fakeClient.pushSecretSecret.Data[".dockerconfigjson"]), "payload"; got != want {
+		t.Errorf("expected payload %q, got %q", want, got)
+	}
+	if got, want := fakeClient.pushSecretSecret.Type, corev1.SecretTypeDockerConfigJson; got != want {
+		t.Errorf("expected secret type %q, got %q", want, got)
+	}
+	if got, want := fakeClient.pushSecretSecret.Labels["team"], "platform"; got != want {
+		t.Errorf("expected secret label team=%q, got %q", want, got)
+	}
+	if got, want := fakeClient.pushSecretSecret.Annotations["owner"], "eso"; got != want {
+		t.Errorf("expected secret annotation owner=%q, got %q", want, got)
+	}
+}
+
 func TestServerValidateMapsReadyUnknownAndErrorResults(t *testing.T) {
 	t.Run("ready", func(t *testing.T) {
 		resp := runValidateTest(t, esv1.ValidationResultReady, nil)
@@ -547,4 +612,28 @@ func runValidateTest(t *testing.T, result esv1.ValidationResult, validateErr err
 		t.Fatalf("Validate() error = %v", err)
 	}
 	return resp
+}
+
+func setPushSecretRequestStringField(req *pb.PushSecretRequest, fieldName protoreflect.Name, value string) bool {
+	msg := req.ProtoReflect()
+	field := msg.Descriptor().Fields().ByName(fieldName)
+	if field == nil {
+		return false
+	}
+	msg.Set(field, protoreflect.ValueOfString(value))
+	return true
+}
+
+func setPushSecretRequestStringMapField(req *pb.PushSecretRequest, fieldName protoreflect.Name, values map[string]string) bool {
+	msg := req.ProtoReflect()
+	field := msg.Descriptor().Fields().ByName(fieldName)
+	if field == nil {
+		return false
+	}
+
+	fieldMap := msg.Mutable(field).Map()
+	for key, value := range values {
+		fieldMap.Set(protoreflect.ValueOfString(key).MapKey(), protoreflect.ValueOfString(value))
+	}
+	return true
 }

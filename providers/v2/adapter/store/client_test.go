@@ -21,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
@@ -43,6 +44,7 @@ type fakeV2Provider struct {
 
 	pushSecretErr         error
 	pushSecretData        map[string][]byte
+	pushSecretSecret      *corev1.Secret
 	pushSecretPayload     *pb.PushSecretData
 	pushSecretProviderRef *pb.ProviderReference
 	pushSecretNamespace   string
@@ -89,6 +91,9 @@ func (f *fakeV2Provider) GetAllSecrets(_ context.Context, find esv1.ExternalSecr
 
 func (f *fakeV2Provider) PushSecret(_ context.Context, secretData map[string][]byte, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error {
 	f.pushSecretData = secretData
+	f.pushSecretSecret = &corev1.Secret{
+		Data: secretData,
+	}
 	f.pushSecretPayload = pushSecretData
 	f.pushSecretProviderRef = providerRef
 	f.pushSecretNamespace = sourceNamespace
@@ -294,6 +299,57 @@ func TestClientPushSecretConvertsPayloadAndMetadata(t *testing.T) {
 	}
 	if provider.pushSecretNamespace != "tenant-a" {
 		t.Fatalf("unexpected source namespace: %q", provider.pushSecretNamespace)
+	}
+}
+
+func TestClientPushSecretForwardsKubernetesSecretMetadata(t *testing.T) {
+	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
+	provider := &fakeV2Provider{}
+	client := NewClient(provider, providerRef, "tenant-a")
+
+	metadata := []byte(`{"owner":"eso"}`)
+	secret := &corev1.Secret{
+		Type: corev1.SecretTypeDockerConfigJson,
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:      map[string]string{"team": "platform"},
+			Annotations: map[string]string{"owner": "eso"},
+		},
+		Data: map[string][]byte{
+			".dockerconfigjson": []byte("payload"),
+		},
+	}
+	pushData := fakePushSecretData{
+		property:  "property",
+		secretKey: ".dockerconfigjson",
+		remoteKey: "remote/path",
+		metadata:  &apiextensionsv1.JSON{Raw: metadata},
+	}
+
+	err := client.PushSecret(context.Background(), secret, pushData)
+	if err != nil {
+		t.Fatalf("PushSecret() error = %v", err)
+	}
+
+	if provider.pushSecretSecret == nil {
+		t.Fatal("expected pushed secret to be recorded")
+	}
+	if provider.pushSecretSecret.Type != corev1.SecretTypeDockerConfigJson {
+		t.Errorf("expected secret type %q, got %q", corev1.SecretTypeDockerConfigJson, provider.pushSecretSecret.Type)
+	}
+	if got, want := provider.pushSecretSecret.Labels["team"], "platform"; got != want {
+		t.Errorf("expected secret label team=%q, got %q", want, got)
+	}
+	if got, want := provider.pushSecretSecret.Annotations["owner"], "eso"; got != want {
+		t.Errorf("expected secret annotation owner=%q, got %q", want, got)
+	}
+	if got, want := string(provider.pushSecretSecret.Data[".dockerconfigjson"]), "payload"; got != want {
+		t.Errorf("expected secret payload %q, got %q", want, got)
+	}
+	if provider.pushSecretPayload == nil {
+		t.Fatal("expected push payload to be recorded")
+	}
+	if string(provider.pushSecretPayload.Metadata) != string(metadata) {
+		t.Fatalf("unexpected metadata: %q", string(provider.pushSecretPayload.Metadata))
 	}
 }
 
