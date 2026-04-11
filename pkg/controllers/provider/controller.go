@@ -127,10 +127,11 @@ func (r *Reconciler) validateStoreAndGetCapabilities(ctx context.Context, store 
 
 	// Convert ProviderReference to protobuf format
 	providerRef := &pb.ProviderReference{
-		ApiVersion: store.Spec.Config.ProviderRef.APIVersion,
-		Kind:       store.Spec.Config.ProviderRef.Kind,
-		Name:       store.Spec.Config.ProviderRef.Name,
-		Namespace:  store.Spec.Config.ProviderRef.Namespace,
+		ApiVersion:   store.Spec.Config.ProviderRef.APIVersion,
+		Kind:         store.Spec.Config.ProviderRef.Kind,
+		Name:         store.Spec.Config.ProviderRef.Name,
+		Namespace:    store.Spec.Config.ProviderRef.Namespace,
+		StoreRefKind: esv1.ProviderKindStr,
 	}
 
 	// Validate the provider configuration
