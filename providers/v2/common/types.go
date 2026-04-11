@@ -18,6 +18,8 @@ package common
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
+
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 )
@@ -41,9 +43,9 @@ type Provider interface {
 	GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error)
 
 	// PushSecret writes a secret to the provider.
-	// The secretData is the Kubernetes secret data to push, and pushSecretData contains the push configuration.
+	// The secret is the Kubernetes Secret object to push, and pushSecretData contains the push configuration.
 	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the PushSecret.
-	PushSecret(ctx context.Context, secretData map[string][]byte, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error
+	PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error
 
 	// DeleteSecret deletes a secret from the provider.
 	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the PushSecret.

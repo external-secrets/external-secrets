@@ -89,11 +89,9 @@ func (f *fakeV2Provider) GetAllSecrets(_ context.Context, find esv1.ExternalSecr
 	return f.getAllSecretsResponse, f.getAllSecretsErr
 }
 
-func (f *fakeV2Provider) PushSecret(_ context.Context, secretData map[string][]byte, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error {
-	f.pushSecretData = secretData
-	f.pushSecretSecret = &corev1.Secret{
-		Data: secretData,
-	}
+func (f *fakeV2Provider) PushSecret(_ context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error {
+	f.pushSecretData = secret.Data
+	f.pushSecretSecret = secret.DeepCopy()
 	f.pushSecretPayload = pushSecretData
 	f.pushSecretProviderRef = providerRef
 	f.pushSecretNamespace = sourceNamespace
@@ -302,17 +300,17 @@ func TestClientPushSecretConvertsPayloadAndMetadata(t *testing.T) {
 	}
 }
 
-func TestClientPushSecretForwardsKubernetesSecretMetadata(t *testing.T) {
+func TestClientPushSecretForwardsKubernetesSecretShape(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 	provider := &fakeV2Provider{}
 	client := NewClient(provider, providerRef, "tenant-a")
 
-	metadata := []byte(`{"owner":"eso"}`)
+	metadata := []byte(`{"mergePolicy":"replace"}`)
 	secret := &corev1.Secret{
 		Type: corev1.SecretTypeDockerConfigJson,
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:      map[string]string{"team": "platform"},
-			Annotations: map[string]string{"owner": "eso"},
+			Annotations: map[string]string{"owner": "app-team"},
 		},
 		Data: map[string][]byte{
 			".dockerconfigjson": []byte("payload"),
@@ -339,7 +337,7 @@ func TestClientPushSecretForwardsKubernetesSecretMetadata(t *testing.T) {
 	if got, want := provider.pushSecretSecret.Labels["team"], "platform"; got != want {
 		t.Errorf("expected secret label team=%q, got %q", want, got)
 	}
-	if got, want := provider.pushSecretSecret.Annotations["owner"], "eso"; got != want {
+	if got, want := provider.pushSecretSecret.Annotations["owner"], "app-team"; got != want {
 		t.Errorf("expected secret annotation owner=%q, got %q", want, got)
 	}
 	if got, want := string(provider.pushSecretSecret.Data[".dockerconfigjson"]), "payload"; got != want {

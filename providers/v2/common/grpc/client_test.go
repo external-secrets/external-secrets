@@ -22,7 +22,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
-	"google.golang.org/protobuf/reflect/protoreflect"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
@@ -260,11 +261,13 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 	client := NewClientWithConn(conn)
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 
-	err := client.PushSecret(context.Background(), map[string][]byte{"token": []byte("value")}, &pb.PushSecretData{
+	err := client.PushSecret(context.Background(), &corev1.Secret{
+		Data: map[string][]byte{"token": []byte("value")},
+	}, &pb.PushSecretData{
 		RemoteKey: "remote/path",
 		SecretKey: "token",
 		Property:  "property",
-		Metadata:  []byte(`{"owner":"eso"}`),
+		Metadata:  []byte(`{"mergePolicy":"replace"}`),
 	}, providerRef, "tenant-a")
 	if err != nil {
 		t.Fatalf("PushSecret failed: %v", err)
@@ -328,13 +331,20 @@ func TestClientPushSecretSendsExpandedKubernetesSecretFields(t *testing.T) {
 	client := NewClientWithConn(conn)
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 
-	err := client.PushSecret(context.Background(), map[string][]byte{
-		".dockerconfigjson": []byte("payload"),
+	err := client.PushSecret(context.Background(), &corev1.Secret{
+		Type: corev1.SecretTypeDockerConfigJson,
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:      map[string]string{"team": "platform"},
+			Annotations: map[string]string{"owner": "app-team"},
+		},
+		Data: map[string][]byte{
+			".dockerconfigjson": []byte("payload"),
+		},
 	}, &pb.PushSecretData{
 		RemoteKey: "remote/path",
 		SecretKey: ".dockerconfigjson",
 		Property:  "property",
-		Metadata:  []byte(`{"owner":"eso"}`),
+		Metadata:  []byte(`{"mergePolicy":"replace"}`),
 	}, providerRef, "tenant-a")
 	if err != nil {
 		t.Fatalf("PushSecret failed: %v", err)
@@ -349,26 +359,17 @@ func TestClientPushSecretSendsExpandedKubernetesSecretFields(t *testing.T) {
 	if got, want := mock.pushSecretRequest.SourceNamespace, "tenant-a"; got != want {
 		t.Errorf("expected source namespace %q, got %q", want, got)
 	}
-
-	secretType, ok := getPushSecretRequestStringField(mock.pushSecretRequest, "secret_type")
-	if !ok {
-		t.Errorf("push request is missing secret_type field")
-	} else if want := "kubernetes.io/dockerconfigjson"; secretType != want {
-		t.Errorf("expected secret_type=%q, got %q", want, secretType)
+	if got, want := mock.pushSecretRequest.SecretType, string(corev1.SecretTypeDockerConfigJson); got != want {
+		t.Errorf("expected secret_type=%q, got %q", want, got)
 	}
-
-	labels, ok := getPushSecretRequestStringMapField(mock.pushSecretRequest, "secret_labels")
-	if !ok {
-		t.Errorf("push request is missing secret_labels field")
-	} else if got, want := labels["team"], "platform"; got != want {
+	if got, want := mock.pushSecretRequest.SecretLabels["team"], "platform"; got != want {
 		t.Errorf("expected secret_labels.team=%q, got %q", want, got)
 	}
-
-	annotations, ok := getPushSecretRequestStringMapField(mock.pushSecretRequest, "secret_annotations")
-	if !ok {
-		t.Errorf("push request is missing secret_annotations field")
-	} else if got, want := annotations["owner"], "eso"; got != want {
+	if got, want := mock.pushSecretRequest.SecretAnnotations["owner"], "app-team"; got != want {
 		t.Errorf("expected secret_annotations.owner=%q, got %q", want, got)
+	}
+	if got, want := string(mock.pushSecretRequest.PushSecretData.Metadata), `{"mergePolicy":"replace"}`; got != want {
+		t.Errorf("expected metadata=%q, got %q", want, got)
 	}
 }
 
@@ -444,28 +445,4 @@ func assertProviderRefEqual(t *testing.T, got, want *pb.ProviderReference) {
 	if got.ApiVersion != want.ApiVersion || got.Kind != want.Kind || got.Name != want.Name || got.Namespace != want.Namespace {
 		t.Fatalf("unexpected provider ref: got=%#v want=%#v", got, want)
 	}
-}
-
-func getPushSecretRequestStringField(req *pb.PushSecretRequest, fieldName protoreflect.Name) (string, bool) {
-	msg := req.ProtoReflect()
-	field := msg.Descriptor().Fields().ByName(fieldName)
-	if field == nil {
-		return "", false
-	}
-	return msg.Get(field).String(), true
-}
-
-func getPushSecretRequestStringMapField(req *pb.PushSecretRequest, fieldName protoreflect.Name) (map[string]string, bool) {
-	msg := req.ProtoReflect()
-	field := msg.Descriptor().Fields().ByName(fieldName)
-	if field == nil {
-		return nil, false
-	}
-
-	values := map[string]string{}
-	msg.Get(field).Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
-		values[key.String()] = value.String()
-		return true
-	})
-	return values, true
 }

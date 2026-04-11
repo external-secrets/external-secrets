@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -85,9 +86,9 @@ func NewResilientClient(config ResilientClientConfig) (*ResilientClient, error) 
 var _ v2.Provider = &ResilientClient{}
 
 // PushSecret writes a secret with retry logic and circuit breaking.
-func (rc *ResilientClient) PushSecret(ctx context.Context, secretData map[string][]byte, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error {
+func (rc *ResilientClient) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		return client.PushSecret(ctx, secretData, pushSecretData, providerRef, sourceNamespace)
+		return client.PushSecret(ctx, secret, pushSecretData, providerRef, sourceNamespace)
 	})
 }
 
