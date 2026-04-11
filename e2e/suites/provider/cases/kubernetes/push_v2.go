@@ -42,22 +42,28 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 		frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 	})
 
-	It("pushes a secret to the Kubernetes provider", func() {
+	It("preserves source secret type, labels, and annotations when pushing to the namespaced Provider", func() {
 		sourceSecret := &corev1.Secret{
+			Type: corev1.SecretTypeDockerConfigJson,
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "source-secret",
+				Name:      "source-secret-metadata",
 				Namespace: f.Namespace.Name,
+				Labels: map[string]string{
+					"team": "platform",
+				},
+				Annotations: map[string]string{
+					"owner": "eso",
+				},
 			},
 			Data: map[string][]byte{
-				"username": []byte("admin"),
-				"password": []byte("secret123"),
+				corev1.DockerConfigJsonKey: []byte(`{"auths":{"registry.example.com":{"auth":"ZXNvOnNlY3JldA=="}}}`),
 			},
 		}
 		Expect(f.CRClient.Create(context.Background(), sourceSecret)).To(Succeed())
 
 		pushSecret := &esv1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-pushsecret",
+				Name:      "test-pushsecret-metadata",
 				Namespace: f.Namespace.Name,
 			},
 			Spec: esv1alpha1.PushSecretSpec{
@@ -74,56 +80,36 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 						Name: sourceSecret.Name,
 					},
 				},
-				Data: []esv1alpha1.PushSecretData{
-					{
-						Match: esv1alpha1.PushSecretMatch{
-							SecretKey: "username",
-							RemoteRef: esv1alpha1.PushSecretRemoteRef{
-								RemoteKey: "pushed-secret",
-								Property:  "username",
-							},
+				Data: []esv1alpha1.PushSecretData{{
+					Match: esv1alpha1.PushSecretMatch{
+						SecretKey: corev1.DockerConfigJsonKey,
+						RemoteRef: esv1alpha1.PushSecretRemoteRef{
+							RemoteKey: "pushed-docker-secret",
+							Property:  corev1.DockerConfigJsonKey,
 						},
 					},
-					{
-						Match: esv1alpha1.PushSecretMatch{
-							SecretKey: "password",
-							RemoteRef: esv1alpha1.PushSecretRemoteRef{
-								RemoteKey: "pushed-secret",
-								Property:  "password",
-							},
-						},
-					},
-				},
+				}},
 			},
 		}
 		Expect(f.CRClient.Create(context.Background(), pushSecret)).To(Succeed())
 
-		Eventually(func(g Gomega) {
-			var ps esv1alpha1.PushSecret
-			g.Expect(f.CRClient.Get(context.Background(), types.NamespacedName{Name: pushSecret.Name, Namespace: f.Namespace.Name}, &ps)).To(Succeed())
-			g.Expect(ps.Status.Conditions).NotTo(BeEmpty())
-			ready := false
-			for _, condition := range ps.Status.Conditions {
-				if condition.Type == esv1alpha1.PushSecretReady && condition.Status == corev1.ConditionTrue {
-					ready = true
-				}
-			}
-			g.Expect(ready).To(BeTrue())
-		}, defaultV2WaitTimeout, defaultV2PollInterval).Should(Succeed())
+		waitForPushSecretReady(f, pushSecret.Name)
 
 		var pushedSecret corev1.Secret
 		Eventually(func(g Gomega) {
-			g.Expect(f.CRClient.Get(context.Background(), types.NamespacedName{Name: "pushed-secret", Namespace: f.Namespace.Name}, &pushedSecret)).To(Succeed())
+			g.Expect(f.CRClient.Get(context.Background(), types.NamespacedName{Name: "pushed-docker-secret", Namespace: f.Namespace.Name}, &pushedSecret)).To(Succeed())
 		}, defaultV2WaitTimeout, defaultV2PollInterval).Should(Succeed())
 
-		Expect(string(pushedSecret.Data["username"])).To(Equal("admin"))
-		Expect(string(pushedSecret.Data["password"])).To(Equal("secret123"))
+		Expect(pushedSecret.Type).To(Equal(corev1.SecretTypeDockerConfigJson))
+		Expect(pushedSecret.Labels).To(Equal(sourceSecret.Labels))
+		Expect(pushedSecret.Annotations).To(Equal(sourceSecret.Annotations))
+		Expect(pushedSecret.Data).To(Equal(sourceSecret.Data))
 	})
 
-	It("deletes pushed secrets when DeletionPolicy=Delete", func() {
+	It("supports namespaced Provider refs when kind is omitted", func() {
 		sourceSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "source-secret-delete",
+				Name:      "source-secret-implicit-kind",
 				Namespace: f.Namespace.Name,
 			},
 			Data: map[string][]byte{
@@ -134,7 +120,7 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 
 		pushSecret := &esv1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-pushsecret-delete",
+				Name:      "test-pushsecret-implicit-kind",
 				Namespace: f.Namespace.Name,
 			},
 			Spec: esv1alpha1.PushSecretSpec{
@@ -143,7 +129,6 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 				SecretStoreRefs: []esv1alpha1.PushSecretStoreRef{
 					{
 						Name:       f.Namespace.Name,
-						Kind:       f.DefaultPushSecretStoreRefKind,
 						APIVersion: f.DefaultPushSecretStoreRefAPIVersion,
 					},
 				},
@@ -157,7 +142,7 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 						Match: esv1alpha1.PushSecretMatch{
 							SecretKey: "key1",
 							RemoteRef: esv1alpha1.PushSecretRemoteRef{
-								RemoteKey: "pushed-secret-delete",
+								RemoteKey: "pushed-secret-implicit-kind",
 								Property:  "key1",
 							},
 						},
@@ -166,18 +151,35 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 			},
 		}
 		Expect(f.CRClient.Create(context.Background(), pushSecret)).To(Succeed())
+		waitForPushSecretReady(f, pushSecret.Name)
 
 		Eventually(func(g Gomega) {
 			var pushedSecret corev1.Secret
-			g.Expect(f.CRClient.Get(context.Background(), types.NamespacedName{Name: "pushed-secret-delete", Namespace: f.Namespace.Name}, &pushedSecret)).To(Succeed())
+			g.Expect(f.CRClient.Get(context.Background(), types.NamespacedName{Name: "pushed-secret-implicit-kind", Namespace: f.Namespace.Name}, &pushedSecret)).To(Succeed())
+			g.Expect(string(pushedSecret.Data["key1"])).To(Equal("value1"))
 		}, defaultV2WaitTimeout, defaultV2PollInterval).Should(Succeed())
 
 		Expect(f.CRClient.Delete(context.Background(), pushSecret)).To(Succeed())
 
 		Eventually(func() bool {
 			var pushedSecret corev1.Secret
-			err := f.CRClient.Get(context.Background(), types.NamespacedName{Name: "pushed-secret-delete", Namespace: f.Namespace.Name}, &pushedSecret)
+			err := f.CRClient.Get(context.Background(), types.NamespacedName{Name: "pushed-secret-implicit-kind", Namespace: f.Namespace.Name}, &pushedSecret)
 			return apierrors.IsNotFound(err)
 		}, defaultV2WaitTimeout, defaultV2PollInterval).Should(BeTrue())
 	})
 })
+
+func waitForPushSecretReady(f *framework.Framework, name string) {
+	Eventually(func(g Gomega) {
+		var ps esv1alpha1.PushSecret
+		g.Expect(f.CRClient.Get(context.Background(), types.NamespacedName{Name: name, Namespace: f.Namespace.Name}, &ps)).To(Succeed())
+		g.Expect(ps.Status.Conditions).NotTo(BeEmpty())
+		ready := false
+		for _, condition := range ps.Status.Conditions {
+			if condition.Type == esv1alpha1.PushSecretReady && condition.Status == corev1.ConditionTrue {
+				ready = true
+			}
+		}
+		g.Expect(ready).To(BeTrue())
+	}, defaultV2WaitTimeout, defaultV2PollInterval).Should(Succeed())
+}
