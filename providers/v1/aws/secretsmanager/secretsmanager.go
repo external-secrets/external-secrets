@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import (
 	"github.com/tidwall/sjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -494,9 +493,9 @@ func (sm *SecretsManager) retrievePayload(secretOut *awssm.GetSecretValueOutput)
 
 func (sm *SecretsManager) escapeDotsIfRequired(currentRefProperty, payload string) string {
 	// We need to search if a given key with a . exists before using gjson operations.
-	idx := strings.Index(currentRefProperty, ".")
+	found := strings.Contains(currentRefProperty, ".")
 	refProperty := currentRefProperty
-	if idx > -1 {
+	if found {
 		refProperty = strings.ReplaceAll(currentRefProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if !val.Exists() {
@@ -566,8 +565,8 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 
 	for k, v := range mdata.Spec.Tags {
 		tags = append(tags, types.Tag{
-			Key:   utilpointer.To(k),
-			Value: utilpointer.To(v),
+			Key:   new(k),
+			Value: new(v),
 		})
 	}
 
@@ -575,9 +574,9 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		Name:               &secretName,
 		SecretBinary:       value,
 		Tags:               tags,
-		Description:        utilpointer.To(mdata.Spec.Description),
-		ClientRequestToken: utilpointer.To(initialVersion),
-		KmsKeyId:           utilpointer.To(mdata.Spec.KMSKeyID),
+		Description:        new(mdata.Spec.Description),
+		ClientRequestToken: new(initialVersion),
+		KmsKeyId:           new(mdata.Spec.KMSKeyID),
 	}
 	if mdata.Spec.SecretPushFormat == SecretPushFormatString {
 		input.SecretBinary = nil
@@ -616,6 +615,18 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 }
 
 func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
+	currentTags := make(map[string]string, len(tags))
+	for _, tag := range tags {
+		currentTags[*tag.Key] = *tag.Value
+	}
+	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
+		return err
+	}
+
+	if err := sm.manageResourcePolicy(ctx, psd.GetMetadata(), &secretArn); err != nil {
+		return err
+	}
+
 	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || esutils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
 		return nil
 	}
@@ -644,20 +655,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 
 	_, err = sm.client.PutSecretValue(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
-	if err != nil {
-		return err
-	}
-
-	currentTags := make(map[string]string, len(tags))
-	for _, tag := range tags {
-		currentTags[*tag.Key] = *tag.Value
-	}
-	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
-		return err
-	}
-
-	// Manage resource policy if specified in metadata
-	return sm.manageResourcePolicy(ctx, psd.GetMetadata(), &secretArn)
+	return err
 }
 
 func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
@@ -758,8 +756,8 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, key, ver str
 	}
 
 	var getSecretValueInput *awssm.GetSecretValueInput
-	if strings.HasPrefix(ver, "uuid/") {
-		versionID := strings.TrimPrefix(ver, "uuid/")
+	if after, ok := strings.CutPrefix(ver, "uuid/"); ok {
+		versionID := after
 		getSecretValueInput = &awssm.GetSecretValueInput{
 			SecretId:  &key,
 			VersionId: &versionID,
@@ -868,6 +866,33 @@ func (sm *SecretsManager) resolveResourcePolicy(ctx context.Context, policyRef *
 	}
 }
 
+// unmarshalPolicyJSON parses a JSON policy string into a map.
+// Returns nil map for empty input, allowing comparison with a populated policy.
+func unmarshalPolicyJSON(policy string) (map[string]any, error) {
+	if policy == "" {
+		return nil, nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(policy), &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (sm *SecretsManager) deleteResourcePolicy(ctx context.Context, secretID *string) error {
+	deletePolicyInput := &awssm.DeleteResourcePolicyInput{
+		SecretId: secretID,
+	}
+	_, err := sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
+
+	var nf *types.ResourceNotFoundException
+	if err != nil && !errors.As(err, &nf) {
+		return fmt.Errorf("failed to delete resource policy: %w", err)
+	}
+	return nil
+}
+
 // manageResourcePolicy applies or removes the resource policy based on metadata.
 func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string) error {
 	meta, err := sm.constructMetadataWithDefaults(metadata)
@@ -877,24 +902,16 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 
 	// Delete policy if policyRef is nil and the policy exists.
 	if meta.Spec.ResourcePolicy == nil {
-		deletePolicyInput := &awssm.DeleteResourcePolicyInput{
-			SecretId: secretID,
-		}
-		_, err = sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
-
-		var nf *types.ResourceNotFoundException
-		if err != nil && !errors.As(err, &nf) {
-			return fmt.Errorf("failed to delete resource policy: %w", err)
-		}
-
-		return nil
+		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
 	// Normal flow, is to create the policy.
 	policyJSON, err := sm.resolveResourcePolicy(ctx, meta.Spec.ResourcePolicy.PolicySourceRef)
 	if err != nil {
 		return fmt.Errorf("failed to resolve resource policy: %w", err)
+	}
+	if policyJSON == "" {
+		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
 	getCurrentPolicyInput := &awssm.GetResourcePolicyInput{
@@ -913,20 +930,17 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		currentPolicy = *currentPolicyOutput.ResourcePolicy
 	}
 
-	// convert to maps so we can do a stable comparison.
-	var (
-		currentPolicyMap map[string]any
-		policyJSONMaps   map[string]any
-	)
-
-	if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
-		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
-	}
-	if err := json.Unmarshal([]byte(policyJSON), &policyJSONMaps); err != nil {
+	currentPolicyMap, err := unmarshalPolicyJSON(currentPolicy)
+	if err != nil {
 		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
 	}
 
-	if reflect.DeepEqual(currentPolicyMap, policyJSONMaps) {
+	desiredPolicyMap, err := unmarshalPolicyJSON(policyJSON)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal desired resource policy: %w", err)
+	}
+
+	if reflect.DeepEqual(currentPolicyMap, desiredPolicyMap) {
 		return nil
 	}
 
@@ -959,8 +973,8 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
 			}
 		}
 		result = append(result, types.Tag{
-			Key:   utilpointer.To(k),
-			Value: utilpointer.To(v),
+			Key:   new(k),
+			Value: new(v),
 		})
 	}
 	return result, modified

@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk
 
-go 1.25.7
+go 1.26.2
 
 require (
 	github.com/1password/onepassword-sdk-go v0.3.1
@@ -9,8 +9,8 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.35.0
+	k8s.io/apiextensions-apiserver v0.35.0
 	k8s.io/apimachinery v0.35.0
-	k8s.io/kube-openapi v0.0.0-20260127142750-a19766b6e2d4
 	sigs.k8s.io/controller-runtime v0.23.1
 )
 
@@ -18,7 +18,6 @@ require (
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.1-0.20241028115027-8cb06fe3c8b0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -50,6 +49,7 @@ require (
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -92,9 +92,9 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.35.0 // indirect
 	k8s.io/client-go v0.35.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
+	k8s.io/kube-openapi v0.0.0-20260127142750-a19766b6e2d4 // indirect
 	k8s.io/utils v0.0.0-20260108192941-914a6e750570 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect

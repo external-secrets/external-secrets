@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -77,8 +77,16 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 	if path == "" {
 		path = "cert"
 	}
+
+	var loginData map[string]any
+	if certAuth.VaultRole != "" {
+		loginData = map[string]any{
+			"name": certAuth.VaultRole,
+		}
+	}
+
 	url := strings.Join([]string{"auth", path, "login"}, "/")
-	vaultResult, err := c.logical.WriteWithContext(ctx, url, nil)
+	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return fmt.Errorf(errVaultRequest, err)

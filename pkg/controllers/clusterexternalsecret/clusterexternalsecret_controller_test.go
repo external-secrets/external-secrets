@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -83,7 +83,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 						{
 							SecretKey: "test-secret-key",
 							RemoteRef: esv1.ExternalSecretDataRemoteRef{
-								Key: "test-remote-key",
+								Key:            "test-remote-key",
+								NullBytePolicy: esv1.ExternalSecretNullBytePolicyIgnore,
 							},
 						},
 					},
@@ -96,7 +97,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		func(tc testCase) {
 			ctx := context.Background()
 			By("creating namespaces")
-			var namespaces []v1.Namespace
+			namespaces := make([]v1.Namespace, 0, len(tc.namespaces))
 			for _, ns := range tc.namespaces {
 				err := k8sClient.Create(ctx, &ns)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -139,7 +140,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			expectedESs := tc.expectedExternalSecrets(namespaces, ces)
 
 			Eventually(func(g Gomega) {
-				var gotESs []esv1.ExternalSecret
+				var gotESs []esv1.ExternalSecret //nolint:prealloc // size unknown before loop
 				for _, ns := range namespaces {
 					var externalSecrets esv1.ExternalSecretList
 					err := k8sClient.List(ctx, &externalSecrets, crclient.InNamespace(ns.Name))

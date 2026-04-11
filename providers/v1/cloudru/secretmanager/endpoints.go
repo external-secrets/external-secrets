@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,12 +44,12 @@ func GetEndpoints(url string) (*EndpointsResponse, error) {
 		return nil, fmt.Errorf("invalid endpoints URL: expected %s, got %s", EndpointsURI, url)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, url, http.NoBody) //nolint:gosec // URL is validated against EndpointsURI above
 	if err != nil {
 		return nil, fmt.Errorf("construct HTTP request for cloud.ru endpoints: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL is validated against EndpointsURI above
 	if err != nil {
 		return nil, fmt.Errorf("get cloud.ru endpoints: %w", err)
 	}
