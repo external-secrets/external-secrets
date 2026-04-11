@@ -6,6 +6,7 @@ KIND_IMG ?= kindest/node:v1.33.4@sha256:25a6018e48dfcaee478f4a59af81157a437f15e6
 KIND_CLUSTER_NAME ?= external-secrets
 KIND_CONTEXT ?= kind-$(KIND_CLUSTER_NAME)
 DOCKER_BUILD_ARGS     ?=
+SKIP_PROVIDER_KUBERNETES_BUILD ?= false
 
 export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed && !v2
@@ -16,6 +17,7 @@ export GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
 export OCI_IMAGE_NAME = ghcr.io/external-secrets/external-secrets
 export IMAGE_NAME ?= $(OCI_IMAGE_NAME)
+TEST_V2_PROVIDER_KUBERNETES_BUILD_CMD = $(MAKE) -C ../ docker.build.provider.kubernetes VERSION=$(VERSION) ARCH=amd64 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 
 ifeq ($(shell git tag),)
 export VERSION ?= $(shell echo "v0.0.0-$$(git rev-list HEAD --count)-g$$(git describe --dirty --always)" | sed 's/-/./2' | sed 's/-/./2')
@@ -72,10 +74,7 @@ test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 		VERSION=$(VERSION) \
 		ARCH=amd64 \
 		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
-	$(MAKE) -C ../ docker.build.provider.kubernetes \
-		VERSION=$(VERSION) \
-		ARCH=amd64 \
-		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+	$(if $(filter true,$(SKIP_PROVIDER_KUBERNETES_BUILD)),,$(TEST_V2_PROVIDER_KUBERNETES_BUILD_CMD))
 	$(MAKE) -C ../ docker.build.controller.e2e \
 		IMAGE_NAME=$(OCI_IMAGE_NAME) \
 		VERSION=$(VERSION) \
