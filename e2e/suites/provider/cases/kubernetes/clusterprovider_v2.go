@@ -75,6 +75,50 @@ var _ = Describe("[kubernetes] v2 cluster provider", Label("kubernetes", "v2", "
 		s.waitForExternalSecretValue(externalSecretName, targetSecretName, "provider-value")
 	})
 
+	It("recovers after repairing cluster provider auth when authenticationScope=ManifestNamespace", func() {
+		s := newClusterProviderV2Scenario(f, "manifest-recovery")
+		s.allowRemoteAccessFrom(s.workloadNamespace, "manifest-recovery")
+
+		remoteSecretName := fmt.Sprintf("%s-source", s.namePrefix)
+		targetSecretName := fmt.Sprintf("%s-target", s.namePrefix)
+		s.createRemoteSecret(remoteSecretName, "manifest-recovered")
+
+		clusterProviderName := s.createClusterProvider("manifest-recovery", esv1.AuthenticationScopeManifestNamespace, nil)
+		frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+
+		updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName("manifest-recovery"), "missing-service-account")
+
+		externalSecretName := s.createExternalSecret(clusterProviderName, targetSecretName, remoteSecretName)
+		s.waitForExternalSecretFailure(externalSecretName)
+		s.expectNoTargetSecret(targetSecretName)
+
+		updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName("manifest-recovery"), s.serviceAccount)
+
+		s.waitForExternalSecretValue(externalSecretName, targetSecretName, "manifest-recovered")
+	})
+
+	It("recovers after repairing cluster provider auth when authenticationScope=ProviderNamespace", func() {
+		s := newClusterProviderV2Scenario(f, "provider-recovery")
+		s.allowRemoteAccessFrom(s.providerNamespace, "provider-recovery")
+
+		remoteSecretName := fmt.Sprintf("%s-source", s.namePrefix)
+		targetSecretName := fmt.Sprintf("%s-target", s.namePrefix)
+		s.createRemoteSecret(remoteSecretName, "provider-recovered")
+
+		clusterProviderName := s.createClusterProvider("provider-recovery", esv1.AuthenticationScopeProviderNamespace, nil)
+		frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+
+		updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName("provider-recovery"), "missing-service-account")
+
+		externalSecretName := s.createExternalSecret(clusterProviderName, targetSecretName, remoteSecretName)
+		s.waitForExternalSecretFailure(externalSecretName)
+		s.expectNoTargetSecret(targetSecretName)
+
+		updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName("provider-recovery"), s.serviceAccount)
+
+		s.waitForExternalSecretValue(externalSecretName, targetSecretName, "provider-recovered")
+	})
+
 	It("denies workload namespaces that do not match ClusterProvider conditions", func() {
 		s := newClusterProviderV2Scenario(f, "deny")
 		s.allowRemoteAccessFrom(s.workloadNamespace, "deny")
@@ -143,7 +187,7 @@ func (s *clusterProviderV2Scenario) allowRemoteAccessFrom(serviceAccountNamespac
 }
 
 func (s *clusterProviderV2Scenario) createClusterProvider(suffix string, authScope esv1.AuthenticationScope, conditions []esv1.ClusterSecretStoreCondition) string {
-	providerConfigName := fmt.Sprintf("%s-config-%s", s.namePrefix, suffix)
+	providerConfigName := s.providerConfigName(suffix)
 	frameworkv2.CreateKubernetesProvider(
 		s.f,
 		s.providerNamespace,
@@ -167,6 +211,10 @@ func (s *clusterProviderV2Scenario) createClusterProvider(suffix string, authSco
 		conditions,
 	)
 	return clusterProviderName
+}
+
+func (s *clusterProviderV2Scenario) providerConfigName(suffix string) string {
+	return fmt.Sprintf("%s-config-%s", s.namePrefix, suffix)
 }
 
 func (s *clusterProviderV2Scenario) createRemoteSecret(name, value string) {
