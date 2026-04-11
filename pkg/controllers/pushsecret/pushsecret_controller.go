@@ -39,9 +39,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -129,8 +132,42 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
-		For(&esapi.PushSecret{}).
+		For(&esapi.PushSecret{}, builder.WithPredicates(pushSecretWatchPredicate())).
 		Complete(r)
+}
+
+func pushSecretWatchPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(event.DeleteEvent) bool {
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectOld == nil || e.ObjectNew == nil {
+				return true
+			}
+
+			return shouldReconcilePushSecretUpdate(e.ObjectOld, e.ObjectNew)
+		},
+	}
+}
+
+func shouldReconcilePushSecretUpdate(oldObj, newObj client.Object) bool {
+	if oldObj.GetGeneration() != newObj.GetGeneration() {
+		return true
+	}
+	if !maps.Equal(oldObj.GetLabels(), newObj.GetLabels()) {
+		return true
+	}
+	if !maps.Equal(oldObj.GetAnnotations(), newObj.GetAnnotations()) {
+		return true
+	}
+
+	oldDeleting := oldObj.GetDeletionTimestamp() != nil
+	newDeleting := newObj.GetDeletionTimestamp() != nil
+	return oldDeleting != newDeleting
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
