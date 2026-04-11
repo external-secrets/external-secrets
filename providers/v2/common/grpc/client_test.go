@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
@@ -319,6 +320,58 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 	assertProviderRefEqual(t, mock.capabilitiesRequest.ProviderRef, providerRef)
 }
 
+func TestClientPushSecretSendsExpandedKubernetesSecretFields(t *testing.T) {
+	mock := &mockServer{}
+	conn, cleanup := setupTestServer(t, mock)
+	defer cleanup()
+
+	client := NewClientWithConn(conn)
+	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
+
+	err := client.PushSecret(context.Background(), map[string][]byte{
+		".dockerconfigjson": []byte("payload"),
+	}, &pb.PushSecretData{
+		RemoteKey: "remote/path",
+		SecretKey: ".dockerconfigjson",
+		Property:  "property",
+		Metadata:  []byte(`{"owner":"eso"}`),
+	}, providerRef, "tenant-a")
+	if err != nil {
+		t.Fatalf("PushSecret failed: %v", err)
+	}
+	if mock.pushSecretRequest == nil {
+		t.Fatal("expected push secret request to be recorded")
+	}
+	if got, want := string(mock.pushSecretRequest.SecretData[".dockerconfigjson"]), "payload"; got != want {
+		t.Errorf("expected request secret data %q, got %q", want, got)
+	}
+	assertProviderRefEqual(t, mock.pushSecretRequest.ProviderRef, providerRef)
+	if got, want := mock.pushSecretRequest.SourceNamespace, "tenant-a"; got != want {
+		t.Errorf("expected source namespace %q, got %q", want, got)
+	}
+
+	secretType, ok := getPushSecretRequestStringField(mock.pushSecretRequest, "secret_type")
+	if !ok {
+		t.Errorf("push request is missing secret_type field")
+	} else if want := "kubernetes.io/dockerconfigjson"; secretType != want {
+		t.Errorf("expected secret_type=%q, got %q", want, secretType)
+	}
+
+	labels, ok := getPushSecretRequestStringMapField(mock.pushSecretRequest, "secret_labels")
+	if !ok {
+		t.Errorf("push request is missing secret_labels field")
+	} else if got, want := labels["team"], "platform"; got != want {
+		t.Errorf("expected secret_labels.team=%q, got %q", want, got)
+	}
+
+	annotations, ok := getPushSecretRequestStringMapField(mock.pushSecretRequest, "secret_annotations")
+	if !ok {
+		t.Errorf("push request is missing secret_annotations field")
+	} else if got, want := annotations["owner"], "eso"; got != want {
+		t.Errorf("expected secret_annotations.owner=%q, got %q", want, got)
+	}
+}
+
 func TestClientValidate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		mock := &mockServer{}
@@ -391,4 +444,28 @@ func assertProviderRefEqual(t *testing.T, got, want *pb.ProviderReference) {
 	if got.ApiVersion != want.ApiVersion || got.Kind != want.Kind || got.Name != want.Name || got.Namespace != want.Namespace {
 		t.Fatalf("unexpected provider ref: got=%#v want=%#v", got, want)
 	}
+}
+
+func getPushSecretRequestStringField(req *pb.PushSecretRequest, fieldName protoreflect.Name) (string, bool) {
+	msg := req.ProtoReflect()
+	field := msg.Descriptor().Fields().ByName(fieldName)
+	if field == nil {
+		return "", false
+	}
+	return msg.Get(field).String(), true
+}
+
+func getPushSecretRequestStringMapField(req *pb.PushSecretRequest, fieldName protoreflect.Name) (map[string]string, bool) {
+	msg := req.ProtoReflect()
+	field := msg.Descriptor().Fields().ByName(fieldName)
+	if field == nil {
+		return nil, false
+	}
+
+	values := map[string]string{}
+	msg.Get(field).Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
+		values[key.String()] = value.String()
+		return true
+	})
+	return values, true
 }
