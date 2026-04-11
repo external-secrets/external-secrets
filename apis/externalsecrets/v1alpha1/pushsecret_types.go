@@ -49,7 +49,6 @@ type PushSecretStoreRef struct {
 
 	// Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, or ClusterProvider)
 	// +optional
-	// +kubebuilder:default="SecretStore"
 	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore;Provider;ClusterProvider
 	Kind string `json:"kind,omitempty"`
 
