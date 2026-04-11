@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
+	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
@@ -293,7 +294,7 @@ func (c *grpcProviderClient) GetAllSecrets(ctx context.Context, find esv1.Extern
 }
 
 // PushSecret writes a secret to the provider via gRPC.
-func (c *grpcProviderClient) PushSecret(ctx context.Context, secretData map[string][]byte, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error {
+func (c *grpcProviderClient) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error {
 	start := time.Now()
 	var err error
 	defer func() {
@@ -313,10 +314,13 @@ func (c *grpcProviderClient) PushSecret(ctx context.Context, secretData map[stri
 
 	// Make gRPC call
 	req := &pb.PushSecretRequest{
-		ProviderRef:     providerRef,
-		SecretData:      secretData,
-		PushSecretData:  pushSecretData,
-		SourceNamespace: sourceNamespace,
+		ProviderRef:       providerRef,
+		SecretData:        secret.Data,
+		PushSecretData:    pushSecretData,
+		SourceNamespace:   sourceNamespace,
+		SecretType:        string(secret.Type),
+		SecretLabels:      secret.Labels,
+		SecretAnnotations: secret.Annotations,
 	}
 
 	c.log.V(1).Info("calling PushSecret RPC",

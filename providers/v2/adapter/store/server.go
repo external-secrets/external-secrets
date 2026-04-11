@@ -21,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -193,7 +194,11 @@ func (s *Server) PushSecret(ctx context.Context, req *pb.PushSecretRequest) (*pb
 	// Convert map[string][]byte to *corev1.Secret
 	secret := &corev1.Secret{
 		Data: req.SecretData,
-		Type: corev1.SecretTypeOpaque,
+		Type: corev1.SecretType(req.SecretType),
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:      req.SecretLabels,
+			Annotations: req.SecretAnnotations,
+		},
 	}
 
 	// Convert protobuf PushSecretData to v1 PushSecretData

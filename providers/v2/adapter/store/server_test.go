@@ -19,7 +19,6 @@ import (
 	"errors"
 	"testing"
 
-	"google.golang.org/protobuf/reflect/protoreflect"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -331,7 +330,7 @@ func TestServerPushDeleteAndExistsMapWriteRequests(t *testing.T) {
 	if fakeClient.pushSecretSecret == nil || string(fakeClient.pushSecretSecret.Data["token"]) != "value" {
 		t.Fatalf("unexpected pushed secret: %#v", fakeClient.pushSecretSecret)
 	}
-	if fakeClient.pushSecretSecret.Type != corev1.SecretTypeOpaque {
+	if fakeClient.pushSecretSecret.Type != "" {
 		t.Fatalf("unexpected secret type: %q", fakeClient.pushSecretSecret.Type)
 	}
 	if fakeClient.pushSecretData.GetRemoteKey() != "remote/path" || fakeClient.pushSecretData.GetSecretKey() != "token" || fakeClient.pushSecretData.GetProperty() != "property" {
@@ -410,21 +409,15 @@ func TestServerPushSecretForwardsKubernetesSecretMetadata(t *testing.T) {
 		SecretData: map[string][]byte{
 			".dockerconfigjson": []byte("payload"),
 		},
+		SecretType:        string(corev1.SecretTypeDockerConfigJson),
+		SecretLabels:      map[string]string{"team": "platform"},
+		SecretAnnotations: map[string]string{"owner": "app-team"},
 		PushSecretData: &pb.PushSecretData{
 			RemoteKey: "remote/path",
 			SecretKey: ".dockerconfigjson",
 			Property:  "property",
-			Metadata:  []byte(`{"owner":"eso"}`),
+			Metadata:  []byte(`{"mergePolicy":"replace"}`),
 		},
-	}
-	if !setPushSecretRequestStringField(req, "secret_type", string(corev1.SecretTypeDockerConfigJson)) {
-		t.Errorf("push request is missing secret_type field")
-	}
-	if !setPushSecretRequestStringMapField(req, "secret_labels", map[string]string{"team": "platform"}) {
-		t.Errorf("push request is missing secret_labels field")
-	}
-	if !setPushSecretRequestStringMapField(req, "secret_annotations", map[string]string{"owner": "eso"}) {
-		t.Errorf("push request is missing secret_annotations field")
 	}
 
 	_, err := server.PushSecret(context.Background(), req)
@@ -444,7 +437,7 @@ func TestServerPushSecretForwardsKubernetesSecretMetadata(t *testing.T) {
 	if got, want := fakeClient.pushSecretSecret.Labels["team"], "platform"; got != want {
 		t.Errorf("expected secret label team=%q, got %q", want, got)
 	}
-	if got, want := fakeClient.pushSecretSecret.Annotations["owner"], "eso"; got != want {
+	if got, want := fakeClient.pushSecretSecret.Annotations["owner"], "app-team"; got != want {
 		t.Errorf("expected secret annotation owner=%q, got %q", want, got)
 	}
 }
@@ -612,28 +605,4 @@ func runValidateTest(t *testing.T, result esv1.ValidationResult, validateErr err
 		t.Fatalf("Validate() error = %v", err)
 	}
 	return resp
-}
-
-func setPushSecretRequestStringField(req *pb.PushSecretRequest, fieldName protoreflect.Name, value string) bool {
-	msg := req.ProtoReflect()
-	field := msg.Descriptor().Fields().ByName(fieldName)
-	if field == nil {
-		return false
-	}
-	msg.Set(field, protoreflect.ValueOfString(value))
-	return true
-}
-
-func setPushSecretRequestStringMapField(req *pb.PushSecretRequest, fieldName protoreflect.Name, values map[string]string) bool {
-	msg := req.ProtoReflect()
-	field := msg.Descriptor().Fields().ByName(fieldName)
-	if field == nil {
-		return false
-	}
-
-	fieldMap := msg.Mutable(field).Map()
-	for key, value := range values {
-		fieldMap.Set(protoreflect.ValueOfString(key).MapKey(), protoreflect.ValueOfString(value))
-	}
-	return true
 }

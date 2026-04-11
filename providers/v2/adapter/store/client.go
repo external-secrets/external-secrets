@@ -61,9 +61,6 @@ func (w *Client) GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind
 
 // PushSecret writes a secret to the provider.
 func (w *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	// Extract secret data
-	secretData := secret.Data
-
 	// Convert metadata from *apiextensionsv1.JSON to []byte
 	var metadata []byte
 	if data.GetMetadata() != nil {
@@ -78,7 +75,7 @@ func (w *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		Metadata:  metadata,
 	}
 
-	return w.v2Provider.PushSecret(ctx, secretData, pushSecretData, w.providerRef, w.sourceNamespace)
+	return w.v2Provider.PushSecret(ctx, secret, pushSecretData, w.providerRef, w.sourceNamespace)
 }
 
 // DeleteSecret deletes a secret from the provider.
