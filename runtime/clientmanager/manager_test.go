@@ -31,6 +31,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -47,6 +49,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
+	providergrpc "github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 )
 
 func TestManagerGet(t *testing.T) {
@@ -537,6 +540,7 @@ func TestGetV2ClusterProviderManifestScopeUsesManifestNamespaceForTLS(t *testing
 	require.NotNil(t, req.ProviderRef)
 	assert.Equal(t, "kubernetes-backend", req.ProviderRef.Name)
 	assert.Equal(t, "", req.ProviderRef.Namespace)
+	assert.Equal(t, esv1.ClusterProviderKindStr, req.ProviderRef.StoreRefKind)
 
 	require.Len(t, mgr.v2PooledConnections, 1)
 }
@@ -670,6 +674,7 @@ func TestGetV2ClusterProviderProviderScopeUsesProviderNamespaceForTLS(t *testing
 	require.NotNil(t, req.ProviderRef)
 	assert.Equal(t, "kubernetes-backend", req.ProviderRef.Name)
 	assert.Equal(t, referencedConfigNamespace, req.ProviderRef.Namespace)
+	assert.Equal(t, esv1.ClusterProviderKindStr, req.ProviderRef.StoreRefKind)
 
 	require.Len(t, mgr.v2PooledConnections, 1)
 }
@@ -731,6 +736,132 @@ func TestGetV2ClusterProviderRejectsDeniedNamespace(t *testing.T) {
 	assert.ErrorContains(t, err, "denied by spec.conditions")
 }
 
+func TestGetV2ProviderUsesManifestNamespaceAndDistinctCacheEntriesPerNamespace(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	registry := installGlobalV2ConnectionPoolForTest(t)
+
+	scheme := newManagerTestScheme(t)
+	server, address, tlsSecret := newRecordingProviderServer(t)
+
+	const providerName = "provider"
+	const firstManifestNamespace = "tenant-a"
+	const secondManifestNamespace = "tenant-b"
+	const referencedConfigNamespace = "provider-config-ns"
+
+	providerA := &esv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       providerName,
+			Namespace:  firstManifestNamespace,
+			Generation: 1,
+		},
+		Spec: esv1.ProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: address,
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "kubernetes-backend",
+					Namespace:  referencedConfigNamespace,
+				},
+			},
+		},
+	}
+	providerB := &esv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       providerName,
+			Namespace:  secondManifestNamespace,
+			Generation: 1,
+		},
+		Spec: esv1.ProviderSpec{
+			Config: providerA.Spec.Config,
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: firstManifestNamespace,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": firstManifestNamespace,
+				},
+			}},
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: secondManifestNamespace,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": secondManifestNamespace,
+				},
+			}},
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: referencedConfigNamespace}},
+			providerA,
+			providerB,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: firstManifestNamespace,
+				},
+				Data: tlsSecret,
+			},
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: secondManifestNamespace,
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "default", false)
+
+	firstClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: providerName,
+		Kind: esv1.ProviderKindStr,
+	}, firstManifestNamespace, nil)
+	require.NoError(t, err)
+
+	ready, err := firstClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, ready)
+
+	firstReq := server.LastValidateRequest()
+	require.NotNil(t, firstReq)
+	assert.Equal(t, firstManifestNamespace, firstReq.SourceNamespace)
+
+	secondClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: providerName,
+		Kind: esv1.ProviderKindStr,
+	}, secondManifestNamespace, nil)
+	require.NoError(t, err)
+
+	ready, err = secondClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, ready)
+
+	secondReq := server.LastValidateRequest()
+	require.NotNil(t, secondReq)
+	assert.Equal(t, secondManifestNamespace, secondReq.SourceNamespace)
+
+	assert.NotSame(t, firstClient, secondClient)
+	require.Len(t, mgr.clientMap, 2)
+	require.Len(t, mgr.v2PooledConnections, 2)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_active", address, true, 1)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_total", address, true, 1)
+
+	require.NoError(t, mgr.Close(context.Background()))
+	assert.Empty(t, mgr.clientMap)
+	assert.Empty(t, mgr.v2PooledConnections)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_active", address, true, 0)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_idle", address, true, 1)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_total", address, true, 1)
+	assert.Equal(t, 2, server.ValidateCallCount())
+}
+
 func TestGetV2ProviderInvalidatesGenerationCacheAndReleasesPoolReferences(t *testing.T) {
 	previous := V2ProvidersEnabled()
 	SetV2ProvidersEnabled(true)
@@ -738,7 +869,7 @@ func TestGetV2ProviderInvalidatesGenerationCacheAndReleasesPoolReferences(t *tes
 		SetV2ProvidersEnabled(previous)
 	})
 
-	resetGlobalV2ConnectionPoolForTest(t)
+	registry := installGlobalV2ConnectionPoolForTest(t)
 
 	scheme := newManagerTestScheme(t)
 	server, address, tlsSecret := newRecordingProviderServer(t)
@@ -806,6 +937,7 @@ func TestGetV2ProviderInvalidatesGenerationCacheAndReleasesPoolReferences(t *tes
 	require.NotNil(t, req.ProviderRef)
 	assert.Equal(t, "kubernetes-backend", req.ProviderRef.Name)
 	assert.Equal(t, referencedConfigNamespace, req.ProviderRef.Namespace)
+	assert.Equal(t, esv1.ProviderKindStr, req.ProviderRef.StoreRefKind)
 
 	cachedClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
 		Name: provider.Name,
@@ -830,11 +962,130 @@ func TestGetV2ProviderInvalidatesGenerationCacheAndReleasesPoolReferences(t *tes
 	assert.Equal(t, esv1.ValidationResultReady, ready)
 
 	require.Len(t, mgr.v2PooledConnections, 2)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_active", address, true, 1)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_total", address, true, 1)
 
 	require.NoError(t, mgr.Close(context.Background()))
 	assert.Empty(t, mgr.clientMap)
 	assert.Empty(t, mgr.v2PooledConnections)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_active", address, true, 0)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_idle", address, true, 1)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_total", address, true, 1)
 
+	assert.Equal(t, 2, server.ValidateCallCount())
+}
+
+func TestGetV2ClusterProviderInvalidatesGenerationCacheAndReleasesPoolReferences(t *testing.T) {
+	previous := V2ProvidersEnabled()
+	SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		SetV2ProvidersEnabled(previous)
+	})
+
+	registry := installGlobalV2ConnectionPoolForTest(t)
+
+	scheme := newManagerTestScheme(t)
+	server, address, tlsSecret := newRecordingProviderServer(t)
+
+	const manifestNamespace = "tenant-a"
+	const referencedConfigNamespace = "provider-config-ns"
+
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "cluster-provider",
+			Generation: 1,
+		},
+		Spec: esv1.ClusterProviderSpec{
+			Config: esv1.ProviderConfig{
+				Address: address,
+				ProviderRef: esv1.ProviderReference{
+					APIVersion: "provider.external-secrets.io/v2alpha1",
+					Kind:       "Kubernetes",
+					Name:       "kubernetes-backend",
+					Namespace:  referencedConfigNamespace,
+				},
+			},
+			AuthenticationScope: esv1.AuthenticationScopeProviderNamespace,
+			Conditions: []esv1.ClusterSecretStoreCondition{
+				{
+					Namespaces: []string{manifestNamespace},
+				},
+			},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name: manifestNamespace,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": manifestNamespace,
+				},
+			}},
+			clusterProvider,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: referencedConfigNamespace,
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "default", false)
+
+	firstClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: clusterProvider.Name,
+		Kind: esv1.ClusterProviderKindStr,
+	}, manifestNamespace, nil)
+	require.NoError(t, err)
+
+	ready, err := firstClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, ready)
+
+	firstReq := server.LastValidateRequest()
+	require.NotNil(t, firstReq)
+	assert.Equal(t, referencedConfigNamespace, firstReq.SourceNamespace)
+
+	cachedClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: clusterProvider.Name,
+		Kind: esv1.ClusterProviderKindStr,
+	}, manifestNamespace, nil)
+	require.NoError(t, err)
+	assert.Same(t, firstClient, cachedClient)
+	require.Len(t, mgr.v2PooledConnections, 1)
+
+	clusterProvider.Generation = 2
+	require.NoError(t, kubeClient.Update(context.Background(), clusterProvider))
+
+	secondClient, err := mgr.Get(context.Background(), esv1.SecretStoreRef{
+		Name: clusterProvider.Name,
+		Kind: esv1.ClusterProviderKindStr,
+	}, manifestNamespace, nil)
+	require.NoError(t, err)
+	assert.NotSame(t, firstClient, secondClient)
+
+	ready, err = secondClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, ready)
+
+	secondReq := server.LastValidateRequest()
+	require.NotNil(t, secondReq)
+	assert.Equal(t, referencedConfigNamespace, secondReq.SourceNamespace)
+
+	require.Len(t, mgr.v2PooledConnections, 2)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_active", address, true, 1)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_total", address, true, 1)
+
+	require.NoError(t, mgr.Close(context.Background()))
+	assert.Empty(t, mgr.clientMap)
+	assert.Empty(t, mgr.v2PooledConnections)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_active", address, true, 0)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_idle", address, true, 1)
+	assertPoolMetricEventually(t, registry, "grpc_pool_connections_total", address, true, 1)
 	assert.Equal(t, 2, server.ValidateCallCount())
 }
 
@@ -929,6 +1180,77 @@ func resetGlobalV2ConnectionPoolForTest(t *testing.T) {
 		globalV2ConnectionPool = nil
 		globalV2ConnectionPoolOnce = sync.Once{}
 	})
+}
+
+func installGlobalV2ConnectionPoolForTest(t *testing.T) *prometheus.Registry {
+	t.Helper()
+
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	globalV2ConnectionPool = providergrpc.NewConnectionPool(providergrpc.PoolConfig{
+		MaxIdleTime:         time.Minute,
+		MaxLifetime:         time.Minute,
+		HealthCheckInterval: 10 * time.Millisecond,
+	})
+
+	var once sync.Once
+	once.Do(func() {})
+	globalV2ConnectionPoolOnce = once
+
+	registry := prometheus.NewRegistry()
+	require.NoError(t, providergrpc.RegisterMetrics(registry))
+
+	return registry
+}
+
+func assertPoolMetricEventually(t *testing.T, registry *prometheus.Registry, metricName, address string, tlsEnabled bool, want float64) {
+	t.Helper()
+
+	labelValue := "false"
+	if tlsEnabled {
+		labelValue = "true"
+	}
+
+	assert.Eventually(t, func() bool {
+		got, ok := lookupPoolMetricValue(registry, metricName, address, labelValue)
+		return ok && got == want
+	}, time.Second, 10*time.Millisecond)
+}
+
+func lookupPoolMetricValue(registry *prometheus.Registry, metricName, address, tlsEnabled string) (float64, bool) {
+	metricFamilies, err := registry.Gather()
+	if err != nil {
+		return 0, false
+	}
+
+	for _, metricFamily := range metricFamilies {
+		if metricFamily.GetName() != metricName {
+			continue
+		}
+		for _, metric := range metricFamily.GetMetric() {
+			if metricLabelValue(metric.GetLabel(), "address") != address {
+				continue
+			}
+			if metricLabelValue(metric.GetLabel(), "tls_enabled") != tlsEnabled {
+				continue
+			}
+			if gauge := metric.GetGauge(); gauge != nil {
+				return gauge.GetValue(), true
+			}
+		}
+	}
+
+	return 0, false
+}
+
+func metricLabelValue(labels []*dto.LabelPair, name string) string {
+	for _, label := range labels {
+		if label.GetName() == name {
+			return label.GetValue()
+		}
+	}
+
+	return ""
 }
 
 type recordingProviderServer struct {

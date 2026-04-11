@@ -38,15 +38,20 @@ type SyntheticStore struct {
 // NewSyntheticStore creates a new SyntheticStore from provider config JSON.
 // The providerConfig JSON should contain the provider-specific configuration
 // (e.g., KubernetesProvider, AWSProvider, etc.).
-func NewSyntheticStore(spec *esv1.SecretStoreSpec, namespace string) (*SyntheticStore, error) {
+func NewSyntheticStore(spec *esv1.SecretStoreSpec, namespace, storeRefKind string) (*SyntheticStore, error) {
 	if spec == nil {
 		return nil, fmt.Errorf("spec cannot be empty")
+	}
+
+	storeKind := esv1.SecretStoreKind
+	if storeRefKind == esv1.ClusterProviderKindStr {
+		storeKind = esv1.ClusterSecretStoreKind
 	}
 
 	store := &SyntheticStore{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: esv1.SchemeGroupVersion.String(),
-			Kind:       esv1.SecretStoreKind,
+			Kind:       storeKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "synthetic-store",
@@ -57,7 +62,7 @@ func NewSyntheticStore(spec *esv1.SecretStoreSpec, namespace string) (*Synthetic
 		gvk: schema.GroupVersionKind{
 			Group:   esv1.SchemeGroupVersion.Group,
 			Version: esv1.SchemeGroupVersion.Version,
-			Kind:    esv1.SecretStoreKind,
+			Kind:    storeKind,
 		},
 	}
 	store.SetGroupVersionKind(store.gvk)

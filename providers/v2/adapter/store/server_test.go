@@ -154,6 +154,7 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 			Kind:       "Fake",
 			Name:       "backend",
 			Namespace:  "provider-config-ns",
+			StoreRefKind: esv1.ProviderKindStr,
 		},
 		SourceNamespace: "tenant-a",
 		RemoteRef: &pb.ExternalSecretDataRemoteRef{
@@ -186,6 +187,9 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 	if syntheticStore.Namespace != "tenant-a" {
 		t.Fatalf("unexpected synthetic store namespace: %q", syntheticStore.Namespace)
 	}
+	if syntheticStore.Kind != esv1.SecretStoreKind {
+		t.Fatalf("unexpected synthetic store kind: %q", syntheticStore.Kind)
+	}
 	if syntheticStore.GetSpec() != mapper.spec {
 		t.Fatalf("unexpected synthetic spec: %#v", syntheticStore.GetSpec())
 	}
@@ -200,6 +204,57 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 	}
 	if !fakeClient.closeCalled {
 		t.Fatal("expected secrets client to be closed")
+	}
+}
+
+func TestServerPushSecretMapsClusterProviderStoreKindToClusterSecretStore(t *testing.T) {
+	mapper := &specMapperRecorder{
+		spec: &esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{},
+			},
+		},
+	}
+	fakeClient := &fakeSecretsClient{}
+
+	var receivedStore esv1.GenericStore
+
+	server := NewServer(nil, ProviderMapping{
+		schema.GroupVersionKind{Group: "provider.external-secrets.io", Version: "v2alpha1", Kind: "Fake"}: &fakeProviderInterface{
+			caps: esv1.SecretStoreReadWrite,
+			newClient: func(_ context.Context, store esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+				receivedStore = store
+				return fakeClient, nil
+			},
+		},
+	}, mapper.mapRef)
+
+	_, err := server.PushSecret(context.Background(), &pb.PushSecretRequest{
+		ProviderRef: &pb.ProviderReference{
+			ApiVersion:   "provider.external-secrets.io/v2alpha1",
+			Kind:         "Fake",
+			Name:         "backend",
+			StoreRefKind: esv1.ClusterProviderKindStr,
+		},
+		SourceNamespace: "tenant-a",
+		SecretData: map[string][]byte{
+			"value": []byte("secret-value"),
+		},
+		PushSecretData: &pb.PushSecretData{
+			RemoteKey: "remote-secret",
+			SecretKey: "value",
+		},
+	})
+	if err != nil {
+		t.Fatalf("PushSecret() error = %v", err)
+	}
+
+	syntheticStore, ok := receivedStore.(*SyntheticStore)
+	if !ok {
+		t.Fatalf("expected SyntheticStore, got %T", receivedStore)
+	}
+	if syntheticStore.Kind != esv1.ClusterSecretStoreKind {
+		t.Fatalf("unexpected synthetic store kind: %q", syntheticStore.Kind)
 	}
 }
 
