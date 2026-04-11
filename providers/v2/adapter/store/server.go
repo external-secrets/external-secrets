@@ -91,7 +91,7 @@ func (s *Server) getClient(ctx context.Context, ref *pb.ProviderReference, names
 		return nil, fmt.Errorf("failed to map provider reference to spec: %w", err)
 	}
 	// namespace is the resolved authentication namespace (from Provider/ClusterProvider if applicable)
-	syntheticStore, err := NewSyntheticStore(spec, namespace)
+	syntheticStore, err := NewSyntheticStore(spec, namespace, ref.GetStoreRefKind())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create synthetic store: %w", err)
 	}

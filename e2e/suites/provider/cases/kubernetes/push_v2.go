@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -220,6 +221,47 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 		waitForSecretValueInNamespace(f, s.remoteNamespace, remoteSecretName, "value", "provider-push-value")
 	})
 
+	It("allows ClusterProvider pushes to override the target remote namespace via metadata", func() {
+		s := newClusterProviderV2Scenario(f, "push-remote-override")
+		s.allowRemoteAccessFrom(s.workloadNamespace, "push-remote-override-default")
+
+		overrideNamespace := createE2ENamespace(f, "push-remote-override-target")
+		frameworkv2.CreateKubernetesAccessRole(
+			f,
+			fmt.Sprintf("%s-access-%s", s.namePrefix, "push-remote-override-target"),
+			s.serviceAccount,
+			s.workloadNamespace,
+			overrideNamespace,
+		)
+
+		sourceSecretName := fmt.Sprintf("%s-source", s.namePrefix)
+		remoteSecretName := fmt.Sprintf("%s-remote", s.namePrefix)
+		Expect(f.CRClient.Create(context.Background(), &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sourceSecretName,
+				Namespace: s.workloadNamespace,
+			},
+			Data: map[string][]byte{
+				"value": []byte("override-push-value"),
+			},
+		})).To(Succeed())
+
+		clusterProviderName := s.createClusterProvider("push-remote-override", esv1.AuthenticationScopeManifestNamespace, nil)
+		frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+
+		pushSecretName := createClusterProviderPushSecretWithMetadata(
+			f,
+			s.workloadNamespace,
+			clusterProviderName,
+			sourceSecretName,
+			remoteSecretName,
+			&apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"remoteNamespace":"%s"}}`, overrideNamespace))},
+		)
+		waitForPushSecretReady(f, pushSecretName)
+		waitForSecretValueInNamespace(f, overrideNamespace, remoteSecretName, "value", "override-push-value")
+		expectNoSecretInNamespace(f, s.remoteNamespace, remoteSecretName)
+	})
+
 	It("denies PushSecrets from namespaces that do not match ClusterProvider conditions", func() {
 		s := newClusterProviderV2Scenario(f, "push-deny")
 		s.allowRemoteAccessFrom(s.workloadNamespace, "push-deny")
@@ -249,6 +291,10 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 })
 
 func createClusterProviderPushSecret(f *framework.Framework, namespace, clusterProviderName, sourceSecretName, remoteSecretName string) string {
+	return createClusterProviderPushSecretWithMetadata(f, namespace, clusterProviderName, sourceSecretName, remoteSecretName, nil)
+}
+
+func createClusterProviderPushSecretWithMetadata(f *framework.Framework, namespace, clusterProviderName, sourceSecretName, remoteSecretName string, metadata *apiextensionsv1.JSON) string {
 	pushSecretName := fmt.Sprintf("%s-push-secret", remoteSecretName)
 	Expect(f.CRClient.Create(context.Background(), &esv1alpha1.PushSecret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -275,6 +321,7 @@ func createClusterProviderPushSecret(f *framework.Framework, namespace, clusterP
 						Property:  "value",
 					},
 				},
+				Metadata: metadata,
 			}},
 		},
 	})).To(Succeed())

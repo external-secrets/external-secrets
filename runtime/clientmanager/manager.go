@@ -316,6 +316,7 @@ func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig,
 		Kind:       cfg.config.ProviderRef.Kind,
 		Name:       cfg.config.ProviderRef.Name,
 		Namespace:  cfg.config.ProviderRef.Namespace,
+		StoreRefKind: cfg.kindStr,
 	}
 
 	// Wrap with V2ClientWrapper
