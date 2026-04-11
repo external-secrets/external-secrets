@@ -1117,10 +1117,7 @@ func storeRefExistsInList(ref *esapi.PushSecretStoreRef, storeRefs []esapi.PushS
 
 func resolvedStoreInfo(ref esapi.PushSecretStoreRef, store interface{}) (storeInfo, bool) {
 	if genericStore, ok := store.(esv1.GenericStore); ok {
-		kind := ref.Kind
-		if kind == "" {
-			kind = genericStore.GetKind()
-		}
+		kind := resolvedPushStoreKind(ref.Kind, genericStore)
 		return storeInfo{
 			Name:   genericStore.GetName(),
 			Kind:   kind,
@@ -1129,10 +1126,7 @@ func resolvedStoreInfo(ref esapi.PushSecretStoreRef, store interface{}) (storeIn
 	}
 
 	if obj, ok := store.(client.Object); ok {
-		kind := ref.Kind
-		if kind == "" {
-			kind = esv1.SecretStoreKind
-		}
+		kind := resolvedPushStoreKind(ref.Kind, obj)
 		return storeInfo{
 			Name:   obj.GetName(),
 			Kind:   kind,
@@ -1141,6 +1135,25 @@ func resolvedStoreInfo(ref esapi.PushSecretStoreRef, store interface{}) (storeIn
 	}
 
 	return storeInfo{}, false
+}
+
+func resolvedPushStoreKind(refKind string, store interface{}) string {
+	if refKind != "" {
+		return refKind
+	}
+
+	if genericStore, ok := store.(esv1.GenericStore); ok {
+		return genericStore.GetKind()
+	}
+
+	switch store.(type) {
+	case *esv1.Provider:
+		return esv1.ProviderKindStr
+	case *esv1.ClusterProvider:
+		return esv1.ClusterProviderKindStr
+	default:
+		return esv1.SecretStoreKind
+	}
 }
 
 // validateDataToMatchesResolvedStores checks that every dataTo entry with a
