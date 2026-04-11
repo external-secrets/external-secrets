@@ -18,6 +18,7 @@ package kubernetes
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -25,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
@@ -202,11 +204,11 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 				Namespace: f.Namespace.Name,
 			},
 			Spec: esv1.ExternalSecretSpec{
-				RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 				SecretStoreRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
 					Kind: esv1.ProviderKindStr,
 				},
+				RefreshInterval: &metav1.Duration{Duration: time.Hour},
 				Target: esv1.ExternalSecretTarget{
 					Name: "provider-v2-recovery-target",
 				},
@@ -229,7 +231,7 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 		repairedProvider := frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 		Expect(repairedProvider.Status.Capabilities).To(Equal(esv1.ProviderReadWrite))
 
-		_, err := f.WaitForSecretValue(f.Namespace.Name, "provider-v2-recovery-target", &corev1.Secret{
+		_, err := waitForSecretValueWithin(f, 30*time.Second, f.Namespace.Name, "provider-v2-recovery-target", &corev1.Secret{
 			Type: corev1.SecretTypeOpaque,
 			Data: map[string][]byte{
 				"value": []byte("provider-v2-recovered"),
@@ -278,6 +280,28 @@ func waitForExternalSecretReadyStatus(f *framework.Framework, namespace, name st
 		g.Expect(condition).NotTo(BeNil())
 		g.Expect(condition.Status).To(Equal(expectedStatus))
 	}, defaultV2WaitTimeout, defaultV2PollInterval).Should(Succeed())
+}
+
+func waitForSecretValueWithin(f *framework.Framework, timeout time.Duration, namespace, name string, expected *corev1.Secret) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	err := wait.PollUntilContextTimeout(context.Background(), time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		err := f.CRClient.Get(context.Background(), types.NamespacedName{
+			Namespace: namespace,
+			Name:      name,
+		}, secret)
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		match, matchErr := Equal(expected.Data).Match(secret.Data)
+		if matchErr != nil {
+			return false, matchErr
+		}
+		return secret.Type == expected.Type && match, nil
+	})
+	return secret, err
 }
 
 func expectSecretToBeAbsent(f *framework.Framework, namespace, name string) {
