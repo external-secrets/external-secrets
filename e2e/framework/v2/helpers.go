@@ -185,6 +185,14 @@ func CreateClusterProviderConnection(f *framework.Framework, name, address, prov
 }
 
 func WaitForProviderConnectionReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv1.Provider {
+	return WaitForProviderConnectionCondition(f, namespace, name, metav1.ConditionTrue, timeout)
+}
+
+func WaitForProviderConnectionNotReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv1.Provider {
+	return WaitForProviderConnectionCondition(f, namespace, name, metav1.ConditionFalse, timeout)
+}
+
+func WaitForProviderConnectionCondition(f *framework.Framework, namespace, name string, status metav1.ConditionStatus, timeout time.Duration) *esv1.Provider {
 	var providerConnection esv1.Provider
 	Eventually(func() bool {
 		err := f.CRClient.Get(context.Background(),
@@ -196,12 +204,12 @@ func WaitForProviderConnectionReady(f *framework.Framework, namespace, name stri
 		}
 
 		for _, condition := range providerConnection.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status == metav1.ConditionTrue {
+			if condition.Type == "Ready" && condition.Status == status {
 				return true
 			}
 		}
 		return false
-	}, timeout, time.Second).Should(BeTrue(), "Provider should become ready")
+	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("Provider should become %s", status))
 
 	return &providerConnection
 }
