@@ -24,11 +24,14 @@ import (
 )
 
 const (
-	// Default paths for certificate files
-	DefaultCertDir    = "/etc/provider/certs"
+	// DefaultCertDir is the default directory for provider TLS assets.
+	DefaultCertDir = "/etc/provider/certs"
+	// DefaultCACertFile is the default CA certificate filename.
 	DefaultCACertFile = "ca.crt"
-	DefaultCertFile   = "tls.crt"
-	DefaultKeyFile    = "tls.key"
+	// DefaultCertFile is the default server certificate filename.
+	DefaultCertFile = "tls.crt"
+	// DefaultKeyFile is the default server key filename.
+	DefaultKeyFile = "tls.key"
 )
 
 // TLSConfig holds configuration for provider server TLS.
@@ -40,11 +43,7 @@ type TLSConfig struct {
 }
 
 // DefaultTLSConfig returns a TLSConfig with default values.
-// Values can be overridden via environment variables:
-// - TLS_CERT_DIR
-// - TLS_CA_CERT_FILE
-// - TLS_CERT_FILE
-// - TLS_KEY_FILE
+// Values can be overridden via TLS_CERT_DIR, TLS_CA_CERT_FILE, TLS_CERT_FILE, and TLS_KEY_FILE.
 func DefaultTLSConfig() *TLSConfig {
 	return &TLSConfig{
 		CertDir:    getEnvOrDefault("TLS_CERT_DIR", DefaultCertDir),
@@ -68,6 +67,7 @@ func LoadTLSConfig(config *TLSConfig) (*tls.Config, error) {
 
 	// Load CA certificate for client verification
 	caPath := fmt.Sprintf("%s/%s", config.CertDir, config.CACertFile)
+	// #nosec G304 -- TLSConfig paths are explicit operator-provided mount points.
 	caCert, err := os.ReadFile(caPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load CA certificate: %w", err)

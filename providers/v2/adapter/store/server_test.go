@@ -30,6 +30,13 @@ import (
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 )
 
+const (
+	serverTestRemoteKey       = "remote/path"
+	serverTestProperty        = "property"
+	serverTestSourceNamespace = "tenant-a"
+	serverTestValue           = "value"
+)
+
 type fakeProviderInterface struct {
 	newClient func(context.Context, esv1.GenericStore, client.Client, string) (esv1.SecretsClient, error)
 	caps      esv1.SecretStoreCapabilities
@@ -152,13 +159,13 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 
 	req := &pb.GetSecretRequest{
 		ProviderRef: &pb.ProviderReference{
-			ApiVersion: "provider.external-secrets.io/v2alpha1",
-			Kind:       "Fake",
-			Name:       "backend",
-			Namespace:  "provider-config-ns",
+			ApiVersion:   "provider.external-secrets.io/v2alpha1",
+			Kind:         "Fake",
+			Name:         "backend",
+			Namespace:    "provider-config-ns",
 			StoreRefKind: esv1.ProviderKindStr,
 		},
-		SourceNamespace: "tenant-a",
+		SourceNamespace: serverTestSourceNamespace,
 		RemoteRef: &pb.ExternalSecretDataRemoteRef{
 			Key:              "sample",
 			Version:          "v1",
@@ -176,17 +183,17 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 	if string(resp.Value) != "secret-value" {
 		t.Fatalf("expected secret-value, got %q", string(resp.Value))
 	}
-	if mapper.ref != req.ProviderRef || mapper.sourceNamespace != "tenant-a" {
+	if mapper.ref != req.ProviderRef || mapper.sourceNamespace != serverTestSourceNamespace {
 		t.Fatalf("unexpected spec mapper input: ref=%#v namespace=%q", mapper.ref, mapper.sourceNamespace)
 	}
-	if receivedNamespace != "tenant-a" {
+	if receivedNamespace != serverTestSourceNamespace {
 		t.Fatalf("unexpected new client namespace: %q", receivedNamespace)
 	}
 	syntheticStore, ok := receivedStore.(*SyntheticStore)
 	if !ok {
 		t.Fatalf("expected SyntheticStore, got %T", receivedStore)
 	}
-	if syntheticStore.Namespace != "tenant-a" {
+	if syntheticStore.Namespace != serverTestSourceNamespace {
 		t.Fatalf("unexpected synthetic store namespace: %q", syntheticStore.Namespace)
 	}
 	if syntheticStore.Kind != esv1.SecretStoreKind {
@@ -238,13 +245,13 @@ func TestServerPushSecretMapsClusterProviderStoreKindToClusterSecretStore(t *tes
 			Name:         "backend",
 			StoreRefKind: esv1.ClusterProviderKindStr,
 		},
-		SourceNamespace: "tenant-a",
+		SourceNamespace: serverTestSourceNamespace,
 		SecretData: map[string][]byte{
-			"value": []byte("secret-value"),
+			serverTestValue: []byte("secret-value"),
 		},
 		PushSecretData: &pb.PushSecretData{
 			RemoteKey: "remote-secret",
-			SecretKey: "value",
+			SecretKey: serverTestValue,
 		},
 	})
 	if err != nil {
@@ -283,7 +290,7 @@ func TestServerGetSecretMapDelegates(t *testing.T) {
 			Kind:       "Fake",
 			Name:       "backend",
 		},
-		SourceNamespace: "tenant-a",
+		SourceNamespace: serverTestSourceNamespace,
 		RemoteRef:       &pb.ExternalSecretDataRemoteRef{Key: "sample"},
 	})
 	if err != nil {
@@ -303,7 +310,7 @@ func TestServerGetAllSecretsMapsFindCriteria(t *testing.T) {
 		spec: &esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{Fake: &esv1.FakeProvider{}}},
 	}
 	fakeClient := &fakeSecretsClient{
-		getAllSecretsResponse: map[string][]byte{"db-password": []byte("value")},
+		getAllSecretsResponse: map[string][]byte{"db-password": []byte(serverTestValue)},
 	}
 
 	server := NewServer(nil, ProviderMapping{
@@ -321,7 +328,7 @@ func TestServerGetAllSecretsMapsFindCriteria(t *testing.T) {
 			Kind:       "Fake",
 			Name:       "backend",
 		},
-		SourceNamespace: "tenant-a",
+		SourceNamespace: serverTestSourceNamespace,
 		Find: &pb.ExternalSecretFind{
 			Tags:               map[string]string{"team": "a"},
 			Path:               "/team-a",
@@ -334,7 +341,7 @@ func TestServerGetAllSecretsMapsFindCriteria(t *testing.T) {
 		t.Fatalf("GetAllSecrets() error = %v", err)
 	}
 
-	if string(resp.Secrets["db-password"]) != "value" {
+	if string(resp.Secrets["db-password"]) != serverTestValue {
 		t.Fatalf("unexpected response: %#v", resp.Secrets)
 	}
 	if fakeClient.getAllSecretsFind.Tags["team"] != "a" {
@@ -369,14 +376,14 @@ func TestServerPushDeleteAndExistsMapWriteRequests(t *testing.T) {
 			Kind:       "Fake",
 			Name:       "backend",
 		},
-		SourceNamespace: "tenant-a",
+		SourceNamespace: serverTestSourceNamespace,
 		SecretData: map[string][]byte{
-			"token": []byte("value"),
+			"token": []byte(serverTestValue),
 		},
 		PushSecretData: &pb.PushSecretData{
-			RemoteKey: "remote/path",
+			RemoteKey: serverTestRemoteKey,
 			SecretKey: "token",
-			Property:  "property",
+			Property:  serverTestProperty,
 			Metadata:  []byte(`{"owner":"eso"}`),
 		},
 	})
@@ -384,13 +391,13 @@ func TestServerPushDeleteAndExistsMapWriteRequests(t *testing.T) {
 		t.Fatalf("PushSecret() error = %v", err)
 	}
 
-	if fakeClient.pushSecretSecret == nil || string(fakeClient.pushSecretSecret.Data["token"]) != "value" {
+	if fakeClient.pushSecretSecret == nil || string(fakeClient.pushSecretSecret.Data["token"]) != serverTestValue {
 		t.Fatalf("unexpected pushed secret: %#v", fakeClient.pushSecretSecret)
 	}
 	if fakeClient.pushSecretSecret.Type != "" {
 		t.Fatalf("unexpected secret type: %q", fakeClient.pushSecretSecret.Type)
 	}
-	if fakeClient.pushSecretData.GetRemoteKey() != "remote/path" || fakeClient.pushSecretData.GetSecretKey() != "token" || fakeClient.pushSecretData.GetProperty() != "property" {
+	if fakeClient.pushSecretData.GetRemoteKey() != serverTestRemoteKey || fakeClient.pushSecretData.GetSecretKey() != "token" || fakeClient.pushSecretData.GetProperty() != serverTestProperty {
 		t.Fatalf("unexpected push data: %#v", fakeClient.pushSecretData)
 	}
 	if got := fakeClient.pushSecretData.GetMetadata(); got == nil || string(got.Raw) != `{"owner":"eso"}` {
@@ -403,17 +410,17 @@ func TestServerPushDeleteAndExistsMapWriteRequests(t *testing.T) {
 			Kind:       "Fake",
 			Name:       "backend",
 		},
-		SourceNamespace: "tenant-a",
+		SourceNamespace: serverTestSourceNamespace,
 		RemoteRef: &pb.PushSecretRemoteRef{
-			RemoteKey: "remote/path",
-			Property:  "property",
+			RemoteKey: serverTestRemoteKey,
+			Property:  serverTestProperty,
 		},
 	})
 	if err != nil {
 		t.Fatalf("DeleteSecret() error = %v", err)
 	}
 
-	if fakeClient.deleteSecretRef.GetRemoteKey() != "remote/path" || fakeClient.deleteSecretRef.GetProperty() != "property" {
+	if fakeClient.deleteSecretRef.GetRemoteKey() != serverTestRemoteKey || fakeClient.deleteSecretRef.GetProperty() != serverTestProperty {
 		t.Fatalf("unexpected delete ref: %#v", fakeClient.deleteSecretRef)
 	}
 
@@ -423,10 +430,10 @@ func TestServerPushDeleteAndExistsMapWriteRequests(t *testing.T) {
 			Kind:       "Fake",
 			Name:       "backend",
 		},
-		SourceNamespace: "tenant-a",
+		SourceNamespace: serverTestSourceNamespace,
 		RemoteRef: &pb.PushSecretRemoteRef{
-			RemoteKey: "remote/path",
-			Property:  "property",
+			RemoteKey: serverTestRemoteKey,
+			Property:  serverTestProperty,
 		},
 	})
 	if err != nil {
@@ -436,7 +443,7 @@ func TestServerPushDeleteAndExistsMapWriteRequests(t *testing.T) {
 	if !resp.Exists {
 		t.Fatal("expected exists response to be true")
 	}
-	if fakeClient.secretExistsRef.GetRemoteKey() != "remote/path" || fakeClient.secretExistsRef.GetProperty() != "property" {
+	if fakeClient.secretExistsRef.GetRemoteKey() != serverTestRemoteKey || fakeClient.secretExistsRef.GetProperty() != serverTestProperty {
 		t.Fatalf("unexpected exists ref: %#v", fakeClient.secretExistsRef)
 	}
 }
@@ -462,7 +469,7 @@ func TestServerPushSecretForwardsKubernetesSecretMetadata(t *testing.T) {
 			Kind:       "Fake",
 			Name:       "backend",
 		},
-		SourceNamespace: "tenant-a",
+		SourceNamespace: serverTestSourceNamespace,
 		SecretData: map[string][]byte{
 			".dockerconfigjson": []byte("payload"),
 		},
@@ -470,9 +477,9 @@ func TestServerPushSecretForwardsKubernetesSecretMetadata(t *testing.T) {
 		SecretLabels:      map[string]string{"team": "platform"},
 		SecretAnnotations: map[string]string{"owner": "app-team"},
 		PushSecretData: &pb.PushSecretData{
-			RemoteKey: "remote/path",
+			RemoteKey: serverTestRemoteKey,
 			SecretKey: ".dockerconfigjson",
-			Property:  "property",
+			Property:  serverTestProperty,
 			Metadata:  []byte(`{"mergePolicy":"replace"}`),
 		},
 	}
@@ -599,7 +606,7 @@ func TestServerRejectsInvalidRequests(t *testing.T) {
 			name: "push_secret_nil_payload",
 			call: func() error {
 				_, err := server.PushSecret(context.Background(), &pb.PushSecretRequest{
-					SourceNamespace: "tenant-a",
+					SourceNamespace: serverTestSourceNamespace,
 				})
 				return err
 			},

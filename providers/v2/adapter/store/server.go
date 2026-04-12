@@ -104,32 +104,49 @@ func (s *Server) getClient(ctx context.Context, ref *pb.ProviderReference, names
 	return provider.NewClient(ctx, syntheticStore, s.kubeClient, namespace)
 }
 
+func (s *Server) getClientForRemoteRef(
+	ctx context.Context,
+	providerRef *pb.ProviderReference,
+	sourceNamespace string,
+	remoteRef *pb.ExternalSecretDataRemoteRef,
+) (esv1.SecretsClient, esv1.ExternalSecretDataRemoteRef, error) {
+	if remoteRef == nil {
+		return nil, esv1.ExternalSecretDataRemoteRef{}, fmt.Errorf("request or remote ref is nil")
+	}
+	if err := validateSourceNamespace(sourceNamespace); err != nil {
+		return nil, esv1.ExternalSecretDataRemoteRef{}, err
+	}
+
+	client, err := s.getClient(ctx, providerRef, sourceNamespace)
+	if err != nil {
+		return nil, esv1.ExternalSecretDataRemoteRef{}, fmt.Errorf("failed to get client: %w", err)
+	}
+
+	ref := esv1.ExternalSecretDataRemoteRef{
+		Key:      remoteRef.Key,
+		Version:  remoteRef.Version,
+		Property: remoteRef.Property,
+	}
+	if remoteRef.DecodingStrategy != "" {
+		ref.DecodingStrategy = esv1.ExternalSecretDecodingStrategy(remoteRef.DecodingStrategy)
+	}
+	if remoteRef.MetadataPolicy != "" {
+		ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicy(remoteRef.MetadataPolicy)
+	}
+
+	return client, ref, nil
+}
+
 // GetSecret retrieves a single secret from the provider.
 func (s *Server) GetSecret(ctx context.Context, req *pb.GetSecretRequest) (*pb.GetSecretResponse, error) {
-	if req == nil || req.RemoteRef == nil {
+	if req == nil {
 		return nil, fmt.Errorf("request or remote ref is nil")
 	}
-	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
+	client, ref, err := s.getClientForRemoteRef(ctx, req.ProviderRef, req.SourceNamespace, req.RemoteRef)
+	if err != nil {
 		return nil, err
 	}
-	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get client: %w", err)
-	}
 	defer func() { _ = client.Close(ctx) }()
-
-	// Convert protobuf remote ref to v1 remote ref
-	ref := esv1.ExternalSecretDataRemoteRef{
-		Key:      req.RemoteRef.Key,
-		Version:  req.RemoteRef.Version,
-		Property: req.RemoteRef.Property,
-	}
-	if req.RemoteRef.DecodingStrategy != "" {
-		ref.DecodingStrategy = esv1.ExternalSecretDecodingStrategy(req.RemoteRef.DecodingStrategy)
-	}
-	if req.RemoteRef.MetadataPolicy != "" {
-		ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicy(req.RemoteRef.MetadataPolicy)
-	}
 
 	value, err := client.GetSecret(ctx, ref)
 	if err != nil {
@@ -143,30 +160,14 @@ func (s *Server) GetSecret(ctx context.Context, req *pb.GetSecretRequest) (*pb.G
 
 // GetSecretMap retrieves multiple key/value pairs from a single secret object.
 func (s *Server) GetSecretMap(ctx context.Context, req *pb.GetSecretMapRequest) (*pb.GetSecretMapResponse, error) {
-	if req == nil || req.RemoteRef == nil {
+	if req == nil {
 		return nil, fmt.Errorf("request or remote ref is nil")
 	}
-	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
+	client, ref, err := s.getClientForRemoteRef(ctx, req.ProviderRef, req.SourceNamespace, req.RemoteRef)
+	if err != nil {
 		return nil, err
 	}
-
-	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get client: %w", err)
-	}
 	defer func() { _ = client.Close(ctx) }()
-
-	ref := esv1.ExternalSecretDataRemoteRef{
-		Key:      req.RemoteRef.Key,
-		Version:  req.RemoteRef.Version,
-		Property: req.RemoteRef.Property,
-	}
-	if req.RemoteRef.DecodingStrategy != "" {
-		ref.DecodingStrategy = esv1.ExternalSecretDecodingStrategy(req.RemoteRef.DecodingStrategy)
-	}
-	if req.RemoteRef.MetadataPolicy != "" {
-		ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicy(req.RemoteRef.MetadataPolicy)
-	}
 
 	secrets, err := client.GetSecretMap(ctx, ref)
 	if err != nil {

@@ -52,6 +52,7 @@ func (w *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return w.v2Provider.GetSecret(ctx, ref, w.providerRef, w.sourceNamespace)
 }
 
+// GetSecretMap retrieves a secret object and returns its key/value pairs.
 func (w *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return w.v2Provider.GetSecretMap(ctx, ref, w.providerRef, w.sourceNamespace)
 }
