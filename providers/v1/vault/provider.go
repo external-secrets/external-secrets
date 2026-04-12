@@ -372,7 +372,6 @@ func init() {
 			initCache(vaultTokenCacheSize)
 		},
 	})
-
 }
 
 // NewProvider creates a new Provider instance.
