@@ -66,7 +66,7 @@ test: start-kind e2e-image ## Run e2e tests against current kube context
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(OCI_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(E2E_IMAGE_NAME):$(VERSION)
-	KUBECTL_CONTEXT="$(KIND_CONTEXT)" ./run.sh
+	KUBECTL_CONTEXT="$(KIND_CONTEXT)" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
 
 test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 	$(MAKE) -C ../ docker.build.controller.e2e \
@@ -84,7 +84,7 @@ test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(OCI_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(E2E_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-kubernetes:$(VERSION)
-	KUBECTL_CONTEXT="$(KIND_CONTEXT)" GINKGO_LABELS="$(V2_GINKGO_LABELS)" E2E_PROVIDER_MODE="v2" TEST_SUITES="provider" ./run.sh
+	KUBECTL_CONTEXT="$(KIND_CONTEXT)" GINKGO_LABELS="$(V2_GINKGO_LABELS)" E2E_PROVIDER_MODE="v2" TEST_SUITES="provider" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
 
 test.managed: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.build \
@@ -104,7 +104,7 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.push \
 		IMAGE_NAME=$(E2E_IMAGE_NAME) \
 		VERSION=$(VERSION)
-	./run.sh
+	E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
 
 
 e2e-bin: install-ginkgo
@@ -114,6 +114,7 @@ e2e-image: e2e-bin
 	-rm -rf ./k8s/deploy
 	mkdir -p k8s
 	$(MAKE) -C ../ helm.generate
+	helm dependency build ../deploy/charts/external-secrets
 	cp -r ../deploy ./k8s
 	docker build $(DOCKER_BUILD_ARGS) -t $(E2E_IMAGE_NAME):$(VERSION) -f Dockerfile ..
 

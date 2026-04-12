@@ -28,11 +28,17 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	t.Parallel()
 
 	defaultDryRun := runMakeDryRun(t, "VERSION=test-version")
+	if !strings.Contains(defaultDryRun, "helm dependency build ../deploy/charts/external-secrets") {
+		t.Fatalf("expected default test.v2 dry-run to vendor helm chart dependencies before building the e2e image, output:\n%s", defaultDryRun)
+	}
 	if !strings.Contains(defaultDryRun, "docker.build.provider.kubernetes") {
 		t.Fatalf("expected default test.v2 dry-run to build the kubernetes provider image, output:\n%s", defaultDryRun)
 	}
 	if !strings.Contains(defaultDryRun, "ghcr.io/external-secrets/provider-kubernetes:test-version") {
 		t.Fatalf("expected default test.v2 dry-run to still load the kubernetes provider image, output:\n%s", defaultDryRun)
+	}
+	if !strings.Contains(defaultDryRun, `E2E_SKIP_HELM_DEPENDENCY_UPDATE="true"`) {
+		t.Fatalf("expected default test.v2 dry-run to skip helm dependency updates inside the e2e pod, output:\n%s", defaultDryRun)
 	}
 
 	skippedDryRun := runMakeDryRun(t, "VERSION=test-version", "SKIP_PROVIDER_KUBERNETES_BUILD=true")
@@ -41,6 +47,9 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	}
 	if !strings.Contains(skippedDryRun, "ghcr.io/external-secrets/provider-kubernetes:test-version") {
 		t.Fatalf("expected skipped test.v2 dry-run to still load the kubernetes provider image, output:\n%s", skippedDryRun)
+	}
+	if !strings.Contains(skippedDryRun, `E2E_SKIP_HELM_DEPENDENCY_UPDATE="true"`) {
+		t.Fatalf("expected skipped test.v2 dry-run to skip helm dependency updates inside the e2e pod, output:\n%s", skippedDryRun)
 	}
 }
 
