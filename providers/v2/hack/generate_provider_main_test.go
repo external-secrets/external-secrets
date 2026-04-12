@@ -66,3 +66,46 @@ func TestMainTemplateUsesGeneratorMappingType(t *testing.T) {
 		t.Fatalf("main template did not render adaptergenerator.Mapping:\n%s", renderedText)
 	}
 }
+
+func TestMainTemplateStartsProviderMetricsServer(t *testing.T) {
+	tmpl, err := loadTemplate("templates/main.go.tmpl")
+	if err != nil {
+		t.Fatalf("load template: %v", err)
+	}
+
+	data := prepareTemplateData(&ProviderConfig{
+		Provider: providerMetadata{
+			Name:        "kubernetes",
+			DisplayName: "Kubernetes",
+			V2Package:   "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1",
+		},
+		Stores: []storeConfig{{
+			GVK: gvkConfig{
+				Group:   "provider.external-secrets.io",
+				Version: "v2alpha1",
+				Kind:    "Kubernetes",
+			},
+			V1Provider:     "github.com/external-secrets/external-secrets/providers/v1/kubernetes",
+			V1ProviderFunc: "NewProvider",
+		}},
+	})
+
+	rendered, err := executeTemplate(tmpl, data)
+	if err != nil {
+		t.Fatalf("execute template: %v", err)
+	}
+
+	renderedText := string(rendered)
+	if !strings.Contains(renderedText, "metricsServer := grpcserver.NewMetricsServer(") {
+		t.Fatalf("main template did not create provider metrics server:\n%s", renderedText)
+	}
+	if !strings.Contains(renderedText, "grpcserver.DefaultMetricsPort") {
+		t.Fatalf("main template did not use default provider metrics port:\n%s", renderedText)
+	}
+	if !strings.Contains(renderedText, "grpcserver.RegisterMetrics(metricsServer.GetRegistry())") {
+		t.Fatalf("main template did not register provider metrics:\n%s", renderedText)
+	}
+	if !strings.Contains(renderedText, "go func() {\n\t\tif err := metricsServer.Start(ctx); err != nil {") {
+		t.Fatalf("main template did not start provider metrics server:\n%s", renderedText)
+	}
+}

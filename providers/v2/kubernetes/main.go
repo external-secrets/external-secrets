@@ -19,6 +19,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -89,6 +90,19 @@ func main() {
 		log.Fatalf("Failed to create gRPC server: %v", err)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	metricsServer := grpcserver.NewMetricsServer(grpcserver.DefaultMetricsPort, nil)
+	if err := grpcserver.RegisterMetrics(metricsServer.GetRegistry()); err != nil {
+		log.Fatalf("Failed to register provider metrics: %v", err)
+	}
+	go func() {
+		if err := metricsServer.Start(ctx); err != nil {
+			log.Fatalf("Failed to start provider metrics server: %v", err)
+		}
+	}()
+
 	// Register services
 	pb.RegisterSecretStoreProviderServer(grpcServer, adapterServer)
 
@@ -112,6 +126,7 @@ func main() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-sigChan
 		log.Printf("Received signal: %v, shutting down gracefully...", sig)
+		cancel()
 		grpcServer.GracefulStop()
 	}()
 
