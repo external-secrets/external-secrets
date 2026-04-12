@@ -166,7 +166,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/dvls v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251104073127-4d2c8fd13e10
+	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20260412142106-5002a5731709
 	github.com/external-secrets/external-secrets/providers/v1/github v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/gitlab v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/ibm v0.0.0-00010101000000-000000000000
