@@ -11384,6 +11384,18 @@ in Vault, e.g: &ldquo;cert&rdquo;</p>
 </tr>
 <tr>
 <td>
+<code>vaultRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VaultRole specifies the Vault role to use for TLS certificate authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clientCert</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">

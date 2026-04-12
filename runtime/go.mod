@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/runtime
 
-go 1.26.1
+go 1.26.2
 
 require (
 	dario.cat/mergo v1.0.1
