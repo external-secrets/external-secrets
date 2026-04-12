@@ -45,7 +45,7 @@ func NewServer(
 	scheme *runtime.Scheme,
 	providerMapping store.ProviderMapping,
 	specMapper store.SpecMapper,
-	generatorMapping generator.GeneratorMapping,
+	generatorMapping generator.Mapping,
 ) *Server {
 	return &Server{
 		storeServer:     store.NewServer(kubeClient, providerMapping, specMapper),
