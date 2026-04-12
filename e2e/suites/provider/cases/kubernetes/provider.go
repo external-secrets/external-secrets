@@ -19,6 +19,7 @@ package kubernetes
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -31,9 +32,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
+	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
+
+const kubernetesProviderAPIVersion = "provider.external-secrets.io/v2alpha1"
 
 type Provider struct {
 	framework *framework.Framework
@@ -68,6 +72,12 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 }
 
 func (s *Provider) BeforeEach() {
+	if framework.IsV2ProviderMode() {
+		s.CreateStoreV2()
+		s.CreateReferentStoreV2()
+		return
+	}
+
 	s.CreateStore()
 	s.CreateReferentStore()
 }
@@ -153,12 +163,12 @@ func makeDefaultStore(suffix, namespace string) (*rbac.Role, *rbac.RoleBinding, 
 }
 
 func (s *Provider) CreateStore() {
-	rb, role, store := makeDefaultStore("", s.framework.Namespace.Name)
+	role, roleBinding, store := makeDefaultStore("", s.framework.Namespace.Name)
 
 	err := s.framework.CRClient.Create(GinkgoT().Context(), role)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = s.framework.CRClient.Create(GinkgoT().Context(), rb)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), roleBinding)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = s.framework.CRClient.Create(GinkgoT().Context(), store)
@@ -166,7 +176,7 @@ func (s *Provider) CreateStore() {
 }
 
 func (s *Provider) CreateReferentStore() {
-	rb, role, store := makeDefaultStore("referent", s.framework.Namespace.Name)
+	role, roleBinding, store := makeDefaultStore("referent", s.framework.Namespace.Name)
 	// ServiceAccount Namespace is not set, this will be inferred
 	// from the ExternalSecret
 	css := &esv1.ClusterSecretStore{
@@ -180,13 +190,98 @@ func (s *Provider) CreateReferentStore() {
 	err := s.framework.CRClient.Create(GinkgoT().Context(), role)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = s.framework.CRClient.Create(GinkgoT().Context(), rb)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), roleBinding)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = s.framework.CRClient.Create(GinkgoT().Context(), css)
 	Expect(err).ToNot(HaveOccurred())
 }
 
+func (s *Provider) CreateStoreV2() {
+	namespace := s.framework.Namespace.Name
+
+	frameworkv2.CreateKubernetesAccessRole(
+		s.framework,
+		storeAccessName(namespace, ""),
+		frameworkv2.DefaultSAName,
+		namespace,
+		namespace,
+	)
+
+	serviceAccountNamespace := namespace
+	frameworkv2.CreateKubernetesProvider(
+		s.framework,
+		namespace,
+		providerConfigName(namespace, ""),
+		namespace,
+		frameworkv2.DefaultSAName,
+		&serviceAccountNamespace,
+		frameworkv2.GetClusterCABundle(s.framework, namespace),
+	)
+
+	frameworkv2.CreateProviderConnection(
+		s.framework,
+		namespace,
+		namespace,
+		frameworkv2.ProviderAddress("kubernetes"),
+		kubernetesProviderAPIVersion,
+		"Kubernetes",
+		providerConfigName(namespace, ""),
+		namespace,
+	)
+	frameworkv2.WaitForProviderConnectionReady(s.framework, namespace, namespace, 30*time.Second)
+}
+
+func (s *Provider) CreateReferentStoreV2() {
+	namespace := s.framework.Namespace.Name
+	referentName := referentStoreName(s.framework)
+
+	frameworkv2.CreateKubernetesAccessRole(
+		s.framework,
+		storeAccessName(namespace, "referent"),
+		frameworkv2.DefaultSAName,
+		namespace,
+		namespace,
+	)
+
+	frameworkv2.CreateKubernetesProvider(
+		s.framework,
+		namespace,
+		providerConfigName(namespace, "referent"),
+		namespace,
+		frameworkv2.DefaultSAName,
+		nil,
+		frameworkv2.GetClusterCABundle(s.framework, namespace),
+	)
+
+	frameworkv2.CreateClusterProviderConnection(
+		s.framework,
+		referentName,
+		frameworkv2.ProviderAddress("kubernetes"),
+		kubernetesProviderAPIVersion,
+		"Kubernetes",
+		providerConfigName(namespace, "referent"),
+		namespace,
+		esv1.AuthenticationScopeManifestNamespace,
+		nil,
+	)
+	frameworkv2.WaitForClusterProviderReady(s.framework, referentName, 30*time.Second)
+}
+
 func referentStoreName(f *framework.Framework) string {
 	return fmt.Sprintf("%s-referent", f.Namespace.Name)
+}
+
+func providerConfigName(namespace, suffix string) string {
+	if suffix == "" {
+		return fmt.Sprintf("%s-kubernetes", namespace)
+	}
+	return fmt.Sprintf("%s-kubernetes-%s", namespace, suffix)
+}
+
+func storeAccessName(namespace, suffix string) string {
+	if suffix == "" {
+		return fmt.Sprintf("%s-provider-access", namespace)
+	}
+	return fmt.Sprintf("%s-provider-access-%s", namespace, suffix)
 }

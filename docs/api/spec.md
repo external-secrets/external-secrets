@@ -12,6 +12,9 @@
 <li>
 <a href="#generators.external-secrets.io%2fv1alpha1">generators.external-secrets.io/v1alpha1</a>
 </li>
+<li>
+<a href="#provider.external-secrets.io%2fv2alpha1">provider.external-secrets.io/v2alpha1</a>
+</li>
 </ul>
 <h2 id="external-secrets.io/v1">external-secrets.io/v1</h2>
 <p>
@@ -23,7 +26,8 @@ Resource Types:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>)
+<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>, 
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManagerSpec">SecretsManagerSpec</a>)
 </p>
 <p>
 <p>AWSAuth tells the controller how to do authentication with aws.
@@ -583,6 +587,32 @@ CAProvider
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.AuthenticationScope">AuthenticationScope
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>)
+</p>
+<p>
+<p>AuthenticationScope defines which namespace should be used for authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ManifestNamespace&#34;</p></td>
+<td><p>AuthenticationScopeManifestNamespace uses the namespace of the ExternalSecret/PushSecret
+for authentication.</p>
+</td>
+</tr><tr><td><p>&#34;ProviderNamespace&#34;</p></td>
+<td><p>AuthenticationScopeProviderNamespace uses the namespace from spec.config.providerRef.namespace
+for authentication. This is the default.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
 </h3>
@@ -2642,6 +2672,171 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.ClusterProvider">ClusterProvider
+</h3>
+<p>
+<p>ClusterProvider is the cluster-scoped variant of Provider.
+It can be referenced from ExternalSecrets and PushSecrets in any namespace.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">
+ClusterProviderSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConfig">
+ProviderConfig
+</a>
+</em>
+</td>
+<td>
+<p>Config contains configuration for connecting to the provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authenticationScope</code></br>
+<em>
+<a href="#external-secrets.io/v1.AuthenticationScope">
+AuthenticationScope
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuthenticationScope defines which namespace should be used for authentication.
+ProviderNamespace (default): uses the namespace from spec.config.providerRef.namespace
+ManifestNamespace: uses the namespace of the ExternalSecret/PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions constrain where this ClusterProvider can be used from.
+Conditions are evaluated against the namespace of the ExternalSecret/PushSecret.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderStatus">
+ProviderStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProvider">ClusterProvider</a>)
+</p>
+<p>
+<p>ClusterProviderSpec defines the desired state of ClusterProvider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConfig">
+ProviderConfig
+</a>
+</em>
+</td>
+<td>
+<p>Config contains configuration for connecting to the provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authenticationScope</code></br>
+<em>
+<a href="#external-secrets.io/v1.AuthenticationScope">
+AuthenticationScope
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuthenticationScope defines which namespace should be used for authentication.
+ProviderNamespace (default): uses the namespace from spec.config.providerRef.namespace
+ManifestNamespace: uses the namespace of the ExternalSecret/PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions constrain where this ClusterProvider can be used from.
+Conditions are evaluated against the namespace of the ExternalSecret/PushSecret.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore
 </h3>
 <p>
@@ -2769,6 +2964,7 @@ SecretStoreStatus
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>, 
 <a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>)
 </p>
 <p>
@@ -5197,7 +5393,8 @@ map[string]string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>, 
+<a href="#provider.external-secrets.io/v2alpha1.Fake">Fake</a>)
 </p>
 <p>
 <p>FakeProvider configures a fake provider that returns static values.</p>
@@ -6889,7 +7086,8 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>, 
+<a href="#provider.external-secrets.io/v2alpha1.Kubernetes">Kubernetes</a>)
 </p>
 <p>
 <p>KubernetesProvider configures a store to sync secrets with a Kubernetes instance.</p>
@@ -8781,8 +8979,401 @@ string
 <h3 id="external-secrets.io/v1.Provider">Provider
 </h3>
 <p>
-<p>Provider is a common interface for interacting with secret backends.</p>
+<p>Provider is the Schema for the providers API.</p>
 </p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderSpec">
+ProviderSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConfig">
+ProviderConfig
+</a>
+</em>
+</td>
+<td>
+<p>Config contains configuration for connecting to the provider.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderStatus">
+ProviderStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderCapabilities">ProviderCapabilities
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProviderStatus">ProviderStatus</a>)
+</p>
+<p>
+<p>ProviderCapabilities defines the possible operations a Provider can do.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ReadOnly&#34;</p></td>
+<td><p>ProviderReadOnly indicates the provider supports read-only operations.</p>
+</td>
+</tr><tr><td><p>&#34;ReadWrite&#34;</p></td>
+<td><p>ProviderReadWrite indicates the provider supports both read and write operations.</p>
+</td>
+</tr><tr><td><p>&#34;WriteOnly&#34;</p></td>
+<td><p>ProviderWriteOnly indicates the provider supports write-only operations.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderCondition">ProviderCondition
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProviderStatus">ProviderStatus</a>)
+</p>
+<p>
+<p>ProviderCondition describes the state of a Provider at a certain point.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConditionType">
+ProviderConditionType
+</a>
+</em>
+</td>
+<td>
+<p>Type of the condition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#conditionstatus-v1-meta">
+Kubernetes meta/v1.ConditionStatus
+</a>
+</em>
+</td>
+<td>
+<p>Status of the condition, one of True, False, Unknown.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lastTransitionTime</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+Kubernetes meta/v1.Time
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>LastTransitionTime is the last time the condition transitioned.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>reason</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Reason contains a programmatic identifier indicating the reason for the condition&rsquo;s last transition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>message</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Message is a human-readable message indicating details about the transition.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderConditionType">ProviderConditionType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProviderCondition">ProviderCondition</a>)
+</p>
+<p>
+<p>ProviderConditionType defines the type of Provider condition.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Ready&#34;</p></td>
+<td><p>ProviderReady indicates that the Provider is ready to serve requests.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderConfig">ProviderConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>, 
+<a href="#external-secrets.io/v1.ProviderSpec">ProviderSpec</a>)
+</p>
+<p>
+<p>ProviderConfig defines how to connect to a provider service.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>address</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Address is the gRPC address of the provider service.
+Format: &ldquo;hostname:port&rdquo; (e.g., &ldquo;aws-provider:8080&rdquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderReference">
+ProviderReference
+</a>
+</em>
+</td>
+<td>
+<p>ProviderRef references the provider-specific configuration resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderInterface">ProviderInterface
+</h3>
+<p>
+<p>ProviderInterface is a common interface for interacting with secret backends.</p>
+</p>
+<h3 id="external-secrets.io/v1.ProviderReference">ProviderReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProviderConfig">ProviderConfig</a>)
+</p>
+<p>
+<p>ProviderReference references a provider-specific configuration resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIVersion of the referenced resource.
+Example: &ldquo;provider.aws.external-secrets.io/v2alpha1&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind of the referenced resource.
+Example: &ldquo;AWSSecretsManager&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the referenced resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Namespace of the referenced resource.
+If empty, assumes the same namespace as the Provider.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderSpec">ProviderSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.Provider">Provider</a>)
+</p>
+<p>
+<p>ProviderSpec defines the desired state of Provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderConfig">
+ProviderConfig
+</a>
+</em>
+</td>
+<td>
+<p>Config contains configuration for connecting to the provider.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProviderStatus">ProviderStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProvider">ClusterProvider</a>, 
+<a href="#external-secrets.io/v1.Provider">Provider</a>)
+</p>
+<p>
+<p>ProviderStatus defines the observed state of Provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderCondition">
+[]ProviderCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions represent the latest available observations of the Provider&rsquo;s state.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capabilities</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProviderCapabilities">
+ProviderCapabilities
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Capabilities indicates what operations this Provider supports.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.PulumiProvider">PulumiProvider
 </h3>
 <p>
@@ -10293,7 +10884,8 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>)
+<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>, 
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManagerSpec">SecretsManagerSpec</a>)
 </p>
 <p>
 <p>SecretsManager defines how the provider behaves when interacting with AWS
@@ -14354,7 +14946,19 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Kind of the SecretStore resource (SecretStore or ClusterSecretStore)</p>
+<p>Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, or ClusterProvider)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIVersion of the SecretStore resource (external-secrets.io/v1 or secretstore.external-secrets.io/v2alpha1)</p>
 </td>
 </tr>
 </tbody>
@@ -21029,10 +21633,10 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.Provider">Provider
+<h3 id="external-secrets.io/v1beta1.ProviderInterface">ProviderInterface
 </h3>
 <p>
-<p>Provider is a common interface for interacting with secret backends.</p>
+<p>ProviderInterface is a common interface for interacting with secret backends.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.PulumiProvider">PulumiProvider
 </h3>
@@ -22102,7 +22706,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+<p>Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
 Defaults to <code>SecretStore</code></p>
 </td>
 </tr>
@@ -29241,6 +29845,615 @@ WebhookCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate webhook server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2 id="provider.external-secrets.io/v2alpha1">provider.external-secrets.io/v2alpha1</h2>
+<p>
+<p>Package v2alpha1 contains API Schema definitions for the AWS provider v2alpha1 API group.</p>
+</p>
+Resource Types:
+<ul></ul>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretsManager">SecretsManager
+</h3>
+<p>
+<p>SecretsManager is the Schema for AWS Secrets Manager provider configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManagerSpec">
+SecretsManagerSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against AWS
+if not set aws sdk will infer credentials from your environment
+see: <a href="https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials">https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is a Role ARN which the provider will assume</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS Region to be used for the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalRoles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTags</code></br>
+<em>
+<a href="#external-secrets.io/v1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role session tags</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretsManager</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretsManager">
+SecretsManager
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretsManager defines how the provider behaves when interacting with AWS SecretsManager</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transitiveTagKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix adds a prefix to all retrieved values.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManagerStatus">
+SecretsManagerStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretsManagerSpec">SecretsManagerSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManager">SecretsManager</a>)
+</p>
+<p>
+<p>SecretsManagerSpec defines the desired state of SecretsManager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against AWS
+if not set aws sdk will infer credentials from your environment
+see: <a href="https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials">https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is a Role ARN which the provider will assume</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS Region to be used for the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalRoles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTags</code></br>
+<em>
+<a href="#external-secrets.io/v1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role session tags</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretsManager</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretsManager">
+SecretsManager
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretsManager defines how the provider behaves when interacting with AWS SecretsManager</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transitiveTagKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix adds a prefix to all retrieved values.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretsManagerStatus">SecretsManagerStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManager">SecretsManager</a>)
+</p>
+<p>
+<p>SecretsManagerStatus defines the observed state of SecretsManager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions represent the latest available observations of the resource&rsquo;s state.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.Fake">Fake
+</h3>
+<p>
+<p>Fake defines the configuration for the Fake provider.
+This provider returns static key-value pairs for testing purposes.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1.FakeProvider">
+FakeProvider
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+<a href="#external-secrets.io/v1.FakeProviderData">
+[]FakeProviderData
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>validationResult</code></br>
+<em>
+<a href="#external-secrets.io/v1.ValidationResult">
+ValidationResult
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.FakeProviderData">FakeProviderData
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.FakeProviderSpec">FakeProviderSpec</a>)
+</p>
+<p>
+<p>FakeProviderData defines a key-value pair with optional version.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Key is the secret key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Value is the secret value.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Version is an optional version identifier.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.FakeProviderSpec">FakeProviderSpec
+</h3>
+<p>
+<p>FakeProviderSpec defines the desired state of Fake provider.
+It matches the structure of v1.FakeProvider for easy conversion.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.FakeProviderData">
+[]FakeProviderData
+</a>
+</em>
+</td>
+<td>
+<p>Data defines the static key-value pairs to return.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>validationResult</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ValidationResult optionally specifies the validation result for testing.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.Kubernetes">Kubernetes
+</h3>
+<p>
+<p>Kubernetes defines the configuration for the Kubernetes Secret provider.
+This provider fetches secrets from Kubernetes Secrets in the same cluster.
+It&rsquo;s primarily useful for testing and migration scenarios.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesProvider">
+KubernetesProvider
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesServer">
+KubernetesServer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>configures the Kubernetes server Address.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesAuth">
+KubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth configures how secret-manager authenticates with a Kubernetes instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A reference to a secret that contains the auth information.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>remoteNamespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Remote namespace to fetch the secrets from</p>
+</td>
+</tr>
+</table>
 </td>
 </tr>
 </tbody>

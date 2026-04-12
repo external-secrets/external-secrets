@@ -37,7 +37,7 @@ const (
 	errClientInit   = "barbican provider client initialization failed: %w"
 )
 
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 // Provider implements the Barbican provider.
 type Provider struct{}
@@ -120,7 +120,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 }
 
 // NewProvider constructs a new Barbican provider.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 

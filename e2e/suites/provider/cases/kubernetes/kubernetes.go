@@ -30,7 +30,15 @@ import (
 
 const referentAuth = "with referent auth"
 
-var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
+func describeLabels() []any {
+	labels := []any{Label("kubernetes")}
+	if framework.IsV2ProviderMode() {
+		labels = append(labels, Label("v2"))
+	}
+	return labels
+}
+
+var _ = Describe("[kubernetes] ", append(describeLabels(), func() {
 	f := framework.New("eso-kubernetes")
 	prov := NewProvider(f)
 
@@ -50,10 +58,14 @@ var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
 		framework.Compose(referentAuth, f, common.JSONDataWithProperty, withReferentStore),
 		framework.Compose(referentAuth, f, common.JSONDataWithoutTargetName, withReferentStore),
 	)
-})
+})...)
 
 func withReferentStore(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentStoreName(tc.Framework)
+	if framework.IsV2ProviderMode() {
+		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterProviderKindStr
+		return
+	}
 	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterSecretStoreKind
 }
 
