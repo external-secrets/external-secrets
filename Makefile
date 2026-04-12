@@ -25,6 +25,8 @@ BUILD_ARGS ?= CGO_ENABLED=0
 DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
 DOCKER ?= docker
+HELM_DOCS_CMD ?= $(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.14.2
+LICENSE_CHECK_CMD ?= $(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace apache/skywalking-eyes:0.6.0 header check
 # default target is build
 .DEFAULT_GOAL := all
 .PHONY: all
@@ -121,7 +123,7 @@ update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e
 
 .PHONY: license.check
 license.check:
-	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace apache/skywalking-eyes:0.6.0 header check
+	$(LICENSE_CHECK_CMD)
 
 # ====================================================================================
 # Golang
@@ -269,7 +271,7 @@ tilt-up: tilt manifests ## Generates the local manifests that tilt will use to d
 
 helm.docs: ## Generate helm docs
 	@cd $(HELM_DIR); \
-	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.14.2
+	$(HELM_DOCS_CMD)
 
 HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 DOCKER ?= docker
+DOCKER_BUILD_ARGS ?=
 MKDOCS_IMAGE ?= github.com/external-secrets-mkdocs:latest
 MKDOCS ?= mkdocs
 MIKE ?= mike
@@ -47,7 +48,7 @@ all: build
 
 .PHONY: image
 image:
-	$(DOCKER) build -t $(MKDOCS_IMAGE) -f Dockerfile .
+	$(DOCKER) build $(DOCKER_BUILD_ARGS) -t $(MKDOCS_IMAGE) -f Dockerfile .
 
 VERSION_TO_UPDATE ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION).x)
 

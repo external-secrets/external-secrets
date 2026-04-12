@@ -168,6 +168,7 @@ require (
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ../../../apis
+	github.com/external-secrets/external-secrets/providers/v1/gcp => ../../../providers/v1/gcp
 	github.com/external-secrets/external-secrets/runtime => ../../../runtime
 )
 
