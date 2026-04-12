@@ -17,6 +17,7 @@ limitations under the License.
 package grpc
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -269,7 +270,8 @@ func RegisterMetrics(registry prometheus.Registerer) error {
 	for _, collector := range collectors {
 		if err := registry.Register(collector); err != nil {
 			// Check if already registered
-			if _, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			var alreadyRegistered prometheus.AlreadyRegisteredError
+			if errors.As(err, &alreadyRegistered) {
 				continue
 			}
 			return fmt.Errorf("failed to register metric: %w", err)
@@ -288,4 +290,3 @@ func GetPoolMetrics() PoolMetrics {
 func GetClientMetrics() ClientMetrics {
 	return clientMetrics
 }
-

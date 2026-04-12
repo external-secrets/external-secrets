@@ -133,7 +133,7 @@ func (p *ConnectionPool) Get(ctx context.Context, address string, tlsConfig *TLS
 		p.log.Info("cached connection invalid, cleaning up",
 			"address", address,
 			"state", pooled.conn.GetState().String())
-		pooled.conn.Close()
+		p.closeConn(pooled.conn, "failed to close invalid cached connection", "address", address)
 		delete(p.connections, key)
 	}
 
@@ -206,7 +206,7 @@ func (p *ConnectionPool) Close() error {
 	for _, pooled := range p.connections {
 		pooled.mu.Lock()
 		if pooled.conn != nil {
-			pooled.conn.Close()
+			p.closeConn(pooled.conn, "failed to close pooled connection during pool shutdown")
 		}
 		pooled.mu.Unlock()
 	}
@@ -251,11 +251,11 @@ func (p *ConnectionPool) cleanupIdleConnections() {
 		tooOld := now.Sub(pooled.created) > p.maxLifetime
 
 		if idleTooLong {
-			pooled.conn.Close()
+			p.closeConn(pooled.conn, "failed to close idle pooled connection", "connectionKey", key)
 			toRemove = append(toRemove, key)
 			evictions[key] = "idle_timeout"
 		} else if tooOld {
-			pooled.conn.Close()
+			p.closeConn(pooled.conn, "failed to close expired pooled connection", "connectionKey", key)
 			toRemove = append(toRemove, key)
 			evictions[key] = "max_lifetime"
 		}
@@ -283,7 +283,7 @@ func (p *ConnectionPool) checkConnectionHealth() {
 		// Check connection state
 		state := pooled.conn.GetState()
 		if state == connectivity.TransientFailure || state == connectivity.Shutdown {
-			pooled.conn.Close()
+			p.closeConn(pooled.conn, "failed to close unhealthy pooled connection", "connectionKey", key, "state", state.String())
 			toRemove = append(toRemove, key)
 		}
 
@@ -311,6 +311,15 @@ func (p *ConnectionPool) isConnectionValid(pooled *pooledConnection) bool {
 	}
 
 	return true
+}
+
+func (p *ConnectionPool) closeConn(conn *grpc.ClientConn, msg string, keysAndValues ...any) {
+	if conn == nil {
+		return
+	}
+	if err := conn.Close(); err != nil {
+		p.log.Error(err, msg, keysAndValues...)
+	}
 }
 
 // connectionKey generates a unique key for caching connections.

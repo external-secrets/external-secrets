@@ -18,6 +18,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -183,6 +184,16 @@ func TestIsRetryable(t *testing.T) {
 		{
 			name:      "Context canceled is not retryable",
 			err:       context.Canceled,
+			retryable: false,
+		},
+		{
+			name:      "Wrapped context canceled is not retryable",
+			err:       fmt.Errorf("wrapped: %w", context.Canceled),
+			retryable: false,
+		},
+		{
+			name:      "Wrapped context deadline exceeded is not retryable",
+			err:       fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
 			retryable: false,
 		},
 	}
