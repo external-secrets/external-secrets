@@ -18,6 +18,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -169,6 +170,9 @@ func (cb *CircuitBreaker) onSuccess() {
 	case StateClosed:
 		cb.failures = 0
 
+	case StateOpen:
+		// Requests should not reach onSuccess while open, keep state unchanged.
+
 	case StateHalfOpen:
 		// Success in half-open state means we can close the circuit
 		cb.state = StateClosed
@@ -187,6 +191,9 @@ func (cb *CircuitBreaker) onFailure() {
 		if cb.failures >= cb.config.MaxFailures {
 			cb.state = StateOpen
 		}
+
+	case StateOpen:
+		// Keep tracking failure timing while the circuit remains open.
 
 	case StateHalfOpen:
 		// Failure in half-open state means we go back to open
@@ -255,22 +262,29 @@ func isRetryable(err error) bool {
 			codes.Aborted:
 			return true
 
-		case codes.InvalidArgument,
+		case codes.OK,
+			codes.Canceled,
+			codes.InvalidArgument,
 			codes.NotFound,
 			codes.AlreadyExists,
 			codes.PermissionDenied,
-			codes.Unauthenticated:
+			codes.Unauthenticated,
+			codes.FailedPrecondition,
+			codes.OutOfRange,
+			codes.Unimplemented:
 			return false
 
-		default:
-			// For unknown codes, retry to be safe
+		case codes.Unknown,
+			codes.Internal,
+			codes.DataLoss:
+			// Retry transient or ambiguous failures.
 			return true
 		}
 	}
 
 	// For non-gRPC errors, retry network-related issues
 	// Context errors should not be retried
-	if err == context.Canceled || err == context.DeadlineExceeded {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}
 
