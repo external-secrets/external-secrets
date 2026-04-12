@@ -69,6 +69,8 @@ Suppose you have multiple key-value pairs within your provider secret like
 }
 ```
 
+You may either pass `bcrypt`, to use that hashing algorithm, or `sha`, to use the `SHA-1` hashing algorithm, as an argument. `bcrypt` is considered more secure, but some applications may not support it.
+
 ```yaml
 {% include 'template-v2-literal-example.yaml' %}
 ```

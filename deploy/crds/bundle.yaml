@@ -113,6 +113,13 @@ spec:
                                   - None
                                   - Fetch
                                 type: string
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               property:
                                 description: Used to select a specific property of the Provider value (if a map), if supported
                                 type: string
@@ -240,6 +247,13 @@ spec:
                                   - None
                                   - Fetch
                                 type: string
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               property:
                                 description: Used to select a specific property of the Provider value (if a map), if supported
                                 type: string
@@ -277,6 +291,13 @@ spec:
                                     description: Finds secrets base
                                     type: string
                                 type: object
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               path:
                                 description: A root path to start the find operations.
                                 type: string
@@ -1724,6 +1745,146 @@ spec:
                         required:
                           - match
                         type: object
+                      type: array
+                    dataTo:
+                      description: DataTo defines bulk push rules that expand source Secret keys into provider entries.
+                      items:
+                        description: PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
+                        properties:
+                          conversionStrategy:
+                            default: None
+                            description: Used to define a conversion Strategy for the secret keys
+                            enum:
+                              - None
+                              - ReverseUnicode
+                            type: string
+                          match:
+                            description: |-
+                              Match pattern for selecting keys from the source Secret.
+                              If not specified, all keys are selected.
+                            properties:
+                              regexp:
+                                description: |-
+                                  Regexp matches keys by regular expression.
+                                  If not specified, all keys are matched.
+                                type: string
+                            type: object
+                          metadata:
+                            description: |-
+                              Metadata is metadata attached to the secret.
+                              The structure of metadata is provider specific, please look it up in the provider documentation.
+                            x-kubernetes-preserve-unknown-fields: true
+                          remoteKey:
+                            description: |-
+                              RemoteKey is the name of the single provider secret that will receive ALL
+                              matched keys bundled as a JSON object (e.g. {"DB_HOST":"...","DB_USER":"..."}).
+                              When set, per-key expansion is skipped and a single push is performed.
+                              The provider's store prefix (if any) is still prepended to this value.
+                              When not set, each matched key is pushed as its own individual provider secret.
+                            type: string
+                          rewrite:
+                            description: |-
+                              Rewrite operations to transform keys before pushing to the provider.
+                              Operations are applied sequentially.
+                            items:
+                              description: PushSecretRewrite defines how to transform secret keys before pushing.
+                              properties:
+                                regexp:
+                                  description: Used to rewrite with regular expressions.
+                                  properties:
+                                    source:
+                                      description: Used to define the regular expression of a re.Compiler.
+                                      type: string
+                                    target:
+                                      description: Used to define the target pattern of a ReplaceAll operation.
+                                      type: string
+                                  required:
+                                    - source
+                                    - target
+                                  type: object
+                                transform:
+                                  description: Used to apply string transformation on the secrets.
+                                  properties:
+                                    template:
+                                      description: |-
+                                        Used to define the template to apply on the secret name.
+                                        `.value ` will specify the secret name in the template.
+                                      type: string
+                                  required:
+                                    - template
+                                  type: object
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of regexp or transform must be set
+                                  rule: (has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))
+                            type: array
+                          storeRef:
+                            description: StoreRef specifies which SecretStore to push to. Required.
+                            properties:
+                              kind:
+                                default: SecretStore
+                                description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                enum:
+                                  - SecretStore
+                                  - ClusterSecretStore
+                                type: string
+                              labelSelector:
+                                description: Optionally, sync to secret stores with label selector
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                        - key
+                                        - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              name:
+                                description: Optionally, sync to the SecretStore of the given name
+                                maxLength: 253
+                                minLength: 1
+                                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                type: string
+                            type: object
+                        type: object
+                        x-kubernetes-validations:
+                          - message: storeRef must specify either name or labelSelector
+                            rule: has(self.storeRef) && (has(self.storeRef.name) || has(self.storeRef.labelSelector))
+                          - message: 'remoteKey and rewrite are mutually exclusive: rewrite is only supported in per-key mode (without remoteKey)'
+                            rule: '!has(self.remoteKey) || !has(self.rewrite) || size(self.rewrite) == 0'
                       type: array
                     deletionPolicy:
                       default: None
@@ -4189,6 +4350,16 @@ spec:
                           description: installationID specifies the Github APP installation that will be used to authenticate the client
                           format: int64
                           type: integer
+                        orgSecretVisibility:
+                          description: |-
+                            orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+                            Valid values are "all" or "private".
+                            When unset, new secrets are created with visibility "all" and existing secrets preserve
+                            whatever visibility they already have in GitHub.
+                          enum:
+                            - all
+                            - private
+                          type: string
                         organization:
                           description: organization will be used to fetch secrets from the Github organization
                           type: string
@@ -6737,6 +6908,9 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                vaultRole:
+                                  description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                                  type: string
                               type: object
                             gcp:
                               description: |-
@@ -12303,6 +12477,13 @@ spec:
                               - None
                               - Fetch
                             type: string
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           property:
                             description: Used to select a specific property of the Provider value (if a map), if supported
                             type: string
@@ -12430,6 +12611,13 @@ spec:
                               - None
                               - Fetch
                             type: string
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           property:
                             description: Used to select a specific property of the Provider value (if a map), if supported
                             type: string
@@ -12467,6 +12655,13 @@ spec:
                                 description: Finds secrets base
                                 type: string
                             type: object
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           path:
                             description: A root path to start the find operations.
                             type: string
@@ -13627,6 +13822,146 @@ spec:
                     required:
                       - match
                     type: object
+                  type: array
+                dataTo:
+                  description: DataTo defines bulk push rules that expand source Secret keys into provider entries.
+                  items:
+                    description: PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
+                    properties:
+                      conversionStrategy:
+                        default: None
+                        description: Used to define a conversion Strategy for the secret keys
+                        enum:
+                          - None
+                          - ReverseUnicode
+                        type: string
+                      match:
+                        description: |-
+                          Match pattern for selecting keys from the source Secret.
+                          If not specified, all keys are selected.
+                        properties:
+                          regexp:
+                            description: |-
+                              Regexp matches keys by regular expression.
+                              If not specified, all keys are matched.
+                            type: string
+                        type: object
+                      metadata:
+                        description: |-
+                          Metadata is metadata attached to the secret.
+                          The structure of metadata is provider specific, please look it up in the provider documentation.
+                        x-kubernetes-preserve-unknown-fields: true
+                      remoteKey:
+                        description: |-
+                          RemoteKey is the name of the single provider secret that will receive ALL
+                          matched keys bundled as a JSON object (e.g. {"DB_HOST":"...","DB_USER":"..."}).
+                          When set, per-key expansion is skipped and a single push is performed.
+                          The provider's store prefix (if any) is still prepended to this value.
+                          When not set, each matched key is pushed as its own individual provider secret.
+                        type: string
+                      rewrite:
+                        description: |-
+                          Rewrite operations to transform keys before pushing to the provider.
+                          Operations are applied sequentially.
+                        items:
+                          description: PushSecretRewrite defines how to transform secret keys before pushing.
+                          properties:
+                            regexp:
+                              description: Used to rewrite with regular expressions.
+                              properties:
+                                source:
+                                  description: Used to define the regular expression of a re.Compiler.
+                                  type: string
+                                target:
+                                  description: Used to define the target pattern of a ReplaceAll operation.
+                                  type: string
+                              required:
+                                - source
+                                - target
+                              type: object
+                            transform:
+                              description: Used to apply string transformation on the secrets.
+                              properties:
+                                template:
+                                  description: |-
+                                    Used to define the template to apply on the secret name.
+                                    `.value ` will specify the secret name in the template.
+                                  type: string
+                              required:
+                                - template
+                              type: object
+                          type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of regexp or transform must be set
+                              rule: (has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))
+                        type: array
+                      storeRef:
+                        description: StoreRef specifies which SecretStore to push to. Required.
+                        properties:
+                          kind:
+                            default: SecretStore
+                            description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                            enum:
+                              - SecretStore
+                              - ClusterSecretStore
+                            type: string
+                          labelSelector:
+                            description: Optionally, sync to secret stores with label selector
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                                items:
+                                  description: |-
+                                    A label selector requirement is a selector that contains values, a key, and an operator that
+                                    relates the key and values.
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector applies to.
+                                      type: string
+                                    operator:
+                                      description: |-
+                                        operator represents a key's relationship to a set of values.
+                                        Valid operators are In, NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: |-
+                                        values is an array of string values. If the operator is In or NotIn,
+                                        the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                        the values array must be empty. This array is replaced during a strategic
+                                        merge patch.
+                                      items:
+                                        type: string
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  required:
+                                    - key
+                                    - operator
+                                  type: object
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: |-
+                                  matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                  map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                  operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                type: object
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          name:
+                            description: Optionally, sync to the SecretStore of the given name
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        type: object
+                    type: object
+                    x-kubernetes-validations:
+                      - message: storeRef must specify either name or labelSelector
+                        rule: has(self.storeRef) && (has(self.storeRef.name) || has(self.storeRef.labelSelector))
+                      - message: 'remoteKey and rewrite are mutually exclusive: rewrite is only supported in per-key mode (without remoteKey)'
+                        rule: '!has(self.remoteKey) || !has(self.rewrite) || size(self.rewrite) == 0'
                   type: array
                 deletionPolicy:
                   default: None
@@ -16120,6 +16455,16 @@ spec:
                           description: installationID specifies the Github APP installation that will be used to authenticate the client
                           format: int64
                           type: integer
+                        orgSecretVisibility:
+                          description: |-
+                            orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+                            Valid values are "all" or "private".
+                            When unset, new secrets are created with visibility "all" and existing secrets preserve
+                            whatever visibility they already have in GitHub.
+                          enum:
+                            - all
+                            - private
+                          type: string
                         organization:
                           description: organization will be used to fetch secrets from the Github organization
                           type: string
@@ -18668,6 +19013,9 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                vaultRole:
+                                  description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                                  type: string
                               type: object
                             gcp:
                               description: |-
@@ -25693,6 +26041,9 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
+                                    vaultRole:
+                                      description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                                      type: string
                                   type: object
                                 gcp:
                                   description: |-
@@ -28380,6 +28731,9 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            vaultRole:
+                              description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                              type: string
                           type: object
                         gcp:
                           description: |-
