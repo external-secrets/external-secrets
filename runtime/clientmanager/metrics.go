@@ -17,6 +17,7 @@ limitations under the License.
 package clientmanager
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,7 +25,7 @@ import (
 )
 
 var (
-	// ClientManager Gauges
+	// ClientManager gauges.
 	clientsCachedTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "clientmanager_clients_cached_total",
@@ -33,7 +34,7 @@ var (
 		[]string{"provider_type"},
 	)
 
-	// ClientManager Counters
+	// ClientManager counters.
 	cacheHitsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "clientmanager_cache_hits_total",
@@ -51,42 +52,42 @@ var (
 	)
 )
 
-// ClientManagerMetrics interface for testability
-type ClientManagerMetrics interface {
+// Metrics provides test hooks for client manager metrics.
+type Metrics interface {
 	RecordCacheHit(providerType string)
 	RecordCacheMiss(providerType string)
-	RecordCacheInvalidation(providerType string, reason string)
+	RecordCacheInvalidation(providerType, reason string)
 	UpdateCachedClients(providerType string, count int)
 }
 
-// defaultClientManagerMetrics implements ClientManagerMetrics using Prometheus
-type defaultClientManagerMetrics struct{}
+// defaultMetrics implements Metrics using Prometheus.
+type defaultMetrics struct{}
 
-// RecordCacheHit records a cache hit
-func (m *defaultClientManagerMetrics) RecordCacheHit(providerType string) {
+// RecordCacheHit records a cache hit.
+func (m *defaultMetrics) RecordCacheHit(providerType string) {
 	cacheHitsTotal.WithLabelValues(providerType).Inc()
 }
 
-// RecordCacheMiss records a cache miss
-func (m *defaultClientManagerMetrics) RecordCacheMiss(providerType string) {
+// RecordCacheMiss records a cache miss.
+func (m *defaultMetrics) RecordCacheMiss(_ string) {
 	// Cache misses are implicit - we don't track them separately
 	// The absence of a hit implies a miss
 }
 
-// RecordCacheInvalidation records a cache invalidation
-func (m *defaultClientManagerMetrics) RecordCacheInvalidation(providerType string, reason string) {
+// RecordCacheInvalidation records a cache invalidation.
+func (m *defaultMetrics) RecordCacheInvalidation(providerType, reason string) {
 	cacheInvalidationsTotal.WithLabelValues(providerType, reason).Inc()
 }
 
-// UpdateCachedClients updates the total cached clients gauge
-func (m *defaultClientManagerMetrics) UpdateCachedClients(providerType string, count int) {
+// UpdateCachedClients updates the total cached clients gauge.
+func (m *defaultMetrics) UpdateCachedClients(providerType string, count int) {
 	clientsCachedTotal.WithLabelValues(providerType).Set(float64(count))
 }
 
-// Global instance
-var clientManagerMetrics ClientManagerMetrics = &defaultClientManagerMetrics{}
+// Global instance.
+var clientManagerMetrics Metrics = &defaultMetrics{}
 
-// RegisterMetrics registers all client manager metrics with the controller-runtime metrics registry
+// RegisterMetrics registers all client manager metrics with the controller-runtime metrics registry.
 func RegisterMetrics() error {
 	collectors := []prometheus.Collector{
 		clientsCachedTotal,
@@ -96,8 +97,8 @@ func RegisterMetrics() error {
 
 	for _, collector := range collectors {
 		if err := metrics.Registry.Register(collector); err != nil {
-			// Check if already registered
-			if _, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			var alreadyRegistered prometheus.AlreadyRegisteredError
+			if errors.As(err, &alreadyRegistered) {
 				continue
 			}
 			return fmt.Errorf("failed to register clientmanager metric: %w", err)
@@ -106,18 +107,17 @@ func RegisterMetrics() error {
 
 	// Initialize metrics with zero values so they appear in /metrics output
 	// This ensures metrics are visible even before any cache operations occur
-	for _, providerType := range []string{"provider", "cluster-provider"} {
+	for _, providerType := range []string{providerMetricsLabel, clusterProviderMetricsLabel} {
 		clientsCachedTotal.WithLabelValues(providerType).Set(0)
 		cacheHitsTotal.WithLabelValues(providerType).Add(0)
-		cacheInvalidationsTotal.WithLabelValues(providerType, "generation_change").Add(0)
-		cacheInvalidationsTotal.WithLabelValues(providerType, "store_mismatch").Add(0)
+		cacheInvalidationsTotal.WithLabelValues(providerType, cacheInvalidationGeneration).Add(0)
+		cacheInvalidationsTotal.WithLabelValues(providerType, cacheInvalidationMismatch).Add(0)
 	}
 
 	return nil
 }
 
-// GetClientManagerMetrics returns the client manager metrics instance (for testing)
-func GetClientManagerMetrics() ClientManagerMetrics {
+// GetClientManagerMetrics returns the client manager metrics instance for tests.
+func GetClientManagerMetrics() Metrics {
 	return clientManagerMetrics
 }
-

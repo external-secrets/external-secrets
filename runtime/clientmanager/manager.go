@@ -47,6 +47,13 @@ const (
 	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 	errClusterProviderDenied = "using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions"
 	errV2ProvidersDisabled   = "v2 provider support is disabled, refusing %s %q (enable with --enable-v2-providers)"
+
+	providerMetricsLabel        = "provider"
+	clusterProviderMetricsLabel = "cluster-provider"
+	cacheInvalidationGeneration = "generation_change"
+	cacheInvalidationMismatch   = "store_mismatch"
+	v2ProviderCacheKeyType      = "v2-provider"
+	v2ClusterProviderCacheKey   = "v2-cluster-provider"
 )
 
 var (
@@ -134,6 +141,26 @@ type v2ProviderConfig struct {
 	generation        int64
 	isClusterScoped   bool
 	kindStr           string // "Provider" or "ClusterProvider"
+}
+
+func providerMetricsLabelForScope(isClusterScoped bool) string {
+	if isClusterScoped {
+		return clusterProviderMetricsLabel
+	}
+
+	return providerMetricsLabel
+}
+
+func providerMetricsLabelForKey(key clientKey) string {
+	if key.v2ProviderName == "" {
+		return "unknown"
+	}
+
+	if key.v2ProviderNamespace == "" {
+		return clusterProviderMetricsLabel
+	}
+
+	return providerMetricsLabel
 }
 
 // NewManager constructs a new manager with defaults.
@@ -229,9 +256,9 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespa
 // It handles caching, connection pooling, and client lifecycle for both Provider and ClusterProvider.
 func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig, authNamespace string) (esv1.SecretsClient, error) {
 	// Determine cache key type based on resource type
-	cacheKeyType := "v2-provider"
+	cacheKeyType := v2ProviderCacheKeyType
 	if cfg.isClusterScoped {
-		cacheKeyType = "v2-cluster-provider"
+		cacheKeyType = v2ClusterProviderCacheKey
 	}
 
 	// Create cache key
@@ -250,11 +277,7 @@ func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig,
 				"authNamespace", authNamespace,
 				"generation", cfg.generation)
 			// Record cache hit
-			providerType := "provider"
-			if cfg.isClusterScoped {
-				providerType = "cluster-provider"
-			}
-			clientManagerMetrics.RecordCacheHit(providerType)
+			clientManagerMetrics.RecordCacheHit(providerMetricsLabelForScope(cfg.isClusterScoped))
 			return cached.client, nil
 		}
 		// Cache is stale, invalidate
@@ -264,11 +287,7 @@ func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig,
 			"oldGeneration", cached.v2ProviderGeneration,
 			"newGeneration", cfg.generation)
 		// Record cache invalidation
-		providerType := "provider"
-		if cfg.isClusterScoped {
-			providerType = "cluster-provider"
-		}
-		clientManagerMetrics.RecordCacheInvalidation(providerType, "generation_change")
+		clientManagerMetrics.RecordCacheInvalidation(providerMetricsLabelForScope(cfg.isClusterScoped), cacheInvalidationGeneration)
 		delete(m.clientMap, cacheKey)
 	}
 
@@ -312,10 +331,10 @@ func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig,
 
 	// Convert ProviderReference to protobuf format
 	providerRef := &pb.ProviderReference{
-		ApiVersion: cfg.config.ProviderRef.APIVersion,
-		Kind:       cfg.config.ProviderRef.Kind,
-		Name:       cfg.config.ProviderRef.Name,
-		Namespace:  cfg.config.ProviderRef.Namespace,
+		ApiVersion:   cfg.config.ProviderRef.APIVersion,
+		Kind:         cfg.config.ProviderRef.Kind,
+		Name:         cfg.config.ProviderRef.Name,
+		Namespace:    cfg.config.ProviderRef.Namespace,
 		StoreRefKind: cfg.kindStr,
 	}
 
@@ -439,15 +458,7 @@ func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.Provid
 			"provider", fmt.Sprintf("%T", storeProvider),
 			"store", storeName)
 		// Record cache hit
-		providerType := "unknown"
-		if idx.v2ProviderName != "" {
-			if idx.v2ProviderNamespace == "" {
-				providerType = "cluster-provider"
-			} else {
-				providerType = "provider"
-			}
-		}
-		clientManagerMetrics.RecordCacheHit(providerType)
+		clientManagerMetrics.RecordCacheHit(providerMetricsLabelForKey(idx))
 		return val.client
 	}
 	m.log.V(1).Info("cleaning up client",
@@ -459,16 +470,11 @@ func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.Provid
 	delete(m.clientMap, idx)
 
 	// Record cache invalidation
-	providerType := "unknown"
-	reason := "store_mismatch"
+	providerType := providerMetricsLabelForKey(idx)
+	reason := cacheInvalidationMismatch
 	if idx.v2ProviderName != "" {
-		if idx.v2ProviderNamespace == "" {
-			providerType = "cluster-provider"
-		} else {
-			providerType = "provider"
-		}
 		if val.store.GetObjectMeta().Generation != store.GetGeneration() {
-			reason = "generation_change"
+			reason = cacheInvalidationGeneration
 		}
 	}
 	clientManagerMetrics.RecordCacheInvalidation(providerType, reason)
@@ -523,7 +529,7 @@ func (m *Manager) Close(ctx context.Context) error {
 	// Close v1 provider clients (they don't use the pool)
 	for key, val := range m.clientMap {
 		// Only close v1 clients; v2 clients are managed by the pool
-		if key.providerType != "v2-provider" && key.providerType != "v2-cluster-provider" {
+		if key.providerType != v2ProviderCacheKeyType && key.providerType != v2ClusterProviderCacheKey {
 			err := val.client.Close(ctx)
 			if err != nil {
 				errs = append(errs, err.Error())
