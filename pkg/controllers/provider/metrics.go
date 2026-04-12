@@ -17,6 +17,8 @@ limitations under the License.
 package provider
 
 import (
+	"maps"
+
 	"github.com/prometheus/client_golang/prometheus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -79,12 +81,11 @@ func RemoveMetrics(namespace, name string) {
 
 // UpdateStatusCondition updates the condition metrics for a Provider.
 func UpdateStatusCondition(provider *esapi.Provider, condition esapi.ProviderCondition) {
-	providerInfo := make(map[string]string)
-	providerInfo["name"] = provider.GetName()
-	providerInfo["namespace"] = provider.GetNamespace()
-	for k, v := range provider.GetLabels() {
-		providerInfo[k] = v
+	providerInfo := map[string]string{
+		"name":      provider.GetName(),
+		"namespace": provider.GetNamespace(),
 	}
+	maps.Copy(providerInfo, provider.GetLabels())
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(providerInfo)
 	providerConditionGauge := GetGaugeVec(StatusConditionKey)
 
@@ -113,4 +114,3 @@ func UpdateStatusCondition(provider *esapi.Provider, condition esapi.ProviderCon
 			"status":    string(condition.Status),
 		})).Set(1)
 }
-

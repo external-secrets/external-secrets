@@ -19,6 +19,7 @@ package pushsecret
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -32,15 +33,9 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 )
 
-// isV2SecretStore checks if the referenced SecretStore is a v2 API version.
-func (r *Reconciler) isV2SecretStore(ctx context.Context, storeRef esv1alpha1.PushSecretStoreRef, namespace string) bool {
-	_, ok, err := r.resolveV2Store(ctx, storeRef, namespace)
-	return err == nil && ok
-}
-
 // GetSecretStoresV2 retrieves both v1 and v2 Providers.
-func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSecret) (map[esv1alpha1.PushSecretStoreRef]interface{}, error) {
-	stores := make(map[esv1alpha1.PushSecretStoreRef]interface{})
+func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSecret) (map[esv1alpha1.PushSecretStoreRef]any, error) {
+	stores := make(map[esv1alpha1.PushSecretStoreRef]any)
 
 	for _, refStore := range ps.Spec.SecretStoreRefs {
 		if refStore.LabelSelector != nil {
@@ -48,38 +43,38 @@ func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSe
 			if err != nil {
 				return nil, err
 			}
-			for resolvedRef, store := range resolvedStores {
-				stores[resolvedRef] = store
-			}
+			maps.Copy(stores, resolvedStores)
 			continue
 		}
 
-		if store, ok, err := r.resolveV2Store(ctx, refStore, ps.Namespace); err != nil {
+		store, ok, err := r.resolveV2Store(ctx, refStore, ps.Namespace)
+		if err != nil {
 			return nil, err
-		} else if ok {
+		}
+		if ok {
 			stores[refStore] = store
 			continue
-		} else {
-			// Get v1 SecretStore (existing implementation)
-			store, err := r.getSecretStoreFromName(ctx, refStore, ps.Namespace)
-			if err != nil {
-				return nil, err
-			}
-			stores[refStore] = store
 		}
+
+		// Get v1 SecretStore (existing implementation)
+		store, err = r.getSecretStoreFromName(ctx, refStore, ps.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		stores[refStore] = store
 	}
 
 	return stores, nil
 }
 
-func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef esv1alpha1.PushSecretStoreRef, namespace string) (map[esv1alpha1.PushSecretStoreRef]interface{}, error) {
+func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef esv1alpha1.PushSecretStoreRef, namespace string) (map[esv1alpha1.PushSecretStoreRef]any, error) {
 	selector, err := metav1.LabelSelectorAsSelector(storeRef.LabelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("could not convert labels: %w", err)
 	}
 
 	listOptions := &client.ListOptions{LabelSelector: selector}
-	stores := make(map[esv1alpha1.PushSecretStoreRef]interface{})
+	stores := make(map[esv1alpha1.PushSecretStoreRef]any)
 
 	switch storeRef.Kind {
 	case esapi.ProviderKindStr:
@@ -125,7 +120,7 @@ func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef
 	return stores, nil
 }
 
-func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.PushSecretStoreRef, namespace string) (interface{}, bool, error) {
+func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.PushSecretStoreRef, namespace string) (any, bool, error) {
 	if storeRef.APIVersion != "" && storeRef.APIVersion != esapi.SchemeGroupVersion.String() {
 		return nil, false, nil
 	}
@@ -168,7 +163,7 @@ func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.Pus
 // PushSecretToProvidersV2 pushes secret data to both v1 stores and v2 providers.
 func (r *Reconciler) PushSecretToProvidersV2(
 	ctx context.Context,
-	stores map[esv1alpha1.PushSecretStoreRef]interface{},
+	stores map[esv1alpha1.PushSecretStoreRef]any,
 	ps esv1alpha1.PushSecret,
 	secret *corev1.Secret,
 	mgr *clientmanager.Manager,
@@ -190,7 +185,12 @@ func (r *Reconciler) PushSecretToProvidersV2(
 }
 
 // DeleteSecretFromProvidersV2 removes secrets from v2 providers when they're no longer needed.
-func (r *Reconciler) DeleteSecretFromProvidersV2(ctx context.Context, ps *esv1alpha1.PushSecret, newMap esv1alpha1.SyncedPushSecretsMap, stores map[esv1alpha1.PushSecretStoreRef]interface{}) (esv1alpha1.SyncedPushSecretsMap, error) {
+func (r *Reconciler) DeleteSecretFromProvidersV2(
+	ctx context.Context,
+	ps *esv1alpha1.PushSecret,
+	newMap esv1alpha1.SyncedPushSecretsMap,
+	_ map[esv1alpha1.PushSecretStoreRef]any,
+) (esv1alpha1.SyncedPushSecretsMap, error) {
 	out := mergeSecretState(newMap, ps.Status.SyncedPushSecrets)
 	mgr := clientmanager.NewManager(r.Client, r.ControllerClass, false)
 	defer func() {

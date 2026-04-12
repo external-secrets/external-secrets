@@ -221,7 +221,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Filter and prepare stores (this logic was moved from later)
-	activeSecretStores := make(map[esapi.PushSecretStoreRef]interface{}, len(secretStoresV2))
+	activeSecretStores := make(map[esapi.PushSecretStoreRef]any, len(secretStoresV2))
 	for ref, store := range secretStoresV2 {
 		if v1Store, ok := store.(esv1.GenericStore); ok {
 			if !v1Store.GetDeletionTimestamp().IsZero() {
@@ -245,7 +245,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	finalStores := make(map[esapi.PushSecretStoreRef]interface{})
+	finalStores := make(map[esapi.PushSecretStoreRef]any)
 	for ref, store := range filteredV1Stores {
 		finalStores[ref] = store
 	}
@@ -1152,7 +1152,7 @@ func storeRefExistsInList(ref *esapi.PushSecretStoreRef, storeRefs []esapi.PushS
 	return false
 }
 
-func resolvedStoreInfo(ref esapi.PushSecretStoreRef, store interface{}) (storeInfo, bool) {
+func resolvedStoreInfo(ref esapi.PushSecretStoreRef, store any) (storeInfo, bool) {
 	if genericStore, ok := store.(esv1.GenericStore); ok {
 		kind := resolvedPushStoreKind(ref.Kind, genericStore)
 		return storeInfo{
@@ -1174,7 +1174,7 @@ func resolvedStoreInfo(ref esapi.PushSecretStoreRef, store interface{}) (storeIn
 	return storeInfo{}, false
 }
 
-func resolvedPushStoreKind(refKind string, store interface{}) string {
+func resolvedPushStoreKind(refKind string, store any) string {
 	if refKind != "" {
 		return refKind
 	}
