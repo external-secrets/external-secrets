@@ -126,6 +126,9 @@ processClusterStore: true
 # -- if true, the operator will process secret store. Else, it will ignore them.
 processSecretStore: true
 
+# -- Default time duration between reconciling (Cluster)SecretStores.
+storeRequeueInterval: "5m"
+
 # -- if true, the operator will process cluster generator. Else, it will ignore them.
 processClusterGenerator: true
 
