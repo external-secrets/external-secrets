@@ -17,6 +17,7 @@ limitations under the License.
 package store
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
@@ -27,6 +28,12 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
+)
+
+const (
+	testProperty        = "property"
+	testSourceNamespace = "tenant-a"
+	testValue           = "value"
 )
 
 type fakeV2Provider struct {
@@ -168,7 +175,7 @@ func (f fakePushSecretRemoteRef) GetProperty() string {
 func TestClientGetSecretDelegatesProviderReferenceAndNamespace(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 	provider := &fakeV2Provider{getSecretResponse: []byte("secret-value")}
-	client := NewClient(provider, providerRef, "tenant-a")
+	client := NewClient(provider, providerRef, testSourceNamespace)
 
 	ref := esv1.ExternalSecretDataRemoteRef{Key: "sample", Version: "v1", Property: "password"}
 	value, err := client.GetSecret(context.Background(), ref)
@@ -185,7 +192,7 @@ func TestClientGetSecretDelegatesProviderReferenceAndNamespace(t *testing.T) {
 	if provider.getSecretProviderRef != providerRef {
 		t.Fatalf("unexpected provider ref: %#v", provider.getSecretProviderRef)
 	}
-	if provider.getSecretNamespace != "tenant-a" {
+	if provider.getSecretNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", provider.getSecretNamespace)
 	}
 }
@@ -197,7 +204,7 @@ func TestClientGetSecretMapDelegatesProviderReferenceAndNamespace(t *testing.T) 
 		"baz": []byte("qux"),
 	}
 	provider := &fakeV2Provider{getSecretMapResponse: expected}
-	client := NewClient(provider, providerRef, "tenant-a")
+	client := NewClient(provider, providerRef, testSourceNamespace)
 
 	ref := esv1.ExternalSecretDataRemoteRef{Key: "sample"}
 	secretMap, err := client.GetSecretMap(context.Background(), ref)
@@ -214,7 +221,7 @@ func TestClientGetSecretMapDelegatesProviderReferenceAndNamespace(t *testing.T) 
 	if provider.getSecretProviderRef != providerRef {
 		t.Fatalf("unexpected provider ref: %#v", provider.getSecretProviderRef)
 	}
-	if provider.getSecretNamespace != "tenant-a" {
+	if provider.getSecretNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", provider.getSecretNamespace)
 	}
 }
@@ -222,9 +229,9 @@ func TestClientGetSecretMapDelegatesProviderReferenceAndNamespace(t *testing.T) 
 func TestClientGetAllSecretsDelegatesFindCriteria(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 	path := "/team-a"
-	expected := map[string][]byte{"db-password": []byte("value")}
+	expected := map[string][]byte{"db-password": []byte(testValue)}
 	provider := &fakeV2Provider{getAllSecretsResponse: expected}
-	client := NewClient(provider, providerRef, "tenant-a")
+	client := NewClient(provider, providerRef, testSourceNamespace)
 
 	find := esv1.ExternalSecretFind{
 		Tags: map[string]string{
@@ -239,7 +246,7 @@ func TestClientGetAllSecretsDelegatesFindCriteria(t *testing.T) {
 		t.Fatalf("GetAllSecrets() error = %v", err)
 	}
 
-	if string(secrets["db-password"]) != "value" {
+	if string(secrets["db-password"]) != testValue {
 		t.Fatalf("unexpected secret value: %#v", secrets)
 	}
 	if provider.getAllSecretsFind.Tags["team"] != "a" {
@@ -254,7 +261,7 @@ func TestClientGetAllSecretsDelegatesFindCriteria(t *testing.T) {
 	if provider.getSecretProviderRef != providerRef {
 		t.Fatalf("unexpected provider ref: %#v", provider.getSecretProviderRef)
 	}
-	if provider.getSecretNamespace != "tenant-a" {
+	if provider.getSecretNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", provider.getSecretNamespace)
 	}
 }
@@ -262,18 +269,18 @@ func TestClientGetAllSecretsDelegatesFindCriteria(t *testing.T) {
 func TestClientPushSecretConvertsPayloadAndMetadata(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 	provider := &fakeV2Provider{}
-	client := NewClient(provider, providerRef, "tenant-a")
+	client := NewClient(provider, providerRef, testSourceNamespace)
 
 	metadata := []byte(`{"owner":"eso"}`)
 	secret := &corev1.Secret{
 		Data: map[string][]byte{
-			"token": []byte("value"),
+			"token": []byte(testValue),
 		},
 	}
 	pushData := fakePushSecretData{
-		property:  "property",
+		property:  testProperty,
 		secretKey: "token",
-		remoteKey: "remote/path",
+		remoteKey: serverTestRemoteKey,
 		metadata:  &apiextensionsv1.JSON{Raw: metadata},
 	}
 
@@ -282,22 +289,22 @@ func TestClientPushSecretConvertsPayloadAndMetadata(t *testing.T) {
 		t.Fatalf("PushSecret() error = %v", err)
 	}
 
-	if string(provider.pushSecretData["token"]) != "value" {
+	if string(provider.pushSecretData["token"]) != testValue {
 		t.Fatalf("unexpected secret data: %#v", provider.pushSecretData)
 	}
 	if provider.pushSecretPayload == nil {
 		t.Fatal("expected push payload to be recorded")
 	}
-	if provider.pushSecretPayload.RemoteKey != "remote/path" || provider.pushSecretPayload.SecretKey != "token" || provider.pushSecretPayload.Property != "property" {
+	if provider.pushSecretPayload.RemoteKey != serverTestRemoteKey || provider.pushSecretPayload.SecretKey != "token" || provider.pushSecretPayload.Property != testProperty {
 		t.Fatalf("unexpected push payload: %#v", provider.pushSecretPayload)
 	}
-	if string(provider.pushSecretPayload.Metadata) != string(metadata) {
+	if !bytes.Equal(provider.pushSecretPayload.Metadata, metadata) {
 		t.Fatalf("unexpected metadata: %q", string(provider.pushSecretPayload.Metadata))
 	}
 	if provider.pushSecretProviderRef != providerRef {
 		t.Fatalf("unexpected provider ref: %#v", provider.pushSecretProviderRef)
 	}
-	if provider.pushSecretNamespace != "tenant-a" {
+	if provider.pushSecretNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", provider.pushSecretNamespace)
 	}
 }
@@ -305,7 +312,7 @@ func TestClientPushSecretConvertsPayloadAndMetadata(t *testing.T) {
 func TestClientPushSecretForwardsKubernetesSecretShape(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 	provider := &fakeV2Provider{}
-	client := NewClient(provider, providerRef, "tenant-a")
+	client := NewClient(provider, providerRef, testSourceNamespace)
 
 	metadata := []byte(`{"mergePolicy":"replace"}`)
 	secret := &corev1.Secret{
@@ -319,9 +326,9 @@ func TestClientPushSecretForwardsKubernetesSecretShape(t *testing.T) {
 		},
 	}
 	pushData := fakePushSecretData{
-		property:  "property",
+		property:  testProperty,
 		secretKey: ".dockerconfigjson",
-		remoteKey: "remote/path",
+		remoteKey: serverTestRemoteKey,
 		metadata:  &apiextensionsv1.JSON{Raw: metadata},
 	}
 
@@ -348,7 +355,7 @@ func TestClientPushSecretForwardsKubernetesSecretShape(t *testing.T) {
 	if provider.pushSecretPayload == nil {
 		t.Fatal("expected push payload to be recorded")
 	}
-	if string(provider.pushSecretPayload.Metadata) != string(metadata) {
+	if !bytes.Equal(provider.pushSecretPayload.Metadata, metadata) {
 		t.Fatalf("unexpected metadata: %q", string(provider.pushSecretPayload.Metadata))
 	}
 }
@@ -356,11 +363,11 @@ func TestClientPushSecretForwardsKubernetesSecretShape(t *testing.T) {
 func TestClientDeleteSecretConvertsRemoteRef(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 	provider := &fakeV2Provider{}
-	client := NewClient(provider, providerRef, "tenant-a")
+	client := NewClient(provider, providerRef, testSourceNamespace)
 
 	err := client.DeleteSecret(context.Background(), fakePushSecretRemoteRef{
-		remoteKey: "remote/path",
-		property:  "property",
+		remoteKey: serverTestRemoteKey,
+		property:  testProperty,
 	})
 	if err != nil {
 		t.Fatalf("DeleteSecret() error = %v", err)
@@ -369,13 +376,13 @@ func TestClientDeleteSecretConvertsRemoteRef(t *testing.T) {
 	if provider.deleteSecretRemoteRef == nil {
 		t.Fatal("expected delete remote ref to be recorded")
 	}
-	if provider.deleteSecretRemoteRef.RemoteKey != "remote/path" || provider.deleteSecretRemoteRef.Property != "property" {
+	if provider.deleteSecretRemoteRef.RemoteKey != serverTestRemoteKey || provider.deleteSecretRemoteRef.Property != testProperty {
 		t.Fatalf("unexpected remote ref: %#v", provider.deleteSecretRemoteRef)
 	}
 	if provider.deleteSecretProviderRef != providerRef {
 		t.Fatalf("unexpected provider ref: %#v", provider.deleteSecretProviderRef)
 	}
-	if provider.deleteSecretNamespace != "tenant-a" {
+	if provider.deleteSecretNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", provider.deleteSecretNamespace)
 	}
 }
@@ -383,11 +390,11 @@ func TestClientDeleteSecretConvertsRemoteRef(t *testing.T) {
 func TestClientSecretExistsConvertsRemoteRef(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 	provider := &fakeV2Provider{secretExistsResponse: true}
-	client := NewClient(provider, providerRef, "tenant-a")
+	client := NewClient(provider, providerRef, testSourceNamespace)
 
 	exists, err := client.SecretExists(context.Background(), fakePushSecretRemoteRef{
-		remoteKey: "remote/path",
-		property:  "property",
+		remoteKey: serverTestRemoteKey,
+		property:  testProperty,
 	})
 	if err != nil {
 		t.Fatalf("SecretExists() error = %v", err)
@@ -399,13 +406,13 @@ func TestClientSecretExistsConvertsRemoteRef(t *testing.T) {
 	if provider.secretExistsRemoteRef == nil {
 		t.Fatal("expected exists remote ref to be recorded")
 	}
-	if provider.secretExistsRemoteRef.RemoteKey != "remote/path" || provider.secretExistsRemoteRef.Property != "property" {
+	if provider.secretExistsRemoteRef.RemoteKey != serverTestRemoteKey || provider.secretExistsRemoteRef.Property != testProperty {
 		t.Fatalf("unexpected remote ref: %#v", provider.secretExistsRemoteRef)
 	}
 	if provider.secretExistsProviderRef != providerRef {
 		t.Fatalf("unexpected provider ref: %#v", provider.secretExistsProviderRef)
 	}
-	if provider.secretExistsNamespace != "tenant-a" {
+	if provider.secretExistsNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", provider.secretExistsNamespace)
 	}
 }
@@ -414,7 +421,7 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 		provider := &fakeV2Provider{}
-		client := NewClient(provider, providerRef, "tenant-a")
+		client := NewClient(provider, providerRef, testSourceNamespace)
 
 		result, err := client.Validate()
 		if err != nil {
@@ -426,7 +433,7 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 		if provider.validateProviderRef != providerRef {
 			t.Fatalf("unexpected provider ref: %#v", provider.validateProviderRef)
 		}
-		if provider.validateNamespace != "tenant-a" {
+		if provider.validateNamespace != testSourceNamespace {
 			t.Fatalf("unexpected source namespace: %q", provider.validateNamespace)
 		}
 	})
@@ -434,7 +441,7 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		validateErr := errors.New("invalid credentials")
 		provider := &fakeV2Provider{validateErr: validateErr}
-		client := NewClient(provider, &pb.ProviderReference{Name: "provider"}, "tenant-a")
+		client := NewClient(provider, &pb.ProviderReference{Name: "provider"}, testSourceNamespace)
 
 		result, err := client.Validate()
 		if !errors.Is(err, validateErr) {
@@ -449,7 +456,7 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 func TestClientCloseDelegates(t *testing.T) {
 	closeErr := errors.New("close failed")
 	provider := &fakeV2Provider{closeErr: closeErr}
-	client := NewClient(provider, &pb.ProviderReference{Name: "provider"}, "tenant-a")
+	client := NewClient(provider, &pb.ProviderReference{Name: "provider"}, testSourceNamespace)
 
 	err := client.Close(context.Background())
 	if !errors.Is(err, closeErr) {

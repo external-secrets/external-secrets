@@ -25,19 +25,19 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-// ServerOptions holds configuration options for creating a gRPC server.
-type ServerOptions struct {
+// Options holds configuration options for creating a gRPC server.
+type Options struct {
 	EnableTLS bool
 	Verbose   bool
 }
 
+// ServerOptions is kept as a compatibility alias for existing callers.
+//
+//nolint:revive // Compatibility alias for the previous exported API.
+type ServerOptions = Options
+
 // NewGRPCServer creates a new gRPC server with standard configuration.
-// It includes:
-// - TLS/mTLS if enabled
-// - Keepalive parameters
-// - Connection tap handler (if verbose)
-// - RPC logging interceptor
-func NewGRPCServer(opts ServerOptions) (*grpc.Server, error) {
+func NewGRPCServer(opts Options) (*grpc.Server, error) {
 	var grpcOpts []grpc.ServerOption
 
 	// Add keepalive parameters for better connection diagnostics
