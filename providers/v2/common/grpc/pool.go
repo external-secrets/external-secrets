@@ -95,7 +95,7 @@ func NewConnectionPool(cfg PoolConfig) *ConnectionPool {
 
 // Get retrieves or creates a connection to the specified provider address.
 // The caller must call Release() when done with the connection.
-func (p *ConnectionPool) Get(ctx context.Context, address string, tlsConfig *TLSConfig) (v2.Provider, error) {
+func (p *ConnectionPool) Get(_ context.Context, address string, tlsConfig *TLSConfig) (v2.Provider, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 

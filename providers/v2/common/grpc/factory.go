@@ -47,14 +47,15 @@ func NewClientWithLogger(address string, tlsConfig *TLSConfig, log logr.Logger) 
 		"address", address,
 		"tlsEnabled", tlsConfig != nil)
 
-	// Set up connection options
-	opts := []grpc.DialOption{
+	// Set up connection options.
+	opts := make([]grpc.DialOption, 0, 2)
+	opts = append(opts,
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                10 * time.Second, // Send keepalive pings every 10 seconds
 			Timeout:             5 * time.Second,  // Wait 5 seconds for ping ack
 			PermitWithoutStream: true,             // Allow pings when no streams are active
 		}),
-	}
+	)
 
 	log.V(1).Info("configured keepalive parameters",
 		"time", "10s",

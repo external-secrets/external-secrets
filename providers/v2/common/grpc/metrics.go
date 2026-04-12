@@ -26,10 +26,10 @@ import (
 )
 
 var (
-	// gRPC latency buckets optimized for typical RPC call durations
+	// gRPC latency buckets optimized for typical RPC call durations.
 	grpcLatencyBuckets = []float64{0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 30}
 
-	// Connection Pool Gauges
+	// Connection Pool gauges.
 	poolConnectionsActive = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "grpc_pool_connections_active",
@@ -54,7 +54,7 @@ var (
 		[]string{"address", "tls_enabled"},
 	)
 
-	// Connection Pool Histograms
+	// Connection Pool histograms.
 	connectionAge = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "grpc_connection_age_seconds",
@@ -73,7 +73,7 @@ var (
 		[]string{"address", "tls_enabled"},
 	)
 
-	// Connection Pool Counters
+	// Connection Pool counters.
 	poolHits = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "grpc_pool_hits_total",
@@ -106,7 +106,7 @@ var (
 		[]string{"address", "tls_enabled"},
 	)
 
-	// gRPC Client Metrics
+	// gRPC client metrics.
 	clientRequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "grpc_client_request_duration_seconds",
@@ -133,7 +133,7 @@ var (
 	)
 )
 
-// Metrics interface for testability
+// PoolMetrics records connection-pool metrics.
 type PoolMetrics interface {
 	RecordHit(address string, tlsEnabled bool)
 	RecordMiss(address string, tlsEnabled bool)
@@ -144,35 +144,35 @@ type PoolMetrics interface {
 	RecordConnectionIdle(address string, tlsEnabled bool, idle time.Duration)
 }
 
-// ClientMetrics interface for testability
+// ClientMetrics records client request metrics.
 type ClientMetrics interface {
 	ObserveRequest(method, target string, err error, duration time.Duration)
 }
 
-// defaultPoolMetrics implements PoolMetrics using Prometheus
+// defaultPoolMetrics implements PoolMetrics using Prometheus.
 type defaultPoolMetrics struct{}
 
-// RecordHit records a connection pool cache hit
+// RecordHit records a connection pool cache hit.
 func (m *defaultPoolMetrics) RecordHit(address string, tlsEnabled bool) {
 	poolHits.WithLabelValues(address, strconv.FormatBool(tlsEnabled)).Inc()
 }
 
-// RecordMiss records a connection pool cache miss
+// RecordMiss records a connection pool cache miss.
 func (m *defaultPoolMetrics) RecordMiss(address string, tlsEnabled bool) {
 	poolMisses.WithLabelValues(address, strconv.FormatBool(tlsEnabled)).Inc()
 }
 
-// RecordEviction records a connection eviction with reason
+// RecordEviction records a connection eviction with reason.
 func (m *defaultPoolMetrics) RecordEviction(address string, tlsEnabled bool, reason string) {
 	poolEvictions.WithLabelValues(address, strconv.FormatBool(tlsEnabled), reason).Inc()
 }
 
-// RecordConnectionError records a failed connection attempt
+// RecordConnectionError records a failed connection attempt.
 func (m *defaultPoolMetrics) RecordConnectionError(address string, tlsEnabled bool) {
 	poolConnectionErrors.WithLabelValues(address, strconv.FormatBool(tlsEnabled)).Inc()
 }
 
-// UpdatePoolState updates the current pool state gauges
+// UpdatePoolState updates the current pool state gauges.
 func (m *defaultPoolMetrics) UpdatePoolState(address string, tlsEnabled bool, active, idle, total int) {
 	labels := prometheus.Labels{"address": address, "tls_enabled": strconv.FormatBool(tlsEnabled)}
 	poolConnectionsActive.With(labels).Set(float64(active))
@@ -180,20 +180,20 @@ func (m *defaultPoolMetrics) UpdatePoolState(address string, tlsEnabled bool, ac
 	poolConnectionsTotal.With(labels).Set(float64(total))
 }
 
-// RecordConnectionAge records the age of a connection
+// RecordConnectionAge records the age of a connection.
 func (m *defaultPoolMetrics) RecordConnectionAge(address string, tlsEnabled bool, age time.Duration) {
 	connectionAge.WithLabelValues(address, strconv.FormatBool(tlsEnabled)).Observe(age.Seconds())
 }
 
-// RecordConnectionIdle records the idle time of a connection
+// RecordConnectionIdle records the idle time of a connection.
 func (m *defaultPoolMetrics) RecordConnectionIdle(address string, tlsEnabled bool, idle time.Duration) {
 	connectionIdle.WithLabelValues(address, strconv.FormatBool(tlsEnabled)).Observe(idle.Seconds())
 }
 
-// defaultClientMetrics implements ClientMetrics using Prometheus
+// defaultClientMetrics implements ClientMetrics using Prometheus.
 type defaultClientMetrics struct{}
 
-// ObserveRequest records metrics for a client request
+// ObserveRequest records metrics for a client request.
 func (m *defaultClientMetrics) ObserveRequest(method, target string, err error, duration time.Duration) {
 	status := "success"
 	if err != nil {
@@ -206,7 +206,7 @@ func (m *defaultClientMetrics) ObserveRequest(method, target string, err error, 
 	clientRequestsTotal.WithLabelValues(method, target, status).Inc()
 }
 
-// classifyError extracts error type for metrics
+// classifyError extracts error type for metrics.
 func classifyError(err error) string {
 	if err == nil {
 		return "none"
@@ -244,13 +244,13 @@ func findSubstring(s, substr string) bool {
 	return false
 }
 
-// Global instances
+// Global instances.
 var (
 	poolMetrics   PoolMetrics   = &defaultPoolMetrics{}
 	clientMetrics ClientMetrics = &defaultClientMetrics{}
 )
 
-// RegisterMetrics registers all gRPC metrics with Prometheus
+// RegisterMetrics registers all gRPC metrics with Prometheus.
 func RegisterMetrics(registry prometheus.Registerer) error {
 	collectors := []prometheus.Collector{
 		poolConnectionsActive,
@@ -269,7 +269,7 @@ func RegisterMetrics(registry prometheus.Registerer) error {
 
 	for _, collector := range collectors {
 		if err := registry.Register(collector); err != nil {
-			// Check if already registered
+			// Check if already registered.
 			var alreadyRegistered prometheus.AlreadyRegisteredError
 			if errors.As(err, &alreadyRegistered) {
 				continue
@@ -281,12 +281,12 @@ func RegisterMetrics(registry prometheus.Registerer) error {
 	return nil
 }
 
-// GetPoolMetrics returns the pool metrics instance (for testing)
+// GetPoolMetrics returns the pool metrics instance for testing.
 func GetPoolMetrics() PoolMetrics {
 	return poolMetrics
 }
 
-// GetClientMetrics returns the client metrics instance (for testing)
+// GetClientMetrics returns the client metrics instance for testing.
 func GetClientMetrics() ClientMetrics {
 	return clientMetrics
 }

@@ -31,7 +31,10 @@ import (
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 )
 
-const bufSize = 1024 * 1024
+const (
+	bufSize             = 1024 * 1024
+	testSourceNamespace = "tenant-a"
+)
 
 type mockServer struct {
 	pb.UnimplementedSecretStoreProviderServer
@@ -164,7 +167,7 @@ func TestClientGetSecretSendsProviderReferenceAndNamespace(t *testing.T) {
 		MetadataPolicy:   esv1.ExternalSecretMetadataPolicyFetch,
 	}
 
-	value, err := client.GetSecret(context.Background(), ref, providerRef, "tenant-a")
+	value, err := client.GetSecret(context.Background(), ref, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("GetSecret failed: %v", err)
 	}
@@ -176,7 +179,7 @@ func TestClientGetSecretSendsProviderReferenceAndNamespace(t *testing.T) {
 		t.Fatal("expected get secret request to be recorded")
 	}
 	assertProviderRefEqual(t, mock.getSecretRequest.ProviderRef, providerRef)
-	if mock.getSecretRequest.SourceNamespace != "tenant-a" {
+	if mock.getSecretRequest.SourceNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", mock.getSecretRequest.SourceNamespace)
 	}
 	if mock.getSecretRequest.RemoteRef.Key != "test-key" || mock.getSecretRequest.RemoteRef.Version != "v1" || mock.getSecretRequest.RemoteRef.Property != "password" {
@@ -202,7 +205,7 @@ func TestClientGetSecretMapSendsProviderReferenceAndNamespace(t *testing.T) {
 	client := NewClientWithConn(conn)
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ProviderKindStr}
 
-	value, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "test-key"}, providerRef, "tenant-a")
+	value, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "test-key"}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("GetSecretMap failed: %v", err)
 	}
@@ -213,7 +216,7 @@ func TestClientGetSecretMapSendsProviderReferenceAndNamespace(t *testing.T) {
 	if mock.getSecretMapRequest == nil {
 		t.Fatal("expected get secret map request to be recorded")
 	}
-	if mock.getSecretMapRequest.SourceNamespace != "tenant-a" {
+	if mock.getSecretMapRequest.SourceNamespace != testSourceNamespace {
 		t.Fatalf("unexpected request: %#v", mock.getSecretMapRequest)
 	}
 	assertProviderRefEqual(t, mock.getSecretMapRequest.ProviderRef, providerRef)
@@ -232,7 +235,7 @@ func TestClientGetAllSecretsSendsFindCriteria(t *testing.T) {
 		Tags: map[string]string{"team": "a"},
 		Path: &path,
 		Name: &esv1.FindName{RegExp: "db-.*"},
-	}, providerRef, "tenant-a")
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("GetAllSecrets failed: %v", err)
 	}
@@ -243,7 +246,7 @@ func TestClientGetAllSecretsSendsFindCriteria(t *testing.T) {
 	if mock.getAllSecretsRequest == nil {
 		t.Fatal("expected get all secrets request to be recorded")
 	}
-	if mock.getAllSecretsRequest.SourceNamespace != "tenant-a" {
+	if mock.getAllSecretsRequest.SourceNamespace != testSourceNamespace {
 		t.Fatalf("unexpected request: %#v", mock.getAllSecretsRequest)
 	}
 	assertProviderRefEqual(t, mock.getAllSecretsRequest.ProviderRef, providerRef)
@@ -270,14 +273,14 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 		SecretKey: "token",
 		Property:  "property",
 		Metadata:  []byte(`{"mergePolicy":"replace"}`),
-	}, providerRef, "tenant-a")
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("PushSecret failed: %v", err)
 	}
 	if mock.pushSecretRequest == nil {
 		t.Fatal("expected push secret request to be recorded")
 	}
-	if mock.pushSecretRequest.SourceNamespace != "tenant-a" {
+	if mock.pushSecretRequest.SourceNamespace != testSourceNamespace {
 		t.Fatalf("unexpected push request: %#v", mock.pushSecretRequest)
 	}
 	assertProviderRefEqual(t, mock.pushSecretRequest.ProviderRef, providerRef)
@@ -288,11 +291,11 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 	err = client.DeleteSecret(context.Background(), &pb.PushSecretRemoteRef{
 		RemoteKey: "remote/path",
 		Property:  "property",
-	}, providerRef, "tenant-a")
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("DeleteSecret failed: %v", err)
 	}
-	if mock.deleteRequest == nil || mock.deleteRequest.SourceNamespace != "tenant-a" {
+	if mock.deleteRequest == nil || mock.deleteRequest.SourceNamespace != testSourceNamespace {
 		t.Fatalf("unexpected delete request: %#v", mock.deleteRequest)
 	}
 	assertProviderRefEqual(t, mock.deleteRequest.ProviderRef, providerRef)
@@ -300,26 +303,26 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 	exists, err := client.SecretExists(context.Background(), &pb.PushSecretRemoteRef{
 		RemoteKey: "remote/path",
 		Property:  "property",
-	}, providerRef, "tenant-a")
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("SecretExists failed: %v", err)
 	}
 	if !exists {
 		t.Fatal("expected exists to be true")
 	}
-	if mock.existsRequest == nil || mock.existsRequest.SourceNamespace != "tenant-a" {
+	if mock.existsRequest == nil || mock.existsRequest.SourceNamespace != testSourceNamespace {
 		t.Fatalf("unexpected exists request: %#v", mock.existsRequest)
 	}
 	assertProviderRefEqual(t, mock.existsRequest.ProviderRef, providerRef)
 
-	caps, err := client.Capabilities(context.Background(), providerRef, "tenant-a")
+	caps, err := client.Capabilities(context.Background(), providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("Capabilities failed: %v", err)
 	}
 	if caps != pb.SecretStoreCapabilities_READ_WRITE {
 		t.Fatalf("expected READ_WRITE, got %v", caps)
 	}
-	if mock.capabilitiesRequest == nil || mock.capabilitiesRequest.SourceNamespace != "tenant-a" {
+	if mock.capabilitiesRequest == nil || mock.capabilitiesRequest.SourceNamespace != testSourceNamespace {
 		t.Fatalf("unexpected capabilities request: %#v", mock.capabilitiesRequest)
 	}
 	assertProviderRefEqual(t, mock.capabilitiesRequest.ProviderRef, providerRef)
@@ -347,7 +350,7 @@ func TestClientPushSecretSendsExpandedKubernetesSecretFields(t *testing.T) {
 		SecretKey: ".dockerconfigjson",
 		Property:  "property",
 		Metadata:  []byte(`{"mergePolicy":"replace"}`),
-	}, providerRef, "tenant-a")
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("PushSecret failed: %v", err)
 	}
@@ -358,7 +361,7 @@ func TestClientPushSecretSendsExpandedKubernetesSecretFields(t *testing.T) {
 		t.Errorf("expected request secret data %q, got %q", want, got)
 	}
 	assertProviderRefEqual(t, mock.pushSecretRequest.ProviderRef, providerRef)
-	if got, want := mock.pushSecretRequest.SourceNamespace, "tenant-a"; got != want {
+	if got, want := mock.pushSecretRequest.SourceNamespace, testSourceNamespace; got != want {
 		t.Errorf("expected source namespace %q, got %q", want, got)
 	}
 	if got, want := mock.pushSecretRequest.SecretType, string(corev1.SecretTypeDockerConfigJson); got != want {
@@ -384,14 +387,14 @@ func TestClientValidate(t *testing.T) {
 		client := NewClientWithConn(conn)
 		providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ProviderKindStr}
 
-		err := client.Validate(context.Background(), providerRef, "tenant-a")
+		err := client.Validate(context.Background(), providerRef, testSourceNamespace)
 		if err != nil {
 			t.Fatalf("Validate failed: %v", err)
 		}
 		if mock.validateRequest == nil {
 			t.Fatal("expected validate request to be recorded")
 		}
-		if mock.validateRequest.SourceNamespace != "tenant-a" {
+		if mock.validateRequest.SourceNamespace != testSourceNamespace {
 			t.Fatalf("unexpected validate request: %#v", mock.validateRequest)
 		}
 		assertProviderRefEqual(t, mock.validateRequest.ProviderRef, providerRef)
@@ -409,7 +412,7 @@ func TestClientValidate(t *testing.T) {
 
 		client := NewClientWithConn(conn)
 
-		err := client.Validate(context.Background(), &pb.ProviderReference{Name: "provider"}, "tenant-a")
+		err := client.Validate(context.Background(), &pb.ProviderReference{Name: "provider"}, testSourceNamespace)
 		if err == nil {
 			t.Fatal("Expected validation to fail, but it succeeded")
 		}

@@ -84,7 +84,7 @@ func NewResilientClient(config ResilientClientConfig) (*ResilientClient, error) 
 	}, nil
 }
 
-// Ensure ResilientClient implements Provider interface
+// Ensure ResilientClient implements the Provider interface.
 var _ v2.Provider = &ResilientClient{}
 
 // PushSecret writes a secret with retry logic and circuit breaking.
@@ -189,7 +189,7 @@ func (rc *ResilientClient) Capabilities(ctx context.Context, providerRef *pb.Pro
 }
 
 // Close closes the connection pool.
-func (rc *ResilientClient) Close(ctx context.Context) error {
+func (rc *ResilientClient) Close(_ context.Context) error {
 	return rc.pool.Close()
 }
 
