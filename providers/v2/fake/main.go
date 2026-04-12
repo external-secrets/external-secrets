@@ -110,7 +110,7 @@ func main() {
 
 	specMapper := GetSpecMapper(kubeClient)
 	// Setup v1 generator(s)
-	generatorMapping := adaptergenerator.GeneratorMapping{
+	generatorMapping := adaptergenerator.Mapping{
 		schema.GroupVersionKind{
 			Group:   "generators.external-secrets.io",
 			Version: "v1alpha1",
