@@ -18,10 +18,11 @@ package grpc
 
 import (
 	"context"
+	cryptorand "crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -31,15 +32,15 @@ import (
 
 // RetryConfig configures retry behavior.
 type RetryConfig struct {
-	// MaxAttempts is the maximum number of retry attempts
+	// MaxAttempts is the maximum number of retry attempts.
 	MaxAttempts int
-	// InitialBackoff is the initial backoff duration
+	// InitialBackoff is the initial backoff duration.
 	InitialBackoff time.Duration
-	// MaxBackoff is the maximum backoff duration
+	// MaxBackoff is the maximum backoff duration.
 	MaxBackoff time.Duration
-	// BackoffMultiplier is the multiplier for exponential backoff
+	// BackoffMultiplier is the multiplier for exponential backoff.
 	BackoffMultiplier float64
-	// Jitter adds randomness to backoff to prevent thundering herd
+	// Jitter adds randomness to backoff to prevent thundering herd.
 	Jitter bool
 }
 
@@ -56,11 +57,11 @@ func DefaultRetryConfig() RetryConfig {
 
 // CircuitBreakerConfig configures circuit breaker behavior.
 type CircuitBreakerConfig struct {
-	// MaxFailures is the number of consecutive failures before opening
+	// MaxFailures is the number of consecutive failures before opening.
 	MaxFailures int
-	// Timeout is how long to wait in open state before trying again
+	// Timeout is how long to wait in open state before trying again.
 	Timeout time.Duration
-	// HalfOpenMaxRequests is max requests allowed in half-open state
+	// HalfOpenMaxRequests is max requests allowed in half-open state.
 	HalfOpenMaxRequests int
 }
 
@@ -77,11 +78,11 @@ func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
 type CircuitState int
 
 const (
-	// StateClosed means the circuit is closed and requests flow normally
+	// StateClosed means the circuit is closed and requests flow normally.
 	StateClosed CircuitState = iota
-	// StateOpen means the circuit is open and requests fail fast
+	// StateOpen means the circuit is open and requests fail fast.
 	StateOpen
-	// StateHalfOpen means the circuit is testing if the service has recovered
+	// StateHalfOpen means the circuit is testing if the service has recovered.
 	StateHalfOpen
 )
 
@@ -104,16 +105,16 @@ func NewCircuitBreaker(config CircuitBreakerConfig) *CircuitBreaker {
 }
 
 // Call executes the given function with circuit breaker protection.
-func (cb *CircuitBreaker) Call(ctx context.Context, fn func() error) error {
-	// Check if we should allow the request
+func (cb *CircuitBreaker) Call(_ context.Context, fn func() error) error {
+	// Check if we should allow the request.
 	if err := cb.beforeRequest(); err != nil {
 		return err
 	}
 
-	// Execute the function
+	// Execute the function.
 	err := fn()
 
-	// Record the result
+	// Record the result.
 	cb.afterRequest(err)
 
 	return err
@@ -282,32 +283,40 @@ func isRetryable(err error) bool {
 		}
 	}
 
-	// For non-gRPC errors, retry network-related issues
-	// Context errors should not be retried
+	// For non-gRPC errors, retry network-related issues.
+	// Context errors should not be retried.
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return false
 	}
 
-	// Default: retry
+	// Default: retry.
 	return true
 }
 
 // calculateBackoff calculates the backoff duration for a given attempt.
 func calculateBackoff(attempt int, config RetryConfig) time.Duration {
-	// Exponential backoff: initialBackoff * (multiplier ^ attempt)
+	// Exponential backoff: initialBackoff * (multiplier ^ attempt).
 	backoff := float64(config.InitialBackoff) * math.Pow(config.BackoffMultiplier, float64(attempt))
 
-	// Apply max backoff
+	// Apply max backoff.
 	if backoff > float64(config.MaxBackoff) {
 		backoff = float64(config.MaxBackoff)
 	}
 
-	// Add jitter if enabled
+	// Add jitter if enabled.
 	if config.Jitter {
-		// Add random jitter between 0 and 25% of backoff
-		jitter := rand.Float64() * backoff * 0.25
+		// Add random jitter between 0 and 25% of backoff.
+		jitter := randomFloat64() * backoff * 0.25
 		backoff += jitter
 	}
 
 	return time.Duration(backoff)
+}
+
+func randomFloat64() float64 {
+	var buf [8]byte
+	if _, err := cryptorand.Read(buf[:]); err != nil {
+		return 0
+	}
+	return float64(binary.BigEndian.Uint64(buf[:])) / float64(^uint64(0))
 }

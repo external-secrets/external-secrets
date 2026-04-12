@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	// defaultTimeout is the default timeout for gRPC calls
+	// defaultTimeout is the default timeout for gRPC calls.
 	defaultTimeout = 30 * time.Second
 )
 
@@ -43,7 +43,7 @@ type grpcProviderClient struct {
 	log    logr.Logger
 }
 
-// Ensure grpcProviderClient implements Provider interface
+// Ensure grpcProviderClient implements the Provider interface.
 var _ v2.Provider = &grpcProviderClient{}
 
 // GetSecret retrieves a single secret from the provider via gRPC.
@@ -475,7 +475,7 @@ func (c *grpcProviderClient) Capabilities(ctx context.Context, providerRef *pb.P
 }
 
 // Close closes the gRPC connection.
-func (c *grpcProviderClient) Close(ctx context.Context) error {
+func (c *grpcProviderClient) Close(_ context.Context) error {
 	if c.conn != nil {
 		c.log.V(1).Info("closing gRPC connection",
 			"target", c.conn.Target(),

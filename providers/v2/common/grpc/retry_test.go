@@ -18,6 +18,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -41,7 +42,7 @@ func TestCircuitBreaker_States(t *testing.T) {
 	}
 
 	// Simulate 3 failures to open the circuit
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		err := cb.Call(ctx, func() error {
 			return status.Error(codes.Unavailable, "service unavailable")
 		})
@@ -150,7 +151,7 @@ func TestRetry_ContextCancellation(t *testing.T) {
 		return status.Error(codes.Unavailable, "unavailable")
 	})
 
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Errorf("expected context.Canceled, got: %v", err)
 	}
 }
