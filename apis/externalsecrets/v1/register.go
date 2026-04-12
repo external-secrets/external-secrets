@@ -74,7 +74,7 @@ var (
 
 // Provider type metadata.
 var (
-	ProviderKind             = reflect.TypeOf(Provider{}).Name()
+	ProviderKind             = reflect.TypeFor[Provider]().Name()
 	ProviderGroupKind        = schema.GroupKind{Group: Group, Kind: ProviderKind}.String()
 	ProviderKindAPIVersion   = ProviderKind + "." + SchemeGroupVersion.String()
 	ProviderGroupVersionKind = SchemeGroupVersion.WithKind(ProviderKind)
@@ -82,7 +82,7 @@ var (
 
 // ClusterProvider type metadata.
 var (
-	ClusterProviderKind             = reflect.TypeOf(ClusterProvider{}).Name()
+	ClusterProviderKind             = reflect.TypeFor[ClusterProvider]().Name()
 	ClusterProviderGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterProviderKind}.String()
 	ClusterProviderKindAPIVersion   = ClusterProviderKind + "." + SchemeGroupVersion.String()
 	ClusterProviderGroupVersionKind = SchemeGroupVersion.WithKind(ClusterProviderKind)
