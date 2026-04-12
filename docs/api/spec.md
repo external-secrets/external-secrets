@@ -12,6 +12,9 @@
 <li>
 <a href="#generators.external-secrets.io%2fv1alpha1">generators.external-secrets.io/v1alpha1</a>
 </li>
+<li>
+<a href="#provider.external-secrets.io%2fv2alpha1">provider.external-secrets.io/v2alpha1</a>
+</li>
 </ul>
 <h2 id="external-secrets.io/v1">external-secrets.io/v1</h2>
 <p>
@@ -23,7 +26,8 @@ Resource Types:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>)
+<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>,
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManagerSpec">SecretsManagerSpec</a>)
 </p>
 <p>
 <p>AWSAuth tells the controller how to do authentication with aws.
@@ -584,6 +588,32 @@ CAProvider
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.AuthenticationScope">AuthenticationScope
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>)
+</p>
+<p>
+<p>AuthenticationScope defines which namespace should be used for authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ManifestNamespace&#34;</p></td>
+<td><p>AuthenticationScopeManifestNamespace uses the namespace of the ExternalSecret/PushSecret
+for authentication.</p>
+</td>
+</tr><tr><td><p>&#34;ProviderNamespace&#34;</p></td>
+<td><p>AuthenticationScopeProviderNamespace uses the namespace from spec.config.providerRef.namespace
+for authentication. This is the default.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
 </h3>
 <p>
@@ -842,7 +872,7 @@ string
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AzureKVProvider">AzureKVProvider</a>, 
+<a href="#external-secrets.io/v1.AzureKVProvider">AzureKVProvider</a>,
 <a href="#generators.external-secrets.io/v1alpha1.ACRAccessTokenSpec">ACRAccessTokenSpec</a>)
 </p>
 <p>
@@ -1768,14 +1798,14 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AkeylessProvider">AkeylessProvider</a>, 
-<a href="#external-secrets.io/v1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
-<a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>, 
-<a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
-<a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
-<a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
-<a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>, 
-<a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
+<a href="#external-secrets.io/v1.AkeylessProvider">AkeylessProvider</a>,
+<a href="#external-secrets.io/v1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>,
+<a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>,
+<a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>,
+<a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>,
+<a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>,
+<a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>,
+<a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>,
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -2751,7 +2781,7 @@ ProviderStatus
 <a href="#external-secrets.io/v1.ClusterProvider">ClusterProvider</a>)
 </p>
 <p>
-<p>ClusterProviderSpec defines the desired state of ClusterProvider</p>
+<p>ClusterProviderSpec defines the desired state of ClusterProvider.</p>
 </p>
 <table>
 <thead>
@@ -2934,7 +2964,7 @@ SecretStoreStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>, 
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>,
 <a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>)
 </p>
 <p>
@@ -3972,7 +4002,7 @@ ExternalSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -4169,7 +4199,7 @@ The generator returns a static map of values</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretData">ExternalSecretData</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretData">ExternalSecretData</a>,
 <a href="#external-secrets.io/v1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
@@ -4280,7 +4310,7 @@ ExternalSecretNullBytePolicy
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -4510,7 +4540,7 @@ map[string]string
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -4783,7 +4813,7 @@ list during merge operations.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>,
 <a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
@@ -4825,7 +4855,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>,
 <a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
@@ -4857,7 +4887,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>,
 <a href="#external-secrets.io/v1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -5221,7 +5251,7 @@ bool
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretTarget">ExternalSecretTarget</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretTarget">ExternalSecretTarget</a>,
 <a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
 </p>
 <p>
@@ -5376,7 +5406,8 @@ map[string]string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>,
+<a href="#provider.external-secrets.io/v2alpha1.Fake">Fake</a>)
 </p>
 <p>
 <p>FakeProvider configures a fake provider that returns static values.</p>
@@ -5468,7 +5499,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>,
 <a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
 </p>
 <p>
@@ -5676,7 +5707,7 @@ GCPWorkloadIdentityFederation
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>,
 <a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
@@ -5783,7 +5814,7 @@ Possible values are:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>,
 <a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
@@ -5854,7 +5885,7 @@ If not specified, it fetches information from the metadata server</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>,
 <a href="#generators.external-secrets.io/v1alpha1.GCPSMAuth">GCPSMAuth</a>)
 </p>
 <p>
@@ -6017,8 +6048,8 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
-<a href="#external-secrets.io/v1.StoreSourceRef">StoreSourceRef</a>, 
+<a href="#external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
+<a href="#external-secrets.io/v1.StoreSourceRef">StoreSourceRef</a>,
 <a href="#external-secrets.io/v1alpha1.PushSecretSelector">PushSecretSelector</a>)
 </p>
 <p>
@@ -7078,7 +7109,8 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>,
+<a href="#provider.external-secrets.io/v2alpha1.Kubernetes">Kubernetes</a>)
 </p>
 <p>
 <p>KubernetesProvider configures a store to sync secrets with a Kubernetes instance.</p>
@@ -8970,7 +9002,7 @@ string
 <h3 id="external-secrets.io/v1.Provider">Provider
 </h3>
 <p>
-<p>Provider is the Schema for the providers API</p>
+<p>Provider is the Schema for the providers API.</p>
 </p>
 <table>
 <thead>
@@ -9054,11 +9086,14 @@ ProviderStatus
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;ReadOnly&#34;</p></td>
-<td></td>
+<td><p>ProviderReadOnly indicates the provider supports read-only operations.</p>
+</td>
 </tr><tr><td><p>&#34;ReadWrite&#34;</p></td>
-<td></td>
+<td><p>ProviderReadWrite indicates the provider supports both read and write operations.</p>
+</td>
 </tr><tr><td><p>&#34;WriteOnly&#34;</p></td>
-<td></td>
+<td><p>ProviderWriteOnly indicates the provider supports write-only operations.</p>
+</td>
 </tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.ProviderCondition">ProviderCondition
@@ -9169,7 +9204,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>, 
+<a href="#external-secrets.io/v1.ClusterProviderSpec">ClusterProviderSpec</a>,
 <a href="#external-secrets.io/v1.ProviderSpec">ProviderSpec</a>)
 </p>
 <p>
@@ -9289,7 +9324,7 @@ If empty, assumes the same namespace as the Provider.</p>
 <a href="#external-secrets.io/v1.Provider">Provider</a>)
 </p>
 <p>
-<p>ProviderSpec defines the desired state of Provider</p>
+<p>ProviderSpec defines the desired state of Provider.</p>
 </p>
 <table>
 <thead>
@@ -9318,11 +9353,11 @@ ProviderConfig
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterProvider">ClusterProvider</a>, 
+<a href="#external-secrets.io/v1.ClusterProvider">ClusterProvider</a>,
 <a href="#external-secrets.io/v1.Provider">Provider</a>)
 </p>
 <p>
-<p>ProviderStatus defines the observed state of Provider</p>
+<p>ProviderStatus defines the observed state of Provider.</p>
 </p>
 <table>
 <thead>
@@ -10548,8 +10583,8 @@ NebiusMysteryboxProvider
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretSpec">ExternalSecretSpec</a>, 
-<a href="#external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretSpec">ExternalSecretSpec</a>,
+<a href="#external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
 <a href="#external-secrets.io/v1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
@@ -10593,7 +10628,7 @@ Defaults to <code>SecretStore</code></p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>, 
+<a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecretSpec">VaultDynamicSecretSpec</a>)
 </p>
 <p>
@@ -10633,7 +10668,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore</a>, 
+<a href="#external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore</a>,
 <a href="#external-secrets.io/v1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -10719,7 +10754,7 @@ int
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore</a>, 
+<a href="#external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore</a>,
 <a href="#external-secrets.io/v1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -10872,7 +10907,8 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>)
+<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>,
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManagerSpec">SecretsManagerSpec</a>)
 </p>
 <p>
 <p>SecretsManager defines how the provider behaves when interacting with AWS
@@ -11836,7 +11872,7 @@ VaultAwsJWTAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1.VaultAwsAuth">VaultAwsAuth</a>,
 <a href="#external-secrets.io/v1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -11901,7 +11937,7 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1.VaultAwsAuth">VaultAwsAuth</a>,
 <a href="#external-secrets.io/v1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -12623,7 +12659,7 @@ method</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>, 
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>,
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecretSpec">VaultDynamicSecretSpec</a>)
 </p>
 <p>
@@ -13329,7 +13365,7 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>,
 <a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
 </p>
 <p>
@@ -13363,7 +13399,7 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>,
 <a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
 </p>
 <p>
@@ -14093,7 +14129,7 @@ PushSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>,
 <a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
 </p>
 <p>
@@ -14605,7 +14641,7 @@ GeneratorRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterPushSecretSpec">ClusterPushSecretSpec</a>, 
+<a href="#external-secrets.io/v1alpha1.ClusterPushSecretSpec">ClusterPushSecretSpec</a>,
 <a href="#external-secrets.io/v1alpha1.PushSecret">PushSecret</a>)
 </p>
 <p>
@@ -14805,7 +14841,7 @@ Matches secret stores to PushSecretData that was stored to that secret store.</p
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterPushSecretStatus">ClusterPushSecretStatus</a>, 
+<a href="#external-secrets.io/v1alpha1.ClusterPushSecretStatus">ClusterPushSecretStatus</a>,
 <a href="#external-secrets.io/v1alpha1.PushSecretStatus">PushSecretStatus</a>)
 </p>
 <p>
@@ -14884,7 +14920,7 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>,
 <a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
 </p>
 <p>
@@ -14933,7 +14969,19 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Kind of the SecretStore resource (SecretStore or ClusterSecretStore)</p>
+<p>Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, or ClusterProvider)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIVersion of the SecretStore resource (external-secrets.io/v1 or secretstore.external-secrets.io/v2alpha1)</p>
 </td>
 </tr>
 </tbody>
@@ -16467,11 +16515,11 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
-<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
-<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>, 
-<a href="#external-secrets.io/v1beta1.GitlabProvider">GitlabProvider</a>, 
-<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>,
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>,
+<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>,
+<a href="#external-secrets.io/v1beta1.GitlabProvider">GitlabProvider</a>,
+<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>,
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -18285,7 +18333,7 @@ ExternalSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -18481,7 +18529,7 @@ The generator returns a static map of values</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
@@ -18578,7 +18626,7 @@ ExternalSecretDecodingStrategy
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -18942,7 +18990,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -19821,7 +19869,7 @@ If not specified, it fetches information from the metadata server</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
 <a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
@@ -21608,10 +21656,10 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.Provider">Provider
+<h3 id="external-secrets.io/v1beta1.ProviderInterface">ProviderInterface
 </h3>
 <p>
-<p>Provider is a common interface for interacting with secret backends.</p>
+<p>ProviderInterface is a common interface for interacting with secret backends.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.PulumiProvider">PulumiProvider
 </h3>
@@ -22646,8 +22694,8 @@ CloudruSMProvider
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
-<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>,
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
 <a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
@@ -22681,7 +22729,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+<p>Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
 Defaults to <code>SecretStore</code></p>
 </td>
 </tr>
@@ -22732,7 +22780,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -22818,7 +22866,7 @@ int
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -23885,7 +23933,7 @@ VaultAwsJWTAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>,
 <a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -23950,7 +23998,7 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>,
 <a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -25423,7 +25471,7 @@ PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.ACRAccessToken">ACRAccessToken</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.ACRAccessToken">ACRAccessToken</a>,
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -25575,7 +25623,7 @@ AzureACRWorkloadIdentityAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationTokenSpec">ECRAuthorizationTokenSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationTokenSpec">ECRAuthorizationTokenSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.STSSessionTokenSpec">STSSessionTokenSpec</a>)
 </p>
 <p>
@@ -25980,7 +26028,7 @@ External Secrets meta/v1.ServiceAccountSelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.CloudsmithAccessToken">CloudsmithAccessToken</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.CloudsmithAccessToken">CloudsmithAccessToken</a>,
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -26301,7 +26349,7 @@ Valid options are private and public.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationToken">ECRAuthorizationToken</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationToken">ECRAuthorizationToken</a>,
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -26443,7 +26491,7 @@ by this generator.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.Fake">Fake</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.Fake">Fake</a>,
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -26710,7 +26758,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GCRAccessToken">GCRAccessToken</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GCRAccessToken">GCRAccessToken</a>,
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -27430,7 +27478,7 @@ GithubAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.GithubAccessToken">GithubAccessToken</a>)
 </p>
 <p>
@@ -27831,7 +27879,7 @@ GrafanaStateServiceAccount
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.Grafana">Grafana</a>)
 </p>
 <p>
@@ -28043,7 +28091,7 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.MFA">MFA</a>)
 </p>
 <p>
@@ -28312,7 +28360,7 @@ Valid values are:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.Password">Password</a>)
 </p>
 <p>
@@ -28512,7 +28560,7 @@ External Secrets meta/v1.ServiceAccountSelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.QuayAccessToken">QuayAccessToken</a>)
 </p>
 <p>
@@ -28705,7 +28753,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.SSHKey">SSHKey</a>)
 </p>
 <p>
@@ -28861,7 +28909,7 @@ RequestParameters
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.STSSessionToken">STSSessionToken</a>)
 </p>
 <p>
@@ -28933,8 +28981,8 @@ RequestParameters
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GrafanaAuth">GrafanaAuth</a>, 
-<a href="#generators.external-secrets.io/v1alpha1.GrafanaBasicAuth">GrafanaBasicAuth</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GrafanaAuth">GrafanaAuth</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GrafanaBasicAuth">GrafanaBasicAuth</a>,
 <a href="#generators.external-secrets.io/v1alpha1.WebhookSecret">WebhookSecret</a>)
 </p>
 <p>
@@ -29026,7 +29074,7 @@ UUIDSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.UUID">UUID</a>)
 </p>
 <p>
@@ -29225,7 +29273,7 @@ bool
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecret">VaultDynamicSecret</a>)
 </p>
 <p>
@@ -29705,7 +29753,7 @@ SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
 <a href="#generators.external-secrets.io/v1alpha1.Webhook">Webhook</a>)
 </p>
 <p>
@@ -29848,6 +29896,615 @@ WebhookCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate webhook server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2 id="provider.external-secrets.io/v2alpha1">provider.external-secrets.io/v2alpha1</h2>
+<p>
+<p>Package v2alpha1 contains API Schema definitions for the AWS provider v2alpha1 API group.</p>
+</p>
+Resource Types:
+<ul></ul>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretsManager">SecretsManager
+</h3>
+<p>
+<p>SecretsManager is the Schema for AWS Secrets Manager provider configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManagerSpec">
+SecretsManagerSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against AWS
+if not set aws sdk will infer credentials from your environment
+see: <a href="https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials">https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is a Role ARN which the provider will assume</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS Region to be used for the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalRoles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTags</code></br>
+<em>
+<a href="#external-secrets.io/v1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role session tags</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretsManager</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretsManager">
+SecretsManager
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretsManager defines how the provider behaves when interacting with AWS SecretsManager</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transitiveTagKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix adds a prefix to all retrieved values.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManagerStatus">
+SecretsManagerStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretsManagerSpec">SecretsManagerSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManager">SecretsManager</a>)
+</p>
+<p>
+<p>SecretsManagerSpec defines the desired state of SecretsManager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against AWS
+if not set aws sdk will infer credentials from your environment
+see: <a href="https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials">https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is a Role ARN which the provider will assume</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS Region to be used for the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalRoles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTags</code></br>
+<em>
+<a href="#external-secrets.io/v1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role session tags</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretsManager</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretsManager">
+SecretsManager
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretsManager defines how the provider behaves when interacting with AWS SecretsManager</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transitiveTagKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix adds a prefix to all retrieved values.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretsManagerStatus">SecretsManagerStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretsManager">SecretsManager</a>)
+</p>
+<p>
+<p>SecretsManagerStatus defines the observed state of SecretsManager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions represent the latest available observations of the resource&rsquo;s state.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.Fake">Fake
+</h3>
+<p>
+<p>Fake defines the configuration for the Fake provider.
+This provider returns static key-value pairs for testing purposes.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1.FakeProvider">
+FakeProvider
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+<a href="#external-secrets.io/v1.FakeProviderData">
+[]FakeProviderData
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>validationResult</code></br>
+<em>
+<a href="#external-secrets.io/v1.ValidationResult">
+ValidationResult
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.FakeProviderData">FakeProviderData
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.FakeProviderSpec">FakeProviderSpec</a>)
+</p>
+<p>
+<p>FakeProviderData defines a key-value pair with optional version.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Key is the secret key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Value is the secret value.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Version is an optional version identifier.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.FakeProviderSpec">FakeProviderSpec
+</h3>
+<p>
+<p>FakeProviderSpec defines the desired state of Fake provider.
+It matches the structure of v1.FakeProvider for easy conversion.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.FakeProviderData">
+[]FakeProviderData
+</a>
+</em>
+</td>
+<td>
+<p>Data defines the static key-value pairs to return.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>validationResult</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ValidationResult optionally specifies the validation result for testing.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.Kubernetes">Kubernetes
+</h3>
+<p>
+<p>Kubernetes defines the configuration for the Kubernetes Secret provider.
+This provider fetches secrets from Kubernetes Secrets in the same cluster.
+It&rsquo;s primarily useful for testing and migration scenarios.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesProvider">
+KubernetesProvider
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesServer">
+KubernetesServer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>configures the Kubernetes server Address.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesAuth">
+KubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth configures how secret-manager authenticates with a Kubernetes instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A reference to a secret that contains the auth information.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>remoteNamespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Remote namespace to fetch the secrets from</p>
+</td>
+</tr>
+</table>
 </td>
 </tr>
 </tbody>

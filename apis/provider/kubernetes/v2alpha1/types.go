@@ -18,8 +18,9 @@ limitations under the License.
 package v2alpha1
 
 import (
-	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // Kubernetes defines the configuration for the Kubernetes Secret provider.
