@@ -28,20 +28,28 @@ import (
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 )
 
+const (
+	testBackendName                = "backend"
+	testSourceRemoteNamespace      = "remote-from-source-namespace"
+	testProviderConfigNamespace    = "provider-config-ns"
+	testProviderRefRemoteNamespace = "remote-from-provider-ref"
+	testManifestSourceNamespace    = "tenant-a"
+)
+
 func TestGetSpecMapperUsesProviderRefNamespaceBeforeSourceNamespace(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1.AddToScheme(scheme))
 	utilruntime.Must(k8sv2alpha1.AddToScheme(scheme))
 
 	referenced := &k8sv2alpha1.Kubernetes{}
-	referenced.Name = "backend"
-	referenced.Namespace = "provider-config-ns"
-	referenced.Spec.RemoteNamespace = "remote-from-provider-ref"
+	referenced.Name = testBackendName
+	referenced.Namespace = testProviderConfigNamespace
+	referenced.Spec.RemoteNamespace = testProviderRefRemoteNamespace
 
 	fallback := &k8sv2alpha1.Kubernetes{}
-	fallback.Name = "backend"
-	fallback.Namespace = "tenant-a"
-	fallback.Spec.RemoteNamespace = "remote-from-source-namespace"
+	fallback.Name = testBackendName
+	fallback.Namespace = testManifestSourceNamespace
+	fallback.Spec.RemoteNamespace = testSourceRemoteNamespace
 
 	kubeClient := fakeclient.NewClientBuilder().
 		WithScheme(scheme).
@@ -51,9 +59,9 @@ func TestGetSpecMapperUsesProviderRefNamespaceBeforeSourceNamespace(t *testing.T
 	mapper := GetSpecMapper(kubeClient)
 
 	spec, err := mapper(&pb.ProviderReference{
-		Name:      "backend",
-		Namespace: "provider-config-ns",
-	}, "tenant-a")
+		Name:      testBackendName,
+		Namespace: testProviderConfigNamespace,
+	}, testManifestSourceNamespace)
 	if err != nil {
 		t.Fatalf("mapper() error = %v", err)
 	}
@@ -61,7 +69,7 @@ func TestGetSpecMapperUsesProviderRefNamespaceBeforeSourceNamespace(t *testing.T
 	if spec.Provider == nil || spec.Provider.Kubernetes == nil {
 		t.Fatalf("expected kubernetes provider spec, got %#v", spec.Provider)
 	}
-	if spec.Provider.Kubernetes.RemoteNamespace != "remote-from-provider-ref" {
+	if spec.Provider.Kubernetes.RemoteNamespace != testProviderRefRemoteNamespace {
 		t.Fatalf("expected provider-ref namespace object, got %#v", spec.Provider.Kubernetes)
 	}
 }
@@ -72,9 +80,9 @@ func TestGetSpecMapperFallsBackToSourceNamespace(t *testing.T) {
 	utilruntime.Must(k8sv2alpha1.AddToScheme(scheme))
 
 	fallback := &k8sv2alpha1.Kubernetes{}
-	fallback.Name = "backend"
-	fallback.Namespace = "tenant-a"
-	fallback.Spec.RemoteNamespace = "remote-from-source-namespace"
+	fallback.Name = testBackendName
+	fallback.Namespace = testManifestSourceNamespace
+	fallback.Spec.RemoteNamespace = testSourceRemoteNamespace
 
 	kubeClient := fakeclient.NewClientBuilder().
 		WithScheme(scheme).
@@ -84,8 +92,8 @@ func TestGetSpecMapperFallsBackToSourceNamespace(t *testing.T) {
 	mapper := GetSpecMapper(kubeClient)
 
 	spec, err := mapper(&pb.ProviderReference{
-		Name: "backend",
-	}, "tenant-a")
+		Name: testBackendName,
+	}, testManifestSourceNamespace)
 	if err != nil {
 		t.Fatalf("mapper() error = %v", err)
 	}
@@ -93,7 +101,7 @@ func TestGetSpecMapperFallsBackToSourceNamespace(t *testing.T) {
 	if spec.Provider == nil || spec.Provider.Kubernetes == nil {
 		t.Fatalf("expected kubernetes provider spec, got %#v", spec.Provider)
 	}
-	if spec.Provider.Kubernetes.RemoteNamespace != "remote-from-source-namespace" {
+	if spec.Provider.Kubernetes.RemoteNamespace != testSourceRemoteNamespace {
 		t.Fatalf("expected source namespace object, got %#v", spec.Provider.Kubernetes)
 	}
 }
