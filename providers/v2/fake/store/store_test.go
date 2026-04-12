@@ -27,7 +27,6 @@ import (
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -191,7 +190,7 @@ func TestGetAllSecrets(t *testing.T) {
 			desc: "unsupported operator",
 			data: []esv1.FakeProviderData{},
 			ref: esv1.ExternalSecretFind{
-				Path: ptr.To("some-path"),
+				Path: new(string),
 			},
 			expectedErr: "unsupported find operator",
 		},
