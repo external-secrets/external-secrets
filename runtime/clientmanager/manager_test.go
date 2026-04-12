@@ -879,8 +879,8 @@ func TestGetV2ProviderInvalidatesGenerationCacheAndReleasesPoolReferences(t *tes
 
 	provider := &esv1.Provider{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "provider",
-			Namespace: manifestNamespace,
+			Name:       "provider",
+			Namespace:  manifestNamespace,
 			Generation: 1,
 		},
 		Spec: esv1.ProviderSpec{
@@ -1193,9 +1193,7 @@ func installGlobalV2ConnectionPoolForTest(t *testing.T) *prometheus.Registry {
 		HealthCheckInterval: 10 * time.Millisecond,
 	})
 
-	var once sync.Once
-	once.Do(func() {})
-	globalV2ConnectionPoolOnce = once
+	globalV2ConnectionPoolOnce.Do(func() {})
 
 	registry := prometheus.NewRegistry()
 	require.NoError(t, providergrpc.RegisterMetrics(registry))
