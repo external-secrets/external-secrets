@@ -28,6 +28,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/chef => ./providers/v1/chef
 	github.com/external-secrets/external-secrets/providers/v1/cloudru => ./providers/v1/cloudru
 	github.com/external-secrets/external-secrets/providers/v1/conjur => ./providers/v1/conjur
+	github.com/external-secrets/external-secrets/providers/v1/crd => ./providers/v1/crd
 	github.com/external-secrets/external-secrets/providers/v1/delinea => ./providers/v1/delinea
 	github.com/external-secrets/external-secrets/providers/v1/doppler => ./providers/v1/doppler
 	github.com/external-secrets/external-secrets/providers/v1/dvls => ./providers/v1/dvls
@@ -142,6 +143,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/chef v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/cloudru v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/conjur v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/crd v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/dvls v0.0.0-00010101000000-000000000000
