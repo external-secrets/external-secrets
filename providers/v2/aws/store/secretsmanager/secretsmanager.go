@@ -35,7 +35,6 @@ import (
 	"github.com/tidwall/sjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -494,9 +493,8 @@ func (sm *SecretsManager) retrievePayload(secretOut *awssm.GetSecretValueOutput)
 
 func (sm *SecretsManager) escapeDotsIfRequired(currentRefProperty, payload string) string {
 	// We need to search if a given key with a . exists before using gjson operations.
-	idx := strings.Index(currentRefProperty, ".")
 	refProperty := currentRefProperty
-	if idx > -1 {
+	if strings.Contains(currentRefProperty, ".") {
 		refProperty = strings.ReplaceAll(currentRefProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if !val.Exists() {
@@ -566,8 +564,8 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 
 	for k, v := range mdata.Spec.Tags {
 		tags = append(tags, types.Tag{
-			Key:   utilpointer.To(k),
-			Value: utilpointer.To(v),
+			Key:   new(k),
+			Value: new(v),
 		})
 	}
 
@@ -575,9 +573,9 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		Name:               &secretName,
 		SecretBinary:       value,
 		Tags:               tags,
-		Description:        utilpointer.To(mdata.Spec.Description),
-		ClientRequestToken: utilpointer.To(initialVersion),
-		KmsKeyId:           utilpointer.To(mdata.Spec.KMSKeyID),
+		Description:        new(mdata.Spec.Description),
+		ClientRequestToken: new(initialVersion),
+		KmsKeyId:           new(mdata.Spec.KMSKeyID),
 	}
 	if mdata.Spec.SecretPushFormat == SecretPushFormatString {
 		input.SecretBinary = nil
@@ -758,8 +756,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, key, ver str
 	}
 
 	var getSecretValueInput *awssm.GetSecretValueInput
-	if strings.HasPrefix(ver, "uuid/") {
-		versionID := strings.TrimPrefix(ver, "uuid/")
+	if versionID, ok := strings.CutPrefix(ver, "uuid/"); ok {
 		getSecretValueInput = &awssm.GetSecretValueInput{
 			SecretId:  &key,
 			VersionId: &versionID,
@@ -959,8 +956,8 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
 			}
 		}
 		result = append(result, types.Tag{
-			Key:   utilpointer.To(k),
-			Value: utilpointer.To(v),
+			Key:   new(k),
+			Value: new(v),
 		})
 	}
 	return result, modified

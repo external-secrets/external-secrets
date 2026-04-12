@@ -49,9 +49,9 @@ type ecrPublicAPI interface {
 type ECRGenerator struct{}
 
 const (
-	errECRNoSpec          = "no config spec provided"
-	errECRParseSpec       = "unable to parse spec: %w"
-	errECRCreateSess      = "unable to create aws session: %w"
+	errECRNoSpec       = "no config spec provided"
+	errECRParseSpec    = "unable to parse spec: %w"
+	errECRCreateSess   = "unable to create aws session: %w"
 	errGetPrivateToken = "unable to get authorization token: %w"
 	errGetPublicToken  = "unable to get public authorization token: %w"
 )
