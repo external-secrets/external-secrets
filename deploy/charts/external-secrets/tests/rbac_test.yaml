@@ -66,3 +66,10 @@ tests:
       - equal:
           path: subjects[0].namespace
           value: NAMESPACE
+
+  - it: should configure custom lease name when leaderElectionID is set
+    set:
+      leaderElectionID: "custom-eso-lease"
+      scopedRBAC: true
+    asserts:
+      - matchSnapshot: {}

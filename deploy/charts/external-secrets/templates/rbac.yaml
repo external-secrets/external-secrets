@@ -382,7 +382,7 @@ rules:
     resources:
     - "configmaps"
     resourceNames:
-    - "external-secrets-controller"
+    - {{ default "external-secrets-controller" .Values.leaderElectionID | quote }}
     verbs:
     - "get"
     - "update"
