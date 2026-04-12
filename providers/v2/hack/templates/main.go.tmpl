@@ -121,7 +121,7 @@ func main() {
 
 	{{- if .HasGenerators}}
 	// Setup v1 generator(s)
-	generatorMapping := adaptergenerator.GeneratorMapping{
+	generatorMapping := adaptergenerator.Mapping{
 		{{- range $idx, $gen := .Generators}}
 		schema.GroupVersionKind{
 			Group:   "{{$gen.GVK.Group}}",
