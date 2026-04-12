@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package server provides gRPC server infrastructure for v2 providers.
 package server
 
 import (
@@ -28,21 +29,21 @@ import (
 )
 
 const (
-	// DefaultMetricsPort is the default port for the HTTP metrics server
+	// DefaultMetricsPort is the default port for the HTTP metrics server.
 	DefaultMetricsPort = 8081
-	// DefaultMetricsPath is the default path for the metrics endpoint
+	// DefaultMetricsPath is the default path for the metrics endpoint.
 	DefaultMetricsPath = "/metrics"
 )
 
 var metricsLog = ctrl.Log.WithName("metrics-server")
 
-// MetricsServer serves Prometheus metrics via HTTP
+// MetricsServer serves Prometheus metrics via HTTP.
 type MetricsServer struct {
 	server   *http.Server
 	registry *prometheus.Registry
 }
 
-// NewMetricsServer creates a new HTTP metrics server
+// NewMetricsServer creates a new HTTP metrics server.
 func NewMetricsServer(port int, registry *prometheus.Registry) *MetricsServer {
 	if registry == nil {
 		registry = prometheus.NewRegistry()
@@ -54,9 +55,11 @@ func NewMetricsServer(port int, registry *prometheus.Registry) *MetricsServer {
 	}))
 
 	// Add health check endpoint
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		if _, err := w.Write([]byte("ok")); err != nil {
+			metricsLog.Error(err, "failed to write health response")
+		}
 	})
 
 	server := &http.Server{
@@ -74,7 +77,7 @@ func NewMetricsServer(port int, registry *prometheus.Registry) *MetricsServer {
 	}
 }
 
-// Start starts the HTTP metrics server
+// Start starts the HTTP metrics server.
 func (m *MetricsServer) Start(ctx context.Context) error {
 	metricsLog.Info("Starting metrics server", "addr", m.server.Addr, "path", DefaultMetricsPath)
 
@@ -101,8 +104,7 @@ func (m *MetricsServer) Start(ctx context.Context) error {
 	}
 }
 
-// GetRegistry returns the Prometheus registry
+// GetRegistry returns the Prometheus registry.
 func (m *MetricsServer) GetRegistry() *prometheus.Registry {
 	return m.registry
 }
-
