@@ -37,32 +37,36 @@ import (
 //go:embed schema/provider-config.schema.json templates/*.tmpl
 var embeddedFS embed.FS
 
+type providerMetadata struct {
+	Name        string `yaml:"name"        json:"name"`
+	DisplayName string `yaml:"displayName" json:"displayName"`
+	V2Package   string `yaml:"v2Package"   json:"v2Package"`
+}
+
+type gvkConfig struct {
+	Group   string `yaml:"group"   json:"group"`
+	Version string `yaml:"version" json:"version"`
+	Kind    string `yaml:"kind"    json:"kind"`
+}
+
+type storeConfig struct {
+	GVK            gvkConfig `yaml:"gvk"            json:"gvk"`
+	V1Provider     string    `yaml:"v1Provider"     json:"v1Provider"`
+	V1ProviderFunc string    `yaml:"v1ProviderFunc" json:"v1ProviderFunc"`
+}
+
+type generatorConfig struct {
+	GVK             gvkConfig `yaml:"gvk"             json:"gvk"`
+	V1Generator     string    `yaml:"v1Generator"     json:"v1Generator"`
+	V1GeneratorFunc string    `yaml:"v1GeneratorFunc" json:"v1GeneratorFunc"`
+}
+
 // ProviderConfig represents the structure of provider.yaml.
 type ProviderConfig struct {
-	Provider struct {
-		Name        string `yaml:"name" json:"name"`
-		DisplayName string `yaml:"displayName" json:"displayName"`
-		V2Package   string `yaml:"v2Package" json:"v2Package"`
-	} `yaml:"provider" json:"provider"`
-	Stores []struct {
-		GVK struct {
-			Group   string `yaml:"group" json:"group"`
-			Version string `yaml:"version" json:"version"`
-			Kind    string `yaml:"kind" json:"kind"`
-		} `yaml:"gvk" json:"gvk"`
-		V1Provider     string `yaml:"v1Provider" json:"v1Provider"`
-		V1ProviderFunc string `yaml:"v1ProviderFunc" json:"v1ProviderFunc"`
-	} `yaml:"stores" json:"stores"`
-	Generators []struct {
-		GVK struct {
-			Group   string `yaml:"group" json:"group"`
-			Version string `yaml:"version" json:"version"`
-			Kind    string `yaml:"kind" json:"kind"`
-		} `yaml:"gvk" json:"gvk"`
-		V1Generator     string `yaml:"v1Generator" json:"v1Generator"`
-		V1GeneratorFunc string `yaml:"v1GeneratorFunc" json:"v1GeneratorFunc"`
-	} `yaml:"generators" json:"generators"`
-	ConfigPackage string `yaml:"configPackage" json:"configPackage"`
+	Provider      providerMetadata  `yaml:"provider"      json:"provider"`
+	Stores        []storeConfig     `yaml:"stores"        json:"stores"`
+	Generators    []generatorConfig `yaml:"generators"    json:"generators"`
+	ConfigPackage string            `yaml:"configPackage" json:"configPackage"`
 }
 
 // ImportInfo tracks package imports with aliases.
@@ -230,6 +234,7 @@ func findProviderConfigs(baseDir string) ([]string, error) {
 
 func loadAndValidateConfig(configPath string, schemaLoader gojsonschema.JSONLoader) (*ProviderConfig, error) {
 	// Read YAML file
+	//nolint:gosec // configPath comes from controlled provider config discovery under providers-dir.
 	yamlBytes, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("read file: %w", err)
@@ -357,7 +362,7 @@ func generateImportAlias(importPath string, seenImports map[string]int) string {
 	return lastPart
 }
 
-func executeTemplate(tmpl *template.Template, data interface{}) ([]byte, error) {
+func executeTemplate(tmpl *template.Template, data any) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return nil, err
@@ -394,4 +399,3 @@ func formatGoCode(code []byte) ([]byte, error) {
 
 	return out.Bytes(), nil
 }
-
