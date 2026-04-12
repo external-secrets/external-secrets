@@ -52,6 +52,13 @@ type pushsecretRecordingProviderServer struct {
 	deleteRequest *pb.DeleteSecretRequest
 }
 
+const (
+	pushSecretManifestNamespace = "tenant-a"
+	pushSecretRemoteKey         = "remote/path"
+	pushSecretProperty          = "property"
+	pushSecretSecretKey         = "token"
+)
+
 func (s *pushsecretRecordingProviderServer) PushSecret(_ context.Context, req *pb.PushSecretRequest) (*pb.PushSecretResponse, error) {
 	s.pushRequest = req
 	return &pb.PushSecretResponse{}, nil
@@ -225,10 +232,10 @@ func TestPushSecretToProvidersV2UsesProviderPath(t *testing.T) {
 			}},
 			Data: []esapi.PushSecretData{{
 				Match: esapi.PushSecretMatch{
-					SecretKey: "token",
+					SecretKey: pushSecretSecretKey,
 					RemoteRef: esapi.PushSecretRemoteRef{
-						RemoteKey: "remote/path",
-						Property:  "property",
+						RemoteKey: pushSecretRemoteKey,
+						Property:  pushSecretProperty,
 					},
 				},
 				Metadata: &apiextensionsv1.JSON{Raw: []byte(`{"owner":"eso"}`)},
@@ -237,10 +244,10 @@ func TestPushSecretToProvidersV2UsesProviderPath(t *testing.T) {
 	}
 
 	secret := &corev1.Secret{
-		Data: map[string][]byte{"token": []byte("value")},
+		Data: map[string][]byte{pushSecretSecretKey: []byte("value")},
 	}
 
-	synced, err := r.PushSecretToProvidersV2(context.Background(), map[esapi.PushSecretStoreRef]interface{}{
+	synced, err := r.PushSecretToProvidersV2(context.Background(), map[esapi.PushSecretStoreRef]any{
 		{Name: "provider", Kind: esv1.ProviderKindStr}: provider,
 	}, ps, secret, mgr)
 	if err != nil {
@@ -250,22 +257,22 @@ func TestPushSecretToProvidersV2UsesProviderPath(t *testing.T) {
 	if server.pushRequest == nil {
 		t.Fatal("expected push request to be recorded")
 	}
-	if server.pushRequest.SourceNamespace != "tenant-a" {
+	if server.pushRequest.SourceNamespace != pushSecretManifestNamespace {
 		t.Fatalf("unexpected source namespace: %q", server.pushRequest.SourceNamespace)
 	}
 	if server.pushRequest.ProviderRef == nil || server.pushRequest.ProviderRef.Name != "backend" {
 		t.Fatalf("unexpected provider ref: %#v", server.pushRequest.ProviderRef)
 	}
-	if string(server.pushRequest.SecretData["token"]) != "value" {
+	if string(server.pushRequest.SecretData[pushSecretSecretKey]) != "value" {
 		t.Fatalf("unexpected secret data: %#v", server.pushRequest.SecretData)
 	}
-	if server.pushRequest.PushSecretData == nil || server.pushRequest.PushSecretData.RemoteKey != "remote/path" || server.pushRequest.PushSecretData.Property != "property" {
+	if server.pushRequest.PushSecretData == nil || server.pushRequest.PushSecretData.RemoteKey != pushSecretRemoteKey || server.pushRequest.PushSecretData.Property != pushSecretProperty {
 		t.Fatalf("unexpected push payload: %#v", server.pushRequest.PushSecretData)
 	}
 	if string(server.pushRequest.PushSecretData.Metadata) != `{"owner":"eso"}` {
 		t.Fatalf("unexpected metadata: %q", string(server.pushRequest.PushSecretData.Metadata))
 	}
-	if synced["Provider/provider"]["remote/path/property"].Match.SecretKey != "token" {
+	if synced["Provider/provider"]["remote/path/property"].Match.SecretKey != pushSecretSecretKey {
 		t.Fatalf("unexpected synced map: %#v", synced)
 	}
 }
@@ -283,7 +290,7 @@ func TestPushSecretToProvidersV2UsesProviderPathWhenKindOmitted(t *testing.T) {
 	provider := &esv1.Provider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "provider",
-			Namespace: "tenant-a",
+			Namespace: pushSecretManifestNamespace,
 			Labels:    map[string]string{"team": "a"},
 		},
 		Spec: esv1.ProviderSpec{
@@ -303,7 +310,7 @@ func TestPushSecretToProvidersV2UsesProviderPathWhenKindOmitted(t *testing.T) {
 		WithObjects(provider, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "external-secrets-provider-tls",
-				Namespace: "tenant-a",
+				Namespace: pushSecretManifestNamespace,
 			},
 			Data: tlsSecret,
 		}).
@@ -341,7 +348,7 @@ func TestPushSecretToProvidersV2UsesProviderPathWhenKindOmitted(t *testing.T) {
 		Data: map[string][]byte{"token": []byte("value")},
 	}
 
-	synced, err := r.PushSecretToProvidersV2(context.Background(), map[esapi.PushSecretStoreRef]interface{}{
+	synced, err := r.PushSecretToProvidersV2(context.Background(), map[esapi.PushSecretStoreRef]any{
 		{Name: "provider"}: provider,
 	}, ps, secret, mgr)
 	if err != nil {
@@ -444,7 +451,7 @@ func TestPushSecretToProvidersV2UsesProviderNamespaceAuthScope(t *testing.T) {
 		Data: map[string][]byte{"token": []byte("value")},
 	}
 
-	synced, err := r.PushSecretToProvidersV2(context.Background(), map[esapi.PushSecretStoreRef]interface{}{
+	synced, err := r.PushSecretToProvidersV2(context.Background(), map[esapi.PushSecretStoreRef]any{
 		{Name: "cluster-provider", Kind: esv1.ClusterProviderKindStr}: clusterProvider,
 	}, ps, secret, mgr)
 	if err != nil {
@@ -539,7 +546,7 @@ func TestDeleteSecretFromProvidersV2UsesClusterProviderPath(t *testing.T) {
 		},
 	}
 
-	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]interface{}{
+	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]any{
 		{Name: "cluster-provider", Kind: esv1.ClusterProviderKindStr}: clusterProvider,
 	})
 	if err != nil {
@@ -549,10 +556,10 @@ func TestDeleteSecretFromProvidersV2UsesClusterProviderPath(t *testing.T) {
 	if server.deleteRequest == nil {
 		t.Fatal("expected delete request to be recorded")
 	}
-	if server.deleteRequest.SourceNamespace != "tenant-a" {
+	if server.deleteRequest.SourceNamespace != pushSecretManifestNamespace {
 		t.Fatalf("unexpected source namespace: %q", server.deleteRequest.SourceNamespace)
 	}
-	if server.deleteRequest.RemoteRef == nil || server.deleteRequest.RemoteRef.RemoteKey != "remote/path" || server.deleteRequest.RemoteRef.Property != "property" {
+	if server.deleteRequest.RemoteRef == nil || server.deleteRequest.RemoteRef.RemoteKey != pushSecretRemoteKey || server.deleteRequest.RemoteRef.Property != pushSecretProperty {
 		t.Fatalf("unexpected delete ref: %#v", server.deleteRequest.RemoteRef)
 	}
 	if _, ok := result["ClusterProvider/cluster-provider"]; ok {
@@ -634,7 +641,7 @@ func TestDeleteSecretFromProvidersV2UsesClusterProviderPathWhenKindOmitted(t *te
 		},
 	}
 
-	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]interface{}{
+	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]any{
 		{Name: "cluster-provider"}: clusterProvider,
 	})
 	if err != nil {
@@ -824,7 +831,7 @@ func TestDeleteSecretFromProvidersV2DeletesRemovedStoreEvenWhenNoLongerReference
 		},
 	}
 
-	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]interface{}{})
+	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]any{})
 	if err != nil {
 		t.Fatalf("DeleteSecretFromProvidersV2() error = %v", err)
 	}
@@ -918,7 +925,7 @@ func TestDeleteSecretFromProvidersV2UsesProviderNamespaceAuthScope(t *testing.T)
 		},
 	}
 
-	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]interface{}{
+	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, esapi.SyncedPushSecretsMap{}, map[esapi.PushSecretStoreRef]any{
 		{Name: "cluster-provider", Kind: esv1.ClusterProviderKindStr}: clusterProvider,
 	})
 	if err != nil {
@@ -1027,7 +1034,7 @@ func TestDeleteSecretFromProvidersV2DeletesOnlyRemovedEntriesForManifestScope(t 
 		},
 	}
 
-	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, newMap, map[esapi.PushSecretStoreRef]interface{}{
+	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, newMap, map[esapi.PushSecretStoreRef]any{
 		{Name: "cluster-provider", Kind: esv1.ClusterProviderKindStr}: clusterProvider,
 	})
 	if err != nil {
@@ -1151,7 +1158,7 @@ func TestDeleteSecretFromProvidersV2DeletesOnlyRemovedEntriesForProviderNamespac
 		},
 	}
 
-	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, newMap, map[esapi.PushSecretStoreRef]interface{}{
+	result, err := r.DeleteSecretFromProvidersV2(context.Background(), ps, newMap, map[esapi.PushSecretStoreRef]any{
 		{Name: "cluster-provider", Kind: esv1.ClusterProviderKindStr}: clusterProvider,
 	})
 	if err != nil {

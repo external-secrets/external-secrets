@@ -104,4 +104,3 @@ func UpdateStatusCondition(clusterProvider *esapi.ClusterProvider, condition esa
 		string(condition.Status),
 	).Set(1)
 }
-

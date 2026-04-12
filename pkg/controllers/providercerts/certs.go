@@ -26,6 +26,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"slices"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -440,14 +441,7 @@ func (r *ProviderCertReconciler) validProviderCert(caCert, cert, key []byte, dns
 
 	// Check DNS names are present
 	for _, dnsName := range dnsNames {
-		found := false
-		for _, certDNS := range certParsed.DNSNames {
-			if certDNS == dnsName {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(certParsed.DNSNames, dnsName) {
 			return false
 		}
 	}
