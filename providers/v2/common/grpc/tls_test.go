@@ -17,6 +17,7 @@ limitations under the License.
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -37,6 +38,8 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+const testLoopbackAddress = "127.0.0.1"
 
 func TestNamespaceFromAddress(t *testing.T) {
 	testCases := []struct {
@@ -59,9 +62,9 @@ func TestNamespaceFromAddress(t *testing.T) {
 		},
 		{
 			name:     "non_service_address_uses_fallback",
-			address:  "127.0.0.1:9443",
-			fallback: "tenant-a",
-			expected: "tenant-a",
+			address:  testLoopbackAddress + ":9443",
+			fallback: testSourceNamespace,
+			expected: testSourceNamespace,
 		},
 	}
 
@@ -93,7 +96,7 @@ func TestResolveTLSSecretNamespace(t *testing.T) {
 		},
 		{
 			name:                 "auth_namespace_used_before_other_fallbacks",
-			address:              "127.0.0.1:9443",
+			address:              testLoopbackAddress + ":9443",
 			authNamespace:        "auth-ns",
 			resourceNamespace:    "resource-ns",
 			providerRefNamespace: "provider-ref-ns",
@@ -101,14 +104,14 @@ func TestResolveTLSSecretNamespace(t *testing.T) {
 		},
 		{
 			name:                 "resource_namespace_used_before_provider_ref_namespace",
-			address:              "127.0.0.1:9443",
+			address:              testLoopbackAddress + ":9443",
 			resourceNamespace:    "resource-ns",
 			providerRefNamespace: "provider-ref-ns",
 			expected:             "resource-ns",
 		},
 		{
 			name:                 "provider_ref_namespace_is_final_fallback",
-			address:              "127.0.0.1:9443",
+			address:              testLoopbackAddress + ":9443",
 			providerRefNamespace: "provider-ref-ns",
 			expected:             "provider-ref-ns",
 		},
@@ -125,7 +128,7 @@ func TestResolveTLSSecretNamespace(t *testing.T) {
 
 func TestLoadClientTLSConfig(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		serverName := "127.0.0.1"
+		serverName := testLoopbackAddress
 		_, _, clientCertPEM, clientKeyPEM, caCertPEM := newTLSArtifactsForTest(t, serverName)
 		kubeClient := newTLSSecretClient(t, map[string][]byte{
 			"ca.crt":     caCertPEM,
@@ -133,12 +136,12 @@ func TestLoadClientTLSConfig(t *testing.T) {
 			"client.key": clientKeyPEM,
 		})
 
-		cfg, err := LoadClientTLSConfig(context.Background(), kubeClient, "127.0.0.1:9443", "tenant-a")
+		cfg, err := LoadClientTLSConfig(context.Background(), kubeClient, testLoopbackAddress+":9443", testSourceNamespace)
 		if err != nil {
 			t.Fatalf("LoadClientTLSConfig() error = %v", err)
 		}
 
-		if string(cfg.CACert) != string(caCertPEM) || string(cfg.ClientCert) != string(clientCertPEM) || string(cfg.ClientKey) != string(clientKeyPEM) {
+		if !bytes.Equal(cfg.CACert, caCertPEM) || !bytes.Equal(cfg.ClientCert, clientCertPEM) || !bytes.Equal(cfg.ClientKey, clientKeyPEM) {
 			t.Fatalf("unexpected tls config: %#v", cfg)
 		}
 		if cfg.ServerName != serverName {
@@ -154,7 +157,7 @@ func TestLoadClientTLSConfig(t *testing.T) {
 			WithScheme(scheme).
 			Build()
 
-		_, err := LoadClientTLSConfig(context.Background(), kubeClient, "127.0.0.1:9443", "tenant-a")
+		_, err := LoadClientTLSConfig(context.Background(), kubeClient, testLoopbackAddress+":9443", testSourceNamespace)
 		if err == nil || err.Error() == "" {
 			t.Fatalf("expected missing secret error, got %v", err)
 		}
@@ -165,7 +168,7 @@ func TestLoadClientTLSConfig(t *testing.T) {
 			"ca.crt": []byte("ca"),
 		})
 
-		_, err := LoadClientTLSConfig(context.Background(), kubeClient, "127.0.0.1:9443", "tenant-a")
+		_, err := LoadClientTLSConfig(context.Background(), kubeClient, testLoopbackAddress+":9443", testSourceNamespace)
 		if err == nil || err.Error() != "client.crt not found or empty in secret external-secrets-provider-tls" {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -174,7 +177,7 @@ func TestLoadClientTLSConfig(t *testing.T) {
 
 func TestTLSConfigToGRPCTLSConfig(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		serverName := "127.0.0.1"
+		serverName := testLoopbackAddress
 		_, _, clientCertPEM, clientKeyPEM, caCertPEM := newTLSArtifactsForTest(t, serverName)
 
 		cfg, err := (&TLSConfig{
@@ -213,7 +216,7 @@ func TestTLSConfigToGRPCTLSConfig(t *testing.T) {
 	})
 
 	t.Run("invalid_ca", func(t *testing.T) {
-		serverName := "127.0.0.1"
+		serverName := testLoopbackAddress
 		_, _, clientCertPEM, clientKeyPEM, _ := newTLSArtifactsForTest(t, serverName)
 
 		_, err := (&TLSConfig{
@@ -237,7 +240,7 @@ func newTLSSecretClient(t *testing.T, data map[string][]byte) ctrlclient.Client 
 	return fakeclient.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(&corev1.Secret{
-			ObjectMeta: metav1ForTLS("external-secrets-provider-tls", "tenant-a"),
+			ObjectMeta: metav1ForTLS("external-secrets-provider-tls", testSourceNamespace),
 			Data:       data,
 		}).
 		Build()
