@@ -43,14 +43,14 @@ type Server struct {
 
 	// we support multiple v1 generators, so we need to map the v2 generator
 	// with apiVersion+kind to the corresponding v1 generator
-	generatorMapping GeneratorMapping
+	generatorMapping Mapping
 }
 
-// GeneratorMapping maps Kubernetes resources to their generator implementations.
-type GeneratorMapping map[schema.GroupVersionKind]genv1alpha1.Generator
+// Mapping maps Kubernetes resources to their generator implementations.
+type Mapping map[schema.GroupVersionKind]genv1alpha1.Generator
 
 // NewServer creates a new generator adapter server.
-func NewServer(kubeClient client.Client, scheme *runtime.Scheme, generatorMapping GeneratorMapping) *Server {
+func NewServer(kubeClient client.Client, scheme *runtime.Scheme, generatorMapping Mapping) *Server {
 	return &Server{
 		kubeClient:       kubeClient,
 		scheme:           scheme,
@@ -189,7 +189,7 @@ func (s *Server) getGenerator(ctx context.Context, generatorRef *genpb.Generator
 
 	// Convert the generator to unstructured object
 	u := &unstructured.Unstructured{}
-	var unstructuredObj map[string]interface{}
+	var unstructuredObj map[string]any
 	var err error
 	unstructuredObj, err = runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
@@ -224,7 +224,21 @@ func (s *Server) clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (c
 			},
 			Spec: *gen.Spec.Generator.FakeSpec,
 		}, nil
-	// Add more generator kinds here as needed
+	case genv1alpha1.GeneratorKindACRAccessToken,
+		genv1alpha1.GeneratorKindCloudsmithAccessToken,
+		genv1alpha1.GeneratorKindECRAuthorizationToken,
+		genv1alpha1.GeneratorKindGCRAccessToken,
+		genv1alpha1.GeneratorKindGithubAccessToken,
+		genv1alpha1.GeneratorKindGrafana,
+		genv1alpha1.GeneratorKindMFA,
+		genv1alpha1.GeneratorKindPassword,
+		genv1alpha1.GeneratorKindQuayAccessToken,
+		genv1alpha1.GeneratorKindSSHKey,
+		genv1alpha1.GeneratorKindSTSSessionToken,
+		genv1alpha1.GeneratorKindUUID,
+		genv1alpha1.GeneratorKindVaultDynamicSecret,
+		genv1alpha1.GeneratorKindWebhook:
+		return nil, fmt.Errorf("unsupported generator kind: %s", gen.Spec.Kind)
 	default:
 		return nil, fmt.Errorf("unsupported generator kind: %s", gen.Spec.Kind)
 	}

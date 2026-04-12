@@ -107,7 +107,7 @@ func (w *Client) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, _ c
 }
 
 // Cleanup deletes any resources created during the Generate phase.
-func (w *Client) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, namespace string) error {
+func (w *Client) Cleanup(ctx context.Context, _ *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, namespace string) error {
 	// Extract state bytes
 	var stateBytes []byte
 	if state != nil {
