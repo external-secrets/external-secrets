@@ -144,3 +144,76 @@ func TestBuildMetadata(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildUserManagedReplicas(t *testing.T) {
+	tests := []struct {
+		name              string
+		spec              PushSecretMetadataSpec
+		expectedLocations []string
+		expectedCMEK      string
+	}{
+		{
+			name:              "no replication configured",
+			spec:              PushSecretMetadataSpec{},
+			expectedLocations: nil,
+		},
+		{
+			name: "single location via deprecated field",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocation: "us-east1",
+			},
+			expectedLocations: []string{"us-east1"},
+		},
+		{
+			name: "single location via new field",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocations: []string{"us-east1"},
+			},
+			expectedLocations: []string{"us-east1"},
+		},
+		{
+			name: "multiple locations",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocations: []string{"us-east1", "europe-west1", "asia-southeast1"},
+			},
+			expectedLocations: []string{"us-east1", "europe-west1", "asia-southeast1"},
+		},
+		{
+			name: "new field takes precedence over deprecated when both set",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocation:  "us-east1",
+				ReplicationLocations: []string{"europe-west1", "asia-southeast1"},
+			},
+			expectedLocations: []string{"europe-west1", "asia-southeast1"},
+		},
+		{
+			name: "multiple locations with CMEK applied to all",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocations: []string{"us-east1", "europe-west1"},
+				CMEKKeyName:          "projects/p/locations/global/keyRings/r/cryptoKeys/k",
+			},
+			expectedLocations: []string{"us-east1", "europe-west1"},
+			expectedCMEK:      "projects/p/locations/global/keyRings/r/cryptoKeys/k",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			replicas := buildUserManagedReplicas(tt.spec)
+			if tt.expectedLocations == nil {
+				assert.Nil(t, replicas)
+				return
+			}
+			assert.Len(t, replicas, len(tt.expectedLocations))
+			for i, loc := range tt.expectedLocations {
+				assert.Equal(t, loc, replicas[i].Location)
+				if tt.expectedCMEK != "" {
+					assert.NotNil(t, replicas[i].CustomerManagedEncryption)
+					assert.Equal(t, tt.expectedCMEK, replicas[i].CustomerManagedEncryption.KmsKeyName)
+				} else {
+					assert.Nil(t, replicas[i].CustomerManagedEncryption)
+				}
+			}
+		})
+	}
+}

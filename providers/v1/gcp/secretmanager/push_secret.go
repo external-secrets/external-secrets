@@ -41,12 +41,57 @@ const (
 
 // PushSecretMetadataSpec defines the metadata specification for pushed secrets.
 type PushSecretMetadataSpec struct {
-	Annotations         map[string]string             `json:"annotations,omitempty"`
-	Labels              map[string]string             `json:"labels,omitempty"`
-	Topics              []string                      `json:"topics,omitempty"`
-	MergePolicy         PushSecretMetadataMergePolicy `json:"mergePolicy,omitempty"`
-	CMEKKeyName         string                        `json:"cmekKeyName,omitempty"`
-	ReplicationLocation string                        `json:"replicationLocation,omitempty"`
+	Annotations map[string]string             `json:"annotations,omitempty"`
+	Labels      map[string]string             `json:"labels,omitempty"`
+	Topics      []string                      `json:"topics,omitempty"`
+	MergePolicy PushSecretMetadataMergePolicy `json:"mergePolicy,omitempty"`
+	CMEKKeyName string                        `json:"cmekKeyName,omitempty"`
+	// ReplicationLocation defines a single user-managed replication location
+	// for the secret.
+	//
+	// Deprecated: use ReplicationLocations instead. When both fields are set,
+	// ReplicationLocations takes precedence and ReplicationLocation is ignored.
+	ReplicationLocation string `json:"replicationLocation,omitempty"`
+	// ReplicationLocations defines one or more user-managed replication
+	// locations for the secret. This is useful for High Availability across
+	// regions, since Secret Manager does not support multi-regional locations
+	// (e.g. "us", "eu", "ca").
+	ReplicationLocations []string `json:"replicationLocations,omitempty"`
+}
+
+// buildUserManagedReplicas converts a PushSecretMetadataSpec into the slice of
+// UserManaged replicas to be used in a secretmanagerpb.Replication. It returns
+// nil when neither ReplicationLocations nor ReplicationLocation is set, so the
+// caller can decide whether to fall back to automatic replication.
+//
+// When both fields are set, ReplicationLocations takes precedence to avoid
+// silently merging values; ReplicationLocation is treated as deprecated.
+//
+// CMEKKeyName, when set, is applied to every replica.
+func buildUserManagedReplicas(spec PushSecretMetadataSpec) []*secretmanagerpb.Replication_UserManaged_Replica {
+	locations := spec.ReplicationLocations
+	if len(locations) == 0 && spec.ReplicationLocation != "" {
+		locations = []string{spec.ReplicationLocation}
+	}
+	if len(locations) == 0 {
+		return nil
+	}
+
+	var cmek *secretmanagerpb.CustomerManagedEncryption
+	if spec.CMEKKeyName != "" {
+		cmek = &secretmanagerpb.CustomerManagedEncryption{
+			KmsKeyName: spec.CMEKKeyName,
+		}
+	}
+
+	replicas := make([]*secretmanagerpb.Replication_UserManaged_Replica, 0, len(locations))
+	for _, loc := range locations {
+		replicas = append(replicas, &secretmanagerpb.Replication_UserManaged_Replica{
+			Location:                  loc,
+			CustomerManagedEncryption: cmek,
+		})
+	}
+	return replicas
 }
 
 func newPushSecretBuilder(payload []byte, data esv1.PushSecretData) (pushSecretBuilder, error) {
