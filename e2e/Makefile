@@ -53,17 +53,11 @@ stop-kind: ## Stop kind cluster
 		--name "$(KIND_CLUSTER_NAME)" \
 
 test: start-kind e2e-image ## Run e2e tests against current kube context
-	$(MAKE) -C ../ docker.build \
-		IMAGE_NAME=$(IMAGE_NAME) \
-		VERSION=$(VERSION) \
-		ARCH=amd64 \
-		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
-	$(MAKE) -C ../ docker.build \
+	$(MAKE) -C ../ docker.build.controller.e2e \
 		IMAGE_NAME=$(OCI_IMAGE_NAME) \
 		VERSION=$(VERSION) \
 		ARCH=amd64 \
 		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
-	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(OCI_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(E2E_IMAGE_NAME):$(VERSION)
 	KUBECTL_CONTEXT="$(KIND_CONTEXT)" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
@@ -114,7 +108,7 @@ e2e-image: e2e-bin
 	-rm -rf ./k8s/deploy
 	mkdir -p k8s
 	$(MAKE) -C ../ helm.generate
-	helm dependency build ../deploy/charts/external-secrets
+	../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets
 	cp -r ../deploy ./k8s
 	docker build $(DOCKER_BUILD_ARGS) -t $(E2E_IMAGE_NAME):$(VERSION) -f Dockerfile ..
 
