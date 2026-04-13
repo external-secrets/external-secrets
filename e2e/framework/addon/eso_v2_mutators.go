@@ -71,8 +71,17 @@ func ensureV2ProviderConfig(chart *HelmChart) {
 		{Key: "providerDefaults.replicaCount", Value: "1"},
 	}
 	for _, variable := range vars {
-		setOrAppendVar(chart, variable)
+		setVarIfMissing(chart, variable)
 	}
+}
+
+func setVarIfMissing(chart *HelmChart, variable StringTuple) {
+	for i := range chart.Vars {
+		if chart.Vars[i].Key == variable.Key {
+			return
+		}
+	}
+	chart.Vars = append(chart.Vars, variable)
 }
 
 func setProvider(chart *HelmChart, name, providerType, imageRepository, imageTag string) {
