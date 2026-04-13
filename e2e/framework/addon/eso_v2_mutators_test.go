@@ -135,22 +135,25 @@ func TestWithV2FakeProviderUpdatesExistingEntryInPlace(t *testing.T) {
 	assertProvider(t, eso.HelmChart, "fake", "fake", "ghcr.io/external-secrets/provider-fake", "test-version")
 }
 
-func TestWithV2FakeProviderPreservesExistingBaseVars(t *testing.T) {
+func TestWithV2FakeProviderEnforcesRequiredFlags(t *testing.T) {
 	t.Setenv("VERSION", "test-version")
 
 	eso := NewESO()
 	setOrAppendVar(eso.HelmChart, StringTuple{Key: "replicaCount", Value: "7"})
-	setOrAppendVar(eso.HelmChart, StringTuple{Key: "v2.enabled", Value: "custom"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "v2.enabled", Value: "false"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "crds.createProvider", Value: "false"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "crds.createClusterProvider", Value: "false"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.enabled", Value: "false"})
 	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providerDefaults.replicaCount", Value: "8"})
 
 	WithV2FakeProvider()(eso)
 
 	assertVarValue(t, eso.HelmChart, "replicaCount", "7")
-	assertVarValue(t, eso.HelmChart, "v2.enabled", "custom")
-	assertVarValue(t, eso.HelmChart, "providerDefaults.replicaCount", "8")
+	assertVarValue(t, eso.HelmChart, "v2.enabled", "true")
 	assertVarValue(t, eso.HelmChart, "crds.createProvider", "true")
 	assertVarValue(t, eso.HelmChart, "crds.createClusterProvider", "true")
 	assertVarValue(t, eso.HelmChart, "providers.enabled", "true")
+	assertVarValue(t, eso.HelmChart, "providerDefaults.replicaCount", "8")
 }
 
 func assertVarValue(t *testing.T, chart *HelmChart, key, wantValue string) {
@@ -231,6 +234,15 @@ type providerEntry struct {
 }
 
 var providerVarPattern = regexp.MustCompile(`^providers\.list\[(\d+)\]\.(.+)$`)
+var allowedProviderFields = map[string]struct{}{
+	"name":             {},
+	"type":             {},
+	"enabled":          {},
+	"replicaCount":     {},
+	"image.repository": {},
+	"image.tag":        {},
+	"image.pullPolicy": {},
+}
 
 func providerEntries(t *testing.T, chart *HelmChart) map[int]providerEntry {
 	t.Helper()
@@ -246,6 +258,9 @@ func providerEntries(t *testing.T, chart *HelmChart) map[int]providerEntry {
 			t.Fatalf("unable to parse provider index from key %q: %v", variable.Key, err)
 		}
 		field := matches[2]
+		if _, ok := allowedProviderFields[field]; !ok {
+			t.Fatalf("unexpected provider field %q in key %q", field, variable.Key)
+		}
 
 		entry := providers[index]
 		switch field {
