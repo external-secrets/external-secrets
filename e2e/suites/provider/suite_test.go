@@ -40,6 +40,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			addon.WithCRDs(),
 			addon.WithV2Namespace(),
 			addon.WithV2KubernetesProvider(),
+			addon.WithV2FakeProvider(),
 		))
 		return nil
 	}

@@ -18,6 +18,7 @@ export GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 export OCI_IMAGE_NAME = ghcr.io/external-secrets/external-secrets
 export IMAGE_NAME ?= $(OCI_IMAGE_NAME)
 TEST_V2_PROVIDER_KUBERNETES_BUILD_CMD = $(MAKE) -C ../ docker.build.provider.kubernetes VERSION=$(VERSION) ARCH=amd64 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+TEST_V2_PROVIDER_FAKE_BUILD_CMD = $(MAKE) -C ../ docker.build.provider.fake VERSION=$(VERSION) ARCH=amd64 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 
 ifeq ($(shell git tag),)
 export VERSION ?= $(shell echo "v0.0.0-$$(git rev-list HEAD --count)-g$$(git describe --dirty --always)" | sed 's/-/./2' | sed 's/-/./2')
@@ -69,6 +70,7 @@ test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 		ARCH=amd64 \
 		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 	$(if $(filter true,$(SKIP_PROVIDER_KUBERNETES_BUILD)),,$(TEST_V2_PROVIDER_KUBERNETES_BUILD_CMD))
+	$(TEST_V2_PROVIDER_FAKE_BUILD_CMD)
 	$(MAKE) -C ../ docker.build.controller.e2e \
 		IMAGE_NAME=$(OCI_IMAGE_NAME) \
 		VERSION=$(VERSION) \
@@ -78,6 +80,7 @@ test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(OCI_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(E2E_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-kubernetes:$(VERSION)
+	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-fake:$(VERSION)
 	KUBECTL_CONTEXT="$(KIND_CONTEXT)" GINKGO_LABELS="$(V2_GINKGO_LABELS)" E2E_PROVIDER_MODE="v2" TEST_SUITES="provider" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
 
 test.managed: e2e-image ## Run e2e tests against current kube context
