@@ -317,13 +317,23 @@ func buildHTTPClient(ctx context.Context, config *esv1.PassboltProvider, kube kc
 		return nil, errors.New(errPassboltCABundleInvalid)
 	}
 
+	// Clone the default transport so we keep its proxy/dialer/HTTP2/idle
+	// connection settings and only override the TLS configuration.
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, errors.New("unexpected default http transport type")
+	}
+	transport := defaultTransport.Clone()
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{}
+	} else {
+		transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	}
+	transport.TLSClientConfig.RootCAs = caCertPool
+	transport.TLSClientConfig.MinVersion = tls.VersionTLS12
+
 	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:    caCertPool,
-				MinVersion: tls.VersionTLS12,
-			},
-		},
+		Transport: transport,
 	}, nil
 }
 
