@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package e2e
 
 import (
@@ -31,16 +30,28 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(defaultDryRun, "docker.build.provider.kubernetes") {
 		t.Fatalf("expected default test.v2 dry-run to build the kubernetes provider image, output:\n%s", defaultDryRun)
 	}
+	if !strings.Contains(defaultDryRun, "docker.build.provider.fake") {
+		t.Fatalf("expected default test.v2 dry-run to build the fake provider image, output:\n%s", defaultDryRun)
+	}
 	if !strings.Contains(defaultDryRun, "ghcr.io/external-secrets/provider-kubernetes:test-version") {
 		t.Fatalf("expected default test.v2 dry-run to still load the kubernetes provider image, output:\n%s", defaultDryRun)
+	}
+	if !strings.Contains(defaultDryRun, "ghcr.io/external-secrets/provider-fake:test-version") {
+		t.Fatalf("expected default test.v2 dry-run to load the fake provider image, output:\n%s", defaultDryRun)
 	}
 
 	skippedDryRun := runMakeDryRun(t, "VERSION=test-version", "SKIP_PROVIDER_KUBERNETES_BUILD=true")
 	if strings.Contains(skippedDryRun, "docker.build.provider.kubernetes") {
 		t.Fatalf("expected skipped test.v2 dry-run to omit the kubernetes provider build, output:\n%s", skippedDryRun)
 	}
+	if !strings.Contains(skippedDryRun, "docker.build.provider.fake") {
+		t.Fatalf("expected skipped test.v2 dry-run to still build the fake provider image, output:\n%s", skippedDryRun)
+	}
 	if !strings.Contains(skippedDryRun, "ghcr.io/external-secrets/provider-kubernetes:test-version") {
 		t.Fatalf("expected skipped test.v2 dry-run to still load the kubernetes provider image, output:\n%s", skippedDryRun)
+	}
+	if !strings.Contains(skippedDryRun, "ghcr.io/external-secrets/provider-fake:test-version") {
+		t.Fatalf("expected skipped test.v2 dry-run to still load the fake provider image, output:\n%s", skippedDryRun)
 	}
 }
 

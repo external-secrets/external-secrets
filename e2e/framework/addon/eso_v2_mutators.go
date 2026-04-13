@@ -57,6 +57,25 @@ func WithV2KubernetesProvider() MutationFunc {
 	}
 }
 
+func WithV2FakeProvider() MutationFunc {
+	return func(eso *ESO) {
+		version := os.Getenv("VERSION")
+		vars := []StringTuple{
+			{Key: "providers.enabled", Value: "true"},
+			{Key: "providers.list[1].name", Value: "fake"},
+			{Key: "providers.list[1].type", Value: "fake"},
+			{Key: "providers.list[1].enabled", Value: "true"},
+			{Key: "providers.list[1].replicaCount", Value: "1"},
+			{Key: "providers.list[1].image.repository", Value: "ghcr.io/external-secrets/provider-fake"},
+			{Key: "providers.list[1].image.tag", Value: version},
+			{Key: "providers.list[1].image.pullPolicy", Value: "IfNotPresent"},
+		}
+		for _, variable := range vars {
+			setOrAppendVar(eso.HelmChart, variable)
+		}
+	}
+}
+
 func setOrAppendVar(chart *HelmChart, variable StringTuple) {
 	for i := range chart.Vars {
 		if chart.Vars[i].Key == variable.Key {
