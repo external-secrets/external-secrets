@@ -27217,6 +27217,18 @@ See here for the documentation on basic roles offered by Grafana:
 <a href="https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/">https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/</a></p>
 </td>
 </tr>
+<tr>
+<td>
+<code>secondsToLive</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<p>SecondsToLive is the number of seconds before the generated service account token will expire.
+Grafana requires this value to be set.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="generators.external-secrets.io/v1alpha1.GrafanaServiceAccountTokenState">GrafanaServiceAccountTokenState
