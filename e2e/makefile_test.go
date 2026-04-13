@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package e2e
 
 import (
@@ -24,15 +23,23 @@ import (
 	"testing"
 )
 
+const (
+	testVersionArg           = "VERSION=test-version"
+	kubernetesBuildTarget    = "docker.build.provider.kubernetes"
+	kubernetesProviderImage  = "ghcr.io/external-secrets/provider-kubernetes:test-version"
+	helmDependencyEnsureCmd  = "../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets"
+	controllerImageLoadCount = `kind load docker-image --name="external-secrets" ghcr.io/external-secrets/external-secrets:test-version`
+)
+
 func TestClassicMakeTargetBuildsOnlyControllerImageOnce(t *testing.T) {
 	t.Parallel()
 
-	dryRun := runMakeDryRun(t, "test", "VERSION=test-version", `TEST_SUITES=provider`, `GINKGO_LABELS=kubernetes && !v2`)
+	dryRun := runMakeDryRun(t, "test", testVersionArg, `TEST_SUITES=provider`, `GINKGO_LABELS=kubernetes && !v2`)
 
 	if !strings.Contains(dryRun, "docker.build.controller.e2e") {
 		t.Fatalf("expected classic test dry-run to build the controller image via docker.build.controller.e2e, output:\n%s", dryRun)
 	}
-	if strings.Contains(dryRun, "docker.build.provider.kubernetes") {
+	if strings.Contains(dryRun, kubernetesBuildTarget) {
 		t.Fatalf("expected classic test dry-run to omit kubernetes provider image builds, output:\n%s", dryRun)
 	}
 	if strings.Contains(dryRun, "docker.build.provider.aws") {
@@ -41,13 +48,13 @@ func TestClassicMakeTargetBuildsOnlyControllerImageOnce(t *testing.T) {
 	if strings.Contains(dryRun, "docker.build.provider.fake") {
 		t.Fatalf("expected classic test dry-run to omit fake provider image builds, output:\n%s", dryRun)
 	}
-	if count := strings.Count(dryRun, `kind load docker-image --name="external-secrets" ghcr.io/external-secrets/external-secrets:test-version`); count != 1 {
+	if count := strings.Count(dryRun, controllerImageLoadCount); count != 1 {
 		t.Fatalf("expected classic test dry-run to load the controller image once, got %d occurrences, output:\n%s", count, dryRun)
 	}
-	if strings.Contains(dryRun, "ghcr.io/external-secrets/provider-kubernetes:test-version") {
+	if strings.Contains(dryRun, kubernetesProviderImage) {
 		t.Fatalf("expected classic test dry-run to avoid loading the kubernetes provider image, output:\n%s", dryRun)
 	}
-	if !strings.Contains(dryRun, "../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets") {
+	if !strings.Contains(dryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected classic test dry-run to ensure helm dependencies before copying the chart, output:\n%s", dryRun)
 	}
 }
@@ -55,25 +62,25 @@ func TestClassicMakeTargetBuildsOnlyControllerImageOnce(t *testing.T) {
 func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	t.Parallel()
 
-	defaultDryRun := runMakeDryRun(t, "test.v2", "VERSION=test-version")
-	if !strings.Contains(defaultDryRun, "docker.build.provider.kubernetes") {
+	defaultDryRun := runMakeDryRun(t, "test.v2", testVersionArg)
+	if !strings.Contains(defaultDryRun, kubernetesBuildTarget) {
 		t.Fatalf("expected default test.v2 dry-run to build the kubernetes provider image, output:\n%s", defaultDryRun)
 	}
-	if !strings.Contains(defaultDryRun, "ghcr.io/external-secrets/provider-kubernetes:test-version") {
+	if !strings.Contains(defaultDryRun, kubernetesProviderImage) {
 		t.Fatalf("expected default test.v2 dry-run to still load the kubernetes provider image, output:\n%s", defaultDryRun)
 	}
-	if !strings.Contains(defaultDryRun, "../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets") {
+	if !strings.Contains(defaultDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected default test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", defaultDryRun)
 	}
 
-	skippedDryRun := runMakeDryRun(t, "test.v2", "VERSION=test-version", "SKIP_PROVIDER_KUBERNETES_BUILD=true")
-	if strings.Contains(skippedDryRun, "docker.build.provider.kubernetes") {
+	skippedDryRun := runMakeDryRun(t, "test.v2", testVersionArg, "SKIP_PROVIDER_KUBERNETES_BUILD=true")
+	if strings.Contains(skippedDryRun, kubernetesBuildTarget) {
 		t.Fatalf("expected skipped test.v2 dry-run to omit the kubernetes provider build, output:\n%s", skippedDryRun)
 	}
-	if !strings.Contains(skippedDryRun, "ghcr.io/external-secrets/provider-kubernetes:test-version") {
+	if !strings.Contains(skippedDryRun, kubernetesProviderImage) {
 		t.Fatalf("expected skipped test.v2 dry-run to still load the kubernetes provider image, output:\n%s", skippedDryRun)
 	}
-	if !strings.Contains(skippedDryRun, "../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets") {
+	if !strings.Contains(skippedDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected skipped test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", skippedDryRun)
 	}
 }

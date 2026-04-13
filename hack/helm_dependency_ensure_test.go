@@ -24,63 +24,54 @@ import (
 	"testing"
 )
 
+const (
+	buildMarkerFile  = "build-called"
+	helperScriptPath = "helm.dependency.ensure.sh"
+	chartPath        = "deploy/charts/external-secrets"
+	helmBinEnvPrefix = "HELM_BIN="
+	helperFailedMsg  = "helper failed: %v\n%s"
+	scriptPreamble   = "#!/usr/bin/env bash\nset -euo pipefail\n\n"
+	scriptFailure    = "echo \"unexpected helm invocation: $*\" >&2\nexit 1\n"
+)
+
 func TestHelmDependencyEnsureSkipsBuildWhenDependenciesAreReady(t *testing.T) {
 	t.Parallel()
 
-	workdir := t.TempDir()
-	marker := filepath.Join(workdir, "build-called")
-	fakeHelm := writeFakeHelm(t, workdir, fakeHelmScript("v0.5.2", "ok", marker))
-
-	cmd := exec.Command("bash", "helm.dependency.ensure.sh", "deploy/charts/external-secrets")
-	cmd.Dir = "."
-	cmd.Env = append(os.Environ(), "HELM_BIN="+fakeHelm)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("helper failed: %v\n%s", err, string(output))
-	}
-
-	if _, err := os.Stat(marker); !os.IsNotExist(err) {
-		t.Fatalf("expected helper to skip helm dependency build when dependencies are already available")
-	}
+	assertHelperBuildBehavior(t, "v0.5.2", "ok", false, "expected helper to skip helm dependency build when dependencies are already available")
 }
 
 func TestHelmDependencyEnsureSkipsBuildWhenDependenciesAreUnpacked(t *testing.T) {
 	t.Parallel()
 
-	workdir := t.TempDir()
-	marker := filepath.Join(workdir, "build-called")
-	fakeHelm := writeFakeHelm(t, workdir, fakeHelmScript("v0.6.0", "unpacked", marker))
-
-	cmd := exec.Command("bash", "helm.dependency.ensure.sh", "deploy/charts/external-secrets")
-	cmd.Dir = "."
-	cmd.Env = append(os.Environ(), "HELM_BIN="+fakeHelm)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("helper failed: %v\n%s", err, string(output))
-	}
-
-	if _, err := os.Stat(marker); !os.IsNotExist(err) {
-		t.Fatalf("expected helper to skip helm dependency build when dependencies are unpacked locally")
-	}
+	assertHelperBuildBehavior(t, "v0.6.0", "unpacked", false, "expected helper to skip helm dependency build when dependencies are unpacked locally")
 }
 
 func TestHelmDependencyEnsureBuildsWhenDependenciesAreMissing(t *testing.T) {
 	t.Parallel()
 
-	workdir := t.TempDir()
-	marker := filepath.Join(workdir, "build-called")
-	fakeHelm := writeFakeHelm(t, workdir, fakeHelmScript("v0.5.2", "missing", marker))
+	assertHelperBuildBehavior(t, "v0.5.2", "missing", true, "expected helper to invoke helm dependency build when dependencies are missing")
+}
 
-	cmd := exec.Command("bash", "helm.dependency.ensure.sh", "deploy/charts/external-secrets")
-	cmd.Dir = "."
-	cmd.Env = append(os.Environ(), "HELM_BIN="+fakeHelm)
-	output, err := cmd.CombinedOutput()
+func assertHelperBuildBehavior(t *testing.T, version, status string, expectBuild bool, failureMsg string) {
+	t.Helper()
+
+	workdir := t.TempDir()
+	marker := filepath.Join(workdir, buildMarkerFile)
+	fakeHelm := writeFakeHelm(t, workdir, fakeHelmScript(version, status, marker))
+	output, err := runHelper(t, fakeHelm)
 	if err != nil {
-		t.Fatalf("helper failed: %v\n%s", err, string(output))
+		t.Fatalf(helperFailedMsg, err, string(output))
 	}
 
-	if _, err := os.Stat(marker); err != nil {
-		t.Fatalf("expected helper to invoke helm dependency build when dependencies are missing: %v", err)
+	if expectBuild {
+		if _, err := os.Stat(marker); err != nil {
+			t.Fatalf("%s: %v", failureMsg, err)
+		}
+		return
+	}
+
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatal(failureMsg)
 	}
 }
 
@@ -95,11 +86,22 @@ func writeFakeHelm(t *testing.T, dir, content string) string {
 	return path
 }
 
-func fakeHelmScript(version, status, marker string) string {
-	return fmt.Sprintf(`#!/usr/bin/env bash
-set -euo pipefail
+func runHelper(t *testing.T, fakeHelm string) ([]byte, error) {
+	t.Helper()
 
-if [[ "$1" == "dependency" && "$2" == "list" ]]; then
+	cmd := exec.Command("bash", helperScriptPath, chartPath)
+	cmd.Dir = "."
+	cmd.Env = append(os.Environ(), helmBinEnvPrefix+fakeHelm)
+
+	return cmd.CombinedOutput()
+}
+
+func fakeHelmScript(version, status, marker string) string {
+	return fmt.Sprintf(
+		"%s%s%s",
+		scriptPreamble,
+		fmt.Sprintf(
+			`if [[ "$1" == "dependency" && "$2" == "list" ]]; then
   cat <<'EOF'
 NAME                	VERSION	REPOSITORY                           	STATUS
 bitwarden-sdk-server	%s	oci://ghcr.io/external-secrets/charts	%s
@@ -112,7 +114,11 @@ if [[ "$1" == "dependency" && "$2" == "build" ]]; then
   exit 0
 fi
 
-echo "unexpected helm invocation: $*" >&2
-exit 1
-`, version, status, marker)
+`,
+			version,
+			status,
+			marker,
+		),
+		scriptFailure,
+	)
 }
