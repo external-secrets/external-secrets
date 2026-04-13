@@ -19,7 +19,6 @@ package addon
 import (
 	"regexp"
 	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -87,6 +86,71 @@ func TestWithV2ProvidersCompose(t *testing.T) {
 		"test-version",
 	)
 	assertSequentialProviderIndexes(t, eso.HelmChart)
+
+	providers := providerEntries(t, eso.HelmChart)
+	if providers[0].Name != "kubernetes" {
+		t.Fatalf("expected kubernetes to remain first provider entry, got %q at index 0", providers[0].Name)
+	}
+	if providers[1].Name != "fake" {
+		t.Fatalf("expected fake to be second provider entry, got %q at index 1", providers[1].Name)
+	}
+}
+
+func TestWithV2FakeProviderDoesNotDuplicateOnRepeat(t *testing.T) {
+	t.Setenv("VERSION", "test-version")
+
+	eso := NewESO(WithV2FakeProvider(), WithV2FakeProvider())
+
+	providers := providerEntries(t, eso.HelmChart)
+	if len(providers) != 1 {
+		t.Fatalf("expected one provider entry after applying fake mutator twice, got %d", len(providers))
+	}
+	if providers[0].Name != "fake" {
+		t.Fatalf("expected fake provider at index 0 after repeat application, got %q", providers[0].Name)
+	}
+	assertProvider(t, eso.HelmChart, "fake", "fake", "ghcr.io/external-secrets/provider-fake", "test-version")
+}
+
+func TestWithV2FakeProviderUpdatesExistingEntryInPlace(t *testing.T) {
+	t.Setenv("VERSION", "test-version")
+
+	eso := NewESO()
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.list[3].name", Value: "fake"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.list[3].type", Value: "fake"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.list[3].enabled", Value: "false"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.list[3].replicaCount", Value: "9"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.list[3].image.repository", Value: "example.invalid/old-fake"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.list[3].image.tag", Value: "old-tag"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.list[3].image.pullPolicy", Value: "Always"})
+
+	WithV2FakeProvider()(eso)
+
+	providers := providerEntries(t, eso.HelmChart)
+	if len(providers) != 1 {
+		t.Fatalf("expected one fake provider entry after in-place update, got %d", len(providers))
+	}
+	if providers[3].Name != "fake" {
+		t.Fatalf("expected fake provider to stay at index 3, got %q", providers[3].Name)
+	}
+	assertProvider(t, eso.HelmChart, "fake", "fake", "ghcr.io/external-secrets/provider-fake", "test-version")
+}
+
+func TestWithV2FakeProviderPreservesExistingBaseVars(t *testing.T) {
+	t.Setenv("VERSION", "test-version")
+
+	eso := NewESO()
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "replicaCount", Value: "7"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "v2.enabled", Value: "custom"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providerDefaults.replicaCount", Value: "8"})
+
+	WithV2FakeProvider()(eso)
+
+	assertVarValue(t, eso.HelmChart, "replicaCount", "7")
+	assertVarValue(t, eso.HelmChart, "v2.enabled", "custom")
+	assertVarValue(t, eso.HelmChart, "providerDefaults.replicaCount", "8")
+	assertVarValue(t, eso.HelmChart, "crds.createProvider", "true")
+	assertVarValue(t, eso.HelmChart, "crds.createClusterProvider", "true")
+	assertVarValue(t, eso.HelmChart, "providers.enabled", "true")
 }
 
 func assertVarValue(t *testing.T, chart *HelmChart, key, wantValue string) {
@@ -199,10 +263,6 @@ func providerEntries(t *testing.T, chart *HelmChart) map[int]providerEntry {
 			entry.ImageTag = variable.Value
 		case "image.pullPolicy":
 			entry.ImagePullPolicy = variable.Value
-		default:
-			if strings.HasPrefix(field, "image.") {
-				t.Fatalf("unexpected provider image field %q in key %q", field, variable.Key)
-			}
 		}
 		providers[index] = entry
 	}
