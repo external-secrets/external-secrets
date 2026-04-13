@@ -41,6 +41,8 @@ type TestCase struct {
 	AdditionalObjects       []client.Object
 	Secrets                 map[string]SecretEntry
 	ExpectedSecret          *v1.Secret
+	Prepare                 func(*TestCase, SecretStoreProvider)
+	ProviderOverride        SecretStoreProvider
 	AfterSync               func(SecretStoreProvider, *v1.Secret)
 	VerifyPushSecretOutcome func(ps *esv1alpha1.PushSecret, pushClient esv1.SecretsClient)
 }
@@ -67,6 +69,8 @@ func TableFuncWithExternalSecret(f *Framework, prov SecretStoreProvider) func(..
 			tweak(tc)
 		}
 
+		prov = prepareTestCase(tc, prov)
+
 		// create secrets & defer delete
 		var deferRemoveKeys []string
 		for k, v := range tc.Secrets {
@@ -81,16 +85,11 @@ func TableFuncWithExternalSecret(f *Framework, prov SecretStoreProvider) func(..
 			}
 		}()
 
-		// create v1alpha1 external secret, if provided
-		createProvidedExternalSecret(tc)
-
 		// create additional objects
 		generateAdditionalObjects(tc)
 
-		// in case target name is empty
-		if tc.ExternalSecret != nil && tc.ExternalSecret.Spec.Target.Name == "" {
-			TargetSecretName = tc.ExternalSecret.ObjectMeta.Name
-		}
+		// create v1alpha1 external secret, if provided
+		createProvidedExternalSecret(tc)
 
 		// wait for Kind=Secret to have the expected data
 		executeAfterSync(tc, f, prov)
@@ -99,7 +98,7 @@ func TableFuncWithExternalSecret(f *Framework, prov SecretStoreProvider) func(..
 
 func executeAfterSync(tc *TestCase, f *Framework, prov SecretStoreProvider) {
 	if tc.ExpectedSecret != nil {
-		secret, err := tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, TargetSecretName, tc.ExpectedSecret)
+		secret, err := tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, externalSecretTargetName(tc), tc.ExpectedSecret)
 		if err != nil {
 			f.printESDebugLogs(tc.ExternalSecret.Name, tc.ExternalSecret.Namespace)
 			log.Logf("Did not match. Expected: %+v, Got: %+v", tc.ExpectedSecret, secret)
@@ -110,6 +109,19 @@ func executeAfterSync(tc *TestCase, f *Framework, prov SecretStoreProvider) {
 	} else {
 		tc.AfterSync(prov, nil)
 	}
+}
+
+func externalSecretTargetName(tc *TestCase) string {
+	if tc == nil || tc.ExternalSecret == nil {
+		return TargetSecretName
+	}
+	if tc.ExternalSecret.Spec.Target.Name != "" {
+		return tc.ExternalSecret.Spec.Target.Name
+	}
+	if tc.ExternalSecret.Name != "" {
+		return tc.ExternalSecret.Name
+	}
+	return TargetSecretName
 }
 
 func generateAdditionalObjects(tc *TestCase) {
@@ -141,6 +153,11 @@ func TableFuncWithPushSecret(f *Framework, prov SecretStoreProvider, pushClient 
 			tweak(tc)
 		}
 
+		prov = prepareTestCase(tc, prov)
+
+		// additional objects
+		generateAdditionalObjects(tc)
+
 		if tc.PushSecretSource != nil {
 			err := tc.Framework.CRClient.Create(GinkgoT().Context(), tc.PushSecretSource)
 			Expect(err).ToNot(HaveOccurred())
@@ -153,12 +170,24 @@ func TableFuncWithPushSecret(f *Framework, prov SecretStoreProvider, pushClient 
 			Expect(err).ToNot(HaveOccurred())
 		}
 
-		// additional objects
-		generateAdditionalObjects(tc)
-
 		// Run verification on the secret that push secret created or not.
 		tc.VerifyPushSecretOutcome(tc.PushSecret, pushClient)
 	}
+}
+
+func prepareTestCase(tc *TestCase, prov SecretStoreProvider) SecretStoreProvider {
+	prov = effectiveTestCaseProvider(tc, prov)
+	if tc.Prepare != nil {
+		tc.Prepare(tc, prov)
+	}
+	return effectiveTestCaseProvider(tc, prov)
+}
+
+func effectiveTestCaseProvider(tc *TestCase, prov SecretStoreProvider) SecretStoreProvider {
+	if tc.ProviderOverride != nil {
+		return tc.ProviderOverride
+	}
+	return prov
 }
 
 func makeDefaultExternalSecretTestCase(f *Framework) *TestCase {
