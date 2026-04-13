@@ -62,15 +62,21 @@ func setOrAppendVar(chart *HelmChart, variable StringTuple) {
 }
 
 func ensureV2ProviderConfig(chart *HelmChart) {
-	vars := []StringTuple{
-		{Key: "replicaCount", Value: "1"},
+	requiredVars := []StringTuple{
 		{Key: "v2.enabled", Value: "true"},
 		{Key: "crds.createProvider", Value: "true"},
 		{Key: "crds.createClusterProvider", Value: "true"},
 		{Key: "providers.enabled", Value: "true"},
+	}
+	for _, variable := range requiredVars {
+		setOrAppendVar(chart, variable)
+	}
+
+	defaultVars := []StringTuple{
+		{Key: "replicaCount", Value: "1"},
 		{Key: "providerDefaults.replicaCount", Value: "1"},
 	}
-	for _, variable := range vars {
+	for _, variable := range defaultVars {
 		setVarIfMissing(chart, variable)
 	}
 }
