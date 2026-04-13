@@ -16,7 +16,11 @@ limitations under the License.
 
 package addon
 
-import "os"
+import (
+	"os"
+	"strconv"
+	"strings"
+)
 
 const (
 	v2HelmNamespace   = "external-secrets-system"
@@ -35,44 +39,15 @@ func WithV2Namespace() MutationFunc {
 
 func WithV2KubernetesProvider() MutationFunc {
 	return func(eso *ESO) {
-		version := os.Getenv("VERSION")
-		vars := []StringTuple{
-			{Key: "replicaCount", Value: "1"},
-			{Key: "v2.enabled", Value: "true"},
-			{Key: "crds.createProvider", Value: "true"},
-			{Key: "crds.createClusterProvider", Value: "true"},
-			{Key: "providers.enabled", Value: "true"},
-			{Key: "providerDefaults.replicaCount", Value: "1"},
-			{Key: "providers.list[0].name", Value: "kubernetes"},
-			{Key: "providers.list[0].type", Value: "kubernetes"},
-			{Key: "providers.list[0].enabled", Value: "true"},
-			{Key: "providers.list[0].replicaCount", Value: "1"},
-			{Key: "providers.list[0].image.repository", Value: "ghcr.io/external-secrets/provider-kubernetes"},
-			{Key: "providers.list[0].image.tag", Value: version},
-			{Key: "providers.list[0].image.pullPolicy", Value: "IfNotPresent"},
-		}
-		for _, variable := range vars {
-			setOrAppendVar(eso.HelmChart, variable)
-		}
+		ensureV2ProviderConfig(eso.HelmChart)
+		setProvider(eso.HelmChart, "kubernetes", "kubernetes", "ghcr.io/external-secrets/provider-kubernetes", os.Getenv("VERSION"))
 	}
 }
 
 func WithV2FakeProvider() MutationFunc {
 	return func(eso *ESO) {
-		version := os.Getenv("VERSION")
-		vars := []StringTuple{
-			{Key: "providers.enabled", Value: "true"},
-			{Key: "providers.list[1].name", Value: "fake"},
-			{Key: "providers.list[1].type", Value: "fake"},
-			{Key: "providers.list[1].enabled", Value: "true"},
-			{Key: "providers.list[1].replicaCount", Value: "1"},
-			{Key: "providers.list[1].image.repository", Value: "ghcr.io/external-secrets/provider-fake"},
-			{Key: "providers.list[1].image.tag", Value: version},
-			{Key: "providers.list[1].image.pullPolicy", Value: "IfNotPresent"},
-		}
-		for _, variable := range vars {
-			setOrAppendVar(eso.HelmChart, variable)
-		}
+		ensureV2ProviderConfig(eso.HelmChart)
+		setProvider(eso.HelmChart, "fake", "fake", "ghcr.io/external-secrets/provider-fake", os.Getenv("VERSION"))
 	}
 }
 
@@ -84,6 +59,85 @@ func setOrAppendVar(chart *HelmChart, variable StringTuple) {
 		}
 	}
 	chart.Vars = append(chart.Vars, variable)
+}
+
+func ensureV2ProviderConfig(chart *HelmChart) {
+	vars := []StringTuple{
+		{Key: "replicaCount", Value: "1"},
+		{Key: "v2.enabled", Value: "true"},
+		{Key: "crds.createProvider", Value: "true"},
+		{Key: "crds.createClusterProvider", Value: "true"},
+		{Key: "providers.enabled", Value: "true"},
+		{Key: "providerDefaults.replicaCount", Value: "1"},
+	}
+	for _, variable := range vars {
+		setOrAppendVar(chart, variable)
+	}
+}
+
+func setProvider(chart *HelmChart, name, providerType, imageRepository, imageTag string) {
+	index := findProviderIndex(chart, name)
+	if index < 0 {
+		index = nextProviderIndex(chart)
+	}
+
+	prefix := "providers.list[" + strconv.Itoa(index) + "]"
+	vars := []StringTuple{
+		{Key: prefix + ".name", Value: name},
+		{Key: prefix + ".type", Value: providerType},
+		{Key: prefix + ".enabled", Value: "true"},
+		{Key: prefix + ".replicaCount", Value: "1"},
+		{Key: prefix + ".image.repository", Value: imageRepository},
+		{Key: prefix + ".image.tag", Value: imageTag},
+		{Key: prefix + ".image.pullPolicy", Value: "IfNotPresent"},
+	}
+	for _, variable := range vars {
+		setOrAppendVar(chart, variable)
+	}
+}
+
+func findProviderIndex(chart *HelmChart, name string) int {
+	const prefix = "providers.list["
+	const suffix = "].name"
+	for _, variable := range chart.Vars {
+		if !strings.HasPrefix(variable.Key, prefix) || !strings.HasSuffix(variable.Key, suffix) {
+			continue
+		}
+		if variable.Value != name {
+			continue
+		}
+		indexStr := strings.TrimSuffix(strings.TrimPrefix(variable.Key, prefix), suffix)
+		index, err := strconv.Atoi(indexStr)
+		if err == nil {
+			return index
+		}
+	}
+	return -1
+}
+
+func nextProviderIndex(chart *HelmChart) int {
+	const prefix = "providers.list["
+	maxIndex := -1
+	for _, variable := range chart.Vars {
+		if !strings.HasPrefix(variable.Key, prefix) {
+			continue
+		}
+
+		remainder := strings.TrimPrefix(variable.Key, prefix)
+		closingBracket := strings.Index(remainder, "]")
+		if closingBracket < 0 {
+			continue
+		}
+
+		index, err := strconv.Atoi(remainder[:closingBracket])
+		if err != nil {
+			continue
+		}
+		if index > maxIndex {
+			maxIndex = index
+		}
+	}
+	return maxIndex + 1
 }
 
 func containsArg(args []string, target string) bool {
