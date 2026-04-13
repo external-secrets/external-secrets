@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ func TestGenerate(t *testing.T) {
 			name: "return acr access token if scope is defined",
 			args: args{
 				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
 kind: ACRAccessToken
 spec:
   tenantId: %s
@@ -89,7 +89,7 @@ spec:
           key: clientsecret
         clientId:
           name: az-secret
-          key: clientid`, testUsername, testURL)),
+          key: clientid`, testUsername, testURL),
 				},
 				crClient: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -133,7 +133,7 @@ spec:
 			name: "return acr refresh token if scope is not defined",
 			args: args{
 				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
 kind: ACRAccessToken
 spec:
   tenantId: %s
@@ -147,7 +147,7 @@ spec:
           key: clientsecret
         clientId:
           name: az-secret
-          key: clientid`, testUsername, testURL)),
+          key: clientid`, testUsername, testURL),
 				},
 				crClient: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -289,6 +289,7 @@ type VaultKubernetesServiceAccountTokenAuth struct {
 	// Optional audiences field that will be used to request a temporary Kubernetes service
 	// account token for the service account referenced by `serviceAccountRef`.
 	// Defaults to a single audience `vault` it not specified.
+	//
 	// Deprecated: use serviceAccountRef.Audiences instead
 	// +optional
 	Audiences *[]string `json:"audiences,omitempty"`
@@ -296,6 +297,7 @@ type VaultKubernetesServiceAccountTokenAuth struct {
 	// Optional expiration time in seconds that will be used to request a temporary
 	// Kubernetes service account token for the service account referenced by
 	// `serviceAccountRef`.
+	//
 	// Deprecated: this will be removed in the future.
 	// Defaults to 10 minutes.
 	// +optional
@@ -335,6 +337,10 @@ type VaultCertAuth struct {
 	// +kubebuilder:default=cert
 	// +optional
 	Path string `json:"path"`
+
+	// VaultRole specifies the Vault role to use for TLS certificate authentication.
+	// +optional
+	VaultRole string `json:"vaultRole,omitempty"`
 
 	// ClientCert is a certificate to authenticate using the Cert Vault
 	// authentication method

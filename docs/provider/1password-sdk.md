@@ -67,7 +67,8 @@ kind: Secret
 metadata:
   name: source-secret
 stringData:
-  source-key: "my-secret"
+  api-key: "my-api-key"
+  api-url: "https://example.com/api"
 ```
 
 Looks like this:
@@ -78,6 +79,12 @@ Looks like this:
 
 Once all fields of a secret are deleted, the entire secret is deleted if the PushSecret object is removed and
 policy is set to `delete`.
+
+To sync the entire secret into a single 1Password item, the following configuration can be used:
+
+```yaml
+{% include '1passwordsdk-push-secret-all-keys.yaml' %}
+```
 
 ### Supported Functionality
 

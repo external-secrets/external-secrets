@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: "100",
 				},
 				{
-					Key:   "extraArgs.experimental-enable-vault-token-cache",
+					Key:   "extraArgs.enable-vault-token-cache",
 					Value: "true",
 				},
 			},

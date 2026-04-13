@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ const (
 	ReasonSynced = "Synced"
 	// ReasonErrored indicates that the push secret encountered an error during sync.
 	ReasonErrored = "Errored"
+	// ReasonSourceDeleted indicates that the source Secret was deleted and provider secrets were cleaned up.
+	ReasonSourceDeleted = "SourceDeleted"
 )
 
 // PushSecretStoreRef contains a reference on how to sync to a SecretStore.
@@ -107,7 +109,12 @@ type PushSecretSpec struct {
 	Selector PushSecretSelector `json:"selector"`
 
 	// Secret Data that should be pushed to providers
+	// +optional
 	Data []PushSecretData `json:"data,omitempty"`
+
+	// DataTo defines bulk push rules that expand source Secret keys into provider entries.
+	// +optional
+	DataTo []PushSecretDataTo `json:"dataTo,omitempty"`
 
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
@@ -205,6 +212,62 @@ func (d PushSecretData) GetProperty() string {
 	return d.Match.RemoteRef.Property
 }
 
+// PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.
+// +kubebuilder:validation:XValidation:rule="has(self.storeRef) && (has(self.storeRef.name) || has(self.storeRef.labelSelector))",message="storeRef must specify either name or labelSelector"
+// +kubebuilder:validation:XValidation:rule="!has(self.remoteKey) || !has(self.rewrite) || size(self.rewrite) == 0",message="remoteKey and rewrite are mutually exclusive: rewrite is only supported in per-key mode (without remoteKey)"
+type PushSecretDataTo struct {
+	// StoreRef specifies which SecretStore to push to. Required.
+	StoreRef *PushSecretStoreRef `json:"storeRef,omitempty"`
+
+	// RemoteKey is the name of the single provider secret that will receive ALL
+	// matched keys bundled as a JSON object (e.g. {"DB_HOST":"...","DB_USER":"..."}).
+	// When set, per-key expansion is skipped and a single push is performed.
+	// The provider's store prefix (if any) is still prepended to this value.
+	// When not set, each matched key is pushed as its own individual provider secret.
+	// +optional
+	RemoteKey string `json:"remoteKey,omitempty"`
+
+	// Match pattern for selecting keys from the source Secret.
+	// If not specified, all keys are selected.
+	// +optional
+	Match *PushSecretDataToMatch `json:"match,omitempty"`
+
+	// Rewrite operations to transform keys before pushing to the provider.
+	// Operations are applied sequentially.
+	// +optional
+	Rewrite []PushSecretRewrite `json:"rewrite,omitempty"`
+
+	// Metadata is metadata attached to the secret.
+	// The structure of metadata is provider specific, please look it up in the provider documentation.
+	// +optional
+	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
+
+	// Used to define a conversion Strategy for the secret keys
+	// +kubebuilder:default="None"
+	// +optional
+	ConversionStrategy PushSecretConversionStrategy `json:"conversionStrategy,omitempty"`
+}
+
+// PushSecretDataToMatch defines pattern matching for key selection.
+type PushSecretDataToMatch struct {
+	// Regexp matches keys by regular expression.
+	// If not specified, all keys are matched.
+	// +optional
+	RegExp string `json:"regexp,omitempty"`
+}
+
+// PushSecretRewrite defines how to transform secret keys before pushing.
+// +kubebuilder:validation:XValidation:rule="(has(self.regexp) && !has(self.transform)) || (!has(self.regexp) && has(self.transform))",message="exactly one of regexp or transform must be set"
+type PushSecretRewrite struct {
+	// Used to rewrite with regular expressions.
+	// +optional
+	Regexp *esv1.ExternalSecretRewriteRegexp `json:"regexp,omitempty"`
+
+	// Used to apply string transformation on the secrets.
+	// +optional
+	Transform *esv1.ExternalSecretRewriteTransform `json:"transform,omitempty"`
+}
+
 // PushSecretConditionType indicates the condition of the PushSecret.
 type PushSecretConditionType string
 
@@ -253,6 +316,7 @@ type PushSecretStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="Last Sync",type=date,JSONPath=`.status.refreshTime`
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=ps
