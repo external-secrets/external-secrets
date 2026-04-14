@@ -46,3 +46,60 @@ func TestClusterProviderExternalSecretRuntimeSupportsAuthLifecycle(t *testing.T)
 		t.Fatalf("expected SupportsAuthLifecycle to return true when both hooks are present")
 	}
 }
+
+func TestClusterProviderPushRuntimeSupportsAuthLifecycle(t *testing.T) {
+	runtimeWithoutHooks := &ClusterProviderPushRuntime{}
+	if runtimeWithoutHooks.SupportsAuthLifecycle() {
+		t.Fatalf("expected SupportsAuthLifecycle to return false when both hooks are nil")
+	}
+
+	runtimeWithBreakOnly := &ClusterProviderPushRuntime{
+		BreakAuth: func() {},
+	}
+	if runtimeWithBreakOnly.SupportsAuthLifecycle() {
+		t.Fatalf("expected SupportsAuthLifecycle to return false when RepairAuth is nil")
+	}
+
+	runtimeWithRepairOnly := &ClusterProviderPushRuntime{
+		RepairAuth: func() {},
+	}
+	if runtimeWithRepairOnly.SupportsAuthLifecycle() {
+		t.Fatalf("expected SupportsAuthLifecycle to return false when BreakAuth is nil")
+	}
+
+	runtimeWithBothHooks := &ClusterProviderPushRuntime{
+		BreakAuth:  func() {},
+		RepairAuth: func() {},
+	}
+	if !runtimeWithBothHooks.SupportsAuthLifecycle() {
+		t.Fatalf("expected SupportsAuthLifecycle to return true when both hooks are present")
+	}
+}
+
+func TestClusterProviderPushRuntimeSupportsRemoteAbsenceAssertions(t *testing.T) {
+	runtimeWithoutExpectation := &ClusterProviderPushRuntime{}
+	if runtimeWithoutExpectation.SupportsRemoteAbsenceAssertions() {
+		t.Fatalf("expected SupportsRemoteAbsenceAssertions to return false when ExpectNoRemoteSecret is nil")
+	}
+
+	runtimeWithExpectation := &ClusterProviderPushRuntime{
+		ExpectNoRemoteSecret: func(_, _ string) {},
+	}
+	if !runtimeWithExpectation.SupportsRemoteAbsenceAssertions() {
+		t.Fatalf("expected SupportsRemoteAbsenceAssertions to return true when ExpectNoRemoteSecret is present")
+	}
+}
+
+func TestClusterProviderPushRuntimeSupportsRemoteNamespaceOverrides(t *testing.T) {
+	runtimeWithoutFactory := &ClusterProviderPushRuntime{}
+	if runtimeWithoutFactory.SupportsRemoteNamespaceOverrides() {
+		t.Fatalf("expected SupportsRemoteNamespaceOverrides to return false when CreateWritableRemoteScope is nil")
+	}
+
+	runtimeWithFactory := &ClusterProviderPushRuntime{
+		CreateWritableRemoteScope: func(_ string) string { return "override-namespace" },
+	}
+	if !runtimeWithFactory.SupportsRemoteNamespaceOverrides() {
+		t.Fatalf("expected SupportsRemoteNamespaceOverrides to return true when CreateWritableRemoteScope is present")
+	}
+}

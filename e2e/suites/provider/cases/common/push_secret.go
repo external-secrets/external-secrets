@@ -49,6 +49,18 @@ type ClusterProviderPushRuntime struct {
 	CreateWritableRemoteScope func(prefix string) string
 }
 
+func (r *ClusterProviderPushRuntime) SupportsAuthLifecycle() bool {
+	return r != nil && r.BreakAuth != nil && r.RepairAuth != nil
+}
+
+func (r *ClusterProviderPushRuntime) SupportsRemoteAbsenceAssertions() bool {
+	return r != nil && r.ExpectNoRemoteSecret != nil
+}
+
+func (r *ClusterProviderPushRuntime) SupportsRemoteNamespaceOverrides() bool {
+	return r != nil && r.CreateWritableRemoteScope != nil
+}
+
 func PushSecretPreservesSourceMetadata(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should preserve source secret type, labels, and annotations when pushing to the namespaced Provider", func(tc *framework.TestCase) {
 		tc.PushSecretSource = &corev1.Secret{
@@ -224,13 +236,19 @@ func ClusterProviderPushAllowsRemoteNamespaceOverride(f *framework.Framework, ha
 				Name:      "push-remote-override",
 				AuthScope: esv1.AuthenticationScopeManifestNamespace,
 			})
+			Expect(runtime).NotTo(BeNil(), "cluster provider push harness returned nil runtime")
+			if !runtime.SupportsRemoteNamespaceOverrides() {
+				Skip(fmt.Sprintf("provider %q does not support remote namespace override hooks", runtime.ClusterProviderName))
+			}
 			overrideNamespace := runtime.CreateWritableRemoteScope("push-remote-override-target")
 			applyClusterProviderPushSecret(tc, runtime, "push-remote-override-remote")
 			tc.PushSecret.Spec.Data[0].Metadata = pushSecretMetadataWithRemoteNamespace(overrideNamespace)
 			tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
 				waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
 				runtime.WaitForRemoteSecretValue(overrideNamespace, "push-remote-override-remote", "value", "override-push-value")
-				runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, "push-remote-override-remote")
+				if runtime.SupportsRemoteAbsenceAssertions() {
+					runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, "push-remote-override-remote")
+				}
 			}
 		}
 	}
@@ -261,7 +279,9 @@ func ClusterProviderPushDeniedByConditions(f *framework.Framework, harness Clust
 		}
 		tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
 			waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionFalse)
-			runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, "push-deny-remote")
+			if runtime.SupportsRemoteAbsenceAssertions() {
+				runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, "push-deny-remote")
+			}
 			expectEventMessage(tc.Framework, ps.Namespace, ps.Name, "PushSecret", fmt.Sprintf("using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name))
 		}
 	}
@@ -312,13 +332,19 @@ func clusterProviderPushRecoveryCase(f *framework.Framework, harness ClusterProv
 				Name:      name,
 				AuthScope: authScope,
 			})
+			Expect(runtime).NotTo(BeNil(), "cluster provider push harness returned nil runtime")
+			if !runtime.SupportsAuthLifecycle() {
+				Skip(fmt.Sprintf("provider %q does not support auth lifecycle recovery hooks", runtime.ClusterProviderName))
+			}
 			applyClusterProviderPushSecret(tc, runtime, fmt.Sprintf("%s-remote", name))
 			tc.PushSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Hour}
 			runtime.BreakAuth()
 		}
 		tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
 			waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionFalse)
-			runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, fmt.Sprintf("%s-remote", name))
+			if runtime.SupportsRemoteAbsenceAssertions() {
+				runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, fmt.Sprintf("%s-remote", name))
+			}
 			runtime.RepairAuth()
 			waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
 			runtime.WaitForRemoteSecretValue(runtime.DefaultRemoteNamespace, fmt.Sprintf("%s-remote", name), "value", expectedValue)

@@ -67,6 +67,7 @@ func newKubernetesClusterProviderPushHarness(f *framework.Framework) common.Clus
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
 			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
 
+			// Kubernetes push harness supports all optional ClusterProvider push capabilities.
 			return &common.ClusterProviderPushRuntime{
 				ClusterProviderName:    clusterProviderName,
 				DefaultRemoteNamespace: s.remoteNamespace,
