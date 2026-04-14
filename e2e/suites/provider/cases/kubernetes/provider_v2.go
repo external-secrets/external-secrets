@@ -72,6 +72,9 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 			UpdatedExpectedData: "provider-v2-updated",
 			RefreshInterval:     defaultV2RefreshInterval,
 			WaitTimeout:         30 * time.Second,
+			UpdateRemoteSecret: func(_ *framework.TestCase, _ framework.SecretStoreProvider) {
+				updateRemoteSecretValue(f, f.Namespace.Name, "provider-v2-refresh-remote", "provider-v2-updated")
+			},
 		})),
 		Entry(common.NamespacedProviderFind(f, common.NamespacedProviderFindConfig{
 			Description:        "[kubernetes] should sync ExternalSecret dataFrom.find through a namespaced Provider",
