@@ -51,6 +51,13 @@ func WithV2FakeProvider() MutationFunc {
 	}
 }
 
+func WithV2AWSProvider() MutationFunc {
+	return func(eso *ESO) {
+		ensureV2ProviderConfig(eso.HelmChart)
+		setProvider(eso.HelmChart, "aws", "aws", "ghcr.io/external-secrets/provider-aws", os.Getenv("VERSION"))
+	}
+}
+
 func setOrAppendVar(chart *HelmChart, variable StringTuple) {
 	for i := range chart.Vars {
 		if chart.Vars[i].Key == variable.Key {

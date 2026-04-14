@@ -66,11 +66,17 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(defaultDryRun, kubernetesBuildTarget) {
 		t.Fatalf("expected default test.v2 dry-run to build the kubernetes provider image, output:\n%s", defaultDryRun)
 	}
+	if !strings.Contains(defaultDryRun, "docker.build.provider.aws") {
+		t.Fatalf("expected default test.v2 dry-run to build the aws provider image, output:\n%s", defaultDryRun)
+	}
 	if !strings.Contains(defaultDryRun, "docker.build.provider.fake") {
 		t.Fatalf("expected default test.v2 dry-run to build the fake provider image, output:\n%s", defaultDryRun)
 	}
 	if !strings.Contains(defaultDryRun, kubernetesProviderImage) {
 		t.Fatalf("expected default test.v2 dry-run to still load the kubernetes provider image, output:\n%s", defaultDryRun)
+	}
+	if !strings.Contains(defaultDryRun, "ghcr.io/external-secrets/provider-aws:test-version") {
+		t.Fatalf("expected default test.v2 dry-run to load the aws provider image, output:\n%s", defaultDryRun)
 	}
 	if !strings.Contains(defaultDryRun, "ghcr.io/external-secrets/provider-fake:test-version") {
 		t.Fatalf("expected default test.v2 dry-run to load the fake provider image, output:\n%s", defaultDryRun)
@@ -88,6 +94,9 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	}
 	if !strings.Contains(skippedDryRun, kubernetesProviderImage) {
 		t.Fatalf("expected skipped test.v2 dry-run to still load the kubernetes provider image, output:\n%s", skippedDryRun)
+	}
+	if !strings.Contains(skippedDryRun, "ghcr.io/external-secrets/provider-aws:test-version") {
+		t.Fatalf("expected skipped test.v2 dry-run to still load the aws provider image, output:\n%s", skippedDryRun)
 	}
 	if !strings.Contains(skippedDryRun, "ghcr.io/external-secrets/provider-fake:test-version") {
 		t.Fatalf("expected skipped test.v2 dry-run to still load the fake provider image, output:\n%s", skippedDryRun)
