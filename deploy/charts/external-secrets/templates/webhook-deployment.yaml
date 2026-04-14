@@ -104,7 +104,7 @@ spec:
           {{- if .Values.webhook.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
-              port: ready 
+              port: {{ .Values.webhook.livenessProbe.port }} 
               path: /healthz
             initialDelaySeconds: {{ .Values.webhook.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.webhook.livenessProbe.periodSeconds }}

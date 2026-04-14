@@ -114,7 +114,7 @@ spec:
           {{- if .Values.certController.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
-              port: ready
+              port: {{ .Values.certController.livenessProbe.port }}
               path: /healthz
             initialDelaySeconds: {{ .Values.certController.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.certController.livenessProbe.periodSeconds }}
