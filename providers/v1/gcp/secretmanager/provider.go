@@ -98,7 +98,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	// when using referent namespace.
 	if namespace == "" && isClusterKind && isReferentSpec(gcpStore) {
 		// placeholder smClient to prevent closing the client twice
-		client.smClient, _ = secretmanager.NewClient(ctx, option.WithTokenSource(oauth2.StaticTokenSource(&oauth2.Token{})))
+		smClient, err := secretmanager.NewClient(ctx, option.WithTokenSource(oauth2.StaticTokenSource(&oauth2.Token{})))
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", errUnableCreateGCPSMClient, err)
+		}
+		client.smClient = smClient
 		return client, nil
 	}
 
