@@ -1,5 +1,5 @@
 The Grafana generator creates short-lived [Grafana Service Account Tokens](https://grafana.com/docs/grafana/latest/administration/service-accounts/).
-It creates or reuses a service account and generates a new token for it. When the ExternalSecret is deleted, the generated token is cleaned up automatically.
+It creates or reuses a service account and generates a new token for it. When the ExternalSecret is deleted, the generated token is cleaned up automatically. Note that the service account itself is not deleted.
 
 ## Authentication
 
