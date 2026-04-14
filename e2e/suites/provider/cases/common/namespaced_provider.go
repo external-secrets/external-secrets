@@ -17,10 +17,13 @@ limitations under the License.
 package common
 
 import (
+	"context"
 	"time"
 
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -78,6 +81,11 @@ type NamespacedProviderRefreshConfig struct {
 
 func NamespacedProviderRefresh(_ *framework.Framework, cfg NamespacedProviderRefreshConfig) (string, func(*framework.TestCase)) {
 	return cfg.Description, func(tc *framework.TestCase) {
+		refreshInterval := cfg.RefreshInterval
+		if refreshInterval <= 0 {
+			refreshInterval = 10 * time.Second
+		}
+
 		waitTimeout := cfg.WaitTimeout
 		if waitTimeout == 0 {
 			waitTimeout = 30 * time.Second
@@ -85,7 +93,7 @@ func NamespacedProviderRefresh(_ *framework.Framework, cfg NamespacedProviderRef
 
 		tc.ExternalSecret.ObjectMeta.Name = cfg.ExternalSecretName
 		tc.ExternalSecret.Spec.Target.Name = cfg.TargetSecretName
-		tc.ExternalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: cfg.RefreshInterval}
+		tc.ExternalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: refreshInterval}
 		tc.Secrets = map[string]framework.SecretEntry{
 			cfg.RemoteKey: {Value: cfg.InitialSecretValue},
 		}
@@ -111,7 +119,7 @@ func NamespacedProviderRefresh(_ *framework.Framework, cfg NamespacedProviderRef
 					Value: cfg.UpdatedSecretValue,
 				})
 			}
-			waitForSecretData(tc.Framework, tc.ExternalSecret.Namespace, tc.ExternalSecret.Spec.Target.Name, map[string][]byte{
+			waitForNamespacedProviderSecretData(tc.Framework, tc.ExternalSecret.Namespace, tc.ExternalSecret.Spec.Target.Name, map[string][]byte{
 				cfg.SecretKey: []byte(cfg.UpdatedExpectedData),
 			}, waitTimeout)
 		}
@@ -157,4 +165,16 @@ func NamespacedProviderFind(_ *framework.Framework, cfg NamespacedProviderFindCo
 			},
 		}}
 	}
+}
+
+func waitForNamespacedProviderSecretData(f *framework.Framework, namespace, name string, expected map[string][]byte, timeout time.Duration) {
+	Eventually(func(g Gomega) {
+		var syncedSecret corev1.Secret
+		g.Expect(f.CRClient.Get(context.Background(), types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, &syncedSecret)).To(Succeed())
+		g.Expect(syncedSecret.Type).To(Equal(corev1.SecretTypeOpaque))
+		g.Expect(syncedSecret.Data).To(Equal(expected))
+	}, timeout, 5*time.Second).Should(Succeed())
 }

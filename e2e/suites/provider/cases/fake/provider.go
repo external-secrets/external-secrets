@@ -17,9 +17,6 @@ limitations under the License.
 package fake
 
 import (
-	"fmt"
-	"time"
-
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 
@@ -30,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
@@ -119,50 +115,4 @@ func removeFakeProviderData(data []esv1.FakeProviderData, key, version string) [
 		filtered = append(filtered, entry)
 	}
 	return filtered
-}
-
-func namespacedProviderSyncCase(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return common.NamespacedProviderSync(f, common.NamespacedProviderSyncConfig{
-		Description:        "[fake] should sync a namespaced secret",
-		ExternalSecretName: "fake-sync-es",
-		TargetSecretName:   "fake-sync-target",
-		RemoteKey:          fmt.Sprintf("fake-sync-%s", f.Namespace.Name),
-		RemoteSecretValue:  `{"value":"fake-sync-value"}`,
-		RemoteProperty:     "value",
-		SecretKey:          "value",
-		ExpectedValue:      "fake-sync-value",
-	})
-}
-
-func namespacedProviderRefreshCase(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return common.NamespacedProviderRefresh(f, common.NamespacedProviderRefreshConfig{
-		Description:         "[fake] should refresh after the provider data changes",
-		ExternalSecretName:  "fake-refresh-es",
-		TargetSecretName:    "fake-refresh-target",
-		RemoteKey:           fmt.Sprintf("fake-refresh-%s", f.Namespace.Name),
-		InitialSecretValue:  `{"value":"fake-initial-value"}`,
-		UpdatedSecretValue:  `{"value":"fake-updated-value"}`,
-		RemoteProperty:      "value",
-		SecretKey:           "value",
-		InitialExpectedData: "fake-initial-value",
-		UpdatedExpectedData: "fake-updated-value",
-		RefreshInterval:     defaultV2RefreshInterval,
-		WaitTimeout:         30 * time.Second,
-	})
-}
-
-func namespacedProviderFindCase(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return common.NamespacedProviderFind(f, common.NamespacedProviderFindConfig{
-		Description:        "[fake] should sync dataFrom.find matches",
-		ExternalSecretName: "fake-find-es",
-		TargetSecretName:   "fake-find-target",
-		MatchRegExp:        fmt.Sprintf("fake-find-%s-(one|two)", f.Namespace.Name),
-		MatchingSecrets: map[string]string{
-			fmt.Sprintf("fake-find-%s-one", f.Namespace.Name): `{"value":"fake-find-one"}`,
-			fmt.Sprintf("fake-find-%s-two", f.Namespace.Name): `{"value":"fake-find-two"}`,
-		},
-		IgnoredSecrets: map[string]string{
-			fmt.Sprintf("fake-find-ignore-%s", f.Namespace.Name): `{"value":"fake-ignore"}`,
-		},
-	})
 }

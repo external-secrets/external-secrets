@@ -58,9 +58,9 @@ var _ = Describe("[fake] v2 namespaced provider", Label("fake", "v2", "namespace
 
 	DescribeTable("namespaced provider",
 		framework.TableFuncWithExternalSecret(f, prov),
-		Entry(namespacedProviderSyncCase(f)),
-		Entry(namespacedProviderRefreshCase(f)),
-		Entry(namespacedProviderFindCase(f)),
+		Entry(common.FakeProviderSync(f)),
+		Entry(common.FakeProviderRefresh(f)),
+		Entry(common.FakeProviderFind(f)),
 		Entry(common.StatusNotUpdatedAfterSuccessfulSync(f)),
 	)
 })
