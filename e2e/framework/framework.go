@@ -85,6 +85,8 @@ func New(baseName string) *Framework {
 // BeforeEach creates a namespace.
 func (f *Framework) BeforeEach() {
 	var err error
+	err = util.CleanupTerminatingE2ENamespaces(GinkgoT().Context(), f.CRClient)
+	Expect(err).ToNot(HaveOccurred())
 	f.Namespace, err = util.CreateKubeNamespace(f.BaseName, f.KubeClientSet)
 	log.Logf("created test namespace %s", f.Namespace.Name)
 	Expect(err).ToNot(HaveOccurred())
@@ -104,7 +106,9 @@ func (f *Framework) AfterEach() {
 	// reset addons to default once the run is done
 	f.Addons = []addon.Addon{}
 	log.Logf("deleting test namespace %s", f.Namespace.Name)
-	err := util.DeleteKubeNamespace(f.Namespace.Name, f.KubeClientSet)
+	err := util.ClearKnownNamespaceFinalizers(GinkgoT().Context(), f.CRClient, f.Namespace.Name)
+	Expect(err).NotTo(HaveOccurred())
+	err = util.DeleteKubeNamespace(f.Namespace.Name, f.KubeClientSet)
 	Expect(err).NotTo(HaveOccurred())
 }
 

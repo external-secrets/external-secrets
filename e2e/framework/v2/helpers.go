@@ -43,7 +43,11 @@ const (
 )
 
 func ProviderAddress(providerName string) string {
-	return fmt.Sprintf("provider-%s.%s.svc:8080", providerName, ProviderNamespace)
+	return ProviderAddressInNamespace(providerName, ProviderNamespace)
+}
+
+func ProviderAddressInNamespace(providerName, namespace string) string {
+	return fmt.Sprintf("provider-%s.%s.svc:8080", providerName, namespace)
 }
 
 func GetClusterCABundle(f *framework.Framework, namespace string) []byte {

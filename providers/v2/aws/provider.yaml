@@ -10,6 +10,12 @@ stores:
       kind: "SecretsManager"
     v1Provider: "github.com/external-secrets/external-secrets/providers/v2/aws/store"
     v1ProviderFunc: "NewProvider"
+  - gvk:
+      group: "provider.external-secrets.io"
+      version: "v2alpha1"
+      kind: "ParameterStore"
+    v1Provider: "github.com/external-secrets/external-secrets/providers/v2/aws/store"
+    v1ProviderFunc: "NewProvider"
 
 generators:
   - gvk:
@@ -26,4 +32,3 @@ generators:
     v1GeneratorFunc: "NewSTSGenerator"
 
 configPackage: "."
-

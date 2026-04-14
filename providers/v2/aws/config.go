@@ -32,36 +32,63 @@ import (
 // This function converts v2 ProviderReference to v1 SecretStoreSpec.
 func GetSpecMapper(kubeClient client.Client) func(*pb.ProviderReference, string) (*v1.SecretStoreSpec, error) {
 	return func(ref *pb.ProviderReference, sourceNamespace string) (*v1.SecretStoreSpec, error) {
-		if ref.Kind != awsv2alpha1.SecretsManagerKind {
-			return nil, fmt.Errorf("unsupported provider kind: %s", ref.Kind)
-		}
 		namespace := ref.Namespace
 		if namespace == "" {
 			namespace = sourceNamespace
 		}
-		var awsProvider awsv2alpha1.SecretsManager
-		err := kubeClient.Get(context.Background(), client.ObjectKey{
-			Namespace: namespace,
-			Name:      ref.Name,
-		}, &awsProvider)
-		if err != nil {
-			return nil, err
-		}
-		return &v1.SecretStoreSpec{
-			Provider: &v1.SecretStoreProvider{
-				AWS: &v1.AWSProvider{
-					Service:           v1.AWSServiceSecretsManager,
-					Auth:              awsProvider.Spec.Auth,
-					Role:              awsProvider.Spec.Role,
-					Region:            awsProvider.Spec.Region,
-					AdditionalRoles:   awsProvider.Spec.AdditionalRoles,
-					ExternalID:        awsProvider.Spec.ExternalID,
-					SecretsManager:    awsProvider.Spec.SecretsManager,
-					SessionTags:       awsProvider.Spec.SessionTags,
-					TransitiveTagKeys: awsProvider.Spec.TransitiveTagKeys,
-					Prefix:            awsProvider.Spec.Prefix,
+
+		switch ref.Kind {
+		case awsv2alpha1.SecretsManagerKind:
+			var awsProvider awsv2alpha1.SecretsManager
+			err := kubeClient.Get(context.Background(), client.ObjectKey{
+				Namespace: namespace,
+				Name:      ref.Name,
+			}, &awsProvider)
+			if err != nil {
+				return nil, err
+			}
+			return &v1.SecretStoreSpec{
+				Provider: &v1.SecretStoreProvider{
+					AWS: &v1.AWSProvider{
+						Service:           v1.AWSServiceSecretsManager,
+						Auth:              awsProvider.Spec.Auth,
+						Role:              awsProvider.Spec.Role,
+						Region:            awsProvider.Spec.Region,
+						AdditionalRoles:   awsProvider.Spec.AdditionalRoles,
+						ExternalID:        awsProvider.Spec.ExternalID,
+						SecretsManager:    awsProvider.Spec.SecretsManager,
+						SessionTags:       awsProvider.Spec.SessionTags,
+						TransitiveTagKeys: awsProvider.Spec.TransitiveTagKeys,
+						Prefix:            awsProvider.Spec.Prefix,
+					},
 				},
-			},
-		}, nil
+			}, nil
+		case awsv2alpha1.ParameterStoreKind:
+			var awsProvider awsv2alpha1.ParameterStore
+			err := kubeClient.Get(context.Background(), client.ObjectKey{
+				Namespace: namespace,
+				Name:      ref.Name,
+			}, &awsProvider)
+			if err != nil {
+				return nil, err
+			}
+			return &v1.SecretStoreSpec{
+				Provider: &v1.SecretStoreProvider{
+					AWS: &v1.AWSProvider{
+						Service:           v1.AWSServiceParameterStore,
+						Auth:              awsProvider.Spec.Auth,
+						Role:              awsProvider.Spec.Role,
+						Region:            awsProvider.Spec.Region,
+						AdditionalRoles:   awsProvider.Spec.AdditionalRoles,
+						ExternalID:        awsProvider.Spec.ExternalID,
+						SessionTags:       awsProvider.Spec.SessionTags,
+						TransitiveTagKeys: awsProvider.Spec.TransitiveTagKeys,
+						Prefix:            awsProvider.Spec.Prefix,
+					},
+				},
+			}, nil
+		default:
+			return nil, fmt.Errorf("unsupported provider kind: %s", ref.Kind)
+		}
 	}
 }

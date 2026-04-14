@@ -42,6 +42,7 @@ type TestCase struct {
 	Secrets                 map[string]SecretEntry
 	ExpectedSecret          *v1.Secret
 	Prepare                 func(*TestCase, SecretStoreProvider)
+	Cleanup                 func()
 	ProviderOverride        SecretStoreProvider
 	AfterSync               func(SecretStoreProvider, *v1.Secret)
 	VerifyPushSecretOutcome func(ps *esv1alpha1.PushSecret, pushClient esv1.SecretsClient)
@@ -68,6 +69,12 @@ func TableFuncWithExternalSecret(f *Framework, prov SecretStoreProvider) func(..
 		for _, tweak := range tweaks {
 			tweak(tc)
 		}
+
+		defer func() {
+			if tc.Cleanup != nil {
+				tc.Cleanup()
+			}
+		}()
 
 		prov = prepareTestCase(tc, prov)
 

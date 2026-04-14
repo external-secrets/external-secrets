@@ -63,6 +63,26 @@ func TestInstallArgsOmitDependencyUpdateWhenSkipped(t *testing.T) {
 	}
 }
 
+func TestUninstallArgsIncludeIgnoreNotFound(t *testing.T) {
+	args := (&HelmChart{
+		ReleaseName: "external-secrets",
+		Namespace:   "external-secrets-system",
+	}).uninstallArgs()
+
+	if !contains(args, "--ignore-not-found") {
+		t.Fatalf("expected uninstall args to include --ignore-not-found, got %v", args)
+	}
+}
+
+func TestIsHelmReleaseNameInUseError(t *testing.T) {
+	if !isHelmReleaseNameInUseError("Error: INSTALLATION FAILED: cannot re-use a name that is still in use") {
+		t.Fatal("expected stale release message to be detected")
+	}
+	if isHelmReleaseNameInUseError("release: not found") {
+		t.Fatal("did not expect unrelated helm output to be detected as stale release state")
+	}
+}
+
 func contains(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {
