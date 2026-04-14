@@ -209,5 +209,10 @@ func pkcs7Unpad(data []byte) ([]byte, error) {
 	if padding > len(data) {
 		return nil, errors.New("pkcs7Unpad: padding larger than data")
 	}
+	for _, b := range data[len(data)-padding:] {
+		if b != byte(padding) {
+			return nil, errors.New("pkcs7Unpad: inconsistent padding bytes")
+		}
+	}
 	return data[:len(data)-padding], nil
 }
