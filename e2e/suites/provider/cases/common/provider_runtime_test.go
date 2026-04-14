@@ -16,7 +16,10 @@ limitations under the License.
 
 package common
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestClusterProviderExternalSecretRuntimeSupportsAuthLifecycle(t *testing.T) {
 	runtimeWithoutHooks := &ClusterProviderExternalSecretRuntime{}
@@ -102,4 +105,22 @@ func TestClusterProviderPushRuntimeSupportsRemoteNamespaceOverrides(t *testing.T
 	if !runtimeWithFactory.SupportsRemoteNamespaceOverrides() {
 		t.Fatalf("expected SupportsRemoteNamespaceOverrides to return true when CreateWritableRemoteScope is present")
 	}
+}
+
+func TestApplyClusterProviderPushSecretPanicsWithClearMessageWhenRuntimeNil(t *testing.T) {
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			t.Fatalf("expected panic when runtime is nil")
+		}
+		message, ok := recovered.(string)
+		if !ok {
+			t.Fatalf("expected panic message to be string, got %T", recovered)
+		}
+		if !strings.Contains(message, "cluster provider push harness returned nil runtime") {
+			t.Fatalf("expected panic message to mention nil runtime guard, got %q", message)
+		}
+	}()
+
+	applyClusterProviderPushSecret(nil, nil, "remote-secret")
 }
