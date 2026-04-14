@@ -227,34 +227,5 @@ func externalSecretConditionHasStatus(condition *esv1.ExternalSecretStatusCondit
 }
 
 func createE2ENamespace(f *framework.Framework, prefix string) string {
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("e2e-tests-%s-", prefix),
-		},
-	}
-	Expect(f.CRClient.Create(context.Background(), namespace)).To(Succeed())
-
-	DeferCleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		defer cancel()
-
-		err := f.CRClient.Delete(ctx, namespace)
-		if err != nil && !apierrors.IsNotFound(err) {
-			Expect(err).ToNot(HaveOccurred())
-		}
-
-		err = wait.PollUntilContextTimeout(ctx, defaultV2PollInterval, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-			_, err := f.KubeClientSet.CoreV1().Namespaces().Get(ctx, namespace.Name, metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				return true, nil
-			}
-			if err != nil {
-				return false, err
-			}
-			return false, nil
-		})
-		Expect(err).To(Succeed())
-	})
-
-	return namespace.Name
+	return common.CreateProviderCaseNamespace(f, prefix, defaultV2PollInterval)
 }

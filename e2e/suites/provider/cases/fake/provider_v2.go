@@ -27,7 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -173,7 +172,7 @@ type fakeClusterProviderScenario struct {
 func newFakeClusterProviderScenario(f *framework.Framework, prefix string, authScope esv1.AuthenticationScope) *fakeClusterProviderScenario {
 	providerNamespace := f.Namespace.Name
 	if authScope == esv1.AuthenticationScopeProviderNamespace {
-		providerNamespace = createE2ENamespace(f, prefix+"-provider")
+		providerNamespace = common.CreateProviderCaseNamespace(f, prefix+"-provider", defaultV2PollInterval)
 	}
 
 	s := &fakeClusterProviderScenario{
@@ -229,8 +228,6 @@ func newFakeClusterProviderExternalSecretHarness(f *framework.Framework) common.
 			return &common.ClusterProviderExternalSecretRuntime{
 				ClusterProviderName: clusterProviderName,
 				Provider:            s,
-				BreakAuth:           func() {},
-				RepairAuth:          func() {},
 			}
 		},
 	}
@@ -254,8 +251,10 @@ func newFakeClusterProviderPushHarness(f *framework.Framework) common.ClusterPro
 						Kind: esv1.ClusterProviderKindStr,
 					}, name, expectedValue)
 				},
-				ExpectNoRemoteSecret:      func(string, string) {},
-				CreateWritableRemoteScope: func(prefix string) string { return createE2ENamespace(f, prefix) },
+				ExpectNoRemoteSecret: func(string, string) {},
+				CreateWritableRemoteScope: func(prefix string) string {
+					return common.CreateProviderCaseNamespace(f, prefix, defaultV2PollInterval)
+				},
 			}
 		},
 	}
@@ -395,37 +394,4 @@ func fakeConfigNamespaceForAuthScope(authScope esv1.AuthenticationScope, manifes
 		return providerNamespace
 	}
 	return manifestNamespace
-}
-
-func createE2ENamespace(f *framework.Framework, prefix string) string {
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("e2e-tests-%s-", prefix),
-		},
-	}
-	Expect(f.CRClient.Create(context.Background(), namespace)).To(Succeed())
-
-	DeferCleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		defer cancel()
-
-		err := f.CRClient.Delete(ctx, namespace)
-		if err != nil && !apierrors.IsNotFound(err) {
-			Expect(err).ToNot(HaveOccurred())
-		}
-
-		err = wait.PollUntilContextTimeout(ctx, defaultV2PollInterval, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-			_, err := f.KubeClientSet.CoreV1().Namespaces().Get(ctx, namespace.Name, metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				return true, nil
-			}
-			if err != nil {
-				return false, err
-			}
-			return false, nil
-		})
-		Expect(err).To(Succeed())
-	})
-
-	return namespace.Name
 }
