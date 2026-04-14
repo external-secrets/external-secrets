@@ -194,6 +194,16 @@ func TestWithV2FakeProviderEnforcesRequiredFlags(t *testing.T) {
 	assertVarValue(t, eso.HelmChart, "providerDefaults.replicaCount", "8")
 }
 
+func TestWithV2ProviderServiceAccountOverridesAWSInPlace(t *testing.T) {
+	t.Setenv("VERSION", "test-version")
+
+	eso := NewESO(WithV2AWSProvider())
+	WithV2ProviderServiceAccount("aws", "irsa-sa")(eso)
+
+	assertVarValue(t, eso.HelmChart, "providers.list[0].serviceAccount.create", "false")
+	assertVarValue(t, eso.HelmChart, "providers.list[0].serviceAccount.name", "irsa-sa")
+}
+
 func assertVarValue(t *testing.T, chart *HelmChart, key, wantValue string) {
 	t.Helper()
 

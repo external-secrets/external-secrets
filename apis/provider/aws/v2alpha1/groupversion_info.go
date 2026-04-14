@@ -28,6 +28,9 @@ var (
 	// SecretsManagerKind is the kind name used for SecretsManager resources.
 	SecretsManagerKind = "SecretsManager"
 
+	// ParameterStoreKind is the kind name used for ParameterStore resources.
+	ParameterStoreKind = "ParameterStore"
+
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 

@@ -26,6 +26,13 @@ var _ = Describe("[fake] ", Label("fake"), func() {
 	f := framework.New("eso-fake")
 	prov := NewProvider(f)
 
+	DescribeTable("namespaced provider",
+		framework.TableFuncWithExternalSecret(f, prov),
+		Entry(common.FakeProviderSync(f)),
+		Entry(common.FakeProviderRefresh(f)),
+		Entry(common.FakeProviderFind(f)),
+	)
+
 	// we use the fake provider to test regressions
 	DescribeTable("controller regressions",
 		framework.TableFuncWithExternalSecret(f, prov),

@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	fluxhelm "github.com/fluxcd/helm-controller/api/v2"
@@ -79,6 +80,8 @@ func init() {
 const (
 	// How often to poll for conditions.
 	Poll = 2 * time.Second
+
+	e2eNamespacePrefix = "e2e-tests-"
 )
 
 // CreateKubeNamespace creates a new Kubernetes Namespace for a test.
@@ -95,6 +98,63 @@ func CreateKubeNamespace(baseName string, kubeClientSet kubernetes.Interface) (*
 // DeleteKubeNamespace will delete a namespace resource.
 func DeleteKubeNamespace(namespace string, kubeClientSet kubernetes.Interface) error {
 	return kubeClientSet.CoreV1().Namespaces().Delete(GinkgoT().Context(), namespace, metav1.DeleteOptions{})
+}
+
+func IsE2ETestNamespace(namespace string) bool {
+	return strings.HasPrefix(namespace, e2eNamespacePrefix)
+}
+
+func ClearKnownNamespaceFinalizers(ctx context.Context, c crclient.Client, namespace string) error {
+	var secretList v1.SecretList
+	if err := c.List(ctx, &secretList, crclient.InNamespace(namespace)); err != nil {
+		return err
+	}
+	for i := range secretList.Items {
+		if len(secretList.Items[i].Finalizers) == 0 {
+			continue
+		}
+		secret := secretList.Items[i].DeepCopy()
+		secret.Finalizers = nil
+		if err := c.Update(ctx, secret); err != nil {
+			return err
+		}
+	}
+
+	var pushSecretList esv1alpha1.PushSecretList
+	if err := c.List(ctx, &pushSecretList, crclient.InNamespace(namespace)); err != nil {
+		return err
+	}
+	for i := range pushSecretList.Items {
+		if len(pushSecretList.Items[i].Finalizers) == 0 {
+			continue
+		}
+		pushSecret := pushSecretList.Items[i].DeepCopy()
+		pushSecret.Finalizers = nil
+		if err := c.Update(ctx, pushSecret); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CleanupTerminatingE2ENamespaces(ctx context.Context, c crclient.Client) error {
+	var namespaceList v1.NamespaceList
+	if err := c.List(ctx, &namespaceList); err != nil {
+		return err
+	}
+
+	for i := range namespaceList.Items {
+		namespace := namespaceList.Items[i]
+		if !IsE2ETestNamespace(namespace.Name) || namespace.DeletionTimestamp == nil {
+			continue
+		}
+		if err := ClearKnownNamespaceFinalizers(ctx, c, namespace.Name); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // WaitForKubeNamespaceNotExist will wait for the namespace with the given name

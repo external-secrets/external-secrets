@@ -232,11 +232,12 @@ func ClusterProviderPushAllowsRemoteNamespaceOverride(f *framework.Framework, ha
 
 		var runtime *ClusterProviderPushRuntime
 		tc.Prepare = func(tc *framework.TestCase, _ framework.SecretStoreProvider) {
+			remoteSecretName := f.MakeRemoteRefKey("push-remote-override-remote")
 			runtime = harness.Prepare(tc, ClusterProviderConfig{
 				Name:      "push-remote-override",
 				AuthScope: esv1.AuthenticationScopeManifestNamespace,
 			})
-			applyClusterProviderPushSecret(tc, runtime, "push-remote-override-remote")
+			applyClusterProviderPushSecret(tc, runtime, remoteSecretName)
 			if !runtime.SupportsRemoteNamespaceOverrides() {
 				Skip(fmt.Sprintf("provider %q does not support remote namespace override hooks", runtime.ClusterProviderName))
 			}
@@ -244,9 +245,9 @@ func ClusterProviderPushAllowsRemoteNamespaceOverride(f *framework.Framework, ha
 			tc.PushSecret.Spec.Data[0].Metadata = pushSecretMetadataWithRemoteNamespace(overrideNamespace)
 			tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
 				waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
-				runtime.WaitForRemoteSecretValue(overrideNamespace, "push-remote-override-remote", "value", "override-push-value")
+				runtime.WaitForRemoteSecretValue(overrideNamespace, remoteSecretName, "value", "override-push-value")
 				if runtime.SupportsRemoteAbsenceAssertions() {
-					runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, "push-remote-override-remote")
+					runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, remoteSecretName)
 				}
 			}
 		}
@@ -267,6 +268,7 @@ func ClusterProviderPushDeniedByConditions(f *framework.Framework, harness Clust
 
 		var runtime *ClusterProviderPushRuntime
 		tc.Prepare = func(tc *framework.TestCase, _ framework.SecretStoreProvider) {
+			remoteSecretName := f.MakeRemoteRefKey("push-deny-remote")
 			runtime = harness.Prepare(tc, ClusterProviderConfig{
 				Name:      "push-deny",
 				AuthScope: esv1.AuthenticationScopeManifestNamespace,
@@ -274,14 +276,14 @@ func ClusterProviderPushDeniedByConditions(f *framework.Framework, harness Clust
 					Namespaces: []string{"not-" + f.Namespace.Name},
 				}},
 			})
-			applyClusterProviderPushSecret(tc, runtime, "push-deny-remote")
-		}
-		tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
-			waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionFalse)
-			if runtime.SupportsRemoteAbsenceAssertions() {
-				runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, "push-deny-remote")
+			applyClusterProviderPushSecret(tc, runtime, remoteSecretName)
+			tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
+				waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionFalse)
+				if runtime.SupportsRemoteAbsenceAssertions() {
+					runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, remoteSecretName)
+				}
+				expectEventMessage(tc.Framework, ps.Namespace, ps.Name, "PushSecret", fmt.Sprintf("using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name))
 			}
-			expectEventMessage(tc.Framework, ps.Namespace, ps.Name, "PushSecret", fmt.Sprintf("using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name))
 		}
 	}
 }
@@ -300,15 +302,16 @@ func clusterProviderPushSyncCase(f *framework.Framework, harness ClusterProvider
 
 		var runtime *ClusterProviderPushRuntime
 		tc.Prepare = func(tc *framework.TestCase, _ framework.SecretStoreProvider) {
+			remoteSecretName := f.MakeRemoteRefKey(fmt.Sprintf("%s-remote", name))
 			runtime = harness.Prepare(tc, ClusterProviderConfig{
 				Name:      name,
 				AuthScope: authScope,
 			})
-			applyClusterProviderPushSecret(tc, runtime, fmt.Sprintf("%s-remote", name))
-		}
-		tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
-			waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
-			runtime.WaitForRemoteSecretValue(runtime.DefaultRemoteNamespace, fmt.Sprintf("%s-remote", name), "value", expectedValue)
+			applyClusterProviderPushSecret(tc, runtime, remoteSecretName)
+			tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
+				waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
+				runtime.WaitForRemoteSecretValue(runtime.DefaultRemoteNamespace, remoteSecretName, "value", expectedValue)
+			}
 		}
 	}
 }
@@ -327,25 +330,26 @@ func clusterProviderPushRecoveryCase(f *framework.Framework, harness ClusterProv
 
 		var runtime *ClusterProviderPushRuntime
 		tc.Prepare = func(tc *framework.TestCase, _ framework.SecretStoreProvider) {
+			remoteSecretName := f.MakeRemoteRefKey(fmt.Sprintf("%s-remote", name))
 			runtime = harness.Prepare(tc, ClusterProviderConfig{
 				Name:      name,
 				AuthScope: authScope,
 			})
-			applyClusterProviderPushSecret(tc, runtime, fmt.Sprintf("%s-remote", name))
+			applyClusterProviderPushSecret(tc, runtime, remoteSecretName)
 			if !runtime.SupportsAuthLifecycle() {
 				Skip(fmt.Sprintf("provider %q does not support auth lifecycle recovery hooks", runtime.ClusterProviderName))
 			}
 			tc.PushSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Hour}
 			runtime.BreakAuth()
-		}
-		tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
-			waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionFalse)
-			if runtime.SupportsRemoteAbsenceAssertions() {
-				runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, fmt.Sprintf("%s-remote", name))
+			tc.VerifyPushSecretOutcome = func(ps *esv1alpha1.PushSecret, _ esv1.SecretsClient) {
+				waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionFalse)
+				if runtime.SupportsRemoteAbsenceAssertions() {
+					runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, remoteSecretName)
+				}
+				runtime.RepairAuth()
+				waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
+				runtime.WaitForRemoteSecretValue(runtime.DefaultRemoteNamespace, remoteSecretName, "value", expectedValue)
 			}
-			runtime.RepairAuth()
-			waitForPushSecretStatus(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
-			runtime.WaitForRemoteSecretValue(runtime.DefaultRemoteNamespace, fmt.Sprintf("%s-remote", name), "value", expectedValue)
 		}
 	}
 }
@@ -355,7 +359,7 @@ func applyClusterProviderPushSecret(tc *framework.TestCase, runtime *ClusterProv
 		panic("cluster provider push harness returned nil runtime")
 	}
 
-	tc.PushSecret.ObjectMeta.Name = fmt.Sprintf("%s-push-secret", remoteSecretName)
+	tc.PushSecret.ObjectMeta.Name = fmt.Sprintf("%s-push-secret", tc.PushSecretSource.Name)
 	tc.PushSecret.Spec.SecretStoreRefs = []esv1alpha1.PushSecretStoreRef{{
 		Name:       runtime.ClusterProviderName,
 		Kind:       esv1.ClusterProviderKindStr,

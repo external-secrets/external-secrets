@@ -19,6 +19,12 @@ package common
 import (
 	"strings"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 func TestClusterProviderExternalSecretRuntimeSupportsAuthLifecycle(t *testing.T) {
@@ -123,4 +129,27 @@ func TestApplyClusterProviderPushSecretPanicsWithClearMessageWhenRuntimeNil(t *t
 	}()
 
 	applyClusterProviderPushSecret(nil, nil, "remote-secret")
+}
+
+func TestApplyClusterProviderPushSecretUsesSafeObjectNameIndependentOfRemoteKey(t *testing.T) {
+	tc := &framework.TestCase{
+		PushSecret: &esv1alpha1.PushSecret{},
+		PushSecretSource: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "push-provider-source",
+			},
+		},
+	}
+	runtime := &ClusterProviderPushRuntime{
+		ClusterProviderName: "push-provider-cluster-provider",
+	}
+
+	applyClusterProviderPushSecret(tc, runtime, "/e2e/test-ns/push-provider-remote")
+
+	if got, want := tc.PushSecret.ObjectMeta.Name, "push-provider-source-push-secret"; got != want {
+		t.Fatalf("expected PushSecret name %q, got %q", want, got)
+	}
+	if got, want := tc.PushSecret.Spec.Data[0].Match.RemoteRef.RemoteKey, "/e2e/test-ns/push-provider-remote"; got != want {
+		t.Fatalf("expected remote key %q, got %q", want, got)
+	}
 }

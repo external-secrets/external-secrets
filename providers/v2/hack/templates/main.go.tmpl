@@ -19,7 +19,6 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -37,9 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	{{- if .HasStores}}
-	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	{{- end}}
 	{{- if .HasGenerators}}
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	{{- end}}

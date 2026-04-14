@@ -108,7 +108,7 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 
 
 e2e-bin: install-ginkgo
-	   CGO_ENABLED=0 ginkgo build ./suites/...
+	   GOWORK=off CGO_ENABLED=0 ginkgo build ./suites/...
 
 e2e-image: e2e-bin
 	-rm -rf ./k8s/deploy
@@ -121,7 +121,7 @@ e2e-image: e2e-bin
 GINKGO_VERSION := $(shell grep 'github.com/onsi/ginkgo/v2' go.mod | awk '{print $$2}')
 install-ginkgo:
 	   @echo "Installing ginkgo version $(GINKGO_VERSION) from go.mod"
-	   go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
+	   GOWORK=off go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 
 help: ## displays this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_\/-]+:.*?## / {printf "\033[34m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST) | \
