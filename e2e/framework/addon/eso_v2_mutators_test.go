@@ -48,13 +48,40 @@ func TestWithV2FakeProvider(t *testing.T) {
 	}
 }
 
-func TestWithV2ProvidersCompose(t *testing.T) {
+func TestWithV2AWSProvider(t *testing.T) {
+	t.Setenv("VERSION", "test-version")
+
+	eso := NewESO(WithV2AWSProvider())
+
+	assertV2ProviderBaseVars(t, eso.HelmChart)
+	assertVarValue(t, eso.HelmChart, "providers.enabled", "true")
+	assertProvider(
+		t,
+		eso.HelmChart,
+		"aws",
+		"aws",
+		"ghcr.io/external-secrets/provider-aws",
+		"test-version",
+	)
+	assertSequentialProviderIndexes(t, eso.HelmChart)
+
+	providers := providerEntries(t, eso.HelmChart)
+	if len(providers) != 1 {
+		t.Fatalf("expected exactly one provider entry, got %d", len(providers))
+	}
+	if providers[0].Name != "aws" {
+		t.Fatalf("expected aws to be at index 0 when standalone, got index 0 name %q", providers[0].Name)
+	}
+}
+
+func TestWithV2ProvidersComposeIncludesAWS(t *testing.T) {
 	t.Setenv("VERSION", "test-version")
 
 	eso := NewESO(
 		WithV2Namespace(),
 		WithV2KubernetesProvider(),
 		WithV2FakeProvider(),
+		WithV2AWSProvider(),
 	)
 
 	if eso.HelmChart.Namespace != v2HelmNamespace {
@@ -85,6 +112,14 @@ func TestWithV2ProvidersCompose(t *testing.T) {
 		"ghcr.io/external-secrets/provider-fake",
 		"test-version",
 	)
+	assertProvider(
+		t,
+		eso.HelmChart,
+		"aws",
+		"aws",
+		"ghcr.io/external-secrets/provider-aws",
+		"test-version",
+	)
 	assertSequentialProviderIndexes(t, eso.HelmChart)
 
 	providers := providerEntries(t, eso.HelmChart)
@@ -93,6 +128,9 @@ func TestWithV2ProvidersCompose(t *testing.T) {
 	}
 	if providers[1].Name != "fake" {
 		t.Fatalf("expected fake to be second provider entry, got %q at index 1", providers[1].Name)
+	}
+	if providers[2].Name != "aws" {
+		t.Fatalf("expected aws to be third provider entry, got %q at index 2", providers[2].Name)
 	}
 }
 
