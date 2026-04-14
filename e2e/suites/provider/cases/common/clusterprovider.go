@@ -173,12 +173,9 @@ func clusterProviderRecoveryCase(f *framework.Framework, harness ClusterProvider
 				Name:      name,
 				AuthScope: authScope,
 			})
+			Expect(runtime).NotTo(BeNil(), "cluster provider harness returned nil runtime")
 			if !runtime.SupportsAuthLifecycle() {
-				providerName := ""
-				if runtime != nil {
-					providerName = runtime.ClusterProviderName
-				}
-				Skip(fmt.Sprintf("provider %q does not support auth lifecycle recovery hooks", providerName))
+				Skip(fmt.Sprintf("provider %q does not support auth lifecycle recovery hooks", runtime.ClusterProviderName))
 			}
 			applyClusterProviderExternalSecret(tc, runtime)
 			runtime.BreakAuth()
