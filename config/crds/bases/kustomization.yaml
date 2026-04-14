@@ -29,4 +29,5 @@ resources:
   - generators.external-secrets.io_webhooks.yaml
   - provider.external-secrets.io_fakes.yaml
   - provider.external-secrets.io_kubernetes.yaml
+  - provider.external-secrets.io_parameterstores.yaml
   - provider.external-secrets.io_secretsmanagers.yaml

@@ -1,11 +1,9 @@
 /*
-Copyright © The ESO Authors
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    https://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -28,7 +25,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/prometheus/client_golang/prometheus"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
 	genpb "github.com/external-secrets/external-secrets/proto/generator"
@@ -36,7 +32,6 @@ import (
 	"github.com/external-secrets/external-secrets/providers/v2/adapter"
 	adaptergenerator "github.com/external-secrets/external-secrets/providers/v2/adapter/generator"
 	adapterstore "github.com/external-secrets/external-secrets/providers/v2/adapter/store"
-	grpccommon "github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 	grpcserver "github.com/external-secrets/external-secrets/providers/v2/common/grpc/server"
 	generator "github.com/external-secrets/external-secrets/providers/v2/fake/generator"
 	store "github.com/external-secrets/external-secrets/providers/v2/fake/store"
@@ -51,37 +46,15 @@ import (
 )
 
 var (
-	port        = flag.Int("port", 8080, "The server port")
-	metricsPort = flag.Int("metrics-port", 8081, "The metrics server port")
-	enableTLS   = flag.Bool("enable-tls", true, "Enable TLS/mTLS for gRPC server")
-	verbose     = flag.Bool("verbose", false, "Enable verbose connection-level debugging")
+	port      = flag.Int("port", 8080, "The server port")
+	enableTLS = flag.Bool("enable-tls", true, "Enable TLS/mTLS for gRPC server")
+	verbose   = flag.Bool("verbose", false, "Enable verbose connection-level debugging")
 )
 
 func main() {
 	flag.Parse()
 
 	log.Printf("starting on port %d (TLS: %v, Verbose: %v)", *port, *enableTLS, *verbose)
-
-	// Set up metrics
-	registry := prometheus.NewRegistry()
-	if err := grpcserver.RegisterMetrics(registry); err != nil {
-		log.Printf("Warning: failed to register server metrics: %v", err)
-	}
-	if err := grpccommon.RegisterMetrics(registry); err != nil {
-		log.Printf("Warning: failed to register grpc metrics: %v", err)
-	}
-
-	// Start metrics server
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	
-	metricsServer := grpcserver.NewMetricsServer(*metricsPort, registry)
-	go func() {
-		if err := metricsServer.Start(ctx); err != nil {
-			log.Printf("Metrics server error: %v", err)
-		}
-	}()
-	log.Printf("Metrics server started on port %d", *metricsPort)
 
 	// Create Kubernetes client (required by adapter)
 	scheme := runtime.NewScheme()
@@ -152,7 +125,6 @@ func main() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-sigChan
 		log.Printf("Received signal: %v, shutting down gracefully...", sig)
-		cancel() // Stop metrics server
 		grpcServer.GracefulStop()
 	}()
 

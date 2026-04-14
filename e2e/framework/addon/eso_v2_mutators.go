@@ -58,6 +58,19 @@ func WithV2AWSProvider() MutationFunc {
 	}
 }
 
+func WithV2ProviderServiceAccount(providerName, serviceAccountName string) MutationFunc {
+	return func(eso *ESO) {
+		index := findProviderIndex(eso.HelmChart, providerName)
+		if index < 0 {
+			panic("provider entry must exist before overriding service account")
+		}
+
+		prefix := "providers.list[" + strconv.Itoa(index) + "].serviceAccount"
+		setOrAppendVar(eso.HelmChart, StringTuple{Key: prefix + ".create", Value: "false"})
+		setOrAppendVar(eso.HelmChart, StringTuple{Key: prefix + ".name", Value: serviceAccountName})
+	}
+}
+
 func setOrAppendVar(chart *HelmChart, variable StringTuple) {
 	for i := range chart.Vars {
 		if chart.Vars[i].Key == variable.Key {
