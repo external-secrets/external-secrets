@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/generators/v1/quay
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
