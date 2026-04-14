@@ -401,3 +401,68 @@ func TestGetAllSecrets(t *testing.T) {
 		})
 	}
 }
+
+// --- GetSecretMap -----------------------------------------------------------
+
+func TestGetSecretMap(t *testing.T) {
+	tests := []struct {
+		name          string
+		getVariableFn func(context.Context, esv1.ExternalSecretDataRemoteRef) (string, error)
+		ref           esv1.ExternalSecretDataRemoteRef
+		wantMap       map[string][]byte
+		wantErrMsg    string
+	}{
+		{
+			name:          "string values",
+			getVariableFn: withGetVariableFn(`{"user":"alice","pass":"s3cr3t"}`, nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR"},
+			wantMap: map[string][]byte{
+				"user": []byte("alice"),
+				"pass": []byte("s3cr3t"),
+			},
+		},
+		{
+			name:          "number and boolean values",
+			getVariableFn: withGetVariableFn(`{"count":42,"enabled":true}`, nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR"},
+			wantMap: map[string][]byte{
+				"count":   []byte("42"),
+				"enabled": []byte("true"),
+			},
+		},
+		{
+			name:          "nested object returned as raw JSON",
+			getVariableFn: withGetVariableFn(`{"meta":{"x":1}}`, nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR"},
+			wantMap: map[string][]byte{
+				"meta": []byte(`{"x":1}`),
+			},
+		},
+		{
+			name:          "non-JSON input returns error",
+			getVariableFn: withGetVariableFn("plain-text", nil),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR"},
+			wantErrMsg:    "not a JSON object",
+		},
+		{
+			name:          "variable not found error propagated",
+			getVariableFn: withGetVariableFn("", errors.New("variable \"MY_VAR\" not found")),
+			ref:           esv1.ExternalSecretDataRemoteRef{Key: "MY_VAR"},
+			wantErrMsg:    "not found",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &Client{}
+			g.getVariableFn = tt.getVariableFn
+			got, err := g.GetSecretMap(context.Background(), tt.ref)
+			if tt.wantErrMsg != "" {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.wantErrMsg)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.wantMap, got)
+			}
+		})
+	}
+}
