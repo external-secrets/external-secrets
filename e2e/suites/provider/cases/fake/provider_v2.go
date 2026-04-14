@@ -243,17 +243,11 @@ func newFakeClusterProviderPushHarness(f *framework.Framework) common.ClusterPro
 			return &common.ClusterProviderPushRuntime{
 				ClusterProviderName:    clusterProviderName,
 				DefaultRemoteNamespace: s.fakeConfigNamespace,
-				BreakAuth:              func() {},
-				RepairAuth:             func() {},
 				WaitForRemoteSecretValue: func(_, name, _ string, expectedValue string) {
 					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
 						Kind: esv1.ClusterProviderKindStr,
 					}, name, expectedValue)
-				},
-				ExpectNoRemoteSecret: func(string, string) {},
-				CreateWritableRemoteScope: func(prefix string) string {
-					return common.CreateProviderCaseNamespace(f, prefix, defaultV2PollInterval)
 				},
 			}
 		},
