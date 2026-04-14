@@ -73,6 +73,7 @@ type NamespacedProviderRefreshConfig struct {
 	UpdatedExpectedData string
 	RefreshInterval     time.Duration
 	WaitTimeout         time.Duration
+	UpdateRemoteSecret  func(tc *framework.TestCase, prov framework.SecretStoreProvider)
 }
 
 func NamespacedProviderRefresh(_ *framework.Framework, cfg NamespacedProviderRefreshConfig) (string, func(*framework.TestCase)) {
@@ -102,9 +103,14 @@ func NamespacedProviderRefresh(_ *framework.Framework, cfg NamespacedProviderRef
 			},
 		}}
 		tc.AfterSync = func(prov framework.SecretStoreProvider, _ *corev1.Secret) {
-			prov.CreateSecret(cfg.RemoteKey, framework.SecretEntry{
-				Value: cfg.UpdatedSecretValue,
-			})
+			if cfg.UpdateRemoteSecret != nil {
+				cfg.UpdateRemoteSecret(tc, prov)
+			} else {
+				prov.DeleteSecret(cfg.RemoteKey)
+				prov.CreateSecret(cfg.RemoteKey, framework.SecretEntry{
+					Value: cfg.UpdatedSecretValue,
+				})
+			}
 			waitForSecretData(tc.Framework, tc.ExternalSecret.Namespace, tc.ExternalSecret.Spec.Target.Name, map[string][]byte{
 				cfg.SecretKey: []byte(cfg.UpdatedExpectedData),
 			}, waitTimeout)
