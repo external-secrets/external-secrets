@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,6 +47,10 @@ type ClusterProviderExternalSecretRuntime struct {
 	Provider            framework.SecretStoreProvider
 	BreakAuth           func()
 	RepairAuth          func()
+}
+
+func (r *ClusterProviderExternalSecretRuntime) SupportsAuthLifecycle() bool {
+	return r != nil && r.BreakAuth != nil && r.RepairAuth != nil
 }
 
 func ClusterProviderManifestNamespace(f *framework.Framework, harness ClusterProviderExternalSecretHarness) (string, func(*framework.TestCase)) {
@@ -168,6 +173,13 @@ func clusterProviderRecoveryCase(f *framework.Framework, harness ClusterProvider
 				Name:      name,
 				AuthScope: authScope,
 			})
+			if !runtime.SupportsAuthLifecycle() {
+				providerName := ""
+				if runtime != nil {
+					providerName = runtime.ClusterProviderName
+				}
+				Skip(fmt.Sprintf("provider %q does not support auth lifecycle recovery hooks", providerName))
+			}
 			applyClusterProviderExternalSecret(tc, runtime)
 			runtime.BreakAuth()
 		}
