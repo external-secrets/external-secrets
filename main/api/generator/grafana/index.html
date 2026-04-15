@@ -9,28 +9,28 @@
       
       
       
-        <link rel="prev" href="../common-k8s-secret-types/">
+        <link rel="prev" href="../gcr/">
       
       
-        <link rel="next" href="../decoding-strategy/">
+        <link rel="next" href="../quay/">
       
       
         
       
       
-      <link rel="icon" href="../../pictures/eso-round-logo.svg">
+      <link rel="icon" href="../../../pictures/eso-round-logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Lifecycle: ownership & deletion - External Secrets Operator</title>
+        <title>Grafana - External Secrets Operator</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
   
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#lifecycle" class="md-skip">
+        <a href="#authentication" class="md-skip">
           Skip to content
         </a>
       
@@ -99,12 +99,12 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../../..">
+  <a href="../../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
             </div>
-            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
           </aside>
         
       </div>
@@ -114,9 +114,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="External Secrets Operator" class="md-header__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+    <a href="../../.." title="External Secrets Operator" class="md-header__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
       
-  <img src="../../pictures/eso-round-logo.svg" alt="logo">
+  <img src="../../../pictures/eso-round-logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -133,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Lifecycle: ownership & deletion
+              Grafana
             
           </span>
         </div>
@@ -246,7 +246,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../.." class="md-tabs__link">
+        <a href="../../.." class="md-tabs__link">
           
   
   
@@ -264,11 +264,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../api/components/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../components/" class="md-tabs__link">
           
   
   
@@ -286,13 +288,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../introduction/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../../guides/introduction/" class="md-tabs__link">
           
   
   
@@ -314,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../provider/aws-secrets-manager/" class="md-tabs__link">
+        <a href="../../../provider/aws-secrets-manager/" class="md-tabs__link">
           
   
   
@@ -336,7 +336,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../examples/gitops-using-fluxcd/" class="md-tabs__link">
+        <a href="../../../examples/gitops-using-fluxcd/" class="md-tabs__link">
           
   
   
@@ -365,7 +365,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../contributing/devguide/" class="md-tabs__link">
+        <a href="../../../contributing/devguide/" class="md-tabs__link">
           
   
   
@@ -404,9 +404,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="External Secrets Operator" class="md-nav__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+    <a href="../../.." title="External Secrets Operator" class="md-nav__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
       
-  <img src="../../pictures/eso-round-logo.svg" alt="logo">
+  <img src="../../../pictures/eso-round-logo.svg" alt="logo">
 
     </a>
     External Secrets Operator
@@ -470,7 +470,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../.." class="md-nav__link ">
+            <a href="../../.." class="md-nav__link ">
               
   
   
@@ -514,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/overview/" class="md-nav__link">
+      <a href="../../../introduction/overview/" class="md-nav__link">
         
   
   
@@ -542,7 +542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/glossary/" class="md-nav__link">
+      <a href="../../../introduction/glossary/" class="md-nav__link">
         
   
   
@@ -570,7 +570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/prerequisites/" class="md-nav__link">
+      <a href="../../../introduction/prerequisites/" class="md-nav__link">
         
   
   
@@ -598,7 +598,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/getting-started/" class="md-nav__link">
+      <a href="../../../introduction/getting-started/" class="md-nav__link">
         
   
   
@@ -626,7 +626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/faq/" class="md-nav__link">
+      <a href="../../../introduction/faq/" class="md-nav__link">
         
   
   
@@ -654,7 +654,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/stability-support/" class="md-nav__link">
+      <a href="../../../introduction/stability-support/" class="md-nav__link">
         
   
   
@@ -682,7 +682,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/deprecation-policy/" class="md-nav__link">
+      <a href="../../../introduction/deprecation-policy/" class="md-nav__link">
         
   
   
@@ -714,8 +714,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -731,19 +733,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
@@ -761,7 +764,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -779,7 +782,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/components/" class="md-nav__link">
+      <a href="../../components/" class="md-nav__link">
         
   
   
@@ -873,7 +876,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/externalsecret/" class="md-nav__link">
+      <a href="../../externalsecret/" class="md-nav__link">
         
   
   
@@ -901,7 +904,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/secretstore/" class="md-nav__link">
+      <a href="../../secretstore/" class="md-nav__link">
         
   
   
@@ -929,7 +932,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/clustersecretstore/" class="md-nav__link">
+      <a href="../../clustersecretstore/" class="md-nav__link">
         
   
   
@@ -957,7 +960,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/clusterexternalsecret/" class="md-nav__link">
+      <a href="../../clusterexternalsecret/" class="md-nav__link">
         
   
   
@@ -985,7 +988,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/clusterpushsecret/" class="md-nav__link">
+      <a href="../../clusterpushsecret/" class="md-nav__link">
         
   
   
@@ -1013,7 +1016,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/pushsecret/" class="md-nav__link">
+      <a href="../../pushsecret/" class="md-nav__link">
         
   
   
@@ -1046,6 +1049,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1094,17 +1099,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../api/generator/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -1128,7 +1131,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1148,7 +1151,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/acr/" class="md-nav__link">
+      <a href="../acr/" class="md-nav__link">
         
   
   
@@ -1176,7 +1179,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/ecr/" class="md-nav__link">
+      <a href="../ecr/" class="md-nav__link">
         
   
   
@@ -1204,7 +1207,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/sts/" class="md-nav__link">
+      <a href="../sts/" class="md-nav__link">
         
   
   
@@ -1232,7 +1235,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/cloudsmith/" class="md-nav__link">
+      <a href="../cloudsmith/" class="md-nav__link">
         
   
   
@@ -1260,7 +1263,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/cluster/" class="md-nav__link">
+      <a href="../cluster/" class="md-nav__link">
         
   
   
@@ -1288,7 +1291,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/gcr/" class="md-nav__link">
+      <a href="../gcr/" class="md-nav__link">
         
   
   
@@ -1313,10 +1316,35 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../api/generator/grafana/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grafana
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1332,6 +1360,96 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Keys
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-manifests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Manifests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example Manifests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-token-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Token Auth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-basic-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Basic Auth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-externalsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example ExternalSecret
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1344,7 +1462,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/quay/" class="md-nav__link">
+      <a href="../quay/" class="md-nav__link">
         
   
   
@@ -1372,7 +1490,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/vault/" class="md-nav__link">
+      <a href="../vault/" class="md-nav__link">
         
   
   
@@ -1400,7 +1518,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/password/" class="md-nav__link">
+      <a href="../password/" class="md-nav__link">
         
   
   
@@ -1428,7 +1546,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/fake/" class="md-nav__link">
+      <a href="../fake/" class="md-nav__link">
         
   
   
@@ -1456,7 +1574,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/webhook/" class="md-nav__link">
+      <a href="../webhook/" class="md-nav__link">
         
   
   
@@ -1484,7 +1602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/github/" class="md-nav__link">
+      <a href="../github/" class="md-nav__link">
         
   
   
@@ -1512,7 +1630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/uuid/" class="md-nav__link">
+      <a href="../uuid/" class="md-nav__link">
         
   
   
@@ -1540,7 +1658,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/mfa/" class="md-nav__link">
+      <a href="../mfa/" class="md-nav__link">
         
   
   
@@ -1568,7 +1686,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/sshkey/" class="md-nav__link">
+      <a href="../sshkey/" class="md-nav__link">
         
   
   
@@ -1666,7 +1784,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/spec/" class="md-nav__link">
+      <a href="../../spec/" class="md-nav__link">
         
   
   
@@ -1694,7 +1812,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/controller-options/" class="md-nav__link">
+      <a href="../../controller-options/" class="md-nav__link">
         
   
   
@@ -1722,7 +1840,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/metrics/" class="md-nav__link">
+      <a href="../../metrics/" class="md-nav__link">
         
   
   
@@ -1750,7 +1868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/selectable-fields/" class="md-nav__link">
+      <a href="../../selectable-fields/" class="md-nav__link">
         
   
   
@@ -1790,10 +1908,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -1815,20 +1931,19 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -1846,7 +1961,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1864,7 +1979,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../introduction/" class="md-nav__link">
+      <a href="../../../guides/introduction/" class="md-nav__link">
         
   
   
@@ -1889,10 +2004,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -1919,11 +2032,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -1944,7 +2059,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1962,7 +2077,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../all-keys-one-secret/" class="md-nav__link">
+      <a href="../../../guides/all-keys-one-secret/" class="md-nav__link">
         
   
   
@@ -1990,7 +2105,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getallsecrets/" class="md-nav__link">
+      <a href="../../../guides/getallsecrets/" class="md-nav__link">
         
   
   
@@ -2018,7 +2133,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../datafrom-rewrite/" class="md-nav__link">
+      <a href="../../../guides/datafrom-rewrite/" class="md-nav__link">
         
   
   
@@ -2104,7 +2219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../templating/" class="md-nav__link">
+      <a href="../../../guides/templating/" class="md-nav__link">
         
   
   
@@ -2132,7 +2247,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../templating-v1/" class="md-nav__link">
+      <a href="../../../guides/templating-v1/" class="md-nav__link">
         
   
   
@@ -2168,7 +2283,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../common-k8s-secret-types/" class="md-nav__link">
+      <a href="../../../guides/common-k8s-secret-types/" class="md-nav__link">
         
   
   
@@ -2193,37 +2308,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Lifecycle: ownership & deletion
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../guides/ownership-deletion-policy/" class="md-nav__link">
         
   
   
@@ -2239,187 +2327,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#refresh-policy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Refresh Policy
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Refresh Policy">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#periodic-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Periodic (default)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#onchange" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        OnChange
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#createdonce" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CreatedOnce
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#creation-policy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Creation Policy
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Creation Policy">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#owner-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Owner (default)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#orphan" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Orphan
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#merge" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Merge
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#none" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        None
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#deletion-policy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deletion Policy
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Deletion Policy">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#retain-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Retain (default)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#delete" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Delete
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#merge_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Merge
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2432,7 +2339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../decoding-strategy/" class="md-nav__link">
+      <a href="../../../guides/decoding-strategy/" class="md-nav__link">
         
   
   
@@ -2460,7 +2367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../controller-class/" class="md-nav__link">
+      <a href="../../../guides/controller-class/" class="md-nav__link">
         
   
   
@@ -2496,7 +2403,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../targeting-custom-resources/" class="md-nav__link">
+      <a href="../../../guides/targeting-custom-resources/" class="md-nav__link">
         
   
   
@@ -2524,7 +2431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../generator/" class="md-nav__link">
+      <a href="../../../guides/generator/" class="md-nav__link">
         
   
   
@@ -2552,7 +2459,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pushsecrets/" class="md-nav__link">
+      <a href="../../../guides/pushsecrets/" class="md-nav__link">
         
   
   
@@ -2646,7 +2553,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../multi-tenancy/" class="md-nav__link">
+      <a href="../../../guides/multi-tenancy/" class="md-nav__link">
         
   
   
@@ -2674,7 +2581,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../security-best-practices/" class="md-nav__link">
+      <a href="../../../guides/security-best-practices/" class="md-nav__link">
         
   
   
@@ -2702,7 +2609,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../threat-model/" class="md-nav__link">
+      <a href="../../../guides/threat-model/" class="md-nav__link">
         
   
   
@@ -2730,7 +2637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../v1beta1/" class="md-nav__link">
+      <a href="../../../guides/v1beta1/" class="md-nav__link">
         
   
   
@@ -2758,7 +2665,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../using-latest-image/" class="md-nav__link">
+      <a href="../../../guides/using-latest-image/" class="md-nav__link">
         
   
   
@@ -2786,7 +2693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../disable-cluster-features/" class="md-nav__link">
+      <a href="../../../guides/disable-cluster-features/" class="md-nav__link">
         
   
   
@@ -2878,7 +2785,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../using-esoctl-tool/" class="md-nav__link">
+      <a href="../../../guides/using-esoctl-tool/" class="md-nav__link">
         
   
   
@@ -3063,7 +2970,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-secrets-manager/" class="md-nav__link">
+      <a href="../../../provider/aws-secrets-manager/" class="md-nav__link">
         
   
   
@@ -3091,7 +2998,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-parameter-store/" class="md-nav__link">
+      <a href="../../../provider/aws-parameter-store/" class="md-nav__link">
         
   
   
@@ -3119,7 +3026,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-access/" class="md-nav__link">
+      <a href="../../../provider/aws-access/" class="md-nav__link">
         
   
   
@@ -3147,7 +3054,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/azure-key-vault/" class="md-nav__link">
+      <a href="../../../provider/azure-key-vault/" class="md-nav__link">
         
   
   
@@ -3175,7 +3082,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/barbican/" class="md-nav__link">
+      <a href="../../../provider/barbican/" class="md-nav__link">
         
   
   
@@ -3203,7 +3110,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/beyondtrust/" class="md-nav__link">
+      <a href="../../../provider/beyondtrust/" class="md-nav__link">
         
   
   
@@ -3231,7 +3138,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/bitwarden-secrets-manager/" class="md-nav__link">
+      <a href="../../../provider/bitwarden-secrets-manager/" class="md-nav__link">
         
   
   
@@ -3259,7 +3166,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/chef/" class="md-nav__link">
+      <a href="../../../provider/chef/" class="md-nav__link">
         
   
   
@@ -3287,7 +3194,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/cloudru/" class="md-nav__link">
+      <a href="../../../provider/cloudru/" class="md-nav__link">
         
   
   
@@ -3315,7 +3222,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/conjur/" class="md-nav__link">
+      <a href="../../../provider/conjur/" class="md-nav__link">
         
   
   
@@ -3343,7 +3250,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/google-secrets-manager/" class="md-nav__link">
+      <a href="../../../provider/google-secrets-manager/" class="md-nav__link">
         
   
   
@@ -3371,7 +3278,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/hashicorp-vault/" class="md-nav__link">
+      <a href="../../../provider/hashicorp-vault/" class="md-nav__link">
         
   
   
@@ -3399,7 +3306,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/kubernetes/" class="md-nav__link">
+      <a href="../../../provider/kubernetes/" class="md-nav__link">
         
   
   
@@ -3427,7 +3334,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/ibm-secrets-manager/" class="md-nav__link">
+      <a href="../../../provider/ibm-secrets-manager/" class="md-nav__link">
         
   
   
@@ -3455,7 +3362,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/akeyless/" class="md-nav__link">
+      <a href="../../../provider/akeyless/" class="md-nav__link">
         
   
   
@@ -3483,7 +3390,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/yandex-certificate-manager/" class="md-nav__link">
+      <a href="../../../provider/yandex-certificate-manager/" class="md-nav__link">
         
   
   
@@ -3511,7 +3418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/yandex-lockbox/" class="md-nav__link">
+      <a href="../../../provider/yandex-lockbox/" class="md-nav__link">
         
   
   
@@ -3539,7 +3446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/gitlab-variables/" class="md-nav__link">
+      <a href="../../../provider/gitlab-variables/" class="md-nav__link">
         
   
   
@@ -3567,7 +3474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/github/" class="md-nav__link">
+      <a href="../../../provider/github/" class="md-nav__link">
         
   
   
@@ -3595,7 +3502,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/oracle-vault/" class="md-nav__link">
+      <a href="../../../provider/oracle-vault/" class="md-nav__link">
         
   
   
@@ -3623,7 +3530,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/ovhcloud/" class="md-nav__link">
+      <a href="../../../provider/ovhcloud/" class="md-nav__link">
         
   
   
@@ -3651,7 +3558,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/1password-automation/" class="md-nav__link">
+      <a href="../../../provider/1password-automation/" class="md-nav__link">
         
   
   
@@ -3679,7 +3586,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/1password-sdk/" class="md-nav__link">
+      <a href="../../../provider/1password-sdk/" class="md-nav__link">
         
   
   
@@ -3707,7 +3614,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/webhook/" class="md-nav__link">
+      <a href="../../../provider/webhook/" class="md-nav__link">
         
   
   
@@ -3735,7 +3642,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/fake/" class="md-nav__link">
+      <a href="../../../provider/fake/" class="md-nav__link">
         
   
   
@@ -3763,7 +3670,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/senhasegura-dsm/" class="md-nav__link">
+      <a href="../../../provider/senhasegura-dsm/" class="md-nav__link">
         
   
   
@@ -3791,7 +3698,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/doppler/" class="md-nav__link">
+      <a href="../../../provider/doppler/" class="md-nav__link">
         
   
   
@@ -3819,7 +3726,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/keeper-security/" class="md-nav__link">
+      <a href="../../../provider/keeper-security/" class="md-nav__link">
         
   
   
@@ -3847,7 +3754,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/cloak/" class="md-nav__link">
+      <a href="../../../provider/cloak/" class="md-nav__link">
         
   
   
@@ -3875,7 +3782,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/scaleway/" class="md-nav__link">
+      <a href="../../../provider/scaleway/" class="md-nav__link">
         
   
   
@@ -3903,7 +3810,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/delinea/" class="md-nav__link">
+      <a href="../../../provider/delinea/" class="md-nav__link">
         
   
   
@@ -3931,7 +3838,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/secretserver/" class="md-nav__link">
+      <a href="../../../provider/secretserver/" class="md-nav__link">
         
   
   
@@ -3959,7 +3866,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/passbolt/" class="md-nav__link">
+      <a href="../../../provider/passbolt/" class="md-nav__link">
         
   
   
@@ -3987,7 +3894,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/pulumi/" class="md-nav__link">
+      <a href="../../../provider/pulumi/" class="md-nav__link">
         
   
   
@@ -4015,7 +3922,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/onboardbase/" class="md-nav__link">
+      <a href="../../../provider/onboardbase/" class="md-nav__link">
         
   
   
@@ -4043,7 +3950,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider-passworddepot/" class="md-nav__link">
+      <a href="../../../provider-passworddepot/" class="md-nav__link">
         
   
   
@@ -4071,7 +3978,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/fortanix/" class="md-nav__link">
+      <a href="../../../provider/fortanix/" class="md-nav__link">
         
   
   
@@ -4099,7 +4006,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/infisical/" class="md-nav__link">
+      <a href="../../../provider/infisical/" class="md-nav__link">
         
   
   
@@ -4127,7 +4034,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/previder/" class="md-nav__link">
+      <a href="../../../provider/previder/" class="md-nav__link">
         
   
   
@@ -4155,7 +4062,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/openbao/" class="md-nav__link">
+      <a href="../../../provider/openbao/" class="md-nav__link">
         
   
   
@@ -4183,7 +4090,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/volcengine/" class="md-nav__link">
+      <a href="../../../provider/volcengine/" class="md-nav__link">
         
   
   
@@ -4211,7 +4118,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/ngrok/" class="md-nav__link">
+      <a href="../../../provider/ngrok/" class="md-nav__link">
         
   
   
@@ -4239,7 +4146,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/devolutions-server/" class="md-nav__link">
+      <a href="../../../provider/devolutions-server/" class="md-nav__link">
         
   
   
@@ -4267,7 +4174,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/nebius-mysterybox/" class="md-nav__link">
+      <a href="../../../provider/nebius-mysterybox/" class="md-nav__link">
         
   
   
@@ -4364,7 +4271,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/gitops-using-fluxcd/" class="md-nav__link">
+      <a href="../../../examples/gitops-using-fluxcd/" class="md-nav__link">
         
   
   
@@ -4392,7 +4299,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/anchore-engine-credentials/" class="md-nav__link">
+      <a href="../../../examples/anchore-engine-credentials/" class="md-nav__link">
         
   
   
@@ -4420,7 +4327,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/jenkins-kubernetes-credentials/" class="md-nav__link">
+      <a href="../../../examples/jenkins-kubernetes-credentials/" class="md-nav__link">
         
   
   
@@ -4448,7 +4355,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/bitwarden/" class="md-nav__link">
+      <a href="../../../examples/bitwarden/" class="md-nav__link">
         
   
   
@@ -4611,7 +4518,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/devguide/" class="md-nav__link">
+      <a href="../../../contributing/devguide/" class="md-nav__link">
         
   
   
@@ -4639,7 +4546,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/process/" class="md-nav__link">
+      <a href="../../../contributing/process/" class="md-nav__link">
         
   
   
@@ -4667,7 +4574,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/release/" class="md-nav__link">
+      <a href="../../../contributing/release/" class="md-nav__link">
         
   
   
@@ -4695,7 +4602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/coc/" class="md-nav__link">
+      <a href="../../../contributing/coc/" class="md-nav__link">
         
   
   
@@ -4723,7 +4630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/calendar/" class="md-nav__link">
+      <a href="../../../contributing/calendar/" class="md-nav__link">
         
   
   
@@ -4751,7 +4658,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/roadmap/" class="md-nav__link">
+      <a href="../../../contributing/roadmap/" class="md-nav__link">
         
   
   
@@ -4779,7 +4686,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/burnout-mitigation/" class="md-nav__link">
+      <a href="../../../contributing/burnout-mitigation/" class="md-nav__link">
         
   
   
@@ -4807,7 +4714,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/llm-policy/" class="md-nav__link">
+      <a href="../../../contributing/llm-policy/" class="md-nav__link">
         
   
   
@@ -4905,7 +4812,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-talks/" class="md-nav__link">
+      <a href="../../../eso-talks/" class="md-nav__link">
         
   
   
@@ -4933,7 +4840,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-demos/" class="md-nav__link">
+      <a href="../../../eso-demos/" class="md-nav__link">
         
   
   
@@ -4961,7 +4868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-blogs/" class="md-nav__link">
+      <a href="../../../eso-blogs/" class="md-nav__link">
         
   
   
@@ -4989,7 +4896,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-tools/" class="md-nav__link">
+      <a href="../../../eso-tools/" class="md-nav__link">
         
   
   
@@ -5042,8 +4949,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -5052,133 +4957,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#refresh-policy" class="md-nav__link">
+  <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Refresh Policy
+        Authentication
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Refresh Policy">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#periodic-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Periodic (default)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#onchange" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        OnChange
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#createdonce" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CreatedOnce
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#creation-policy" class="md-nav__link">
+  <a href="#output-keys" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creation Policy
+        Output Keys
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Creation Policy">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#owner-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Owner (default)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#orphan" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Orphan
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#merge" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Merge
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#none" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        None
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#deletion-policy" class="md-nav__link">
+  <a href="#example-manifests" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deletion Policy
+        Example Manifests
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Deletion Policy">
+    <nav class="md-nav" aria-label="Example Manifests">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#retain-default" class="md-nav__link">
+  <a href="#using-token-auth" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Retain (default)
+        Using Token Auth
       
     </span>
   </a>
@@ -5186,10 +5002,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#delete" class="md-nav__link">
+  <a href="#using-basic-auth" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Delete
+        Using Basic Auth
       
     </span>
   </a>
@@ -5197,10 +5013,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#merge_1" class="md-nav__link">
+  <a href="#example-externalsecret" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Merge
+        Example ExternalSecret
       
     </span>
   </a>
@@ -5232,65 +5048,90 @@
   
 
 
-<h1 id="lifecycle">Lifecycle</h1>
-<p>The External Secrets Operator manages the lifecycle of secrets in Kubernetes. With <code>refreshPolicy</code>,   <code>creationPolicy</code> and <code>deletionPolicy</code> you get fine-grained control of its lifecycle.</p>
-<div class="admonition note">
-<p class="admonition-title">Creation/Deletion Policy Combinations</p>
-<p>Some combinations of creationPolicy/deletionPolicy are not allowed as they would delete existing secrets:
-<br/>- <code>deletionPolicy=Delete</code> &amp; <code>creationPolicy=Merge</code>
-<br/>- <code>deletionPolicy=Delete</code> &amp; <code>creationPolicy=None</code>
-<br/>- <code>deletionPolicy=Merge</code> &amp; <code>creationPolicy=None</code></p>
-</div>
-<h2 id="refresh-policy">Refresh Policy</h2>
-<p>The field <code>spec.refreshPolicy</code> defines how the operator refreshes the a secret.</p>
-<h3 id="periodic-default">Periodic (default)</h3>
-<p>Refreshes the secret at a fixed interval via <code>spec.refreshInterval</code>. Due to backwards compatibility, setting a refresh interval of 0 will result in the same behavior as <code>CreatedOnce</code>.</p>
-<h3 id="onchange">OnChange</h3>
-<p>Refreshes the secret only when the ExternalSecret is updated.  </p>
-<h3 id="createdonce">CreatedOnce</h3>
-<p>Refreshes the secret only once, when the ExternalSecret is created.</p>
-<h2 id="creation-policy">Creation Policy</h2>
-<p>The field <code>spec.target.creationPolicy</code> defines how the operator creates the a secret.</p>
-<h3 id="owner-default">Owner (default)</h3>
-<p>The External Secret Operator creates secret and sets the <code>ownerReference</code> field on the Secret. This secret is subject to <a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> if the initial <code>ExternalSecret</code> is absent. If a secret with the same name already exists that is not owned by the controller it will result in a conflict. The operator will just error out, not claiming the ownership.</p>
-<div class="admonition note">
-<p class="admonition-title">Secrets with <code>ownerReference</code> field not found</p>
-<p>If the secret exists and the ownerReference field is not found, the controller treats this secret as orphaned. It will take ownership of this secret by adding an <code>ownerReference</code> field and updating it.</p>
-</div>
-<h3 id="orphan">Orphan</h3>
-<p>Whenever triggered via <code>RefreshPolicy</code> conditions, the operator creates/updates 
-the target Secret according to the provider available information. 
-However, the operator will not watch on Secret Changes (delete/updates), nor trigger 
-<a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> when the <code>ExternalSecret</code> object is deleted.</p>
-<div class="admonition warning">
-<p class="admonition-title">Unwanted reverts of manual changes</p>
-<p>If you set <code>spec.refreshPolicy</code> to <code>Periodic</code> or <code>OnChange</code> and <code>spec.target.creationPolicy</code> to <code>Orphan</code>,
-any changes manually done to the Secret will eventually be replaced on the next sync interval
-or on the next update to <code>ExternalSecret</code> object. That manual change is then lost forever.
-Use <code>creationPolicy=Orphan</code> with caution.</p>
-</div>
-<h3 id="merge">Merge</h3>
-<p>The operator does not create a secret. Instead, it expects the secret to already exist. Values from the secret provider will be merged into the existing secret. Note: the controller takes ownership of a field even if it is owned by a different entity. Multiple ExternalSecrets can use <code>creationPolicy=Merge</code> with a single secret as long as the fields don't collide - otherwise you end up in an oscillating state.</p>
-<h3 id="none">None</h3>
-<p>The operator does not create or update the secret, this is basically a no-op.</p>
-<h2 id="deletion-policy">Deletion Policy</h2>
-<p>DeletionPolicy defines what should happen if a given secret gets deleted <strong>from the provider</strong>.</p>
-<p>DeletionPolicy is only supported on the specific providers, please refer to our <a href="../../introduction/stability-support/">stability/support table</a>.</p>
-<h3 id="retain-default">Retain (default)</h3>
-<p>Retain will retain the secret if all provider secrets have been deleted.
-If a provider secret does not exist the ExternalSecret gets into the
-SecretSyncedError status.</p>
-<h3 id="delete">Delete</h3>
-<p>Delete deletes the secret if all provider secrets are deleted.
-If a secret gets deleted on the provider side and is not accessible
-anymore this is not considered an error and the ExternalSecret
-does not go into SecretSyncedError status. This is also true for new
-ExternalSecrets mapping to non-existing secrets in the provider.</p>
-<h3 id="merge_1">Merge</h3>
-<p>Merge removes keys in the secret, but not the secret itself.
-If a secret gets deleted on the provider side and is not accessible
-anymore this is not considered an error and the ExternalSecret
-does not go into SecretSyncedError status.</p>
+  <h1>Grafana</h1>
+
+<p>The Grafana generator creates short-lived <a href="https://grafana.com/docs/grafana/latest/administration/service-accounts/">Grafana Service Account Tokens</a>.
+It creates or reuses a Grafana service account (not a Kubernetes ServiceAccount) and generates a new API token for it.
+When the ExternalSecret is deleted, the generated token is cleaned up automatically. Note that the Grafana service account itself is not deleted.</p>
+<h2 id="authentication">Authentication</h2>
+<p>You can authenticate against the Grafana instance using either a service account token or basic auth credentials.
+The credentials must have sufficient permissions to create service accounts and tokens.
+See the <a href="https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/">Grafana RBAC documentation</a> for details on required roles.</p>
+<h2 id="output-keys">Output Keys</h2>
+<p>The generator produces two keys:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>login</code></td>
+<td>The login name of the created Grafana service account</td>
+</tr>
+<tr>
+<td><code>token</code></td>
+<td>The generated Grafana service account token</td>
+</tr>
+</tbody>
+</table>
+<h2 id="example-manifests">Example Manifests</h2>
+<p>Regardless of the authentication method, the credentials (token or user) must have permissions to manage service accounts and tokens in Grafana.
+The simplest approach is to use the <code>Admin</code> role.
+Alternatively, with Grafana's <a href="https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/">fine-grained RBAC</a>, you can grant a non-Admin role the following permissions: <code>serviceaccounts:read</code>, <code>serviceaccounts:write</code>, <code>serviceaccounts.tokens:write</code>, and <code>serviceaccounts.tokens:delete</code>.</p>
+<h3 id="using-token-auth">Using Token Auth</h3>
+<p>Use a Grafana <a href="https://grafana.com/docs/grafana/latest/administration/service-accounts/#service-account-tokens">Service Account Token</a> stored in a Kubernetes Secret, referenced via <code>spec.auth.token</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Grafana</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-token</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://grafana.example.com</span>
+<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">token</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-admin-token</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">  </span><span class="nt">serviceAccount</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-service-account</span>
+<span class="w">    </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Viewer</span>
+</code></pre></div>
+<h3 id="using-basic-auth">Using Basic Auth</h3>
+<p>Use a Grafana user's username and password. The password is stored in a Kubernetes Secret and referenced via <code>spec.auth.basic.password</code>, while the username is set directly in the spec.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Grafana</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-token</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://grafana.example.com</span>
+<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">basic</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">admin</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-basic-auth</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">  </span><span class="nt">serviceAccount</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-service-account</span>
+<span class="w">    </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Editor</span>
+</code></pre></div>
+<h3 id="example-externalsecret">Example ExternalSecret</h3>
+<p>An <code>ExternalSecret</code> that references the Grafana generator:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-token</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30m0s&quot;</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-token</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">generatorRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Grafana</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-token</span>
+</code></pre></div>
 
 
 
@@ -5355,10 +5196,10 @@ For a list of trademarks of The Linux Foundation, please see our <a href="https:
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.indexes", "navigation.expand"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.indexes", "navigation.expand"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
