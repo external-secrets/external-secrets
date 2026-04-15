@@ -46,11 +46,10 @@ type TLSConfig struct {
 	KeyFile    string
 }
 
-// DefaultTLSConfig returns a TLSConfig with default values.
-// TLS_CERT_DIR can override the directory that contains the provider TLS assets.
+// DefaultTLSConfig returns a TLSConfig with fixed provider TLS asset paths.
 func DefaultTLSConfig() *TLSConfig {
 	return &TLSConfig{
-		CertDir:    getEnvOrDefault("TLS_CERT_DIR", DefaultCertDir),
+		CertDir:    DefaultCertDir,
 		CACertFile: DefaultCACertFile,
 		CertFile:   DefaultCertFile,
 		KeyFile:    DefaultKeyFile,
@@ -113,13 +112,6 @@ func TLSVersionName(version uint16) string {
 	default:
 		return "Unknown"
 	}
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
 
 func resolveCertPath(certDir, fileName string) (string, error) {
