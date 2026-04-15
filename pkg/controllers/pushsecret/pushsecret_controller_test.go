@@ -534,6 +534,64 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	syncSuccessfullyWithTemplateAndPropertyWithoutExplicitType := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret.Spec.Data = []v1alpha1.PushSecretData{
+			{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: defaultKey,
+					RemoteRef: v1alpha1.PushSecretRemoteRef{
+						RemoteKey: defaultPath,
+						Property:  "field",
+					},
+				},
+			},
+		}
+		tc.pushsecret.Spec.Template = &esv1.ExternalSecretTemplate{
+			EngineVersion: esv1.TemplateEngineV2,
+			Data: map[string]string{
+				defaultKey: "{{ .key | toString | upper }} was templated",
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
+			updatedPS := &v1alpha1.PushSecret{}
+			Eventually(func() bool {
+				By("checking if Provider value got updated for property-backed template data")
+				setSecretArgs := fakeProvider.GetPushSecretData()
+				providerValue, ok := setSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey]
+				if !ok {
+					return false
+				}
+				if !bytes.Equal(providerValue.Value, []byte("VALUE was templated")) {
+					return false
+				}
+
+				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+
+				expected := v1alpha1.PushSecretStatusCondition{
+					Type:    v1alpha1.PushSecretReady,
+					Status:  v1.ConditionTrue,
+					Reason:  v1alpha1.ReasonSynced,
+					Message: "PushSecret synced successfully",
+				}
+				if !checkCondition(updatedPS.Status, expected) {
+					return false
+				}
+
+				_, ok = updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][defaultPath+"/field"]
+				return ok
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncAndDeleteSuccessfully := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
@@ -2488,6 +2546,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should update the PushSecret status correctly if UpdatePolicy=IfNotExists", updateIfNotExistsSyncStatus),
 		Entry("should fail if secret existence cannot be verified if UpdatePolicy=IfNotExists", updateIfNotExistsSyncFailed),
 		Entry("should sync with template", syncSuccessfullyWithTemplate),
+		Entry("should sync with template and property without explicit type", syncSuccessfullyWithTemplateAndPropertyWithoutExplicitType),
 		Entry("should sync with template reusing keys", syncSuccessfullyReusingKeys),
 		Entry("should sync with conversion strategy", syncSuccessfullyWithConversionStrategy),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),

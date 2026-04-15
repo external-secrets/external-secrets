@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,6 +46,20 @@ func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSe
 			}
 			maps.Copy(stores, resolvedStores)
 			continue
+		}
+
+		if refStore.Kind == "" {
+			store, err := r.getSecretStoreFromName(ctx, refStore, ps.Namespace)
+			if err == nil {
+				stores[refStore] = store
+				continue
+			}
+			if !apierrors.IsNotFound(err) {
+				return nil, err
+			}
+			if !clientmanager.V2ProvidersEnabled() {
+				return nil, err
+			}
 		}
 
 		store, ok, err := r.resolveV2Store(ctx, refStore, ps.Namespace)

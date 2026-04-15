@@ -826,24 +826,7 @@ func statusRef(ref esv1.PushSecretData) string {
 // removeUnmanagedStores iterates over all SecretStore references and evaluates the controllerClass property.
 // Returns a map containing only managed stores.
 func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]esv1.GenericStore) (map[esapi.PushSecretStoreRef]esv1.GenericStore, error) {
-	for ref := range ss {
-		var store esv1.GenericStore
-		switch ref.Kind {
-		case esv1.SecretStoreKind:
-			store = &esv1.SecretStore{}
-		case esv1.ClusterSecretStoreKind:
-			store = &esv1.ClusterSecretStore{}
-			namespace = ""
-		}
-		err := r.Client.Get(ctx, types.NamespacedName{
-			Name:      ref.Name,
-			Namespace: namespace,
-		}, store)
-
-		if err != nil {
-			return ss, err
-		}
-
+	for ref, store := range ss {
 		class := store.GetSpec().Controller
 		if class != "" && class != r.ControllerClass {
 			delete(ss, ref)

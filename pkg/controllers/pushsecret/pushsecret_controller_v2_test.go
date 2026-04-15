@@ -702,6 +702,58 @@ func TestGetSecretStoresV2ResolvesClusterProviderWhenKindOmitted(t *testing.T) {
 	}
 }
 
+func TestGetSecretStoresV2PrefersSecretStoreWhenKindOmitted(t *testing.T) {
+	previous := clientmanager.V2ProvidersEnabled()
+	clientmanager.SetV2ProvidersEnabled(true)
+	t.Cleanup(func() {
+		clientmanager.SetV2ProvidersEnabled(previous)
+	})
+
+	scheme := newPushSecretTestScheme(t)
+	secretStore := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shared-name",
+			Namespace: "tenant-a",
+		},
+	}
+	clusterProvider := &esv1.ClusterProvider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "shared-name",
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(secretStore, clusterProvider).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	ps := esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Spec: esapi.PushSecretSpec{
+			SecretStoreRefs: []esapi.PushSecretStoreRef{{
+				Name: "shared-name",
+			}},
+		},
+	}
+
+	stores, err := r.GetSecretStoresV2(context.Background(), ps)
+	if err != nil {
+		t.Fatalf("GetSecretStoresV2() error = %v", err)
+	}
+
+	store, ok := stores[esapi.PushSecretStoreRef{Name: "shared-name"}]
+	if !ok {
+		t.Fatalf("expected store to resolve, got %#v", stores)
+	}
+	if _, ok := store.(*esv1.SecretStore); !ok {
+		t.Fatalf("expected SecretStore to take precedence, got %T", store)
+	}
+}
+
 func TestGetSecretStoresV2SupportsSecretStoreLabelSelectors(t *testing.T) {
 	scheme := newPushSecretTestScheme(t)
 	selectedStore := &esv1.SecretStore{
@@ -755,6 +807,41 @@ func TestGetSecretStoresV2SupportsSecretStoreLabelSelectors(t *testing.T) {
 	}
 	if _, ok := store.(*esv1.SecretStore); !ok {
 		t.Fatalf("expected SecretStore, got %T", store)
+	}
+}
+
+func TestRemoveUnmanagedStoresSupportsOmittedKindRefs(t *testing.T) {
+	scheme := newPushSecretTestScheme(t)
+	secretStore := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shared-name",
+			Namespace: "tenant-a",
+		},
+		Spec: esv1.SecretStoreSpec{
+			Controller: "eso",
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(secretStore).
+		Build()
+
+	r := &Reconciler{
+		Client:          kubeClient,
+		ControllerClass: "eso",
+		Log:             logr.Discard(),
+	}
+
+	stores, err := removeUnmanagedStores(context.Background(), "tenant-a", r, map[esapi.PushSecretStoreRef]esv1.GenericStore{
+		{Name: "shared-name"}: secretStore,
+	})
+	if err != nil {
+		t.Fatalf("removeUnmanagedStores() error = %v", err)
+	}
+
+	if _, ok := stores[esapi.PushSecretStoreRef{Name: "shared-name"}]; !ok {
+		t.Fatalf("expected omitted-kind store ref to be retained, got %#v", stores)
 	}
 }
 
