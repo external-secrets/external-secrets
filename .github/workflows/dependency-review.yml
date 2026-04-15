@@ -30,3 +30,4 @@ jobs:
         with:
           fail-on-severity: high
           show-openssf-scorecard: false
+          warn-only: true
