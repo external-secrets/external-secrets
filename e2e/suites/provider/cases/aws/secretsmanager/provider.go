@@ -75,13 +75,6 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 			esv1.AWSServiceSecretsManager,
 		)
 		awscommon.CreateReferentStaticStore(f, awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region}, esv1.AWSServiceSecretsManager)
-		prov.SetupReferencedIRSAStore()
-		prov.SetupMountedIRSAStore()
-	})
-
-	AfterEach(func() {
-		prov.TeardownReferencedIRSAStore()
-		prov.TeardownMountedIRSAStore()
 	})
 
 	return prov

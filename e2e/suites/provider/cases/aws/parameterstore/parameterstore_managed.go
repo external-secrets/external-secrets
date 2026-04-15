@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"strings"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -33,6 +34,15 @@ import (
 var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws", "parameterstore", "managed"), Ordered, func() {
 	f := framework.New("eso-aws-ps-managed")
 	prov := NewFromEnv(f)
+
+	BeforeEach(func() {
+		skipIfManagedIRSAEnvMissing(prov)
+		prov.SetupReferencedIRSAStore()
+	})
+
+	AfterEach(func() {
+		prov.TeardownReferencedIRSAStore()
+	})
 
 	// nolint
 	DescribeTable("sync secrets",
@@ -64,6 +74,8 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "parameterstore"
 
 	// each test case gets its own ESO instance
 	BeforeEach(func() {
+		skipIfManagedIRSAEnvMissing(prov)
+		prov.SetupMountedIRSAStore()
 		f.Install(addon.NewESO(
 			addon.WithControllerClass(f.BaseName),
 			addon.WithServiceAccount(prov.ServiceAccountName),
@@ -72,6 +84,10 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "parameterstore"
 			addon.WithoutWebhook(),
 			addon.WithoutCertController(),
 		))
+	})
+
+	AfterEach(func() {
+		prov.TeardownMountedIRSAStore()
 	})
 
 	// nolint
@@ -95,3 +111,19 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "parameterstore"
 		framework.Compose(awscommon.WithMountedIRSA, f, FindByTagWithPath, awscommon.UseMountedIRSAStore),
 	)
 })
+
+func skipIfManagedIRSAEnvMissing(prov *Provider) {
+	var missing []string
+	if prov.region == "" {
+		missing = append(missing, "AWS_REGION")
+	}
+	if prov.ServiceAccountName == "" {
+		missing = append(missing, "AWS_SA_NAME")
+	}
+	if prov.ServiceAccountNamespace == "" {
+		missing = append(missing, "AWS_SA_NAMESPACE")
+	}
+	if len(missing) > 0 {
+		Skip("missing AWS managed IRSA environment: " + strings.Join(missing, ", "))
+	}
+}
