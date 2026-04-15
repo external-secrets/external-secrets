@@ -313,7 +313,7 @@ func buildHTTPClient(ctx context.Context, config *esv1.PassboltProvider, kube kc
 	}
 
 	caCertPool := x509.NewCertPool()
-	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+	if !caCertPool.AppendCertsFromPEM(caCert) {
 		return nil, errors.New(errPassboltCABundleInvalid)
 	}
 
