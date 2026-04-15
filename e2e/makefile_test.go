@@ -31,6 +31,7 @@ const (
 	helmDependencyEnsureCmd  = "../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets"
 	controllerImageLoadCount = `kind load docker-image --name="external-secrets" ghcr.io/external-secrets/external-secrets:test-version`
 	controllerImageBuildCmd  = "docker.build.controller.e2e"
+	dockerCleanupCmd         = "docker system prune --all --force --volumes"
 )
 
 func TestClassicMakeTargetBuildsOnlyControllerImageOnce(t *testing.T) {
@@ -92,6 +93,9 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(defaultDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected default test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", defaultDryRun)
 	}
+	if strings.Contains(defaultDryRun, dockerCleanupCmd) {
+		t.Fatalf("expected default test.v2 dry-run to avoid CI-only docker cleanup, output:\n%s", defaultDryRun)
+	}
 
 	skippedDryRun := runMakeDryRun(t, "test.v2", testVersionArg, "SKIP_PROVIDER_KUBERNETES_BUILD=true")
 	if strings.Contains(skippedDryRun, kubernetesBuildTarget) {
@@ -120,7 +124,21 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	}
 }
 
+func TestV2MakeTargetPrunesDockerImagesInCI(t *testing.T) {
+	t.Parallel()
+
+	dryRun := runMakeDryRunWithEnv(t, []string{"CI=true"}, "test.v2", testVersionArg)
+	if count := strings.Count(dryRun, dockerCleanupCmd); count != 1 {
+		t.Fatalf("expected CI test.v2 dry-run to prune docker state once, got %d occurrences, output:\n%s", count, dryRun)
+	}
+}
+
 func runMakeDryRun(t *testing.T, target string, extraArgs ...string) string {
+	t.Helper()
+	return runMakeDryRunWithEnv(t, nil, target, extraArgs...)
+}
+
+func runMakeDryRunWithEnv(t *testing.T, extraEnv []string, target string, extraArgs ...string) string {
 	t.Helper()
 
 	args := append([]string{"-n", target}, extraArgs...)
@@ -129,7 +147,7 @@ func runMakeDryRun(t *testing.T, target string, extraArgs ...string) string {
 		t.Fatalf("resolve make: %v", err)
 	}
 	cmd.Dir = "."
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(), extraEnv...)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

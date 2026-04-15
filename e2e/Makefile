@@ -88,6 +88,9 @@ endif
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-kubernetes:$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-aws:$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-fake:$(VERSION)
+ifeq ($(CI),true)
+	docker system prune --all --force --volumes
+endif
 	KUBECTL_CONTEXT="$(KIND_CONTEXT)" GINKGO_LABELS="$(V2_GINKGO_LABELS)" E2E_PROVIDER_MODE="v2" TEST_SUITES="provider" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
 
 test.managed: e2e-image ## Run e2e tests against current kube context
