@@ -24,6 +24,8 @@ import (
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 )
 
 var _ = Describe("[awsmanaged] v2 IRSA via referenced service account", Label("aws", "secretsmanager", "managed", "v2"), Ordered, func() {
@@ -74,7 +76,25 @@ var _ = Describe("[awsmanaged] v2 with mounted IRSA", Label("aws", "secretsmanag
 
 func useV2ReferencedIRSA(prov *ProviderV2) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {
-		tc.Prepare = prov.prepareNamespacedProvider(awsAuthProfileReferencedIRSA)
+		tc.Prepare = func(tc *framework.TestCase, _ framework.SecretStoreProvider) {
+			configName := prov.providerConfigName(awsAuthProfileReferencedIRSA)
+			clusterProviderName := referencedIRSAClusterProviderName(prov.framework.Namespace.Name)
+
+			createSecretsManagerV2Config(prov.framework, prov.framework.Namespace.Name, configName, prov.access, awsAuthProfileReferencedIRSA)
+			frameworkv2.CreateClusterProviderConnection(
+				prov.framework,
+				clusterProviderName,
+				frameworkv2.ProviderAddress("aws"),
+				awsProviderAPIVersion,
+				awsv2alpha1.SecretsManagerKind,
+				configName,
+				prov.framework.Namespace.Name,
+				esv1.AuthenticationScopeManifestNamespace,
+				nil,
+			)
+			frameworkv2.WaitForClusterProviderReady(prov.framework, clusterProviderName, defaultV2WaitTimeout)
+			configureV2ReferencedIRSAStoreRef(tc, clusterProviderName)
+		}
 	}
 }
 
@@ -85,4 +105,13 @@ func useV2MountedIRSA(prov *ProviderV2) func(*framework.TestCase) {
 			frameworkv2.ProviderAddressInNamespace("aws", prov.access.SANamespace),
 		)
 	}
+}
+
+func referencedIRSAClusterProviderName(namespace string) string {
+	return namespace + "-referenced-irsa"
+}
+
+func configureV2ReferencedIRSAStoreRef(tc *framework.TestCase, clusterProviderName string) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterProviderKindStr
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = clusterProviderName
 }
