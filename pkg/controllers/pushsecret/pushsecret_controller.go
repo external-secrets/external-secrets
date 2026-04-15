@@ -202,11 +202,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	filteredV1Stores, err := removeUnmanagedStores(ctx, req.Namespace, r, activeSecretStoresV1)
-	if err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
-		return ctrl.Result{}, err
-	}
+	filteredV1Stores := removeUnmanagedStores(ctx, req.Namespace, r, activeSecretStoresV1)
 
 	finalStores := make(map[esapi.PushSecretStoreRef]any)
 	for ref, store := range filteredV1Stores {
@@ -825,14 +821,14 @@ func statusRef(ref esv1.PushSecretData) string {
 
 // removeUnmanagedStores iterates over all SecretStore references and evaluates the controllerClass property.
 // Returns a map containing only managed stores.
-func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]esv1.GenericStore) (map[esapi.PushSecretStoreRef]esv1.GenericStore, error) {
+func removeUnmanagedStores(_ context.Context, _ string, r *Reconciler, ss map[esapi.PushSecretStoreRef]esv1.GenericStore) map[esapi.PushSecretStoreRef]esv1.GenericStore {
 	for ref, store := range ss {
 		class := store.GetSpec().Controller
 		if class != "" && class != r.ControllerClass {
 			delete(ss, ref)
 		}
 	}
-	return ss, nil
+	return ss
 }
 
 // matchKeys filters secret keys based on the provided match pattern.

@@ -833,12 +833,9 @@ func TestRemoveUnmanagedStoresSupportsOmittedKindRefs(t *testing.T) {
 		Log:             logr.Discard(),
 	}
 
-	stores, err := removeUnmanagedStores(context.Background(), "tenant-a", r, map[esapi.PushSecretStoreRef]esv1.GenericStore{
+	stores := removeUnmanagedStores(context.Background(), "tenant-a", r, map[esapi.PushSecretStoreRef]esv1.GenericStore{
 		{Name: "shared-name"}: secretStore,
 	})
-	if err != nil {
-		t.Fatalf("removeUnmanagedStores() error = %v", err)
-	}
 
 	if _, ok := stores[esapi.PushSecretStoreRef{Name: "shared-name"}]; !ok {
 		t.Fatalf("expected omitted-kind store ref to be retained, got %#v", stores)
