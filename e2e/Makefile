@@ -10,7 +10,7 @@ SKIP_PROVIDER_KUBERNETES_BUILD ?= false
 
 export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed && !v2
-export V2_GINKGO_LABELS ?= v2
+export V2_GINKGO_LABELS ?= !managed && v2
 export TEST_SUITES ?= provider generator flux argocd
 export GOCACHE ?= $(CURDIR)/.cache/go-build
 export GOMODCACHE ?= $(CURDIR)/.cache/go-mod
