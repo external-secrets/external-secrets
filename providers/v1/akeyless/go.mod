@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/akeyless
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5
@@ -26,7 +26,6 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.1-0.20241028115027-8cb06fe3c8b0 // indirect
 	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

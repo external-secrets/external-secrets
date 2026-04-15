@@ -19,7 +19,7 @@ jobs:
       timestamp: ${{ steps.timestamp.outputs.timestamp }}
 
     steps:
-      - uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
         with:
           egress-policy: audit
       - name: Checkout
@@ -27,6 +27,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.ref }}
+          persist-credentials: false
       - name: set timestamp output
         id: timestamp
         run: |

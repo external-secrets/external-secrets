@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi@sha256:1fc04e873cb3f3c8d1211729a794716e50826f650ea88b97a4ff57f601db77a8 AS minimal-ubi
+FROM registry.access.redhat.com/ubi9/ubi@sha256:039095faabf1edde946ff528b3b6906efa046ee129f3e33fd933280bb6936221 AS minimal-ubi
 
 # Add metadata
 LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \

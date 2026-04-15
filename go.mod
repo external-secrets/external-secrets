@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.26.1
+go 1.26.2
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
@@ -73,7 +73,6 @@ require (
 	github.com/IBM/go-sdk-core/v5 v5.21.0 // indirect
 	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.16 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.1-0.20241028115027-8cb06fe3c8b0 // indirect
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5 // indirect
@@ -258,7 +257,7 @@ require (
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
 	github.com/go-git/go-git/v5 v5.16.5 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.24.0 // indirect
 	github.com/go-openapi/loads v0.23.1 // indirect

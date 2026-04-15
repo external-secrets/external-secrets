@@ -4383,6 +4383,20 @@ ExternalSecretDecodingStrategy
 <p>Used to define a decoding Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nullBytePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretNullBytePolicy">
+ExternalSecretNullBytePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controls how ESO handles fetched secret data containing NUL bytes for this source.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretDecodingStrategy">ExternalSecretDecodingStrategy
@@ -4534,6 +4548,20 @@ ExternalSecretDecodingStrategy
 <p>Used to define a decoding Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nullBytePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretNullBytePolicy">
+ExternalSecretNullBytePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controls how ESO handles fetched secret data containing NUL bytes for this find source.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretMetadata">ExternalSecretMetadata
@@ -4598,6 +4626,31 @@ map[string]string
 </td>
 </tr><tr><td><p>&#34;None&#34;</p></td>
 <td><p>ExternalSecretMetadataPolicyNone specifies that no metadata should be fetched from the provider.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretNullBytePolicy">ExternalSecretNullBytePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
+</p>
+<p>
+<p>ExternalSecretNullBytePolicy defines how fetched secret data containing NUL bytes should be handled.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Fail&#34;</p></td>
+<td><p>ExternalSecretNullBytePolicyFail fails reconciliation if fetched secret data contains NUL bytes.</p>
+</td>
+</tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td><p>ExternalSecretNullBytePolicyIgnore allows fetched secret data to contain NUL bytes.</p>
 </td>
 </tr></tbody>
 </table>
@@ -4853,7 +4906,8 @@ list during merge operations.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
 <p>ExternalSecretRewriteRegexp defines configuration for rewriting secrets using regular expressions.</p>
@@ -4894,7 +4948,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
 <p>ExternalSecretRewriteTransform defines configuration for transforming secrets using templates.</p>
@@ -6290,6 +6345,21 @@ string
 <td>
 <em>(Optional)</em>
 <p>environment will be used to fetch secrets from a particular environment within a github repository</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>orgSecretVisibility</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+Valid values are &ldquo;all&rdquo; or &ldquo;private&rdquo;.
+When unset, new secrets are created with visibility &ldquo;all&rdquo; and existing secrets preserve
+whatever visibility they already have in GitHub.</p>
 </td>
 </tr>
 </tbody>
@@ -11633,6 +11703,18 @@ in Vault, e.g: &ldquo;cert&rdquo;</p>
 </tr>
 <tr>
 <td>
+<code>vaultRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VaultRole specifies the Vault role to use for TLS certificate authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clientCert</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
@@ -13677,7 +13759,22 @@ PushSecretSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Secret Data that should be pushed to providers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataTo</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">
+[]PushSecretDataTo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DataTo defines bulk push rules that expand source Secret keys into provider entries.</p>
 </td>
 </tr>
 <tr>
@@ -13736,7 +13833,8 @@ PushSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>)
+<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
 </p>
 <p>
 <p>PushSecretConversionStrategy defines how secret values are converted when pushed to providers.</p>
@@ -13811,6 +13909,143 @@ PushSecretConversionStrategy
 <td>
 <em>(Optional)</em>
 <p>Used to define a conversion Strategy for the secret keys</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
+</p>
+<p>
+<p>PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretStoreRef">
+PushSecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<p>StoreRef specifies which SecretStore to push to. Required.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>remoteKey</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RemoteKey is the name of the single provider secret that will receive ALL
+matched keys bundled as a JSON object (e.g. {&ldquo;DB_HOST&rdquo;:&ldquo;&hellip;&rdquo;,&ldquo;DB_USER&rdquo;:&ldquo;&hellip;&rdquo;}).
+When set, per-key expansion is skipped and a single push is performed.
+The provider&rsquo;s store prefix (if any) is still prepended to this value.
+When not set, each matched key is pushed as its own individual provider secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>match</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataToMatch">
+PushSecretDataToMatch
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Match pattern for selecting keys from the source Secret.
+If not specified, all keys are selected.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rewrite</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">
+[]PushSecretRewrite
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Rewrite operations to transform keys before pushing to the provider.
+Operations are applied sequentially.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Metadata is metadata attached to the secret.
+The structure of metadata is provider specific, please look it up in the provider documentation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conversionStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretConversionStrategy">
+PushSecretConversionStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a conversion Strategy for the secret keys</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretDataToMatch">PushSecretDataToMatch
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
+</p>
+<p>
+<p>PushSecretDataToMatch defines pattern matching for key selection.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Regexp matches keys by regular expression.
+If not specified, all keys are matched.</p>
 </td>
 </tr>
 </tbody>
@@ -13962,6 +14197,53 @@ string
 <td>
 <em>(Optional)</em>
 <p>Name of the property in the resulting secret</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
+</p>
+<p>
+<p>PushSecretRewrite defines how to transform secret keys before pushing.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteRegexp">
+ExternalSecretRewriteRegexp
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to rewrite with regular expressions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transform</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteTransform">
+ExternalSecretRewriteTransform
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to apply string transformation on the secrets.</p>
 </td>
 </tr>
 </tbody>
@@ -14153,7 +14435,22 @@ PushSecretSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Secret Data that should be pushed to providers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataTo</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">
+[]PushSecretDataTo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DataTo defines bulk push rules that expand source Secret keys into provider entries.</p>
 </td>
 </tr>
 <tr>
@@ -14327,6 +14624,7 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
 </p>
 <p>
