@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package executil provides small helpers for constructing subprocess commands.
 package executil
 
 import (
@@ -30,5 +31,6 @@ func Command(name string, args ...string) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("find executable %q: %w", name, err)
 	}
 
+	//nolint:gosec // Callers intentionally choose the executable and arguments; LookPath resolves the binary first.
 	return execabs.Command(path, args...), nil
 }

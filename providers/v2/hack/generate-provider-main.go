@@ -27,6 +27,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -163,8 +164,10 @@ func main() {
 			log.Fatalf("Failed to load/validate config %s: %v", configPath, err)
 		}
 
+		providerName := logSafeValue(config.Provider.Name)
+		providerDisplayName := logSafeValue(config.Provider.DisplayName)
 		if *verbose {
-			log.Printf("  Provider: %s (%s)", config.Provider.Name, config.Provider.DisplayName)
+			log.Printf("  Provider: %s (%s)", providerName, providerDisplayName)
 			log.Printf("  Stores: %d, Generators: %d", len(config.Stores), len(config.Generators))
 		}
 
@@ -174,13 +177,13 @@ func main() {
 		// Generate main.go
 		mainContent, err := executeTemplate(mainTemplate, templateData)
 		if err != nil {
-			log.Fatalf("Failed to generate main.go for %s: %v", config.Provider.Name, err)
+			log.Fatalf("Failed to generate main.go for %s: %v", providerName, err)
 		}
 
 		// Format with goimports/gofmt
 		formattedMain, err := formatGoCode(mainContent)
 		if err != nil {
-			log.Printf("Warning: Failed to format main.go for %s: %v", config.Provider.Name, err)
+			log.Printf("Warning: Failed to format main.go for %s: %v", providerName, err)
 			formattedMain = mainContent // Use unformatted if formatting fails
 		}
 
@@ -197,7 +200,7 @@ func main() {
 		// Generate Dockerfile
 		dockerContent, err := executeTemplate(dockerfileTemplate, templateData)
 		if err != nil {
-			log.Fatalf("Failed to generate Dockerfile for %s: %v", config.Provider.Name, err)
+			log.Fatalf("Failed to generate Dockerfile for %s: %v", providerName, err)
 		}
 
 		dockerPath := filepath.Join(providerDir, "Dockerfile")
@@ -230,6 +233,10 @@ func findProviderConfigs(baseDir string) ([]string, error) {
 	})
 
 	return configs, err
+}
+
+func logSafeValue(value string) string {
+	return strconv.QuoteToASCII(strings.ToValidUTF8(value, "?"))
 }
 
 func loadAndValidateConfig(configPath string, schemaLoader gojsonschema.JSONLoader) (*ProviderConfig, error) {
