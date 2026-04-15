@@ -19,11 +19,13 @@ The generator produces two keys:
 
 ## Example Manifests
 
+Regardless of the authentication method, the credentials (token or user) must have permissions to manage service accounts and tokens in Grafana.
+The simplest approach is to use the `Admin` role.
+Alternatively, with Grafana's [fine-grained RBAC](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/), you can grant a non-Admin role the following permissions: `serviceaccounts:read`, `serviceaccounts:write`, `serviceaccounts.tokens:write`, and `serviceaccounts.tokens:delete`.
+
 ### Using Token Auth
 
-Use a Grafana [Service Account Token](https://grafana.com/docs/grafana/latest/administration/service-accounts/#service-account-tokens) to authenticate.
-The token must belong to a service account with `Admin` role so it can create other service accounts and tokens.
-Store the token in a Kubernetes Secret and reference it via `spec.auth.token`.
+Use a Grafana [Service Account Token](https://grafana.com/docs/grafana/latest/administration/service-accounts/#service-account-tokens) stored in a Kubernetes Secret, referenced via `spec.auth.token`.
 
 ```yaml
 {% include 'generator-grafana.yaml' %}
@@ -31,15 +33,16 @@ Store the token in a Kubernetes Secret and reference it via `spec.auth.token`.
 
 ### Using Basic Auth
 
-Alternatively, you can use basic auth credentials (username and password) to authenticate against the Grafana instance.
-The user must have sufficient permissions to manage service accounts.
-Store the password in a Kubernetes Secret and reference it via `spec.auth.basic.password`.
+Use a Grafana user's username and password. The password is stored in a Kubernetes Secret and referenced via `spec.auth.basic.password`, while the username is set directly in the spec.
 
 ```yaml
 {% include 'generator-grafana-basicauth.yaml' %}
 ```
 
-Example `ExternalSecret` that references the Grafana generator:
+### Example ExternalSecret
+
+An `ExternalSecret` that references the Grafana generator:
+
 ```yaml
 {% include 'generator-grafana-example.yaml' %}
 ```
