@@ -50,31 +50,68 @@ type azureProvider struct {
 	framework    *framework.Framework
 }
 
+type azureStaticEnvConfig struct {
+	VaultURL     string
+	TenantID     string
+	ClientID     string
+	ClientSecret string
+}
+
+func loadAzureStaticEnvConfig() azureStaticEnvConfig {
+	return azureStaticEnvConfig{
+		VaultURL:     os.Getenv("TFC_VAULT_URL"),
+		TenantID:     os.Getenv("TFC_AZURE_TENANT_ID"),
+		ClientID:     os.Getenv("TFC_AZURE_CLIENT_ID"),
+		ClientSecret: os.Getenv("TFC_AZURE_CLIENT_SECRET"),
+	}
+}
+
+func (c azureStaticEnvConfig) missingStaticEnv() []string {
+	var missing []string
+	if c.VaultURL == "" {
+		missing = append(missing, "TFC_VAULT_URL")
+	}
+	if c.TenantID == "" {
+		missing = append(missing, "TFC_AZURE_TENANT_ID")
+	}
+	if c.ClientID == "" {
+		missing = append(missing, "TFC_AZURE_CLIENT_ID")
+	}
+	if c.ClientSecret == "" {
+		missing = append(missing, "TFC_AZURE_CLIENT_SECRET")
+	}
+	return missing
+}
+
+func skipIfAzureStaticEnvMissing(cfg azureStaticEnvConfig) {
+	if missing := cfg.missingStaticEnv(); len(missing) > 0 {
+		Skip("missing Azure e2e environment: " + strings.Join(missing, ", "))
+	}
+}
+
 // newFromEnv creates a new Azure KeyVault e2e test provider
 // which uses client credentials flow to authenticate with azure.
 func newFromEnv(f *framework.Framework) *azureProvider {
-	vaultURL := os.Getenv("TFC_VAULT_URL")
-	tenantID := os.Getenv("TFC_AZURE_TENANT_ID")
-	clientID := os.Getenv("TFC_AZURE_CLIENT_ID")
-	clientSecret := os.Getenv("TFC_AZURE_CLIENT_SECRET")
+	cfg := loadAzureStaticEnvConfig()
 
 	basicClient := keyvault.New()
 	prov := &azureProvider{
 		framework:    f,
-		clientID:     clientID,
-		tenantID:     tenantID,
-		vaultURL:     vaultURL,
+		clientID:     cfg.ClientID,
+		tenantID:     cfg.TenantID,
+		vaultURL:     cfg.VaultURL,
 		client:       &basicClient,
-		clientSecret: clientSecret,
+		clientSecret: cfg.ClientSecret,
 	}
 
 	o := &sync.Once{}
 	BeforeEach(func() {
+		skipIfAzureStaticEnvMissing(cfg)
 		// run authorizor only if this spec is called
 		// this allows us to run OTHER providers using GINKGO_LABELS without bailing out
 		o.Do(func() {
 			defer GinkgoRecover()
-			clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
+			clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cfg.ClientID, cfg.ClientSecret, cfg.TenantID)
 			clientCredentialsConfig.Resource = "https://vault.azure.net"
 			authorizer, err := clientCredentialsConfig.Authorizer()
 			if err != nil {

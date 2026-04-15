@@ -42,6 +42,7 @@ var _ = Describe("[gcpmanaged] with pod identity", Label("gcp", "secretsmanager"
 
 	// each test case gets its own ESO instance
 	BeforeEach(func() {
+		skipIfGCPManagedEnvMissing(prov.access)
 		f.Install(addon.NewESO(
 			addon.WithControllerClass(f.BaseName),
 			addon.WithServiceAccount(prov.ServiceAccountName),
@@ -50,6 +51,7 @@ var _ = Describe("[gcpmanaged] with pod identity", Label("gcp", "secretsmanager"
 			addon.WithoutWebhook(),
 			addon.WithoutCertController(),
 		))
+		prov.CreatePodIDStore()
 	})
 
 	DescribeTable("sync secrets",
@@ -79,6 +81,7 @@ var _ = Describe("[gcpmanaged] with service account", Label("gcp", "secretsmanag
 	prov := NewFromEnv(f, f.BaseName)
 
 	BeforeEach(func() {
+		skipIfGCPManagedEnvMissing(prov.access)
 		f.Install(addon.NewESO(
 			addon.WithControllerClass(f.BaseName),
 			addon.WithReleaseName(f.Namespace.Name),
@@ -86,6 +89,11 @@ var _ = Describe("[gcpmanaged] with service account", Label("gcp", "secretsmanag
 			addon.WithoutWebhook(),
 			addon.WithoutCertController(),
 		))
+		prov.CreateSpecifcSASecretStore()
+	})
+
+	AfterEach(func() {
+		prov.DeleteSpecifcSASecretStore()
 	})
 
 	DescribeTable("sync secrets",
