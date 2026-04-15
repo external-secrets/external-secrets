@@ -62,8 +62,8 @@ var _ = Describe("[aws] ", Label("aws", "secretsmanager"), Ordered, func() {
 		framework.Compose(withStaticAuth, f, common.SimpleDataSync, useReferentStaticAuth),
 
 		// test assume role with external-id and session tags
-		framework.Compose(withExtID, f, SimpleSyncWithNamespaceTags(prov), useExtIDAuth),
-		framework.Compose(withSessionTags, f, SimpleSyncWithNamespaceTags(prov), useSessionTagsAuth),
+		framework.Compose(withExtID, f, SimpleSyncWithNamespaceTags(prov), useExtIDAuth(prov)),
+		framework.Compose(withSessionTags, f, SimpleSyncWithNamespaceTags(prov), useSessionTagsAuth(prov)),
 	)
 })
 
@@ -71,12 +71,18 @@ func useStaticAuth(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.StaticStoreName
 }
 
-func useExtIDAuth(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.ExternalIDStoreName
+func useExtIDAuth(prov *Provider) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		skipIfAWSAssumeRoleProbeDenied(prov.backend.access, awsAuthProfileExternalID)
+		tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.ExternalIDStoreName
+	}
 }
 
-func useSessionTagsAuth(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.SessionTagsStoreName
+func useSessionTagsAuth(prov *Provider) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		skipIfAWSAssumeRoleProbeDenied(prov.backend.access, awsAuthProfileSessionTags)
+		tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.SessionTagsStoreName
+	}
 }
 
 func useReferentStaticAuth(tc *framework.TestCase) {
