@@ -21,6 +21,28 @@ import (
 	"testing"
 )
 
+func TestDefaultTLSConfigUsesFixedTLSFilenames(t *testing.T) {
+	t.Setenv("TLS_CERT_DIR", "/custom/certs")
+	t.Setenv("TLS_CA_CERT_FILE", "custom-ca.pem")
+	t.Setenv("TLS_CERT_FILE", "custom-cert.pem")
+	t.Setenv("TLS_KEY_FILE", "custom-key.pem")
+
+	got := DefaultTLSConfig()
+
+	if got.CertDir != "/custom/certs" {
+		t.Fatalf("DefaultTLSConfig() cert dir = %q, want %q", got.CertDir, "/custom/certs")
+	}
+	if got.CACertFile != DefaultCACertFile {
+		t.Fatalf("DefaultTLSConfig() CA file = %q, want %q", got.CACertFile, DefaultCACertFile)
+	}
+	if got.CertFile != DefaultCertFile {
+		t.Fatalf("DefaultTLSConfig() cert file = %q, want %q", got.CertFile, DefaultCertFile)
+	}
+	if got.KeyFile != DefaultKeyFile {
+		t.Fatalf("DefaultTLSConfig() key file = %q, want %q", got.KeyFile, DefaultKeyFile)
+	}
+}
+
 func TestResolveCertPath(t *testing.T) {
 	t.Parallel()
 

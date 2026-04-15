@@ -47,13 +47,13 @@ type TLSConfig struct {
 }
 
 // DefaultTLSConfig returns a TLSConfig with default values.
-// Values can be overridden via TLS_CERT_DIR, TLS_CA_CERT_FILE, TLS_CERT_FILE, and TLS_KEY_FILE.
+// TLS_CERT_DIR can override the directory that contains the provider TLS assets.
 func DefaultTLSConfig() *TLSConfig {
 	return &TLSConfig{
 		CertDir:    getEnvOrDefault("TLS_CERT_DIR", DefaultCertDir),
-		CACertFile: getEnvOrDefault("TLS_CA_CERT_FILE", DefaultCACertFile),
-		CertFile:   getEnvOrDefault("TLS_CERT_FILE", DefaultCertFile),
-		KeyFile:    getEnvOrDefault("TLS_KEY_FILE", DefaultKeyFile),
+		CACertFile: DefaultCACertFile,
+		CertFile:   DefaultCertFile,
+		KeyFile:    DefaultKeyFile,
 	}
 }
 
