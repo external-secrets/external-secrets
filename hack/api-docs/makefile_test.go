@@ -18,15 +18,19 @@ package apidocs
 
 import (
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/external-secrets/external-secrets/pkg/executil"
 )
 
 func TestImageTargetForwardsDockerBuildArgs(t *testing.T) {
 	t.Parallel()
 
-	cmd := exec.Command("make", "-n", "image", `DOCKER_BUILD_ARGS=--network host`)
+	cmd, err := executil.Command("make", "-n", "image", `DOCKER_BUILD_ARGS=--network host`)
+	if err != nil {
+		t.Fatalf("resolve make: %v", err)
+	}
 	cmd.Dir = "."
 	cmd.Env = os.Environ()
 

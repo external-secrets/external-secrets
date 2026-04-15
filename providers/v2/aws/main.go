@@ -19,14 +19,8 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"flag"
-	"fmt"
 	"log"
-	"net"
-	"os"
-	"os/signal"
-	"syscall"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
@@ -38,9 +32,7 @@ import (
 	generator "github.com/external-secrets/external-secrets/providers/v2/aws/generator"
 	store "github.com/external-secrets/external-secrets/providers/v2/aws/store"
 	grpcserver "github.com/external-secrets/external-secrets/providers/v2/common/grpc/server"
-	"google.golang.org/grpc/health"
-	"google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -107,58 +99,16 @@ func main() {
 	adapterServer := adapter.NewServer(kubeClient, scheme, providerMapping, specMapper, generatorMapping)
 
 	log.Printf("[PROVIDER] Using v1 AWS Provider provider with generators wrapped with v2 adapter")
-	grpcServer, err := grpcserver.NewGRPCServer(grpcserver.ServerOptions{
-		EnableTLS: *enableTLS,
-		Verbose:   *verbose,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create gRPC server: %v", err)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	metricsServer := grpcserver.NewMetricsServer(grpcserver.DefaultMetricsPort, nil)
-	if err := grpcserver.RegisterMetrics(metricsServer.GetRegistry()); err != nil {
-		log.Fatalf("Failed to register provider metrics: %v", err)
-	}
-	go func() {
-		if err := metricsServer.Start(ctx); err != nil {
-			log.Fatalf("Failed to start provider metrics server: %v", err)
-		}
-	}()
-
-	// Register services
-	pb.RegisterSecretStoreProviderServer(grpcServer, adapterServer)
-	genpb.RegisterGeneratorProviderServer(grpcServer, adapterServer)
-
-	// Register health service
-	healthServer := health.NewServer()
-	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
-	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
-
-	// Register reflection service for debugging
-	reflection.Register(grpcServer)
-
-	// Start listening
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
-	// Handle graceful shutdown
-	go func() {
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-		sig := <-sigChan
-		log.Printf("Received signal: %v, shutting down gracefully...", sig)
-		cancel()
-		grpcServer.GracefulStop()
-	}()
-
-	// Start serving
-	log.Printf("AWS Provider Provider listening on %s", lis.Addr().String())
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+	if err := grpcserver.RunProviderServer(grpcserver.RuntimeOptions{
+		ProviderName: "AWS Provider",
+		Port:         *port,
+		EnableTLS:    *enableTLS,
+		Verbose:      *verbose,
+		Register: func(registrar grpc.ServiceRegistrar) {
+			pb.RegisterSecretStoreProviderServer(registrar, adapterServer)
+			genpb.RegisterGeneratorProviderServer(registrar, adapterServer)
+		},
+	}); err != nil {
+		log.Fatalf("Failed to run provider server: %v", err)
 	}
 }

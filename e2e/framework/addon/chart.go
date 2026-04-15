@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -29,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
+	frameworkutil "github.com/external-secrets/external-secrets-e2e/framework/util"
 )
 
 // HelmChart installs the specified Chart into the cluster.
@@ -69,7 +69,10 @@ func (c *HelmChart) Install() error {
 			"dependency", "update", filepath.Join(AssetDir(), "deploy/charts/external-secrets"),
 		}
 		log.Logf("updating chart dependencies with args: %+q", args)
-		cmd := exec.Command("helm", args...)
+		cmd, err := frameworkutil.Command("helm", args...)
+		if err != nil {
+			return fmt.Errorf("resolve helm executable: %w", err)
+		}
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("unable to run update cmd: %w: %s", err, string(output))
@@ -143,12 +146,18 @@ func (c *HelmChart) uninstallArgs() []string {
 
 func (c *HelmChart) runInstall(args []string) ([]byte, error) {
 	log.Logf("installing chart with args: %+q", args)
-	cmd := exec.Command("helm", args...)
+	cmd, err := frameworkutil.Command("helm", args...)
+	if err != nil {
+		return nil, fmt.Errorf("resolve helm executable: %w", err)
+	}
 	return cmd.CombinedOutput()
 }
 
 func (c *HelmChart) cleanupExistingRelease() error {
-	cmd := exec.Command("helm", c.uninstallArgs()...)
+	cmd, err := frameworkutil.Command("helm", c.uninstallArgs()...)
+	if err != nil {
+		return fmt.Errorf("resolve helm executable: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil && !strings.Contains(string(output), "release: not found") {
 		return fmt.Errorf("unable to uninstall stale helm release: %w: %s", err, string(output))
@@ -162,7 +171,10 @@ func isHelmReleaseNameInUseError(output string) bool {
 
 // Uninstall removes the chart aswell as the repo.
 func (c *HelmChart) Uninstall() error {
-	cmd := exec.Command("helm", c.uninstallArgs()...)
+	cmd, err := frameworkutil.Command("helm", c.uninstallArgs()...)
+	if err != nil {
+		return fmt.Errorf("resolve helm executable: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unable to uninstall helm release: %w: %s", err, string(output))
@@ -176,10 +188,13 @@ func (c *HelmChart) addRepo() error {
 	}
 	var sout, serr bytes.Buffer
 	args := []string{"repo", "add", c.Repo.Name, c.Repo.URL}
-	cmd := exec.Command("helm", args...)
+	cmd, err := frameworkutil.Command("helm", args...)
+	if err != nil {
+		return fmt.Errorf("resolve helm executable: %w", err)
+	}
 	cmd.Stdout = &sout
 	cmd.Stderr = &serr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("unable to add helm repo: %w: %s, %s", err, sout.String(), serr.String())
 	}
@@ -192,7 +207,10 @@ func (c *HelmChart) removeRepo() error {
 	}
 
 	args := []string{"repo", "remove", c.Repo.Name}
-	cmd := exec.Command("helm", args...)
+	cmd, err := frameworkutil.Command("helm", args...)
+	if err != nil {
+		return fmt.Errorf("resolve helm executable: %w", err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unable to remove repo: %w: %s", err, string(output))

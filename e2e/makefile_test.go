@@ -18,9 +18,10 @@ package e2e
 
 import (
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
+
+	frameworkutil "github.com/external-secrets/external-secrets-e2e/framework/util"
 )
 
 const (
@@ -110,7 +111,10 @@ func runMakeDryRun(t *testing.T, target string, extraArgs ...string) string {
 	t.Helper()
 
 	args := append([]string{"-n", target}, extraArgs...)
-	cmd := exec.Command("make", args...)
+	cmd, err := frameworkutil.Command("make", args...)
+	if err != nil {
+		t.Fatalf("resolve make: %v", err)
+	}
 	cmd.Dir = "."
 	cmd.Env = os.Environ()
 

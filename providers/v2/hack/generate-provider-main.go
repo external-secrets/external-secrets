@@ -23,9 +23,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"go/format"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -371,31 +371,10 @@ func executeTemplate(tmpl *template.Template, data any) ([]byte, error) {
 }
 
 func formatGoCode(code []byte) ([]byte, error) {
-	// Try goimports first (better formatting)
-	cmd := exec.Command("goimports")
-	cmd.Stdin = bytes.NewReader(code)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	if err == nil {
-		return out.Bytes(), nil
-	}
-
-	// Fallback to gofmt if goimports is not available
-	cmd = exec.Command("gofmt")
-	cmd.Stdin = bytes.NewReader(code)
-	out.Reset()
-	stderr.Reset()
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-
-	err = cmd.Run()
+	formatted, err := format.Source(code)
 	if err != nil {
-		return nil, fmt.Errorf("gofmt failed: %w, stderr: %s", err, stderr.String())
+		return nil, fmt.Errorf("format Go code: %w", err)
 	}
 
-	return out.Bytes(), nil
+	return formatted, nil
 }

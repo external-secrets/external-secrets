@@ -18,15 +18,19 @@ package main_test
 
 import (
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/external-secrets/external-secrets/pkg/executil"
 )
 
 func TestHelmDocsTargetCanUseLocalCommand(t *testing.T) {
 	t.Parallel()
 
-	cmd := exec.Command("make", "-n", "helm.docs", "HELM_DOCS_CMD=helm-docs")
+	cmd, err := executil.Command("make", "-n", "helm.docs", "HELM_DOCS_CMD=helm-docs")
+	if err != nil {
+		t.Fatalf("resolve make: %v", err)
+	}
 	cmd.Dir = "."
 	cmd.Env = os.Environ()
 
@@ -43,7 +47,10 @@ func TestHelmDocsTargetCanUseLocalCommand(t *testing.T) {
 func TestLicenseCheckTargetCanUseLocalCommand(t *testing.T) {
 	t.Parallel()
 
-	cmd := exec.Command("make", "-n", "license.check", "LICENSE_CHECK_CMD=license-eye header check")
+	cmd, err := executil.Command("make", "-n", "license.check", "LICENSE_CHECK_CMD=license-eye header check")
+	if err != nil {
+		t.Fatalf("resolve make: %v", err)
+	}
 	cmd.Dir = "."
 	cmd.Env = os.Environ()
 

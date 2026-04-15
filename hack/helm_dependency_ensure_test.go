@@ -19,9 +19,10 @@ package hack
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/external-secrets/external-secrets/pkg/executil"
 )
 
 const (
@@ -89,7 +90,10 @@ func writeFakeHelm(t *testing.T, dir, content string) string {
 func runHelper(t *testing.T, fakeHelm string) ([]byte, error) {
 	t.Helper()
 
-	cmd := exec.Command("bash", helperScriptPath, chartPath)
+	cmd, err := executil.Command("bash", helperScriptPath, chartPath)
+	if err != nil {
+		return nil, err
+	}
 	cmd.Dir = "."
 	cmd.Env = append(os.Environ(), helmBinEnvPrefix+fakeHelm)
 

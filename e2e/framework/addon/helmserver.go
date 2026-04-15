@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	frameworkutil "github.com/external-secrets/external-secrets-e2e/framework/util"
 )
 
 type HelmServer struct {
@@ -48,15 +49,20 @@ func (s *HelmServer) Setup(config *Config) error {
 		return err
 	}
 
-	// nolint:gosec
-	cmd := exec.Command("helm", "package", s.ChartDir, "--version", s.ChartRevision)
+	cmd, err := frameworkutil.Command("helm", "package", s.ChartDir, "--version", s.ChartRevision)
+	if err != nil {
+		return fmt.Errorf("resolve helm executable: %w", err)
+	}
 	cmd.Dir = s.serveDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unable to package helm chart: %w %s", err, string(out))
 	}
 
-	cmd = exec.Command("helm", "repo", "index", ".")
+	cmd, err = frameworkutil.Command("helm", "repo", "index", ".")
+	if err != nil {
+		return fmt.Errorf("resolve helm executable: %w", err)
+	}
 	cmd.Dir = s.serveDir
 	out, err = cmd.CombinedOutput()
 	if err != nil {

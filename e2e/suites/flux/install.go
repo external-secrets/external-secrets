@@ -19,7 +19,6 @@ package flux
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	// nolint
@@ -29,6 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
+	frameworkutil "github.com/external-secrets/external-secrets-e2e/framework/util"
 )
 
 const (
@@ -38,14 +38,16 @@ const (
 
 func installFlux() {
 	By("installing flux")
-	cmd := exec.Command("kubectl", "apply", "-f", fluxManifests)
+	cmd, err := frameworkutil.Command("kubectl", "apply", "-f", fluxManifests)
+	Expect(err).ToNot(HaveOccurred())
 	out, err := cmd.CombinedOutput()
 	Expect(err).ToNot(HaveOccurred(), string(out))
 }
 
 func uninstallFlux() {
 	By("uninstalling flux")
-	cmd := exec.Command("kubectl", "delete", "-f", fluxManifests)
+	cmd, err := frameworkutil.Command("kubectl", "delete", "-f", fluxManifests)
+	Expect(err).ToNot(HaveOccurred())
 	out, err := cmd.CombinedOutput()
 	Expect(err).ToNot(HaveOccurred(), string(out))
 }

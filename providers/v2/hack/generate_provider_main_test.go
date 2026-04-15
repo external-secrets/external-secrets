@@ -96,16 +96,10 @@ func TestMainTemplateStartsProviderMetricsServer(t *testing.T) {
 	}
 
 	renderedText := string(rendered)
-	if !strings.Contains(renderedText, "metricsServer := grpcserver.NewMetricsServer(") {
-		t.Fatalf("main template did not create provider metrics server:\n%s", renderedText)
+	if !strings.Contains(renderedText, "grpcserver.RunProviderServer(grpcserver.RuntimeOptions{") {
+		t.Fatalf("main template did not use the shared provider runtime:\n%s", renderedText)
 	}
-	if !strings.Contains(renderedText, "grpcserver.DefaultMetricsPort") {
-		t.Fatalf("main template did not use default provider metrics port:\n%s", renderedText)
-	}
-	if !strings.Contains(renderedText, "grpcserver.RegisterMetrics(metricsServer.GetRegistry())") {
-		t.Fatalf("main template did not register provider metrics:\n%s", renderedText)
-	}
-	if !strings.Contains(renderedText, "go func() {\n\t\tif err := metricsServer.Start(ctx); err != nil {") {
-		t.Fatalf("main template did not start provider metrics server:\n%s", renderedText)
+	if !strings.Contains(renderedText, "Register: func(registrar grpc.ServiceRegistrar)") {
+		t.Fatalf("main template did not register services through the shared provider runtime:\n%s", renderedText)
 	}
 }
