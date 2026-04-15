@@ -218,7 +218,6 @@ require (
 
 require (
 	github.com/external-secrets/external-secrets/proto v0.0.0
-	github.com/external-secrets/external-secrets/providers/v2/adapter/store v0.0.0
 	github.com/external-secrets/external-secrets/providers/v2/aws v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v2/common v0.0.0
 	github.com/external-secrets/external-secrets/providers/v2/fake v0.0.0-00010101000000-000000000000
@@ -281,6 +280,7 @@ require (
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
+	github.com/external-secrets/external-secrets/providers/v2/adapter/store v0.0.0 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
@@ -478,7 +478,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.42.0
 	golang.org/x/term v0.41.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.15.0

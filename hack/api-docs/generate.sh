@@ -51,3 +51,8 @@ gendoc::build
 gendoc::exec \
     -api-dir github.com/external-secrets/external-secrets/apis \
     -out-file "$1"
+
+# Normalize generated markdown so whitespace-only drift does not break check-diff.
+tmpfile=$(mktemp)
+sed 's/[[:blank:]]\+$//' "$1" > "$tmpfile"
+mv "$tmpfile" "$1"
