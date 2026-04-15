@@ -167,6 +167,7 @@ func main() {
 		providerName := logSafeValue(config.Provider.Name)
 		providerDisplayName := logSafeValue(config.Provider.DisplayName)
 		if *verbose {
+			// # codeql[go/log-injection] -- logSafeValue quotes and ASCII-escapes provider metadata for logs.
 			log.Printf("  Provider: %s (%s)", providerName, providerDisplayName)
 			log.Printf("  Stores: %d, Generators: %d", len(config.Stores), len(config.Generators))
 		}
@@ -177,12 +178,14 @@ func main() {
 		// Generate main.go
 		mainContent, err := executeTemplate(mainTemplate, templateData)
 		if err != nil {
+			// # codeql[go/log-injection] -- providerName is sanitized with logSafeValue above.
 			log.Fatalf("Failed to generate main.go for %s: %v", providerName, err)
 		}
 
 		// Format with goimports/gofmt
 		formattedMain, err := formatGoCode(mainContent)
 		if err != nil {
+			// # codeql[go/log-injection] -- providerName is sanitized with logSafeValue above.
 			log.Printf("Warning: Failed to format main.go for %s: %v", providerName, err)
 			formattedMain = mainContent // Use unformatted if formatting fails
 		}
@@ -200,6 +203,7 @@ func main() {
 		// Generate Dockerfile
 		dockerContent, err := executeTemplate(dockerfileTemplate, templateData)
 		if err != nil {
+			// # codeql[go/log-injection] -- providerName is sanitized with logSafeValue above.
 			log.Fatalf("Failed to generate Dockerfile for %s: %v", providerName, err)
 		}
 

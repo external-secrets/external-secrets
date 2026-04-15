@@ -51,6 +51,8 @@ query-filters:
   - exclude:
       id:
         - go/untrusted-data-to-external-api
+        # Removed from the official Go suites and noisy for our enum/default string literals.
+        - go/hardcoded-credentials
 
   # Remove debugging, and audit queries used by community packs (this is duplicative of the default suites from those community packs)
   - exclude:
@@ -85,4 +87,3 @@ paths-ignore:
   - "**/gems/**"
   - "**/spec/**/*_spec.rb"
   - "**/test/**/*_test.rb"
-
