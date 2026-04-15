@@ -28,7 +28,7 @@ jobs:
     outputs:
       check_run_id: ${{ steps.create_check.outputs.check_run_id }}
     steps:
-      - uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
         with:
           egress-policy: audit
 
@@ -82,7 +82,7 @@ jobs:
       TF_VAR_AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
       TF_VAR_AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
     steps:
-      - uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
         with:
           egress-policy: audit
 
@@ -120,7 +120,7 @@ jobs:
       - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v3
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37
         with:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -169,7 +169,7 @@ jobs:
       GCP_FED_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
       GCP_FED_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
     steps:
-      - uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
         with:
           egress-policy: audit
 
@@ -264,7 +264,7 @@ jobs:
       TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
       TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
     steps:
-      - uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d # v2.16.1
+      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
         with:
           egress-policy: audit
 
