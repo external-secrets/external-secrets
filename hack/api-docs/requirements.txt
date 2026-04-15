@@ -8,7 +8,7 @@ ghp-import==2.1.0
 htmlmin==0.1.12
 idna==3.11
 importlib-metadata==9.0.0
-importlib-resources==6.5.2
+importlib-resources==7.1.0
 Jinja2==3.1.6
 jsmin==3.0.1
 livereload==2.7.1
