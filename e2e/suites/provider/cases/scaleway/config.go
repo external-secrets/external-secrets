@@ -29,6 +29,23 @@ type config struct {
 	secretKey string
 }
 
+func missingRequiredEnvFromConfig(cfg config) []string {
+	var missing []string
+	if cfg.region == "" {
+		missing = append(missing, "SCALEWAY_REGION")
+	}
+	if cfg.projectId == "" {
+		missing = append(missing, "SCALEWAY_PROJECT_ID")
+	}
+	if cfg.accessKey == "" {
+		missing = append(missing, "SCALEWAY_ACCESS_KEY")
+	}
+	if cfg.secretKey == "" {
+		missing = append(missing, "SCALEWAY_SECRET_KEY")
+	}
+	return missing
+}
+
 func loadConfigFromEnv() (*config, error) {
 
 	var cfg config
