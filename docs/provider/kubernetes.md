@@ -82,11 +82,13 @@ spec:
 
 ### Target API-Server Configuration
 
-The servers `url` can be omitted and defaults to `kubernetes.default`. If no `caBundle` or `caProvider` is specified, the operator uses the system certificate roots from the container image. Both the default (`distroless/static`) and UBI images include standard CA certificates, so connections to servers using well-known CAs (e.g., Let's Encrypt) work without explicit CA configuration.
+The servers `url` can be omitted and defaults to `kubernetes.default`.
+
+For TLS, you may set `caBundle` or `caProvider` with the PEM CA used to verify the API server (typical for cluster-signed certificates). If you omit both, the operator uses the **process trust store** (system/public roots from the container image), similar to `kubectl` when no `certificate-authority` is set—useful for API servers with publicly trusted certificates. Both the default (`distroless/static`) and UBI images include standard CA certificates, so connections to servers using well-known CAs (e.g., Let's Encrypt) work without explicit CA configuration.
+
 For your convenience, each namespace has a ConfigMap `kube-root-ca.crt` that contains the CA certificate of the internal API Server (see `RootCAConfigMap` [feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/)).
-Use that if you want to connect to the same API server.
-If you want to connect to a remote API Server you need to fetch it and store it inside the cluster as ConfigMap or Secret.
-You may also define it inline as base64 encoded value using the `caBundle` property.
+Use that if you want to connect to the same API server and pin the cluster CA.
+If you want to connect to a remote API Server with a private CA, fetch that CA and store it inside the cluster as ConfigMap or Secret, or define it inline as a base64-encoded value using the `caBundle` property.
 
 ```yaml
 apiVersion: external-secrets.io/v1

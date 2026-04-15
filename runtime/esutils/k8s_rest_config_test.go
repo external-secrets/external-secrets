@@ -89,14 +89,41 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 		wantErrIs error
 	}{
 		{
-			name: "should return err if no ca provided",
+			name: "omit caBundle and caProvider leaves CAData unset for system TLS trust",
 			fields: fields{
+				namespace: "default",
+				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foobar",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"token": []byte("mytoken"),
+					},
+				}).Build(),
 				store: &esv1.KubernetesProvider{
-					Server: esv1.KubernetesServer{},
+					Server: esv1.KubernetesServer{
+						URL: serverURL,
+					},
+					Auth: &esv1.KubernetesAuth{
+						Token: &esv1.TokenAuth{
+							BearerToken: v1.SecretKeySelector{
+								Name:      "foobar",
+								Namespace: pointer.To("shouldnotberelevant"),
+								Key:       "token",
+							},
+						},
+					},
 				},
 			},
-			want:    nil,
-			wantErr: true,
+			want: &want{
+				Host:        serverURL,
+				BearerToken: "mytoken",
+				TLSClientConfig: rest.TLSClientConfig{
+					CAData: nil,
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "should return err if no auth provided",

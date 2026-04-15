@@ -27,10 +27,14 @@ type KubernetesServer struct {
 	// +optional
 	URL string `json:"url,omitempty"`
 
-	// CABundle is a base64-encoded CA certificate
+	// CABundle is a base64-encoded CA certificate. If neither CABundle nor CAProvider is set,
+	// TLS uses the controller process trust store (public/system roots), matching kubectl when
+	// no certificate-authority is configured.
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 
+	// CAProvider references a Secret or ConfigMap holding PEM CA certificate(s). If unset
+	// together with CABundle, TLS uses the process trust store; see CABundle.
 	// see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
