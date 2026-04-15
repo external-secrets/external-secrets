@@ -26,7 +26,8 @@ Resource Types:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>, 
+<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>,
+<a href="#provider.external-secrets.io/v2alpha1.ParameterStoreSpec">ParameterStoreSpec</a>,
 <a href="#provider.external-secrets.io/v2alpha1.SecretsManagerSpec">SecretsManagerSpec</a>)
 </p>
 <p>
@@ -29856,6 +29857,315 @@ WebhookCAProvider
 </p>
 Resource Types:
 <ul></ul>
+<h3 id="provider.external-secrets.io/v2alpha1.ParameterStore">ParameterStore
+</h3>
+<p>
+<p>ParameterStore is the Schema for AWS Parameter Store provider configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.ParameterStoreSpec">
+ParameterStoreSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against AWS
+if not set aws sdk will infer credentials from your environment
+see: <a href="https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials">https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is a Role ARN which the provider will assume</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS Region to be used for the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalRoles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTags</code></br>
+<em>
+<a href="#external-secrets.io/v1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role session tags</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transitiveTagKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix adds a prefix to all retrieved values.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.ParameterStoreStatus">
+ParameterStoreStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.ParameterStoreSpec">ParameterStoreSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.ParameterStore">ParameterStore</a>)
+</p>
+<p>
+<p>ParameterStoreSpec defines the desired state of ParameterStore.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against AWS
+if not set aws sdk will infer credentials from your environment
+see: <a href="https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials">https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is a Role ARN which the provider will assume</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS Region to be used for the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalRoles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTags</code></br>
+<em>
+<a href="#external-secrets.io/v1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role session tags</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transitiveTagKeys</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix adds a prefix to all retrieved values.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.ParameterStoreStatus">ParameterStoreStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.ParameterStore">ParameterStore</a>)
+</p>
+<p>
+<p>ParameterStoreStatus defines the observed state of ParameterStore.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions represent the latest available observations of the resource&rsquo;s state.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="provider.external-secrets.io/v2alpha1.SecretsManager">SecretsManager
 </h3>
 <p>

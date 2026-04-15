@@ -14,6 +14,7 @@ env:
   KIND_IMAGE: 'kindest/node:v1.33.4'
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
   GHCR_USERNAME: ${{ github.actor }}
+  GCP_GKE_CLUSTER: e2e
   AWS_REGION: "eu-central-1"
 jobs:
 
