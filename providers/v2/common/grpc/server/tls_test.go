@@ -52,6 +52,11 @@ func TestResolveCertPath(t *testing.T) {
 			fileName: filepath.Join(string(filepath.Separator), "tmp", "ca.crt"),
 			wantErr:  true,
 		},
+		{
+			name:     "rejects windows style nested path",
+			fileName: `nested\ca.crt`,
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {

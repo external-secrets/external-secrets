@@ -103,3 +103,37 @@ func TestMainTemplateStartsProviderMetricsServer(t *testing.T) {
 		t.Fatalf("main template did not register services through the shared provider runtime:\n%s", renderedText)
 	}
 }
+
+func TestMainTemplateQuotesProviderRuntimeErrors(t *testing.T) {
+	tmpl, err := loadTemplate("templates/main.go.tmpl")
+	if err != nil {
+		t.Fatalf("load template: %v", err)
+	}
+
+	data := prepareTemplateData(&ProviderConfig{
+		Provider: providerMetadata{
+			Name:        "aws",
+			DisplayName: "AWS",
+			V2Package:   "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1",
+		},
+		Stores: []storeConfig{{
+			GVK: gvkConfig{
+				Group:   "provider.external-secrets.io",
+				Version: "v2alpha1",
+				Kind:    "SecretsManager",
+			},
+			V1Provider:     "github.com/external-secrets/external-secrets/providers/v2/aws/store",
+			V1ProviderFunc: "NewProvider",
+		}},
+	})
+
+	rendered, err := executeTemplate(tmpl, data)
+	if err != nil {
+		t.Fatalf("execute template: %v", err)
+	}
+
+	renderedText := string(rendered)
+	if !strings.Contains(renderedText, `log.Fatalf("Failed to run provider server: %q", err.Error())`) {
+		t.Fatalf("main template did not quote provider runtime errors:\n%s", renderedText)
+	}
+}

@@ -73,13 +73,17 @@ test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 	$(if $(filter true,$(SKIP_PROVIDER_KUBERNETES_BUILD)),,$(TEST_V2_PROVIDER_KUBERNETES_BUILD_CMD))
 	$(TEST_V2_PROVIDER_AWS_BUILD_CMD)
 	$(TEST_V2_PROVIDER_FAKE_BUILD_CMD)
+ifneq ($(IMAGE_NAME),$(OCI_IMAGE_NAME))
 	$(MAKE) -C ../ docker.build.controller.e2e \
 		IMAGE_NAME=$(OCI_IMAGE_NAME) \
 		VERSION=$(VERSION) \
 		ARCH=amd64 \
 		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+endif
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(IMAGE_NAME):$(VERSION)
+ifneq ($(IMAGE_NAME),$(OCI_IMAGE_NAME))
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(OCI_IMAGE_NAME):$(VERSION)
+endif
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(E2E_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-kubernetes:$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-aws:$(VERSION)

@@ -30,6 +30,7 @@ const (
 	kubernetesProviderImage  = "ghcr.io/external-secrets/provider-kubernetes:test-version"
 	helmDependencyEnsureCmd  = "../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets"
 	controllerImageLoadCount = `kind load docker-image --name="external-secrets" ghcr.io/external-secrets/external-secrets:test-version`
+	controllerImageBuildCmd  = "docker.build.controller.e2e"
 )
 
 func TestClassicMakeTargetBuildsOnlyControllerImageOnce(t *testing.T) {
@@ -37,7 +38,7 @@ func TestClassicMakeTargetBuildsOnlyControllerImageOnce(t *testing.T) {
 
 	dryRun := runMakeDryRun(t, "test", testVersionArg, `TEST_SUITES=provider`, `GINKGO_LABELS=kubernetes && !v2`)
 
-	if !strings.Contains(dryRun, "docker.build.controller.e2e") {
+	if !strings.Contains(dryRun, controllerImageBuildCmd) {
 		t.Fatalf("expected classic test dry-run to build the controller image via docker.build.controller.e2e, output:\n%s", dryRun)
 	}
 	if strings.Contains(dryRun, kubernetesBuildTarget) {
@@ -67,11 +68,17 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(defaultDryRun, kubernetesBuildTarget) {
 		t.Fatalf("expected default test.v2 dry-run to build the kubernetes provider image, output:\n%s", defaultDryRun)
 	}
+	if count := strings.Count(defaultDryRun, controllerImageBuildCmd); count != 1 {
+		t.Fatalf("expected default test.v2 dry-run to build the controller image once, got %d occurrences, output:\n%s", count, defaultDryRun)
+	}
 	if !strings.Contains(defaultDryRun, "docker.build.provider.aws") {
 		t.Fatalf("expected default test.v2 dry-run to build the aws provider image, output:\n%s", defaultDryRun)
 	}
 	if !strings.Contains(defaultDryRun, "docker.build.provider.fake") {
 		t.Fatalf("expected default test.v2 dry-run to build the fake provider image, output:\n%s", defaultDryRun)
+	}
+	if count := strings.Count(defaultDryRun, controllerImageLoadCount); count != 1 {
+		t.Fatalf("expected default test.v2 dry-run to load the controller image once, got %d occurrences, output:\n%s", count, defaultDryRun)
 	}
 	if !strings.Contains(defaultDryRun, kubernetesProviderImage) {
 		t.Fatalf("expected default test.v2 dry-run to still load the kubernetes provider image, output:\n%s", defaultDryRun)
@@ -90,8 +97,14 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if strings.Contains(skippedDryRun, kubernetesBuildTarget) {
 		t.Fatalf("expected skipped test.v2 dry-run to omit the kubernetes provider build, output:\n%s", skippedDryRun)
 	}
+	if count := strings.Count(skippedDryRun, controllerImageBuildCmd); count != 1 {
+		t.Fatalf("expected skipped test.v2 dry-run to build the controller image once, got %d occurrences, output:\n%s", count, skippedDryRun)
+	}
 	if !strings.Contains(skippedDryRun, "docker.build.provider.fake") {
 		t.Fatalf("expected skipped test.v2 dry-run to still build the fake provider image, output:\n%s", skippedDryRun)
+	}
+	if count := strings.Count(skippedDryRun, controllerImageLoadCount); count != 1 {
+		t.Fatalf("expected skipped test.v2 dry-run to load the controller image once, got %d occurrences, output:\n%s", count, skippedDryRun)
 	}
 	if !strings.Contains(skippedDryRun, kubernetesProviderImage) {
 		t.Fatalf("expected skipped test.v2 dry-run to still load the kubernetes provider image, output:\n%s", skippedDryRun)

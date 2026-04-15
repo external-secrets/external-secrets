@@ -27,7 +27,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -164,11 +163,10 @@ func main() {
 			log.Fatalf("Failed to load/validate config %s: %v", configPath, err)
 		}
 
-		providerName := logSafeValue(config.Provider.Name)
-		providerDisplayName := logSafeValue(config.Provider.DisplayName)
+		providerName := config.Provider.Name
+		providerDisplayName := config.Provider.DisplayName
 		if *verbose {
-			// # codeql[go/log-injection] -- logSafeValue quotes and ASCII-escapes provider metadata for logs.
-			log.Printf("  Provider: %s (%s)", providerName, providerDisplayName)
+			log.Printf("  Provider: %q (%q)", providerName, providerDisplayName)
 			log.Printf("  Stores: %d, Generators: %d", len(config.Stores), len(config.Generators))
 		}
 
@@ -178,15 +176,13 @@ func main() {
 		// Generate main.go
 		mainContent, err := executeTemplate(mainTemplate, templateData)
 		if err != nil {
-			// # codeql[go/log-injection] -- providerName is sanitized with logSafeValue above.
-			log.Fatalf("Failed to generate main.go for %s: %v", providerName, err)
+			log.Fatalf("Failed to generate main.go for %q: %q", providerName, err.Error())
 		}
 
 		// Format with goimports/gofmt
 		formattedMain, err := formatGoCode(mainContent)
 		if err != nil {
-			// # codeql[go/log-injection] -- providerName is sanitized with logSafeValue above.
-			log.Printf("Warning: Failed to format main.go for %s: %v", providerName, err)
+			log.Printf("Warning: Failed to format main.go for %q: %q", providerName, err.Error())
 			formattedMain = mainContent // Use unformatted if formatting fails
 		}
 
@@ -203,8 +199,7 @@ func main() {
 		// Generate Dockerfile
 		dockerContent, err := executeTemplate(dockerfileTemplate, templateData)
 		if err != nil {
-			// # codeql[go/log-injection] -- providerName is sanitized with logSafeValue above.
-			log.Fatalf("Failed to generate Dockerfile for %s: %v", providerName, err)
+			log.Fatalf("Failed to generate Dockerfile for %q: %q", providerName, err.Error())
 		}
 
 		dockerPath := filepath.Join(providerDir, "Dockerfile")
@@ -237,10 +232,6 @@ func findProviderConfigs(baseDir string) ([]string, error) {
 	})
 
 	return configs, err
-}
-
-func logSafeValue(value string) string {
-	return strconv.QuoteToASCII(strings.ToValidUTF8(value, "?"))
 }
 
 func loadAndValidateConfig(configPath string, schemaLoader gojsonschema.JSONLoader) (*ProviderConfig, error) {

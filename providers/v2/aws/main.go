@@ -109,6 +109,6 @@ func main() {
 			genpb.RegisterGeneratorProviderServer(registrar, adapterServer)
 		},
 	}); err != nil {
-		log.Fatalf("Failed to run provider server: %v", err)
+		log.Fatalf("Failed to run provider server: %q", err.Error())
 	}
 }

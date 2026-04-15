@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+	"regexp"
 )
 
 const (
@@ -35,6 +35,8 @@ const (
 	// DefaultKeyFile is the default server key filename.
 	DefaultKeyFile = "tls.key"
 )
+
+var tlsFileNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 // TLSConfig holds configuration for provider server TLS.
 type TLSConfig struct {
@@ -122,20 +124,10 @@ func getEnvOrDefault(key, defaultValue string) string {
 
 func resolveCertPath(certDir, fileName string) (string, error) {
 	cleanDir := filepath.Clean(certDir)
-	cleanFile := filepath.Clean(fileName)
 
-	if filepath.IsAbs(cleanFile) || cleanFile == "." || cleanFile == ".." || cleanFile != filepath.Base(cleanFile) {
+	if !tlsFileNamePattern.MatchString(fileName) {
 		return "", fmt.Errorf("invalid TLS file name %q", fileName)
 	}
 
-	fullPath := filepath.Join(cleanDir, cleanFile)
-	relPath, err := filepath.Rel(cleanDir, fullPath)
-	if err != nil {
-		return "", fmt.Errorf("resolve TLS file path: %w", err)
-	}
-	if relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
-		return "", fmt.Errorf("invalid TLS file name %q", fileName)
-	}
-
-	return fullPath, nil
+	return filepath.Join(cleanDir, fileName), nil
 }
