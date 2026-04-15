@@ -4,9 +4,15 @@ metadata:
   name: vault-tls-cert
   namespace: external-secrets
 type: kubernetes.io/tls
-data:
-  tls.crt: "<base64-encoded-client-certificate>"
-  tls.key: "<base64-encoded-client-private-key>"
+stringData:
+  tls.crt: |
+    -----BEGIN CERTIFICATE-----
+    <your-client-certificate>
+    -----END CERTIFICATE-----
+  tls.key: |
+    -----BEGIN PRIVATE KEY-----
+    <your-client-private-key>
+    -----END PRIVATE KEY-----
 ---
 apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
