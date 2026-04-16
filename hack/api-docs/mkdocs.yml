@@ -79,6 +79,7 @@ nav:
           - Cloudsmith: api/generator/cloudsmith.md
           - Cluster Generator: api/generator/cluster.md
           - Google Container Registry: api/generator/gcr.md
+          - Grafana: api/generator/grafana.md
           - Quay: api/generator/quay.md
           - Vault Dynamic Secret: api/generator/vault.md
           - Password: api/generator/password.md
