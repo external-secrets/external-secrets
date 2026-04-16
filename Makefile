@@ -403,7 +403,7 @@ docker.build.controller.e2e: build-$(LOCAL_GOARCH) ## Build the controller docke
 	@$(OK) $(DOCKER) build controller for $(LOCAL_GOARCH)
 
 .PHONY: docker.build.providers
-docker.build.providers: docker.build.provider.kubernetes docker.build.provider.aws docker.build.provider.fake ## Build all provider images
+docker.build.providers: docker.build.provider.kubernetes docker.build.provider.aws docker.build.provider.fake docker.build.provider.gcp ## Build all provider images
 
 .PHONY: docker.build.provider.kubernetes
 docker.build.provider.kubernetes: ## Build Kubernetes provider image
@@ -435,6 +435,16 @@ docker.build.provider.fake: ## Build Fake provider image
 		-t $(IMAGE_REGISTRY)/external-secrets/provider-fake:$(IMAGE_TAG)
 	@$(OK) $(DOCKER) build Fake provider
 
+.PHONY: docker.build.provider.gcp
+docker.build.provider.gcp: ## Build GCP provider image
+	@$(INFO) $(DOCKER) build GCP provider
+	@DOCKER_BUILDKIT=1 $(DOCKER) build \
+		-f providers/v2/gcp/Dockerfile \
+		. \
+		$(DOCKER_BUILD_ARGS) \
+		-t $(IMAGE_REGISTRY)/external-secrets/provider-gcp:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build GCP provider
+
 .PHONY: docker.push
 docker.push: docker.push.controller docker.push.providers ## Push all docker images to the registry
 
@@ -445,7 +455,7 @@ docker.push.controller: ## Push the controller docker image to the registry
 	@$(OK) $(DOCKER) push controller
 
 .PHONY: docker.push.providers
-docker.push.providers: docker.push.provider.kubernetes docker.push.provider.aws docker.push.provider.fake ## Push all provider images
+docker.push.providers: docker.push.provider.kubernetes docker.push.provider.aws docker.push.provider.fake docker.push.provider.gcp ## Push all provider images
 
 .PHONY: docker.push.provider.kubernetes
 docker.push.provider.kubernetes: ## Push Kubernetes provider image
@@ -464,6 +474,12 @@ docker.push.provider.fake: ## Push Fake provider image
 	@$(INFO) $(DOCKER) push Fake provider
 	@$(DOCKER) push $(IMAGE_REGISTRY)/external-secrets/provider-fake:$(IMAGE_TAG)
 	@$(OK) $(DOCKER) push Fake provider
+
+.PHONY: docker.push.provider.gcp
+docker.push.provider.gcp: ## Push GCP provider image
+	@$(INFO) $(DOCKER) push GCP provider
+	@$(DOCKER) push $(IMAGE_REGISTRY)/external-secrets/provider-gcp:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) push GCP provider
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.

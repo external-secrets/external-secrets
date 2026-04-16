@@ -58,6 +58,13 @@ func WithV2AWSProvider() MutationFunc {
 	}
 }
 
+func WithV2GCPProvider() MutationFunc {
+	return func(eso *ESO) {
+		ensureV2ProviderConfig(eso.HelmChart)
+		setProvider(eso.HelmChart, "gcp", "gcp", "ghcr.io/external-secrets/provider-gcp", os.Getenv("VERSION"))
+	}
+}
+
 func WithV2ProviderServiceAccount(providerName, serviceAccountName string) MutationFunc {
 	return func(eso *ESO) {
 		index := findProviderIndex(eso.HelmChart, providerName)

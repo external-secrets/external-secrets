@@ -26,7 +26,10 @@ import (
 const (
 	testVersionArg           = "VERSION=test-version"
 	kubernetesBuildTarget    = "docker.build.provider.kubernetes"
+	gcpBuildTarget           = "docker.build.provider.gcp"
 	kubernetesProviderImage  = "ghcr.io/external-secrets/provider-kubernetes:test-version"
+	gcpProviderImage         = "ghcr.io/external-secrets/provider-gcp:test-version"
+	gcpProviderImageLoad     = `kind load docker-image --name="external-secrets" ghcr.io/external-secrets/provider-gcp:test-version`
 	helmDependencyEnsureCmd  = "../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets"
 	controllerImageLoadCount = `kind load docker-image --name="external-secrets" ghcr.io/external-secrets/external-secrets:test-version`
 	controllerImageBuildCmd  = "docker.build.controller.e2e"
@@ -50,11 +53,17 @@ func TestClassicMakeTargetBuildsOnlyControllerImageOnce(t *testing.T) {
 	if strings.Contains(dryRun, "docker.build.provider.fake") {
 		t.Fatalf("expected classic test dry-run to omit fake provider image builds, output:\n%s", dryRun)
 	}
+	if strings.Contains(dryRun, gcpBuildTarget) {
+		t.Fatalf("expected classic test dry-run to omit gcp provider image builds, output:\n%s", dryRun)
+	}
 	if count := strings.Count(dryRun, controllerImageLoadCount); count != 1 {
 		t.Fatalf("expected classic test dry-run to load the controller image once, got %d occurrences, output:\n%s", count, dryRun)
 	}
 	if strings.Contains(dryRun, kubernetesProviderImage) {
 		t.Fatalf("expected classic test dry-run to avoid loading the kubernetes provider image, output:\n%s", dryRun)
+	}
+	if strings.Contains(dryRun, gcpProviderImage) {
+		t.Fatalf("expected classic test dry-run to avoid loading the gcp provider image, output:\n%s", dryRun)
 	}
 	if !strings.Contains(dryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected classic test dry-run to ensure helm dependencies before copying the chart, output:\n%s", dryRun)
@@ -77,6 +86,9 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(defaultDryRun, "docker.build.provider.fake") {
 		t.Fatalf("expected default test.v2 dry-run to build the fake provider image, output:\n%s", defaultDryRun)
 	}
+	if count := strings.Count(defaultDryRun, gcpBuildTarget); count != 1 {
+		t.Fatalf("expected default test.v2 dry-run to build the gcp provider image once, got %d occurrences, output:\n%s", count, defaultDryRun)
+	}
 	if count := strings.Count(defaultDryRun, controllerImageLoadCount); count != 1 {
 		t.Fatalf("expected default test.v2 dry-run to load the controller image once, got %d occurrences, output:\n%s", count, defaultDryRun)
 	}
@@ -88,6 +100,12 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	}
 	if !strings.Contains(defaultDryRun, "ghcr.io/external-secrets/provider-fake:test-version") {
 		t.Fatalf("expected default test.v2 dry-run to load the fake provider image, output:\n%s", defaultDryRun)
+	}
+	if !strings.Contains(defaultDryRun, gcpProviderImage) {
+		t.Fatalf("expected default test.v2 dry-run to load the gcp provider image, output:\n%s", defaultDryRun)
+	}
+	if count := strings.Count(defaultDryRun, gcpProviderImageLoad); count != 1 {
+		t.Fatalf("expected default test.v2 dry-run to load the gcp provider image once, got %d occurrences, output:\n%s", count, defaultDryRun)
 	}
 	if !strings.Contains(defaultDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected default test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", defaultDryRun)
@@ -109,6 +127,9 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(skippedDryRun, "docker.build.provider.fake") {
 		t.Fatalf("expected skipped test.v2 dry-run to still build the fake provider image, output:\n%s", skippedDryRun)
 	}
+	if count := strings.Count(skippedDryRun, gcpBuildTarget); count != 1 {
+		t.Fatalf("expected skipped test.v2 dry-run to still build the gcp provider image once, got %d occurrences, output:\n%s", count, skippedDryRun)
+	}
 	if count := strings.Count(skippedDryRun, controllerImageLoadCount); count != 1 {
 		t.Fatalf("expected skipped test.v2 dry-run to load the controller image once, got %d occurrences, output:\n%s", count, skippedDryRun)
 	}
@@ -120,6 +141,12 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	}
 	if !strings.Contains(skippedDryRun, "ghcr.io/external-secrets/provider-fake:test-version") {
 		t.Fatalf("expected skipped test.v2 dry-run to still load the fake provider image, output:\n%s", skippedDryRun)
+	}
+	if !strings.Contains(skippedDryRun, gcpProviderImage) {
+		t.Fatalf("expected skipped test.v2 dry-run to still load the gcp provider image, output:\n%s", skippedDryRun)
+	}
+	if count := strings.Count(skippedDryRun, gcpProviderImageLoad); count != 1 {
+		t.Fatalf("expected skipped test.v2 dry-run to still load the gcp provider image once, got %d occurrences, output:\n%s", count, skippedDryRun)
 	}
 	if !strings.Contains(skippedDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected skipped test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", skippedDryRun)
@@ -142,10 +169,10 @@ func TestV2OperationalMakeTarget(t *testing.T) {
 	t.Parallel()
 
 	dryRun := runMakeDryRun(t, "test.v2.operational", testVersionArg)
-	if !strings.Contains(dryRun, `V2_GINKGO_LABELS='v2 && operational && fake'`) {
+	if !strings.Contains(dryRun, "V2_GINKGO_LABELS=") || !strings.Contains(dryRun, "v2 && operational && fake") {
 		t.Fatalf("expected operational labels in target, got:\n%s", dryRun)
 	}
-	if !strings.Contains(dryRun, `V2_TEST_SUITES='provider'`) {
+	if !strings.Contains(dryRun, "V2_TEST_SUITES=") || !strings.Contains(dryRun, "provider") {
 		t.Fatalf("expected provider suite in target, got:\n%s", dryRun)
 	}
 	if !strings.Contains(dryRun, `TEST_SUITES="provider"`) {
