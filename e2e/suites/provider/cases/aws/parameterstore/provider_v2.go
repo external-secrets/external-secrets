@@ -28,6 +28,11 @@ import (
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
+const (
+	withExtID       = "with externalID"
+	withSessionTags = "with session tags"
+)
+
 var _ = Describe("[aws] v2 namespaced provider", Label("aws", "parameterstore", "v2", "namespaced-provider"), func() {
 	f := framework.New("eso-aws-ps-v2")
 	prov := NewProviderV2(f)
@@ -70,6 +75,8 @@ var _ = Describe("[aws] v2 namespaced provider", Label("aws", "parameterstore", 
 		framework.Compose(withStaticAuth, f, FindByTag, useV2StaticAuth(prov)),
 		framework.Compose(withStaticAuth, f, versionedParameterV2(prov), useV2StaticAuth(prov)),
 		framework.Compose(withStaticAuth, f, common.StatusNotUpdatedAfterSuccessfulSync, useV2StaticAuth(prov)),
+		framework.Compose(withExtID, f, simpleSyncWithNamespaceTagsV2(), useV2ExternalIDAuth(prov)),
+		framework.Compose(withSessionTags, f, simpleSyncWithNamespaceTagsV2(), useV2SessionTagsAuth(prov)),
 	)
 })
 
@@ -117,4 +124,42 @@ func commonVersionedExternalSecretData(secretKey string, versions []int) []esapi
 		})
 	}
 	return data
+}
+
+func simpleSyncWithNamespaceTagsV2() func(*framework.Framework) (string, func(*framework.TestCase)) {
+	return func(f *framework.Framework) (string, func(*framework.TestCase)) {
+		return "[common] should sync tagged simple secrets from .Data[]", func(tc *framework.TestCase) {
+			secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+			secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "other")
+			remoteRefKey1 := f.MakeRemoteRefKey(secretKey1)
+			remoteRefKey2 := f.MakeRemoteRefKey(secretKey2)
+			secretValue := "bar"
+
+			tc.Secrets = map[string]framework.SecretEntry{
+				remoteRefKey1: {Value: secretValue, Tags: map[string]string{"namespace": "e2e-test"}},
+				remoteRefKey2: {Value: secretValue, Tags: map[string]string{"namespace": "e2e-test"}},
+			}
+			tc.ExpectedSecret = &corev1.Secret{
+				Type: corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					secretKey1: []byte(secretValue),
+					secretKey2: []byte(secretValue),
+				},
+			}
+			tc.ExternalSecret.Spec.Data = []esapi.ExternalSecretData{
+				{
+					SecretKey: secretKey1,
+					RemoteRef: esapi.ExternalSecretDataRemoteRef{
+						Key: remoteRefKey1,
+					},
+				},
+				{
+					SecretKey: secretKey2,
+					RemoteRef: esapi.ExternalSecretDataRemoteRef{
+						Key: remoteRefKey2,
+					},
+				},
+			}
+		}
+	}
 }

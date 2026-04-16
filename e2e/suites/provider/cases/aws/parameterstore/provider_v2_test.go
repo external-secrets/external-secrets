@@ -70,3 +70,39 @@ func TestVersionedParameterV2RegistersCleanupWithoutDeletingDuringSetup(t *testi
 		t.Fatalf("expected %d delete after cleanup, got %d", want, got)
 	}
 }
+
+func TestProviderV2ConfigNameDefaultsToStaticProfile(t *testing.T) {
+	t.Parallel()
+
+	prov := &ProviderV2{
+		framework: &framework.Framework{
+			Namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-ns"},
+			},
+		},
+	}
+
+	got := prov.providerConfigName()
+	want := "test-ns-static"
+	if got != want {
+		t.Fatalf("expected default config name %q, got %q", want, got)
+	}
+}
+
+func TestProviderV2ConfigNameIncludesAuthProfile(t *testing.T) {
+	t.Parallel()
+
+	prov := &ProviderV2{
+		framework: &framework.Framework{
+			Namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-ns"},
+			},
+		},
+	}
+
+	got := prov.providerConfigName(awsV2AuthProfileSessionTags)
+	want := "test-ns-session-tags"
+	if got != want {
+		t.Fatalf("expected profile specific config name %q, got %q", want, got)
+	}
+}

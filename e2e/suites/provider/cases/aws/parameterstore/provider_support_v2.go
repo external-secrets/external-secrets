@@ -525,19 +525,41 @@ func (p *ProviderV2) DeleteSecret(key string) {
 
 func useV2StaticAuth(prov *ProviderV2) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {
-		tc.Prepare = prov.prepareNamespacedProvider()
+		tc.Prepare = prov.prepareNamespacedProvider(awsV2AuthProfileStatic)
 	}
 }
 
-func (p *ProviderV2) prepareNamespacedProvider() func(*framework.TestCase, framework.SecretStoreProvider) {
+func useV2ExternalIDAuth(prov *ProviderV2) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		tc.Prepare = prov.prepareNamespacedProvider(awsV2AuthProfileExternalID)
+	}
+}
+
+func useV2SessionTagsAuth(prov *ProviderV2) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		tc.Prepare = prov.prepareNamespacedProvider(awsV2AuthProfileSessionTags)
+	}
+}
+
+func (p *ProviderV2) prepareNamespacedProvider(profile ...awsV2AuthProfile) func(*framework.TestCase, framework.SecretStoreProvider) {
+	authProfile := awsV2AuthProfileStatic
+	if len(profile) > 0 {
+		authProfile = profile[0]
+	}
+	return p.prepareNamespacedProviderAtAddress(authProfile, frameworkv2.ProviderAddress("aws"))
+}
+
+func (p *ProviderV2) prepareNamespacedProviderAtAddress(profile awsV2AuthProfile, address string) func(*framework.TestCase, framework.SecretStoreProvider) {
 	return func(_ *framework.TestCase, _ framework.SecretStoreProvider) {
-		configName := p.providerConfigName()
-		createParameterStoreV2Config(p.framework, p.framework.Namespace.Name, configName, p.access)
+		skipIfAWSAssumeRoleProbeDenied(p.access, profile)
+
+		configName := p.providerConfigName(profile)
+		createParameterStoreV2Config(p.framework, p.framework.Namespace.Name, configName, p.access, profile)
 		frameworkv2.CreateProviderConnection(
 			p.framework,
 			p.framework.Namespace.Name,
 			p.framework.Namespace.Name,
-			frameworkv2.ProviderAddress("aws"),
+			address,
 			awsProviderAPIVersion,
 			awsv2alpha1.ParameterStoreKind,
 			configName,
@@ -547,8 +569,12 @@ func (p *ProviderV2) prepareNamespacedProvider() func(*framework.TestCase, frame
 	}
 }
 
-func (p *ProviderV2) providerConfigName() string {
-	return fmt.Sprintf("%s-parameterstore", p.framework.Namespace.Name)
+func (p *ProviderV2) providerConfigName(profile ...awsV2AuthProfile) string {
+	authProfile := awsV2AuthProfileStatic
+	if len(profile) > 0 {
+		authProfile = profile[0]
+	}
+	return fmt.Sprintf("%s-%s", p.framework.Namespace.Name, authProfile)
 }
 
 func createParameterStoreV2ProviderConnection(f *framework.Framework, namespace, name, providerName, providerNamespace string) {
