@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -79,6 +80,38 @@ func GetMetricValue(metrics MetricsMap, metricName string, matchLabels map[strin
 	return 0, false
 }
 
+func SumMetricValues(metrics MetricsMap, metricName string, matchLabels map[string]string) float64 {
+	samples, exists := metrics[metricName]
+	if !exists {
+		return 0
+	}
+
+	var total float64
+	for _, sample := range samples {
+		if labelsMatch(sample.Labels, matchLabels) {
+			total += sample.Value
+		}
+	}
+
+	return total
+}
+
+func CountMetricSamples(metrics MetricsMap, metricName string, matchLabels map[string]string) int {
+	samples, exists := metrics[metricName]
+	if !exists {
+		return 0
+	}
+
+	count := 0
+	for _, sample := range samples {
+		if labelsMatch(sample.Labels, matchLabels) {
+			count++
+		}
+	}
+
+	return count
+}
+
 func ExpectMetricExists(metrics MetricsMap, metricName string) {
 	_, exists := metrics[metricName]
 	if !exists {
@@ -86,6 +119,7 @@ func ExpectMetricExists(metrics MetricsMap, metricName string) {
 		for name := range metrics {
 			availableMetrics = append(availableMetrics, name)
 		}
+		sort.Strings(availableMetrics)
 		GinkgoWriter.Printf("Available metrics: %v\n", availableMetrics)
 	}
 	Expect(exists).To(BeTrue(), "metric %s should exist", metricName)
@@ -104,8 +138,21 @@ func ExpectMetricGreaterThan(metrics MetricsMap, metricName string, matchLabels 
 }
 
 func WaitForMetric(ctx context.Context, scraper func() (MetricsMap, error), metricName string, matchLabels map[string]string, minValue float64, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("waiting for metric %s canceled: %w", metricName, ctx.Err())
+		case <-timer.C:
+			return fmt.Errorf("timeout waiting for metric %s with labels %v to reach %f", metricName, matchLabels, minValue)
+		default:
+		}
+
 		metrics, err := scraper()
 		if err == nil {
 			value, found := GetMetricValue(metrics, metricName, matchLabels)
@@ -113,10 +160,16 @@ func WaitForMetric(ctx context.Context, scraper func() (MetricsMap, error), metr
 				return nil
 			}
 		}
-		time.Sleep(time.Second)
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("waiting for metric %s canceled: %w", metricName, ctx.Err())
+		case <-timer.C:
+			return fmt.Errorf("timeout waiting for metric %s with labels %v to reach %f", metricName, matchLabels, minValue)
+		case <-ticker.C:
+		}
 	}
 
-	return fmt.Errorf("timeout waiting for metric %s with labels %v to reach %f", metricName, matchLabels, minValue)
 }
 
 func scrapePodMetrics(ctx context.Context, config *rest.Config, clientset kubernetes.Interface, namespace, podName string, podPort int) (MetricsMap, error) {
@@ -126,14 +179,12 @@ func scrapePodMetrics(ctx context.Context, config *rest.Config, clientset kubern
 	}
 	defer cleanup()
 
-	time.Sleep(time.Second)
-
-	body, err := scrapeMetrics(ctx, address)
+	body, err := waitForMetricsEndpoint(ctx, address, 10*time.Second)
 	if err != nil {
 		return nil, err
 	}
 
-	return parsePrometheusMetrics(body), nil
+	return parsePrometheusMetrics(body)
 }
 
 func findPod(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector string) (string, error) {
@@ -210,6 +261,9 @@ func setupPortForward(ctx context.Context, config *rest.Config, clientset kubern
 	case err = <-errChan:
 		close(stopChan)
 		return "", nil, fmt.Errorf("port forward failed: %w", err)
+	case <-ctx.Done():
+		close(stopChan)
+		return "", nil, fmt.Errorf("port forward canceled: %w", ctx.Err())
 	case <-time.After(30 * time.Second):
 		close(stopChan)
 		return "", nil, fmt.Errorf("timeout waiting for port forward to be ready")
@@ -239,11 +293,37 @@ func scrapeMetrics(ctx context.Context, address string) (string, error) {
 	return string(body), nil
 }
 
-func parsePrometheusMetrics(body string) MetricsMap {
+func waitForMetricsEndpoint(ctx context.Context, address string, timeout time.Duration) (string, error) {
+	ticker := time.NewTicker(250 * time.Millisecond)
+	defer ticker.Stop()
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	var lastErr error
+	for {
+		body, err := scrapeMetrics(ctx, address)
+		if err == nil {
+			return body, nil
+		}
+		lastErr = err
+
+		select {
+		case <-ctx.Done():
+			return "", fmt.Errorf("waiting for metrics endpoint canceled: %w", ctx.Err())
+		case <-timer.C:
+			return "", fmt.Errorf("timed out waiting for metrics endpoint: %w", lastErr)
+		case <-ticker.C:
+		}
+	}
+}
+
+func parsePrometheusMetrics(body string) (MetricsMap, error) {
 	metrics := make(MetricsMap)
 	metricRegex := regexp.MustCompile(`^([a-zA-Z_:][a-zA-Z0-9_:]*?)(?:\{([^}]*)\})?\s+([^\s]+)`)
 
 	scanner := bufio.NewScanner(strings.NewReader(body))
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "#") || strings.TrimSpace(line) == "" {
@@ -268,7 +348,11 @@ func parsePrometheusMetrics(body string) MetricsMap {
 		metrics[sample.Name] = append(metrics[sample.Name], sample)
 	}
 
-	return metrics
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to scan metrics response: %w", err)
+	}
+
+	return metrics, nil
 }
 
 func parseLabels(labelsStr string) map[string]string {
@@ -277,11 +361,15 @@ func parseLabels(labelsStr string) map[string]string {
 		return labels
 	}
 
-	labelRegex := regexp.MustCompile(`([a-zA-Z_][a-zA-Z0-9_]*)="([^"]*)"`)
+	labelRegex := regexp.MustCompile(`([a-zA-Z_][a-zA-Z0-9_]*)="((?:[^"\\]|\\.)*)"`)
 	matches := labelRegex.FindAllStringSubmatch(labelsStr, -1)
 	for _, match := range matches {
 		if len(match) == 3 {
-			labels[match[1]] = match[2]
+			value, err := strconv.Unquote(`"` + match[2] + `"`)
+			if err != nil {
+				value = match[2]
+			}
+			labels[match[1]] = value
 		}
 	}
 	return labels

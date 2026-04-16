@@ -12,6 +12,7 @@ export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed && !v2
 export V2_GINKGO_LABELS ?= !managed && v2
 export TEST_SUITES ?= provider generator flux argocd
+export V2_TEST_SUITES ?= provider
 export GOCACHE ?= $(CURDIR)/.cache/go-build
 export GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
@@ -91,7 +92,10 @@ endif
 ifeq ($(CI),true)
 	docker system prune --all --force --volumes
 endif
-	KUBECTL_CONTEXT="$(KIND_CONTEXT)" GINKGO_LABELS="$(V2_GINKGO_LABELS)" E2E_PROVIDER_MODE="v2" TEST_SUITES="provider" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
+	KUBECTL_CONTEXT="$(KIND_CONTEXT)" GINKGO_LABELS="$(V2_GINKGO_LABELS)" E2E_PROVIDER_MODE="v2" TEST_SUITES="$(V2_TEST_SUITES)" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
+
+test.v2.operational: ## Run focused operational v2 e2e tests
+	$(MAKE) test.v2 V2_GINKGO_LABELS='v2 && operational && fake' V2_TEST_SUITES='provider'
 
 test.managed: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.build \

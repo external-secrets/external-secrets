@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -219,6 +220,10 @@ func WaitForProviderConnectionCondition(f *framework.Framework, namespace, name 
 }
 
 func WaitForClusterProviderReady(f *framework.Framework, name string, timeout time.Duration) *esv1.ClusterProvider {
+	return WaitForClusterProviderCondition(f, name, metav1.ConditionTrue, timeout)
+}
+
+func WaitForClusterProviderCondition(f *framework.Framework, name string, status metav1.ConditionStatus, timeout time.Duration) *esv1.ClusterProvider {
 	var clusterProvider esv1.ClusterProvider
 	Eventually(func() bool {
 		err := f.CRClient.Get(context.Background(),
@@ -230,30 +235,44 @@ func WaitForClusterProviderReady(f *framework.Framework, name string, timeout ti
 		}
 
 		for _, condition := range clusterProvider.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status == metav1.ConditionTrue {
+			if condition.Type == "Ready" && condition.Status == status {
 				return true
 			}
 		}
 		return false
-	}, timeout, time.Second).Should(BeTrue(), "ClusterProvider should become ready")
+	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ClusterProvider should become %s", status))
 
 	return &clusterProvider
 }
 
 func VerifyProviderConnectionCapabilities(f *framework.Framework, namespace, name string, expected esv1.ProviderCapabilities) {
-	var provider esv1.Provider
-	Expect(f.CRClient.Get(context.Background(),
-		types.NamespacedName{Name: name, Namespace: namespace},
-		&provider)).To(Succeed())
-
-	Expect(provider.Status.Capabilities).NotTo(BeEmpty())
-	Expect(provider.Status.Capabilities).To(Equal(expected))
+	Eventually(func(g Gomega) {
+		var provider esv1.Provider
+		g.Expect(f.CRClient.Get(context.Background(),
+			types.NamespacedName{Name: name, Namespace: namespace},
+			&provider)).To(Succeed())
+		g.Expect(provider.Status.Capabilities).NotTo(BeEmpty())
+		g.Expect(provider.Status.Capabilities).To(Equal(expected))
+	}, 30*time.Second, time.Second).Should(Succeed())
 }
 
 func createOrIgnoreAlreadyExists(f *framework.Framework, obj client.Object) error {
 	err := f.CRClient.Create(context.Background(), obj)
-	if err == nil || apierrors.IsAlreadyExists(err) {
+	if err == nil {
 		return nil
 	}
-	return err
+	if !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		existing := obj.DeepCopyObject().(client.Object)
+		if err := f.CRClient.Get(context.Background(), client.ObjectKeyFromObject(obj), existing); err != nil {
+			return err
+		}
+
+		obj.SetResourceVersion(existing.GetResourceVersion())
+		obj.SetUID(existing.GetUID())
+		return f.CRClient.Update(context.Background(), obj)
+	})
 }

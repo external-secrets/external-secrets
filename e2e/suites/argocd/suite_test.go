@@ -45,9 +45,12 @@ var _ = SynchronizedAfterSuite(func() {
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
 	err := cl.List(GinkgoT().Context(), generatorStates)
-	Expect(err).ToNot(HaveOccurred())
-	for _, generatorState := range generatorStates.Items {
-		err = cl.Delete(GinkgoT().Context(), &generatorState)
+	if err == nil {
+		for _, generatorState := range generatorStates.Items {
+			err = cl.Delete(GinkgoT().Context(), &generatorState)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	} else if !util.IsMissingAPIResourceError(err) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 

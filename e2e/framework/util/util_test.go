@@ -21,8 +21,11 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1api "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -78,8 +81,8 @@ func TestCleanupTerminatingE2ENamespaces(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:       "e2e-tests-demo-12345",
-				Finalizers: []string{"kubernetes"},
+				Name:              "e2e-tests-demo-12345",
+				Finalizers:        []string{"kubernetes"},
 				DeletionTimestamp: &now,
 			},
 		},
@@ -122,5 +125,26 @@ func TestCleanupTerminatingE2ENamespaces(t *testing.T) {
 	}
 	if len(untouched.Finalizers) != 1 {
 		t.Fatalf("expected non-e2e namespace secret finalizers to remain, got %v", untouched.Finalizers)
+	}
+}
+
+func TestIsMissingAPIResourceError(t *testing.T) {
+	t.Parallel()
+
+	gv := schema.GroupVersion{Group: "generators.external-secrets.io", Version: "v1alpha1"}
+	discoveryErr := apiutil.ErrResourceDiscoveryFailed{
+		gv: &metav1api.NoResourceMatchError{
+			PartialResource: gv.WithResource(""),
+		},
+	}
+
+	if !IsMissingAPIResourceError(&discoveryErr) {
+		t.Fatal("expected missing resource discovery failure to be treated as ignorable")
+	}
+	if !IsMissingAPIResourceError(&metav1api.NoResourceMatchError{}) {
+		t.Fatal("expected no-match error to be treated as ignorable")
+	}
+	if IsMissingAPIResourceError(context.Canceled) {
+		t.Fatal("did not expect unrelated errors to be treated as ignorable")
 	}
 }

@@ -144,6 +144,14 @@ func (c *HelmChart) uninstallArgs() []string {
 	return []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--wait", "--ignore-not-found"}
 }
 
+func (c *HelmChart) cleanupUninstallArgs() []string {
+	return []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--ignore-not-found"}
+}
+
+func (c *HelmChart) releaseStatusArgs() []string {
+	return []string{"status", "--namespace", c.Namespace, c.ReleaseName}
+}
+
 func (c *HelmChart) runInstall(args []string) ([]byte, error) {
 	log.Logf("installing chart with args: %+q", args)
 	cmd, err := frameworkutil.Command("helm", args...)
@@ -154,19 +162,42 @@ func (c *HelmChart) runInstall(args []string) ([]byte, error) {
 }
 
 func (c *HelmChart) cleanupExistingRelease() error {
-	cmd, err := frameworkutil.Command("helm", c.uninstallArgs()...)
+	cmd, err := frameworkutil.Command("helm", c.cleanupUninstallArgs()...)
 	if err != nil {
 		return fmt.Errorf("resolve helm executable: %w", err)
 	}
 	output, err := cmd.CombinedOutput()
 	if err != nil && !strings.Contains(string(output), "release: not found") {
+		statusOutput, statusErr := c.releaseStatus()
+		if canIgnoreHelmCleanupError(string(statusOutput)) {
+			return nil
+		}
+		if statusErr != nil {
+			return fmt.Errorf("unable to uninstall stale helm release: %w: %s (status check failed: %v: %s)", err, string(output), statusErr, string(statusOutput))
+		}
 		return fmt.Errorf("unable to uninstall stale helm release: %w: %s", err, string(output))
 	}
 	return nil
 }
 
+func (c *HelmChart) releaseStatus() ([]byte, error) {
+	cmd, err := frameworkutil.Command("helm", c.releaseStatusArgs()...)
+	if err != nil {
+		return nil, fmt.Errorf("resolve helm executable: %w", err)
+	}
+	return cmd.CombinedOutput()
+}
+
 func isHelmReleaseNameInUseError(output string) bool {
 	return strings.Contains(output, "cannot re-use a name that is still in use")
+}
+
+func isHelmReleaseNotFoundError(output string) bool {
+	return strings.Contains(output, "release: not found")
+}
+
+func canIgnoreHelmCleanupError(statusOutput string) bool {
+	return isHelmReleaseNotFoundError(statusOutput)
 }
 
 // Uninstall removes the chart aswell as the repo.

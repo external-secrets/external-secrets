@@ -93,6 +93,9 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(defaultDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected default test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", defaultDryRun)
 	}
+	if !strings.Contains(defaultDryRun, `TEST_SUITES="provider"`) {
+		t.Fatalf("expected default test.v2 dry-run to run the provider suite, output:\n%s", defaultDryRun)
+	}
 	if strings.Contains(defaultDryRun, dockerCleanupCmd) {
 		t.Fatalf("expected default test.v2 dry-run to avoid CI-only docker cleanup, output:\n%s", defaultDryRun)
 	}
@@ -122,6 +125,9 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(skippedDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected skipped test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", skippedDryRun)
 	}
+	if !strings.Contains(skippedDryRun, `TEST_SUITES="provider"`) {
+		t.Fatalf("expected skipped test.v2 dry-run to still run the provider suite, output:\n%s", skippedDryRun)
+	}
 }
 
 func TestV2MakeTargetPrunesDockerImagesInCI(t *testing.T) {
@@ -130,6 +136,21 @@ func TestV2MakeTargetPrunesDockerImagesInCI(t *testing.T) {
 	dryRun := runMakeDryRunWithEnv(t, []string{"CI=true"}, "test.v2", testVersionArg)
 	if count := strings.Count(dryRun, dockerCleanupCmd); count != 1 {
 		t.Fatalf("expected CI test.v2 dry-run to prune docker state once, got %d occurrences, output:\n%s", count, dryRun)
+	}
+}
+
+func TestV2OperationalMakeTarget(t *testing.T) {
+	t.Parallel()
+
+	dryRun := runMakeDryRun(t, "test.v2.operational", testVersionArg)
+	if !strings.Contains(dryRun, `V2_GINKGO_LABELS='v2 && operational && fake'`) {
+		t.Fatalf("expected operational labels in target, got:\n%s", dryRun)
+	}
+	if !strings.Contains(dryRun, `V2_TEST_SUITES='provider'`) {
+		t.Fatalf("expected provider suite in target, got:\n%s", dryRun)
+	}
+	if !strings.Contains(dryRun, `TEST_SUITES="provider"`) {
+		t.Fatalf("expected operational target to render provider-only v2 suites, got:\n%s", dryRun)
 	}
 }
 

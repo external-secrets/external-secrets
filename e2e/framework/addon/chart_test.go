@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package addon
 
 import "testing"
@@ -74,12 +73,47 @@ func TestUninstallArgsIncludeIgnoreNotFound(t *testing.T) {
 	}
 }
 
+func TestCleanupUninstallArgsOmitWait(t *testing.T) {
+	args := (&HelmChart{
+		ReleaseName: "external-secrets",
+		Namespace:   "external-secrets-system",
+	}).cleanupUninstallArgs()
+
+	if contains(args, "--wait") {
+		t.Fatalf("expected stale release cleanup uninstall args to omit --wait, got %v", args)
+	}
+	if !contains(args, "--ignore-not-found") {
+		t.Fatalf("expected stale release cleanup uninstall args to include --ignore-not-found, got %v", args)
+	}
+}
+
 func TestIsHelmReleaseNameInUseError(t *testing.T) {
 	if !isHelmReleaseNameInUseError("Error: INSTALLATION FAILED: cannot re-use a name that is still in use") {
 		t.Fatal("expected stale release message to be detected")
 	}
 	if isHelmReleaseNameInUseError("release: not found") {
 		t.Fatal("did not expect unrelated helm output to be detected as stale release state")
+	}
+}
+
+func TestIsHelmReleaseNotFoundError(t *testing.T) {
+	if !isHelmReleaseNotFoundError("Error: release: not found") {
+		t.Fatal("expected missing release message to be detected")
+	}
+	if isHelmReleaseNotFoundError("STATUS: deployed") {
+		t.Fatal("did not expect deployed release output to be treated as missing")
+	}
+}
+
+func TestCanIgnoreHelmCleanupErrorWhenReleaseMissingAfterUninstallFailure(t *testing.T) {
+	if !canIgnoreHelmCleanupError("Error: release: not found") {
+		t.Fatal("expected cleanup error to be ignored when release status reports not found")
+	}
+}
+
+func TestCanIgnoreHelmCleanupErrorWhenReleaseStillExists(t *testing.T) {
+	if canIgnoreHelmCleanupError("NAME: external-secrets\nSTATUS: uninstalling") {
+		t.Fatal("did not expect cleanup error to be ignored when release still exists")
 	}
 }
 

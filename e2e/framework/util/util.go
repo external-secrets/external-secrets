@@ -31,6 +31,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -102,6 +103,10 @@ func DeleteKubeNamespace(namespace string, kubeClientSet kubernetes.Interface) e
 
 func IsE2ETestNamespace(namespace string) bool {
 	return strings.HasPrefix(namespace, e2eNamespacePrefix)
+}
+
+func IsMissingAPIResourceError(err error) bool {
+	return err != nil && meta.IsNoMatchError(err)
 }
 
 func ClearKnownNamespaceFinalizers(ctx context.Context, c crclient.Client, namespace string) error {

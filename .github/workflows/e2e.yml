@@ -31,6 +31,9 @@ jobs:
         - name: v2
           make_target: test.e2e.v2
           allow_failure: true
+        - name: v2-operational
+          make_target: test.e2e.v2.operational
+          allow_failure: true
     continue-on-error: ${{ matrix.suite.allow_failure }}
     permissions:
       id-token: write #for oidc auth with aws/gcp/azure
@@ -95,6 +98,9 @@ jobs:
           allow_failure: false
         - name: v2
           make_target: test.e2e.v2
+          allow_failure: true
+        - name: v2-operational
+          make_target: test.e2e.v2.operational
           allow_failure: true
     continue-on-error: ${{ matrix.suite.allow_failure }}
     permissions:

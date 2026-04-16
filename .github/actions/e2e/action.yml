@@ -65,7 +65,7 @@ runs:
         MAKE_TARGET: ${{ inputs.make-target }}
       run: |
         case "$MAKE_TARGET" in
-          test.e2e|test.e2e.v2)
+          test.e2e|test.e2e.v2|test.e2e.v2.operational)
             make "$MAKE_TARGET"
             ;;
           *)
