@@ -30,6 +30,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -37,8 +39,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
+	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -49,28 +51,64 @@ const (
 	awsProviderAPIVersion = "provider.external-secrets.io/v2alpha1"
 	defaultV2WaitTimeout  = 60 * time.Second
 	defaultV2PollInterval = 2 * time.Second
+	assumeRoleSessionName = "eso-e2e-probe"
+)
+
+type awsV2AuthProfile string
+
+const (
+	awsV2AuthProfileStatic         awsV2AuthProfile = "static"
+	awsV2AuthProfileExternalID     awsV2AuthProfile = "external-id"
+	awsV2AuthProfileSessionTags    awsV2AuthProfile = "session-tags"
+	awsV2AuthProfileReferencedIRSA awsV2AuthProfile = "referenced-irsa"
+	awsV2AuthProfileMountedIRSA    awsV2AuthProfile = "mounted-irsa"
 )
 
 type awsV2AccessConfig struct {
-	KID    string
-	SAK    string
-	ST     string
-	Region string
+	KID         string
+	SAK         string
+	ST          string
+	Region      string
+	Role        string
+	SAName      string
+	SANamespace string
 }
 
 type parameterStoreBackend struct {
-	access    awsV2AccessConfig
-	client    *ssm.Client
-	clientErr error
+	access     awsV2AccessConfig
+	client     *ssm.Client
+	clientErr  error
 	clientOnce sync.Once
 }
 
+type stsAssumeRoleV2Client interface {
+	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
+}
+
+type assumeRoleV2ProbeKey struct {
+	access  awsV2AccessConfig
+	profile awsV2AuthProfile
+}
+
+type assumeRoleV2ProbeResult struct {
+	err error
+}
+
+var assumeRoleV2ProbeCache sync.Map
+
 func loadAWSV2AccessConfigFromEnv() awsV2AccessConfig {
+	role := os.Getenv("AWS_ROLE_ARN")
+	if role == "" {
+		role = os.Getenv("AWS_ROLE")
+	}
 	return awsV2AccessConfig{
-		KID:    os.Getenv("AWS_ACCESS_KEY_ID"),
-		SAK:    os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		ST:     os.Getenv("AWS_SESSION_TOKEN"),
-		Region: os.Getenv("AWS_REGION"),
+		KID:         os.Getenv("AWS_ACCESS_KEY_ID"),
+		SAK:         os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		ST:          os.Getenv("AWS_SESSION_TOKEN"),
+		Region:      os.Getenv("AWS_REGION"),
+		Role:        role,
+		SAName:      os.Getenv("AWS_SA_NAME"),
+		SANamespace: os.Getenv("AWS_SA_NAMESPACE"),
 	}
 }
 
@@ -92,6 +130,116 @@ func skipIfAWSV2StaticCredentialsMissing(access awsV2AccessConfig) {
 	if missing := access.missingStaticCredentials(); len(missing) > 0 {
 		Skip("missing AWS e2e credentials: " + strings.Join(missing, ", "))
 	}
+}
+
+func skipIfAWSManagedIRSAEnvMissing(access awsV2AccessConfig) {
+	var missing []string
+	if access.Region == "" {
+		missing = append(missing, "AWS_REGION")
+	}
+	if access.SAName == "" {
+		missing = append(missing, "AWS_SA_NAME")
+	}
+	if access.SANamespace == "" {
+		missing = append(missing, "AWS_SA_NAMESPACE")
+	}
+	if len(missing) > 0 {
+		Skip("missing AWS managed IRSA environment: " + strings.Join(missing, ", "))
+	}
+}
+
+func skipIfAWSAssumeRoleProbeDenied(access awsV2AccessConfig, profile awsV2AuthProfile) {
+	if profile != awsV2AuthProfileExternalID && profile != awsV2AuthProfileSessionTags {
+		return
+	}
+
+	cacheKey := assumeRoleV2ProbeKey{
+		access:  access,
+		profile: profile,
+	}
+	if cached, ok := assumeRoleV2ProbeCache.Load(cacheKey); ok {
+		handleAssumeRoleV2ProbeResult(access, profile, cached.(assumeRoleV2ProbeResult).err)
+		return
+	}
+
+	cfg, err := loadParameterStoreAWSConfig(access)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = probeAssumeRoleAccess(context.Background(), sts.NewFromConfig(cfg), access, profile)
+	assumeRoleV2ProbeCache.Store(cacheKey, assumeRoleV2ProbeResult{err: err})
+	handleAssumeRoleV2ProbeResult(access, profile, err)
+}
+
+func handleAssumeRoleV2ProbeResult(access awsV2AccessConfig, profile awsV2AuthProfile, err error) {
+	if err == nil {
+		return
+	}
+	if isAssumeRoleAccessDenied(err) {
+		Skip(fmt.Sprintf("skipping AWS %s auth e2e: %s is not authorized to assume role %q with the current credentials", profile, assumeRoleAction(profile), roleARNForProfile(access, profile)))
+	}
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func assumeRoleAction(profile awsV2AuthProfile) string {
+	if profile == awsV2AuthProfileSessionTags {
+		return "sts:TagSession"
+	}
+	return "sts:AssumeRole"
+}
+
+func roleARNForProfile(access awsV2AccessConfig, profile awsV2AuthProfile) string {
+	if access.Role != "" {
+		return access.Role
+	}
+	switch profile {
+	case awsV2AuthProfileExternalID:
+		return awscommon.IAMRoleExternalID
+	case awsV2AuthProfileSessionTags:
+		return awscommon.IAMRoleSessionTags
+	default:
+		return ""
+	}
+}
+
+func sessionTagsForProfile(profile awsV2AuthProfile) []ststypes.Tag {
+	if profile != awsV2AuthProfileSessionTags {
+		return nil
+	}
+
+	return []ststypes.Tag{{
+		Key:   aws.String("namespace"),
+		Value: aws.String("e2e-test"),
+	}}
+}
+
+func probeAssumeRoleAccess(ctx context.Context, client stsAssumeRoleV2Client, access awsV2AccessConfig, profile awsV2AuthProfile) error {
+	if profile != awsV2AuthProfileExternalID && profile != awsV2AuthProfileSessionTags {
+		return nil
+	}
+
+	input := &sts.AssumeRoleInput{
+		RoleArn:         aws.String(roleARNForProfile(access, profile)),
+		RoleSessionName: aws.String(assumeRoleSessionName),
+		Tags:            sessionTagsForProfile(profile),
+	}
+	if profile == awsV2AuthProfileExternalID {
+		input.ExternalId = aws.String(awscommon.IAMTrustedExternalID)
+	}
+
+	_, err := client.AssumeRole(ctx, input)
+	return err
+}
+
+func isAssumeRoleAccessDenied(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	msg := strings.ToLower(err.Error())
+	if !strings.Contains(msg, "accessdenied") {
+		return false
+	}
+	return strings.Contains(msg, "sts:assumerole") || strings.Contains(msg, "sts:tagsession")
 }
 
 func staticAWSV2Auth(secretName string) esv1.AWSAuth {
@@ -127,8 +275,13 @@ func createStaticCredentialsSecret(f *framework.Framework, namespace, name strin
 	Expect(f.CRClient.Create(GinkgoT().Context(), newStaticCredentialsSecret(namespace, name, access))).To(Succeed())
 }
 
-func newParameterStoreV2Config(namespace, name string, access awsV2AccessConfig) *awsv2alpha1.ParameterStore {
-	return &awsv2alpha1.ParameterStore{
+func newParameterStoreV2Config(namespace, name string, access awsV2AccessConfig, profile ...awsV2AuthProfile) *awsv2alpha1.ParameterStore {
+	authProfile := awsV2AuthProfileStatic
+	if len(profile) > 0 {
+		authProfile = profile[0]
+	}
+
+	cfg := &awsv2alpha1.ParameterStore{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: awsv2alpha1.GroupVersion.String(),
 			Kind:       awsv2alpha1.ParameterStoreKind,
@@ -139,14 +292,58 @@ func newParameterStoreV2Config(namespace, name string, access awsV2AccessConfig)
 		},
 		Spec: awsv2alpha1.ParameterStoreSpec{
 			Region: access.Region,
-			Auth:   staticAWSV2Auth(awscommon.CredentialsSecretName(name)),
 		},
 	}
+
+	switch authProfile {
+	case awsV2AuthProfileStatic:
+		cfg.Spec.Auth = staticAWSV2Auth(awscommon.CredentialsSecretName(name))
+	case awsV2AuthProfileExternalID:
+		cfg.Spec.Auth = staticAWSV2Auth(awscommon.CredentialsSecretName(name))
+		cfg.Spec.Role = access.Role
+		if cfg.Spec.Role == "" {
+			cfg.Spec.Role = awscommon.IAMRoleExternalID
+		}
+		cfg.Spec.ExternalID = awscommon.IAMTrustedExternalID
+	case awsV2AuthProfileSessionTags:
+		cfg.Spec.Auth = staticAWSV2Auth(awscommon.CredentialsSecretName(name))
+		cfg.Spec.Role = access.Role
+		if cfg.Spec.Role == "" {
+			cfg.Spec.Role = awscommon.IAMRoleSessionTags
+		}
+		cfg.Spec.SessionTags = []*esv1.Tag{{
+			Key:   "namespace",
+			Value: "e2e-test",
+		}}
+	case awsV2AuthProfileReferencedIRSA:
+		cfg.Spec.Auth = esv1.AWSAuth{
+			JWTAuth: &esv1.AWSJWTAuth{
+				ServiceAccountRef: &esmetav1.ServiceAccountSelector{
+					Name:      access.SAName,
+					Namespace: &access.SANamespace,
+				},
+			},
+		}
+	case awsV2AuthProfileMountedIRSA:
+		cfg.Spec.Auth = esv1.AWSAuth{}
+	default:
+		cfg.Spec.Auth = staticAWSV2Auth(awscommon.CredentialsSecretName(name))
+	}
+
+	return cfg
 }
 
-func createParameterStoreV2Config(f *framework.Framework, namespace, name string, access awsV2AccessConfig) *awsv2alpha1.ParameterStore {
-	createStaticCredentialsSecret(f, namespace, awscommon.CredentialsSecretName(name), access)
-	cfg := newParameterStoreV2Config(namespace, name, access)
+func createParameterStoreV2Config(f *framework.Framework, namespace, name string, access awsV2AccessConfig, profile ...awsV2AuthProfile) *awsv2alpha1.ParameterStore {
+	authProfile := awsV2AuthProfileStatic
+	if len(profile) > 0 {
+		authProfile = profile[0]
+	}
+
+	if authProfile == awsV2AuthProfileStatic || authProfile == awsV2AuthProfileExternalID || authProfile == awsV2AuthProfileSessionTags {
+		createStaticCredentialsSecret(f, namespace, awscommon.CredentialsSecretName(name), access)
+	}
+
+	cfg := newParameterStoreV2Config(namespace, name, access, authProfile)
 	Expect(f.CRClient.Create(GinkgoT().Context(), cfg)).To(Succeed())
 	return cfg
 }
