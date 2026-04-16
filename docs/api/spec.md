@@ -5637,7 +5637,8 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMProvider">GCPSMProvider</a>)
+<a href="#external-secrets.io/v1.GCPSMProvider">GCPSMProvider</a>,
+<a href="#provider.external-secrets.io/v2alpha1.SecretManagerSpec">SecretManagerSpec</a>)
 </p>
 <p>
 <p>GCPSMAuth defines the authentication methods for Google Cloud Platform Secret Manager.</p>
@@ -30663,6 +30664,179 @@ string
 <td>
 <em>(Optional)</em>
 <p>ValidationResult optionally specifies the validation result for testing.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretManager">SecretManager
+</h3>
+<p>
+<p>SecretManager is the Schema for GCP Secret Manager provider configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretManagerSpec">
+SecretManagerSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>location</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.GCPSMAuth">
+GCPSMAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretManagerStatus">
+SecretManagerStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretManagerSpec">SecretManagerSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretManager">SecretManager</a>)
+</p>
+<p>
+<p>SecretManagerSpec defines the desired state of SecretManager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>location</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.GCPSMAuth">
+GCPSMAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provider.external-secrets.io/v2alpha1.SecretManagerStatus">SecretManagerStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#provider.external-secrets.io/v2alpha1.SecretManager">SecretManager</a>)
+</p>
+<p>
+<p>SecretManagerStatus defines the observed state of SecretManager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions represent the latest available observations of the resource&rsquo;s state.</p>
 </td>
 </tr>
 </tbody>
