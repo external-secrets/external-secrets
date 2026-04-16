@@ -18,6 +18,7 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -74,6 +75,18 @@ func TestParameterStoreConfigForExternalID(t *testing.T) {
 	}
 }
 
+func TestParameterStoreConfigForExternalIDDefaultsRoleWhenUnset(t *testing.T) {
+	t.Parallel()
+
+	cfg := newParameterStoreV2Config("ns", "ps-extid-default-role", awsV2AccessConfig{
+		Region: "eu-west-1",
+	}, awsV2AuthProfileExternalID)
+
+	if cfg.Spec.Role != awscommon.IAMRoleExternalID {
+		t.Fatalf("expected default role %q, got %q", awscommon.IAMRoleExternalID, cfg.Spec.Role)
+	}
+}
+
 func TestParameterStoreConfigForSessionTags(t *testing.T) {
 	t.Parallel()
 
@@ -87,6 +100,18 @@ func TestParameterStoreConfigForSessionTags(t *testing.T) {
 	}
 	if cfg.Spec.SessionTags[0].Key != "namespace" || cfg.Spec.SessionTags[0].Value != "e2e-test" {
 		t.Fatalf("unexpected session tags: %+v", cfg.Spec.SessionTags)
+	}
+}
+
+func TestParameterStoreConfigForSessionTagsDefaultsRoleWhenUnset(t *testing.T) {
+	t.Parallel()
+
+	cfg := newParameterStoreV2Config("ns", "ps-sess-default-role", awsV2AccessConfig{
+		Region: "eu-west-1",
+	}, awsV2AuthProfileSessionTags)
+
+	if cfg.Spec.Role != awscommon.IAMRoleSessionTags {
+		t.Fatalf("expected default role %q, got %q", awscommon.IAMRoleSessionTags, cfg.Spec.Role)
 	}
 }
 
@@ -108,6 +133,9 @@ func TestParameterStoreConfigForReferencedIRSA(t *testing.T) {
 	}
 	if ref.Namespace == nil || *ref.Namespace != "irsa-ns" {
 		t.Fatalf("expected service account namespace %q, got %v", "irsa-ns", ref.Namespace)
+	}
+	if cfg.Spec.Auth.SecretRef != nil {
+		t.Fatalf("expected referenced IRSA auth to avoid secretRef, got %+v", cfg.Spec.Auth.SecretRef)
 	}
 }
 
@@ -150,6 +178,55 @@ func TestParameterStoreRemoteRefKeyAvoidsReservedPrefixes(t *testing.T) {
 	}
 	if !strings.Contains(got, "aws-v2-ps-refresh-remote") {
 		t.Fatalf("expected remote key to retain base name, got %q", got)
+	}
+}
+
+func TestProbeAssumeRoleAccessBuildsSessionTagsRequest(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeV2STSAssumeRoleClient{}
+	access := awsV2AccessConfig{
+		Role: awscommon.IAMRoleSessionTags,
+	}
+	if err := probeAssumeRoleAccess(context.Background(), client, access, awsV2AuthProfileSessionTags); err != nil {
+		t.Fatalf("probeAssumeRoleAccess() error = %v", err)
+	}
+	if client.input == nil {
+		t.Fatal("expected AssumeRole input to be recorded")
+	}
+	if got := aws.ToString(client.input.RoleArn); got != awscommon.IAMRoleSessionTags {
+		t.Fatalf("expected role ARN %q, got %q", awscommon.IAMRoleSessionTags, got)
+	}
+	if got := aws.ToString(client.input.RoleSessionName); got != assumeRoleSessionName {
+		t.Fatalf("expected role session name %q, got %q", assumeRoleSessionName, got)
+	}
+	if client.input.ExternalId != nil {
+		t.Fatalf("expected no external ID for session-tags profile, got %q", aws.ToString(client.input.ExternalId))
+	}
+	if len(client.input.Tags) != 1 {
+		t.Fatalf("expected one session tag, got %d", len(client.input.Tags))
+	}
+	tag := client.input.Tags[0]
+	if aws.ToString(tag.Key) != "namespace" || aws.ToString(tag.Value) != "e2e-test" {
+		t.Fatalf("unexpected session tag: %+v", tag)
+	}
+}
+
+func TestIsAssumeRoleAccessDeniedRecognizesAssumeRoleErrors(t *testing.T) {
+	t.Parallel()
+
+	err := errors.New("api error AccessDenied: User is not authorized to perform: sts:AssumeRole")
+	if !isAssumeRoleAccessDenied(err) {
+		t.Fatal("expected sts:AssumeRole access denied error to be recognized")
+	}
+}
+
+func TestIsAssumeRoleAccessDeniedRecognizesTagSessionErrors(t *testing.T) {
+	t.Parallel()
+
+	err := errors.New("api error AccessDenied: User is not authorized to perform: sts:TagSession")
+	if !isAssumeRoleAccessDenied(err) {
+		t.Fatal("expected sts:TagSession access denied error to be recognized")
 	}
 }
 
