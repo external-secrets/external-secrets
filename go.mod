@@ -74,7 +74,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5 // indirect
+	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.6 // indirect
 	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
