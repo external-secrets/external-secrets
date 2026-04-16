@@ -62,4 +62,14 @@ runs:
       shell: bash
       env:
         DOCKER_BUILD_ARGS: --load
-      run: make ${{ inputs.make-target }}
+        MAKE_TARGET: ${{ inputs.make-target }}
+      run: |
+        case "$MAKE_TARGET" in
+          test.e2e|test.e2e.v2|test.e2e.v2.operational)
+            make "$MAKE_TARGET"
+            ;;
+          *)
+            echo "unsupported make target: $MAKE_TARGET" >&2
+            exit 1
+            ;;
+        esac

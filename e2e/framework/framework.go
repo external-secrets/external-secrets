@@ -62,6 +62,8 @@ type Framework struct {
 	DefaultPushSecretStoreRefAPIVersion string
 }
 
+var newFrameworkConfig = util.NewConfig
+
 // New returns a new framework instance with defaults.
 func New(baseName string) *Framework {
 	f := &Framework{
@@ -74,7 +76,7 @@ func New(baseName string) *Framework {
 		f.DefaultSecretStoreRefKind = esv1.ProviderKindStr
 		f.DefaultPushSecretStoreRefKind = esv1.ProviderKindStr
 	}
-	f.KubeConfig, f.KubeClientSet, f.CRClient = util.NewConfig()
+	f.refreshClients()
 
 	BeforeEach(f.BeforeEach)
 	AfterEach(f.AfterEach)
@@ -82,9 +84,14 @@ func New(baseName string) *Framework {
 	return f
 }
 
+func (f *Framework) refreshClients() {
+	f.KubeConfig, f.KubeClientSet, f.CRClient = newFrameworkConfig()
+}
+
 // BeforeEach creates a namespace.
 func (f *Framework) BeforeEach() {
 	var err error
+	f.refreshClients()
 	err = util.CleanupTerminatingE2ENamespaces(GinkgoT().Context(), f.CRClient)
 	Expect(err).ToNot(HaveOccurred())
 	f.Namespace, err = util.CreateKubeNamespace(f.BaseName, f.KubeClientSet)

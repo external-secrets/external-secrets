@@ -19,6 +19,7 @@ package fake
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -40,7 +41,7 @@ import (
 const (
 	fakeProviderAPIVersion   = "provider.external-secrets.io/v2alpha1"
 	fakeProviderKind         = "Fake"
-	defaultV2WaitTimeout     = 60 * time.Second
+	defaultV2WaitTimeout     = 3 * time.Minute
 	defaultV2PollInterval    = 2 * time.Second
 	defaultV2RefreshInterval = 10 * time.Second
 )
@@ -123,6 +124,7 @@ func (s *ProviderV2) BeforeEach() {
 		return
 	}
 
+	frameworkv2.ScaleDeploymentBySelectorAndWait(s.framework, fakeBackendTarget(), 1, defaultV2WaitTimeout)
 	s.createStore()
 	frameworkv2.WaitForProviderConnectionReady(s.framework, s.framework.Namespace.Name, s.framework.Namespace.Name, defaultV2WaitTimeout)
 }
@@ -158,6 +160,39 @@ func (s *ProviderV2) createStore() {
 
 func (s *ProviderV2) updateStore(mutate func(*fakev2alpha1.Fake)) {
 	updateFakeProviderConfig(s.framework, s.framework.Namespace.Name, s.framework.Namespace.Name, mutate)
+}
+
+func fakeBackendTarget() frameworkv2.BackendTarget {
+	return frameworkv2.BackendTarget{
+		Namespace:        frameworkv2.ProviderNamespace,
+		PodLabelSelector: "app.kubernetes.io/name=external-secrets-provider-fake",
+	}
+}
+
+func (s *ProviderV2) prepareNamespacedOperationalRuntime() *common.OperationalRuntime {
+	return &common.OperationalRuntime{
+		Provider: s,
+		ProviderRef: esv1.SecretStoreRef{
+			Name: s.framework.Namespace.Name,
+			Kind: esv1.ProviderKindStr,
+		},
+		DefaultRemoteNamespace: s.framework.Namespace.Name,
+		WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
+			waitForPushedValueViaExternalSecret(s.framework, esv1.SecretStoreRef{
+				Name: s.framework.Namespace.Name,
+				Kind: esv1.ProviderKindStr,
+			}, name, expectedValue)
+		},
+		MakeUnavailable: func() {
+			frameworkv2.ScaleDeploymentBySelector(s.framework, fakeBackendTarget(), 0)
+		},
+		RestoreAvailability: func() {
+			frameworkv2.ScaleDeploymentBySelector(s.framework, fakeBackendTarget(), 1)
+		},
+		RestartBackend: func() {
+			frameworkv2.DeleteOneProviderPodBySelector(s.framework, fakeBackendTarget())
+		},
+	}
 }
 
 type fakeClusterProviderScenario struct {
@@ -254,6 +289,80 @@ func newFakeClusterProviderPushHarness(f *framework.Framework) common.ClusterPro
 	}
 }
 
+func newFakeOperationalExternalSecretHarness(f *framework.Framework, prov *ProviderV2) common.OperationalExternalSecretHarness {
+	return common.OperationalExternalSecretHarness{
+		PrepareNamespaced: func(_ *framework.TestCase) *common.OperationalRuntime {
+			return prov.prepareNamespacedOperationalRuntime()
+		},
+		PrepareCluster: func(_ *framework.TestCase, cfg common.ClusterProviderConfig) *common.OperationalRuntime {
+			s := newFakeClusterProviderScenario(f, cfg.Name, cfg.AuthScope)
+			clusterProviderName := s.createClusterProvider(cfg.Conditions)
+			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+
+			return &common.OperationalRuntime{
+				Provider: s,
+				ProviderRef: esv1.SecretStoreRef{
+					Name: clusterProviderName,
+					Kind: esv1.ClusterProviderKindStr,
+				},
+				DefaultRemoteNamespace: s.fakeConfigNamespace,
+				WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
+					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
+						Name: clusterProviderName,
+						Kind: esv1.ClusterProviderKindStr,
+					}, name, expectedValue)
+				},
+				MakeUnavailable: func() {
+					frameworkv2.ScaleDeploymentBySelectorAndWait(f, fakeBackendTarget(), 0, defaultV2WaitTimeout)
+				},
+				RestoreAvailability: func() {
+					frameworkv2.ScaleDeploymentBySelectorAndWait(f, fakeBackendTarget(), 1, defaultV2WaitTimeout)
+				},
+				RestartBackend: func() {
+					frameworkv2.DeleteOneProviderPodBySelector(f, fakeBackendTarget())
+				},
+			}
+		},
+	}
+}
+
+func newFakeOperationalPushHarness(f *framework.Framework, prov *ProviderV2) common.OperationalPushSecretHarness {
+	return common.OperationalPushSecretHarness{
+		PrepareNamespaced: func(_ *framework.TestCase) *common.OperationalRuntime {
+			return prov.prepareNamespacedOperationalRuntime()
+		},
+		PrepareCluster: func(_ *framework.TestCase, cfg common.ClusterProviderConfig) *common.OperationalRuntime {
+			s := newFakeClusterProviderScenario(f, cfg.Name, cfg.AuthScope)
+			clusterProviderName := s.createClusterProvider(cfg.Conditions)
+			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+
+			return &common.OperationalRuntime{
+				Provider: s,
+				ProviderRef: esv1.SecretStoreRef{
+					Name: clusterProviderName,
+					Kind: esv1.ClusterProviderKindStr,
+				},
+				DefaultRemoteNamespace: s.fakeConfigNamespace,
+				WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
+					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
+						Name: clusterProviderName,
+						Kind: esv1.ClusterProviderKindStr,
+					}, name, expectedValue)
+				},
+				MakeUnavailable: func() {
+					frameworkv2.ScaleDeploymentBySelectorAndWait(f, fakeBackendTarget(), 0, defaultV2WaitTimeout)
+				},
+				RestoreAvailability: func() {
+					frameworkv2.ScaleDeploymentBySelectorAndWait(f, fakeBackendTarget(), 1, defaultV2WaitTimeout)
+				},
+				RestartBackend: func() {
+					frameworkv2.DeleteOneProviderPodBySelector(f, fakeBackendTarget())
+				},
+			}
+		},
+	}
+}
+
 func fakePushSecretImplicitProviderKind(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[fake] should support namespaced Provider refs when push kind is omitted", func(tc *framework.TestCase) {
 		tc.PushSecretSource = &corev1.Secret{
@@ -331,7 +440,7 @@ func waitForPushedValueViaExternalSecret(f *framework.Framework, storeRef esv1.S
 			}},
 		},
 	}
-	Expect(f.CRClient.Create(context.Background(), externalSecret)).To(Succeed())
+	Expect(createOrUpdateReadbackExternalSecret(context.Background(), f, externalSecret)).To(Succeed())
 
 	DeferCleanup(func() {
 		err := f.CRClient.Delete(context.Background(), externalSecret)
@@ -347,6 +456,24 @@ func waitForPushedValueViaExternalSecret(f *framework.Framework, storeRef esv1.S
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func createOrUpdateReadbackExternalSecret(ctx context.Context, f *framework.Framework, externalSecret *esv1.ExternalSecret) error {
+	if err := f.CreateObjectWithRetryContext(ctx, externalSecret); err != nil {
+		return err
+	}
+
+	var existing esv1.ExternalSecret
+	if err := f.CRClient.Get(ctx, client.ObjectKeyFromObject(externalSecret), &existing); err != nil {
+		return err
+	}
+	if reflect.DeepEqual(existing.Spec, externalSecret.Spec) {
+		return nil
+	}
+
+	externalSecret.SetResourceVersion(existing.GetResourceVersion())
+	externalSecret.SetUID(existing.GetUID())
+	return f.CRClient.Update(ctx, externalSecret)
 }
 
 func createFakeProviderConfig(f *framework.Framework, namespace, name string) {

@@ -197,4 +197,66 @@ var _ = Describe("[kubernetes] v2 metrics", Label("kubernetes", "v2", "metrics")
 			return found && value >= 1.0
 		}, defaultV2WaitTimeout, defaultV2PollInterval).Should(BeTrue())
 	})
+
+	It("reuses one backend connection across many namespaced kubernetes Provider consumers", func() {
+		const consumerCount = 6
+
+		for i := 0; i < consumerCount; i++ {
+			remoteKey := fmt.Sprintf("%s-operational-metric-%d", f.Namespace.Name, i)
+			targetName := fmt.Sprintf("kubernetes-operational-metric-target-%d", i)
+			expectedValue := fmt.Sprintf("metric-value-%d", i)
+
+			Expect(f.CRClient.Create(context.Background(), &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      remoteKey,
+					Namespace: f.Namespace.Name,
+				},
+				Data: map[string][]byte{
+					"value": []byte(expectedValue),
+				},
+			})).To(Succeed())
+
+			Expect(f.CRClient.Create(context.Background(), &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("kubernetes-operational-metric-es-%d", i),
+					Namespace: f.Namespace.Name,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
+					SecretStoreRef: esv1.SecretStoreRef{
+						Name: f.Namespace.Name,
+						Kind: esv1.ProviderKindStr,
+					},
+					Target: esv1.ExternalSecretTarget{
+						Name: targetName,
+					},
+					Data: []esv1.ExternalSecretData{{
+						SecretKey: "value",
+						RemoteRef: esv1.ExternalSecretDataRemoteRef{
+							Key:      remoteKey,
+							Property: "value",
+						},
+					}},
+				},
+			})).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				var secret corev1.Secret
+				g.Expect(f.CRClient.Get(context.Background(), types.NamespacedName{Name: targetName, Namespace: f.Namespace.Name}, &secret)).To(Succeed())
+				g.Expect(secret.Data["value"]).To(Equal([]byte(expectedValue)))
+			}, defaultV2WaitTimeout, defaultV2PollInterval).Should(Succeed())
+		}
+
+		Eventually(func(g Gomega) {
+			metrics, err := frameworkv2.ScrapeControllerMetrics(context.Background(), f.KubeConfig, f.KubeClientSet, frameworkv2.ProviderNamespace)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			total := frameworkv2.SumMetricValues(metrics, "grpc_pool_connections_total", map[string]string{
+				"address": frameworkv2.ProviderAddress("kubernetes"),
+			})
+			g.Expect(total).To(BeNumerically(">=", 1))
+			g.Expect(total).To(BeNumerically("<=", 4), "expected bounded connection reuse for kubernetes backend")
+			g.Expect(total).To(BeNumerically("<", consumerCount), "expected fewer pooled connections than consumers")
+		}, defaultV2WaitTimeout, defaultV2PollInterval).Should(Succeed())
+	})
 })

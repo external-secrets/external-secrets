@@ -12,6 +12,7 @@ export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed && !v2
 export V2_GINKGO_LABELS ?= v2
 export TEST_SUITES ?= provider generator flux argocd
+export V2_TEST_SUITES ?= provider
 export GOCACHE ?= $(CURDIR)/.cache/go-build
 export GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
@@ -55,20 +56,14 @@ stop-kind: ## Stop kind cluster
 		--name "$(KIND_CLUSTER_NAME)" \
 
 test: start-kind e2e-image ## Run e2e tests against current kube context
-	$(MAKE) -C ../ docker.build \
-		IMAGE_NAME=$(IMAGE_NAME) \
-		VERSION=$(VERSION) \
-		ARCH=amd64 \
-		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
-	$(MAKE) -C ../ docker.build \
+	$(MAKE) -C ../ docker.build.controller.e2e \
 		IMAGE_NAME=$(OCI_IMAGE_NAME) \
 		VERSION=$(VERSION) \
 		ARCH=amd64 \
 		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
-	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(OCI_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(E2E_IMAGE_NAME):$(VERSION)
-	KUBECTL_CONTEXT="$(KIND_CONTEXT)" ./run.sh
+	KUBECTL_CONTEXT="$(KIND_CONTEXT)" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
 
 test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 	$(MAKE) -C ../ docker.build.controller.e2e \
@@ -79,18 +74,28 @@ test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 	$(if $(filter true,$(SKIP_PROVIDER_KUBERNETES_BUILD)),,$(TEST_V2_PROVIDER_KUBERNETES_BUILD_CMD))
 	$(TEST_V2_PROVIDER_AWS_BUILD_CMD)
 	$(TEST_V2_PROVIDER_FAKE_BUILD_CMD)
+ifneq ($(IMAGE_NAME),$(OCI_IMAGE_NAME))
 	$(MAKE) -C ../ docker.build.controller.e2e \
 		IMAGE_NAME=$(OCI_IMAGE_NAME) \
 		VERSION=$(VERSION) \
 		ARCH=amd64 \
 		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+endif
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(IMAGE_NAME):$(VERSION)
+ifneq ($(IMAGE_NAME),$(OCI_IMAGE_NAME))
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(OCI_IMAGE_NAME):$(VERSION)
+endif
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" $(E2E_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-kubernetes:$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-aws:$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-fake:$(VERSION)
-	KUBECTL_CONTEXT="$(KIND_CONTEXT)" GINKGO_LABELS="$(V2_GINKGO_LABELS)" E2E_PROVIDER_MODE="v2" TEST_SUITES="provider" ./run.sh
+ifeq ($(CI),true)
+	docker system prune --all --force --volumes
+endif
+	KUBECTL_CONTEXT="$(KIND_CONTEXT)" GINKGO_LABELS="$(V2_GINKGO_LABELS)" E2E_PROVIDER_MODE="v2" TEST_SUITES="$(V2_TEST_SUITES)" E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
+
+test.v2.operational: ## Run focused operational v2 e2e tests
+	$(MAKE) test.v2 V2_GINKGO_LABELS='v2 && operational && fake' V2_TEST_SUITES='provider'
 
 test.managed: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.build \
@@ -110,7 +115,7 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.push \
 		IMAGE_NAME=$(E2E_IMAGE_NAME) \
 		VERSION=$(VERSION)
-	./run.sh
+	E2E_SKIP_HELM_DEPENDENCY_UPDATE="true" ./run.sh
 
 
 e2e-bin: install-ginkgo
@@ -120,6 +125,7 @@ e2e-image: e2e-bin
 	-rm -rf ./k8s/deploy
 	mkdir -p k8s
 	$(MAKE) -C ../ helm.generate
+	../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets
 	cp -r ../deploy ./k8s
 	docker build $(DOCKER_BUILD_ARGS) -t $(E2E_IMAGE_NAME):$(VERSION) -f Dockerfile ..
 

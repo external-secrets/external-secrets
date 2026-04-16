@@ -63,18 +63,24 @@ var _ = SynchronizedAfterSuite(func() {
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
 	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
-	Expect(err).ToNot(HaveOccurred())
-	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+	if err == nil {
+		for _, generatorState := range generatorStates.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	} else if !util.IsMissingAPIResourceError(err) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
 	By("Deleting all ClusterExternalSecrets")
 	externalSecretsList := &v1.ClusterExternalSecretList{}
 	err = cfg.CRClient.List(GinkgoT().Context(), externalSecretsList)
-	Expect(err).ToNot(HaveOccurred())
-	for _, externalSecret := range externalSecretsList.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &externalSecret)
+	if err == nil {
+		for _, externalSecret := range externalSecretsList.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &externalSecret)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	} else if !util.IsMissingAPIResourceError(err) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
