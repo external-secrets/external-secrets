@@ -32,6 +32,7 @@ import (
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/aws/smithy-go"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -48,10 +49,11 @@ import (
 )
 
 const (
-	awsProviderAPIVersion = "provider.external-secrets.io/v2alpha1"
-	defaultV2WaitTimeout  = 60 * time.Second
-	defaultV2PollInterval = 2 * time.Second
-	assumeRoleSessionName = "eso-e2e-probe"
+	awsProviderAPIVersion  = "provider.external-secrets.io/v2alpha1"
+	defaultV2WaitTimeout   = 60 * time.Second
+	defaultV2PollInterval  = 2 * time.Second
+	assumeRoleSessionName  = "eso-e2e-probe"
+	assumeRoleProbeTimeout = 15 * time.Second
 )
 
 type awsV2AuthProfile string
@@ -165,7 +167,9 @@ func skipIfAWSAssumeRoleProbeDenied(access awsV2AccessConfig, profile awsV2AuthP
 	cfg, err := loadParameterStoreAWSConfig(access)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = probeAssumeRoleAccess(context.Background(), sts.NewFromConfig(cfg), access, profile)
+	probeCtx, cancel := context.WithTimeout(context.Background(), assumeRoleProbeTimeout)
+	defer cancel()
+	err = probeAssumeRoleAccess(probeCtx, sts.NewFromConfig(cfg), access, profile)
 	assumeRoleV2ProbeCache.Store(cacheKey, assumeRoleV2ProbeResult{err: err})
 	handleAssumeRoleV2ProbeResult(access, profile, err)
 }
@@ -235,10 +239,32 @@ func isAssumeRoleAccessDenied(err error) bool {
 		return false
 	}
 
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		if !strings.Contains(strings.ToLower(apiErr.ErrorCode()), "accessdenied") {
+			return false
+		}
+		if hasAssumeRoleActionContext(strings.ToLower(apiErr.ErrorMessage())) {
+			return true
+		}
+
+		var opErr *smithy.OperationError
+		if errors.As(err, &opErr) && strings.EqualFold(opErr.Service(), "STS") && strings.EqualFold(opErr.Operation(), "AssumeRole") {
+			return true
+		}
+
+		msg := strings.ToLower(err.Error())
+		return hasAssumeRoleActionContext(msg)
+	}
+
 	msg := strings.ToLower(err.Error())
 	if !strings.Contains(msg, "accessdenied") {
 		return false
 	}
+	return hasAssumeRoleActionContext(msg)
+}
+
+func hasAssumeRoleActionContext(msg string) bool {
 	return strings.Contains(msg, "sts:assumerole") || strings.Contains(msg, "sts:tagsession")
 }
 

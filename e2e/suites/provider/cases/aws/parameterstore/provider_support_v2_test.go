@@ -24,6 +24,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/smithy-go"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
@@ -227,6 +228,53 @@ func TestIsAssumeRoleAccessDeniedRecognizesTagSessionErrors(t *testing.T) {
 	err := errors.New("api error AccessDenied: User is not authorized to perform: sts:TagSession")
 	if !isAssumeRoleAccessDenied(err) {
 		t.Fatal("expected sts:TagSession access denied error to be recognized")
+	}
+}
+
+func TestIsAssumeRoleAccessDeniedReturnsFalseOnNilError(t *testing.T) {
+	t.Parallel()
+
+	if isAssumeRoleAccessDenied(nil) {
+		t.Fatal("expected nil error to not be treated as assume-role access denied")
+	}
+}
+
+func TestIsAssumeRoleAccessDeniedReturnsFalseForNonAccessDeniedError(t *testing.T) {
+	t.Parallel()
+
+	err := errors.New("api error ThrottlingException: slow down")
+	if isAssumeRoleAccessDenied(err) {
+		t.Fatal("expected non-access-denied error to not be treated as assume-role access denied")
+	}
+}
+
+func TestIsAssumeRoleAccessDeniedReturnsFalseWithoutAssumeRoleContext(t *testing.T) {
+	t.Parallel()
+
+	err := &smithy.GenericAPIError{
+		Code:    "AccessDeniedException",
+		Message: "request denied",
+		Fault:   smithy.FaultClient,
+	}
+	if isAssumeRoleAccessDenied(err) {
+		t.Fatal("expected access denied error without assume-role context to return false")
+	}
+}
+
+func TestIsAssumeRoleAccessDeniedRecognizesStructuredSTSAssumeRoleError(t *testing.T) {
+	t.Parallel()
+
+	err := &smithy.OperationError{
+		ServiceID:     "STS",
+		OperationName: "AssumeRole",
+		Err: &smithy.GenericAPIError{
+			Code:    "AccessDeniedException",
+			Message: "caller is not authorized",
+			Fault:   smithy.FaultClient,
+		},
+	}
+	if !isAssumeRoleAccessDenied(err) {
+		t.Fatal("expected structured STS AccessDenied error to be recognized")
 	}
 }
 
