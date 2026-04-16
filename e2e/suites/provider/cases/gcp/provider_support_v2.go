@@ -93,19 +93,50 @@ func (p *ProviderV2) DeleteSecret(key string) {
 
 func useV2StaticAuth(prov *ProviderV2) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {
-		tc.Prepare = prov.prepareNamespacedProviderWithStaticAuth(frameworkv2.ProviderAddress("gcp"))
+		tc.Prepare = prov.prepareNamespacedProviderWithStaticAuthAtAddress(
+			providerConfigNamespaceForStaticAuth(prov),
+			frameworkv2.ProviderAddress("gcp"),
+		)
 	}
 }
 
 func useV2WorkloadIdentity(prov *ProviderV2) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {
-		tc.Prepare = prov.prepareNamespacedProviderWithWorkloadIdentity(frameworkv2.ProviderAddress("gcp"))
+		tc.Prepare = prov.prepareNamespacedProviderWithWorkloadIdentityAtAddress(
+			providerConfigNamespaceForWorkloadIdentity(prov),
+			frameworkv2.ProviderAddress("gcp"),
+		)
 	}
 }
 
-func (p *ProviderV2) prepareNamespacedProviderWithStaticAuth(address string) func(*framework.TestCase, framework.SecretStoreProvider) {
+func useV2MountedPodIdentity(prov *ProviderV2) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		tc.Prepare = prov.prepareNamespacedProviderWithWorkloadIdentityAtAddress(
+			providerConfigNamespaceForWorkloadIdentity(prov),
+			frameworkv2.ProviderAddressInNamespace("gcp", prov.backend.ServiceAccountNamespace),
+		)
+	}
+}
+
+func useV2ReferencedServiceAccount(prov *ProviderV2) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		tc.Prepare = prov.prepareReferencedServiceAccountProvider(
+			frameworkv2.ProviderAddressInNamespace("gcp", prov.backend.ServiceAccountNamespace),
+		)
+	}
+}
+
+func providerConfigNamespaceForStaticAuth(prov *ProviderV2) string {
+	return prov.framework.Namespace.Name
+}
+
+func providerConfigNamespaceForWorkloadIdentity(prov *ProviderV2) string {
+	return prov.backend.ServiceAccountNamespace
+}
+
+func (p *ProviderV2) prepareNamespacedProviderWithStaticAuthAtAddress(configNamespace, address string) func(*framework.TestCase, framework.SecretStoreProvider) {
 	return func(_ *framework.TestCase, _ framework.SecretStoreProvider) {
-		createSecretManagerV2StaticConfig(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, p.access)
+		createSecretManagerV2StaticConfig(p.framework, configNamespace, p.framework.Namespace.Name, p.access)
 		frameworkv2.CreateProviderConnection(
 			p.framework,
 			p.framework.Namespace.Name,
@@ -114,22 +145,22 @@ func (p *ProviderV2) prepareNamespacedProviderWithStaticAuth(address string) fun
 			gcpsmv2alpha1.GroupVersion.String(),
 			gcpsmv2alpha1.SecretManagerKind,
 			p.framework.Namespace.Name,
-			p.backend.ServiceAccountNamespace,
+			configNamespace,
 		)
 		frameworkv2.WaitForProviderConnectionReady(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, defaultV2WaitTimeout)
 	}
 }
 
-func (p *ProviderV2) prepareNamespacedProviderWithWorkloadIdentity(address string) func(*framework.TestCase, framework.SecretStoreProvider) {
+func (p *ProviderV2) prepareNamespacedProviderWithWorkloadIdentityAtAddress(configNamespace, address string) func(*framework.TestCase, framework.SecretStoreProvider) {
 	return func(_ *framework.TestCase, _ framework.SecretStoreProvider) {
 		skipIfGCPManagedEnvMissing(p.access)
 
 		createSecretManagerV2WorkloadIdentityConfig(
 			p.framework,
-			p.backend.ServiceAccountNamespace,
+			configNamespace,
 			p.framework.Namespace.Name,
 			p.access,
-			p.backend.ServiceAccountNamespace,
+			configNamespace,
 		)
 		frameworkv2.CreateProviderConnection(
 			p.framework,
@@ -139,10 +170,50 @@ func (p *ProviderV2) prepareNamespacedProviderWithWorkloadIdentity(address strin
 			gcpsmv2alpha1.GroupVersion.String(),
 			gcpsmv2alpha1.SecretManagerKind,
 			p.framework.Namespace.Name,
-			p.framework.Namespace.Name,
+			configNamespace,
 		)
 		frameworkv2.WaitForProviderConnectionReady(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, defaultV2WaitTimeout)
 	}
+}
+
+func (p *ProviderV2) prepareReferencedServiceAccountProvider(address string) func(*framework.TestCase, framework.SecretStoreProvider) {
+	return func(tc *framework.TestCase, _ framework.SecretStoreProvider) {
+		skipIfGCPManagedEnvMissing(p.access)
+
+		configNamespace := providerConfigNamespaceForWorkloadIdentity(p)
+		configName := p.framework.Namespace.Name
+		clusterProviderName := referencedServiceAccountClusterProviderName(p.framework.Namespace.Name)
+
+		createSecretManagerV2WorkloadIdentityConfig(
+			p.framework,
+			configNamespace,
+			configName,
+			p.access,
+			configNamespace,
+		)
+		frameworkv2.CreateClusterProviderConnection(
+			p.framework,
+			clusterProviderName,
+			address,
+			gcpsmv2alpha1.GroupVersion.String(),
+			gcpsmv2alpha1.SecretManagerKind,
+			configName,
+			configNamespace,
+			esv1.AuthenticationScopeManifestNamespace,
+			nil,
+		)
+		frameworkv2.WaitForClusterProviderReady(p.framework, clusterProviderName, defaultV2WaitTimeout)
+		configureV2ReferencedServiceAccountStoreRef(tc, clusterProviderName)
+	}
+}
+
+func referencedServiceAccountClusterProviderName(namespace string) string {
+	return namespace + "-referenced-service-account"
+}
+
+func configureV2ReferencedServiceAccountStoreRef(tc *framework.TestCase, clusterProviderName string) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterProviderKindStr
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = clusterProviderName
 }
 
 func newSecretManagerV2StaticConfig(namespace, name string, access gcpAccessConfig) *gcpsmv2alpha1.SecretManager {
