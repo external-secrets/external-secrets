@@ -18,6 +18,7 @@ rules:
     - "fakes"
     - "kubernetes"
     - "secretmanagers"
+    - "secretsmanagers"
     - "parameterstores"
     verbs:
     - "get"
@@ -98,5 +99,3 @@ subjects:
 {{- end }}
 {{- end }}
 {{- end }}
-
-

@@ -20,3 +20,21 @@ tests:
       - contains:
           path: rules[0].resources
           content: secretmanagers
+  - it: should grant aws providers access to secretsmanager configs
+    set:
+      providers:
+        enabled: true
+        list:
+          - name: aws
+            type: aws
+            enabled: true
+            image:
+              repository: ghcr.io/external-secrets/provider-aws
+              tag: test
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - contains:
+          path: rules[0].resources
+          content: secretsmanagers
