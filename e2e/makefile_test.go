@@ -172,7 +172,7 @@ func TestV2OperationalMakeTarget(t *testing.T) {
 	if !strings.Contains(dryRun, "V2_GINKGO_LABELS=") || !strings.Contains(dryRun, "v2 && operational && fake") {
 		t.Fatalf("expected operational labels in target, got:\n%s", dryRun)
 	}
-	if !strings.Contains(dryRun, "V2_TEST_SUITES=") || !strings.Contains(dryRun, "provider") {
+	if !strings.Contains(dryRun, "V2_TEST_SUITES='provider'") {
 		t.Fatalf("expected provider suite in target, got:\n%s", dryRun)
 	}
 	if !strings.Contains(dryRun, `TEST_SUITES="provider"`) {
