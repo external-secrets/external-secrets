@@ -127,8 +127,14 @@ func TestProbeAssumeRoleAccessBuildsExternalIDRequest(t *testing.T) {
 	if got := aws.ToString(client.input.RoleArn); got != awscommon.IAMRoleExternalID {
 		t.Fatalf("expected role ARN %q, got %q", awscommon.IAMRoleExternalID, got)
 	}
+	if got := aws.ToString(client.input.RoleSessionName); got != assumeRoleSessionName {
+		t.Fatalf("expected role session name %q, got %q", assumeRoleSessionName, got)
+	}
 	if got := aws.ToString(client.input.ExternalId); got != awscommon.IAMTrustedExternalID {
 		t.Fatalf("expected external ID %q, got %q", awscommon.IAMTrustedExternalID, got)
+	}
+	if len(client.input.Tags) != 0 {
+		t.Fatalf("expected no session tags for external-id profile, got %d", len(client.input.Tags))
 	}
 }
 
