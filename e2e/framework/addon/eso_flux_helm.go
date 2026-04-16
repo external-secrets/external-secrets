@@ -127,7 +127,7 @@ func (c *FluxHelmRelease) Install() error {
 		return err
 	}
 
-	return waitForExternalSecretWebhookReady(c.TargetNamespace)
+	return waitForExternalSecretWebhookReady(c.TargetNamespace, c.Name)
 }
 
 // Uninstall removes the chart aswell as the repo.

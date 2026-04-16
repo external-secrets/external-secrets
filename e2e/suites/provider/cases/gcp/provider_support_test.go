@@ -17,7 +17,9 @@ limitations under the License.
 package gcp
 
 import (
+	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -66,5 +68,24 @@ func TestGCPAccessConfigMissingEnvComplete(t *testing.T) {
 	}
 	if got := cfg.missingManagedEnv(); len(got) != 0 {
 		t.Fatalf("missingManagedEnv() = %v, want none", got)
+	}
+}
+
+func TestProviderV2NamespacedSuiteDoesNotIncludeWorkloadIdentity(t *testing.T) {
+	t.Parallel()
+
+	content, err := os.ReadFile("provider_v2.go")
+	if err != nil {
+		t.Fatalf("read provider_v2.go: %v", err)
+	}
+
+	for _, forbidden := range []string{
+		"withWorkloadIdentity",
+		"useV2WorkloadIdentity(",
+		"gcp-v2-wi-",
+	} {
+		if strings.Contains(string(content), forbidden) {
+			t.Fatalf("non-managed v2 suite must not include workload identity coverage, found %q", forbidden)
+		}
 	}
 }

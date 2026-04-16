@@ -24,6 +24,26 @@ import (
 	"time"
 )
 
+func TestExternalSecretWebhookURLUsesReleaseName(t *testing.T) {
+	t.Helper()
+
+	got := externalSecretWebhookURL("default", "eso")
+	want := "https://eso-external-secrets-webhook.default.svc.cluster.local/validate-external-secrets-io-v1-externalsecret"
+	if got != want {
+		t.Fatalf("unexpected webhook URL: got %q want %q", got, want)
+	}
+}
+
+func TestExternalSecretWebhookURLUsesHelmFullnameWhenReleaseContainsChartName(t *testing.T) {
+	t.Helper()
+
+	got := externalSecretWebhookURL("external-secrets-system", "external-secrets")
+	want := "https://external-secrets-webhook.external-secrets-system.svc.cluster.local/validate-external-secrets-io-v1-externalsecret"
+	if got != want {
+		t.Fatalf("unexpected webhook URL: got %q want %q", got, want)
+	}
+}
+
 func TestWaitForExternalSecretWebhookReadyRetriesUntilOK(t *testing.T) {
 	t.Helper()
 
@@ -49,12 +69,12 @@ func TestWaitForExternalSecretWebhookReadyRetriesUntilOK(t *testing.T) {
 	}))
 	defer server.Close()
 
-	externalSecretWebhookURL = func(string) string { return server.URL }
+	externalSecretWebhookURL = func(string, string) string { return server.URL }
 	webhookReadyPollInterval = 10 * time.Millisecond
 	webhookReadyTimeout = time.Second
 	webhookReadyContext = context.Background
 
-	if err := waitForExternalSecretWebhookReady("external-secrets-system"); err != nil {
+	if err := waitForExternalSecretWebhookReady("external-secrets-system", "external-secrets"); err != nil {
 		t.Fatalf("waitForExternalSecretWebhookReady returned error: %v", err)
 	}
 	if attempts != 3 {
@@ -81,12 +101,12 @@ func TestWaitForExternalSecretWebhookReadyTimesOut(t *testing.T) {
 	}))
 	defer server.Close()
 
-	externalSecretWebhookURL = func(string) string { return server.URL }
+	externalSecretWebhookURL = func(string, string) string { return server.URL }
 	webhookReadyPollInterval = 10 * time.Millisecond
 	webhookReadyTimeout = 50 * time.Millisecond
 	webhookReadyContext = context.Background
 
-	if err := waitForExternalSecretWebhookReady("external-secrets-system"); err == nil {
+	if err := waitForExternalSecretWebhookReady("external-secrets-system", "external-secrets"); err == nil {
 		t.Fatal("expected waitForExternalSecretWebhookReady to time out")
 	}
 }

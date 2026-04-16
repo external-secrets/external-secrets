@@ -22,6 +22,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,21 +32,30 @@ import (
 const externalSecretValidationReview = `{"apiVersion":"admission.k8s.io/v1","kind":"AdmissionReview","request":{"uid":"test","kind":{"group":"external-secrets.io","version":"v1","kind":"ExternalSecret"},"resource":{"group":"external-secrets.io","version":"v1","resource":"externalsecrets"},"dryRun":true,"operation":"CREATE","userInfo":{"username":"test","uid":"test","groups":[],"extra":{}}}}`
 
 var (
-	externalSecretWebhookURL = func(namespace string) string {
-		return fmt.Sprintf("https://external-secrets-webhook.%s.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", namespace)
+	externalSecretWebhookURL = func(namespace, releaseName string) string {
+		return fmt.Sprintf("https://%s.%s.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", externalSecretWebhookServiceName(releaseName), namespace)
 	}
 	webhookReadyPollInterval = time.Second
 	webhookReadyTimeout      = 5 * time.Minute
 	webhookReadyContext      = func() context.Context { return GinkgoT().Context() }
 )
 
-func waitForExternalSecretWebhookReady(namespace string) error {
+func externalSecretWebhookServiceName(releaseName string) string {
+	const chartName = "external-secrets"
+	fullName := releaseName
+	if !strings.Contains(releaseName, chartName) {
+		fullName = releaseName + "-" + chartName
+	}
+	return fullName + "-webhook"
+}
+
+func waitForExternalSecretWebhookReady(namespace, releaseName string) error {
 	tr := &http.Transport{
 		// nolint:gosec
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	url := externalSecretWebhookURL(namespace)
+	url := externalSecretWebhookURL(namespace, releaseName)
 
 	return wait.PollUntilContextTimeout(webhookReadyContext(), webhookReadyPollInterval, webhookReadyTimeout, true, func(ctx context.Context) (bool, error) {
 		res, err := client.Post(url, "application/json", bytes.NewBufferString(externalSecretValidationReview))

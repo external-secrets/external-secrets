@@ -49,18 +49,6 @@ var _ = Describe("[gcp] v2 namespaced provider", Label("gcp", "secretsmanager", 
 				ExpectedValue:      "gcp-v2-static-value",
 			})
 		}, useV2StaticAuth(prov)),
-		framework.Compose(withWorkloadIdentity, f, func(f *framework.Framework) (string, func(*framework.TestCase)) {
-			return common.NamespacedProviderSync(f, common.NamespacedProviderSyncConfig{
-				Description:        "[gcp] should sync through a namespaced Provider using workload identity",
-				ExternalSecretName: "gcp-v2-wi-es",
-				TargetSecretName:   "gcp-v2-wi-target",
-				RemoteKey:          f.MakeRemoteRefKey("gcp-v2-wi-remote"),
-				RemoteSecretValue:  `{"value":"gcp-v2-wi-value"}`,
-				RemoteProperty:     "value",
-				SecretKey:          "value",
-				ExpectedValue:      "gcp-v2-wi-value",
-			})
-		}, useV2WorkloadIdentity(prov)),
 		framework.Compose(withStaticAuth, f, func(f *framework.Framework) (string, func(*framework.TestCase)) {
 			return common.NamespacedProviderRefresh(f, common.NamespacedProviderRefreshConfig{
 				Description:         "[gcp] should refresh synced secrets after the remote secret changes",

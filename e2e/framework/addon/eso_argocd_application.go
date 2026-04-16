@@ -137,7 +137,7 @@ func (c *ArgoCDApplication) Install() error {
 		return fmt.Errorf("failed waiting for argo app to become ready: %w", err)
 	}
 
-	return waitForExternalSecretWebhookReady(c.DestinationNamespace)
+	return waitForExternalSecretWebhookReady(c.DestinationNamespace, c.Name)
 }
 
 // Uninstall removes the chart aswell as the repo.
