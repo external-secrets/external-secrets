@@ -17,7 +17,7 @@ rules:
     resources:
     - "fakes"
     - "kubernetes"
-    - "secretsmanagers"
+    - "secretmanagers"
     - "parameterstores"
     verbs:
     - "get"

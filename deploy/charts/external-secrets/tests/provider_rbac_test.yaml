@@ -1,0 +1,22 @@
+suite: test provider rbac
+templates:
+  - provider-rbac.yaml
+tests:
+  - it: should grant gcp providers access to secretmanager configs
+    set:
+      providers:
+        enabled: true
+        list:
+          - name: gcp
+            type: gcp
+            enabled: true
+            image:
+              repository: ghcr.io/external-secrets/provider-gcp
+              tag: test
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - contains:
+          path: rules[0].resources
+          content: secretmanagers
