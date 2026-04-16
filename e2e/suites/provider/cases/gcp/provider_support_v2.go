@@ -59,7 +59,7 @@ func NewProviderV2(f *framework.Framework) *ProviderV2 {
 	access := newGCPAccessConfigFromEnv()
 	backend := &GcpProvider{
 		ServiceAccountName:      access.ServiceAccountName,
-		ServiceAccountNamespace: frameworkv2.ProviderNamespace,
+		ServiceAccountNamespace: "default",
 		framework:               f,
 		credentials:             access.Credentials,
 		projectID:               access.ProjectID,
@@ -114,7 +114,7 @@ func (p *ProviderV2) prepareNamespacedProviderWithStaticAuth(address string) fun
 			gcpsmv2alpha1.GroupVersion.String(),
 			gcpsmv2alpha1.SecretManagerKind,
 			p.framework.Namespace.Name,
-			p.framework.Namespace.Name,
+			p.backend.ServiceAccountNamespace,
 		)
 		frameworkv2.WaitForProviderConnectionReady(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, defaultV2WaitTimeout)
 	}
@@ -126,7 +126,7 @@ func (p *ProviderV2) prepareNamespacedProviderWithWorkloadIdentity(address strin
 
 		createSecretManagerV2WorkloadIdentityConfig(
 			p.framework,
-			p.framework.Namespace.Name,
+			p.backend.ServiceAccountNamespace,
 			p.framework.Namespace.Name,
 			p.access,
 			p.backend.ServiceAccountNamespace,
