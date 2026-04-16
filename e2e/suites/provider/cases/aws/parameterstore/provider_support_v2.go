@@ -541,6 +541,48 @@ func useV2SessionTagsAuth(prov *ProviderV2) func(*framework.TestCase) {
 	}
 }
 
+func useV2ReferencedIRSA(prov *ProviderV2) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		tc.Prepare = func(tc *framework.TestCase, _ framework.SecretStoreProvider) {
+			configName := prov.providerConfigName(awsV2AuthProfileReferencedIRSA)
+			clusterProviderName := referencedIRSAClusterProviderName(prov.framework.Namespace.Name)
+
+			createParameterStoreV2Config(prov.framework, prov.framework.Namespace.Name, configName, prov.access, awsV2AuthProfileReferencedIRSA)
+			frameworkv2.CreateClusterProviderConnection(
+				prov.framework,
+				clusterProviderName,
+				frameworkv2.ProviderAddress("aws"),
+				awsProviderAPIVersion,
+				awsv2alpha1.ParameterStoreKind,
+				configName,
+				prov.framework.Namespace.Name,
+				esv1.AuthenticationScopeManifestNamespace,
+				nil,
+			)
+			frameworkv2.WaitForClusterProviderReady(prov.framework, clusterProviderName, defaultV2WaitTimeout)
+			configureV2ReferencedIRSAStoreRef(tc, clusterProviderName)
+		}
+	}
+}
+
+func useV2MountedIRSA(prov *ProviderV2) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		tc.Prepare = prov.prepareNamespacedProviderAtAddress(
+			awsV2AuthProfileMountedIRSA,
+			frameworkv2.ProviderAddressInNamespace("aws", prov.access.SANamespace),
+		)
+	}
+}
+
+func referencedIRSAClusterProviderName(namespace string) string {
+	return namespace + "-referenced-irsa"
+}
+
+func configureV2ReferencedIRSAStoreRef(tc *framework.TestCase, clusterProviderName string) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterProviderKindStr
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = clusterProviderName
+}
+
 func (p *ProviderV2) prepareNamespacedProvider(profile ...awsV2AuthProfile) func(*framework.TestCase, framework.SecretStoreProvider) {
 	authProfile := awsV2AuthProfileStatic
 	if len(profile) > 0 {
