@@ -59,7 +59,7 @@ func NewProviderV2(f *framework.Framework) *ProviderV2 {
 	access := newGCPAccessConfigFromEnv()
 	backend := &GcpProvider{
 		ServiceAccountName:      access.ServiceAccountName,
-		ServiceAccountNamespace: "default",
+		ServiceAccountNamespace: frameworkv2.ProviderNamespace,
 		framework:               f,
 		credentials:             access.Credentials,
 		projectID:               access.ProjectID,
