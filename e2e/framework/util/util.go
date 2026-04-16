@@ -53,6 +53,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
+	gcpsmv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/gcp/v2alpha1"
 	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 )
 
@@ -74,6 +75,7 @@ func init() {
 
 	// v2alpha1 provider schemes
 	utilruntime.Must(awsv2alpha1.AddToScheme(scheme))
+	utilruntime.Must(gcpsmv2alpha1.AddToScheme(scheme))
 	utilruntime.Must(fakev2alpha1.AddToScheme(scheme))
 	utilruntime.Must(k8sv2alpha1.AddToScheme(scheme))
 }

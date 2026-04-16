@@ -30,4 +30,5 @@ resources:
   - provider.external-secrets.io_fakes.yaml
   - provider.external-secrets.io_kubernetes.yaml
   - provider.external-secrets.io_parameterstores.yaml
+  - provider.external-secrets.io_secretmanagers.yaml
   - provider.external-secrets.io_secretsmanagers.yaml
