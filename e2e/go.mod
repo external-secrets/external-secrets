@@ -51,6 +51,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.9
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.39.0
+	github.com/aws/smithy-go v1.23.1
 	github.com/cyberark/conjur-api-go v0.13.8
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-00010101000000-000000000000
@@ -115,7 +116,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.4 // indirect
-	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
