@@ -37,6 +37,9 @@ var _ = Describe("sts generator v2", Label("aws", "sts", "v2"), func() {
 			Skip("v2 mode only")
 		}
 		skipIfAWSGeneratorCredentialsMissing()
+		if !awsSTSSessionTokenGeneratorSupported() {
+			Skip("AWS STS session token generator requires long-lived credentials and cannot be exercised with AWS_SESSION_TOKEN")
+		}
 	})
 
 	injectGenerator := func(tc *testCase) {

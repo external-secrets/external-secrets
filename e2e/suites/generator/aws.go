@@ -73,3 +73,7 @@ func awsGeneratorAuth() genv1alpha1.AWSAuth {
 	}
 	return auth
 }
+
+func awsSTSSessionTokenGeneratorSupported() bool {
+	return os.Getenv("AWS_SESSION_TOKEN") == ""
+}
