@@ -105,7 +105,9 @@ func setMetadata(secret *v1.Secret, ps *v1alpha1.PushSecret) error {
 		secret.Annotations = make(map[string]string)
 	}
 
-	secret.Type = ps.Spec.Template.Type
+	if ps.Spec.Template.Type != "" {
+		secret.Type = ps.Spec.Template.Type
+	}
 	esutils.MergeStringMap(secret.ObjectMeta.Labels, ps.Spec.Template.Metadata.Labels)
 	esutils.MergeStringMap(secret.ObjectMeta.Annotations, ps.Spec.Template.Metadata.Annotations)
 

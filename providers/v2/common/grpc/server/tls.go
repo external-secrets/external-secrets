@@ -1,0 +1,125 @@
+/*
+Copyright © The ESO Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package server
+
+import (
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+)
+
+const (
+	// DefaultCertDir is the default directory for provider TLS assets.
+	DefaultCertDir = "/etc/provider/certs"
+	// DefaultCACertFile is the default CA certificate filename.
+	DefaultCACertFile = "ca.crt"
+	// DefaultCertFile is the default server certificate filename.
+	DefaultCertFile = "tls.crt"
+	// DefaultKeyFile is the default server key filename.
+	DefaultKeyFile = "tls.key"
+)
+
+var tlsFileNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+
+// TLSConfig holds configuration for provider server TLS.
+type TLSConfig struct {
+	CertDir    string
+	CACertFile string
+	CertFile   string
+	KeyFile    string
+}
+
+// DefaultTLSConfig returns a TLSConfig with fixed provider TLS asset paths.
+func DefaultTLSConfig() *TLSConfig {
+	return &TLSConfig{
+		CertDir:    DefaultCertDir,
+		CACertFile: DefaultCACertFile,
+		CertFile:   DefaultCertFile,
+		KeyFile:    DefaultKeyFile,
+	}
+}
+
+// LoadTLSConfig loads TLS configuration for a provider server.
+// This enables mTLS, requiring and verifying client certificates.
+func LoadTLSConfig(config *TLSConfig) (*tls.Config, error) {
+	// Load server certificate and key
+	certPath, err := resolveCertPath(config.CertDir, config.CertFile)
+	if err != nil {
+		return nil, err
+	}
+	keyPath, err := resolveCertPath(config.CertDir, config.KeyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load server certificate: %w", err)
+	}
+
+	// Load CA certificate for client verification
+	caPath, err := resolveCertPath(config.CertDir, config.CACertFile)
+	if err != nil {
+		return nil, err
+	}
+	// #nosec G304 -- resolveCertPath constrains file names to direct children of CertDir.
+	caCert, err := os.ReadFile(caPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load CA certificate: %w", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return nil, fmt.Errorf("failed to parse CA certificate")
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientCAs:    caCertPool,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		MinVersion:   tls.VersionTLS12, // TLS 1.2 minimum for compatibility
+	}, nil
+}
+
+// TLSVersionName returns a human-readable name for a TLS version.
+func TLSVersionName(version uint16) string {
+	switch version {
+	case tls.VersionTLS10:
+		return "TLS 1.0"
+	case tls.VersionTLS11:
+		return "TLS 1.1"
+	case tls.VersionTLS12:
+		return "TLS 1.2"
+	case tls.VersionTLS13:
+		return "TLS 1.3"
+	default:
+		return "Unknown"
+	}
+}
+
+func resolveCertPath(certDir, fileName string) (string, error) {
+	cleanDir := filepath.Clean(certDir)
+
+	if !tlsFileNamePattern.MatchString(fileName) {
+		return "", fmt.Errorf("invalid TLS file name %q", fileName)
+	}
+
+	return filepath.Join(cleanDir, fileName), nil
+}

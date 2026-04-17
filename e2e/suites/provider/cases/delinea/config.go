@@ -29,6 +29,20 @@ type config struct {
 	clientSecret string
 }
 
+func missingRequiredEnvFromConfig(cfg config) []string {
+	var missing []string
+	if cfg.tenant == "" {
+		missing = append(missing, "DELINEA_TENANT")
+	}
+	if cfg.clientID == "" {
+		missing = append(missing, "DELINEA_CLIENT_ID")
+	}
+	if cfg.clientSecret == "" {
+		missing = append(missing, "DELINEA_CLIENT_SECRET")
+	}
+	return missing
+}
+
 func loadConfigFromEnv() (*config, error) {
 	var cfg config
 	var err error

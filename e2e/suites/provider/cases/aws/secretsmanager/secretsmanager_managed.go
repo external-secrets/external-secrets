@@ -34,6 +34,15 @@ var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws"
 	f := framework.New("eso-aws-managed")
 	prov := NewFromEnv(f)
 
+	BeforeEach(func() {
+		skipIfAWSManagedIRSAEnvMissing(loadAWSAccessConfigFromEnv())
+		prov.SetupReferencedIRSAStore()
+	})
+
+	AfterEach(func() {
+		prov.TeardownReferencedIRSAStore()
+	})
+
 	// nolint
 	DescribeTable("sync secretsmanager secrets",
 		framework.TableFuncWithExternalSecret(f,
@@ -64,6 +73,8 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "secretsmanager"
 
 	// each test case gets its own ESO instance
 	BeforeEach(func() {
+		skipIfAWSManagedIRSAEnvMissing(loadAWSAccessConfigFromEnv())
+		prov.SetupMountedIRSAStore()
 		f.Install(addon.NewESO(
 			addon.WithControllerClass(f.BaseName),
 			addon.WithServiceAccount(prov.ServiceAccountName),
@@ -72,6 +83,10 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "secretsmanager"
 			addon.WithoutWebhook(),
 			addon.WithoutCertController(),
 		))
+	})
+
+	AfterEach(func() {
+		prov.TeardownMountedIRSAStore()
 	})
 
 	// nolint

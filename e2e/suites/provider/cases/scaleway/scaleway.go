@@ -18,6 +18,8 @@ package scaleway
 
 import (
 	"context"
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -43,6 +45,15 @@ var _ = Describe("[scaleway]", Label("scaleway"), func() {
 	provider := &secretStoreProvider{}
 
 	BeforeEach(func() {
+		cfgFromEnv := config{
+			region:    os.Getenv("SCALEWAY_REGION"),
+			projectId: os.Getenv("SCALEWAY_PROJECT_ID"),
+			accessKey: os.Getenv("SCALEWAY_ACCESS_KEY"),
+			secretKey: os.Getenv("SCALEWAY_SECRET_KEY"),
+		}
+		if missing := missingRequiredEnvFromConfig(cfgFromEnv); len(missing) > 0 {
+			Skip("missing Scaleway e2e environment: " + strings.Join(missing, ", "))
+		}
 
 		cfg, err := loadConfigFromEnv()
 		Expect(err).ToNot(HaveOccurred())

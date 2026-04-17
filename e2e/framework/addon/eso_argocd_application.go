@@ -17,11 +17,8 @@ limitations under the License.
 package addon
 
 import (
-	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -140,24 +137,7 @@ func (c *ArgoCDApplication) Install() error {
 		return fmt.Errorf("failed waiting for argo app to become ready: %w", err)
 	}
 
-	// we have to wait for the webhook to become ready
-	tr := &http.Transport{
-		// nolint:gosec
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-	return wait.PollUntilContextTimeout(GinkgoT().Context(), time.Second, time.Minute*5, true, func(ctx context.Context) (bool, error) {
-		const payload = `{"apiVersion": "admission.k8s.io/v1","kind": "AdmissionReview","request": {"uid": "test","kind": {"group": "external-secrets.io","version": "v1","kind": "ExternalSecret"}, "resource": {"group": "external-secrets.io","version": "v1","kind": "ExternalSecret"},"dryRun": true, "operation": "CREATE", "userInfo":{"username":"test","uid":"test","groups":[],"extra":{}}}}`
-		res, err := client.Post("https://external-secrets-webhook.external-secrets.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", "application/json", bytes.NewBufferString(payload))
-		if err != nil {
-			return false, nil
-		}
-		defer func() {
-			_ = res.Body.Close()
-		}()
-		GinkgoWriter.Printf("webhook res: %d", res.StatusCode)
-		return res.StatusCode == http.StatusOK, nil
-	})
+	return waitForExternalSecretWebhookReady(c.DestinationNamespace, c.Name)
 }
 
 // Uninstall removes the chart aswell as the repo.

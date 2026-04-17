@@ -19,8 +19,10 @@ package addon
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -62,29 +64,62 @@ func (c *HelmChart) Setup(cfg *Config) error {
 
 // Install adds the chart repo and installs the helm chart.
 func (c *HelmChart) Install() error {
-	args := []string{
-		"dependency", "update", filepath.Join(AssetDir(), "deploy/charts/external-secrets"),
-	}
-	log.Logf("updating chart dependencies with args: %+q", args)
-	cmd := exec.Command("helm", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("unable to run update cmd: %w: %s", err, string(output))
+	if helmDependencyUpdateEnabled() {
+		args := []string{
+			"dependency", "update", filepath.Join(AssetDir(), "deploy/charts/external-secrets"),
+		}
+		log.Logf("updating chart dependencies with args: %+q", args)
+		cmd := exec.Command("helm", args...)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("unable to run update cmd: %w: %s", err, string(output))
+		}
 	}
 
-	err = c.addRepo()
+	err := c.addRepo()
 	if err != nil {
 		return err
 	}
 
-	args = []string{"install", c.ReleaseName, c.Chart,
-		"--dependency-update",
+	args := c.installArgs()
+	output, err := c.runInstall(args)
+	if err != nil {
+		if !isHelmReleaseNameInUseError(string(output)) {
+			return fmt.Errorf("unable to run cmd: %w: %s", err, string(output))
+		}
+
+		log.Logf("helm install detected stale release state for %q in namespace %q; attempting cleanup", c.ReleaseName, c.Namespace)
+		if cleanupErr := c.cleanupExistingRelease(); cleanupErr != nil {
+			return fmt.Errorf("unable to clean stale helm release %s/%s after install failure: %w", c.Namespace, c.ReleaseName, cleanupErr)
+		}
+
+		output, err = c.runInstall(args)
+		if err != nil {
+			return fmt.Errorf("unable to run cmd after stale release cleanup: %w: %s", err, string(output))
+		}
+	}
+
+	log.Logf("finished running chart install")
+
+	return nil
+}
+
+func helmDependencyUpdateEnabled() bool {
+	return os.Getenv("E2E_SKIP_HELM_DEPENDENCY_UPDATE") != "true"
+}
+
+func (c *HelmChart) installArgs() []string {
+	args := []string{"install", c.ReleaseName, c.Chart}
+	if helmDependencyUpdateEnabled() {
+		args = append(args, "--dependency-update")
+	}
+	args = append(args,
 		"--debug",
 		"--wait",
 		"--timeout", "600s",
 		"-o", "yaml",
 		"--namespace", c.Namespace,
-	}
+	)
 
 	if c.ChartVersion != "" {
 		args = append(args, "--version", c.ChartVersion)
@@ -99,23 +134,63 @@ func (c *HelmChart) Install() error {
 	}
 
 	args = append(args, c.Args...)
+	return args
+}
 
+func (c *HelmChart) uninstallArgs() []string {
+	return []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--wait", "--ignore-not-found"}
+}
+
+func (c *HelmChart) cleanupUninstallArgs() []string {
+	return []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--ignore-not-found"}
+}
+
+func (c *HelmChart) releaseStatusArgs() []string {
+	return []string{"status", "--namespace", c.Namespace, c.ReleaseName}
+}
+
+func (c *HelmChart) runInstall(args []string) ([]byte, error) {
 	log.Logf("installing chart with args: %+q", args)
-	cmd = exec.Command("helm", args...)
-	output, err = cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("unable to run cmd: %w: %s", err, string(output))
+	cmd := exec.Command("helm", args...)
+	return cmd.CombinedOutput()
+}
+
+func (c *HelmChart) cleanupExistingRelease() error {
+	cmd := exec.Command("helm", c.cleanupUninstallArgs()...)
+	output, err := cmd.CombinedOutput()
+	if err != nil && !strings.Contains(string(output), "release: not found") {
+		statusOutput, statusErr := c.releaseStatus()
+		if canIgnoreHelmCleanupError(string(statusOutput)) {
+			return nil
+		}
+		if statusErr != nil {
+			return fmt.Errorf("unable to uninstall stale helm release: %w: %s (status check failed: %v: %s)", err, string(output), statusErr, string(statusOutput))
+		}
+		return fmt.Errorf("unable to uninstall stale helm release: %w: %s", err, string(output))
 	}
-
-	log.Logf("finished running chart install")
-
 	return nil
+}
+
+func (c *HelmChart) releaseStatus() ([]byte, error) {
+	cmd := exec.Command("helm", c.releaseStatusArgs()...)
+	return cmd.CombinedOutput()
+}
+
+func isHelmReleaseNameInUseError(output string) bool {
+	return strings.Contains(output, "cannot re-use a name that is still in use")
+}
+
+func isHelmReleaseNotFoundError(output string) bool {
+	return strings.Contains(output, "release: not found")
+}
+
+func canIgnoreHelmCleanupError(statusOutput string) bool {
+	return isHelmReleaseNotFoundError(statusOutput)
 }
 
 // Uninstall removes the chart aswell as the repo.
 func (c *HelmChart) Uninstall() error {
-	args := []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--wait"}
-	cmd := exec.Command("helm", args...)
+	cmd := exec.Command("helm", c.uninstallArgs()...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unable to uninstall helm release: %w: %s", err, string(output))

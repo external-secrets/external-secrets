@@ -13,6 +13,7 @@
 # limitations under the License.
 
 DOCKER ?= docker
+DOCKER_BUILD_ARGS ?=
 MKDOCS_IMAGE ?= github.com/external-secrets-mkdocs:latest
 MKDOCS ?= mkdocs
 MIKE ?= mike
@@ -33,6 +34,13 @@ SRCDIR := $(ROOT)/docs
 CFGFILE := $(ROOT)/hack/api-docs/mkdocs.yml
 # GENROOT is the root of the generated documentation.
 GENROOT := $(ROOT)/site
+GIT_DIR := $(shell cd $(ROOT) && git rev-parse --path-format=absolute --git-dir)
+GIT_COMMON_DIR := $(shell cd $(ROOT) && git rev-parse --path-format=absolute --git-common-dir)
+ifeq ($(shell test -f $(ROOT)/.git && echo true),true)
+GIT_METADATA_MOUNTS := \
+	    --mount type=bind,source=$(GIT_DIR),target=$(GIT_DIR) \
+	    --mount type=bind,source=$(GIT_COMMON_DIR),target=$(GIT_COMMON_DIR)
+endif
 
 # Grab the uid/gid to fix permissions due to running in a docker container.
 GID := $(shell id -g)
@@ -47,7 +55,7 @@ all: build
 
 .PHONY: image
 image:
-	$(DOCKER) build -t $(MKDOCS_IMAGE) -f Dockerfile .
+	$(DOCKER) build $(DOCKER_BUILD_ARGS) -t $(MKDOCS_IMAGE) -f Dockerfile .
 
 VERSION_TO_UPDATE ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION).x)
 
@@ -60,6 +68,7 @@ build: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
 	$(DOCKER) run \
 	    --mount type=bind,source=$(ROOT),target=/repo \
+		$(GIT_METADATA_MOUNTS) \
 		--sig-proxy=true \
 		--rm \
 		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
@@ -72,6 +81,7 @@ build.publish: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
 	$(DOCKER) run \
 	    --mount type=bind,source=$(ROOT),target=/repo \
+		$(GIT_METADATA_MOUNTS) \
 		--sig-proxy=true \
 		--rm \
 		--user $(UID):$(GID) \
@@ -96,6 +106,7 @@ serve: image generate
 		-it \
 		--sig-proxy=true \
 	    --mount type=bind,source=$(ROOT),target=/repo \
+		$(GIT_METADATA_MOUNTS) \
 		--user $(UID):$(GID) \
 		-p $(SERVE_BIND_ADDRESS):8000:8000 \
 		--rm \

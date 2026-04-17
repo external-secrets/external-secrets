@@ -24,12 +24,26 @@ import (
 	// nolint
 	. "github.com/onsi/gomega"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	if framework.IsV2ProviderMode() {
+		By("installing eso in generator v2 mode")
+		addon.InstallGlobalAddon(addon.NewESO(
+			addon.WithCRDs(),
+			addon.WithAllowGenericTargets(),
+			addon.WithV2Namespace(),
+			addon.WithV2KubernetesProvider(),
+			addon.WithV2FakeProvider(),
+			addon.WithV2AWSProvider(),
+		))
+		return nil
+	}
+
 	cfg := &addon.Config{}
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 
@@ -49,9 +63,12 @@ var _ = SynchronizedAfterSuite(func() {
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
 	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
-	Expect(err).ToNot(HaveOccurred())
-	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+	if err == nil {
+		for _, generatorState := range generatorStates.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	} else if !util.IsMissingAPIResourceError(err) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 	By("Cleaning up global addons")

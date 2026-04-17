@@ -30,7 +30,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/statemanager"
@@ -45,7 +45,7 @@ func (r *Reconciler) GetProviderSecretData(ctx context.Context, externalSecret *
 	// Clientmanager keeps track of the client instances
 	// that are created during the fetching process and closes clients
 	// if needed.
-	mgr := secretstore.NewManager(r.Client, r.ControllerClass, r.EnableFloodGate)
+	mgr := clientmanager.NewManager(r.Client, r.ControllerClass, r.EnableFloodGate)
 	defer func() {
 		_ = mgr.Close(ctx)
 	}()
@@ -121,7 +121,7 @@ func (r *Reconciler) GetProviderSecretData(ctx context.Context, externalSecret *
 	return providerData, nil
 }
 
-func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret, secretRef esv1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
+func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret, secretRef esv1.ExternalSecretData, providerData map[string][]byte, cmgr *clientmanager.Manager) error {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, toStoreGenSourceRef(secretRef.SourceRef))
 	if err != nil {
 		return err
@@ -213,7 +213,7 @@ func (r *Reconciler) handleExtractSecrets(
 	ctx context.Context,
 	externalSecret *esv1.ExternalSecret,
 	remoteRef esv1.ExternalSecretDataFromRemoteRef,
-	cmgr *secretstore.Manager,
+	cmgr *clientmanager.Manager,
 	genState *statemanager.Manager,
 	i int,
 ) (map[string][]byte, error) {
@@ -264,7 +264,7 @@ func (r *Reconciler) handleFindAllSecrets(
 	ctx context.Context,
 	externalSecret *esv1.ExternalSecret,
 	remoteRef esv1.ExternalSecretDataFromRemoteRef,
-	cmgr *secretstore.Manager,
+	cmgr *clientmanager.Manager,
 	genState *statemanager.Manager,
 	i int,
 ) (map[string][]byte, error) {

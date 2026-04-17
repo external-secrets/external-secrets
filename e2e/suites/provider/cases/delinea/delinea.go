@@ -18,6 +18,8 @@ package delinea
 
 import (
 	"context"
+	"os"
+	"strings"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
@@ -37,6 +39,13 @@ var _ = Describe("[delinea]", Label("delinea"), func() {
 	provider := &secretStoreProvider{}
 
 	BeforeEach(func() {
+		if missing := missingRequiredEnvFromConfig(config{
+			tenant:       os.Getenv("DELINEA_TENANT"),
+			clientID:     os.Getenv("DELINEA_CLIENT_ID"),
+			clientSecret: os.Getenv("DELINEA_CLIENT_SECRET"),
+		}); len(missing) > 0 {
+			Skip("missing Delinea e2e environment: " + strings.Join(missing, ", "))
+		}
 
 		cfg, err := loadConfigFromEnv()
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())

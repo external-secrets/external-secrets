@@ -214,7 +214,7 @@ func (l *ESO) Install() error {
 		return err
 	}
 
-	return nil
+	return waitForExternalSecretWebhookReady(l.Namespace, l.ReleaseName)
 }
 
 func (l *ESO) Uninstall() error {
