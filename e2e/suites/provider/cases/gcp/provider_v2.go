@@ -17,6 +17,7 @@ limitations under the License.
 package gcp
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -71,17 +72,20 @@ var _ = Describe("[gcp] v2 namespaced provider", Label("gcp", "secretsmanager", 
 			})
 		}, useV2StaticAuth(prov)),
 		framework.Compose(withStaticAuth, f, func(f *framework.Framework) (string, func(*framework.TestCase)) {
+			findOne := f.MakeRemoteRefKey("gcp-v2-find-one")
+			findTwo := f.MakeRemoteRefKey("gcp-v2-find-two")
+			ignored := f.MakeRemoteRefKey("gcp-v2-ignore")
 			return common.NamespacedProviderFind(f, common.NamespacedProviderFindConfig{
 				Description:        "[gcp] should sync dataFrom.find through a namespaced Provider",
 				ExternalSecretName: "gcp-v2-find-es",
 				TargetSecretName:   "gcp-v2-find-target",
-				MatchRegExp:        "^gcp-v2-find-(one|two)$",
+				MatchRegExp:        fmt.Sprintf("^(%s|%s)$", findOne, findTwo),
 				MatchingSecrets: map[string]string{
-					"gcp-v2-find-one": "gcp-v2-one",
-					"gcp-v2-find-two": "gcp-v2-two",
+					findOne: "gcp-v2-one",
+					findTwo: "gcp-v2-two",
 				},
 				IgnoredSecrets: map[string]string{
-					"gcp-v2-ignore": "gcp-v2-ignore",
+					ignored: "gcp-v2-ignore",
 				},
 			})
 		}, useV2StaticAuth(prov)),

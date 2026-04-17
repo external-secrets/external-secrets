@@ -113,6 +113,25 @@ func TestProviderV2RefreshSuiteOverridesDefaultRemoteMutation(t *testing.T) {
 	}
 }
 
+func TestProviderV2FindSuiteUsesScopedRemoteSecretNames(t *testing.T) {
+	t.Parallel()
+
+	content, err := os.ReadFile("provider_v2.go")
+	if err != nil {
+		t.Fatalf("read provider_v2.go: %v", err)
+	}
+
+	for _, required := range []string{
+		`f.MakeRemoteRefKey("gcp-v2-find-one")`,
+		`f.MakeRemoteRefKey("gcp-v2-find-two")`,
+		`f.MakeRemoteRefKey("gcp-v2-ignore")`,
+	} {
+		if !strings.Contains(string(content), required) {
+			t.Fatalf("expected GCP v2 find suite to include %q", required)
+		}
+	}
+}
+
 func TestConfigureGCPRemoteRefKeyKeepsBaseWithoutNamespace(t *testing.T) {
 	t.Parallel()
 
