@@ -19,6 +19,8 @@ package aws
 import (
 	"context"
 	"errors"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -206,5 +208,24 @@ func TestIsAssumeRoleAccessDeniedRecognizesSTSAccessDeniedErrors(t *testing.T) {
 	err := errors.New("api error AccessDenied: User is not authorized to perform: sts:TagSession")
 	if !isAssumeRoleAccessDenied(err) {
 		t.Fatal("expected sts access denied error to be recognized")
+	}
+}
+
+func TestProviderV2FindSuiteUsesScopedRemoteSecretNames(t *testing.T) {
+	t.Parallel()
+
+	content, err := os.ReadFile("provider_v2.go")
+	if err != nil {
+		t.Fatalf("read provider_v2.go: %v", err)
+	}
+
+	for _, required := range []string{
+		`f.MakeRemoteRefKey("aws-v2-find-one")`,
+		`f.MakeRemoteRefKey("aws-v2-find-two")`,
+		`f.MakeRemoteRefKey("aws-v2-ignore")`,
+	} {
+		if !strings.Contains(string(content), required) {
+			t.Fatalf("expected AWS v2 find suite to include %q", required)
+		}
 	}
 }

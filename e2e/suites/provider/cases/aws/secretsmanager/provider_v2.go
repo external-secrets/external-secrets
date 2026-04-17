@@ -69,17 +69,20 @@ var _ = Describe("[aws] v2 namespaced provider", Label("aws", "secretsmanager", 
 			})
 		}, useV2StaticAuth(prov)),
 		framework.Compose(withStaticAuth, f, func(f *framework.Framework) (string, func(*framework.TestCase)) {
+			findOne := f.MakeRemoteRefKey("aws-v2-find-one")
+			findTwo := f.MakeRemoteRefKey("aws-v2-find-two")
+			ignored := f.MakeRemoteRefKey("aws-v2-ignore")
 			return common.NamespacedProviderFind(f, common.NamespacedProviderFindConfig{
 				Description:        "[aws] should sync ExternalSecret dataFrom.find through a namespaced Provider",
 				ExternalSecretName: "aws-v2-find-es",
 				TargetSecretName:   "aws-v2-find-target",
-				MatchRegExp:        "^aws-v2-find-(one|two)$",
+				MatchRegExp:        fmt.Sprintf("^(%s|%s)$", findOne, findTwo),
 				MatchingSecrets: map[string]string{
-					"aws-v2-find-one": "aws-v2-one",
-					"aws-v2-find-two": "aws-v2-two",
+					findOne: "aws-v2-one",
+					findTwo: "aws-v2-two",
 				},
 				IgnoredSecrets: map[string]string{
-					"aws-v2-ignore": "aws-v2-ignore",
+					ignored: "aws-v2-ignore",
 				},
 			})
 		}, useV2StaticAuth(prov)),
