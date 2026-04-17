@@ -24,12 +24,26 @@ import (
 	// nolint
 	. "github.com/onsi/gomega"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	if framework.IsV2ProviderMode() {
+		By("installing eso in generator v2 mode")
+		addon.InstallGlobalAddon(addon.NewESO(
+			addon.WithCRDs(),
+			addon.WithAllowGenericTargets(),
+			addon.WithV2Namespace(),
+			addon.WithV2KubernetesProvider(),
+			addon.WithV2FakeProvider(),
+			addon.WithV2AWSProvider(),
+		))
+		return nil
+	}
+
 	cfg := &addon.Config{}
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 

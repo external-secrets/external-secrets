@@ -110,8 +110,8 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(defaultDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected default test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", defaultDryRun)
 	}
-	if !strings.Contains(defaultDryRun, `TEST_SUITES="provider"`) {
-		t.Fatalf("expected default test.v2 dry-run to run the provider suite, output:\n%s", defaultDryRun)
+	if !strings.Contains(defaultDryRun, `TEST_SUITES="provider generator"`) {
+		t.Fatalf("expected default test.v2 dry-run to run the provider and generator suites, output:\n%s", defaultDryRun)
 	}
 	if strings.Contains(defaultDryRun, dockerCleanupCmd) {
 		t.Fatalf("expected default test.v2 dry-run to avoid CI-only docker cleanup, output:\n%s", defaultDryRun)
@@ -151,8 +151,8 @@ func TestV2MakeTargetCanSkipKubernetesProviderBuild(t *testing.T) {
 	if !strings.Contains(skippedDryRun, helmDependencyEnsureCmd) {
 		t.Fatalf("expected skipped test.v2 dry-run to ensure helm dependencies before copying the chart, output:\n%s", skippedDryRun)
 	}
-	if !strings.Contains(skippedDryRun, `TEST_SUITES="provider"`) {
-		t.Fatalf("expected skipped test.v2 dry-run to still run the provider suite, output:\n%s", skippedDryRun)
+	if !strings.Contains(skippedDryRun, `TEST_SUITES="provider generator"`) {
+		t.Fatalf("expected skipped test.v2 dry-run to still run the provider and generator suites, output:\n%s", skippedDryRun)
 	}
 }
 

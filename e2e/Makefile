@@ -12,7 +12,7 @@ export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed && !v2
 export V2_GINKGO_LABELS ?= !managed && v2
 export TEST_SUITES ?= provider generator flux argocd
-export V2_TEST_SUITES ?= provider
+export V2_TEST_SUITES ?= provider generator
 export GOCACHE ?= $(CURDIR)/.cache/go-build
 export GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
