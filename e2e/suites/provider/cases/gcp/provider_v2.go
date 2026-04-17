@@ -51,11 +51,12 @@ var _ = Describe("[gcp] v2 namespaced provider", Label("gcp", "secretsmanager", 
 			})
 		}, useV2StaticAuth(prov)),
 		framework.Compose(withStaticAuth, f, func(f *framework.Framework) (string, func(*framework.TestCase)) {
+			remoteKey := f.MakeRemoteRefKey("gcp-v2-refresh-remote")
 			return common.NamespacedProviderRefresh(f, common.NamespacedProviderRefreshConfig{
 				Description:         "[gcp] should refresh synced secrets after the remote secret changes",
 				ExternalSecretName:  "gcp-v2-refresh-es",
 				TargetSecretName:    "gcp-v2-refresh-target",
-				RemoteKey:           f.MakeRemoteRefKey("gcp-v2-refresh-remote"),
+				RemoteKey:           remoteKey,
 				InitialSecretValue:  `{"value":"gcp-v2-initial"}`,
 				UpdatedSecretValue:  `{"value":"gcp-v2-updated"}`,
 				RemoteProperty:      "value",
@@ -65,7 +66,7 @@ var _ = Describe("[gcp] v2 namespaced provider", Label("gcp", "secretsmanager", 
 				RefreshInterval:     10 * time.Second,
 				WaitTimeout:         30 * time.Second,
 				UpdateRemoteSecret: func(_ *framework.TestCase, _ framework.SecretStoreProvider) {
-					prov.UpdateSecret(f.MakeRemoteRefKey("gcp-v2-refresh-remote"), framework.SecretEntry{
+					prov.UpdateSecret(remoteKey, framework.SecretEntry{
 						Value: `{"value":"gcp-v2-updated"}`,
 					})
 				},

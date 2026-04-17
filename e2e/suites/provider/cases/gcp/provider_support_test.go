@@ -111,6 +111,20 @@ func TestProviderV2RefreshSuiteOverridesDefaultRemoteMutation(t *testing.T) {
 			t.Fatalf("expected GCP v2 refresh suite to include %q", required)
 		}
 	}
+
+	if strings.Contains(string(content), `prov.UpdateSecret(f.MakeRemoteRefKey("gcp-v2-refresh-remote")`) {
+		t.Fatalf("refresh callback must not recompute the scoped remote key from mutable framework state")
+	}
+
+	for _, required := range []string{
+		`remoteKey := f.MakeRemoteRefKey("gcp-v2-refresh-remote")`,
+		"RemoteKey:           remoteKey,",
+		"prov.UpdateSecret(remoteKey,",
+	} {
+		if !strings.Contains(string(content), required) {
+			t.Fatalf("expected GCP v2 refresh suite to include %q", required)
+		}
+	}
 }
 
 func TestProviderV2FindSuiteUsesScopedRemoteSecretNames(t *testing.T) {
