@@ -89,3 +89,21 @@ func TestProviderV2NamespacedSuiteDoesNotIncludeWorkloadIdentity(t *testing.T) {
 		}
 	}
 }
+
+func TestProviderV2RefreshSuiteOverridesDefaultRemoteMutation(t *testing.T) {
+	t.Parallel()
+
+	content, err := os.ReadFile("provider_v2.go")
+	if err != nil {
+		t.Fatalf("read provider_v2.go: %v", err)
+	}
+
+	for _, required := range []string{
+		"UpdateRemoteSecret:",
+		"prov.UpdateSecret(",
+	} {
+		if !strings.Contains(string(content), required) {
+			t.Fatalf("expected GCP v2 refresh suite to include %q", required)
+		}
+	}
+}

@@ -63,6 +63,11 @@ var _ = Describe("[gcp] v2 namespaced provider", Label("gcp", "secretsmanager", 
 				UpdatedExpectedData: "gcp-v2-updated",
 				RefreshInterval:     10 * time.Second,
 				WaitTimeout:         30 * time.Second,
+				UpdateRemoteSecret: func(_ *framework.TestCase, _ framework.SecretStoreProvider) {
+					prov.UpdateSecret(f.MakeRemoteRefKey("gcp-v2-refresh-remote"), framework.SecretEntry{
+						Value: `{"value":"gcp-v2-updated"}`,
+					})
+				},
 			})
 		}, useV2StaticAuth(prov)),
 		framework.Compose(withStaticAuth, f, func(f *framework.Framework) (string, func(*framework.TestCase)) {

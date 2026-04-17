@@ -87,6 +87,10 @@ func (p *ProviderV2) CreateSecret(key string, val framework.SecretEntry) {
 	p.backend.CreateSecret(key, val)
 }
 
+func (p *ProviderV2) UpdateSecret(key string, val framework.SecretEntry) {
+	p.backend.UpdateSecret(key, val)
+}
+
 func (p *ProviderV2) DeleteSecret(key string) {
 	p.backend.DeleteSecret(key)
 }

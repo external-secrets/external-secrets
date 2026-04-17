@@ -188,6 +188,20 @@ func (s *GcpProvider) CreateSecret(key string, val framework.SecretEntry) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
+func (s *GcpProvider) UpdateSecret(key string, val framework.SecretEntry) {
+	client, err := s.getClient(GinkgoT().Context())
+	Expect(err).ToNot(HaveOccurred())
+	defer client.Close()
+
+	_, err = client.AddSecretVersion(GinkgoT().Context(), &secretmanagerpb.AddSecretVersionRequest{
+		Parent: fmt.Sprintf("projects/%s/secrets/%s", s.projectID, key),
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: []byte(val.Value),
+		},
+	})
+	Expect(err).ToNot(HaveOccurred())
+}
+
 func (s *GcpProvider) DeleteSecret(key string) {
 	client, err := s.getClient(GinkgoT().Context())
 	Expect(err).ToNot(HaveOccurred())
