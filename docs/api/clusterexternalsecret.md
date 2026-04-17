@@ -17,15 +17,14 @@ Below is an example of the `ClusterExternalSecret` in use.
 
 A `ClusterExternalSecret` creates one `ExternalSecret` per matched namespace,
 and **each of those `ExternalSecret`s independently polls the upstream
-provider** on its own `refreshInterval`. Provider API calls and egress
-therefore scale linearly with the number of matched namespaces, which can be
-costly or hit rate limits when the selector matches many namespaces. This is
+provider** on its own `refreshInterval`. This means provider API calls scale linearly with the number of matched
+namespaces, which can be costly or hit rate limits. This is
 a known characteristic of the design — see
 [`design/003-cluster-external-secret-spec.md`](https://github.com/external-secrets/external-secrets/blob/main/design/003-cluster-external-secret-spec.md#drawbacks).
 
 ![Direct polling: each namespace polls the provider independently](../pictures/diagrams-ces-direct-polling.png)
 
-When the namespace set is non-trivial, the recommended pattern is to pull
+If your selector matches more than a handful of namespaces, the recommended pattern is to pull
 from the upstream provider **once** into a single in-cluster `Secret`, then
 use the [Kubernetes provider](../provider/kubernetes.md) to fan that
 `Secret` out via the `ClusterExternalSecret`:
@@ -50,7 +49,7 @@ as described in the [Kubernetes provider docs](../provider/kubernetes.md).
 
 Direct use of `ClusterExternalSecret` against a cloud-backed store is still
 appropriate for small namespace sets or when per-namespace refresh isolation
-is intentional — this is a recommendation for minimizing provider load, not
+is intentional. This is a recommendation for minimizing provider load, not
 a deprecation of the simpler pattern shown above.
 
 ## Synchronizing corresponding ExternalSecrets
