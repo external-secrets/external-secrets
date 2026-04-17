@@ -72,7 +72,7 @@ func ClusterProviderProviderNamespaceRecovery(f *framework.Framework, harness Cl
 func ClusterProviderDeniedByConditions(f *framework.Framework, harness ClusterProviderExternalSecretHarness) (string, func(*framework.TestCase)) {
 	return "[common] should deny workload namespaces that do not match ClusterProvider conditions", func(tc *framework.TestCase) {
 		targetSecretName := "denied-target"
-		remoteSecretName := "denied-source"
+		remoteSecretName := f.MakeRemoteRefKey("denied-source")
 		expectedMessage := "should-not-sync"
 
 		tc.ExpectedSecret = nil
@@ -117,7 +117,7 @@ func ClusterProviderDeniedByConditions(f *framework.Framework, harness ClusterPr
 func clusterProviderSyncCase(f *framework.Framework, harness ClusterProviderExternalSecretHarness, name, expectedValue string, authScope esv1.AuthenticationScope) (string, func(*framework.TestCase)) {
 	return fmt.Sprintf("[common] should use %s auth with ClusterProvider", authScope), func(tc *framework.TestCase) {
 		targetSecretName := fmt.Sprintf("%s-target", name)
-		remoteSecretName := fmt.Sprintf("%s-source", name)
+		remoteSecretName := f.MakeRemoteRefKey(fmt.Sprintf("%s-source", name))
 
 		tc.ExternalSecret.ObjectMeta.Name = fmt.Sprintf("%s-external-secret", name)
 		tc.ExternalSecret.Spec.Target.Name = targetSecretName
@@ -150,7 +150,7 @@ func clusterProviderSyncCase(f *framework.Framework, harness ClusterProviderExte
 func clusterProviderRecoveryCase(f *framework.Framework, harness ClusterProviderExternalSecretHarness, name, expectedValue string, authScope esv1.AuthenticationScope) (string, func(*framework.TestCase)) {
 	return fmt.Sprintf("[common] should recover after repairing ClusterProvider auth with %s scope", authScope), func(tc *framework.TestCase) {
 		targetSecretName := fmt.Sprintf("%s-target", name)
-		remoteSecretName := fmt.Sprintf("%s-source", name)
+		remoteSecretName := f.MakeRemoteRefKey(fmt.Sprintf("%s-source", name))
 
 		tc.ExpectedSecret = nil
 		tc.ExternalSecret.ObjectMeta.Name = fmt.Sprintf("%s-external-secret", name)

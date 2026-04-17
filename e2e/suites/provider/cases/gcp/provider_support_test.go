@@ -21,6 +21,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/external-secrets/external-secrets-e2e/framework"
 )
 
 func TestGCPAccessConfigMissingStaticEnv(t *testing.T) {
@@ -105,5 +110,37 @@ func TestProviderV2RefreshSuiteOverridesDefaultRemoteMutation(t *testing.T) {
 		if !strings.Contains(string(content), required) {
 			t.Fatalf("expected GCP v2 refresh suite to include %q", required)
 		}
+	}
+}
+
+func TestConfigureGCPRemoteRefKeyKeepsBaseWithoutNamespace(t *testing.T) {
+	t.Parallel()
+
+	f := &framework.Framework{
+		MakeRemoteRefKey: func(base string) string { return base },
+	}
+
+	configureGCPRemoteRefKey(f)
+
+	if got := f.MakeRemoteRefKey("remote-key"); got != "remote-key" {
+		t.Fatalf("MakeRemoteRefKey() = %q, want %q", got, "remote-key")
+	}
+}
+
+func TestConfigureGCPRemoteRefKeyAppendsNamespaceSuffix(t *testing.T) {
+	t.Parallel()
+
+	f := &framework.Framework{
+		Namespace: &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-ns-123456789",
+			},
+		},
+	}
+
+	configureGCPRemoteRefKey(f)
+
+	if got := f.MakeRemoteRefKey("remote-key"); got != "remote-key-23456789" {
+		t.Fatalf("MakeRemoteRefKey() = %q, want %q", got, "remote-key-23456789")
 	}
 }

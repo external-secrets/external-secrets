@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
@@ -151,5 +152,58 @@ func TestApplyClusterProviderPushSecretUsesSafeObjectNameIndependentOfRemoteKey(
 	}
 	if got, want := tc.PushSecret.Spec.Data[0].Match.RemoteRef.RemoteKey, "/e2e/test-ns/push-provider-remote"; got != want {
 		t.Fatalf("expected remote key %q, got %q", want, got)
+	}
+}
+
+func TestClusterProviderManifestNamespaceUsesMakeRemoteRefKey(t *testing.T) {
+	f := &framework.Framework{
+		Namespace: &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-ns"},
+		},
+		MakeRemoteRefKey: func(base string) string { return "scoped-" + base },
+	}
+	tc := &framework.TestCase{
+		Framework:        f,
+		ExternalSecret:   &esv1.ExternalSecret{},
+		ExpectedSecret:   &corev1.Secret{},
+		PushSecret:       &esv1alpha1.PushSecret{},
+		PushSecretSource: &corev1.Secret{},
+	}
+
+	_, apply := ClusterProviderManifestNamespace(f, ClusterProviderExternalSecretHarness{
+		Prepare: func(_ *framework.TestCase, _ ClusterProviderConfig) *ClusterProviderExternalSecretRuntime {
+			return &ClusterProviderExternalSecretRuntime{ClusterProviderName: "cluster-provider"}
+		},
+	})
+	apply(tc)
+
+	if _, ok := tc.Secrets["scoped-manifest-source"]; !ok {
+		t.Fatalf("expected cluster provider sync case to use MakeRemoteRefKey, got %v", tc.Secrets)
+	}
+	if got := tc.ExternalSecret.Spec.Data[0].RemoteRef.Key; got != "scoped-manifest-source" {
+		t.Fatalf("expected remote ref key %q, got %q", "scoped-manifest-source", got)
+	}
+}
+
+func TestClusterProviderDeniedByConditionsUsesMakeRemoteRefKey(t *testing.T) {
+	f := &framework.Framework{
+		Namespace: &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-ns"},
+		},
+		MakeRemoteRefKey: func(base string) string { return "scoped-" + base },
+	}
+	tc := &framework.TestCase{
+		Framework:      f,
+		ExternalSecret: &esv1.ExternalSecret{},
+	}
+
+	_, apply := ClusterProviderDeniedByConditions(f, ClusterProviderExternalSecretHarness{})
+	apply(tc)
+
+	if _, ok := tc.Secrets["scoped-denied-source"]; !ok {
+		t.Fatalf("expected cluster provider deny case to use MakeRemoteRefKey, got %v", tc.Secrets)
+	}
+	if got := tc.ExternalSecret.Spec.Data[0].RemoteRef.Key; got != "scoped-denied-source" {
+		t.Fatalf("expected remote ref key %q, got %q", "scoped-denied-source", got)
 	}
 }

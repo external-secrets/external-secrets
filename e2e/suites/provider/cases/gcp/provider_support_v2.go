@@ -57,6 +57,7 @@ type v2ClusterProviderScenario struct {
 
 func NewProviderV2(f *framework.Framework) *ProviderV2 {
 	access := newGCPAccessConfigFromEnv()
+	configureGCPRemoteRefKey(f)
 	backend := &GcpProvider{
 		ServiceAccountName:      access.ServiceAccountName,
 		ServiceAccountNamespace: "default",
@@ -81,6 +82,22 @@ func NewProviderV2(f *framework.Framework) *ProviderV2 {
 	})
 
 	return prov
+}
+
+func configureGCPRemoteRefKey(f *framework.Framework) {
+	f.MakeRemoteRefKey = func(base string) string {
+		if f.Namespace == nil {
+			return base
+		}
+		suffix := f.Namespace.Name
+		if len(suffix) > 8 {
+			suffix = suffix[len(suffix)-8:]
+		}
+		if suffix == "" {
+			return base
+		}
+		return fmt.Sprintf("%s-%s", base, suffix)
+	}
 }
 
 func (p *ProviderV2) CreateSecret(key string, val framework.SecretEntry) {
