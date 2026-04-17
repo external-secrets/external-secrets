@@ -37,6 +37,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -97,6 +98,8 @@ type assumeRoleV2ProbeResult struct {
 }
 
 var assumeRoleV2ProbeCache sync.Map
+
+var errClusterProviderNotFoundForCleanup = errors.New("cluster provider not found")
 
 func loadAWSV2AccessConfigFromEnv() awsV2AccessConfig {
 	role := os.Getenv("AWS_ROLE_ARN")
@@ -561,6 +564,13 @@ func useV2ReferencedIRSA(prov *ProviderV2) func(*framework.TestCase) {
 			)
 			frameworkv2.WaitForClusterProviderReady(prov.framework, clusterProviderName, defaultV2WaitTimeout)
 			configureV2ReferencedIRSAStoreRef(tc, clusterProviderName)
+
+			prevCleanup := tc.Cleanup
+			tc.Cleanup = wrapCleanupWithClusterProviderDelete(prevCleanup, func() error {
+				return prov.framework.CRClient.Delete(GinkgoT().Context(), &esv1.ClusterProvider{
+					ObjectMeta: metav1.ObjectMeta{Name: clusterProviderName},
+				})
+			})
 		}
 	}
 }
@@ -581,6 +591,24 @@ func referencedIRSAClusterProviderName(namespace string) string {
 func configureV2ReferencedIRSAStoreRef(tc *framework.TestCase, clusterProviderName string) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterProviderKindStr
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = clusterProviderName
+}
+
+func wrapCleanupWithClusterProviderDelete(prevCleanup func(), deleteClusterProvider func() error) func() {
+	return func() {
+		if prevCleanup != nil {
+			prevCleanup()
+		}
+
+		err := deleteClusterProvider()
+		if err == nil || isClusterProviderDeleteNotFound(err) {
+			return
+		}
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func isClusterProviderDeleteNotFound(err error) bool {
+	return errors.Is(err, errClusterProviderNotFoundForCleanup) || k8serrors.IsNotFound(err)
 }
 
 func (p *ProviderV2) prepareNamespacedProvider(profile ...awsV2AuthProfile) func(*framework.TestCase, framework.SecretStoreProvider) {

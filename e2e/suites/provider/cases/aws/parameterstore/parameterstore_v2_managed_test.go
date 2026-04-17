@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -45,4 +46,68 @@ func TestConfigureV2ReferencedIRSAStoreRefUsesClusterProvider(t *testing.T) {
 	if got := tc.ExternalSecret.Spec.SecretStoreRef.Name; got != "aws-irsa-cluster-provider" {
 		t.Fatalf("expected cluster provider ref %q, got %q", "aws-irsa-cluster-provider", got)
 	}
+}
+
+func TestWrapCleanupWithClusterProviderDeleteRunsPreviousCleanupFirst(t *testing.T) {
+	t.Parallel()
+
+	var calls []string
+	cleanup := wrapCleanupWithClusterProviderDelete(
+		func() { calls = append(calls, "previous") },
+		func() error {
+			calls = append(calls, "delete")
+			return nil
+		},
+	)
+
+	cleanup()
+
+	if len(calls) != 2 {
+		t.Fatalf("expected 2 cleanup calls, got %d", len(calls))
+	}
+	if calls[0] != "previous" || calls[1] != "delete" {
+		t.Fatalf("expected call order [previous delete], got %v", calls)
+	}
+}
+
+func TestWrapCleanupWithClusterProviderDeleteRunsDeleteWithoutPreviousCleanup(t *testing.T) {
+	t.Parallel()
+
+	var deleteCalled bool
+	cleanup := wrapCleanupWithClusterProviderDelete(nil, func() error {
+		deleteCalled = true
+		return nil
+	})
+
+	cleanup()
+
+	if !deleteCalled {
+		t.Fatal("expected delete callback to run")
+	}
+}
+
+func TestWrapCleanupWithClusterProviderDeleteIgnoresNotFoundDeleteError(t *testing.T) {
+	t.Parallel()
+
+	cleanup := wrapCleanupWithClusterProviderDelete(nil, func() error {
+		return errClusterProviderNotFoundForCleanup
+	})
+
+	cleanup()
+}
+
+func TestWrapCleanupWithClusterProviderDeletePanicsOnUnexpectedDeleteError(t *testing.T) {
+	t.Parallel()
+
+	cleanup := wrapCleanupWithClusterProviderDelete(nil, func() error {
+		return errors.New("boom")
+	})
+
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected panic for unexpected delete error")
+		}
+	}()
+
+	cleanup()
 }
