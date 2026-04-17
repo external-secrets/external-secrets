@@ -17,57 +17,57 @@ limitations under the License.
 package conjur
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"strings"
-	"text/template"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
+	"github.com/doodlesbykumbi/conjur-policy-go/pkg/conjurpolicy"
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
-const defaultPolicyTemplate = `
-- !policy
-  id: {{ .Name }}
-  body:
-  - !group
-    id: delegation/consumers
-    annotations:
-      managed-by: "external-secrets"
-      editable: "true"
-{{- range .Variables}}
-  - !variable
-    id: {{ . }}
-    annotations:
-      managed-by: "external-secrets"
-{{- end -}}
+func conjurPolicy(name string, vars []string) (string, error) {
+	pvars := make([]conjurpolicy.Resource, len(vars))
+	permits := make([]conjurpolicy.Resource, len(vars))
 
-{{ range .Variables}}
-  - !permit
-    resource: !variable {{ . }}
-    role: !group delegation/consumers
-    privileges: [ read, execute ]
-{{- end -}}
-`
+	for i, v := range vars {
+		pvars[i] = conjurpolicy.Variable{
+			Id: v,
+			Annotations: map[string]any{
+				"managed-by": "external-secrets",
+			},
+		}
+		permits[i] = conjurpolicy.Permit{
+			Resources:  conjurpolicy.VariableRef(v),
+			Role:       conjurpolicy.GroupRef("delegation/consumers"),
+			Privileges: []conjurpolicy.Privilege{conjurpolicy.PrivilegeRead, conjurpolicy.PrivilegeExecute},
+		}
+	}
+	p := conjurpolicy.Policy{
+		Id: name,
+		Body: []conjurpolicy.Resource{
+			conjurpolicy.Group{
+				Id: "delegation/consumers",
+				Annotations: map[string]any{
+					"managed-by": "external-secrets",
+					"editable":   "true",
+				},
+			},
+		},
+	}
+	p.Body = append(p.Body, pvars...)
+	p.Body = append(p.Body, permits...)
 
-func conjurPolicy(name string, vars []string) string {
-	type policy struct {
-		Name      string
-		Variables []string
+	policy, err := yaml.Marshal(conjurpolicy.PolicyStatements{p})
+	if err != nil {
+		return "", err
 	}
-	p := policy{
-		Name:      name,
-		Variables: vars,
-	}
-	t := template.Must(template.New("policy").Parse(defaultPolicyTemplate))
-	buf := &bytes.Buffer{}
-	_ = t.Execute(buf, p)
-	return buf.String()
+	return string(policy), nil
 }
 
 // PushSecret writes a single secret into the provider.
@@ -163,9 +163,12 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 	if len(updateVars) == 0 {
 		return nil
 	}
-	policy := conjurPolicy(policyName, updateVars)
+	policy, err := conjurPolicy(policyName, updateVars)
+	if err != nil {
+		return err
+	}
 
-	_, err := conjurClient.LoadPolicy(conjurapi.PolicyModePost, parentPolicy, strings.NewReader(policy))
+	_, err = conjurClient.LoadPolicy(conjurapi.PolicyModePost, parentPolicy, strings.NewReader(policy))
 	if err != nil {
 		return err
 	}
