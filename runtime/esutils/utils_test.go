@@ -1439,16 +1439,27 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 	}
 }
 
-func TestFetchCACertFromSourceSecretStoreIgnoresCrossNamespaceConfigMap(t *testing.T) {
-	fakeClient := clientfake.NewClientBuilder().WithObjects(&v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ca-cm",
-			Namespace: "other",
+func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderConfigMapForSecretStore(t *testing.T) {
+	fakeClient := clientfake.NewClientBuilder().WithObjects(
+		&v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-cm",
+				Namespace: "default",
+			},
+			Data: map[string]string{
+				"ca.crt": "local-cert",
+			},
 		},
-		Data: map[string]string{
-			"ca.crt": caCert,
+		&v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-cm",
+				Namespace: "other",
+			},
+			Data: map[string]string{
+				"ca.crt": "other-cert",
+			},
 		},
-	}).Build()
+	).Build()
 
 	cert, err := FetchCACertFromSource(context.Background(), CreateCertOpts{
 		CAProvider: &esv1.CAProvider{
@@ -1462,11 +1473,46 @@ func TestFetchCACertFromSourceSecretStoreIgnoresCrossNamespaceConfigMap(t *testi
 		Client:    fakeClient,
 	})
 
-	if err == nil {
-		t.Fatalf("expected an error when resolving a cross-namespace CAProvider ConfigMap for SecretStore, got cert length %d", len(cert))
-	}
+	assert.ErrorIs(t, err, errNamespaceNotAllowed)
 	assert.Nil(t, cert)
-	assert.Contains(t, err.Error(), "failed to get cert from configmap")
+}
+
+func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderSecretForSecretStore(t *testing.T) {
+	fakeClient := clientfake.NewClientBuilder().WithObjects(
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-secret",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"tls.crt": []byte("local-cert"),
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-secret",
+				Namespace: "other",
+			},
+			Data: map[string][]byte{
+				"tls.crt": []byte("other-cert"),
+			},
+		},
+	).Build()
+
+	cert, err := FetchCACertFromSource(context.Background(), CreateCertOpts{
+		CAProvider: &esv1.CAProvider{
+			Type:      esv1.CAProviderTypeSecret,
+			Name:      "ca-secret",
+			Key:       "tls.crt",
+			Namespace: Ptr("other"),
+		},
+		StoreKind: esv1.SecretStoreKind,
+		Namespace: "default",
+		Client:    fakeClient,
+	})
+
+	assert.ErrorIs(t, err, errNamespaceNotAllowed)
+	assert.Nil(t, cert)
 }
 
 const mockJWTToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoxNzAwMDAwMDAwfQ.signature"
