@@ -16,11 +16,9 @@ Below is an example of the `ClusterExternalSecret` in use.
 ## Reducing provider calls for large namespace sets
 
 A `ClusterExternalSecret` creates one `ExternalSecret` per matched namespace,
-and **each of those `ExternalSecret`s independently polls the upstream
-provider** on its own `refreshInterval`. This means provider API calls scale linearly with the number of matched
-namespaces, which can be costly or hit rate limits. This is
-a known characteristic of the design — see
-[`design/003-cluster-external-secret-spec.md`](https://github.com/external-secrets/external-secrets/blob/main/design/003-cluster-external-secret-spec.md#drawbacks).
+and **each of those `ExternalSecret`s independently polls the upstream provider** on its own `refreshInterval`. 
+This means provider API calls scale linearly with the number of matched namespaces, which can be costly or hit rate limits. 
+This is a known characteristic of the design.
 
 ![Direct polling: each namespace polls the provider independently](../pictures/diagrams-ces-direct-polling.png)
 
