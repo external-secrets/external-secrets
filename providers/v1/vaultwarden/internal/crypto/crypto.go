@@ -1,3 +1,5 @@
+// Package crypto implements Bitwarden-compatible cryptographic operations
+// (key derivation, AES-256-CBC encryption, HMAC-SHA256 verification).
 package crypto
 
 import (
@@ -14,10 +16,9 @@ import (
 
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/pbkdf2"
-	// Uncomment when argon2id support is added:
-	// "golang.org/x/crypto/argon2"
 )
 
+// KDF type constants matching Bitwarden/Vaultwarden API values.
 const (
 	KdfTypePBKDF2   = 0
 	KdfTypeArgon2id = 1
@@ -62,7 +63,7 @@ func ParseEncString(s string) (EncString, error) {
 
 // DeriveKey derives the 256-bit master key from masterPassword and email using PBKDF2 or Argon2id.
 // The email is used as the salt (lowercased and trimmed).
-func DeriveKey(masterPassword, email string, kdfType, iterations, memory, parallelism int) ([]byte, error) {
+func DeriveKey(masterPassword, email string, kdfType, iterations, _ /* memory */, _ /* parallelism */ int) ([]byte, error) {
 	salt := []byte(strings.ToLower(strings.TrimSpace(email)))
 	switch kdfType {
 	case KdfTypePBKDF2:
@@ -71,18 +72,8 @@ func DeriveKey(masterPassword, email string, kdfType, iterations, memory, parall
 		}
 		return pbkdf2.Key([]byte(masterPassword), salt, iterations, 32, sha256.New), nil
 	case KdfTypeArgon2id:
-		// Vaultwarden defaults: memory=64MB=65536KB, iterations=3, parallelism=4
-		if memory <= 0 {
-			memory = 65536
-		}
-		if iterations <= 0 {
-			iterations = 3
-		}
-		if parallelism <= 0 {
-			parallelism = 4
-		}
-		// To enable, uncomment the argon2 import above and replace this return:
-		// return argon2.IDKey([]byte(masterPassword), salt, uint32(iterations), uint32(memory), uint8(parallelism), 32), nil
+		// Argon2id support requires the golang.org/x/crypto/argon2 import and
+		// would use: argon2.IDKey([]byte(masterPassword), salt, uint32(iterations), uint32(memory), uint8(parallelism), 32).
 		return nil, errors.New("argon2id not yet implemented")
 	default:
 		return nil, fmt.Errorf("unknown KDF type %d", kdfType)
@@ -190,10 +181,11 @@ func EncryptString(s string, encKey, macKey []byte) (string, error) {
 
 func pkcs7Pad(data []byte, blockSize int) []byte {
 	padding := blockSize - len(data)%blockSize
+	padByte := byte(padding & 0xff)
 	padded := make([]byte, len(data)+padding)
 	copy(padded, data)
 	for i := len(data); i < len(padded); i++ {
-		padded[i] = byte(padding)
+		padded[i] = padByte
 	}
 	return padded
 }
