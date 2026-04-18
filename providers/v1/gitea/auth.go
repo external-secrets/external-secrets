@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package gitea implements the External Secrets provider for Gitea Actions secrets and variables.
 package gitea
 
 import (

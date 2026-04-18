@@ -135,7 +135,7 @@ func TestPushSecret(t *testing.T) {
 			createOrUpdateFn: withCreateOrUpdateFn(nil),
 		},
 		{
-			name:             "success with full secret marshalled (no key)",
+			name:             "success with full secret marshaled (no key)",
 			secret:           secretWithFoo,
 			remoteRef:        makePushRef("", "remote-all"),
 			createOrUpdateFn: withCreateOrUpdateFn(nil),

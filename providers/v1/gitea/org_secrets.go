@@ -27,7 +27,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// orgCreateOrUpdateSecret creates or updates an organisation Actions secret.
+// orgCreateOrUpdateSecret creates or updates an organization Actions secret.
 // The Gitea SDK embeds the secret name inside CreateSecretOption.
 func (g *Client) orgCreateOrUpdateSecret(_ context.Context, name, value string) error {
 	_, err := g.baseClient.CreateOrgActionSecret(g.provider.Organization, giteasdk.CreateSecretOption{
@@ -40,7 +40,7 @@ func (g *Client) orgCreateOrUpdateSecret(_ context.Context, name, value string) 
 	return nil
 }
 
-// orgListSecretsFn lists all Actions secrets for the organisation, paginating through all pages.
+// orgListSecretsFn lists all Actions secrets for the organization, paginating through all pages.
 func (g *Client) orgListSecretsFn(_ context.Context) ([]*giteasdk.Secret, error) {
 	var all []*giteasdk.Secret
 	opts := giteasdk.ListOrgActionSecretOption{ListOptions: giteasdk.ListOptions{Page: 1, PageSize: 50}}
@@ -58,10 +58,10 @@ func (g *Client) orgListSecretsFn(_ context.Context) ([]*giteasdk.Secret, error)
 	return all, nil
 }
 
-// orgDeleteSecretsFn deletes an organisation Actions secret.
+// orgDeleteSecretsFn deletes an organization Actions secret.
 // The Gitea SDK v0.20.0 does not expose DeleteOrgActionSecret, so we call the
 // Gitea REST API directly using the token stored in the provider configuration.
-// Endpoint: DELETE /api/v1/orgs/{org}/actions/secrets/{secretname}
+// Endpoint: DELETE /api/v1/orgs/{org}/actions/secrets/{secretname}.
 func (g *Client) orgDeleteSecretsFn(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	baseURL := strings.TrimRight(g.provider.URL, "/")
 	apiURL := fmt.Sprintf("%s/api/v1/orgs/%s/actions/secrets/%s", baseURL, g.provider.Organization, remoteRef.GetRemoteKey())
@@ -85,7 +85,7 @@ func (g *Client) orgDeleteSecretsFn(ctx context.Context, remoteRef esv1.PushSecr
 	if err != nil {
 		return fmt.Errorf("DELETE org action secret request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code deleting org action secret: %d", resp.StatusCode)
