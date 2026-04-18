@@ -140,6 +140,38 @@ func TestResolvedStoreInfoInfersOmittedProviderKinds(t *testing.T) {
 	}
 }
 
+func TestResolvedStoreInfoInfersOmittedCleanStoreKinds(t *testing.T) {
+	providerStoreInfo, ok := resolvedStoreInfo(esapi.PushSecretStoreRef{
+		Name: "provider-store",
+	}, &esv2alpha1.ProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "provider-store",
+			Labels: map[string]string{"team": "a"},
+		},
+	})
+	if !ok {
+		t.Fatal("expected provider store info to resolve")
+	}
+	if providerStoreInfo.Kind != esv1.ProviderStoreKindStr {
+		t.Fatalf("expected kind %q, got %#v", esv1.ProviderStoreKindStr, providerStoreInfo)
+	}
+
+	clusterProviderStoreInfo, ok := resolvedStoreInfo(esapi.PushSecretStoreRef{
+		Name: "cluster-provider-store",
+	}, &esv2alpha1.ClusterProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "cluster-provider-store",
+			Labels: map[string]string{"scope": "cluster"},
+		},
+	})
+	if !ok {
+		t.Fatal("expected cluster provider store info to resolve")
+	}
+	if clusterProviderStoreInfo.Kind != esv1.ClusterProviderStoreKindStr {
+		t.Fatalf("expected kind %q, got %#v", esv1.ClusterProviderStoreKindStr, clusterProviderStoreInfo)
+	}
+}
+
 func TestValidateDataToMatchesResolvedStoresSupportsProviderKinds(t *testing.T) {
 	err := validateDataToMatchesResolvedStores([]esapi.PushSecretDataTo{
 		{
@@ -740,6 +772,52 @@ func TestGetSecretStoresV2ResolvesProviderStoreWhenAPIVersionOmitted(t *testing.
 	}
 }
 
+func TestGetSecretStoresV2PrefersProviderStoreWhenKindOmitted(t *testing.T) {
+	scheme := newPushSecretTestScheme(t)
+	namespacedStore := &esv2alpha1.ProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-shared",
+			Namespace: "tenant-a",
+		},
+	}
+	clusterStore := &esv2alpha1.ClusterProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "aws-shared",
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(namespacedStore, clusterStore).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	ps := esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Spec: esapi.PushSecretSpec{
+			SecretStoreRefs: []esapi.PushSecretStoreRef{{
+				Name: "aws-shared",
+			}},
+		},
+	}
+
+	stores, err := r.GetSecretStoresV2(context.Background(), ps)
+	if err != nil {
+		t.Fatalf("GetSecretStoresV2() error = %v", err)
+	}
+
+	store, ok := stores[ps.Spec.SecretStoreRefs[0]]
+	if !ok {
+		t.Fatalf("expected resolved store, got %#v", stores)
+	}
+	if _, ok := store.(*esv2alpha1.ProviderStore); !ok {
+		t.Fatalf("expected ProviderStore to win omitted-kind lookup, got %T", store)
+	}
+}
+
 func TestGetSecretStoresV2ResolvesClusterProviderStoreBySelector(t *testing.T) {
 	scheme := newPushSecretTestScheme(t)
 	store := &esv2alpha1.ClusterProviderStore{
@@ -748,10 +826,23 @@ func TestGetSecretStoresV2ResolvesClusterProviderStoreBySelector(t *testing.T) {
 			Labels: map[string]string{"team": "shared"},
 		},
 	}
+	otherKindStore := &esv2alpha1.ProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-tenant",
+			Namespace: "tenant-a",
+			Labels:    map[string]string{"team": "shared"},
+		},
+	}
+	nonMatchingStore := &esv2alpha1.ClusterProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "aws-other",
+			Labels: map[string]string{"team": "other"},
+		},
+	}
 
 	kubeClient := fakeclient.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(store).
+		WithObjects(store, otherKindStore, nonMatchingStore).
 		Build()
 
 	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
@@ -776,6 +867,17 @@ func TestGetSecretStoresV2ResolvesClusterProviderStoreBySelector(t *testing.T) {
 	}
 	if len(stores) != 1 {
 		t.Fatalf("expected one resolved store, got %d", len(stores))
+	}
+
+	selectedStore, ok := stores[esapi.PushSecretStoreRef{Name: "aws-shared", Kind: esv1.ClusterProviderStoreKindStr}]
+	if !ok {
+		t.Fatalf("expected selected cluster provider store, got %#v", stores)
+	}
+	if _, ok := selectedStore.(*esv2alpha1.ClusterProviderStore); !ok {
+		t.Fatalf("expected ClusterProviderStore, got %T", selectedStore)
+	}
+	if _, ok := stores[esapi.PushSecretStoreRef{Name: "aws-tenant", Kind: esv1.ProviderStoreKindStr}]; ok {
+		t.Fatalf("expected selector to stay within cluster provider store kind, got %#v", stores)
 	}
 }
 

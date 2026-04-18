@@ -48,6 +48,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
@@ -1188,6 +1189,10 @@ func resolvedPushStoreKind(refKind string, store any) string {
 		return esv1.ProviderKindStr
 	case *esv1.ClusterProvider:
 		return esv1.ClusterProviderKindStr
+	case *esv2alpha1.ProviderStore:
+		return esv1.ProviderStoreKindStr
+	case *esv2alpha1.ClusterProviderStore:
+		return esv1.ClusterProviderStoreKindStr
 	default:
 		return esv1.SecretStoreKind
 	}
