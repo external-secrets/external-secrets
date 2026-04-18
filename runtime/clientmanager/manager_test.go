@@ -26,6 +26,7 @@ import (
 	"encoding/pem"
 	"math/big"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -41,6 +42,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,6 +50,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 	providergrpc "github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 )
@@ -1087,6 +1090,73 @@ func TestGetV2ClusterProviderInvalidatesGenerationCacheAndReleasesPoolReferences
 	assertPoolMetricEventually(t, registry, "grpc_pool_connections_idle", address, true, 1)
 	assertPoolMetricEventually(t, registry, "grpc_pool_connections_total", address, true, 1)
 	assert.Equal(t, 2, server.ValidateCallCount())
+}
+
+func TestBuildCompatibilityStoreSerializesStore(t *testing.T) {
+	store := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "aws-prod",
+			Namespace:  "team-a",
+			UID:        types.UID("uid-1"),
+			Generation: 7,
+		},
+		Spec: esv1.SecretStoreSpec{
+			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws"},
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
+			},
+		},
+	}
+
+	out, err := buildCompatibilityStore(store)
+	if err != nil {
+		t.Fatalf("buildCompatibilityStore() error = %v", err)
+	}
+	if out.StoreName != "aws-prod" || out.StoreNamespace != "team-a" || out.StoreKind != esv1.SecretStoreKind {
+		t.Fatalf("unexpected compatibility store metadata: %#v", out)
+	}
+	if out.StoreGeneration != 7 || out.StoreUid != "uid-1" {
+		t.Fatalf("unexpected compatibility store identity: %#v", out)
+	}
+	if !strings.Contains(string(out.StoreSpecJson), "\"runtimeRef\"") || !strings.Contains(string(out.StoreSpecJson), "\"fake\"") {
+		t.Fatalf("expected serialized store spec, got %s", string(out.StoreSpecJson))
+	}
+}
+
+func TestGetFromStoreReturnsErrorWhenRuntimeClassMissing(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+
+	store := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "aws-prod",
+			Namespace:  "team-a",
+			UID:        types.UID("uid-1"),
+			Generation: 7,
+		},
+		Spec: esv1.SecretStoreSpec{
+			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws"},
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
+			},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(store).
+		Build()
+
+	mgr := NewManager(kubeClient, "", false)
+
+	_, err := mgr.GetFromStore(context.Background(), store, "team-a")
+	if err == nil || !strings.Contains(err.Error(), "ClusterProviderClass") {
+		t.Fatalf("expected missing ClusterProviderClass error, got %v", err)
+	}
 }
 
 type WrapProvider struct {

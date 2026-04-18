@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 	adapterstore "github.com/external-secrets/external-secrets/providers/v2/adapter/store"
 	"github.com/external-secrets/external-secrets/providers/v2/common/grpc"
@@ -179,6 +180,10 @@ func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgat
 // Do not close the client returned from this func, instead close
 // the manager once you're done with reconciling the external secret.
 func (m *Manager) GetFromStore(ctx context.Context, store esv1.GenericStore, namespace string) (esv1.SecretsClient, error) {
+	if store.GetSpec().RuntimeRef != nil {
+		return m.getRuntimeRefClient(ctx, store, namespace)
+	}
+
 	storeProvider, err := esv1.GetProvider(store)
 	if err != nil {
 		return nil, err
@@ -202,6 +207,48 @@ func (m *Manager) GetFromStore(ctx context.Context, store esv1.GenericStore, nam
 		store:  store,
 	}
 	return secretClient, nil
+}
+
+func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericStore, namespace string) (esv1.SecretsClient, error) {
+	runtimeRef := store.GetSpec().RuntimeRef
+	runtimeKind := runtimeRef.Kind
+	if runtimeKind == "" {
+		runtimeKind = "ClusterProviderClass"
+	}
+	if runtimeKind != "ClusterProviderClass" {
+		return nil, fmt.Errorf("unsupported runtimeRef kind %q", runtimeKind)
+	}
+
+	var runtimeClass esv1alpha1.ClusterProviderClass
+	if err := m.client.Get(ctx, types.NamespacedName{Name: runtimeRef.Name}, &runtimeClass); err != nil {
+		return nil, fmt.Errorf("failed to get ClusterProviderClass %q: %w", runtimeRef.Name, err)
+	}
+
+	compatStore, err := buildCompatibilityStore(store)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build compatibility store for %s %q: %w", store.GetKind(), store.GetName(), err)
+	}
+
+	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(runtimeClass.Spec.Address, "", "", "")
+	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, m.client, runtimeClass.Spec.Address, tlsSecretNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load TLS config for ClusterProviderClass %q: %w", runtimeRef.Name, err)
+	}
+
+	pool := getGlobalV2ConnectionPool()
+	grpcClient, err := pool.Get(ctx, runtimeClass.Spec.Address, tlsConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get gRPC client from pool for ClusterProviderClass %q: %w", runtimeRef.Name, err)
+	}
+
+	m.v2PooledConnections = append(m.v2PooledConnections, v2PooledConnection{
+		address:   runtimeClass.Spec.Address,
+		tlsConfig: tlsConfig,
+	})
+
+	return adapterstore.NewCompatibilityClientWithCloser(grpcClient, compatStore, namespace, func(context.Context) error {
+		return nil
+	}), nil
 }
 
 // Get returns a provider client from the given storeRef or sourceRef.secretStoreRef
