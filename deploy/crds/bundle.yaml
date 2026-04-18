@@ -2383,8 +2383,9 @@ spec:
                             description: StoreRef specifies which SecretStore to push to. Required.
                             properties:
                               apiVersion:
-                                default: external-secrets.io/v1
-                                description: APIVersion of the SecretStore resource (external-secrets.io/v1 or secretstore.external-secrets.io/v2alpha1)
+                                description: |-
+                                  APIVersion of the referenced store resource.
+                                  This field is optional and depends on the selected store kind.
                                 type: string
                               kind:
                                 description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, ClusterProvider, ProviderStore, or ClusterProviderStore)
@@ -2470,8 +2471,9 @@ spec:
                         description: PushSecretStoreRef contains a reference on how to sync to a SecretStore.
                         properties:
                           apiVersion:
-                            default: external-secrets.io/v1
-                            description: APIVersion of the SecretStore resource (external-secrets.io/v1 or secretstore.external-secrets.io/v2alpha1)
+                            description: |-
+                              APIVersion of the referenced store resource.
+                              This field is optional and depends on the selected store kind.
                             type: string
                           kind:
                             description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, ClusterProvider, ProviderStore, or ClusterProviderStore)
@@ -14796,8 +14798,9 @@ spec:
                         description: StoreRef specifies which SecretStore to push to. Required.
                         properties:
                           apiVersion:
-                            default: external-secrets.io/v1
-                            description: APIVersion of the SecretStore resource (external-secrets.io/v1 or secretstore.external-secrets.io/v2alpha1)
+                            description: |-
+                              APIVersion of the referenced store resource.
+                              This field is optional and depends on the selected store kind.
                             type: string
                           kind:
                             description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, ClusterProvider, ProviderStore, or ClusterProviderStore)
@@ -14883,8 +14886,9 @@ spec:
                     description: PushSecretStoreRef contains a reference on how to sync to a SecretStore.
                     properties:
                       apiVersion:
-                        default: external-secrets.io/v1
-                        description: APIVersion of the SecretStore resource (external-secrets.io/v1 or secretstore.external-secrets.io/v2alpha1)
+                        description: |-
+                          APIVersion of the referenced store resource.
+                          This field is optional and depends on the selected store kind.
                         type: string
                       kind:
                         description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, ClusterProvider, ProviderStore, or ClusterProviderStore)

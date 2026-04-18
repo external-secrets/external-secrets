@@ -112,6 +112,45 @@ func TestPushSecretCRDSecretStoreRefKindIncludesProviderStoreKinds(t *testing.T)
 	assertContains("ClusterProviderStore")
 }
 
+func TestPushSecretCRDDoesNotDefaultSecretStoreRefAPIVersion(t *testing.T) {
+	crdPath := filepath.Join("..", "..", "..", "config", "crds", "bases", "external-secrets.io_pushsecrets.yaml")
+	data, err := os.ReadFile(crdPath)
+	if err != nil {
+		t.Fatalf("read CRD: %v", err)
+	}
+
+	var crd map[string]any
+	if err := yaml.Unmarshal(data, &crd); err != nil {
+		t.Fatalf("unmarshal CRD: %v", err)
+	}
+
+	versions := asSlice(t, asMap(t, crd["spec"], "spec")["versions"], "spec.versions")
+	var apiVersionSchema map[string]any
+	for _, version := range versions {
+		versionMap := asMap(t, version, "spec.versions[]")
+		if versionMap["name"] != "v1alpha1" {
+			continue
+		}
+
+		schema := asMap(t, versionMap["schema"], "spec.versions[].schema")
+		openAPIV3 := asMap(t, schema["openAPIV3Schema"], "spec.versions[].schema.openAPIV3Schema")
+		properties := asMap(t, openAPIV3["properties"], "spec.versions[].schema.openAPIV3Schema.properties")
+		specProperties := asMap(t, asMap(t, properties["spec"], "spec property")["properties"], "spec.properties")
+		secretStoreRefs := asMap(t, specProperties["secretStoreRefs"], "spec.properties.secretStoreRefs")
+		items := asMap(t, secretStoreRefs["items"], "spec.properties.secretStoreRefs.items")
+		itemProperties := asMap(t, items["properties"], "spec.properties.secretStoreRefs.items.properties")
+		apiVersionSchema = asMap(t, itemProperties["apiVersion"], "spec.properties.secretStoreRefs.items.properties.apiVersion")
+		break
+	}
+
+	if apiVersionSchema == nil {
+		t.Fatal("did not find v1alpha1 secretStoreRefs.apiVersion schema")
+	}
+	if def, ok := apiVersionSchema["default"]; ok {
+		t.Fatalf("secretStoreRefs.apiVersion must not define a CRD default, got %v", def)
+	}
+}
+
 func asMap(t *testing.T, v any, path string) map[string]any {
 	t.Helper()
 	m, ok := v.(map[string]any)

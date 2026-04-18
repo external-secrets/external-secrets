@@ -52,9 +52,9 @@ type PushSecretStoreRef struct {
 	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore;Provider;ClusterProvider;ProviderStore;ClusterProviderStore
 	Kind string `json:"kind,omitempty"`
 
-	// APIVersion of the SecretStore resource (external-secrets.io/v1 or secretstore.external-secrets.io/v2alpha1)
+	// APIVersion of the referenced store resource.
+	// This field is optional and depends on the selected store kind.
 	// +optional
-	// +kubebuilder:default="external-secrets.io/v1"
 	APIVersion string `json:"apiVersion,omitempty"`
 }
 
