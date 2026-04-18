@@ -21,6 +21,7 @@ New template files added:
 - `templates/provider-poddisruptionbudget.yaml` - Pod disruption budgets for HA
 - `templates/provider-hpa.yaml` - Horizontal Pod Autoscaler
 - `templates/provider-servicemonitor.yaml` - Prometheus ServiceMonitor
+- `templates/provider-class.yaml` - `ClusterProviderClass` runtime objects for chart-managed providers
 
 Helper templates in `_helpers.tpl`:
 - `external-secrets.provider.fullname` - Generate provider resource names
@@ -265,7 +266,7 @@ Resources are named using the pattern:
 
 For example, with release name "test" and provider name "aws":
 - Deployment: `test-external-secrets-provider-aws`
-- Service: `test-external-secrets-provider-aws`
+- Service: `provider-aws`
 - ServiceAccount: `test-external-secrets-provider-aws`
 
 ## Labels
@@ -277,6 +278,16 @@ All provider resources include:
 - `external-secrets.io/provider: <provider-type>`
 - Standard Helm labels (chart, version, managed-by)
 - User-defined common labels
+
+## Runtime Classes (`ClusterProviderClass`)
+
+When `providers.enabled: true`, the chart renders a `ClusterProviderClass` for each enabled provider. The class name matches `providers.list[].name` (or `type` if `name` is omitted), and the class points to the in-cluster provider service address:
+
+```
+provider-<provider-name>.<namespace>.svc:<port>
+```
+
+To migrate existing stores during this compatibility phase, add `spec.runtimeRef` to your `SecretStore`/`ClusterSecretStore`. `ExternalSecret` and `PushSecret` manifests remain unchanged.
 
 ## Best Practices
 

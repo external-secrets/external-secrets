@@ -73,7 +73,12 @@ kubectl get pods -l app.kubernetes.io/component=provider
 
 # Check all resources
 kubectl get all -l app.kubernetes.io/instance=external-secrets
+
+# Check the chart-managed runtime classes
+kubectl get clusterproviderclass
 ```
+
+When `providers.enabled=true`, the chart renders a provider Deployment, Service, and matching `ClusterProviderClass` for each enabled provider. Existing `ExternalSecret` manifests stay unchanged. For existing stores, the compatibility migration is just adding `spec.runtimeRef`.
 
 ## Provider-Specific Examples
 
@@ -315,11 +320,11 @@ kubectl get svc -l app.kubernetes.io/component=provider
 kubectl logs -l external-secrets.io/provider=aws -f
 
 # Check metrics
-kubectl port-forward svc/external-secrets-provider-aws 8081:8081 &
+kubectl port-forward svc/provider-aws 8081:8081 &
 curl http://localhost:8081/metrics
 
 # Check health
-kubectl port-forward svc/external-secrets-provider-aws 8082:8082 &
+kubectl port-forward svc/provider-aws 8082:8082 &
 curl http://localhost:8082/healthz
 curl http://localhost:8082/readyz
 ```
@@ -371,34 +376,39 @@ kubectl get svc -l app.kubernetes.io/component=provider
 
 # Test connectivity from controller to provider
 kubectl exec -it deployment/external-secrets -- \
-  nc -zv external-secrets-provider-aws 8080
+  nc -zv provider-aws 8080
 ```
 
 ## Next Steps
 
-1. **Create a SecretStore** pointing to your provider:
+1. **Create or update a SecretStore** to point at your provider runtime:
    ```yaml
-   apiVersion: external-secrets.io/v1beta1
+   apiVersion: external-secrets.io/v1
    kind: SecretStore
    metadata:
-     name: aws-secrets
+     name: aws-prod
    spec:
+     runtimeRef:
+       kind: ClusterProviderClass
+       name: aws
      provider:
        aws:
          service: SecretsManager
          region: us-east-1
    ```
 
+   If you already have a `SecretStore`, keep the provider-specific block as-is and add `runtimeRef`. Your `ExternalSecret` manifests do not change for this migration phase.
+
 2. **Create an ExternalSecret** to sync secrets:
    ```yaml
-   apiVersion: external-secrets.io/v1beta1
+   apiVersion: external-secrets.io/v1
    kind: ExternalSecret
    metadata:
      name: my-secret
    spec:
      refreshInterval: 1h
      secretStoreRef:
-       name: aws-secrets
+       name: aws-prod
        kind: SecretStore
      target:
        name: my-k8s-secret
@@ -416,7 +426,8 @@ kubectl exec -it deployment/external-secrets -- \
 
 ## Additional Resources
 
-- [Provider Deployment Guide](./PROVIDERS.md) - Comprehensive provider configuration reference
+- [Provider Deployment Guide](./PROVIDER-DEPLOYMENT-GUIDE.md) - Provider runtime deployment and migration guidance
+- [Providers Reference](./PROVIDERS.md) - Comprehensive provider configuration reference
 - [Official Documentation](https://external-secrets.io/)
 - [GitHub Repository](https://github.com/external-secrets/external-secrets)
 - [Example Values Files](./values-with-providers-example.yaml)
