@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"sigs.k8s.io/yaml"
@@ -29,20 +30,16 @@ func TestExternalSecretCRDSecretStoreRefKindOmitsProviderKinds(t *testing.T) {
 
 	assertContains := func(value string) {
 		t.Helper()
-		for _, candidate := range kindEnum {
-			if candidate == value {
-				return
-			}
+		if slices.Contains(kindEnum, value) {
+			return
 		}
 		t.Fatalf("kind enum does not contain %q: %v", value, kindEnum)
 	}
 
 	assertNotContains := func(value string) {
 		t.Helper()
-		for _, candidate := range kindEnum {
-			if candidate == value {
-				t.Fatalf("kind enum unexpectedly contains %q: %v", value, kindEnum)
-			}
+		if slices.Contains(kindEnum, value) {
+			t.Fatalf("kind enum unexpectedly contains %q: %v", value, kindEnum)
 		}
 	}
 

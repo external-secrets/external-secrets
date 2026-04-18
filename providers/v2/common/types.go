@@ -41,7 +41,13 @@ type Provider interface {
 	// At least one of providerRef or compatibilityStore must be provided.
 	// If both are present, compatibilityStore takes precedence for read operations.
 	// sourceNamespace is the namespace of the ExternalSecret.
-	GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error)
+	GetSecretMap(
+		ctx context.Context,
+		ref esv1.ExternalSecretDataRemoteRef,
+		providerRef *pb.ProviderReference,
+		compatibilityStore *pb.CompatibilityStore,
+		sourceNamespace string,
+	) (map[string][]byte, error)
 
 	// GetAllSecrets retrieves multiple secrets based on find criteria.
 	// Returns a map of secret names to their byte values.
@@ -54,7 +60,14 @@ type Provider interface {
 	// The secret is the Kubernetes Secret object to push, and pushSecretData contains the push configuration.
 	// At least one of providerRef or compatibilityStore must be provided.
 	// sourceNamespace is the namespace of the PushSecret.
-	PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error
+	PushSecret(
+		ctx context.Context,
+		secret *corev1.Secret,
+		pushSecretData *pb.PushSecretData,
+		providerRef *pb.ProviderReference,
+		compatibilityStore *pb.CompatibilityStore,
+		sourceNamespace string,
+	) error
 
 	// DeleteSecret deletes a secret from the provider.
 	// At least one of providerRef or compatibilityStore must be provided.

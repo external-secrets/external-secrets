@@ -45,30 +45,37 @@ type GenericStore interface {
 // +kubebuilder:object:generate:false
 var _ GenericStore = &ProviderStore{}
 
+// GetKind returns the resource kind for this ProviderStore.
 func (s *ProviderStore) GetKind() string {
 	return ProviderStoreKindStr
 }
 
+// GetRuntimeRef returns the runtime reference configured for this ProviderStore.
 func (s *ProviderStore) GetRuntimeRef() StoreRuntimeRef {
 	return s.Spec.RuntimeRef
 }
 
+// GetBackendRef returns the backend reference configured for this ProviderStore.
 func (s *ProviderStore) GetBackendRef() BackendObjectReference {
 	return s.Spec.BackendRef
 }
 
+// GetConditions returns namespace conditions for this store.
 func (s *ProviderStore) GetConditions() []StoreNamespaceCondition {
 	return nil
 }
 
+// GetStoreStatus returns the current status for this ProviderStore.
 func (s *ProviderStore) GetStoreStatus() ProviderStoreStatus {
 	return s.Status
 }
 
+// SetStoreStatus updates the current status for this ProviderStore.
 func (s *ProviderStore) SetStoreStatus(status ProviderStoreStatus) {
 	s.Status = status
 }
 
+// Copy returns a deep-copied GenericStore instance for this ProviderStore.
 func (s *ProviderStore) Copy() GenericStore {
 	return s.DeepCopy()
 }
@@ -77,30 +84,37 @@ func (s *ProviderStore) Copy() GenericStore {
 // +kubebuilder:object:generate:false
 var _ GenericStore = &ClusterProviderStore{}
 
+// GetKind returns the resource kind for this ClusterProviderStore.
 func (s *ClusterProviderStore) GetKind() string {
 	return ClusterProviderStoreKindStr
 }
 
+// GetRuntimeRef returns the runtime reference configured for this ClusterProviderStore.
 func (s *ClusterProviderStore) GetRuntimeRef() StoreRuntimeRef {
 	return s.Spec.RuntimeRef
 }
 
+// GetBackendRef returns the backend reference configured for this ClusterProviderStore.
 func (s *ClusterProviderStore) GetBackendRef() BackendObjectReference {
 	return s.Spec.BackendRef
 }
 
+// GetConditions returns namespace conditions for this store.
 func (s *ClusterProviderStore) GetConditions() []StoreNamespaceCondition {
 	return s.Spec.Conditions
 }
 
+// GetStoreStatus returns the current status for this ClusterProviderStore.
 func (s *ClusterProviderStore) GetStoreStatus() ProviderStoreStatus {
 	return s.Status
 }
 
+// SetStoreStatus updates the current status for this ClusterProviderStore.
 func (s *ClusterProviderStore) SetStoreStatus(status ProviderStoreStatus) {
 	s.Status = status
 }
 
+// Copy returns a deep-copied GenericStore instance for this ClusterProviderStore.
 func (s *ClusterProviderStore) Copy() GenericStore {
 	return s.DeepCopy()
 }

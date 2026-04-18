@@ -97,16 +97,11 @@ type Manager struct {
 
 type clientKey struct {
 	providerType string
-	// For v2 providers, store the provider name and namespace
-	v2ProviderName      string
-	v2ProviderNamespace string
 }
 
 type clientVal struct {
 	client esv1.SecretsClient
 	store  esv1.GenericStore
-	// For v2 providers, store the generation for cache invalidation
-	v2ProviderGeneration int64
 }
 
 // NewManager constructs a new manager with defaults.

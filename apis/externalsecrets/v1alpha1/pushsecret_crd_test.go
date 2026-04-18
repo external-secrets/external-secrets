@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"sigs.k8s.io/yaml"
@@ -40,7 +41,7 @@ func TestPushSecretCRDDoesNotDefaultSecretStoreRefKind(t *testing.T) {
 	var kindSchema map[string]any
 	for _, version := range versions {
 		versionMap := asMap(t, version, "spec.versions[]")
-		if versionMap["name"] != "v1alpha1" {
+		if versionMap["name"] != Version {
 			continue
 		}
 
@@ -79,7 +80,7 @@ func TestPushSecretCRDSecretStoreRefKindIncludesProviderStoreKinds(t *testing.T)
 	var kindEnum []string
 	for _, version := range versions {
 		versionMap := asMap(t, version, "spec.versions[]")
-		if versionMap["name"] != "v1alpha1" {
+		if versionMap["name"] != Version {
 			continue
 		}
 
@@ -100,10 +101,8 @@ func TestPushSecretCRDSecretStoreRefKindIncludesProviderStoreKinds(t *testing.T)
 
 	assertContains := func(value string) {
 		t.Helper()
-		for _, candidate := range kindEnum {
-			if candidate == value {
-				return
-			}
+		if slices.Contains(kindEnum, value) {
+			return
 		}
 		t.Fatalf("kind enum does not contain %q: %v", value, kindEnum)
 	}
@@ -112,10 +111,8 @@ func TestPushSecretCRDSecretStoreRefKindIncludesProviderStoreKinds(t *testing.T)
 	assertContains("ClusterProviderStore")
 	assertNotContains := func(value string) {
 		t.Helper()
-		for _, candidate := range kindEnum {
-			if candidate == value {
-				t.Fatalf("kind enum unexpectedly contains %q: %v", value, kindEnum)
-			}
+		if slices.Contains(kindEnum, value) {
+			t.Fatalf("kind enum unexpectedly contains %q: %v", value, kindEnum)
 		}
 	}
 
@@ -139,7 +136,7 @@ func TestPushSecretCRDDoesNotDefaultSecretStoreRefAPIVersion(t *testing.T) {
 	var apiVersionSchema map[string]any
 	for _, version := range versions {
 		versionMap := asMap(t, version, "spec.versions[]")
-		if versionMap["name"] != "v1alpha1" {
+		if versionMap["name"] != Version {
 			continue
 		}
 

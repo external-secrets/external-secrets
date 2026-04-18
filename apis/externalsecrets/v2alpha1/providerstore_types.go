@@ -21,18 +21,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// StoreRuntimeRef identifies the runtime configuration used by a store.
 type StoreRuntimeRef struct {
+	// Kind identifies the runtime resource type referenced by this store.
 	// +kubebuilder:validation:Enum=ClusterProviderClass
 	// +kubebuilder:default=ClusterProviderClass
 	// +optional
 	Kind string `json:"kind,omitempty"`
 
+	// Name is the runtime resource name referenced by this store.
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 }
 
+// BackendObjectReference identifies the provider-owned backend configuration object for a store.
 type BackendObjectReference struct {
 	// APIVersion of the referenced backend resource.
 	// +kubebuilder:validation:MinLength:=1
@@ -74,6 +78,7 @@ type StoreNamespaceCondition struct {
 	NamespaceRegexes []string `json:"namespaceRegexes,omitempty"`
 }
 
+// ProviderStoreConditionType is the type of a ProviderStore status condition.
 type ProviderStoreConditionType string
 
 const (

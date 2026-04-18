@@ -32,7 +32,9 @@ import (
 
 const (
 	testProperty        = "property"
+	testSecretValue     = "secret-value"
 	testSourceNamespace = "tenant-a"
+	testBarValue        = "bar"
 	testValue           = "value"
 )
 
@@ -85,7 +87,13 @@ type fakeV2Provider struct {
 	closeCalled bool
 }
 
-func (f *fakeV2Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) ([]byte, error) {
+func (f *fakeV2Provider) GetSecret(
+	_ context.Context,
+	ref esv1.ExternalSecretDataRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) ([]byte, error) {
 	f.getSecretRef = ref
 	f.getSecretProviderRef = providerRef
 	f.getSecretCompatibilityStore = compatibilityStore
@@ -93,7 +101,13 @@ func (f *fakeV2Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDat
 	return f.getSecretResponse, f.getSecretErr
 }
 
-func (f *fakeV2Provider) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
+func (f *fakeV2Provider) GetSecretMap(
+	_ context.Context,
+	ref esv1.ExternalSecretDataRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (map[string][]byte, error) {
 	f.getSecretMapRef = ref
 	f.getSecretProviderRef = providerRef
 	f.getSecretMapCompatibilityStore = compatibilityStore
@@ -101,7 +115,13 @@ func (f *fakeV2Provider) GetSecretMap(_ context.Context, ref esv1.ExternalSecret
 	return f.getSecretMapResponse, f.getSecretMapErr
 }
 
-func (f *fakeV2Provider) GetAllSecrets(_ context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
+func (f *fakeV2Provider) GetAllSecrets(
+	_ context.Context,
+	find esv1.ExternalSecretFind,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (map[string][]byte, error) {
 	f.getAllSecretsFind = find
 	f.getSecretProviderRef = providerRef
 	f.getAllSecretsCompatibilityStore = compatibilityStore
@@ -109,7 +129,14 @@ func (f *fakeV2Provider) GetAllSecrets(_ context.Context, find esv1.ExternalSecr
 	return f.getAllSecretsResponse, f.getAllSecretsErr
 }
 
-func (f *fakeV2Provider) PushSecret(_ context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (f *fakeV2Provider) PushSecret(
+	_ context.Context,
+	secret *corev1.Secret,
+	pushSecretData *pb.PushSecretData,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) error {
 	f.pushSecretData = secret.Data
 	f.pushSecretSecret = secret.DeepCopy()
 	f.pushSecretPayload = pushSecretData
@@ -119,7 +146,13 @@ func (f *fakeV2Provider) PushSecret(_ context.Context, secret *corev1.Secret, pu
 	return f.pushSecretErr
 }
 
-func (f *fakeV2Provider) DeleteSecret(_ context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (f *fakeV2Provider) DeleteSecret(
+	_ context.Context,
+	remoteRef *pb.PushSecretRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) error {
 	f.deleteSecretRemoteRef = remoteRef
 	f.deleteSecretProviderRef = providerRef
 	f.deleteSecretCompatibilityStore = compatibilityStore
@@ -127,7 +160,13 @@ func (f *fakeV2Provider) DeleteSecret(_ context.Context, remoteRef *pb.PushSecre
 	return f.deleteSecretErr
 }
 
-func (f *fakeV2Provider) SecretExists(_ context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (bool, error) {
+func (f *fakeV2Provider) SecretExists(
+	_ context.Context,
+	remoteRef *pb.PushSecretRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (bool, error) {
 	f.secretExistsRemoteRef = remoteRef
 	f.secretExistsProviderRef = providerRef
 	f.secretExistsCompatibilityStore = compatibilityStore
@@ -190,7 +229,7 @@ func (f fakePushSecretRemoteRef) GetProperty() string {
 
 func TestClientGetSecretDelegatesProviderReferenceAndNamespace(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
-	provider := &fakeV2Provider{getSecretResponse: []byte("secret-value")}
+	provider := &fakeV2Provider{getSecretResponse: []byte(testSecretValue)}
 	client := NewClient(provider, providerRef, testSourceNamespace)
 
 	ref := esv1.ExternalSecretDataRemoteRef{Key: "sample", Version: "v1", Property: "password"}
@@ -199,8 +238,8 @@ func TestClientGetSecretDelegatesProviderReferenceAndNamespace(t *testing.T) {
 		t.Fatalf("GetSecret() error = %v", err)
 	}
 
-	if string(value) != "secret-value" {
-		t.Fatalf("expected secret-value, got %q", string(value))
+	if string(value) != testSecretValue {
+		t.Fatalf("expected %s, got %q", testSecretValue, string(value))
 	}
 	if provider.getSecretRef != ref {
 		t.Fatalf("unexpected ref: %#v", provider.getSecretRef)
@@ -216,7 +255,7 @@ func TestClientGetSecretDelegatesProviderReferenceAndNamespace(t *testing.T) {
 func TestClientGetSecretMapDelegatesProviderReferenceAndNamespace(t *testing.T) {
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns"}
 	expected := map[string][]byte{
-		"foo": []byte("bar"),
+		"foo": []byte(testBarValue),
 		"baz": []byte("qux"),
 	}
 	provider := &fakeV2Provider{getSecretMapResponse: expected}
@@ -228,7 +267,7 @@ func TestClientGetSecretMapDelegatesProviderReferenceAndNamespace(t *testing.T) 
 		t.Fatalf("GetSecretMap() error = %v", err)
 	}
 
-	if string(secretMap["foo"]) != "bar" || string(secretMap["baz"]) != "qux" {
+	if string(secretMap["foo"]) != testBarValue || string(secretMap["baz"]) != "qux" {
 		t.Fatalf("unexpected secret map: %#v", secretMap)
 	}
 	if provider.getSecretMapRef != ref {
@@ -291,7 +330,7 @@ func TestCompatibilityClientGetSecretDelegatesCompatibilityStore(t *testing.T) {
 		StoreGeneration: 7,
 		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
 	}
-	provider := &fakeV2Provider{getSecretResponse: []byte("secret-value")}
+	provider := &fakeV2Provider{getSecretResponse: []byte(testSecretValue)}
 	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
 
 	value, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"})
@@ -299,8 +338,8 @@ func TestCompatibilityClientGetSecretDelegatesCompatibilityStore(t *testing.T) {
 		t.Fatalf("GetSecret() error = %v", err)
 	}
 
-	if string(value) != "secret-value" {
-		t.Fatalf("expected secret-value, got %q", string(value))
+	if string(value) != testSecretValue {
+		t.Fatalf("expected %s, got %q", testSecretValue, string(value))
 	}
 	if provider.getSecretProviderRef != nil {
 		t.Fatalf("expected provider ref to be nil, got %#v", provider.getSecretProviderRef)
@@ -319,7 +358,7 @@ func TestCompatibilityClientGetSecretMapDelegatesCompatibilityStore(t *testing.T
 		StoreGeneration: 7,
 		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
 	}
-	provider := &fakeV2Provider{getSecretMapResponse: map[string][]byte{"foo": []byte("bar")}}
+	provider := &fakeV2Provider{getSecretMapResponse: map[string][]byte{"foo": []byte(testBarValue)}}
 	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
 
 	secretMap, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"})
@@ -327,7 +366,7 @@ func TestCompatibilityClientGetSecretMapDelegatesCompatibilityStore(t *testing.T
 		t.Fatalf("GetSecretMap() error = %v", err)
 	}
 
-	if string(secretMap["foo"]) != "bar" {
+	if string(secretMap["foo"]) != testBarValue {
 		t.Fatalf("unexpected secret map: %#v", secretMap)
 	}
 	if provider.getSecretProviderRef != nil {
