@@ -42,12 +42,13 @@ import (
 )
 
 const (
-	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
-	errGetSecretStore        = "could not get SecretStore %q, %w"
-	errSecretStoreNotReady   = "%s %q is not ready"
-	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
-	errClusterProviderDenied = "using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions"
-	errV2ProvidersDisabled   = "v2 provider support is disabled, refusing %s %q (enable with --enable-v2-providers)"
+	errGetClusterSecretStore      = "could not get ClusterSecretStore %q, %w"
+	errGetSecretStore             = "could not get SecretStore %q, %w"
+	errSecretStoreNotReady        = "%s %q is not ready"
+	errClusterStoreMismatch       = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
+	errClusterProviderDenied      = "using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions"
+	errClusterProviderStoreDenied = "using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions"
+	errV2ProvidersDisabled        = "v2 provider support is disabled, refusing %s %q (enable with --enable-v2-providers)"
 
 	providerMetricsLabel        = "provider"
 	clusterProviderMetricsLabel = "cluster-provider"
@@ -55,6 +56,9 @@ const (
 	cacheInvalidationMismatch   = "store_mismatch"
 	v2ProviderCacheKeyType      = "v2-provider"
 	v2ClusterProviderCacheKey   = "v2-cluster-provider"
+	v2ProviderStoreCacheKey     = "v2-provider-store"
+	v2ClusterProviderStoreCache = "v2-cluster-provider-store"
+	runtimeRefCacheKeyType      = "runtime-ref"
 )
 
 var (
@@ -122,8 +126,9 @@ type Manager struct {
 type clientKey struct {
 	providerType string
 	// For v2 providers, store the provider name and namespace
-	v2ProviderName      string
-	v2ProviderNamespace string
+	v2ProviderName         string
+	v2ProviderNamespace    string
+	runtimeSourceNamespace string
 }
 
 type clientVal struct {
@@ -219,6 +224,11 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 		return nil, fmt.Errorf("unsupported runtimeRef kind %q", runtimeKind)
 	}
 
+	cacheKey := runtimeRefStoreKey(store, namespace)
+	if cached := m.getStoredRuntimeRefClient(ctx, cacheKey, store); cached != nil {
+		return cached, nil
+	}
+
 	var runtimeClass esv1alpha1.ClusterProviderClass
 	if err := m.client.Get(ctx, types.NamespacedName{Name: runtimeRef.Name}, &runtimeClass); err != nil {
 		return nil, fmt.Errorf("failed to get ClusterProviderClass %q: %w", runtimeRef.Name, err)
@@ -241,14 +251,61 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 		return nil, fmt.Errorf("failed to get gRPC client from pool for ClusterProviderClass %q: %w", runtimeRef.Name, err)
 	}
 
-	m.v2PooledConnections = append(m.v2PooledConnections, v2PooledConnection{
-		address:   runtimeClass.Spec.Address,
-		tlsConfig: tlsConfig,
+	compatibilityClient := adapterstore.NewCompatibilityClientWithCloser(grpcClient, compatStore, namespace, func(context.Context) error {
+		pool.Release(runtimeClass.Spec.Address, tlsConfig)
+		return nil
 	})
 
-	return adapterstore.NewCompatibilityClientWithCloser(grpcClient, compatStore, namespace, func(context.Context) error {
+	m.clientMap[cacheKey] = &clientVal{
+		client: compatibilityClient,
+		store:  store,
+	}
+
+	return compatibilityClient, nil
+}
+
+func runtimeRefStoreKey(store esv1.GenericStore, sourceNamespace string) clientKey {
+	return clientKey{
+		providerType:           runtimeRefCacheKeyType + ":" + store.GetKind(),
+		v2ProviderName:         store.GetName(),
+		v2ProviderNamespace:    store.GetNamespace(),
+		runtimeSourceNamespace: sourceNamespace,
+	}
+}
+
+func (m *Manager) getStoredRuntimeRefClient(ctx context.Context, key clientKey, store esv1.GenericStore) esv1.SecretsClient {
+	val, ok := m.clientMap[key]
+	if !ok {
 		return nil
-	}), nil
+	}
+
+	valGVK, err := m.client.GroupVersionKindFor(val.store)
+	if err != nil {
+		return nil
+	}
+	storeGVK, err := m.client.GroupVersionKindFor(store)
+	if err != nil {
+		return nil
+	}
+
+	if val.store.GetObjectMeta().Generation == store.GetGeneration() &&
+		valGVK == storeGVK &&
+		val.store.GetName() == store.GetName() &&
+		val.store.GetNamespace() == store.GetNamespace() {
+		clientManagerMetrics.RecordCacheHit(providerMetricsLabelForKey(key))
+		return val.client
+	}
+
+	_ = val.client.Close(ctx)
+	delete(m.clientMap, key)
+
+	reason := cacheInvalidationMismatch
+	if val.store.GetObjectMeta().Generation != store.GetGeneration() {
+		reason = cacheInvalidationGeneration
+	}
+	clientManagerMetrics.RecordCacheInvalidation(providerMetricsLabelForKey(key), reason)
+
+	return nil
 }
 
 // Get returns a provider client from the given storeRef or sourceRef.secretStoreRef
@@ -271,6 +328,18 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespa
 			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
 		}
 		return m.getV2ClusterProviderClient(ctx, storeRef.Name, namespace)
+	}
+	if storeRef.Kind == esv1.ProviderStoreKindStr {
+		if !V2ProvidersEnabled() {
+			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
+		}
+		return m.getV2ProviderStoreClient(ctx, storeRef.Name, namespace)
+	}
+	if storeRef.Kind == esv1.ClusterProviderStoreKindStr {
+		if !V2ProvidersEnabled() {
+			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
+		}
+		return m.getV2ClusterProviderStoreClient(ctx, storeRef.Name, namespace)
 	}
 
 	store, err := m.getStore(ctx, &storeRef, namespace)
@@ -576,7 +645,10 @@ func (m *Manager) Close(ctx context.Context) error {
 	// Close v1 provider clients (they don't use the pool)
 	for key, val := range m.clientMap {
 		// Only close v1 clients; v2 clients are managed by the pool
-		if key.providerType != v2ProviderCacheKeyType && key.providerType != v2ClusterProviderCacheKey {
+		if key.providerType != v2ProviderCacheKeyType &&
+			key.providerType != v2ClusterProviderCacheKey &&
+			key.providerType != v2ProviderStoreCacheKey &&
+			key.providerType != v2ClusterProviderStoreCache {
 			err := val.client.Close(ctx)
 			if err != nil {
 				errs = append(errs, err.Error())
