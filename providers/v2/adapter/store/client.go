@@ -19,7 +19,6 @@ package store
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -102,7 +101,7 @@ func (w *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		Metadata:  metadata,
 	}
 
-	return w.v2Provider.PushSecret(ctx, secret, pushSecretData, w.providerRef, w.sourceNamespace)
+	return w.v2Provider.PushSecret(ctx, secret, pushSecretData, w.providerRef, w.compatibilityStore, w.sourceNamespace)
 }
 
 // DeleteSecret deletes a secret from the provider.
@@ -113,7 +112,7 @@ func (w *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		Property:  remoteRef.GetProperty(),
 	}
 
-	return w.v2Provider.DeleteSecret(ctx, pbRemoteRef, w.providerRef, w.sourceNamespace)
+	return w.v2Provider.DeleteSecret(ctx, pbRemoteRef, w.providerRef, w.compatibilityStore, w.sourceNamespace)
 }
 
 // SecretExists checks if a secret exists in the provider.
@@ -124,22 +123,18 @@ func (w *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 		Property:  remoteRef.GetProperty(),
 	}
 
-	return w.v2Provider.SecretExists(ctx, pbRemoteRef, w.providerRef, w.sourceNamespace)
+	return w.v2Provider.SecretExists(ctx, pbRemoteRef, w.providerRef, w.compatibilityStore, w.sourceNamespace)
 }
 
 // Validate checks if the provider is properly configured.
 func (w *Client) Validate() (esv1.ValidationResult, error) {
 	if w.compatibilityStore != nil {
-		// Compatibility-mode validation cannot use providerRef-based gRPC Validate.
-		// At this point the manager already proved runtime connectivity by dialing it,
-		// so we validate that the compatibility payload is internally consistent.
 		if _, err := CompatibilityStoreToSyntheticStore(w.compatibilityStore); err != nil {
-			return esv1.ValidationResultError, fmt.Errorf("invalid compatibility store: %w", err)
+			return esv1.ValidationResultError, err
 		}
-		return esv1.ValidationResultReady, nil
 	}
 
-	err := w.v2Provider.Validate(context.Background(), w.providerRef, w.sourceNamespace)
+	err := w.v2Provider.Validate(context.Background(), w.providerRef, w.compatibilityStore, w.sourceNamespace)
 	if err != nil {
 		return esv1.ValidationResultError, err
 	}

@@ -88,25 +88,25 @@ func NewResilientClient(config ResilientClientConfig) (*ResilientClient, error) 
 var _ v2.Provider = &ResilientClient{}
 
 // PushSecret writes a secret with retry logic and circuit breaking.
-func (rc *ResilientClient) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error {
+func (rc *ResilientClient) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		return client.PushSecret(ctx, secret, pushSecretData, providerRef, sourceNamespace)
+		return client.PushSecret(ctx, secret, pushSecretData, providerRef, compatibilityStore, sourceNamespace)
 	})
 }
 
 // DeleteSecret deletes a secret with retry logic and circuit breaking.
-func (rc *ResilientClient) DeleteSecret(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) error {
+func (rc *ResilientClient) DeleteSecret(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		return client.DeleteSecret(ctx, remoteRef, providerRef, sourceNamespace)
+		return client.DeleteSecret(ctx, remoteRef, providerRef, compatibilityStore, sourceNamespace)
 	})
 }
 
 // SecretExists checks if a secret exists with retry logic and circuit breaking.
-func (rc *ResilientClient) SecretExists(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) (bool, error) {
+func (rc *ResilientClient) SecretExists(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (bool, error) {
 	var result bool
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		exists, err := client.SecretExists(ctx, remoteRef, providerRef, sourceNamespace)
+		exists, err := client.SecretExists(ctx, remoteRef, providerRef, compatibilityStore, sourceNamespace)
 		if err != nil {
 			return err
 		}
@@ -166,9 +166,9 @@ func (rc *ResilientClient) GetAllSecrets(ctx context.Context, find esv1.External
 }
 
 // Validate validates the provider configuration with retry logic.
-func (rc *ResilientClient) Validate(ctx context.Context, providerRef *pb.ProviderReference, sourceNamespace string) error {
+func (rc *ResilientClient) Validate(ctx context.Context, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		return client.Validate(ctx, providerRef, sourceNamespace)
+		return client.Validate(ctx, providerRef, compatibilityStore, sourceNamespace)
 	})
 }
 

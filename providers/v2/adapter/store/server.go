@@ -244,7 +244,7 @@ func (s *Server) PushSecret(ctx context.Context, req *pb.PushSecretRequest) (*pb
 		return nil, err
 	}
 
-	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
@@ -285,7 +285,7 @@ func (s *Server) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) 
 		return nil, err
 	}
 
-	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
@@ -314,7 +314,7 @@ func (s *Server) SecretExists(ctx context.Context, req *pb.SecretExistsRequest) 
 		return nil, err
 	}
 
-	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
@@ -390,7 +390,7 @@ func (s *Server) Validate(ctx context.Context, req *pb.ValidateRequest) (*pb.Val
 		return nil, fmt.Errorf("request is nil")
 	}
 
-	client, err := s.getClient(ctx, req.ProviderRef, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}

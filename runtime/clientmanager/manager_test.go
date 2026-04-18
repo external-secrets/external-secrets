@@ -1218,8 +1218,139 @@ func TestGetFromStoreWithRuntimeRefReturnsClientThatValidates(t *testing.T) {
 	result, err := client.Validate()
 	require.NoError(t, err)
 	assert.Equal(t, esv1.ValidationResultReady, result)
-	assert.Equal(t, 0, server.ValidateCallCount())
-	require.Len(t, mgr.v2PooledConnections, 1)
+	assert.Equal(t, 1, server.ValidateCallCount())
+	require.Len(t, mgr.v2PooledConnections, 0)
+}
+
+func TestGetFromStoreWithRuntimeRefReusesCachedClient(t *testing.T) {
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+
+	server, address, tlsSecret := newRecordingProviderServer(t)
+
+	store := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "aws-prod",
+			Namespace:  "team-a",
+			UID:        types.UID("uid-1"),
+			Generation: 7,
+		},
+		Spec: esv1.SecretStoreSpec{
+			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
+			},
+		},
+	}
+
+	runtimeClass := &esv1alpha1.ClusterProviderClass{
+		ObjectMeta: metav1.ObjectMeta{Name: "aws-runtime"},
+		Spec:       esv1alpha1.ClusterProviderClassSpec{Address: address},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			store,
+			runtimeClass,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: "",
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "", false)
+
+	firstClient, err := mgr.GetFromStore(context.Background(), store, "team-a")
+	require.NoError(t, err)
+
+	secondClient, err := mgr.GetFromStore(context.Background(), store, "team-a")
+	require.NoError(t, err)
+
+	assert.Same(t, firstClient, secondClient)
+	require.Len(t, mgr.v2PooledConnections, 0)
+
+	result, err := firstClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+	assert.Equal(t, 1, server.ValidateCallCount())
+}
+
+func TestGetFromStoreWithRuntimeRefDoesNotReuseClientAcrossSourceNamespaces(t *testing.T) {
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+
+	server, address, tlsSecret := newRecordingProviderServer(t)
+
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "aws-prod",
+			UID:        types.UID("uid-1"),
+			Generation: 7,
+		},
+		Spec: esv1.SecretStoreSpec{
+			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
+			},
+		},
+	}
+
+	runtimeClass := &esv1alpha1.ClusterProviderClass{
+		ObjectMeta: metav1.ObjectMeta{Name: "aws-runtime"},
+		Spec:       esv1alpha1.ClusterProviderClassSpec{Address: address},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			store,
+			runtimeClass,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: "",
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "", false)
+
+	firstClient, err := mgr.GetFromStore(context.Background(), store, "team-a")
+	require.NoError(t, err)
+
+	secondClient, err := mgr.GetFromStore(context.Background(), store, "team-b")
+	require.NoError(t, err)
+
+	assert.NotSame(t, firstClient, secondClient)
+
+	result, err := firstClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+
+	result, err = secondClient.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+
+	assert.Equal(t, []string{"team-a", "team-b"}, server.ValidateSourceNamespaces())
 }
 
 type WrapProvider struct {
@@ -1453,6 +1584,18 @@ func (s *recordingProviderServer) ValidateCallCount() int {
 	defer s.mu.Unlock()
 
 	return len(s.validateRequests)
+}
+
+func (s *recordingProviderServer) ValidateSourceNamespaces() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := make([]string, 0, len(s.validateRequests))
+	for _, req := range s.validateRequests {
+		out = append(out, req.GetSourceNamespace())
+	}
+
+	return out
 }
 
 func newMutualTLSArtifacts(t *testing.T, host string) (serverCertPEM, serverKeyPEM, clientCertPEM, clientKeyPEM, caCertPEM []byte) {

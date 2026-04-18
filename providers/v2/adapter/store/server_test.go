@@ -662,6 +662,145 @@ func TestServerGetAllSecretsUsesCompatibilityStore(t *testing.T) {
 	}
 }
 
+func TestServerPushSecretUsesCompatibilityStore(t *testing.T) {
+	mapper := &specMapperRecorder{err: errors.New("spec mapper should not be called")}
+	fakeClient := &fakeSecretsClient{}
+
+	provider := &fakeProviderInterface{
+		caps: esv1.SecretStoreReadWrite,
+		newClient: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+			return fakeClient, nil
+		},
+	}
+	server := NewServerWithCompatibilityProvider(nil, ProviderMapping{}, mapper.mapRef, provider)
+
+	spec := &esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			Fake: &esv1.FakeProvider{},
+		},
+	}
+
+	_, err := server.PushSecret(context.Background(), &pb.PushSecretRequest{
+		CompatibilityStore: mustCompatibilityStore(t, spec),
+		SourceNamespace:    serverTestSourceNamespace,
+		SecretData:         map[string][]byte{"token": []byte(serverTestValue)},
+		PushSecretData:     &pb.PushSecretData{RemoteKey: serverTestRemoteKey, SecretKey: "token"},
+	})
+	if err != nil {
+		t.Fatalf("PushSecret() error = %v", err)
+	}
+	if mapper.ref != nil {
+		t.Fatalf("expected spec mapper to be bypassed, got %#v", mapper.ref)
+	}
+	if fakeClient.pushSecretData.GetRemoteKey() != serverTestRemoteKey {
+		t.Fatalf("unexpected push data: %#v", fakeClient.pushSecretData)
+	}
+}
+
+func TestServerDeleteSecretUsesCompatibilityStore(t *testing.T) {
+	mapper := &specMapperRecorder{err: errors.New("spec mapper should not be called")}
+	fakeClient := &fakeSecretsClient{}
+
+	provider := &fakeProviderInterface{
+		caps: esv1.SecretStoreReadWrite,
+		newClient: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+			return fakeClient, nil
+		},
+	}
+	server := NewServerWithCompatibilityProvider(nil, ProviderMapping{}, mapper.mapRef, provider)
+
+	spec := &esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			Fake: &esv1.FakeProvider{},
+		},
+	}
+
+	_, err := server.DeleteSecret(context.Background(), &pb.DeleteSecretRequest{
+		CompatibilityStore: mustCompatibilityStore(t, spec),
+		SourceNamespace:    serverTestSourceNamespace,
+		RemoteRef:          &pb.PushSecretRemoteRef{RemoteKey: serverTestRemoteKey, Property: serverTestProperty},
+	})
+	if err != nil {
+		t.Fatalf("DeleteSecret() error = %v", err)
+	}
+	if mapper.ref != nil {
+		t.Fatalf("expected spec mapper to be bypassed, got %#v", mapper.ref)
+	}
+	if fakeClient.deleteSecretRef.GetRemoteKey() != serverTestRemoteKey {
+		t.Fatalf("unexpected delete ref: %#v", fakeClient.deleteSecretRef)
+	}
+}
+
+func TestServerSecretExistsUsesCompatibilityStore(t *testing.T) {
+	mapper := &specMapperRecorder{err: errors.New("spec mapper should not be called")}
+	fakeClient := &fakeSecretsClient{secretExistsResp: true}
+
+	provider := &fakeProviderInterface{
+		caps: esv1.SecretStoreReadWrite,
+		newClient: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+			return fakeClient, nil
+		},
+	}
+	server := NewServerWithCompatibilityProvider(nil, ProviderMapping{}, mapper.mapRef, provider)
+
+	spec := &esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			Fake: &esv1.FakeProvider{},
+		},
+	}
+
+	resp, err := server.SecretExists(context.Background(), &pb.SecretExistsRequest{
+		CompatibilityStore: mustCompatibilityStore(t, spec),
+		SourceNamespace:    serverTestSourceNamespace,
+		RemoteRef:          &pb.PushSecretRemoteRef{RemoteKey: serverTestRemoteKey, Property: serverTestProperty},
+	})
+	if err != nil {
+		t.Fatalf("SecretExists() error = %v", err)
+	}
+	if !resp.Exists {
+		t.Fatal("expected secret to exist")
+	}
+	if mapper.ref != nil {
+		t.Fatalf("expected spec mapper to be bypassed, got %#v", mapper.ref)
+	}
+	if fakeClient.secretExistsRef.GetRemoteKey() != serverTestRemoteKey {
+		t.Fatalf("unexpected secret exists ref: %#v", fakeClient.secretExistsRef)
+	}
+}
+
+func TestServerValidateUsesCompatibilityStore(t *testing.T) {
+	mapper := &specMapperRecorder{err: errors.New("spec mapper should not be called")}
+	fakeClient := &fakeSecretsClient{validateResult: esv1.ValidationResultReady}
+
+	provider := &fakeProviderInterface{
+		caps: esv1.SecretStoreReadWrite,
+		newClient: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+			return fakeClient, nil
+		},
+	}
+	server := NewServerWithCompatibilityProvider(nil, ProviderMapping{}, mapper.mapRef, provider)
+
+	spec := &esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			Fake: &esv1.FakeProvider{},
+		},
+	}
+
+	resp, err := server.Validate(context.Background(), &pb.ValidateRequest{
+		CompatibilityStore: mustCompatibilityStore(t, spec),
+		SourceNamespace:    serverTestSourceNamespace,
+	})
+	if err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+	if !resp.Valid {
+		t.Fatalf("expected validate response to be valid: %#v", resp)
+	}
+	if mapper.ref != nil {
+		t.Fatalf("expected spec mapper to be bypassed, got %#v", mapper.ref)
+	}
+}
+
 func TestServerGetAllSecretsMapsFindCriteria(t *testing.T) {
 	mapper := &specMapperRecorder{
 		spec: &esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{Fake: &esv1.FakeProvider{}}},

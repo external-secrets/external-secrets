@@ -52,21 +52,25 @@ type Provider interface {
 
 	// PushSecret writes a secret to the provider.
 	// The secret is the Kubernetes Secret object to push, and pushSecretData contains the push configuration.
-	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the PushSecret.
-	PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, sourceNamespace string) error
+	// At least one of providerRef or compatibilityStore must be provided.
+	// sourceNamespace is the namespace of the PushSecret.
+	PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error
 
 	// DeleteSecret deletes a secret from the provider.
-	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the PushSecret.
-	DeleteSecret(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) error
+	// At least one of providerRef or compatibilityStore must be provided.
+	// sourceNamespace is the namespace of the PushSecret.
+	DeleteSecret(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error
 
 	// SecretExists checks if a secret exists in the provider.
-	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the PushSecret.
-	SecretExists(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) (bool, error)
+	// At least one of providerRef or compatibilityStore must be provided.
+	// sourceNamespace is the namespace of the PushSecret.
+	SecretExists(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (bool, error)
 
 	// Validate checks if the provider is properly configured and can communicate with the backend.
 	// This is called by the SecretStore controller during reconciliation.
-	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the Provider.
-	Validate(ctx context.Context, providerRef *pb.ProviderReference, sourceNamespace string) error
+	// At least one of providerRef or compatibilityStore must be provided.
+	// sourceNamespace is the namespace of the requesting store.
+	Validate(ctx context.Context, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error
 
 	// Capabilities returns what operations the provider supports (ReadOnly, WriteOnly, ReadWrite).
 	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the Provider.
