@@ -262,9 +262,14 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 		return err
 	}
 
-	// Create Azure SDK clients and store them directly
+	// Create Azure SDK clients and store them directly.
+	// Azure Stack Hub (and some hybrid clouds) advertise a challenge resource that does not match the
+	// vault host; the track-2 clients reject requests unless verification is disabled. See:
+	// https://aka.ms/azsdk/blog/vault-uri
+	disableChallengeResourceVerification := shouldDisableChallengeResourceVerification(az.provider)
 	az.secretsClient, err = azsecrets.NewClient(*az.provider.VaultURL, credential, &azsecrets.ClientOptions{
 		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create secrets client: %w", err)
@@ -272,6 +277,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 
 	az.keysClient, err = azkeys.NewClient(*az.provider.VaultURL, credential, &azkeys.ClientOptions{
 		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create keys client: %w", err)
@@ -279,6 +285,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 
 	az.certsClient, err = azcertificates.NewClient(*az.provider.VaultURL, credential, &azcertificates.ClientOptions{
 		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create certificates client: %w", err)

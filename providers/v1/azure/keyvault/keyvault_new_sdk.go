@@ -378,6 +378,15 @@ func getCloudConfiguration(provider *esv1.AzureKVProvider) (cloud.Configuration,
 	}
 }
 
+// shouldDisableChallengeResourceVerification returns true for Azure Stack and custom cloud configurations,
+// where the challenge resource can legitimately differ from the vault host.
+func shouldDisableChallengeResourceVerification(provider *esv1.AzureKVProvider) bool {
+	if provider == nil {
+		return false
+	}
+	return provider.EnvironmentType == esv1.AzureEnvironmentAzureStackCloud || provider.CustomCloudConfig != nil
+}
+
 // buildCustomCloudConfiguration creates a custom cloud.Configuration by merging custom config with base config.
 func buildCustomCloudConfiguration(config *esv1.AzureCustomCloudConfig, baseConfig cloud.Configuration) (cloud.Configuration, error) {
 	cloudConfig := cloud.Configuration{

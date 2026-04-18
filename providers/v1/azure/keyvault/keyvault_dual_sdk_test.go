@@ -536,3 +536,44 @@ func TestGetCloudConfiguration(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldDisableChallengeResourceVerification(t *testing.T) {
+	testCases := []struct {
+		name     string
+		provider *esv1.AzureKVProvider
+		expect   bool
+	}{
+		{
+			name: "public_cloud_without_custom_config",
+			provider: &esv1.AzureKVProvider{
+				EnvironmentType: esv1.AzureEnvironmentPublicCloud,
+			},
+			expect: false,
+		},
+		{
+			name: "azure_stack_cloud",
+			provider: &esv1.AzureKVProvider{
+				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
+			},
+			expect: true,
+		},
+		{
+			name: "custom_cloud_config_present",
+			provider: &esv1.AzureKVProvider{
+				EnvironmentType: esv1.AzureEnvironmentChinaCloud,
+				CustomCloudConfig: &esv1.AzureCustomCloudConfig{
+					ActiveDirectoryEndpoint: "https://login.partner.microsoftonline.cn/",
+				},
+			},
+			expect: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := shouldDisableChallengeResourceVerification(tc.provider)
+			if got != tc.expect {
+				t.Errorf("expected %v, got %v", tc.expect, got)
+			}
+		})
+	}
+}
