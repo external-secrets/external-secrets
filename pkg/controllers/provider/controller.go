@@ -137,7 +137,7 @@ func (r *Reconciler) validateStoreAndGetCapabilities(ctx context.Context, store 
 	}
 
 	// Validate the provider configuration
-	if err := client.Validate(ctx, providerRef, store.Namespace); err != nil {
+	if err := client.Validate(ctx, providerRef, nil, store.Namespace); err != nil {
 		r.Log.Error(err, "provider validation failed")
 		return "", fmt.Errorf("provider validation failed: %w", err)
 	}
