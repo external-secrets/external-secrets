@@ -30,6 +30,7 @@ import (
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 )
 
@@ -67,6 +68,14 @@ func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSe
 	return stores, nil
 }
 
+func isCleanStoreRef(ref esv1alpha1.PushSecretStoreRef) bool {
+	switch ref.Kind {
+	case esv1.ProviderStoreKindStr, esv1.ClusterProviderStoreKindStr:
+		return true
+	}
+	return ref.APIVersion == esv2alpha1.SchemeGroupVersion.String()
+}
+
 func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef esv1alpha1.PushSecretStoreRef, namespace string) (map[esv1alpha1.PushSecretStoreRef]any, error) {
 	selector, err := metav1.LabelSelectorAsSelector(storeRef.LabelSelector)
 	if err != nil {
@@ -77,6 +86,25 @@ func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef
 	stores := make(map[esv1alpha1.PushSecretStoreRef]any)
 
 	switch storeRef.Kind {
+	case esv1.ProviderStoreKindStr:
+		listOptions.Namespace = namespace
+		var storeList esv2alpha1.ProviderStoreList
+		if err := r.List(ctx, &storeList, listOptions); err != nil {
+			return nil, fmt.Errorf("could not list ProviderStores: %w", err)
+		}
+		for i := range storeList.Items {
+			store := &storeList.Items[i]
+			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esv1.ProviderStoreKindStr}] = store
+		}
+	case esv1.ClusterProviderStoreKindStr:
+		var storeList esv2alpha1.ClusterProviderStoreList
+		if err := r.List(ctx, &storeList, listOptions); err != nil {
+			return nil, fmt.Errorf("could not list ClusterProviderStores: %w", err)
+		}
+		for i := range storeList.Items {
+			store := &storeList.Items[i]
+			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esv1.ClusterProviderStoreKindStr}] = store
+		}
 	case esapi.ProviderKindStr:
 		listOptions.Namespace = namespace
 		var providerList esv1.ProviderList
@@ -121,7 +149,7 @@ func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef
 }
 
 func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.PushSecretStoreRef, namespace string) (any, bool, error) {
-	if storeRef.APIVersion != "" && storeRef.APIVersion != esapi.SchemeGroupVersion.String() {
+	if storeRef.APIVersion != "" && storeRef.APIVersion != esapi.SchemeGroupVersion.String() && !isCleanStoreRef(storeRef) {
 		return nil, false, nil
 	}
 	if storeRef.Name == "" {
@@ -129,6 +157,20 @@ func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.Pus
 	}
 
 	switch storeRef.Kind {
+	case esv1.ProviderStoreKindStr:
+		var store esv2alpha1.ProviderStore
+		storeKey := types.NamespacedName{Name: storeRef.Name, Namespace: namespace}
+		if err := r.Client.Get(ctx, storeKey, &store); err != nil {
+			return nil, true, fmt.Errorf("failed to get v2 ProviderStore %s: %w", storeRef.Name, err)
+		}
+		return &store, true, nil
+	case esv1.ClusterProviderStoreKindStr:
+		var store esv2alpha1.ClusterProviderStore
+		storeKey := types.NamespacedName{Name: storeRef.Name}
+		if err := r.Client.Get(ctx, storeKey, &store); err != nil {
+			return nil, true, fmt.Errorf("failed to get v2 ClusterProviderStore %s: %w", storeRef.Name, err)
+		}
+		return &store, true, nil
 	case esapi.ClusterProviderKindStr:
 		var store esapi.ClusterProvider
 		storeKey := types.NamespacedName{Name: storeRef.Name}
@@ -144,6 +186,18 @@ func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.Pus
 		}
 		return &store, true, nil
 	case "":
+		var providerStore esv2alpha1.ProviderStore
+		providerStoreKey := types.NamespacedName{Name: storeRef.Name, Namespace: namespace}
+		if err := r.Client.Get(ctx, providerStoreKey, &providerStore); err == nil {
+			return &providerStore, true, nil
+		}
+
+		var clusterProviderStore esv2alpha1.ClusterProviderStore
+		clusterProviderStoreKey := types.NamespacedName{Name: storeRef.Name}
+		if err := r.Client.Get(ctx, clusterProviderStoreKey, &clusterProviderStore); err == nil {
+			return &clusterProviderStore, true, nil
+		}
+
 		var provider esapi.Provider
 		providerKey := types.NamespacedName{Name: storeRef.Name, Namespace: namespace}
 		if err := r.Client.Get(ctx, providerKey, &provider); err == nil {

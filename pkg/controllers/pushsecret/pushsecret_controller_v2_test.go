@@ -42,6 +42,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 )
@@ -702,6 +703,82 @@ func TestGetSecretStoresV2ResolvesClusterProviderWhenKindOmitted(t *testing.T) {
 	}
 }
 
+func TestGetSecretStoresV2ResolvesProviderStoreWhenAPIVersionOmitted(t *testing.T) {
+	scheme := newPushSecretTestScheme(t)
+	store := &esv2alpha1.ProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-prod",
+			Namespace: "tenant-a",
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(store).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	ps := esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Spec: esapi.PushSecretSpec{
+			SecretStoreRefs: []esapi.PushSecretStoreRef{{
+				Name: "aws-prod",
+				Kind: esv1.ProviderStoreKindStr,
+			}},
+		},
+	}
+
+	stores, err := r.GetSecretStoresV2(context.Background(), ps)
+	if err != nil {
+		t.Fatalf("GetSecretStoresV2() error = %v", err)
+	}
+	if _, ok := stores[ps.Spec.SecretStoreRefs[0]].(*esv2alpha1.ProviderStore); !ok {
+		t.Fatalf("expected ProviderStore, got %#v", stores)
+	}
+}
+
+func TestGetSecretStoresV2ResolvesClusterProviderStoreBySelector(t *testing.T) {
+	scheme := newPushSecretTestScheme(t)
+	store := &esv2alpha1.ClusterProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "aws-shared",
+			Labels: map[string]string{"team": "shared"},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(store).
+		Build()
+
+	r := &Reconciler{Client: kubeClient, Log: logr.Discard()}
+	ps := esapi.PushSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pushsecret",
+			Namespace: "tenant-a",
+		},
+		Spec: esapi.PushSecretSpec{
+			SecretStoreRefs: []esapi.PushSecretStoreRef{{
+				Kind: esv1.ClusterProviderStoreKindStr,
+				LabelSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"team": "shared"},
+				},
+			}},
+		},
+	}
+
+	stores, err := r.GetSecretStoresV2(context.Background(), ps)
+	if err != nil {
+		t.Fatalf("GetSecretStoresV2() error = %v", err)
+	}
+	if len(stores) != 1 {
+		t.Fatalf("expected one resolved store, got %d", len(stores))
+	}
+}
+
 func TestGetSecretStoresV2SupportsSecretStoreLabelSelectors(t *testing.T) {
 	scheme := newPushSecretTestScheme(t)
 	selectedStore := &esv1.SecretStore{
@@ -1200,6 +1277,7 @@ func newPushSecretTestScheme(t *testing.T) *runtime.Scheme {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esapi.AddToScheme(scheme))
+	utilruntime.Must(esv2alpha1.AddToScheme(scheme))
 	return scheme
 }
 
