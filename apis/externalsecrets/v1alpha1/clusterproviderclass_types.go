@@ -26,8 +26,7 @@ type ClusterProviderClassSpec struct {
 
 // ClusterProviderClassStatus defines the observed state of ClusterProviderClass.
 type ClusterProviderClassStatus struct {
-	Conditions   []metav1.Condition `json:"conditions,omitempty"`
-	Capabilities string             `json:"capabilities,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

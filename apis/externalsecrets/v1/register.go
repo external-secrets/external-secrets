@@ -90,8 +90,10 @@ var (
 
 // Provider kind string constants for use in SecretStoreRef.
 const (
-	ProviderKindStr        = "Provider"
-	ClusterProviderKindStr = "ClusterProvider"
+	ProviderKindStr             = "Provider"
+	ClusterProviderKindStr      = "ClusterProvider"
+	ProviderStoreKindStr        = "ProviderStore"
+	ClusterProviderStoreKindStr = "ClusterProviderStore"
 )
 
 func init() {

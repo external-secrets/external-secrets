@@ -63,6 +63,55 @@ func TestPushSecretCRDDoesNotDefaultSecretStoreRefKind(t *testing.T) {
 	}
 }
 
+func TestPushSecretCRDSecretStoreRefKindIncludesProviderStoreKinds(t *testing.T) {
+	crdPath := filepath.Join("..", "..", "..", "config", "crds", "bases", "external-secrets.io_pushsecrets.yaml")
+	data, err := os.ReadFile(crdPath)
+	if err != nil {
+		t.Fatalf("read CRD: %v", err)
+	}
+
+	var crd map[string]any
+	if err := yaml.Unmarshal(data, &crd); err != nil {
+		t.Fatalf("unmarshal CRD: %v", err)
+	}
+
+	versions := asSlice(t, asMap(t, crd["spec"], "spec")["versions"], "spec.versions")
+	var kindEnum []string
+	for _, version := range versions {
+		versionMap := asMap(t, version, "spec.versions[]")
+		if versionMap["name"] != "v1alpha1" {
+			continue
+		}
+
+		schema := asMap(t, versionMap["schema"], "spec.versions[].schema")
+		openAPIV3 := asMap(t, schema["openAPIV3Schema"], "spec.versions[].schema.openAPIV3Schema")
+		properties := asMap(t, openAPIV3["properties"], "spec.versions[].schema.openAPIV3Schema.properties")
+		specProperties := asMap(t, asMap(t, properties["spec"], "spec property")["properties"], "spec.properties")
+		secretStoreRefs := asMap(t, specProperties["secretStoreRefs"], "spec.properties.secretStoreRefs")
+		items := asMap(t, secretStoreRefs["items"], "spec.properties.secretStoreRefs.items")
+		itemProperties := asMap(t, items["properties"], "spec.properties.secretStoreRefs.items.properties")
+		kindSchema := asMap(t, itemProperties["kind"], "spec.properties.secretStoreRefs.items.properties.kind")
+		kindEnum = asStringSlice(t, kindSchema["enum"], "spec.properties.secretStoreRefs.items.properties.kind.enum")
+		break
+	}
+	if kindEnum == nil {
+		t.Fatal("did not find v1alpha1 secretStoreRefs.kind enum")
+	}
+
+	assertContains := func(value string) {
+		t.Helper()
+		for _, candidate := range kindEnum {
+			if candidate == value {
+				return
+			}
+		}
+		t.Fatalf("kind enum does not contain %q: %v", value, kindEnum)
+	}
+
+	assertContains("ProviderStore")
+	assertContains("ClusterProviderStore")
+}
+
 func asMap(t *testing.T, v any, path string) map[string]any {
 	t.Helper()
 	m, ok := v.(map[string]any)
@@ -79,4 +128,18 @@ func asSlice(t *testing.T, v any, path string) []any {
 		t.Fatalf("%s is %T, want []any", path, v)
 	}
 	return s
+}
+
+func asStringSlice(t *testing.T, v any, path string) []string {
+	t.Helper()
+	s := asSlice(t, v, path)
+	out := make([]string, 0, len(s))
+	for i, entry := range s {
+		str, ok := entry.(string)
+		if !ok {
+			t.Fatalf("%s[%d] is %T, want string", path, i, entry)
+		}
+		out = append(out, str)
+	}
+	return out
 }

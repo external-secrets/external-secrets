@@ -29,10 +29,10 @@ type SecretStoreRef struct {
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name,omitempty"`
 
-	// Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider or ClusterProvider)
+	// Kind of the SecretStore resource (SecretStore, ClusterSecretStore, Provider, ClusterProvider, ProviderStore, or ClusterProviderStore)
 	// Defaults to `SecretStore`
 	// +optional
-	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore;Provider;ClusterProvider
+	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore;Provider;ClusterProvider;ProviderStore;ClusterProviderStore
 	Kind string `json:"kind,omitempty"`
 }
 
