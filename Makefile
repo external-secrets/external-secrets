@@ -104,12 +104,9 @@ proto: ## Generate protobuf code
 # Conformance
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt generate-providers verify-providers ## Ensure a PR is ready for review.
-	@go mod tidy
-	@cd e2e/ && go mod tidy
-	@cd apis/ && go mod tidy
-	@cd runtime/ && go mod tidy
-	@for provider in providers/v1/*/; do (cd $$provider && go mod tidy); done
-	@for generator in generators/v1/*/; do (cd $$generator && go mod tidy); done
+	@for module in . e2e apis runtime $$(find providers/v1 generators/v1 providers/v2 -name go.mod -not -path '*/vendor/*' -exec dirname {} \; | sort); do \
+		(cd "$$module" && GOWORK=off go mod tidy); \
+	done
 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
