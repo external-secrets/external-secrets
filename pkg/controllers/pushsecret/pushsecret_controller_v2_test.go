@@ -356,7 +356,9 @@ func TestDeleteSecretFromProvidersV2UsesClusterProviderStorePath(t *testing.T) {
 	if server.deleteRequest.SourceNamespace != pushSecretManifestNamespace {
 		t.Fatalf("unexpected source namespace: %q", server.deleteRequest.SourceNamespace)
 	}
-	if server.deleteRequest.ProviderRef == nil || server.deleteRequest.ProviderRef.Namespace != pushSecretManifestNamespace || server.deleteRequest.ProviderRef.StoreRefKind != esv1.ClusterProviderStoreKindStr {
+	if server.deleteRequest.ProviderRef == nil ||
+		server.deleteRequest.ProviderRef.Namespace != pushSecretManifestNamespace ||
+		server.deleteRequest.ProviderRef.StoreRefKind != esv1.ClusterProviderStoreKindStr {
 		t.Fatalf("unexpected provider ref: %#v", server.deleteRequest.ProviderRef)
 	}
 	if server.deleteRequest.RemoteRef == nil || server.deleteRequest.RemoteRef.RemoteKey != pushSecretRemoteKey || server.deleteRequest.RemoteRef.Property != pushSecretProperty {

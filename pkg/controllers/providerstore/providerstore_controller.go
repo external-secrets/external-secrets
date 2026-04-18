@@ -43,6 +43,7 @@ type StoreReconciler struct {
 	RequeueInterval time.Duration
 }
 
+// Reconcile validates the referenced runtime and backend for a ProviderStore.
 func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	start := time.Now()
 	log := r.Log.WithValues("ProviderStore", req.NamespacedName)
@@ -67,6 +68,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return updateStatus(ctx, r.Status(), &store, r.RequeueInterval, log)
 }
 
+// SetupWithManager registers the ProviderStore controller and runtime-class watches.
 func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).

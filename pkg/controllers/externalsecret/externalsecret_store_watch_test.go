@@ -31,9 +31,11 @@ import (
 	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 )
 
+const testNamespaceTeamA = "team-a"
+
 func TestIndexExternalSecretV2StoreRefs(t *testing.T) {
 	es := &esv1.ExternalSecret{}
-	es.Namespace = "team-a"
+	es.Namespace = testNamespaceTeamA
 	es.Spec.SecretStoreRef = esv1.SecretStoreRef{
 		Name: "namespaced-store",
 		Kind: esv1.ProviderStoreKindStr,
@@ -70,9 +72,9 @@ func TestIndexExternalSecretV2StoreRefs(t *testing.T) {
 
 	got := indexExternalSecretV2StoreRefs(es)
 	want := map[string]struct{}{
-		v2StoreRefIndexKey(esv1.ProviderStoreKindStr, "team-a", "namespaced-store"): {},
-		v2StoreRefIndexKey(esv1.ProviderStoreKindStr, "team-a", "secondary-store"):  {},
-		v2StoreRefIndexKey(esv1.ClusterProviderStoreKindStr, "", "cluster-store"):    {},
+		v2StoreRefIndexKey(esv1.ClusterProviderStoreKindStr, "", "cluster-store"):             {},
+		v2StoreRefIndexKey(esv1.ProviderStoreKindStr, testNamespaceTeamA, "namespaced-store"): {},
+		v2StoreRefIndexKey(esv1.ProviderStoreKindStr, testNamespaceTeamA, "secondary-store"):  {},
 	}
 
 	if len(got) != len(want) {
@@ -96,7 +98,7 @@ func TestFindExternalSecretsForV2Store(t *testing.T) {
 	utilruntime.Must(esv2alpha1.AddToScheme(scheme))
 
 	matching := &esv1.ExternalSecret{}
-	matching.Namespace = "team-a"
+	matching.Namespace = testNamespaceTeamA
 	matching.Name = "matching"
 	matching.Spec.SecretStoreRef = esv1.SecretStoreRef{
 		Name: "aws-prod",
@@ -104,7 +106,7 @@ func TestFindExternalSecretsForV2Store(t *testing.T) {
 	}
 
 	nonMatching := &esv1.ExternalSecret{}
-	nonMatching.Namespace = "team-a"
+	nonMatching.Namespace = testNamespaceTeamA
 	nonMatching.Name = "non-matching"
 	nonMatching.Spec.SecretStoreRef = esv1.SecretStoreRef{
 		Name: "aws-other",
@@ -114,14 +116,12 @@ func TestFindExternalSecretsForV2Store(t *testing.T) {
 	cl := fakeclient.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(matching, nonMatching).
-		WithIndex(&esv1.ExternalSecret{}, indexESV2StoreRefField, func(obj client.Object) []string {
-			return indexExternalSecretV2StoreRefs(obj)
-		}).
+		WithIndex(&esv1.ExternalSecret{}, indexESV2StoreRefField, indexExternalSecretV2StoreRefs).
 		Build()
 
 	r := &Reconciler{Client: cl}
 	store := &esv2alpha1.ProviderStore{}
-	store.Namespace = "team-a"
+	store.Namespace = testNamespaceTeamA
 	store.Name = "aws-prod"
 
 	got := r.findExternalSecretsForV2Store(context.Background(), store)
@@ -144,7 +144,7 @@ func TestFindExternalSecretsForClusterProviderStore(t *testing.T) {
 	utilruntime.Must(esv2alpha1.AddToScheme(scheme))
 
 	matching := &esv1.ExternalSecret{}
-	matching.Namespace = "team-a"
+	matching.Namespace = testNamespaceTeamA
 	matching.Name = "matching"
 	matching.Spec.Data = []esv1.ExternalSecretData{
 		{
@@ -160,9 +160,7 @@ func TestFindExternalSecretsForClusterProviderStore(t *testing.T) {
 	cl := fakeclient.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(matching).
-		WithIndex(&esv1.ExternalSecret{}, indexESV2StoreRefField, func(obj client.Object) []string {
-			return indexExternalSecretV2StoreRefs(obj)
-		}).
+		WithIndex(&esv1.ExternalSecret{}, indexESV2StoreRefField, indexExternalSecretV2StoreRefs).
 		Build()
 
 	r := &Reconciler{Client: cl}
