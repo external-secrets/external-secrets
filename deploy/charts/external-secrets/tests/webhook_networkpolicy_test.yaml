@@ -1,0 +1,19 @@
+suite: test webhook networkpolicy
+templates:
+  - webhook-networkpolicy.yaml
+tests:
+  - it: should create a networkPolicy
+    set:
+      webhook.networkPolicy.enabled: true
+    asserts:
+      - equal:
+          path: spec.policyTypes
+          value:
+            - Egress
+            - Ingress
+  - it: should not create a networkPolicy
+    set:
+      webhook.networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
