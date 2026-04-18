@@ -190,9 +190,9 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 	runtimeRef := store.GetSpec().RuntimeRef
 	runtimeKind := runtimeRef.Kind
 	if runtimeKind == "" {
-		runtimeKind = "ClusterProviderClass"
+		runtimeKind = runtimeRefKindClusterProviderClass
 	}
-	if runtimeKind != "ClusterProviderClass" {
+	if runtimeKind != runtimeRefKindClusterProviderClass {
 		return nil, fmt.Errorf("unsupported runtimeRef kind %q", runtimeKind)
 	}
 
@@ -203,7 +203,7 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 
 	var runtimeClass esv1alpha1.ClusterProviderClass
 	if err := m.client.Get(ctx, types.NamespacedName{Name: runtimeRef.Name}, &runtimeClass); err != nil {
-		return nil, fmt.Errorf("failed to get ClusterProviderClass %q: %w", runtimeRef.Name, err)
+		return nil, fmt.Errorf("failed to get %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
 	}
 
 	compatStore, err := buildCompatibilityStore(store)
@@ -214,13 +214,13 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(runtimeClass.Spec.Address, "", "", "")
 	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, m.client, runtimeClass.Spec.Address, tlsSecretNamespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load TLS config for ClusterProviderClass %q: %w", runtimeRef.Name, err)
+		return nil, fmt.Errorf("failed to load TLS config for %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
 	}
 
 	pool := getGlobalV2ConnectionPool()
 	grpcClient, err := pool.Get(ctx, runtimeClass.Spec.Address, tlsConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get gRPC client from pool for ClusterProviderClass %q: %w", runtimeRef.Name, err)
+		return nil, fmt.Errorf("failed to get gRPC client from pool for %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
 	}
 
 	compatibilityClient := adapterstore.NewCompatibilityClientWithCloser(grpcClient, compatStore, namespace, func(context.Context) error {

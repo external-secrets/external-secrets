@@ -31,6 +31,8 @@ import (
 	"github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 )
 
+const runtimeRefKindClusterProviderClass = "ClusterProviderClass"
+
 func (m *Manager) getV2ProviderStoreClient(ctx context.Context, storeName, callerNamespace string) (esv1.SecretsClient, error) {
 	var store esv2alpha1.ProviderStore
 	storeKey := types.NamespacedName{
@@ -107,31 +109,31 @@ func (m *Manager) getOrCreateProviderStoreClient(ctx context.Context, store esv2
 	runtimeRef := store.GetRuntimeRef()
 	runtimeKind := runtimeRef.Kind
 	if runtimeKind == "" {
-		runtimeKind = "ClusterProviderClass"
+		runtimeKind = runtimeRefKindClusterProviderClass
 	}
-	if runtimeKind != "ClusterProviderClass" {
+	if runtimeKind != runtimeRefKindClusterProviderClass {
 		return nil, fmt.Errorf("unsupported runtimeRef kind %q", runtimeKind)
 	}
 
 	var runtimeClass esv1alpha1.ClusterProviderClass
 	if err := m.client.Get(ctx, types.NamespacedName{Name: runtimeRef.Name}, &runtimeClass); err != nil {
-		return nil, fmt.Errorf("failed to get ClusterProviderClass %q: %w", runtimeRef.Name, err)
+		return nil, fmt.Errorf("failed to get %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
 	}
 
 	if runtimeClass.Spec.Address == "" {
-		return nil, fmt.Errorf("provider address is required in ClusterProviderClass %q", runtimeRef.Name)
+		return nil, fmt.Errorf("provider address is required in %s %q", runtimeRefKindClusterProviderClass, runtimeRef.Name)
 	}
 
 	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(runtimeClass.Spec.Address, "", "", effectiveBackendNamespace)
 	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, m.client, runtimeClass.Spec.Address, tlsSecretNamespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load TLS config for ClusterProviderClass %q: %w", runtimeRef.Name, err)
+		return nil, fmt.Errorf("failed to load TLS config for %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
 	}
 
 	pool := getGlobalV2ConnectionPool()
 	grpcClient, err := pool.Get(ctx, runtimeClass.Spec.Address, tlsConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get gRPC client from pool for ClusterProviderClass %q: %w", runtimeRef.Name, err)
+		return nil, fmt.Errorf("failed to get gRPC client from pool for %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
 	}
 
 	m.v2PooledConnections = append(m.v2PooledConnections, v2PooledConnection{
@@ -179,7 +181,7 @@ func assertV2StoreIsUsable(store esv2alpha1.GenericStore) error {
 		return nil
 	}
 
-	condition := GetProviderStoreCondition(store.GetStoreStatus(), esv2alpha1.ProviderStoreReady)
+	condition := getProviderStoreCondition(store.GetStoreStatus(), esv2alpha1.ProviderStoreReady)
 	if condition == nil || condition.Status != corev1.ConditionTrue {
 		return fmt.Errorf(errSecretStoreNotReady, store.GetKind(), store.GetName())
 	}
@@ -187,7 +189,7 @@ func assertV2StoreIsUsable(store esv2alpha1.GenericStore) error {
 	return nil
 }
 
-func GetProviderStoreCondition(status esv2alpha1.ProviderStoreStatus, condType esv2alpha1.ProviderStoreConditionType) *esv2alpha1.ProviderStoreCondition {
+func getProviderStoreCondition(status esv2alpha1.ProviderStoreStatus, condType esv2alpha1.ProviderStoreConditionType) *esv2alpha1.ProviderStoreCondition {
 	for i := range status.Conditions {
 		if status.Conditions[i].Type == condType {
 			return &status.Conditions[i]

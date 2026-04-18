@@ -32,8 +32,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -52,7 +50,6 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
-	providergrpc "github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 )
 
 func TestManagerGet(t *testing.T) {
@@ -780,75 +777,6 @@ func resetGlobalV2ConnectionPoolForTest(t *testing.T) {
 		globalV2ConnectionPool = nil
 		globalV2ConnectionPoolOnce = sync.Once{}
 	})
-}
-
-func installGlobalV2ConnectionPoolForTest(t *testing.T) *prometheus.Registry {
-	t.Helper()
-
-	resetGlobalV2ConnectionPoolForTest(t)
-
-	globalV2ConnectionPool = providergrpc.NewConnectionPool(providergrpc.PoolConfig{
-		MaxIdleTime:         time.Minute,
-		MaxLifetime:         time.Minute,
-		HealthCheckInterval: 10 * time.Millisecond,
-	})
-
-	globalV2ConnectionPoolOnce.Do(func() {})
-
-	registry := prometheus.NewRegistry()
-	require.NoError(t, providergrpc.RegisterMetrics(registry))
-
-	return registry
-}
-
-func assertPoolMetricEventually(t *testing.T, registry *prometheus.Registry, metricName, address string, tlsEnabled bool, want float64) {
-	t.Helper()
-
-	labelValue := "false"
-	if tlsEnabled {
-		labelValue = "true"
-	}
-
-	assert.Eventually(t, func() bool {
-		got, ok := lookupPoolMetricValue(registry, metricName, address, labelValue)
-		return ok && got == want
-	}, time.Second, 10*time.Millisecond)
-}
-
-func lookupPoolMetricValue(registry *prometheus.Registry, metricName, address, tlsEnabled string) (float64, bool) {
-	metricFamilies, err := registry.Gather()
-	if err != nil {
-		return 0, false
-	}
-
-	for _, metricFamily := range metricFamilies {
-		if metricFamily.GetName() != metricName {
-			continue
-		}
-		for _, metric := range metricFamily.GetMetric() {
-			if metricLabelValue(metric.GetLabel(), "address") != address {
-				continue
-			}
-			if metricLabelValue(metric.GetLabel(), "tls_enabled") != tlsEnabled {
-				continue
-			}
-			if gauge := metric.GetGauge(); gauge != nil {
-				return gauge.GetValue(), true
-			}
-		}
-	}
-
-	return 0, false
-}
-
-func metricLabelValue(labels []*dto.LabelPair, name string) string {
-	for _, label := range labels {
-		if label.GetName() == name {
-			return label.GetValue()
-		}
-	}
-
-	return ""
 }
 
 type recordingProviderServer struct {
