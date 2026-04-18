@@ -67,6 +67,7 @@ func main() {
 	}
 	// Setup v1 provider(s)
 	v1Provider0 := kubernetes.NewProvider()
+	compatibilityProvider := kubernetes.NewProvider()
 	providerMapping := adapterstore.ProviderMapping{
 		schema.GroupVersionKind{
 			Group:   "provider.external-secrets.io",
@@ -76,7 +77,7 @@ func main() {
 	}
 
 	specMapper := GetSpecMapper(kubeClient)
-	adapterServer := adapterstore.NewServer(kubeClient, providerMapping, specMapper)
+	storeServer := adapterstore.NewServerWithCompatibilityProvider(kubeClient, providerMapping, specMapper, compatibilityProvider)
 
 	log.Printf("[PROVIDER] Using v1 Kubernetes Provider provider wrapped with v2 adapter")
 	grpcServer, err := grpcserver.NewGRPCServer(grpcserver.ServerOptions{
@@ -88,7 +89,7 @@ func main() {
 	}
 
 	// Register services
-	pb.RegisterSecretStoreProviderServer(grpcServer, adapterServer)
+	pb.RegisterSecretStoreProviderServer(grpcServer, storeServer)
 
 	// Register health service
 	healthServer := health.NewServer()

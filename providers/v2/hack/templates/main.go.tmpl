@@ -46,9 +46,6 @@ import (
 	{{- if .HasStores}}
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 	{{- end}}
-	{{- if and .HasStores .HasGenerators}}
-	"github.com/external-secrets/external-secrets/providers/v2/adapter"
-	{{- end}}
 	{{- if .HasGenerators}}
 	adaptergenerator "github.com/external-secrets/external-secrets/providers/v2/adapter/generator"
 	{{- end}}
@@ -100,6 +97,7 @@ func main() {
 	{{- range $idx, $store := .Stores}}
 	v1Provider{{$idx}} := {{$store.ImportAlias}}.{{$store.V1ProviderFunc}}()
 	{{- end}}
+	compatibilityProvider := {{(index .Stores 0).ImportAlias}}.{{(index .Stores 0).V1ProviderFunc}}()
 	providerMapping := adapterstore.ProviderMapping{
 		{{- range $idx, $store := .Stores}}
 		schema.GroupVersionKind{
@@ -126,12 +124,11 @@ func main() {
 	}
 	{{- end}}
 
-	{{- if and .HasStores .HasGenerators}}
-	adapterServer := adapter.NewServer(kubeClient, scheme, providerMapping, specMapper, generatorMapping)
-	{{- else if .HasStores}}
-	adapterServer := adapterstore.NewServer(kubeClient, providerMapping, specMapper)
-	{{- else if .HasGenerators}}
-	adapterServer := adaptergenerator.NewServer(kubeClient, scheme, generatorMapping)
+	{{- if .HasStores}}
+	storeServer := adapterstore.NewServerWithCompatibilityProvider(kubeClient, providerMapping, specMapper, compatibilityProvider)
+	{{- end}}
+	{{- if .HasGenerators}}
+	generatorServer := adaptergenerator.NewServer(kubeClient, scheme, generatorMapping)
 	{{- end}}
 
 	log.Printf("[PROVIDER] Using v1 {{.Provider.Provider.DisplayName}} provider{{if .HasGenerators}} with generators{{end}} wrapped with v2 adapter")
@@ -145,10 +142,10 @@ func main() {
 
 	// Register services
 	{{- if .HasStores}}
-	pb.RegisterSecretStoreProviderServer(grpcServer, adapterServer)
+	pb.RegisterSecretStoreProviderServer(grpcServer, storeServer)
 	{{- end}}
 	{{- if .HasGenerators}}
-	genpb.RegisterGeneratorProviderServer(grpcServer, adapterServer)
+	genpb.RegisterGeneratorProviderServer(grpcServer, generatorServer)
 	{{- end}}
 
 	// Register health service

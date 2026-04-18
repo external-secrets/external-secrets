@@ -37,19 +37,22 @@ const (
 )
 
 type fakeV2Provider struct {
-	getSecretResponse    []byte
-	getSecretErr         error
-	getSecretRef         esv1.ExternalSecretDataRemoteRef
-	getSecretProviderRef *pb.ProviderReference
-	getSecretNamespace   string
+	getSecretResponse           []byte
+	getSecretErr                error
+	getSecretRef                esv1.ExternalSecretDataRemoteRef
+	getSecretProviderRef        *pb.ProviderReference
+	getSecretCompatibilityStore *pb.CompatibilityStore
+	getSecretNamespace          string
 
-	getSecretMapResponse map[string][]byte
-	getSecretMapErr      error
-	getSecretMapRef      esv1.ExternalSecretDataRemoteRef
+	getSecretMapResponse           map[string][]byte
+	getSecretMapErr                error
+	getSecretMapRef                esv1.ExternalSecretDataRemoteRef
+	getSecretMapCompatibilityStore *pb.CompatibilityStore
 
-	getAllSecretsResponse map[string][]byte
-	getAllSecretsErr      error
-	getAllSecretsFind     esv1.ExternalSecretFind
+	getAllSecretsResponse           map[string][]byte
+	getAllSecretsErr                error
+	getAllSecretsFind               esv1.ExternalSecretFind
+	getAllSecretsCompatibilityStore *pb.CompatibilityStore
 
 	pushSecretErr         error
 	pushSecretData        map[string][]byte
@@ -77,23 +80,26 @@ type fakeV2Provider struct {
 	closeCalled bool
 }
 
-func (f *fakeV2Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) ([]byte, error) {
+func (f *fakeV2Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) ([]byte, error) {
 	f.getSecretRef = ref
 	f.getSecretProviderRef = providerRef
+	f.getSecretCompatibilityStore = compatibilityStore
 	f.getSecretNamespace = sourceNamespace
 	return f.getSecretResponse, f.getSecretErr
 }
 
-func (f *fakeV2Provider) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error) {
+func (f *fakeV2Provider) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
 	f.getSecretMapRef = ref
 	f.getSecretProviderRef = providerRef
+	f.getSecretMapCompatibilityStore = compatibilityStore
 	f.getSecretNamespace = sourceNamespace
 	return f.getSecretMapResponse, f.getSecretMapErr
 }
 
-func (f *fakeV2Provider) GetAllSecrets(_ context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error) {
+func (f *fakeV2Provider) GetAllSecrets(_ context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
 	f.getAllSecretsFind = find
 	f.getSecretProviderRef = providerRef
+	f.getAllSecretsCompatibilityStore = compatibilityStore
 	f.getSecretNamespace = sourceNamespace
 	return f.getAllSecretsResponse, f.getAllSecretsErr
 }
@@ -263,6 +269,90 @@ func TestClientGetAllSecretsDelegatesFindCriteria(t *testing.T) {
 	}
 	if provider.getSecretNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", provider.getSecretNamespace)
+	}
+}
+
+func TestCompatibilityClientGetSecretDelegatesCompatibilityStore(t *testing.T) {
+	compatibilityStore := &pb.CompatibilityStore{
+		StoreName:       "compat-store",
+		StoreNamespace:  "config-ns",
+		StoreKind:       esv1.SecretStoreKind,
+		StoreUid:        "uid-1",
+		StoreGeneration: 7,
+		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
+	}
+	provider := &fakeV2Provider{getSecretResponse: []byte("secret-value")}
+	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
+
+	value, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"})
+	if err != nil {
+		t.Fatalf("GetSecret() error = %v", err)
+	}
+
+	if string(value) != "secret-value" {
+		t.Fatalf("expected secret-value, got %q", string(value))
+	}
+	if provider.getSecretProviderRef != nil {
+		t.Fatalf("expected provider ref to be nil, got %#v", provider.getSecretProviderRef)
+	}
+	if provider.getSecretCompatibilityStore != compatibilityStore {
+		t.Fatalf("unexpected compatibility store: %#v", provider.getSecretCompatibilityStore)
+	}
+}
+
+func TestCompatibilityClientGetSecretMapDelegatesCompatibilityStore(t *testing.T) {
+	compatibilityStore := &pb.CompatibilityStore{
+		StoreName:       "compat-store",
+		StoreNamespace:  "config-ns",
+		StoreKind:       esv1.SecretStoreKind,
+		StoreUid:        "uid-1",
+		StoreGeneration: 7,
+		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
+	}
+	provider := &fakeV2Provider{getSecretMapResponse: map[string][]byte{"foo": []byte("bar")}}
+	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
+
+	secretMap, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"})
+	if err != nil {
+		t.Fatalf("GetSecretMap() error = %v", err)
+	}
+
+	if string(secretMap["foo"]) != "bar" {
+		t.Fatalf("unexpected secret map: %#v", secretMap)
+	}
+	if provider.getSecretProviderRef != nil {
+		t.Fatalf("expected provider ref to be nil, got %#v", provider.getSecretProviderRef)
+	}
+	if provider.getSecretMapCompatibilityStore != compatibilityStore {
+		t.Fatalf("unexpected compatibility store: %#v", provider.getSecretMapCompatibilityStore)
+	}
+}
+
+func TestCompatibilityClientGetAllSecretsDelegatesCompatibilityStore(t *testing.T) {
+	compatibilityStore := &pb.CompatibilityStore{
+		StoreName:       "compat-store",
+		StoreNamespace:  "config-ns",
+		StoreKind:       esv1.SecretStoreKind,
+		StoreUid:        "uid-1",
+		StoreGeneration: 7,
+		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
+	}
+	provider := &fakeV2Provider{getAllSecretsResponse: map[string][]byte{"db-password": []byte(testValue)}}
+	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
+
+	secrets, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+	if err != nil {
+		t.Fatalf("GetAllSecrets() error = %v", err)
+	}
+
+	if string(secrets["db-password"]) != testValue {
+		t.Fatalf("unexpected secret value: %#v", secrets)
+	}
+	if provider.getSecretProviderRef != nil {
+		t.Fatalf("expected provider ref to be nil, got %#v", provider.getSecretProviderRef)
+	}
+	if provider.getAllSecretsCompatibilityStore != compatibilityStore {
+		t.Fatalf("unexpected compatibility store: %#v", provider.getAllSecretsCompatibilityStore)
 	}
 }
 

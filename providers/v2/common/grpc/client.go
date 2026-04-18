@@ -47,7 +47,7 @@ type grpcProviderClient struct {
 var _ v2.Provider = &grpcProviderClient{}
 
 // GetSecret retrieves a single secret from the provider via gRPC.
-func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) ([]byte, error) {
+func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) ([]byte, error) {
 	start := time.Now()
 	var err error
 	defer func() {
@@ -60,6 +60,7 @@ func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSec
 		"property", ref.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
+		"compatibilityStore", compatibilityStore,
 		"sourceNamespace", sourceNamespace)
 
 	// Check connection state before call
@@ -85,9 +86,10 @@ func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSec
 
 	// Make gRPC call with provider reference
 	req := &pb.GetSecretRequest{
-		RemoteRef:       pbRef,
-		ProviderRef:     providerRef,
-		SourceNamespace: sourceNamespace,
+		RemoteRef:          pbRef,
+		ProviderRef:        providerRef,
+		CompatibilityStore: compatibilityStore,
+		SourceNamespace:    sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling GetSecret RPC",
@@ -112,7 +114,7 @@ func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSec
 }
 
 // GetSecretMap retrieves multiple key/value pairs from a single provider object via gRPC.
-func (c *grpcProviderClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error) {
+func (c *grpcProviderClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
 	start := time.Now()
 	var err error
 	defer func() {
@@ -125,6 +127,7 @@ func (c *grpcProviderClient) GetSecretMap(ctx context.Context, ref esv1.External
 		"property", ref.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
+		"compatibilityStore", compatibilityStore,
 		"sourceNamespace", sourceNamespace)
 
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
@@ -139,9 +142,10 @@ func (c *grpcProviderClient) GetSecretMap(ctx context.Context, ref esv1.External
 	}
 
 	req := &pb.GetSecretMapRequest{
-		RemoteRef:       pbRef,
-		ProviderRef:     providerRef,
-		SourceNamespace: sourceNamespace,
+		RemoteRef:          pbRef,
+		ProviderRef:        providerRef,
+		CompatibilityStore: compatibilityStore,
+		SourceNamespace:    sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling GetSecretMap RPC",
@@ -236,7 +240,7 @@ func (c *grpcProviderClient) Validate(ctx context.Context, providerRef *pb.Provi
 }
 
 // GetAllSecrets retrieves multiple secrets based on find criteria via gRPC.
-func (c *grpcProviderClient) GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error) {
+func (c *grpcProviderClient) GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
 	start := time.Now()
 	var err error
 	defer func() {
@@ -247,6 +251,7 @@ func (c *grpcProviderClient) GetAllSecrets(ctx context.Context, find esv1.Extern
 		"tags", find.Tags,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
+		"compatibilityStore", compatibilityStore,
 		"sourceNamespace", sourceNamespace)
 
 	// Create context with timeout
@@ -272,9 +277,10 @@ func (c *grpcProviderClient) GetAllSecrets(ctx context.Context, find esv1.Extern
 
 	// Make gRPC call
 	req := &pb.GetAllSecretsRequest{
-		ProviderRef:     providerRef,
-		Find:            pbFind,
-		SourceNamespace: sourceNamespace,
+		ProviderRef:        providerRef,
+		CompatibilityStore: compatibilityStore,
+		Find:               pbFind,
+		SourceNamespace:    sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling GetAllSecrets RPC",

@@ -18,6 +18,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -131,6 +132,24 @@ func (r *specMapperRecorder) mapRef(ref *pb.ProviderReference, sourceNamespace s
 	r.ref = ref
 	r.sourceNamespace = sourceNamespace
 	return r.spec, r.err
+}
+
+func mustCompatibilityStore(t *testing.T, spec *esv1.SecretStoreSpec) *pb.CompatibilityStore {
+	t.Helper()
+
+	specBytes, err := json.Marshal(spec)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+
+	return &pb.CompatibilityStore{
+		StoreName:       "compat-store",
+		StoreNamespace:  serverTestSourceNamespace,
+		StoreKind:       esv1.SecretStoreKind,
+		StoreUid:        "uid-1",
+		StoreGeneration: 7,
+		StoreSpecJson:   specBytes,
+	}
 }
 
 func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
@@ -302,6 +321,195 @@ func TestServerGetSecretMapDelegates(t *testing.T) {
 	}
 	if fakeClient.getSecretMapRef.Key != "sample" {
 		t.Fatalf("unexpected ref: %#v", fakeClient.getSecretMapRef)
+	}
+}
+
+func TestServerGetSecretUsesCompatibilityStore(t *testing.T) {
+	mapper := &specMapperRecorder{err: errors.New("spec mapper should not be called")}
+	fakeClient := &fakeSecretsClient{getSecretResponse: []byte("secret-value")}
+
+	var receivedStore esv1.GenericStore
+
+	server := NewServer(nil, ProviderMapping{
+		schema.GroupVersionKind{Group: "provider.external-secrets.io", Version: "v2alpha1", Kind: "Fake"}: &fakeProviderInterface{
+			caps: esv1.SecretStoreReadWrite,
+			newClient: func(_ context.Context, store esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+				receivedStore = store
+				return fakeClient, nil
+			},
+		},
+	}, mapper.mapRef)
+
+	spec := &esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			Fake: &esv1.FakeProvider{
+				Data: []esv1.FakeProviderData{
+					{Key: "sample", Value: "secret-value"},
+				},
+			},
+		},
+	}
+
+	resp, err := server.GetSecret(context.Background(), &pb.GetSecretRequest{
+		ProviderRef: &pb.ProviderReference{
+			ApiVersion: "provider.external-secrets.io/v2alpha1",
+			Kind:       "Fake",
+			Name:       "backend",
+		},
+		CompatibilityStore: mustCompatibilityStore(t, spec),
+		SourceNamespace:    serverTestSourceNamespace,
+		RemoteRef:          &pb.ExternalSecretDataRemoteRef{Key: "sample"},
+	})
+	if err != nil {
+		t.Fatalf("GetSecret() error = %v", err)
+	}
+
+	if string(resp.Value) != "secret-value" {
+		t.Fatalf("unexpected response: %q", string(resp.Value))
+	}
+	if mapper.ref != nil {
+		t.Fatalf("expected spec mapper to be bypassed, got %#v", mapper.ref)
+	}
+	syntheticStore, ok := receivedStore.(*SyntheticStore)
+	if !ok {
+		t.Fatalf("expected SyntheticStore, got %T", receivedStore)
+	}
+	if syntheticStore.Name != "compat-store" || syntheticStore.Namespace != serverTestSourceNamespace {
+		t.Fatalf("unexpected synthetic store metadata: %#v", syntheticStore.ObjectMeta)
+	}
+	if syntheticStore.GetSpec().Provider == nil || syntheticStore.GetSpec().Provider.Fake == nil {
+		t.Fatalf("expected fake provider config, got %#v", syntheticStore.GetSpec().Provider)
+	}
+}
+
+func TestServerGetSecretPrefersCompatibilityStoreOverProviderRef(t *testing.T) {
+	mapper := &specMapperRecorder{
+		spec: &esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{
+					Data: []esv1.FakeProviderData{
+						{Key: "sample", Value: "mapped-value"},
+					},
+				},
+			},
+		},
+	}
+	fakeClient := &fakeSecretsClient{getSecretResponse: []byte("compat-value")}
+
+	server := NewServer(nil, ProviderMapping{
+		schema.GroupVersionKind{Group: "provider.external-secrets.io", Version: "v2alpha1", Kind: "Fake"}: &fakeProviderInterface{
+			caps: esv1.SecretStoreReadWrite,
+			newClient: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+				return fakeClient, nil
+			},
+		},
+	}, mapper.mapRef)
+
+	spec := &esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			Fake: &esv1.FakeProvider{
+				Data: []esv1.FakeProviderData{
+					{Key: "sample", Value: "compat-value"},
+				},
+			},
+		},
+	}
+
+	resp, err := server.GetSecret(context.Background(), &pb.GetSecretRequest{
+		ProviderRef: &pb.ProviderReference{
+			ApiVersion: "provider.external-secrets.io/v2alpha1",
+			Kind:       "Fake",
+			Name:       "backend",
+		},
+		CompatibilityStore: mustCompatibilityStore(t, spec),
+		SourceNamespace:    serverTestSourceNamespace,
+		RemoteRef:          &pb.ExternalSecretDataRemoteRef{Key: "sample"},
+	})
+	if err != nil {
+		t.Fatalf("GetSecret() error = %v", err)
+	}
+
+	if string(resp.Value) != "compat-value" {
+		t.Fatalf("unexpected response: %q", string(resp.Value))
+	}
+	if mapper.ref != nil {
+		t.Fatalf("expected compatibility store to bypass provider ref mapping, got %#v", mapper.ref)
+	}
+}
+
+func TestServerGetSecretMapUsesCompatibilityStore(t *testing.T) {
+	mapper := &specMapperRecorder{err: errors.New("spec mapper should not be called")}
+	fakeClient := &fakeSecretsClient{
+		getSecretMapResponse: map[string][]byte{"foo": []byte("bar")},
+	}
+
+	server := NewServer(nil, ProviderMapping{
+		schema.GroupVersionKind{Group: "provider.external-secrets.io", Version: "v2alpha1", Kind: "Fake"}: &fakeProviderInterface{
+			caps: esv1.SecretStoreReadWrite,
+			newClient: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+				return fakeClient, nil
+			},
+		},
+	}, mapper.mapRef)
+
+	spec := &esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			Fake: &esv1.FakeProvider{},
+		},
+	}
+
+	resp, err := server.GetSecretMap(context.Background(), &pb.GetSecretMapRequest{
+		CompatibilityStore: mustCompatibilityStore(t, spec),
+		SourceNamespace:    serverTestSourceNamespace,
+		RemoteRef:          &pb.ExternalSecretDataRemoteRef{Key: "sample"},
+	})
+	if err != nil {
+		t.Fatalf("GetSecretMap() error = %v", err)
+	}
+
+	if string(resp.Secrets["foo"]) != "bar" {
+		t.Fatalf("unexpected response: %#v", resp.Secrets)
+	}
+	if mapper.ref != nil {
+		t.Fatalf("expected spec mapper to be bypassed, got %#v", mapper.ref)
+	}
+}
+
+func TestServerGetAllSecretsUsesCompatibilityStore(t *testing.T) {
+	mapper := &specMapperRecorder{err: errors.New("spec mapper should not be called")}
+	fakeClient := &fakeSecretsClient{
+		getAllSecretsResponse: map[string][]byte{"db-password": []byte(serverTestValue)},
+	}
+
+	server := NewServer(nil, ProviderMapping{
+		schema.GroupVersionKind{Group: "provider.external-secrets.io", Version: "v2alpha1", Kind: "Fake"}: &fakeProviderInterface{
+			caps: esv1.SecretStoreReadWrite,
+			newClient: func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+				return fakeClient, nil
+			},
+		},
+	}, mapper.mapRef)
+
+	spec := &esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			Fake: &esv1.FakeProvider{},
+		},
+	}
+
+	resp, err := server.GetAllSecrets(context.Background(), &pb.GetAllSecretsRequest{
+		CompatibilityStore: mustCompatibilityStore(t, spec),
+		SourceNamespace:    serverTestSourceNamespace,
+		Find:               &pb.ExternalSecretFind{Tags: map[string]string{"team": "a"}},
+	})
+	if err != nil {
+		t.Fatalf("GetAllSecrets() error = %v", err)
+	}
+
+	if string(resp.Secrets["db-password"]) != serverTestValue {
+		t.Fatalf("unexpected response: %#v", resp.Secrets)
+	}
+	if mapper.ref != nil {
+		t.Fatalf("expected spec mapper to be bypassed, got %#v", mapper.ref)
 	}
 }
 

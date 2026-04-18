@@ -29,7 +29,6 @@ import (
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
 	genpb "github.com/external-secrets/external-secrets/proto/generator"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
-	"github.com/external-secrets/external-secrets/providers/v2/adapter"
 	adaptergenerator "github.com/external-secrets/external-secrets/providers/v2/adapter/generator"
 	adapterstore "github.com/external-secrets/external-secrets/providers/v2/adapter/store"
 	grpcserver "github.com/external-secrets/external-secrets/providers/v2/common/grpc/server"
@@ -73,6 +72,7 @@ func main() {
 	}
 	// Setup v1 provider(s)
 	v1Provider0 := store.NewProvider()
+	compatibilityProvider := store.NewProvider()
 	providerMapping := adapterstore.ProviderMapping{
 		schema.GroupVersionKind{
 			Group:   "provider.external-secrets.io",
@@ -90,7 +90,8 @@ func main() {
 			Kind:    "Fake",
 		}: generator.NewGenerator(),
 	}
-	adapterServer := adapter.NewServer(kubeClient, scheme, providerMapping, specMapper, generatorMapping)
+	storeServer := adapterstore.NewServerWithCompatibilityProvider(kubeClient, providerMapping, specMapper, compatibilityProvider)
+	generatorServer := adaptergenerator.NewServer(kubeClient, scheme, generatorMapping)
 
 	log.Printf("[PROVIDER] Using v1 Fake Provider provider with generators wrapped with v2 adapter")
 	grpcServer, err := grpcserver.NewGRPCServer(grpcserver.ServerOptions{
@@ -102,8 +103,8 @@ func main() {
 	}
 
 	// Register services
-	pb.RegisterSecretStoreProviderServer(grpcServer, adapterServer)
-	genpb.RegisterGeneratorProviderServer(grpcServer, adapterServer)
+	pb.RegisterSecretStoreProviderServer(grpcServer, storeServer)
+	genpb.RegisterGeneratorProviderServer(grpcServer, generatorServer)
 
 	// Register health service
 	healthServer := health.NewServer()

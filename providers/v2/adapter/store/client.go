@@ -30,9 +30,11 @@ import (
 // Client wraps a v2.Provider (gRPC client) and exposes it as an esv1.SecretsClient.
 // This allows v2 providers to be used with the existing client manager infrastructure.
 type Client struct {
-	v2Provider      v2.Provider
-	providerRef     *pb.ProviderReference
-	sourceNamespace string
+	v2Provider         v2.Provider
+	providerRef        *pb.ProviderReference
+	compatibilityStore *pb.CompatibilityStore
+	sourceNamespace    string
+	closeFunc          func(context.Context) error
 }
 
 // Ensure Client implements SecretsClient interface.
@@ -40,26 +42,47 @@ var _ esv1.SecretsClient = &Client{}
 
 // NewClient creates a new wrapper that adapts a v2.Provider to esv1.SecretsClient.
 func NewClient(v2Provider v2.Provider, providerRef *pb.ProviderReference, sourceNamespace string) esv1.SecretsClient {
+	return NewClientWithCloser(v2Provider, providerRef, sourceNamespace, nil)
+}
+
+// NewClientWithCloser creates a provider-ref based wrapper with a custom close function.
+func NewClientWithCloser(v2Provider v2.Provider, providerRef *pb.ProviderReference, sourceNamespace string, closeFunc func(context.Context) error) esv1.SecretsClient {
 	return &Client{
 		v2Provider:      v2Provider,
 		providerRef:     providerRef,
 		sourceNamespace: sourceNamespace,
+		closeFunc:       closeFunc,
+	}
+}
+
+// NewCompatibilityClient creates a compatibility-store based wrapper for runtimeRef reads.
+func NewCompatibilityClient(v2Provider v2.Provider, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) esv1.SecretsClient {
+	return NewCompatibilityClientWithCloser(v2Provider, compatibilityStore, sourceNamespace, nil)
+}
+
+// NewCompatibilityClientWithCloser creates a compatibility-store based wrapper with a custom close function.
+func NewCompatibilityClientWithCloser(v2Provider v2.Provider, compatibilityStore *pb.CompatibilityStore, sourceNamespace string, closeFunc func(context.Context) error) esv1.SecretsClient {
+	return &Client{
+		v2Provider:         v2Provider,
+		compatibilityStore: compatibilityStore,
+		sourceNamespace:    sourceNamespace,
+		closeFunc:          closeFunc,
 	}
 }
 
 // GetSecret retrieves a single secret from the provider.
 func (w *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return w.v2Provider.GetSecret(ctx, ref, w.providerRef, w.sourceNamespace)
+	return w.v2Provider.GetSecret(ctx, ref, w.providerRef, w.compatibilityStore, w.sourceNamespace)
 }
 
 // GetSecretMap retrieves a secret object and returns its key/value pairs.
 func (w *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return w.v2Provider.GetSecretMap(ctx, ref, w.providerRef, w.sourceNamespace)
+	return w.v2Provider.GetSecretMap(ctx, ref, w.providerRef, w.compatibilityStore, w.sourceNamespace)
 }
 
 // GetAllSecrets retrieves multiple secrets based on find criteria.
 func (w *Client) GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return w.v2Provider.GetAllSecrets(ctx, find, w.providerRef, w.sourceNamespace)
+	return w.v2Provider.GetAllSecrets(ctx, find, w.providerRef, w.compatibilityStore, w.sourceNamespace)
 }
 
 // PushSecret writes a secret to the provider.
@@ -114,5 +137,8 @@ func (w *Client) Validate() (esv1.ValidationResult, error) {
 
 // Close cleans up any resources held by the provider client.
 func (w *Client) Close(ctx context.Context) error {
+	if w.closeFunc != nil {
+		return w.closeFunc(ctx)
+	}
 	return w.v2Provider.Close(ctx)
 }
