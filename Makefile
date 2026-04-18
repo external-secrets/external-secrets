@@ -98,6 +98,15 @@ proto: ## Generate protobuf code
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		-I. \
 		providers/v2/common/proto/generator/generator.proto
+	@for file in \
+		providers/v2/common/proto/provider/secretstore.pb.go \
+		providers/v2/common/proto/provider/secretstore_grpc.pb.go \
+		providers/v2/common/proto/generator/generator.pb.go \
+		providers/v2/common/proto/generator/generator_grpc.pb.go; do \
+		tmp=$$(mktemp); \
+		cat hack/boilerplate.go.txt "$$file" > "$$tmp"; \
+		mv "$$tmp" "$$file"; \
+	done
 	@$(OK) protobuf code generated
 
 # ====================================================================================
