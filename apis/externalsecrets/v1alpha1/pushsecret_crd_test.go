@@ -110,6 +110,17 @@ func TestPushSecretCRDSecretStoreRefKindIncludesProviderStoreKinds(t *testing.T)
 
 	assertContains("ProviderStore")
 	assertContains("ClusterProviderStore")
+	assertNotContains := func(value string) {
+		t.Helper()
+		for _, candidate := range kindEnum {
+			if candidate == value {
+				t.Fatalf("kind enum unexpectedly contains %q: %v", value, kindEnum)
+			}
+		}
+	}
+
+	assertNotContains("Provider")
+	assertNotContains("ClusterProvider")
 }
 
 func TestPushSecretCRDDoesNotDefaultSecretStoreRefAPIVersion(t *testing.T) {

@@ -34,7 +34,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 )
 
-// GetSecretStoresV2 retrieves both v1 and v2 Providers.
+// GetSecretStoresV2 retrieves both v1 stores and clean v2 ProviderStores.
 func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSecret) (map[esv1alpha1.PushSecretStoreRef]any, error) {
 	stores := make(map[esv1alpha1.PushSecretStoreRef]any)
 
@@ -105,25 +105,6 @@ func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef
 			store := &storeList.Items[i]
 			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esv1.ClusterProviderStoreKindStr}] = store
 		}
-	case esapi.ProviderKindStr:
-		listOptions.Namespace = namespace
-		var providerList esv1.ProviderList
-		if err := r.List(ctx, &providerList, listOptions); err != nil {
-			return nil, fmt.Errorf("could not list Providers: %w", err)
-		}
-		for i := range providerList.Items {
-			store := &providerList.Items[i]
-			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esapi.ProviderKindStr}] = store
-		}
-	case esapi.ClusterProviderKindStr:
-		var providerList esv1.ClusterProviderList
-		if err := r.List(ctx, &providerList, listOptions); err != nil {
-			return nil, fmt.Errorf("could not list ClusterProviders: %w", err)
-		}
-		for i := range providerList.Items {
-			store := &providerList.Items[i]
-			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esapi.ClusterProviderKindStr}] = store
-		}
 	case esv1.ClusterSecretStoreKind:
 		var storeList esv1.ClusterSecretStoreList
 		if err := r.List(ctx, &storeList, listOptions); err != nil {
@@ -171,20 +152,6 @@ func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.Pus
 			return nil, true, fmt.Errorf("failed to get v2 ClusterProviderStore %s: %w", storeRef.Name, err)
 		}
 		return &store, true, nil
-	case esapi.ClusterProviderKindStr:
-		var store esapi.ClusterProvider
-		storeKey := types.NamespacedName{Name: storeRef.Name}
-		if err := r.Client.Get(ctx, storeKey, &store); err != nil {
-			return nil, true, fmt.Errorf("failed to get v2 ClusterProvider %s: %w", storeRef.Name, err)
-		}
-		return &store, true, nil
-	case esapi.ProviderKindStr:
-		var store esapi.Provider
-		storeKey := types.NamespacedName{Name: storeRef.Name, Namespace: namespace}
-		if err := r.Client.Get(ctx, storeKey, &store); err != nil {
-			return nil, true, fmt.Errorf("failed to get v2 Provider %s: %w", storeRef.Name, err)
-		}
-		return &store, true, nil
 	case "":
 		var providerStore esv2alpha1.ProviderStore
 		providerStoreKey := types.NamespacedName{Name: storeRef.Name, Namespace: namespace}
@@ -196,18 +163,6 @@ func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.Pus
 		clusterProviderStoreKey := types.NamespacedName{Name: storeRef.Name}
 		if err := r.Client.Get(ctx, clusterProviderStoreKey, &clusterProviderStore); err == nil {
 			return &clusterProviderStore, true, nil
-		}
-
-		var provider esapi.Provider
-		providerKey := types.NamespacedName{Name: storeRef.Name, Namespace: namespace}
-		if err := r.Client.Get(ctx, providerKey, &provider); err == nil {
-			return &provider, true, nil
-		}
-
-		var clusterProvider esapi.ClusterProvider
-		clusterProviderKey := types.NamespacedName{Name: storeRef.Name}
-		if err := r.Client.Get(ctx, clusterProviderKey, &clusterProvider); err == nil {
-			return &clusterProvider, true, nil
 		}
 	}
 

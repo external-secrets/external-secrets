@@ -24,7 +24,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -36,7 +35,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	pb "github.com/external-secrets/external-secrets/proto/provider"
 	adapterstore "github.com/external-secrets/external-secrets/providers/v2/adapter/store"
 	"github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 )
@@ -46,16 +44,12 @@ const (
 	errGetSecretStore             = "could not get SecretStore %q, %w"
 	errSecretStoreNotReady        = "%s %q is not ready"
 	errClusterStoreMismatch       = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
-	errClusterProviderDenied      = "using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions"
 	errClusterProviderStoreDenied = "using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions"
-	errV2ProvidersDisabled        = "v2 provider support is disabled, refusing %s %q (enable with --enable-v2-providers)"
 
 	providerMetricsLabel        = "provider"
 	clusterProviderMetricsLabel = "cluster-provider"
 	cacheInvalidationGeneration = "generation_change"
 	cacheInvalidationMismatch   = "store_mismatch"
-	v2ProviderCacheKeyType      = "v2-provider"
-	v2ClusterProviderCacheKey   = "v2-cluster-provider"
 	v2ProviderStoreCacheKey     = "v2-provider-store"
 	v2ClusterProviderStoreCache = "v2-cluster-provider-store"
 	runtimeRefCacheKeyType      = "runtime-ref"
@@ -68,18 +62,7 @@ var (
 	globalV2ConnectionPool     *grpc.ConnectionPool
 	globalV2ConnectionPoolOnce sync.Once
 	globalV2ConnectionPoolLog  logr.Logger
-	v2ProvidersEnabled         atomic.Bool
 )
-
-// SetV2ProvidersEnabled toggles support for experimental v2 Provider and ClusterProvider references.
-func SetV2ProvidersEnabled(enabled bool) {
-	v2ProvidersEnabled.Store(enabled)
-}
-
-// V2ProvidersEnabled reports whether v2 Provider and ClusterProvider references are allowed.
-func V2ProvidersEnabled() bool {
-	return v2ProvidersEnabled.Load()
-}
 
 // initGlobalV2ConnectionPool initializes the global connection pool for v2 providers.
 // This is called once on first use via sync.Once.
@@ -136,17 +119,6 @@ type clientVal struct {
 	store  esv1.GenericStore
 	// For v2 providers, store the generation for cache invalidation
 	v2ProviderGeneration int64
-}
-
-// v2ProviderConfig contains configuration for creating a v2 provider client.
-type v2ProviderConfig struct {
-	name              string
-	resourceNamespace string // empty for cluster-scoped resources
-	manifestNamespace string // namespace of the ExternalSecret/PushSecret
-	config            esv1.ProviderConfig
-	generation        int64
-	isClusterScoped   bool
-	kindStr           string // "Provider" or "ClusterProvider"
 }
 
 func providerMetricsLabelForScope(isClusterScoped bool) string {
@@ -317,28 +289,10 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespa
 		storeRef = *sourceRef.SecretStoreRef
 	}
 
-	if storeRef.Kind == esv1.ProviderKindStr {
-		if !V2ProvidersEnabled() {
-			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
-		}
-		return m.getV2ProviderClient(ctx, storeRef.Name, namespace)
-	}
-	if storeRef.Kind == esv1.ClusterProviderKindStr {
-		if !V2ProvidersEnabled() {
-			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
-		}
-		return m.getV2ClusterProviderClient(ctx, storeRef.Name, namespace)
-	}
 	if storeRef.Kind == esv1.ProviderStoreKindStr {
-		if !V2ProvidersEnabled() {
-			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
-		}
 		return m.getV2ProviderStoreClient(ctx, storeRef.Name, namespace)
 	}
 	if storeRef.Kind == esv1.ClusterProviderStoreKindStr {
-		if !V2ProvidersEnabled() {
-			return nil, fmt.Errorf(errV2ProvidersDisabled, storeRef.Kind, storeRef.Name)
-		}
 		return m.getV2ClusterProviderStoreClient(ctx, storeRef.Name, namespace)
 	}
 
@@ -366,185 +320,6 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespa
 		}
 	}
 	return m.GetFromStore(ctx, store, namespace)
-}
-
-// getOrCreateV2Client is a shared helper for creating or retrieving v2 provider clients.
-// It handles caching, connection pooling, and client lifecycle for both Provider and ClusterProvider.
-func (m *Manager) getOrCreateV2Client(ctx context.Context, cfg v2ProviderConfig, authNamespace string) (esv1.SecretsClient, error) {
-	// Determine cache key type based on resource type
-	cacheKeyType := v2ProviderCacheKeyType
-	if cfg.isClusterScoped {
-		cacheKeyType = v2ClusterProviderCacheKey
-	}
-
-	// Create cache key
-	cacheKey := clientKey{
-		providerType:        cacheKeyType,
-		v2ProviderName:      cfg.name,
-		v2ProviderNamespace: cfg.manifestNamespace,
-	}
-
-	// Check if we have a cached client
-	if cached, ok := m.clientMap[cacheKey]; ok {
-		if cached.v2ProviderGeneration == cfg.generation {
-			m.log.V(1).Info("reusing cached v2 provider client",
-				cfg.kindStr, cfg.name,
-				"manifestNamespace", cfg.manifestNamespace,
-				"authNamespace", authNamespace,
-				"generation", cfg.generation)
-			// Record cache hit
-			clientManagerMetrics.RecordCacheHit(providerMetricsLabelForScope(cfg.isClusterScoped))
-			return cached.client, nil
-		}
-		// Cache is stale, invalidate
-		m.log.V(1).Info("provider generation changed, invalidating cache",
-			cfg.kindStr, cfg.name,
-			"manifestNamespace", cfg.manifestNamespace,
-			"oldGeneration", cached.v2ProviderGeneration,
-			"newGeneration", cfg.generation)
-		// Record cache invalidation
-		clientManagerMetrics.RecordCacheInvalidation(providerMetricsLabelForScope(cfg.isClusterScoped), cacheInvalidationGeneration)
-		delete(m.clientMap, cacheKey)
-	}
-
-	m.log.V(1).Info("getting v2 provider client from pool",
-		cfg.kindStr, cfg.name,
-		"manifestNamespace", cfg.manifestNamespace,
-		"authNamespace", authNamespace,
-		"address", cfg.config.Address)
-
-	// Get provider address
-	address := cfg.config.Address
-	if address == "" {
-		return nil, fmt.Errorf("provider address is required in %s %q", cfg.kindStr, cfg.name)
-	}
-
-	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(
-		cfg.config.Address,
-		authNamespace,
-		cfg.resourceNamespace,
-		cfg.config.ProviderRef.Namespace,
-	)
-
-	// Load TLS configuration
-	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, m.client, cfg.config.Address, tlsSecretNamespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load TLS config for %s %q: %w", cfg.kindStr, cfg.name, err)
-	}
-
-	// Get connection from global pool
-	pool := getGlobalV2ConnectionPool()
-	grpcClient, err := pool.Get(ctx, address, tlsConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get gRPC client from pool for %s %q: %w", cfg.kindStr, cfg.name, err)
-	}
-
-	// Track this connection for release when Manager closes
-	m.v2PooledConnections = append(m.v2PooledConnections, v2PooledConnection{
-		address:   address,
-		tlsConfig: tlsConfig,
-	})
-
-	// Convert ProviderReference to protobuf format
-	providerRef := &pb.ProviderReference{
-		ApiVersion:   cfg.config.ProviderRef.APIVersion,
-		Kind:         cfg.config.ProviderRef.Kind,
-		Name:         cfg.config.ProviderRef.Name,
-		Namespace:    cfg.config.ProviderRef.Namespace,
-		StoreRefKind: cfg.kindStr,
-	}
-
-	// Wrap with V2ClientWrapper
-	wrappedClient := adapterstore.NewClient(grpcClient, providerRef, authNamespace)
-
-	// Cache the client for this Manager instance
-	m.clientMap[cacheKey] = &clientVal{
-		client:               wrappedClient,
-		store:                nil, // v2 providers don't use GenericStore
-		v2ProviderGeneration: cfg.generation,
-	}
-
-	m.log.Info("v2 provider client obtained from pool",
-		cfg.kindStr, cfg.name,
-		"manifestNamespace", cfg.manifestNamespace,
-		"authNamespace", authNamespace,
-		"address", address)
-
-	return wrappedClient, nil
-}
-
-// getV2ProviderClient creates or retrieves a cached gRPC client for a v2 Provider.
-// It uses the global connection pool to enable connection reuse across reconciles.
-func (m *Manager) getV2ProviderClient(ctx context.Context, providerName, namespace string) (esv1.SecretsClient, error) {
-	// Fetch the Provider resource
-	var provider esv1.Provider
-	providerKey := types.NamespacedName{
-		Name:      providerName,
-		Namespace: namespace,
-	}
-	if err := m.client.Get(ctx, providerKey, &provider); err != nil {
-		return nil, fmt.Errorf("failed to get Provider %q: %w", providerName, err)
-	}
-
-	// Build configuration for the helper
-	cfg := v2ProviderConfig{
-		name:              providerName,
-		resourceNamespace: namespace,
-		manifestNamespace: namespace,
-		config:            provider.Spec.Config,
-		generation:        provider.Generation,
-		isClusterScoped:   false,
-		kindStr:           esv1.ProviderKindStr,
-	}
-
-	// For namespace-scoped Provider, auth namespace is always the manifest namespace
-	return m.getOrCreateV2Client(ctx, cfg, namespace)
-}
-
-// getV2ClusterProviderClient creates or retrieves a cached gRPC client for a v2 ClusterProvider.
-// It uses the global connection pool to enable connection reuse across reconciles.
-func (m *Manager) getV2ClusterProviderClient(ctx context.Context, providerName, namespace string) (esv1.SecretsClient, error) {
-	// Fetch the ClusterProvider resource (cluster-scoped)
-	var clusterProvider esv1.ClusterProvider
-	providerKey := types.NamespacedName{
-		Name: providerName,
-	}
-	if err := m.client.Get(ctx, providerKey, &clusterProvider); err != nil {
-		return nil, fmt.Errorf("failed to get ClusterProvider %q: %w", providerName, err)
-	}
-
-	// Validate namespace conditions
-	shouldProcess, err := m.validateNamespaceConditions(clusterProvider.Spec.Conditions, namespace)
-	if err != nil {
-		return nil, err
-	}
-	if !shouldProcess {
-		return nil, fmt.Errorf(errClusterProviderDenied, providerName, namespace)
-	}
-
-	// Determine authentication namespace based on authenticationScope
-	authNamespace := namespace // default to ManifestNamespace
-	if clusterProvider.Spec.AuthenticationScope == esv1.AuthenticationScopeProviderNamespace {
-		// Use namespace from providerRef
-		if clusterProvider.Spec.Config.ProviderRef.Namespace != "" {
-			authNamespace = clusterProvider.Spec.Config.ProviderRef.Namespace
-		} else {
-			return nil, fmt.Errorf("ClusterProvider %q has authenticationScope=ProviderNamespace but spec.config.providerRef.namespace is empty", providerName)
-		}
-	}
-
-	// Build configuration for the helper
-	cfg := v2ProviderConfig{
-		name:              providerName,
-		resourceNamespace: "", // cluster-scoped
-		manifestNamespace: namespace,
-		config:            clusterProvider.Spec.Config,
-		generation:        clusterProvider.Generation,
-		isClusterScoped:   true,
-		kindStr:           esv1.ClusterProviderKindStr,
-	}
-
-	return m.getOrCreateV2Client(ctx, cfg, authNamespace)
 }
 
 // returns a previously stored client from the cache if store and store-version match
@@ -645,9 +420,7 @@ func (m *Manager) Close(ctx context.Context) error {
 	// Close v1 provider clients (they don't use the pool)
 	for key, val := range m.clientMap {
 		// Only close v1 clients; v2 clients are managed by the pool
-		if key.providerType != v2ProviderCacheKeyType &&
-			key.providerType != v2ClusterProviderCacheKey &&
-			key.providerType != v2ProviderStoreCacheKey &&
+		if key.providerType != v2ProviderStoreCacheKey &&
 			key.providerType != v2ClusterProviderStoreCache {
 			err := val.client.Close(ctx)
 			if err != nil {
@@ -718,8 +491,8 @@ func (m *Manager) validateNamespaceConditions(conditions []esv1.ClusterSecretSto
 // shouldProcessSecret validates if a secret should be processed based on namespace conditions.
 // This is a wrapper around validateNamespaceConditions for backward compatibility with GenericStore.
 func (m *Manager) shouldProcessSecret(store esv1.GenericStore, ns string) (bool, error) {
-	// Only check conditions for cluster-scoped resources (ClusterSecretStore and ClusterProvider)
-	if store.GetKind() != esv1.ClusterSecretStoreKind && store.GetKind() != esv1.ClusterProviderKind {
+	// Only check conditions for cluster-scoped resources.
+	if store.GetKind() != esv1.ClusterSecretStoreKind {
 		return true, nil
 	}
 

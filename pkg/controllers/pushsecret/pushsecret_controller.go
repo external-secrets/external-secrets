@@ -1185,10 +1185,6 @@ func resolvedPushStoreKind(refKind string, store any) string {
 	}
 
 	switch store.(type) {
-	case *esv1.Provider:
-		return esv1.ProviderKindStr
-	case *esv1.ClusterProvider:
-		return esv1.ClusterProviderKindStr
 	case *esv2alpha1.ProviderStore:
 		return esv1.ProviderStoreKindStr
 	case *esv2alpha1.ClusterProviderStore:

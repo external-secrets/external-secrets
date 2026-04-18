@@ -18,12 +18,11 @@ package provider
 
 import (
 	"maps"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
@@ -38,28 +37,33 @@ const (
 	StatusConditionKey = "status_condition"
 )
 
-var gaugeVecMetrics = map[string]*prometheus.GaugeVec{}
+var (
+	gaugeVecMetrics     = map[string]*prometheus.GaugeVec{}
+	registerMetricsOnce sync.Once
+)
 
 // SetUpMetrics initializes the metrics for the Provider controller.
 func SetUpMetrics() {
-	providerReconcileDuration := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Subsystem: ProviderSubsystem,
-		Name:      ProviderReconcileDurationKey,
-		Help:      "The duration time to reconcile the Provider",
-	}, ctrlmetrics.NonConditionMetricLabelNames)
+	registerMetricsOnce.Do(func() {
+		providerReconcileDuration := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Subsystem: ProviderSubsystem,
+			Name:      ProviderReconcileDurationKey,
+			Help:      "The duration time to reconcile the Provider",
+		}, ctrlmetrics.NonConditionMetricLabelNames)
 
-	providerCondition := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Subsystem: ProviderSubsystem,
-		Name:      StatusConditionKey,
-		Help:      "The status condition of a specific Provider",
-	}, ctrlmetrics.ConditionMetricLabelNames)
+		providerCondition := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Subsystem: ProviderSubsystem,
+			Name:      StatusConditionKey,
+			Help:      "The status condition of a specific Provider",
+		}, ctrlmetrics.ConditionMetricLabelNames)
 
-	metrics.Registry.MustRegister(providerReconcileDuration, providerCondition)
+		metrics.Registry.MustRegister(providerReconcileDuration, providerCondition)
 
-	gaugeVecMetrics = map[string]*prometheus.GaugeVec{
-		ProviderReconcileDurationKey: providerReconcileDuration,
-		StatusConditionKey:           providerCondition,
-	}
+		gaugeVecMetrics = map[string]*prometheus.GaugeVec{
+			ProviderReconcileDurationKey: providerReconcileDuration,
+			StatusConditionKey:           providerCondition,
+		}
+	})
 }
 
 // GetGaugeVec returns the GaugeVec for the given key.
@@ -79,38 +83,55 @@ func RemoveMetrics(namespace, name string) {
 	}
 }
 
-// UpdateStatusCondition updates the condition metrics for a Provider.
-func UpdateStatusCondition(provider *esapi.Provider, condition esapi.ProviderCondition) {
+// UpdateStatusCondition updates the legacy Provider condition metrics for a v2 ProviderStore.
+func UpdateStatusCondition(name, namespace string, labels map[string]string, conditionType, conditionStatus string) {
 	providerInfo := map[string]string{
-		"name":      provider.GetName(),
-		"namespace": provider.GetNamespace(),
+		"name":      name,
+		"namespace": namespace,
 	}
-	maps.Copy(providerInfo, provider.GetLabels())
+	maps.Copy(providerInfo, labels)
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(providerInfo)
 	providerConditionGauge := GetGaugeVec(StatusConditionKey)
+	if providerConditionGauge == nil {
+		return
+	}
 
-	if condition.Type == esapi.ProviderReady {
-		switch condition.Status {
-		case metav1.ConditionFalse:
+	if conditionType == "Ready" {
+		switch conditionStatus {
+		case "False":
 			providerConditionGauge.With(ctrlmetrics.RefineLabels(conditionLabels,
 				map[string]string{
-					"condition": string(esapi.ProviderReady),
-					"status":    string(metav1.ConditionTrue),
+					"condition": "Ready",
+					"status":    "True",
 				})).Set(0)
-		case metav1.ConditionTrue:
+		case "True":
 			providerConditionGauge.With(ctrlmetrics.RefineLabels(conditionLabels,
 				map[string]string{
-					"condition": string(esapi.ProviderReady),
-					"status":    string(metav1.ConditionFalse),
+					"condition": "Ready",
+					"status":    "False",
 				})).Set(0)
-		case metav1.ConditionUnknown:
+		case "Unknown":
 			break
 		}
 	}
 
 	providerConditionGauge.With(ctrlmetrics.RefineLabels(conditionLabels,
 		map[string]string{
-			"condition": string(condition.Type),
-			"status":    string(condition.Status),
+			"condition": conditionType,
+			"status":    conditionStatus,
 		})).Set(1)
+}
+
+// RecordReconcileDuration updates the legacy Provider reconcile duration metric for a v2 ProviderStore.
+func RecordReconcileDuration(name, namespace string, labels map[string]string, seconds float64) {
+	providerInfo := map[string]string{
+		"name":      name,
+		"namespace": namespace,
+	}
+	maps.Copy(providerInfo, labels)
+	providerReconcileDurationGauge := GetGaugeVec(ProviderReconcileDurationKey)
+	if providerReconcileDurationGauge == nil {
+		return
+	}
+	providerReconcileDurationGauge.With(ctrlmetrics.RefineNonConditionMetricLabels(providerInfo)).Set(seconds)
 }

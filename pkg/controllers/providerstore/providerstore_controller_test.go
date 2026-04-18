@@ -26,16 +26,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
-	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 )
 
 func TestProviderStoreReconcileMarksReadyWhenValidateSucceeds(t *testing.T) {
-	previous := clientmanager.V2ProvidersEnabled()
-	clientmanager.SetV2ProvidersEnabled(true)
-	t.Cleanup(func() {
-		clientmanager.SetV2ProvidersEnabled(previous)
-	})
-
 	_, address, tlsSecret := newProviderStoreGRPCServer(t)
 
 	store := &esv2alpha1.ProviderStore{
@@ -78,12 +71,6 @@ func TestProviderStoreReconcileMarksReadyWhenValidateSucceeds(t *testing.T) {
 }
 
 func TestClusterProviderStoreReconcileUsesRuntimeOnlyValidationWhenBackendNamespaceIsOmitted(t *testing.T) {
-	previous := clientmanager.V2ProvidersEnabled()
-	clientmanager.SetV2ProvidersEnabled(true)
-	t.Cleanup(func() {
-		clientmanager.SetV2ProvidersEnabled(previous)
-	})
-
 	store := &esv2alpha1.ClusterProviderStore{
 		ObjectMeta: metav1.ObjectMeta{Name: "aws-shared"},
 		Spec: esv2alpha1.ClusterProviderStoreSpec{

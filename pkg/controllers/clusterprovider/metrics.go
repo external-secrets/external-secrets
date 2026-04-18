@@ -17,11 +17,10 @@ limitations under the License.
 package clusterprovider
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	"sync"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/prometheus/client_golang/prometheus"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 const (
@@ -35,28 +34,33 @@ const (
 	StatusConditionKey = "status_condition"
 )
 
-var gaugeVecMetrics = map[string]*prometheus.GaugeVec{}
+var (
+	gaugeVecMetrics     = map[string]*prometheus.GaugeVec{}
+	registerMetricsOnce sync.Once
+)
 
 // SetUpMetrics initializes the metrics for the ClusterProvider controller.
 func SetUpMetrics() {
-	clusterProviderReconcileDuration := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Subsystem: ClusterProviderSubsystem,
-		Name:      ClusterProviderReconcileDurationKey,
-		Help:      "The duration time to reconcile the ClusterProvider",
-	}, []string{"name"})
+	registerMetricsOnce.Do(func() {
+		clusterProviderReconcileDuration := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Subsystem: ClusterProviderSubsystem,
+			Name:      ClusterProviderReconcileDurationKey,
+			Help:      "The duration time to reconcile the ClusterProvider",
+		}, []string{"name"})
 
-	clusterProviderCondition := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Subsystem: ClusterProviderSubsystem,
-		Name:      StatusConditionKey,
-		Help:      "The status condition of a specific ClusterProvider",
-	}, []string{"name", "condition", "status"})
+		clusterProviderCondition := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Subsystem: ClusterProviderSubsystem,
+			Name:      StatusConditionKey,
+			Help:      "The status condition of a specific ClusterProvider",
+		}, []string{"name", "condition", "status"})
 
-	metrics.Registry.MustRegister(clusterProviderReconcileDuration, clusterProviderCondition)
+		metrics.Registry.MustRegister(clusterProviderReconcileDuration, clusterProviderCondition)
 
-	gaugeVecMetrics = map[string]*prometheus.GaugeVec{
-		ClusterProviderReconcileDurationKey: clusterProviderReconcileDuration,
-		StatusConditionKey:                  clusterProviderCondition,
-	}
+		gaugeVecMetrics = map[string]*prometheus.GaugeVec{
+			ClusterProviderReconcileDurationKey: clusterProviderReconcileDuration,
+			StatusConditionKey:                  clusterProviderCondition,
+		}
+	})
 }
 
 // GetGaugeVec returns the GaugeVec for the given key.
@@ -75,32 +79,44 @@ func RemoveMetrics(name string) {
 	}
 }
 
-// UpdateStatusCondition updates the condition metrics for a ClusterProvider.
-func UpdateStatusCondition(clusterProvider *esapi.ClusterProvider, condition esapi.ProviderCondition) {
+// UpdateStatusCondition updates the legacy ClusterProvider condition metrics for a v2 ClusterProviderStore.
+func UpdateStatusCondition(name, conditionType, conditionStatus string) {
 	clusterProviderConditionGauge := GetGaugeVec(StatusConditionKey)
+	if clusterProviderConditionGauge == nil {
+		return
+	}
 
-	if condition.Type == esapi.ProviderReady {
-		switch condition.Status {
-		case metav1.ConditionFalse:
+	if conditionType == "Ready" {
+		switch conditionStatus {
+		case "False":
 			clusterProviderConditionGauge.WithLabelValues(
-				clusterProvider.GetName(),
-				string(esapi.ProviderReady),
-				string(metav1.ConditionTrue),
+				name,
+				"Ready",
+				"True",
 			).Set(0)
-		case metav1.ConditionTrue:
+		case "True":
 			clusterProviderConditionGauge.WithLabelValues(
-				clusterProvider.GetName(),
-				string(esapi.ProviderReady),
-				string(metav1.ConditionFalse),
+				name,
+				"Ready",
+				"False",
 			).Set(0)
-		case metav1.ConditionUnknown:
+		case "Unknown":
 			break
 		}
 	}
 
 	clusterProviderConditionGauge.WithLabelValues(
-		clusterProvider.GetName(),
-		string(condition.Type),
-		string(condition.Status),
+		name,
+		conditionType,
+		conditionStatus,
 	).Set(1)
+}
+
+// RecordReconcileDuration updates the legacy ClusterProvider reconcile duration metric for a v2 ClusterProviderStore.
+func RecordReconcileDuration(name string, seconds float64) {
+	clusterProviderReconcileDurationGauge := GetGaugeVec(ClusterProviderReconcileDurationKey)
+	if clusterProviderReconcileDurationGauge == nil {
+		return
+	}
+	clusterProviderReconcileDurationGauge.WithLabelValues(name).Set(seconds)
 }

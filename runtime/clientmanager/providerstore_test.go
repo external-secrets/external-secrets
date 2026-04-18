@@ -34,11 +34,6 @@ import (
 )
 
 func TestManagerGetProviderStoreUsesStoreNamespaceForBackendRef(t *testing.T) {
-	previous := V2ProvidersEnabled()
-	SetV2ProvidersEnabled(true)
-	t.Cleanup(func() {
-		SetV2ProvidersEnabled(previous)
-	})
 	resetGlobalV2ConnectionPoolForTest(t)
 
 	const callerNamespace = "tenant-a"
@@ -103,11 +98,6 @@ func TestManagerGetProviderStoreUsesStoreNamespaceForBackendRef(t *testing.T) {
 }
 
 func TestManagerGetClusterProviderStoreDefaultsBackendNamespaceToCallerNamespace(t *testing.T) {
-	previous := V2ProvidersEnabled()
-	SetV2ProvidersEnabled(true)
-	t.Cleanup(func() {
-		SetV2ProvidersEnabled(previous)
-	})
 	resetGlobalV2ConnectionPoolForTest(t)
 
 	const callerNamespace = "tenant-a"
@@ -171,11 +161,6 @@ func TestManagerGetClusterProviderStoreDefaultsBackendNamespaceToCallerNamespace
 }
 
 func TestManagerGetProviderStoreRejectsNotReadyStoreWhenFloodgateEnabled(t *testing.T) {
-	previous := V2ProvidersEnabled()
-	SetV2ProvidersEnabled(true)
-	t.Cleanup(func() {
-		SetV2ProvidersEnabled(previous)
-	})
 	resetGlobalV2ConnectionPoolForTest(t)
 
 	const callerNamespace = "tenant-a"

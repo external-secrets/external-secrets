@@ -45,7 +45,7 @@ import (
 	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
-	"github.com/external-secrets/external-secrets/pkg/controllers/clusterprovider"
+	clusterprovidermetrics "github.com/external-secrets/external-secrets/pkg/controllers/clusterprovider"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterproviderclass"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
@@ -54,7 +54,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/generatorstate"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
-	"github.com/external-secrets/external-secrets/pkg/controllers/provider"
+	providermetrics "github.com/external-secrets/external-secrets/pkg/controllers/provider"
 	"github.com/external-secrets/external-secrets/pkg/controllers/providerstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
@@ -115,7 +115,6 @@ var (
 	tlsMinVersion                         string
 	enableHTTP2                           bool
 	allowGenericTargets                   bool
-	enableV2Providers                     bool
 	providerNamespace                     string
 	providerServiceNames                  []string
 )
@@ -147,19 +146,16 @@ var rootCmd = &cobra.Command{
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		setupLogger()
-		clientmanager.SetV2ProvidersEnabled(enableV2Providers)
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
-		if enableV2Providers {
-			if err := clientmanager.RegisterMetrics(); err != nil {
-				setupLog.Error(err, "unable to register clientmanager metrics")
-				os.Exit(1)
-			}
-			if err := grpccommon.RegisterMetrics(crmetrics.Registry); err != nil {
-				setupLog.Error(err, "unable to register grpc metrics")
-				os.Exit(1)
-			}
+		if err := clientmanager.RegisterMetrics(); err != nil {
+			setupLog.Error(err, "unable to register clientmanager metrics")
+			os.Exit(1)
+		}
+		if err := grpccommon.RegisterMetrics(crmetrics.Registry); err != nil {
+			setupLog.Error(err, "unable to register grpc metrics")
+			os.Exit(1)
 		}
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
@@ -246,7 +242,8 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		if enableV2Providers && enableSecretStoreReconciler {
+		if enableSecretStoreReconciler {
+			providermetrics.SetUpMetrics()
 			if err = (&providerstore.StoreReconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("ProviderStore"),
@@ -259,6 +256,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		if enableClusterStoreReconciler {
+			clusterprovidermetrics.SetUpMetrics()
 			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
 				Client:            mgr.GetClient(),
@@ -273,7 +271,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		if enableV2Providers && enableClusterStoreReconciler {
+		if enableClusterStoreReconciler {
 			if err = (&providerstore.ClusterStoreReconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("ClusterProviderStore"),
@@ -296,36 +294,6 @@ var rootCmd = &cobra.Command{
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ClusterProviderClass")
 			os.Exit(1)
-		}
-
-		if enableV2Providers {
-			provider.SetUpMetrics()
-			if err = (&provider.Reconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("Provider"),
-				Scheme:          mgr.GetScheme(),
-				RequeueInterval: storeRequeueInterval,
-			}).SetupWithManager(mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-				RateLimiter:             ctrlcommon.BuildRateLimiter(),
-			}); err != nil {
-				setupLog.Error(err, errCreateController, "controller", "Provider")
-				os.Exit(1)
-			}
-
-			clusterprovider.SetUpMetrics()
-			if err = (&clusterprovider.Reconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("ClusterProvider"),
-				Scheme:          mgr.GetScheme(),
-				RequeueInterval: storeRequeueInterval,
-			}).SetupWithManager(mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-				RateLimiter:             ctrlcommon.BuildRateLimiter(),
-			}); err != nil {
-				setupLog.Error(err, errCreateController, "controller", "ClusterProvider")
-				os.Exit(1)
-			}
 		}
 
 		if err = (&generatorstate.Reconciler{
@@ -460,14 +428,12 @@ func init() {
 		true,
 		"Enable a direct API read when the partial Secret cache and managed Secret cache disagree. Disable to rely on cache retry only.",
 	)
-	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
+	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", 30*time.Second, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableGeneratorState, "enable-generator-state", true, "Whether the Controller should manage GeneratorState")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
-	rootCmd.Flags().BoolVar(&enableV2Providers, "enable-v2-providers", false,
-		"Enable experimental v2 Provider/ClusterProvider controllers and metrics.")
 	rootCmd.Flags().
 		BoolVar(&allowGenericTargets, "unsafe-allow-generic-targets", false, "Enable support for creating generic resources (ConfigMaps, Custom Resources). WARNING: Using generic resources, please sure all policies are correctly configured.")
 	fs := feature.Features()
