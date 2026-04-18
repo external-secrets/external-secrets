@@ -17,6 +17,7 @@ limitations under the License.
 package grpc
 
 import (
+	"bytes"
 	"context"
 	"net"
 	"testing"
@@ -30,6 +31,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
+	v2 "github.com/external-secrets/external-secrets/providers/v2/common"
 )
 
 const (
@@ -361,6 +363,100 @@ func TestClientGetAllSecretsSendsCompatibilityStore(t *testing.T) {
 	}
 	if mock.getAllSecretsRequest.CompatibilityStore.StoreName != "compat-store" {
 		t.Fatalf("unexpected compatibility store: %#v", mock.getAllSecretsRequest.CompatibilityStore)
+	}
+}
+
+func TestReadRequestIdentityValidationRejectsMissingReadIdentity(t *testing.T) {
+	testCases := []struct {
+		name string
+		call func(client v2.Provider) error
+	}{
+		{
+			name: "get secret",
+			call: func(client v2.Provider) error {
+				_, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"}, nil, nil, testSourceNamespace)
+				return err
+			},
+		},
+		{
+			name: "get secret map",
+			call: func(client v2.Provider) error {
+				_, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"}, nil, nil, testSourceNamespace)
+				return err
+			},
+		},
+		{
+			name: "get all secrets",
+			call: func(client v2.Provider) error {
+				_, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{}, nil, nil, testSourceNamespace)
+				return err
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockServer{}
+			conn, cleanup := setupTestServer(t, mock)
+			defer cleanup()
+
+			err := tc.call(NewClientWithConn(conn))
+			if err == nil || err.Error() != "provider reference or compatibility store is required for read operations" {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestCompatibilityStoreLogFieldsRedactSpecPayload(t *testing.T) {
+	specPayload := []byte(`{"provider":{"fake":{"data":[{"key":"db","value":"secret-value"}]}}}`)
+	store := &pb.CompatibilityStore{
+		StoreName:       "compat-store",
+		StoreNamespace:  "team-a",
+		StoreKind:       esv1.SecretStoreKind,
+		StoreUid:        "uid-1",
+		StoreGeneration: 7,
+		StoreSpecJson:   specPayload,
+	}
+
+	fields := compatibilityStoreLogFields(store)
+	if len(fields) == 0 {
+		t.Fatal("expected compatibility store log fields")
+	}
+
+	found := map[string]bool{}
+	for i := 0; i < len(fields); i += 2 {
+		key, ok := fields[i].(string)
+		if !ok {
+			t.Fatalf("expected string log key, got %T", fields[i])
+		}
+		found[key] = true
+		if bytes.Equal([]byte(key), specPayload) {
+			t.Fatalf("unexpected spec payload key: %q", key)
+		}
+		value := fields[i+1]
+		if value == store {
+			t.Fatalf("unexpected raw compatibility store in log fields")
+		}
+		if payload, ok := value.([]byte); ok && bytes.Equal(payload, specPayload) {
+			t.Fatalf("unexpected raw spec payload in log fields")
+		}
+		if text, ok := value.(string); ok && text == string(specPayload) {
+			t.Fatalf("unexpected raw spec payload string in log fields")
+		}
+	}
+
+	for _, key := range []string{
+		"compatibilityStoreKind",
+		"compatibilityStoreName",
+		"compatibilityStoreNamespace",
+		"compatibilityStoreUID",
+		"compatibilityStoreGeneration",
+		"compatibilityStoreSpecBytes",
+	} {
+		if !found[key] {
+			t.Fatalf("expected log field %q, got %#v", key, fields)
+		}
 	}
 }
 

@@ -42,6 +42,9 @@ func CompatibilityStoreToSyntheticStore(store *pb.CompatibilityStore) (*Syntheti
 	if err := json.Unmarshal(store.GetStoreSpecJson(), spec); err != nil {
 		return nil, fmt.Errorf("decode compatibility store spec: %w", err)
 	}
+	if spec.Provider == nil {
+		return nil, fmt.Errorf("compatibility store provider config is required")
+	}
 
 	switch store.GetStoreKind() {
 	case esv1.SecretStoreKind, esv1.ClusterSecretStoreKind:

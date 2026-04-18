@@ -97,7 +97,7 @@ func main() {
 	{{- range $idx, $store := .Stores}}
 	v1Provider{{$idx}} := {{$store.ImportAlias}}.{{$store.V1ProviderFunc}}()
 	{{- end}}
-	compatibilityProvider := {{(index .Stores 0).ImportAlias}}.{{(index .Stores 0).V1ProviderFunc}}()
+	compatibilityProvider := v1Provider0
 	providerMapping := adapterstore.ProviderMapping{
 		{{- range $idx, $store := .Stores}}
 		schema.GroupVersionKind{

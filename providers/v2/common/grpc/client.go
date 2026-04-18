@@ -33,7 +33,8 @@ import (
 
 const (
 	// defaultTimeout is the default timeout for gRPC calls.
-	defaultTimeout = 30 * time.Second
+	defaultTimeout          = 30 * time.Second
+	readIdentityRequiredErr = "provider reference or compatibility store is required for read operations"
 )
 
 // grpcProviderClient implements the v2.Provider interface using gRPC.
@@ -53,15 +54,19 @@ func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSec
 	defer func() {
 		clientMetrics.ObserveRequest("GetSecret", c.conn.Target(), err, time.Since(start))
 	}()
+	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+		return nil, err
+	}
 
-	c.log.V(1).Info("getting secret via gRPC",
+	logFields := append([]any{
 		"key", ref.Key,
 		"version", ref.Version,
 		"property", ref.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
-		"compatibilityStore", compatibilityStore,
-		"sourceNamespace", sourceNamespace)
+		"sourceNamespace", sourceNamespace,
+	}, compatibilityStoreLogFields(compatibilityStore)...)
+	c.log.V(1).Info("getting secret via gRPC", logFields...)
 
 	// Check connection state before call
 	state := c.conn.GetState()
@@ -120,15 +125,19 @@ func (c *grpcProviderClient) GetSecretMap(ctx context.Context, ref esv1.External
 	defer func() {
 		clientMetrics.ObserveRequest("GetSecretMap", c.conn.Target(), err, time.Since(start))
 	}()
+	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+		return nil, err
+	}
 
-	c.log.V(1).Info("getting secret map via gRPC",
+	logFields := append([]any{
 		"key", ref.Key,
 		"version", ref.Version,
 		"property", ref.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
-		"compatibilityStore", compatibilityStore,
-		"sourceNamespace", sourceNamespace)
+		"sourceNamespace", sourceNamespace,
+	}, compatibilityStoreLogFields(compatibilityStore)...)
+	c.log.V(1).Info("getting secret map via gRPC", logFields...)
 
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
@@ -246,13 +255,17 @@ func (c *grpcProviderClient) GetAllSecrets(ctx context.Context, find esv1.Extern
 	defer func() {
 		clientMetrics.ObserveRequest("GetAllSecrets", c.conn.Target(), err, time.Since(start))
 	}()
+	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+		return nil, err
+	}
 
-	c.log.V(1).Info("getting all secrets via gRPC",
+	logFields := append([]any{
 		"tags", find.Tags,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
-		"compatibilityStore", compatibilityStore,
-		"sourceNamespace", sourceNamespace)
+		"sourceNamespace", sourceNamespace,
+	}, compatibilityStoreLogFields(compatibilityStore)...)
+	c.log.V(1).Info("getting all secrets via gRPC", logFields...)
 
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
@@ -299,6 +312,28 @@ func (c *grpcProviderClient) GetAllSecrets(ctx context.Context, find esv1.Extern
 		"secretCount", len(resp.Secrets))
 
 	return resp.Secrets, nil
+}
+
+func validateReadIdentity(providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore) error {
+	if providerRef == nil && compatibilityStore == nil {
+		return fmt.Errorf(readIdentityRequiredErr)
+	}
+	return nil
+}
+
+func compatibilityStoreLogFields(store *pb.CompatibilityStore) []any {
+	if store == nil {
+		return nil
+	}
+
+	return []any{
+		"compatibilityStoreKind", store.GetStoreKind(),
+		"compatibilityStoreName", store.GetStoreName(),
+		"compatibilityStoreNamespace", store.GetStoreNamespace(),
+		"compatibilityStoreUID", store.GetStoreUid(),
+		"compatibilityStoreGeneration", store.GetStoreGeneration(),
+		"compatibilityStoreSpecBytes", len(store.GetStoreSpecJson()),
+	}
 }
 
 // PushSecret writes a secret to the provider via gRPC.

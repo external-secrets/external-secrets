@@ -32,18 +32,21 @@ import (
 type Provider interface {
 	// GetSecret retrieves a single secret from the provider.
 	// If the secret doesn't exist, it should return an error.
-	// Either providerRef or compatibilityStore identifies the store configuration for read operations.
+	// At least one of providerRef or compatibilityStore must be provided.
+	// If both are present, compatibilityStore takes precedence for read operations.
 	// sourceNamespace is the namespace of the ExternalSecret.
 	GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) ([]byte, error)
 
 	// GetSecretMap retrieves multiple key/value pairs from a single secret object.
-	// Either providerRef or compatibilityStore identifies the store configuration for read operations.
+	// At least one of providerRef or compatibilityStore must be provided.
+	// If both are present, compatibilityStore takes precedence for read operations.
 	// sourceNamespace is the namespace of the ExternalSecret.
 	GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error)
 
 	// GetAllSecrets retrieves multiple secrets based on find criteria.
 	// Returns a map of secret names to their byte values.
-	// Either providerRef or compatibilityStore identifies the store configuration for read operations.
+	// At least one of providerRef or compatibilityStore must be provided.
+	// If both are present, compatibilityStore takes precedence for read operations.
 	// sourceNamespace is the namespace of the ExternalSecret.
 	GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error)
 

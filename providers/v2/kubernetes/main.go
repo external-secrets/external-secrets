@@ -67,7 +67,7 @@ func main() {
 	}
 	// Setup v1 provider(s)
 	v1Provider0 := kubernetes.NewProvider()
-	compatibilityProvider := kubernetes.NewProvider()
+	compatibilityProvider := v1Provider0
 	providerMapping := adapterstore.ProviderMapping{
 		schema.GroupVersionKind{
 			Group:   "provider.external-secrets.io",
