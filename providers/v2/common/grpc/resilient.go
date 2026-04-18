@@ -88,21 +88,40 @@ func NewResilientClient(config ResilientClientConfig) (*ResilientClient, error) 
 var _ v2.Provider = &ResilientClient{}
 
 // PushSecret writes a secret with retry logic and circuit breaking.
-func (rc *ResilientClient) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (rc *ResilientClient) PushSecret(
+	ctx context.Context,
+	secret *corev1.Secret,
+	pushSecretData *pb.PushSecretData,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
 		return client.PushSecret(ctx, secret, pushSecretData, providerRef, compatibilityStore, sourceNamespace)
 	})
 }
 
 // DeleteSecret deletes a secret with retry logic and circuit breaking.
-func (rc *ResilientClient) DeleteSecret(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (rc *ResilientClient) DeleteSecret(
+	ctx context.Context,
+	remoteRef *pb.PushSecretRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
 		return client.DeleteSecret(ctx, remoteRef, providerRef, compatibilityStore, sourceNamespace)
 	})
 }
 
 // SecretExists checks if a secret exists with retry logic and circuit breaking.
-func (rc *ResilientClient) SecretExists(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (bool, error) {
+func (rc *ResilientClient) SecretExists(
+	ctx context.Context,
+	remoteRef *pb.PushSecretRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (bool, error) {
 	var result bool
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
@@ -118,7 +137,13 @@ func (rc *ResilientClient) SecretExists(ctx context.Context, remoteRef *pb.PushS
 }
 
 // GetSecret retrieves a secret with retry logic and circuit breaking.
-func (rc *ResilientClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) ([]byte, error) {
+func (rc *ResilientClient) GetSecret(
+	ctx context.Context,
+	ref esv1.ExternalSecretDataRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) ([]byte, error) {
 	var result []byte
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
@@ -134,7 +159,13 @@ func (rc *ResilientClient) GetSecret(ctx context.Context, ref esv1.ExternalSecre
 }
 
 // GetSecretMap retrieves multiple key/value pairs from a single provider object with retry logic and circuit breaking.
-func (rc *ResilientClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
+func (rc *ResilientClient) GetSecretMap(
+	ctx context.Context,
+	ref esv1.ExternalSecretDataRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (map[string][]byte, error) {
 	var result map[string][]byte
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
@@ -150,7 +181,13 @@ func (rc *ResilientClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSe
 }
 
 // GetAllSecrets retrieves multiple secrets with retry logic and circuit breaking.
-func (rc *ResilientClient) GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
+func (rc *ResilientClient) GetAllSecrets(
+	ctx context.Context,
+	find esv1.ExternalSecretFind,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (map[string][]byte, error) {
 	var result map[string][]byte
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {

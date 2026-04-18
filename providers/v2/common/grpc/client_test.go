@@ -35,8 +35,9 @@ import (
 )
 
 const (
-	bufSize             = 1024 * 1024
-	testSourceNamespace = "tenant-a"
+	bufSize                    = 1024 * 1024
+	testCompatibilityStoreName = "compat-store"
+	testSourceNamespace        = "tenant-a"
 )
 
 type mockServer struct {
@@ -268,7 +269,7 @@ func TestClientGetSecretSendsCompatibilityStore(t *testing.T) {
 
 	client := NewClientWithConn(conn)
 	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
+		StoreName:       testCompatibilityStoreName,
 		StoreNamespace:  "config-ns",
 		StoreKind:       esv1.SecretStoreKind,
 		StoreUid:        "uid-1",
@@ -293,7 +294,7 @@ func TestClientGetSecretSendsCompatibilityStore(t *testing.T) {
 	if mock.getSecretRequest.CompatibilityStore == nil {
 		t.Fatal("expected compatibility store to be recorded")
 	}
-	if mock.getSecretRequest.CompatibilityStore.StoreName != "compat-store" {
+	if mock.getSecretRequest.CompatibilityStore.StoreName != testCompatibilityStoreName {
 		t.Fatalf("unexpected compatibility store: %#v", mock.getSecretRequest.CompatibilityStore)
 	}
 }
@@ -305,7 +306,7 @@ func TestClientGetSecretMapSendsCompatibilityStore(t *testing.T) {
 
 	client := NewClientWithConn(conn)
 	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
+		StoreName:       testCompatibilityStoreName,
 		StoreNamespace:  "config-ns",
 		StoreKind:       esv1.SecretStoreKind,
 		StoreUid:        "uid-1",
@@ -327,7 +328,7 @@ func TestClientGetSecretMapSendsCompatibilityStore(t *testing.T) {
 	if mock.getSecretMapRequest.CompatibilityStore == nil {
 		t.Fatal("expected compatibility store to be recorded")
 	}
-	if mock.getSecretMapRequest.CompatibilityStore.StoreName != "compat-store" {
+	if mock.getSecretMapRequest.CompatibilityStore.StoreName != testCompatibilityStoreName {
 		t.Fatalf("unexpected compatibility store: %#v", mock.getSecretMapRequest.CompatibilityStore)
 	}
 }
@@ -339,7 +340,7 @@ func TestClientGetAllSecretsSendsCompatibilityStore(t *testing.T) {
 
 	client := NewClientWithConn(conn)
 	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
+		StoreName:       testCompatibilityStoreName,
 		StoreNamespace:  "config-ns",
 		StoreKind:       esv1.SecretStoreKind,
 		StoreUid:        "uid-1",
@@ -361,7 +362,7 @@ func TestClientGetAllSecretsSendsCompatibilityStore(t *testing.T) {
 	if mock.getAllSecretsRequest.CompatibilityStore == nil {
 		t.Fatal("expected compatibility store to be recorded")
 	}
-	if mock.getAllSecretsRequest.CompatibilityStore.StoreName != "compat-store" {
+	if mock.getAllSecretsRequest.CompatibilityStore.StoreName != testCompatibilityStoreName {
 		t.Fatalf("unexpected compatibility store: %#v", mock.getAllSecretsRequest.CompatibilityStore)
 	}
 }
@@ -373,7 +374,7 @@ func TestClientValidateSendsCompatibilityStore(t *testing.T) {
 
 	client := NewClientWithConn(conn)
 	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
+		StoreName:       testCompatibilityStoreName,
 		StoreNamespace:  "config-ns",
 		StoreKind:       esv1.SecretStoreKind,
 		StoreUid:        "uid-1",
@@ -404,7 +405,7 @@ func TestClientPushSecretSendsCompatibilityStore(t *testing.T) {
 
 	client := NewClientWithConn(conn)
 	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
+		StoreName:       testCompatibilityStoreName,
 		StoreNamespace:  "config-ns",
 		StoreKind:       esv1.SecretStoreKind,
 		StoreUid:        "uid-1",
@@ -437,7 +438,7 @@ func TestClientDeleteSecretSendsCompatibilityStore(t *testing.T) {
 
 	client := NewClientWithConn(conn)
 	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
+		StoreName:       testCompatibilityStoreName,
 		StoreNamespace:  "config-ns",
 		StoreKind:       esv1.SecretStoreKind,
 		StoreUid:        "uid-1",
@@ -468,7 +469,7 @@ func TestClientSecretExistsSendsCompatibilityStore(t *testing.T) {
 
 	client := NewClientWithConn(conn)
 	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
+		StoreName:       testCompatibilityStoreName,
 		StoreNamespace:  "config-ns",
 		StoreKind:       esv1.SecretStoreKind,
 		StoreUid:        "uid-1",
@@ -540,7 +541,7 @@ func TestReadRequestIdentityValidationRejectsMissingReadIdentity(t *testing.T) {
 func TestCompatibilityStoreLogFieldsRedactSpecPayload(t *testing.T) {
 	specPayload := []byte(`{"provider":{"fake":{"data":[{"key":"db","value":"secret-value"}]}}}`)
 	store := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
+		StoreName:       testCompatibilityStoreName,
 		StoreNamespace:  "team-a",
 		StoreKind:       esv1.SecretStoreKind,
 		StoreUid:        "uid-1",

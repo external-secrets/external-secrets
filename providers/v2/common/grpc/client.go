@@ -48,13 +48,20 @@ type grpcProviderClient struct {
 var _ v2.Provider = &grpcProviderClient{}
 
 // GetSecret retrieves a single secret from the provider via gRPC.
-func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) ([]byte, error) {
+func (c *grpcProviderClient) GetSecret(
+	ctx context.Context,
+	ref esv1.ExternalSecretDataRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) ([]byte, error) {
 	start := time.Now()
 	var err error
 	defer func() {
 		clientMetrics.ObserveRequest("GetSecret", c.conn.Target(), err, time.Since(start))
 	}()
-	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+		err = validationErr
 		return nil, err
 	}
 
@@ -119,13 +126,20 @@ func (c *grpcProviderClient) GetSecret(ctx context.Context, ref esv1.ExternalSec
 }
 
 // GetSecretMap retrieves multiple key/value pairs from a single provider object via gRPC.
-func (c *grpcProviderClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
+func (c *grpcProviderClient) GetSecretMap(
+	ctx context.Context,
+	ref esv1.ExternalSecretDataRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (map[string][]byte, error) {
 	start := time.Now()
 	var err error
 	defer func() {
 		clientMetrics.ObserveRequest("GetSecretMap", c.conn.Target(), err, time.Since(start))
 	}()
-	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+		err = validationErr
 		return nil, err
 	}
 
@@ -182,7 +196,8 @@ func (c *grpcProviderClient) Validate(ctx context.Context, providerRef *pb.Provi
 	defer func() {
 		clientMetrics.ObserveRequest("Validate", c.conn.Target(), err, time.Since(start))
 	}()
-	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+		err = validationErr
 		return err
 	}
 
@@ -254,13 +269,20 @@ func (c *grpcProviderClient) Validate(ctx context.Context, providerRef *pb.Provi
 }
 
 // GetAllSecrets retrieves multiple secrets based on find criteria via gRPC.
-func (c *grpcProviderClient) GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error) {
+func (c *grpcProviderClient) GetAllSecrets(
+	ctx context.Context,
+	find esv1.ExternalSecretFind,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (map[string][]byte, error) {
 	start := time.Now()
 	var err error
 	defer func() {
 		clientMetrics.ObserveRequest("GetAllSecrets", c.conn.Target(), err, time.Since(start))
 	}()
-	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+		err = validationErr
 		return nil, err
 	}
 
@@ -342,13 +364,21 @@ func compatibilityStoreLogFields(store *pb.CompatibilityStore) []any {
 }
 
 // PushSecret writes a secret to the provider via gRPC.
-func (c *grpcProviderClient) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData *pb.PushSecretData, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (c *grpcProviderClient) PushSecret(
+	ctx context.Context,
+	secret *corev1.Secret,
+	pushSecretData *pb.PushSecretData,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) error {
 	start := time.Now()
 	var err error
 	defer func() {
 		clientMetrics.ObserveRequest("PushSecret", c.conn.Target(), err, time.Since(start))
 	}()
-	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+		err = validationErr
 		return err
 	}
 
@@ -396,13 +426,20 @@ func (c *grpcProviderClient) PushSecret(ctx context.Context, secret *corev1.Secr
 }
 
 // DeleteSecret deletes a secret from the provider via gRPC.
-func (c *grpcProviderClient) DeleteSecret(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (c *grpcProviderClient) DeleteSecret(
+	ctx context.Context,
+	remoteRef *pb.PushSecretRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) error {
 	start := time.Now()
 	var err error
 	defer func() {
 		clientMetrics.ObserveRequest("DeleteSecret", c.conn.Target(), err, time.Since(start))
 	}()
-	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+		err = validationErr
 		return err
 	}
 
@@ -446,13 +483,20 @@ func (c *grpcProviderClient) DeleteSecret(ctx context.Context, remoteRef *pb.Pus
 }
 
 // SecretExists checks if a secret exists in the provider via gRPC.
-func (c *grpcProviderClient) SecretExists(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (bool, error) {
+func (c *grpcProviderClient) SecretExists(
+	ctx context.Context,
+	remoteRef *pb.PushSecretRemoteRef,
+	providerRef *pb.ProviderReference,
+	compatibilityStore *pb.CompatibilityStore,
+	sourceNamespace string,
+) (bool, error) {
 	start := time.Now()
 	var err error
 	defer func() {
 		clientMetrics.ObserveRequest("SecretExists", c.conn.Target(), err, time.Since(start))
 	}()
-	if err = validateReadIdentity(providerRef, compatibilityStore); err != nil {
+	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+		err = validationErr
 		return false, err
 	}
 

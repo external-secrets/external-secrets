@@ -46,9 +46,9 @@ func TestGetSpecMapperMapsParameterStore(t *testing.T) {
 			Namespace: "provider-ns",
 		},
 		Spec: awsv2alpha1.ParameterStoreSpec{
-			Region: "eu-central-1",
-			Role:   "arn:aws:iam::123456789012:role/eso-ssm",
-			Prefix: "/team-a/",
+			Region:     "eu-central-1",
+			Role:       "arn:aws:iam::123456789012:role/eso-ssm",
+			Prefix:     "/team-a/",
 			ExternalID: "ext-id",
 		},
 	}).Build()
