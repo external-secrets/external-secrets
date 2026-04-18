@@ -1601,6 +1601,8 @@ metadata:
 spec:
   group: external-secrets.io
   names:
+    categories:
+      - externalsecrets
     kind: ClusterProviderClass
     listKind: ClusterProviderClassList
     plural: clusterproviderclasses
@@ -1609,7 +1611,11 @@ spec:
     singular: clusterproviderclass
   scope: Cluster
   versions:
-    - name: v1alpha1
+    - additionalPrinterColumns:
+        - jsonPath: .spec.address
+          name: Address
+          type: string
+      name: v1alpha1
       schema:
         openAPIV3Schema:
           description: ClusterProviderClass is a cluster-scoped store runtime class.
@@ -1635,6 +1641,7 @@ spec:
               description: ClusterProviderClassSpec defines the desired state of ClusterProviderClass.
               properties:
                 address:
+                  minLength: 1
                   type: string
               required:
                 - address
@@ -1700,6 +1707,8 @@ spec:
                     type: object
                   type: array
               type: object
+          required:
+            - spec
           type: object
       served: true
       storage: true
@@ -8501,6 +8510,9 @@ spec:
                         - ClusterProviderClass
                       type: string
                     name:
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                       type: string
                   required:
                     - name
@@ -12709,6 +12721,9 @@ spec:
                         - ClusterProviderClass
                       type: string
                     name:
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                       type: string
                   required:
                     - name
@@ -20785,6 +20800,9 @@ spec:
                         - ClusterProviderClass
                       type: string
                     name:
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                       type: string
                   required:
                     - name
@@ -24993,6 +25011,9 @@ spec:
                         - ClusterProviderClass
                       type: string
                     name:
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                       type: string
                   required:
                     - name

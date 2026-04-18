@@ -20,6 +20,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // ClusterProviderClassSpec defines the desired state of ClusterProviderClass.
 type ClusterProviderClassSpec struct {
+	// +kubebuilder:validation:MinLength:=1
 	Address string `json:"address"`
 }
 
@@ -31,14 +32,15 @@ type ClusterProviderClassStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,shortName=cpc
+// +kubebuilder:resource:scope=Cluster,categories={externalsecrets},shortName=cpc
+// +kubebuilder:printcolumn:name="Address",type=string,JSONPath=`.spec.address`
 
 // ClusterProviderClass is a cluster-scoped store runtime class.
 type ClusterProviderClass struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterProviderClassSpec   `json:"spec,omitempty"`
+	Spec   ClusterProviderClassSpec   `json:"spec"`
 	Status ClusterProviderClassStatus `json:"status,omitempty"`
 }
 
