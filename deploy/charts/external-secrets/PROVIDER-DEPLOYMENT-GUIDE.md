@@ -4,6 +4,8 @@
 
 The External Secrets Helm chart has been enhanced to support deploying one or multiple secret providers alongside the controller in a single, monolithic installation. This provides a unified deployment model where both the controller and providers are managed through a single Helm release.
 
+For chart-managed providers, the chart also renders a `ClusterProviderClass` for each enabled provider. That keeps the compatibility migration small: existing `SecretStore` or `ClusterSecretStore` objects add `spec.runtimeRef`, while `ExternalSecret` and `PushSecret` objects stay unchanged.
+
 ## What's New
 
 ### Unified Deployment Model
@@ -239,6 +241,13 @@ helm template test ./deploy/charts/external-secrets \
   -f values-with-providers.yaml
 ```
 
+### Verify the rendered runtime classes
+
+```bash
+kubectl get clusterproviderclass
+kubectl get clusterproviderclass aws -o yaml
+```
+
 ## Files Reference
 
 ### New Files
@@ -287,7 +296,26 @@ When `providers.enabled: true`, the chart renders a `ClusterProviderClass` for e
 provider-<provider-name>.<namespace>.svc:<port>
 ```
 
-To migrate existing stores during this compatibility phase, add `spec.runtimeRef` to your `SecretStore`/`ClusterSecretStore`. `ExternalSecret` and `PushSecret` manifests remain unchanged.
+If the provider runtime is installed by this chart, you do not need to author the `ClusterProviderClass` yourself.
+
+To migrate an existing store during this compatibility phase, keep the provider-specific config and add `spec.runtimeRef`:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: aws-prod
+spec:
+  runtimeRef:
+    kind: ClusterProviderClass
+    name: aws
+  provider:
+    aws:
+      service: SecretsManager
+      region: us-east-1
+```
+
+`ExternalSecret` and `PushSecret` manifests remain unchanged.
 
 ## Best Practices
 
@@ -332,8 +360,10 @@ If you're currently using separate provider Helm charts, you can migrate to this
 1. Extracting your provider configuration from the separate chart values
 2. Adding it to the `providers.list` array in the monolithic chart
 3. Ensuring service account annotations and other cloud-specific settings are preserved
-4. Uninstalling the separate provider charts
-5. Installing/upgrading the monolithic chart with provider configuration
+4. Installing or upgrading the chart and verifying the matching `ClusterProviderClass` objects exist
+5. Updating existing `SecretStore` or `ClusterSecretStore` manifests to include `spec.runtimeRef`
+6. Leaving `ExternalSecret` and `PushSecret` manifests unchanged
+7. Uninstalling the separate provider charts after the migrated stores are healthy
 
 ## Troubleshooting
 
@@ -350,7 +380,7 @@ kubectl logs -l external-secrets.io/provider=aws -f
 
 ### Check metrics
 ```bash
-kubectl port-forward svc/external-secrets-provider-aws 8081:8081
+kubectl port-forward svc/provider-aws 8081:8081
 curl http://localhost:8081/metrics
 ```
 
