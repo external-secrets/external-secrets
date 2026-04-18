@@ -1035,7 +1035,9 @@ func getManagedFieldKeys(
 }
 
 func shouldSkipClusterSecretStore(r *Reconciler, es *esv1.ExternalSecret) bool {
-	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1.ClusterSecretStoreKind
+	return !r.ClusterSecretStoreEnabled &&
+		(es.Spec.SecretStoreRef.Kind == esv1.ClusterSecretStoreKind ||
+			es.Spec.SecretStoreRef.Kind == esv1.ClusterProviderStoreKindStr)
 }
 
 // shouldSkipUnmanagedStore iterates over all secretStore references in the externalSecret spec,
@@ -1092,8 +1094,8 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 		case esv1.ClusterSecretStoreKind:
 			store = &esv1.ClusterSecretStore{}
 			namespace = ""
-		case esv1.ProviderKindStr, esv1.ClusterProviderKindStr:
-			// V2 providers (both Provider and ClusterProvider) don't have controller class, always allow
+		case esv1.ProviderKindStr, esv1.ClusterProviderKindStr, esv1.ProviderStoreKindStr, esv1.ClusterProviderStoreKindStr:
+			// Out-of-process provider-backed stores do not use controllerClass filtering.
 			return false, nil
 		default:
 			return false, fmt.Errorf("unsupported secret store kind: %s", ref.Kind)
