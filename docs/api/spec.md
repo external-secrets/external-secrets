@@ -10626,6 +10626,7 @@ GeneratorRef
 <a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>)
 </p>
 <p>
+<p>StoreRuntimeRef identifies the runtime configuration used by a store.</p>
 </p>
 <table>
 <thead>
@@ -10644,6 +10645,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+<p>Kind identifies the runtime resource type referenced by this store.</p>
 </td>
 </tr>
 <tr>
@@ -10654,6 +10656,7 @@ string
 </em>
 </td>
 <td>
+<p>Name is the runtime resource name referenced by this store.</p>
 </td>
 </tr>
 </tbody>
@@ -22922,6 +22925,7 @@ GeneratorRef
 <a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
 </p>
 <p>
+<p>StoreRuntimeRef identifies the runtime configuration used by a store.</p>
 </p>
 <table>
 <thead>
@@ -22940,6 +22944,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+<p>Kind identifies the runtime resource type referenced by this store.</p>
 </td>
 </tr>
 <tr>
@@ -22950,6 +22955,7 @@ string
 </em>
 </td>
 <td>
+<p>Name is the runtime resource name referenced by this store.</p>
 </td>
 </tr>
 </tbody>
@@ -25085,6 +25091,7 @@ Resource Types:
 <a href="#external-secrets.io/v2alpha1.ProviderStoreSpec">ProviderStoreSpec</a>)
 </p>
 <p>
+<p>BackendObjectReference identifies the provider-owned backend configuration object for a store.</p>
 </p>
 <table>
 <thead>
@@ -25476,6 +25483,7 @@ string
 <a href="#external-secrets.io/v2alpha1.ProviderStoreCondition">ProviderStoreCondition</a>)
 </p>
 <p>
+<p>ProviderStoreConditionType is the type of a ProviderStore status condition.</p>
 </p>
 <table>
 <thead>
@@ -25637,6 +25645,7 @@ Kubernetes meta/v1.LabelSelector
 <a href="#external-secrets.io/v2alpha1.ProviderStoreSpec">ProviderStoreSpec</a>)
 </p>
 <p>
+<p>StoreRuntimeRef identifies the runtime configuration used by a store.</p>
 </p>
 <table>
 <thead>
@@ -25655,6 +25664,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+<p>Kind identifies the runtime resource type referenced by this store.</p>
 </td>
 </tr>
 <tr>
@@ -25665,6 +25675,7 @@ string
 </em>
 </td>
 <td>
+<p>Name is the runtime resource name referenced by this store.</p>
 </td>
 </tr>
 </tbody>

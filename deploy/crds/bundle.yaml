@@ -1867,10 +1867,12 @@ spec:
                   properties:
                     kind:
                       default: ClusterProviderClass
+                      description: Kind identifies the runtime resource type referenced by this store.
                       enum:
                         - ClusterProviderClass
                       type: string
                     name:
+                      description: Name is the runtime resource name referenced by this store.
                       maxLength: 253
                       minLength: 1
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
@@ -1899,6 +1901,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: ProviderStoreConditionType is the type of a ProviderStore status condition.
                         type: string
                     required:
                       - status
@@ -8488,10 +8491,12 @@ spec:
                   properties:
                     kind:
                       default: ClusterProviderClass
+                      description: Kind identifies the runtime resource type referenced by this store.
                       enum:
                         - ClusterProviderClass
                       type: string
                     name:
+                      description: Name is the runtime resource name referenced by this store.
                       maxLength: 253
                       minLength: 1
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
@@ -12699,10 +12704,12 @@ spec:
                   properties:
                     kind:
                       default: ClusterProviderClass
+                      description: Kind identifies the runtime resource type referenced by this store.
                       enum:
                         - ClusterProviderClass
                       type: string
                     name:
+                      description: Name is the runtime resource name referenced by this store.
                       maxLength: 253
                       minLength: 1
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
@@ -14200,10 +14207,12 @@ spec:
                   properties:
                     kind:
                       default: ClusterProviderClass
+                      description: Kind identifies the runtime resource type referenced by this store.
                       enum:
                         - ClusterProviderClass
                       type: string
                     name:
+                      description: Name is the runtime resource name referenced by this store.
                       maxLength: 253
                       minLength: 1
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
@@ -14232,6 +14241,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: ProviderStoreConditionType is the type of a ProviderStore status condition.
                         type: string
                     required:
                       - status
@@ -20781,10 +20791,12 @@ spec:
                   properties:
                     kind:
                       default: ClusterProviderClass
+                      description: Kind identifies the runtime resource type referenced by this store.
                       enum:
                         - ClusterProviderClass
                       type: string
                     name:
+                      description: Name is the runtime resource name referenced by this store.
                       maxLength: 253
                       minLength: 1
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
@@ -24992,10 +25004,12 @@ spec:
                   properties:
                     kind:
                       default: ClusterProviderClass
+                      description: Kind identifies the runtime resource type referenced by this store.
                       enum:
                         - ClusterProviderClass
                       type: string
                     name:
+                      description: Name is the runtime resource name referenced by this store.
                       maxLength: 253
                       minLength: 1
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
