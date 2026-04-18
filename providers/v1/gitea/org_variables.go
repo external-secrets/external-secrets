@@ -46,7 +46,7 @@ var httpClient = &http.Client{}
 // path must be the full path segment, e.g. "/api/v1/repos/{org}/{repo}/actions/variables".
 func listVariablesHTTP(ctx context.Context, baseURL, token, path string) (map[string][]byte, error) {
 	url := strings.TrimRight(baseURL, "/") + path
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build list request: %w", err)
 	}
@@ -56,7 +56,7 @@ func listVariablesHTTP(ctx context.Context, baseURL, token, path string) (map[st
 	if err != nil {
 		return nil, fmt.Errorf("failed to list variables: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -84,7 +84,7 @@ func (g *Client) orgGetVariableFn(ctx context.Context, ref esv1.ExternalSecretDa
 	}
 	endpoint := fmt.Sprintf("%s/api/v1/orgs/%s/actions/variables/%s",
 		strings.TrimRight(g.provider.URL, "/"), url.PathEscape(g.provider.Organization), url.PathEscape(ref.Key))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to build request: %w", err)
 	}
@@ -94,7 +94,7 @@ func (g *Client) orgGetVariableFn(ctx context.Context, ref esv1.ExternalSecretDa
 	if err != nil {
 		return "", fmt.Errorf("failed to get org variable: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
@@ -114,7 +114,7 @@ func (g *Client) orgGetVariableFn(ctx context.Context, ref esv1.ExternalSecretDa
 	return v.Value, nil
 }
 
-// orgListVariablesFn lists all Actions variables for the organisation.
+// orgListVariablesFn lists all Actions variables for the organization.
 func (g *Client) orgListVariablesFn(ctx context.Context) (map[string][]byte, error) {
 	token, err := g.getToken(ctx)
 	if err != nil {
