@@ -75,6 +75,7 @@ type fakeV2Provider struct {
 	validateErr         error
 	validateProviderRef *pb.ProviderReference
 	validateNamespace   string
+	validateCalled      bool
 
 	closeErr    error
 	closeCalled bool
@@ -128,6 +129,7 @@ func (f *fakeV2Provider) SecretExists(_ context.Context, remoteRef *pb.PushSecre
 }
 
 func (f *fakeV2Provider) Validate(_ context.Context, providerRef *pb.ProviderReference, sourceNamespace string) error {
+	f.validateCalled = true
 	f.validateProviderRef = providerRef
 	f.validateNamespace = sourceNamespace
 	return f.validateErr
@@ -541,6 +543,31 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 			t.Fatalf("expected ValidationResultError, got %q", result)
 		}
 	})
+}
+
+func TestCompatibilityClientValidateUsesCompatibilityStore(t *testing.T) {
+	provider := &fakeV2Provider{
+		validateErr: errors.New("provider Validate should not be called for compatibility clients"),
+	}
+	client := NewCompatibilityClient(provider, &pb.CompatibilityStore{
+		StoreName:       "runtime-store",
+		StoreNamespace:  "tenant-a",
+		StoreKind:       esv1.SecretStoreKind,
+		StoreUid:        "uid-1",
+		StoreGeneration: 7,
+		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"db","value":"secret"}]}}}`),
+	}, testSourceNamespace)
+
+	result, err := client.Validate()
+	if err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+	if result != esv1.ValidationResultReady {
+		t.Fatalf("expected ValidationResultReady, got %q", result)
+	}
+	if provider.validateCalled {
+		t.Fatalf("expected provider Validate to be skipped for compatibility clients")
+	}
 }
 
 func TestClientCloseDelegates(t *testing.T) {

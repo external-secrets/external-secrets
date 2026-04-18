@@ -257,6 +257,20 @@ var rootCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+
+		if err = (&clusterproviderclass.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("ClusterProviderClass"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: storeRequeueInterval,
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "ClusterProviderClass")
+			os.Exit(1)
+		}
+
 		if enableV2Providers {
 			provider.SetUpMetrics()
 			if err = (&provider.Reconciler{
@@ -283,19 +297,6 @@ var rootCmd = &cobra.Command{
 				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterProvider")
-				os.Exit(1)
-			}
-
-			if err = (&clusterproviderclass.Reconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("ClusterProviderClass"),
-				Scheme:          mgr.GetScheme(),
-				RequeueInterval: storeRequeueInterval,
-			}).SetupWithManager(mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-				RateLimiter:             ctrlcommon.BuildRateLimiter(),
-			}); err != nil {
-				setupLog.Error(err, errCreateController, "controller", "ClusterProviderClass")
 				os.Exit(1)
 			}
 		}

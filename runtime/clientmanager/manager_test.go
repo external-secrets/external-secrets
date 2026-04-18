@@ -1159,6 +1159,69 @@ func TestGetFromStoreReturnsErrorWhenRuntimeClassMissing(t *testing.T) {
 	}
 }
 
+func TestGetFromStoreWithRuntimeRefReturnsClientThatValidates(t *testing.T) {
+	resetGlobalV2ConnectionPoolForTest(t)
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+
+	server, address, tlsSecret := newRecordingProviderServer(t)
+
+	store := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "aws-prod",
+			Namespace:  "team-a",
+			UID:        types.UID("uid-1"),
+			Generation: 7,
+		},
+		Spec: esv1.SecretStoreSpec{
+			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
+			},
+		},
+	}
+
+	runtimeClass := &esv1alpha1.ClusterProviderClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "aws-runtime",
+		},
+		Spec: esv1alpha1.ClusterProviderClassSpec{
+			Address: address,
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(
+			store,
+			runtimeClass,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "external-secrets-provider-tls",
+					Namespace: "",
+				},
+				Data: tlsSecret,
+			},
+		).
+		Build()
+
+	mgr := NewManager(kubeClient, "", false)
+
+	client, err := mgr.GetFromStore(context.Background(), store, "team-a")
+	require.NoError(t, err)
+
+	result, err := client.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+	assert.Equal(t, 0, server.ValidateCallCount())
+	require.Len(t, mgr.v2PooledConnections, 1)
+}
+
 type WrapProvider struct {
 	newClientFunc func(
 		context.Context,

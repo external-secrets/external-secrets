@@ -19,6 +19,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -128,6 +129,16 @@ func (w *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 // Validate checks if the provider is properly configured.
 func (w *Client) Validate() (esv1.ValidationResult, error) {
+	if w.compatibilityStore != nil {
+		// Compatibility-mode validation cannot use providerRef-based gRPC Validate.
+		// At this point the manager already proved runtime connectivity by dialing it,
+		// so we validate that the compatibility payload is internally consistent.
+		if _, err := CompatibilityStoreToSyntheticStore(w.compatibilityStore); err != nil {
+			return esv1.ValidationResultError, fmt.Errorf("invalid compatibility store: %w", err)
+		}
+		return esv1.ValidationResultReady, nil
+	}
+
 	err := w.v2Provider.Validate(context.Background(), w.providerRef, w.sourceNamespace)
 	if err != nil {
 		return esv1.ValidationResultError, err
