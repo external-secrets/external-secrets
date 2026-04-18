@@ -38,6 +38,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	awsv2 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
@@ -54,6 +55,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/generatorstate"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/provider"
+	"github.com/external-secrets/external-secrets/pkg/controllers/providerstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
@@ -130,6 +132,7 @@ func init() {
 	// external-secrets schemes
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(esv2alpha1.AddToScheme(scheme))
 	utilruntime.Must(genv1alpha1.AddToScheme(scheme))
 
 	// v2 provider schemes
@@ -243,6 +246,18 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		if enableV2Providers && enableSecretStoreReconciler {
+			if err = (&providerstore.StoreReconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("ProviderStore"),
+				Scheme:          mgr.GetScheme(),
+				RequeueInterval: storeRequeueInterval,
+			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "ProviderStore")
+				os.Exit(1)
+			}
+		}
+
 		if enableClusterStoreReconciler {
 			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
@@ -254,6 +269,18 @@ var rootCmd = &cobra.Command{
 				PushSecretEnabled: enablePushSecretReconciler,
 			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
+				os.Exit(1)
+			}
+		}
+
+		if enableV2Providers && enableClusterStoreReconciler {
+			if err = (&providerstore.ClusterStoreReconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("ClusterProviderStore"),
+				Scheme:          mgr.GetScheme(),
+				RequeueInterval: storeRequeueInterval,
+			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "ClusterProviderStore")
 				os.Exit(1)
 			}
 		}
