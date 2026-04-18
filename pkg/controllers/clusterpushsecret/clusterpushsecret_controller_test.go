@@ -402,9 +402,8 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}
 				updatedSpec.PushSecretSpec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 					{
-						Name:       updateStoreName,
-						Kind:       "SecretStore",
-						APIVersion: "external-secrets.io/v1",
+						Name: updateStoreName,
+						Kind: "SecretStore",
 					},
 				}
 
@@ -429,9 +428,8 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				updatedSpec := created.Spec.PushSecretSpec.DeepCopy()
 				updatedSpec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 					{
-						Name:       updateStoreName,
-						Kind:       "SecretStore",
-						APIVersion: "external-secrets.io/v1",
+						Name: updateStoreName,
+						Kind: "SecretStore",
 					},
 				}
 
@@ -519,8 +517,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 							RefreshInterval: &metav1.Duration{Duration: time.Hour},
 							SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 								{
-									Name:       updateStoreName,
-									APIVersion: "external-secrets.io/v1",
+									Name: updateStoreName,
 								},
 							},
 							UpdatePolicy: "Replace",
