@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 )
 
 type BackendTarget struct {
@@ -142,6 +142,6 @@ func scaleDeployment(f *framework.Framework, namespace, name string, replicas in
 	})).To(Succeed())
 }
 
-func WaitForClusterProviderNotReady(f *framework.Framework, name string, timeout time.Duration) *esv1.ClusterProvider {
+func WaitForClusterProviderNotReady(f *framework.Framework, name string, timeout time.Duration) *esv2alpha1.ClusterProviderStore {
 	return WaitForClusterProviderCondition(f, name, metav1.ConditionFalse, timeout)
 }

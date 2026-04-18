@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package kubernetes
 
 import (
@@ -81,6 +80,48 @@ func TestDeleteExternalSecretAndWaitIgnoresMissingExternalSecret(t *testing.T) {
 		Namespace: "test",
 	})
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func TestClusterProviderV2NamespacesForManifestScope(t *testing.T) {
+	t.Helper()
+
+	layout := newClusterProviderV2Layout("workload-ns", "case", esv1.AuthenticationScopeManifestNamespace, func(string) string {
+		t.Fatal("did not expect provider namespace factory to run for manifest scope")
+		return ""
+	})
+
+	if layout.backendNamespace != "workload-ns" {
+		t.Fatalf("expected backend namespace to use workload namespace, got %q", layout.backendNamespace)
+	}
+	if layout.providerRefNamespace != "" {
+		t.Fatalf("expected provider ref namespace to be omitted for manifest scope, got %q", layout.providerRefNamespace)
+	}
+	if layout.providerNamespace != "workload-ns" {
+		t.Fatalf("expected provider namespace to use workload namespace, got %q", layout.providerNamespace)
+	}
+}
+
+func TestClusterProviderV2NamespacesForProviderScope(t *testing.T) {
+	t.Helper()
+
+	calledWith := ""
+	layout := newClusterProviderV2Layout("workload-ns", "case", esv1.AuthenticationScopeProviderNamespace, func(prefix string) string {
+		calledWith = prefix
+		return "provider-ns"
+	})
+
+	if calledWith != "case-provider" {
+		t.Fatalf("expected provider namespace factory to use case-provider prefix, got %q", calledWith)
+	}
+	if layout.backendNamespace != "provider-ns" {
+		t.Fatalf("expected backend namespace to use provider namespace, got %q", layout.backendNamespace)
+	}
+	if layout.providerRefNamespace != "provider-ns" {
+		t.Fatalf("expected provider ref namespace to use provider namespace, got %q", layout.providerRefNamespace)
+	}
+	if layout.providerNamespace != "provider-ns" {
+		t.Fatalf("expected provider namespace to use provider namespace, got %q", layout.providerNamespace)
+	}
 }
 
 func newClusterProviderScenarioTestClient(t *testing.T, objs ...client.Object) client.Client {

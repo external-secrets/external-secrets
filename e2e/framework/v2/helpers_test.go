@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v2
 
 import (
@@ -30,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 )
@@ -91,4 +91,55 @@ func TestGetClusterCABundleWaitsForRootCAConfigMap(t *testing.T) {
 	}()
 
 	Expect(GetClusterCABundle(f, "test")).To(Equal([]byte("root-ca-data")))
+}
+
+func TestWaitForProviderConnectionConditionMatchesReadyStatus(t *testing.T) {
+	t.Helper()
+	RegisterTestingT(t)
+
+	scheme := runtime.NewScheme()
+	Expect(esv2alpha1.AddToScheme(scheme)).To(Succeed())
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&esv2alpha1.ProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "example",
+			Namespace: "test",
+		},
+		Status: esv2alpha1.ProviderStoreStatus{
+			Conditions: []esv2alpha1.ProviderStoreCondition{{
+				Type:   esv2alpha1.ProviderStoreReady,
+				Status: corev1.ConditionTrue,
+			}},
+		},
+	}).Build()
+	f := &framework.Framework{CRClient: cl}
+
+	store := WaitForProviderConnectionCondition(f, "test", "example", metav1.ConditionTrue, 100*time.Millisecond)
+	Expect(store).NotTo(BeNil())
+	Expect(store.Name).To(Equal("example"))
+}
+
+func TestWaitForClusterProviderConditionMatchesReadyStatus(t *testing.T) {
+	t.Helper()
+	RegisterTestingT(t)
+
+	scheme := runtime.NewScheme()
+	Expect(esv2alpha1.AddToScheme(scheme)).To(Succeed())
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&esv2alpha1.ClusterProviderStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "example",
+		},
+		Status: esv2alpha1.ProviderStoreStatus{
+			Conditions: []esv2alpha1.ProviderStoreCondition{{
+				Type:   esv2alpha1.ProviderStoreReady,
+				Status: corev1.ConditionTrue,
+			}},
+		},
+	}).Build()
+	f := &framework.Framework{CRClient: cl}
+
+	store := WaitForClusterProviderCondition(f, "example", metav1.ConditionTrue, 100*time.Millisecond)
+	Expect(store).NotTo(BeNil())
+	Expect(store.Name).To(Equal("example"))
 }

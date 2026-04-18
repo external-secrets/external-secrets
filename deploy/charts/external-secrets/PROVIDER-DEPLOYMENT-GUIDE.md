@@ -4,7 +4,7 @@
 
 The External Secrets Helm chart has been enhanced to support deploying one or multiple secret providers alongside the controller in a single, monolithic installation. This provides a unified deployment model where both the controller and providers are managed through a single Helm release.
 
-For chart-managed providers, the chart also renders a `ClusterProviderClass` for each enabled provider. That keeps the compatibility migration small: existing `SecretStore` or `ClusterSecretStore` objects add `spec.runtimeRef`, while `ExternalSecret` and `PushSecret` objects stay unchanged.
+For chart-managed providers, the chart also renders a `ClusterProviderClass` for each enabled provider and ships the bundled backend CRDs needed by the v2 path. The recommended model for new installs is `ProviderStore` or `ClusterProviderStore` plus a provider-owned backend CRD. Existing `SecretStore` or `ClusterSecretStore` objects can still use the compatibility path by adding `spec.runtimeRef`, while `ExternalSecret` and `PushSecret` objects stay unchanged.
 
 ## What's New
 
@@ -298,7 +298,32 @@ provider-<provider-name>.<namespace>.svc:<port>
 
 If the provider runtime is installed by this chart, you do not need to author the `ClusterProviderClass` yourself.
 
-To migrate an existing store during this compatibility phase, keep the provider-specific config and add `spec.runtimeRef`:
+For a new v2-native store, create the provider-owned backend object and reference it from `ProviderStore`:
+
+```yaml
+apiVersion: provider.external-secrets.io/v2alpha1
+kind: SecretsManager
+metadata:
+  name: aws-prod-backend
+spec:
+  region: us-east-1
+---
+apiVersion: external-secrets.io/v2alpha1
+kind: ProviderStore
+metadata:
+  name: aws-prod
+spec:
+  runtimeRef:
+    name: aws
+  backendRef:
+    apiVersion: provider.external-secrets.io/v2alpha1
+    kind: SecretsManager
+    name: aws-prod-backend
+```
+
+Use `ClusterProviderStore` for cross-namespace reuse. Its `backendRef.namespace` is optional; when omitted, ESO uses the calling `ExternalSecret` or `PushSecret` namespace.
+
+To migrate an existing store during the compatibility phase, keep the provider-specific config and add `spec.runtimeRef`:
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -361,8 +386,10 @@ If you're currently using separate provider Helm charts, you can migrate to this
 2. Adding it to the `providers.list` array in the monolithic chart
 3. Ensuring service account annotations and other cloud-specific settings are preserved
 4. Installing or upgrading the chart and verifying the matching `ClusterProviderClass` objects exist
-5. Updating existing `SecretStore` or `ClusterSecretStore` manifests to include `spec.runtimeRef`
-6. Leaving `ExternalSecret` and `PushSecret` manifests unchanged
+5. Choosing your store migration path:
+   - create `ProviderStore` or `ClusterProviderStore` for the new v2-native model, or
+   - update existing `SecretStore` or `ClusterSecretStore` manifests to include `spec.runtimeRef`
+6. Leaving `ExternalSecret` and `PushSecret` manifests unchanged if you chose the compatibility path
 7. Uninstalling the separate provider charts after the migrated stores are healthy
 
 ## Troubleshooting

@@ -282,7 +282,7 @@ func ClusterProviderPushDeniedByConditions(f *framework.Framework, harness Clust
 				if runtime.SupportsRemoteAbsenceAssertions() {
 					runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, remoteSecretName)
 				}
-				expectEventMessage(tc.Framework, ps.Namespace, ps.Name, "PushSecret", fmt.Sprintf("using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name))
+				expectEventMessage(tc.Framework, ps.Namespace, ps.Name, "PushSecret", fmt.Sprintf("using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name))
 			}
 		}
 	}
@@ -361,9 +361,8 @@ func applyClusterProviderPushSecret(tc *framework.TestCase, runtime *ClusterProv
 
 	tc.PushSecret.ObjectMeta.Name = fmt.Sprintf("%s-push-secret", tc.PushSecretSource.Name)
 	tc.PushSecret.Spec.SecretStoreRefs = []esv1alpha1.PushSecretStoreRef{{
-		Name:       runtime.ClusterProviderName,
-		Kind:       esv1.ClusterProviderKindStr,
-		APIVersion: esv1.SchemeGroupVersion.String(),
+		Name: runtime.ClusterProviderName,
+		Kind: esv1.ClusterProviderStoreKindStr,
 	}}
 	tc.PushSecret.Spec.Selector = esv1alpha1.PushSecretSelector{
 		Secret: &esv1alpha1.PushSecretSecret{

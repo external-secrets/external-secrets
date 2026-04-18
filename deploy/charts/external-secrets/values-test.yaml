@@ -9,8 +9,9 @@ installCRDs: true
 v2:
   enabled: true
 crds:
-  createProvider: true
-  createClusterProvider: true
+  createClusterProviderClass: true
+  createProviderStore: true
+  createClusterProviderStore: true
 
 providers:
   enabled: true

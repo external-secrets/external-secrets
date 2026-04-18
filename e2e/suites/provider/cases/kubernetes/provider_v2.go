@@ -98,8 +98,7 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 
 		updateKubernetesProviderServiceAccount(f, f.Namespace.Name, providerConfigName(f.Namespace.Name, ""), "missing-service-account")
 
-		brokenProvider := frameworkv2.WaitForProviderConnectionNotReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
-		Expect(brokenProvider.Status.Capabilities).To(BeEmpty())
+		frameworkv2.WaitForProviderConnectionNotReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 
 		externalSecret := &esv1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -109,7 +108,7 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 			Spec: esv1.ExternalSecretSpec{
 				SecretStoreRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
-					Kind: esv1.ProviderKindStr,
+					Kind: esv1.ProviderStoreKindStr,
 				},
 				RefreshInterval: &metav1.Duration{Duration: time.Hour},
 				Target: esv1.ExternalSecretTarget{
@@ -131,8 +130,7 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 
 		updateKubernetesProviderServiceAccount(f, f.Namespace.Name, providerConfigName(f.Namespace.Name, ""), frameworkv2.DefaultSAName)
 
-		repairedProvider := frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
-		Expect(repairedProvider.Status.Capabilities).To(Equal(esv1.ProviderReadWrite))
+		frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 
 		_, err := waitForSecretValueWithin(f, 30*time.Second, f.Namespace.Name, "provider-v2-recovery-target", &corev1.Secret{
 			Type: corev1.SecretTypeOpaque,

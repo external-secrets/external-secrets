@@ -138,7 +138,7 @@ var _ = Describe("[kubernetes] v2 metrics", Label("kubernetes", "v2", "metrics")
 				RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 				SecretStoreRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
-					Kind: esv1.ProviderKindStr,
+					Kind: esv1.ProviderStoreKindStr,
 				},
 				Target: esv1.ExternalSecretTarget{
 					Name: targetSecretName,
@@ -225,7 +225,7 @@ var _ = Describe("[kubernetes] v2 metrics", Label("kubernetes", "v2", "metrics")
 					RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 					SecretStoreRef: esv1.SecretStoreRef{
 						Name: f.Namespace.Name,
-						Kind: esv1.ProviderKindStr,
+						Kind: esv1.ProviderStoreKindStr,
 					},
 					Target: esv1.ExternalSecretTarget{
 						Name: targetName,

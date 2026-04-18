@@ -61,7 +61,7 @@ var _ = Describe("[kubernetes] v2 cluster provider", Label("kubernetes", "v2", "
 func newKubernetesClusterProviderExternalSecretHarness(f *framework.Framework) common.ClusterProviderExternalSecretHarness {
 	return common.ClusterProviderExternalSecretHarness{
 		Prepare: func(tc *framework.TestCase, cfg common.ClusterProviderConfig) *common.ClusterProviderExternalSecretRuntime {
-			s := newClusterProviderV2Scenario(f, cfg.Name)
+			s := newClusterProviderV2Scenario(f, cfg.Name, cfg.AuthScope)
 			s.allowRemoteAccessForScope(cfg.AuthScope, cfg.Name)
 
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
@@ -71,10 +71,10 @@ func newKubernetesClusterProviderExternalSecretHarness(f *framework.Framework) c
 				ClusterProviderName: clusterProviderName,
 				Provider:            s,
 				BreakAuth: func() {
-					updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName(cfg.Name), "missing-service-account")
+					updateKubernetesProviderServiceAccount(f, s.backendNamespace, s.providerConfigName(cfg.Name), "missing-service-account")
 				},
 				RepairAuth: func() {
-					updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName(cfg.Name), s.serviceAccount)
+					updateKubernetesProviderServiceAccount(f, s.backendNamespace, s.providerConfigName(cfg.Name), s.serviceAccount)
 				},
 			}
 		},
@@ -82,29 +82,64 @@ func newKubernetesClusterProviderExternalSecretHarness(f *framework.Framework) c
 }
 
 type clusterProviderV2Scenario struct {
-	f                 *framework.Framework
-	namePrefix        string
-	workloadNamespace string
-	providerNamespace string
-	remoteNamespace   string
-	serviceAccount    string
-	caBundle          []byte
+	f                    *framework.Framework
+	namePrefix           string
+	workloadNamespace    string
+	providerNamespace    string
+	backendNamespace     string
+	providerRefNamespace string
+	remoteNamespace      string
+	serviceAccount       string
+	caBundle             []byte
 }
 
-func newClusterProviderV2Scenario(f *framework.Framework, prefix string) *clusterProviderV2Scenario {
-	s := &clusterProviderV2Scenario{
-		f:                 f,
-		namePrefix:        fmt.Sprintf("%s-%s", f.Namespace.Name, prefix),
-		workloadNamespace: f.Namespace.Name,
-		serviceAccount:    "eso-auth",
-		caBundle:          frameworkv2.GetClusterCABundle(f, f.Namespace.Name),
+type clusterProviderV2Layout struct {
+	backendNamespace     string
+	providerNamespace    string
+	providerRefNamespace string
+}
+
+func newClusterProviderV2Layout(workloadNamespace, prefix string, authScope esv1.AuthenticationScope, createProviderNamespace func(string) string) clusterProviderV2Layout {
+	providerNamespace := workloadNamespace
+	if authScope == esv1.AuthenticationScopeProviderNamespace && createProviderNamespace != nil {
+		providerNamespace = createProviderNamespace(prefix + "-provider")
 	}
 
-	s.providerNamespace = createE2ENamespace(f, prefix+"-provider")
+	backendNamespace := workloadNamespace
+	providerRefNamespace := ""
+	if authScope == esv1.AuthenticationScopeProviderNamespace {
+		backendNamespace = providerNamespace
+		providerRefNamespace = providerNamespace
+	}
+
+	return clusterProviderV2Layout{
+		backendNamespace:     backendNamespace,
+		providerNamespace:    providerNamespace,
+		providerRefNamespace: providerRefNamespace,
+	}
+}
+
+func newClusterProviderV2Scenario(f *framework.Framework, prefix string, authScope esv1.AuthenticationScope) *clusterProviderV2Scenario {
+	layout := newClusterProviderV2Layout(f.Namespace.Name, prefix, authScope, func(providerPrefix string) string {
+		return createE2ENamespace(f, providerPrefix)
+	})
+	s := &clusterProviderV2Scenario{
+		f:                    f,
+		namePrefix:           fmt.Sprintf("%s-%s", f.Namespace.Name, prefix),
+		workloadNamespace:    f.Namespace.Name,
+		providerNamespace:    layout.providerNamespace,
+		backendNamespace:     layout.backendNamespace,
+		providerRefNamespace: layout.providerRefNamespace,
+		serviceAccount:       "eso-auth",
+		caBundle:             frameworkv2.GetClusterCABundle(f, f.Namespace.Name),
+	}
+
 	s.remoteNamespace = createE2ENamespace(f, prefix+"-remote")
 
 	s.createServiceAccount(s.workloadNamespace)
-	s.createServiceAccount(s.providerNamespace)
+	if s.providerNamespace != s.workloadNamespace {
+		s.createServiceAccount(s.providerNamespace)
+	}
 
 	return s
 }
@@ -140,7 +175,7 @@ func (s *clusterProviderV2Scenario) createClusterProvider(suffix string, authSco
 	providerConfigName := s.providerConfigName(suffix)
 	frameworkv2.CreateKubernetesProvider(
 		s.f,
-		s.providerNamespace,
+		s.backendNamespace,
 		providerConfigName,
 		s.remoteNamespace,
 		s.serviceAccount,
@@ -156,7 +191,7 @@ func (s *clusterProviderV2Scenario) createClusterProvider(suffix string, authSco
 		kubernetesProviderAPIVersion,
 		"Kubernetes",
 		providerConfigName,
-		s.providerNamespace,
+		s.providerRefNamespace,
 		authScope,
 		conditions,
 	)

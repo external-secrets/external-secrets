@@ -311,9 +311,8 @@ func applyOperationalPushSecret(tc *framework.TestCase, runtime *OperationalRunt
 
 	tc.PushSecret.ObjectMeta.Name = fmt.Sprintf("%s-push-secret", tc.PushSecretSource.Name)
 	tc.PushSecret.Spec.SecretStoreRefs = []esv1alpha1.PushSecretStoreRef{{
-		Name:       runtime.ProviderRef.Name,
-		Kind:       runtime.ProviderRef.Kind,
-		APIVersion: esv1.SchemeGroupVersion.String(),
+		Name: runtime.ProviderRef.Name,
+		Kind: runtime.ProviderRef.Kind,
 	}}
 	tc.PushSecret.Spec.Selector = esv1alpha1.PushSecretSelector{
 		Secret: &esv1alpha1.PushSecretSecret{
@@ -333,7 +332,7 @@ func applyOperationalPushSecret(tc *framework.TestCase, runtime *OperationalRunt
 
 func waitForProviderRefCondition(f *framework.Framework, namespace string, ref esv1.SecretStoreRef, status metav1.ConditionStatus) {
 	switch ref.Kind {
-	case esv1.ClusterProviderKindStr:
+	case esv1.ClusterProviderStoreKindStr:
 		frameworkv2.WaitForClusterProviderCondition(f, ref.Name, status, operationalTimeout)
 	default:
 		frameworkv2.WaitForProviderConnectionCondition(f, namespace, ref.Name, status, operationalTimeout)

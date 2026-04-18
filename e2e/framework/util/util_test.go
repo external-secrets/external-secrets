@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 )
 
 func TestClearKnownNamespaceFinalizers(t *testing.T) {
@@ -146,5 +147,41 @@ func TestIsMissingAPIResourceError(t *testing.T) {
 	}
 	if IsMissingAPIResourceError(context.Canceled) {
 		t.Fatal("did not expect unrelated errors to be treated as ignorable")
+	}
+}
+
+func TestSchemeIncludesV2StoreTypes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		object client.Object
+		wantGV schema.GroupVersionKind
+	}{
+		{
+			name:   "ProviderStore",
+			object: &esv2alpha1.ProviderStore{},
+			wantGV: esv2alpha1.SchemeGroupVersion.WithKind("ProviderStore"),
+		},
+		{
+			name:   "ClusterProviderStore",
+			object: &esv2alpha1.ClusterProviderStore{},
+			wantGV: esv2alpha1.SchemeGroupVersion.WithKind("ClusterProviderStore"),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gvk, err := apiutil.GVKForObject(tt.object, scheme)
+			if err != nil {
+				t.Fatalf("GVKForObject(%s) error = %v", tt.name, err)
+			}
+			if gvk != tt.wantGV {
+				t.Fatalf("GVKForObject(%s) = %s, want %s", tt.name, gvk.String(), tt.wantGV.String())
+			}
+		})
 	}
 }

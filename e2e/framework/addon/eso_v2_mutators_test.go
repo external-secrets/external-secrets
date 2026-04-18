@@ -179,8 +179,9 @@ func TestWithV2FakeProviderEnforcesRequiredFlags(t *testing.T) {
 	eso := NewESO()
 	setOrAppendVar(eso.HelmChart, StringTuple{Key: "replicaCount", Value: "7"})
 	setOrAppendVar(eso.HelmChart, StringTuple{Key: "v2.enabled", Value: "false"})
-	setOrAppendVar(eso.HelmChart, StringTuple{Key: "crds.createProvider", Value: "false"})
-	setOrAppendVar(eso.HelmChart, StringTuple{Key: "crds.createClusterProvider", Value: "false"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "crds.createClusterProviderClass", Value: "false"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "crds.createProviderStore", Value: "false"})
+	setOrAppendVar(eso.HelmChart, StringTuple{Key: "crds.createClusterProviderStore", Value: "false"})
 	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providers.enabled", Value: "false"})
 	setOrAppendVar(eso.HelmChart, StringTuple{Key: "providerDefaults.replicaCount", Value: "8"})
 
@@ -188,8 +189,9 @@ func TestWithV2FakeProviderEnforcesRequiredFlags(t *testing.T) {
 
 	assertVarValue(t, eso.HelmChart, "replicaCount", "7")
 	assertVarValue(t, eso.HelmChart, "v2.enabled", "true")
-	assertVarValue(t, eso.HelmChart, "crds.createProvider", "true")
-	assertVarValue(t, eso.HelmChart, "crds.createClusterProvider", "true")
+	assertVarValue(t, eso.HelmChart, "crds.createClusterProviderClass", "true")
+	assertVarValue(t, eso.HelmChart, "crds.createProviderStore", "true")
+	assertVarValue(t, eso.HelmChart, "crds.createClusterProviderStore", "true")
 	assertVarValue(t, eso.HelmChart, "providers.enabled", "true")
 	assertVarValue(t, eso.HelmChart, "providerDefaults.replicaCount", "8")
 }
@@ -224,8 +226,9 @@ func assertV2ProviderBaseVars(t *testing.T, chart *HelmChart) {
 
 	assertVarValue(t, chart, "replicaCount", "1")
 	assertVarValue(t, chart, "v2.enabled", "true")
-	assertVarValue(t, chart, "crds.createProvider", "true")
-	assertVarValue(t, chart, "crds.createClusterProvider", "true")
+	assertVarValue(t, chart, "crds.createClusterProviderClass", "true")
+	assertVarValue(t, chart, "crds.createProviderStore", "true")
+	assertVarValue(t, chart, "crds.createClusterProviderStore", "true")
 	assertVarValue(t, chart, "providerDefaults.replicaCount", "1")
 }
 

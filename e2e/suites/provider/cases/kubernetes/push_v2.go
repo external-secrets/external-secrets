@@ -61,7 +61,7 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 func newKubernetesClusterProviderPushHarness(f *framework.Framework) common.ClusterProviderPushHarness {
 	return common.ClusterProviderPushHarness{
 		Prepare: func(tc *framework.TestCase, cfg common.ClusterProviderConfig) *common.ClusterProviderPushRuntime {
-			s := newClusterProviderV2Scenario(f, cfg.Name)
+			s := newClusterProviderV2Scenario(f, cfg.Name, cfg.AuthScope)
 			s.allowRemoteAccessForScope(cfg.AuthScope, cfg.Name)
 
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
@@ -72,10 +72,10 @@ func newKubernetesClusterProviderPushHarness(f *framework.Framework) common.Clus
 				ClusterProviderName:    clusterProviderName,
 				DefaultRemoteNamespace: s.remoteNamespace,
 				BreakAuth: func() {
-					updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName(cfg.Name), "missing-service-account")
+					updateKubernetesProviderServiceAccount(f, s.backendNamespace, s.providerConfigName(cfg.Name), "missing-service-account")
 				},
 				RepairAuth: func() {
-					updateKubernetesProviderServiceAccount(f, s.providerNamespace, s.providerConfigName(cfg.Name), s.serviceAccount)
+					updateKubernetesProviderServiceAccount(f, s.backendNamespace, s.providerConfigName(cfg.Name), s.serviceAccount)
 				},
 				WaitForRemoteSecretValue: func(namespace, name, key, expectedValue string) {
 					waitForSecretValueInNamespace(f, namespace, name, key, expectedValue)

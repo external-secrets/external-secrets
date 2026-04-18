@@ -174,13 +174,13 @@ func (s *ProviderV2) prepareNamespacedOperationalRuntime() *common.OperationalRu
 		Provider: s,
 		ProviderRef: esv1.SecretStoreRef{
 			Name: s.framework.Namespace.Name,
-			Kind: esv1.ProviderKindStr,
+			Kind: esv1.ProviderStoreKindStr,
 		},
 		DefaultRemoteNamespace: s.framework.Namespace.Name,
 		WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
 			waitForPushedValueViaExternalSecret(s.framework, esv1.SecretStoreRef{
 				Name: s.framework.Namespace.Name,
-				Kind: esv1.ProviderKindStr,
+				Kind: esv1.ProviderStoreKindStr,
 			}, name, expectedValue)
 		},
 		MakeUnavailable: func() {
@@ -281,7 +281,7 @@ func newFakeClusterProviderPushHarness(f *framework.Framework) common.ClusterPro
 				WaitForRemoteSecretValue: func(_, name, _ string, expectedValue string) {
 					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
-						Kind: esv1.ClusterProviderKindStr,
+						Kind: esv1.ClusterProviderStoreKindStr,
 					}, name, expectedValue)
 				},
 			}
@@ -303,13 +303,13 @@ func newFakeOperationalExternalSecretHarness(f *framework.Framework, prov *Provi
 				Provider: s,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: clusterProviderName,
-					Kind: esv1.ClusterProviderKindStr,
+					Kind: esv1.ClusterProviderStoreKindStr,
 				},
 				DefaultRemoteNamespace: s.fakeConfigNamespace,
 				WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
 					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
-						Kind: esv1.ClusterProviderKindStr,
+						Kind: esv1.ClusterProviderStoreKindStr,
 					}, name, expectedValue)
 				},
 				MakeUnavailable: func() {
@@ -340,13 +340,13 @@ func newFakeOperationalPushHarness(f *framework.Framework, prov *ProviderV2) com
 				Provider: s,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: clusterProviderName,
-					Kind: esv1.ClusterProviderKindStr,
+					Kind: esv1.ClusterProviderStoreKindStr,
 				},
 				DefaultRemoteNamespace: s.fakeConfigNamespace,
 				WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
 					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
-						Kind: esv1.ClusterProviderKindStr,
+						Kind: esv1.ClusterProviderStoreKindStr,
 					}, name, expectedValue)
 				},
 				MakeUnavailable: func() {
@@ -394,7 +394,7 @@ func fakePushSecretImplicitProviderKind(f *framework.Framework) (string, func(*f
 			commonWaitForPushSecretReady(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
 			waitForPushedValueViaExternalSecret(tc.Framework, esv1.SecretStoreRef{
 				Name: f.Namespace.Name,
-				Kind: esv1.ProviderKindStr,
+				Kind: esv1.ProviderStoreKindStr,
 			}, "fake-push-implicit-kind-remote", "implicit-kind-value")
 		}
 	}

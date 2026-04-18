@@ -65,7 +65,7 @@ func newKubernetesOperationalExternalSecretHarness(f *framework.Framework, prov 
 				Provider: prov,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
-					Kind: esv1.ProviderKindStr,
+					Kind: esv1.ProviderStoreKindStr,
 				},
 				MakeUnavailable: func() {
 					frameworkv2.ScaleDeploymentBySelector(f, kubernetesBackendTarget(), 0)
@@ -79,7 +79,7 @@ func newKubernetesOperationalExternalSecretHarness(f *framework.Framework, prov 
 			}
 		},
 		PrepareCluster: func(_ *framework.TestCase, cfg common.ClusterProviderConfig) *common.OperationalRuntime {
-			s := newClusterProviderV2Scenario(f, cfg.Name)
+			s := newClusterProviderV2Scenario(f, cfg.Name, cfg.AuthScope)
 			s.allowRemoteAccessForScope(cfg.AuthScope, cfg.Name)
 
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
@@ -89,7 +89,7 @@ func newKubernetesOperationalExternalSecretHarness(f *framework.Framework, prov 
 				Provider: s,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: clusterProviderName,
-					Kind: esv1.ClusterProviderKindStr,
+					Kind: esv1.ClusterProviderStoreKindStr,
 				},
 				MakeUnavailable: func() {
 					frameworkv2.ScaleDeploymentBySelector(f, kubernetesBackendTarget(), 0)
@@ -112,7 +112,7 @@ func newKubernetesOperationalPushHarness(f *framework.Framework, prov *Provider)
 				Provider: prov,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
-					Kind: esv1.ProviderKindStr,
+					Kind: esv1.ProviderStoreKindStr,
 				},
 				DefaultRemoteNamespace: f.Namespace.Name,
 				WaitForRemoteSecret: func(namespace, name, key, expectedValue string) {
@@ -133,7 +133,7 @@ func newKubernetesOperationalPushHarness(f *framework.Framework, prov *Provider)
 			}
 		},
 		PrepareCluster: func(_ *framework.TestCase, cfg common.ClusterProviderConfig) *common.OperationalRuntime {
-			s := newClusterProviderV2Scenario(f, cfg.Name)
+			s := newClusterProviderV2Scenario(f, cfg.Name, cfg.AuthScope)
 			s.allowRemoteAccessForScope(cfg.AuthScope, cfg.Name)
 
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
@@ -143,7 +143,7 @@ func newKubernetesOperationalPushHarness(f *framework.Framework, prov *Provider)
 				Provider: s,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: clusterProviderName,
-					Kind: esv1.ClusterProviderKindStr,
+					Kind: esv1.ClusterProviderStoreKindStr,
 				},
 				DefaultRemoteNamespace: s.remoteNamespace,
 				WaitForRemoteSecret: func(namespace, name, key, expectedValue string) {

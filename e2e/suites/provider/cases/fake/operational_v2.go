@@ -79,7 +79,7 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 					RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 					SecretStoreRef: esv1.SecretStoreRef{
 						Name: f.Namespace.Name,
-						Kind: esv1.ProviderKindStr,
+						Kind: esv1.ProviderStoreKindStr,
 					},
 					Target: esv1.ExternalSecretTarget{
 						Name: targetName,
@@ -150,7 +150,7 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 					RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 					SecretStoreRef: esv1.SecretStoreRef{
 						Name: providerName,
-						Kind: esv1.ProviderKindStr,
+						Kind: esv1.ProviderStoreKindStr,
 					},
 					Target: esv1.ExternalSecretTarget{
 						Name: targetName,
@@ -220,7 +220,7 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 				RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 				SecretStoreRefs: []esv1alpha1.PushSecretStoreRef{{
 					Name:       f.Namespace.Name,
-					Kind:       esv1.ProviderKindStr,
+					Kind:       esv1.ProviderStoreKindStr,
 					APIVersion: esv1.SchemeGroupVersion.String(),
 				}},
 				Selector: esv1alpha1.PushSecretSelector{
@@ -246,7 +246,7 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 		commonWaitForPushSecretReady(f, f.Namespace.Name, pushSecretName, corev1.ConditionTrue)
 		waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 			Name: f.Namespace.Name,
-			Kind: esv1.ProviderKindStr,
+			Kind: esv1.ProviderStoreKindStr,
 		}, remoteSecretKey, "before-outage")
 
 		DeferCleanup(func() {
@@ -266,7 +266,7 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 		commonWaitForPushSecretReady(f, f.Namespace.Name, pushSecretName, corev1.ConditionTrue)
 		waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 			Name: f.Namespace.Name,
-			Kind: esv1.ProviderKindStr,
+			Kind: esv1.ProviderStoreKindStr,
 		}, remoteSecretKey, "after-outage")
 	})
 })

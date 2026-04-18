@@ -34,6 +34,8 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 )
@@ -142,120 +144,144 @@ func CreateKubernetesProvider(f *framework.Framework, namespace, name, remoteNam
 	return k8ss
 }
 
-func CreateProviderConnection(f *framework.Framework, namespace, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string) *esv1.Provider {
-	providerConnection := &esv1.Provider{
+func runtimeClassName(name string) string {
+	return fmt.Sprintf("%s-runtime", name)
+}
+
+func ensureClusterProviderClass(f *framework.Framework, name, address string) *esv1alpha1.ClusterProviderClass {
+	runtimeClass := &esv1alpha1.ClusterProviderClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: esv1alpha1.ClusterProviderClassSpec{
+			Address: address,
+		},
+	}
+	Expect(createOrIgnoreAlreadyExists(f, runtimeClass)).To(Succeed())
+	log.Logf("created ClusterProviderClass: %s", name)
+	return runtimeClass
+}
+
+func mapStoreConditions(conditions []esv1.ClusterSecretStoreCondition) []esv2alpha1.StoreNamespaceCondition {
+	if len(conditions) == 0 {
+		return nil
+	}
+	out := make([]esv2alpha1.StoreNamespaceCondition, 0, len(conditions))
+	for _, condition := range conditions {
+		out = append(out, esv2alpha1.StoreNamespaceCondition{
+			NamespaceSelector: condition.NamespaceSelector,
+			Namespaces:        condition.Namespaces,
+			NamespaceRegexes:  condition.NamespaceRegexes,
+		})
+	}
+	return out
+}
+
+func CreateProviderConnection(f *framework.Framework, namespace, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string) *esv2alpha1.ProviderStore {
+	runtimeClass := ensureClusterProviderClass(f, runtimeClassName(name), address)
+
+	providerStore := &esv2alpha1.ProviderStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: esv1.ProviderSpec{
-			Config: esv1.ProviderConfig{
-				Address: address,
-				ProviderRef: esv1.ProviderReference{
-					APIVersion: providerAPIVersion,
-					Kind:       providerKind,
-					Name:       providerName,
-					Namespace:  providerNamespace,
-				},
+		Spec: esv2alpha1.ProviderStoreSpec{
+			RuntimeRef: esv2alpha1.StoreRuntimeRef{
+				Name: runtimeClass.Name,
+			},
+			BackendRef: esv2alpha1.BackendObjectReference{
+				APIVersion: providerAPIVersion,
+				Kind:       providerKind,
+				Name:       providerName,
+				Namespace:  providerNamespace,
 			},
 		},
 	}
-	Expect(createOrIgnoreAlreadyExists(f, providerConnection)).To(Succeed())
-	log.Logf("created Provider: %s/%s", namespace, name)
-	return providerConnection
+	Expect(createOrIgnoreAlreadyExists(f, providerStore)).To(Succeed())
+	log.Logf("created ProviderStore: %s/%s", namespace, name)
+	return providerStore
 }
 
-func CreateClusterProviderConnection(f *framework.Framework, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string, authScope esv1.AuthenticationScope, conditions []esv1.ClusterSecretStoreCondition) *esv1.ClusterProvider {
-	clusterProvider := &esv1.ClusterProvider{
+func CreateClusterProviderConnection(f *framework.Framework, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string, _ esv1.AuthenticationScope, conditions []esv1.ClusterSecretStoreCondition) *esv2alpha1.ClusterProviderStore {
+	runtimeClass := ensureClusterProviderClass(f, runtimeClassName(name), address)
+
+	clusterProviderStore := &esv2alpha1.ClusterProviderStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: esv1.ClusterProviderSpec{
-			Config: esv1.ProviderConfig{
-				Address: address,
-				ProviderRef: esv1.ProviderReference{
-					APIVersion: providerAPIVersion,
-					Kind:       providerKind,
-					Name:       providerName,
-					Namespace:  providerNamespace,
-				},
+		Spec: esv2alpha1.ClusterProviderStoreSpec{
+			RuntimeRef: esv2alpha1.StoreRuntimeRef{
+				Name: runtimeClass.Name,
 			},
-			AuthenticationScope: authScope,
-			Conditions:          conditions,
+			BackendRef: esv2alpha1.BackendObjectReference{
+				APIVersion: providerAPIVersion,
+				Kind:       providerKind,
+				Name:       providerName,
+				Namespace:  providerNamespace,
+			},
+			Conditions: mapStoreConditions(conditions),
 		},
 	}
-	Expect(createOrIgnoreAlreadyExists(f, clusterProvider)).To(Succeed())
-	log.Logf("created ClusterProvider: %s", name)
-	return clusterProvider
+	Expect(createOrIgnoreAlreadyExists(f, clusterProviderStore)).To(Succeed())
+	log.Logf("created ClusterProviderStore: %s", name)
+	return clusterProviderStore
 }
 
-func WaitForProviderConnectionReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv1.Provider {
+func WaitForProviderConnectionReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv2alpha1.ProviderStore {
 	return WaitForProviderConnectionCondition(f, namespace, name, metav1.ConditionTrue, timeout)
 }
 
-func WaitForProviderConnectionNotReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv1.Provider {
+func WaitForProviderConnectionNotReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv2alpha1.ProviderStore {
 	return WaitForProviderConnectionCondition(f, namespace, name, metav1.ConditionFalse, timeout)
 }
 
-func WaitForProviderConnectionCondition(f *framework.Framework, namespace, name string, status metav1.ConditionStatus, timeout time.Duration) *esv1.Provider {
-	var providerConnection esv1.Provider
+func WaitForProviderConnectionCondition(f *framework.Framework, namespace, name string, status metav1.ConditionStatus, timeout time.Duration) *esv2alpha1.ProviderStore {
+	var providerStore esv2alpha1.ProviderStore
 	Eventually(func() bool {
 		err := f.CRClient.Get(context.Background(),
 			types.NamespacedName{Name: name, Namespace: namespace},
-			&providerConnection)
+			&providerStore)
 		if err != nil {
-			log.Logf("failed to get Provider: %v", err)
+			log.Logf("failed to get ProviderStore: %v", err)
 			return false
 		}
 
-		for _, condition := range providerConnection.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status == status {
+		for _, condition := range providerStore.Status.Conditions {
+			if condition.Type == esv2alpha1.ProviderStoreReady && condition.Status == corev1.ConditionStatus(status) {
 				return true
 			}
 		}
 		return false
-	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("Provider should become %s", status))
+	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ProviderStore should become %s", status))
 
-	return &providerConnection
+	return &providerStore
 }
 
-func WaitForClusterProviderReady(f *framework.Framework, name string, timeout time.Duration) *esv1.ClusterProvider {
+func WaitForClusterProviderReady(f *framework.Framework, name string, timeout time.Duration) *esv2alpha1.ClusterProviderStore {
 	return WaitForClusterProviderCondition(f, name, metav1.ConditionTrue, timeout)
 }
 
-func WaitForClusterProviderCondition(f *framework.Framework, name string, status metav1.ConditionStatus, timeout time.Duration) *esv1.ClusterProvider {
-	var clusterProvider esv1.ClusterProvider
+func WaitForClusterProviderCondition(f *framework.Framework, name string, status metav1.ConditionStatus, timeout time.Duration) *esv2alpha1.ClusterProviderStore {
+	var clusterProviderStore esv2alpha1.ClusterProviderStore
 	Eventually(func() bool {
 		err := f.CRClient.Get(context.Background(),
 			types.NamespacedName{Name: name},
-			&clusterProvider)
+			&clusterProviderStore)
 		if err != nil {
-			log.Logf("failed to get ClusterProvider: %v", err)
+			log.Logf("failed to get ClusterProviderStore: %v", err)
 			return false
 		}
 
-		for _, condition := range clusterProvider.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status == status {
+		for _, condition := range clusterProviderStore.Status.Conditions {
+			if condition.Type == esv2alpha1.ProviderStoreReady && condition.Status == corev1.ConditionStatus(status) {
 				return true
 			}
 		}
 		return false
-	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ClusterProvider should become %s", status))
+	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ClusterProviderStore should become %s", status))
 
-	return &clusterProvider
+	return &clusterProviderStore
 }
-
-func VerifyProviderConnectionCapabilities(f *framework.Framework, namespace, name string, expected esv1.ProviderCapabilities) {
-	Eventually(func(g Gomega) {
-		var provider esv1.Provider
-		g.Expect(f.CRClient.Get(context.Background(),
-			types.NamespacedName{Name: name, Namespace: namespace},
-			&provider)).To(Succeed())
-		g.Expect(provider.Status.Capabilities).NotTo(BeEmpty())
-		g.Expect(provider.Status.Capabilities).To(Equal(expected))
-	}, 30*time.Second, time.Second).Should(Succeed())
-}
-
 func createOrIgnoreAlreadyExists(f *framework.Framework, obj client.Object) error {
 	err := f.CRClient.Create(context.Background(), obj)
 	if err == nil {

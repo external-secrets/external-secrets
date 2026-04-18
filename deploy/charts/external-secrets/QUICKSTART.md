@@ -78,7 +78,7 @@ kubectl get all -l app.kubernetes.io/instance=external-secrets
 kubectl get clusterproviderclass
 ```
 
-When `providers.enabled=true`, the chart renders a provider Deployment, Service, and matching `ClusterProviderClass` for each enabled provider. Existing `ExternalSecret` manifests stay unchanged. For existing stores, the compatibility migration is just adding `spec.runtimeRef`.
+When `providers.enabled=true`, the chart renders a provider Deployment, Service, and matching `ClusterProviderClass` for each enabled provider, plus the bundled backend CRDs needed by the v2 path. For new installs, prefer `ProviderStore` or `ClusterProviderStore`. For existing `SecretStore` or `ClusterSecretStore` objects, the compatibility migration is just adding `spec.runtimeRef`.
 
 ## Provider-Specific Examples
 
@@ -381,7 +381,31 @@ kubectl exec -it deployment/external-secrets -- \
 
 ## Next Steps
 
-1. **Create or update a SecretStore** to point at your provider runtime:
+1. **Recommended for new installs: create a provider backend object and a `ProviderStore`**:
+   ```yaml
+   apiVersion: provider.external-secrets.io/v2alpha1
+   kind: SecretsManager
+   metadata:
+     name: aws-prod-backend
+   spec:
+     region: us-east-1
+   ---
+   apiVersion: external-secrets.io/v2alpha1
+   kind: ProviderStore
+   metadata:
+     name: aws-prod
+   spec:
+     runtimeRef:
+       name: aws
+     backendRef:
+       apiVersion: provider.external-secrets.io/v2alpha1
+       kind: SecretsManager
+       name: aws-prod-backend
+   ```
+
+   Use `ClusterProviderStore` when the store should be shared across namespaces. Its `backendRef.namespace` is optional; when omitted, ESO uses the `ExternalSecret` or `PushSecret` namespace.
+
+2. **Compatibility path for existing stores: add `runtimeRef` to your `SecretStore`**:
    ```yaml
    apiVersion: external-secrets.io/v1
    kind: SecretStore
@@ -397,9 +421,9 @@ kubectl exec -it deployment/external-secrets -- \
          region: us-east-1
    ```
 
-   If you already have a `SecretStore`, keep the provider-specific block as-is and add `runtimeRef`. Your `ExternalSecret` manifests do not change for this migration phase.
+   Keep the provider-specific block as-is and add `runtimeRef`. Your existing `ExternalSecret` and `PushSecret` manifests do not change for this compatibility phase.
 
-2. **Create an ExternalSecret** to sync secrets:
+3. **Create an `ExternalSecret`** to sync secrets:
    ```yaml
    apiVersion: external-secrets.io/v1
    kind: ExternalSecret
@@ -409,16 +433,18 @@ kubectl exec -it deployment/external-secrets -- \
      refreshInterval: 1h
      secretStoreRef:
        name: aws-prod
-       kind: SecretStore
+       kind: ProviderStore
      target:
        name: my-k8s-secret
      data:
-     - secretKey: password
-       remoteRef:
-         key: my-secret-name
+       - secretKey: password
+         remoteRef:
+           key: my-secret-name
    ```
 
-3. **Verify the secret was created**:
+   If you chose the compatibility path above, keep `kind: SecretStore` here.
+
+4. **Verify the secret was created**:
    ```bash
    kubectl get externalsecret
    kubectl get secret my-k8s-secret

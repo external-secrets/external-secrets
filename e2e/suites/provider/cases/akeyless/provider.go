@@ -178,7 +178,7 @@ func (a *akeylessProvider) GetToken() (string, error) {
 	} else {
 		cloudID, err := a.getCloudID(a.accessType, a.accessTypeParam)
 		if err != nil {
-			return "", fmt.Errorf("Require Cloud ID " + err.Error())
+			return "", fmt.Errorf("require cloud ID: %w", err)
 		}
 		authBody.AccessType = akeyless.PtrString(a.accessType)
 		authBody.CloudId = akeyless.PtrString(cloudID)

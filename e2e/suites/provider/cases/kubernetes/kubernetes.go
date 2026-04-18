@@ -63,7 +63,7 @@ var _ = Describe("[kubernetes] ", append(describeLabels(), func() {
 func withReferentStore(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentStoreName(tc.Framework)
 	if framework.IsV2ProviderMode() {
-		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterProviderKindStr
+		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterProviderStoreKindStr
 		return
 	}
 	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterSecretStoreKind

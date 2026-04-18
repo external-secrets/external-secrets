@@ -108,7 +108,7 @@ func ClusterProviderDeniedByConditions(f *framework.Framework, harness ClusterPr
 				tc.ExternalSecret.Namespace,
 				tc.ExternalSecret.Name,
 				"ExternalSecret",
-				fmt.Sprintf("using ClusterProvider %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name),
+				fmt.Sprintf("using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name),
 			)
 		}
 	}
@@ -194,7 +194,7 @@ func clusterProviderRecoveryCase(f *framework.Framework, harness ClusterProvider
 func applyClusterProviderExternalSecret(tc *framework.TestCase, runtime *ClusterProviderExternalSecretRuntime) {
 	tc.ProviderOverride = runtime.Provider
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = runtime.ClusterProviderName
-	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterProviderKindStr
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterProviderStoreKindStr
 }
 
 func waitForExternalSecretStatus(f *framework.Framework, namespace, name string, status corev1.ConditionStatus) {

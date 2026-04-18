@@ -50,6 +50,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
@@ -66,6 +67,7 @@ func init() {
 	// external-secrets schemes
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(esv2alpha1.AddToScheme(scheme))
 	utilruntime.Must(genv1alpha1.AddToScheme(scheme))
 
 	// other schemes

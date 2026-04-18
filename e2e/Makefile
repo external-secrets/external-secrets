@@ -21,7 +21,6 @@ export IMAGE_NAME ?= $(OCI_IMAGE_NAME)
 TEST_V2_PROVIDER_KUBERNETES_BUILD_CMD = $(MAKE) -C ../ docker.build.provider.kubernetes VERSION=$(VERSION) ARCH=amd64 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 TEST_V2_PROVIDER_AWS_BUILD_CMD = $(MAKE) -C ../ docker.build.provider.aws VERSION=$(VERSION) ARCH=amd64 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 TEST_V2_PROVIDER_FAKE_BUILD_CMD = $(MAKE) -C ../ docker.build.provider.fake VERSION=$(VERSION) ARCH=amd64 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
-TEST_V2_PROVIDER_GCP_BUILD_CMD = $(MAKE) -C ../ docker.build.provider.gcp VERSION=$(VERSION) ARCH=amd64 DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 
 ifeq ($(shell git tag),)
 export VERSION ?= $(shell echo "v0.0.0-$$(git rev-list HEAD --count)-g$$(git describe --dirty --always)" | sed 's/-/./2' | sed 's/-/./2')
@@ -75,7 +74,6 @@ test.v2: start-kind e2e-image ## Run v2 e2e tests against current kube context
 	$(if $(filter true,$(SKIP_PROVIDER_KUBERNETES_BUILD)),,$(TEST_V2_PROVIDER_KUBERNETES_BUILD_CMD))
 	$(TEST_V2_PROVIDER_AWS_BUILD_CMD)
 	$(TEST_V2_PROVIDER_FAKE_BUILD_CMD)
-	$(TEST_V2_PROVIDER_GCP_BUILD_CMD)
 ifneq ($(IMAGE_NAME),$(OCI_IMAGE_NAME))
 	$(MAKE) -C ../ docker.build.controller.e2e \
 		IMAGE_NAME=$(OCI_IMAGE_NAME) \
@@ -91,7 +89,6 @@ endif
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-kubernetes:$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-aws:$(VERSION)
 	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-fake:$(VERSION)
-	kind load docker-image --name="$(KIND_CLUSTER_NAME)" ghcr.io/external-secrets/provider-gcp:$(VERSION)
 ifeq ($(CI),true)
 	docker system prune --all --force --volumes
 endif
@@ -128,7 +125,7 @@ e2e-image: e2e-bin
 	-rm -rf ./k8s/deploy
 	mkdir -p k8s
 	$(MAKE) -C ../ helm.generate
-	../hack/helm.dependency.ensure.sh ../deploy/charts/external-secrets
+	helm dependency build ../deploy/charts/external-secrets
 	cp -r ../deploy ./k8s
 	docker build $(DOCKER_BUILD_ARGS) -t $(E2E_IMAGE_NAME):$(VERSION) -f Dockerfile ..
 

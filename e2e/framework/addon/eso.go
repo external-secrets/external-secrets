@@ -208,6 +208,25 @@ func WithAllowGenericTargets() MutationFunc {
 }
 
 func (l *ESO) Install() error {
+	restoreInstallCRDs := false
+	if needsCRDPreinstall(l.HelmChart) {
+		By("Pre-installing eso CRDs")
+		if err := installCRDs(l.config); err != nil {
+			return err
+		}
+		setOrAppendVar(l.HelmChart, StringTuple{
+			Key:   installCRDsVar,
+			Value: "false",
+		})
+		restoreInstallCRDs = true
+	}
+	if restoreInstallCRDs {
+		defer setOrAppendVar(l.HelmChart, StringTuple{
+			Key:   installCRDsVar,
+			Value: "true",
+		})
+	}
+
 	By("Installing eso\n")
 	err := l.HelmChart.Install()
 	if err != nil {
@@ -237,4 +256,10 @@ func (l *ESO) Uninstall() error {
 		return err
 	}
 	return nil
+}
+
+func needsCRDPreinstall(chart *HelmChart) bool {
+	return chart.HasVar(installCRDsVar, "true") &&
+		chart.HasVar("providers.enabled", "true") &&
+		chart.HasVar("crds.createClusterProviderClass", "true")
 }
