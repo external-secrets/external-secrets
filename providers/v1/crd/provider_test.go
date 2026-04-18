@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"k8s.io/client-go/rest"
-	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -304,7 +303,7 @@ func TestValidateStore(t *testing.T) {
 									Type:      esv1.CAProviderTypeSecret,
 									Name:      "ca",
 									Key:       "k",
-									Namespace: pointer.To("ns"),
+									Namespace: new("ns"),
 								},
 							},
 							Auth: &esv1.KubernetesAuth{
@@ -530,14 +529,14 @@ func TestResolveSimpleSANamespace(t *testing.T) {
 			name:      "SecretStore ignores ref.Namespace",
 			storeKind: esv1.SecretStoreKind,
 			storeNS:   "app",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: strPtr("other")},
+			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: new("other")},
 			wantNS:    "app",
 		},
 		{
 			name:      "ClusterSecretStore uses ref.Namespace when set",
 			storeKind: esv1.ClusterSecretStoreKind,
 			storeNS:   "",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: strPtr("ops")},
+			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: new("ops")},
 			wantNS:    "ops",
 		},
 		{
@@ -578,14 +577,14 @@ func TestResolveImpersonationNamespace(t *testing.T) {
 			name:      "SecretStore uses store namespace even when ref.Namespace set",
 			storeKind: esv1.SecretStoreKind,
 			storeNS:   "app",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: strPtr("other")},
+			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: new("other")},
 			wantNS:    "app",
 		},
 		{
 			name:      "ClusterSecretStore uses ref.Namespace",
 			storeKind: esv1.ClusterSecretStoreKind,
 			storeNS:   "",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: strPtr("ops")},
+			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: new("ops")},
 			wantNS:    "ops",
 		},
 		{
@@ -657,7 +656,7 @@ func TestImpersonationWiring(t *testing.T) {
 	})
 
 	t.Run("impersonation UserName format includes namespace", func(t *testing.T) {
-		saRef := &esmeta.ServiceAccountSelector{Name: "reader", Namespace: strPtr("ops")}
+		saRef := &esmeta.ServiceAccountSelector{Name: "reader", Namespace: new("ops")}
 		ns, err := resolveImpersonationNamespace(esv1.ClusterSecretStoreKind, "", saRef)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

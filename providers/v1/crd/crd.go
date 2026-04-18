@@ -86,7 +86,7 @@ func (c *Client) fetchObject(ctx context.Context, ref esv1.ExternalSecretDataRem
 }
 
 // GetAllSecrets lists CRD objects whose logical keys match the store Name pattern
-// (regex) and returns a map of logicalKey to serialised value.
+// (regex) and returns a map of logicalKey to serialized value.
 // For SecretStore (namespaced kind), listing is limited to the store namespace and keys are object names.
 // For ClusterSecretStore with a namespaced kind, listing is all namespaces unless remoteNamespace is set;
 // keys are namespace/name. Cluster-scoped kinds use object names only.
@@ -229,7 +229,7 @@ func (c *Client) getObject(ctx context.Context, remoteKey string) (*unstructured
 	return obj, nil
 }
 
-// extractValue serialises an unstructured object (or a sub-field) to bytes.
+// extractValue serializes an unstructured object (or a sub-field) to bytes.
 // property is a JMESPath expression taking precedence over fields.
 // fields is the store-level Properties list restricting which fields are included.
 func extractValue(obj *unstructured.Unstructured, property string, fields []string) ([]byte, error) {

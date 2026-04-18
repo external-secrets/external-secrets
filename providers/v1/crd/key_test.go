@@ -36,7 +36,7 @@ func TestParseRemoteRefKey(t *testing.T) {
 		{name: "SecretStore rejects slash", storeKind: esv1.SecretStoreKind, key: "ns/obj", wantErrSubs: "must not contain '/'"},
 		{name: "SecretStore empty key", storeKind: esv1.SecretStoreKind, key: "", wantErrSubs: "must not be empty"},
 		{name: "ClusterSecretStore bare name", storeKind: esv1.ClusterSecretStoreKind, key: "cluster-only", wantObj: "cluster-only"},
-		{name: "ClusterSecretStore namespace/name", storeKind: esv1.ClusterSecretStoreKind, key: "default/myobj", wantObj: "myobj", wantNS: strPtr("default")},
+		{name: "ClusterSecretStore namespace/name", storeKind: esv1.ClusterSecretStoreKind, key: "default/myobj", wantObj: "myobj", wantNS: new("default")},
 		{name: "ClusterSecretStore empty namespace segment", storeKind: esv1.ClusterSecretStoreKind, key: "/obj", wantErrSubs: "namespace segment"},
 		{name: "ClusterSecretStore empty name segment", storeKind: esv1.ClusterSecretStoreKind, key: "ns/", wantErrSubs: "object name after '/'"},
 		{name: "ClusterSecretStore extra slash", storeKind: esv1.ClusterSecretStoreKind, key: "ns/foo/bar", wantErrSubs: "exactly one '/'"},
@@ -68,5 +68,3 @@ func TestParseRemoteRefKey(t *testing.T) {
 		})
 	}
 }
-
-func strPtr(s string) *string { return &s }

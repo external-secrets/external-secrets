@@ -51,6 +51,8 @@ func (r testPushSecretRemoteRef) GetProperty() string  { return r.property }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+const testStringHello = "hello"
+
 var testResource = esv1.CRDProviderResource{
 	Group: "example.io", Version: "v1alpha1", Kind: "Widget",
 }
@@ -134,7 +136,7 @@ func TestClientBuildGVR(t *testing.T) {
 func TestClientGetSecret(t *testing.T) {
 	richSpec := map[string]any{
 		"password": "pw1",
-		"foo":      map[string]any{"bar": int64(42), "baz": "hello"},
+		"foo":      map[string]any{"bar": int64(42), "baz": testStringHello},
 		"nested":   []any{map[string]any{"key": "ep", "val": "db:5432"}, map[string]any{"key": "fqdn", "val": "u:p@db"}},
 	}
 
@@ -178,7 +180,7 @@ func TestClientGetSecret(t *testing.T) {
 			ref:    ref("item-a", "spec.foo"),
 			checkFn: func(t *testing.T, b []byte) {
 				assertJSON(t, b, func(t *testing.T, m map[string]any) {
-					if m["bar"] != float64(42) || m["baz"] != "hello" {
+					if m["bar"] != float64(42) || m["baz"] != testStringHello {
 						t.Fatalf("spec.foo = %v", m)
 					}
 				})
@@ -336,7 +338,7 @@ func TestJSONBytesToMap(t *testing.T) {
 					t.Fatalf(`["user"] = %q`, string(got["user"]))
 				}
 				assertJSON(t, got["foo"], func(t *testing.T, m map[string]any) {
-					if m["bar"] != float64(42) || m["baz"] != "hello" {
+					if m["bar"] != float64(42) || m["baz"] != testStringHello {
 						t.Fatalf("foo = %v", m)
 					}
 				})
@@ -368,7 +370,7 @@ func TestJSONBytesToMap(t *testing.T) {
 func TestClientGetSecretMap(t *testing.T) {
 	obj := widget("item-a", "ns1", map[string]any{
 		"map":    map[string]any{"a": "x", "b": int64(1)},
-		"foo":    map[string]any{"bar": int64(42), "baz": "hello"},
+		"foo":    map[string]any{"bar": int64(42), "baz": testStringHello},
 		"nested": []any{map[string]any{"key": "ep", "val": "db:5432"}, map[string]any{"key": "fqdn", "val": "u:p@db"}},
 	})
 	c := ssClient(makeStore(), "ns1", obj)
@@ -392,7 +394,7 @@ func TestClientGetSecretMap(t *testing.T) {
 			ref:  ref("item-a", "spec"),
 			checkFn: func(t *testing.T, got map[string][]byte) {
 				assertJSON(t, got["foo"], func(t *testing.T, m map[string]any) {
-					if m["bar"] != float64(42) || m["baz"] != "hello" {
+					if m["bar"] != float64(42) || m["baz"] != testStringHello {
 						t.Fatalf("foo = %v", m)
 					}
 				})
@@ -407,7 +409,7 @@ func TestClientGetSecretMap(t *testing.T) {
 			name: "spec.foo returns flat map",
 			ref:  ref("item-a", "spec.foo"),
 			checkFn: func(t *testing.T, got map[string][]byte) {
-				if string(got["bar"]) != "42" || string(got["baz"]) != "hello" {
+				if string(got["bar"]) != "42" || string(got["baz"]) != testStringHello {
 					t.Fatalf("got %v", got)
 				}
 			},
