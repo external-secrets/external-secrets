@@ -117,7 +117,12 @@ func (s *Server) getClient(ctx context.Context, ref *pb.ProviderReference, names
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve provider: %w", err)
 	}
-	return provider.NewClient(ctx, syntheticStore, s.kubeClient, namespace)
+	clientNamespace := namespace
+	if ref.GetNamespace() != "" {
+		clientNamespace = ref.GetNamespace()
+	}
+	syntheticStore.Namespace = clientNamespace
+	return provider.NewClient(ctx, syntheticStore, s.kubeClient, clientNamespace)
 }
 
 func (s *Server) getCompatibilityClient(ctx context.Context, store *pb.CompatibilityStore, namespace string) (esv1.SecretsClient, error) {

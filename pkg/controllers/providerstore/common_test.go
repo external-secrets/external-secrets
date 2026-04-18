@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr/testr"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -233,4 +234,82 @@ func readyRuntimeClass(name string) *esv1alpha1.ClusterProviderClass {
 
 func reconcileRequest(obj client.Object) ctrl.Request {
 	return ctrl.Request{NamespacedName: client.ObjectKeyFromObject(obj)}
+}
+
+func TestFindProviderStoresForRuntimeClass(t *testing.T) {
+	runtimeClass := &esv1alpha1.ClusterProviderClass{
+		ObjectMeta: metav1.ObjectMeta{Name: "shared-runtime"},
+	}
+
+	reconciler := newProviderStoreReconciler(
+		t,
+		runtimeClass,
+		&esv2alpha1.ProviderStore{
+			ObjectMeta: metav1.ObjectMeta{Name: "implicit-kind", Namespace: "team-a"},
+			Spec: esv2alpha1.ProviderStoreSpec{
+				RuntimeRef: esv2alpha1.StoreRuntimeRef{Name: "shared-runtime"},
+			},
+		},
+		&esv2alpha1.ProviderStore{
+			ObjectMeta: metav1.ObjectMeta{Name: "explicit-kind", Namespace: "team-b"},
+			Spec: esv2alpha1.ProviderStoreSpec{
+				RuntimeRef: esv2alpha1.StoreRuntimeRef{
+					Name: "shared-runtime",
+					Kind: "ClusterProviderClass",
+				},
+			},
+		},
+		&esv2alpha1.ProviderStore{
+			ObjectMeta: metav1.ObjectMeta{Name: "other-runtime", Namespace: "team-c"},
+			Spec: esv2alpha1.ProviderStoreSpec{
+				RuntimeRef: esv2alpha1.StoreRuntimeRef{Name: "other-runtime"},
+			},
+		},
+	)
+
+	requests := findProviderStoresForRuntimeClass(context.Background(), reconciler.Client, runtimeClass)
+
+	assert.ElementsMatch(t, []ctrl.Request{
+		{NamespacedName: client.ObjectKey{Name: "implicit-kind", Namespace: "team-a"}},
+		{NamespacedName: client.ObjectKey{Name: "explicit-kind", Namespace: "team-b"}},
+	}, requests)
+}
+
+func TestFindClusterProviderStoresForRuntimeClass(t *testing.T) {
+	runtimeClass := &esv1alpha1.ClusterProviderClass{
+		ObjectMeta: metav1.ObjectMeta{Name: "shared-runtime"},
+	}
+
+	reconciler := newClusterProviderStoreReconciler(
+		t,
+		runtimeClass,
+		&esv2alpha1.ClusterProviderStore{
+			ObjectMeta: metav1.ObjectMeta{Name: "implicit-kind"},
+			Spec: esv2alpha1.ClusterProviderStoreSpec{
+				RuntimeRef: esv2alpha1.StoreRuntimeRef{Name: "shared-runtime"},
+			},
+		},
+		&esv2alpha1.ClusterProviderStore{
+			ObjectMeta: metav1.ObjectMeta{Name: "explicit-kind"},
+			Spec: esv2alpha1.ClusterProviderStoreSpec{
+				RuntimeRef: esv2alpha1.StoreRuntimeRef{
+					Name: "shared-runtime",
+					Kind: "ClusterProviderClass",
+				},
+			},
+		},
+		&esv2alpha1.ClusterProviderStore{
+			ObjectMeta: metav1.ObjectMeta{Name: "other-runtime"},
+			Spec: esv2alpha1.ClusterProviderStoreSpec{
+				RuntimeRef: esv2alpha1.StoreRuntimeRef{Name: "other-runtime"},
+			},
+		},
+	)
+
+	requests := findClusterProviderStoresForRuntimeClass(context.Background(), reconciler.Client, runtimeClass)
+
+	assert.ElementsMatch(t, []ctrl.Request{
+		{NamespacedName: client.ObjectKey{Name: "implicit-kind"}},
+		{NamespacedName: client.ObjectKey{Name: "explicit-kind"}},
+	}, requests)
 }

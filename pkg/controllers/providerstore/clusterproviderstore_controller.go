@@ -27,8 +27,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
+	clusterprovidermetrics "github.com/external-secrets/external-secrets/pkg/controllers/clusterprovider"
 )
 
 // ClusterStoreReconciler reconciles ClusterProviderStore resources.
@@ -40,11 +43,13 @@ type ClusterStoreReconciler struct {
 }
 
 func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	start := time.Now()
 	log := r.Log.WithValues("ClusterProviderStore", req.NamespacedName)
 
 	var store esv2alpha1.ClusterProviderStore
 	if err := r.Get(ctx, req.NamespacedName, &store); err != nil {
 		if apierrors.IsNotFound(err) {
+			clusterprovidermetrics.RemoveMetrics(req.Name)
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -56,15 +61,18 @@ func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		} else {
 			setReadyCondition(&store, corev1.ConditionTrue, "RuntimeReady", "backend namespace resolved per caller namespace")
 		}
+		recordClusterProviderStoreCompatibilityMetrics(&store, time.Since(start))
 		return updateStatus(ctx, r.Status(), &store, r.RequeueInterval, log)
 	}
 
 	if err := validateStore(ctx, r.Client, &store, store.Spec.BackendRef.Namespace); err != nil {
 		setReadyCondition(&store, corev1.ConditionFalse, "ValidationFailed", err.Error())
+		recordClusterProviderStoreCompatibilityMetrics(&store, time.Since(start))
 		return updateStatus(ctx, r.Status(), &store, r.RequeueInterval, log)
 	}
 
 	setReadyCondition(&store, corev1.ConditionTrue, "StoreValid", "store validated")
+	recordClusterProviderStoreCompatibilityMetrics(&store, time.Since(start))
 	return updateStatus(ctx, r.Status(), &store, r.RequeueInterval, log)
 }
 
@@ -72,5 +80,16 @@ func (r *ClusterStoreReconciler) SetupWithManager(mgr ctrl.Manager, opts control
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv2alpha1.ClusterProviderStore{}).
+		Watches(
+			&esv1alpha1.ClusterProviderClass{},
+			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrl.Request {
+				runtimeClass, ok := obj.(*esv1alpha1.ClusterProviderClass)
+				if !ok {
+					return nil
+				}
+
+				return findClusterProviderStoresForRuntimeClass(ctx, r.Client, runtimeClass)
+			}),
+		).
 		Complete(r)
 }

@@ -17,11 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"os/signal"
 	"syscall"
 
@@ -52,6 +52,8 @@ var (
 
 func main() {
 	flag.Parse()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	log.Printf("starting on port %d (TLS: %v, Verbose: %v)", *port, *enableTLS, *verbose)
 
@@ -112,6 +114,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create gRPC server: %v", err)
 	}
+	metricsServer := grpcserver.NewMetricsServer(grpcserver.DefaultMetricsPort, nil)
+	if err := grpcserver.RegisterMetrics(metricsServer.GetRegistry()); err != nil {
+		log.Fatalf("Failed to register metrics: %v", err)
+	}
 
 	// Register services
 	pb.RegisterSecretStoreProviderServer(grpcServer, storeServer)
@@ -131,12 +137,16 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
+	go func() {
+		if err := metricsServer.Start(ctx); err != nil {
+			log.Fatalf("Failed to start metrics server: %v", err)
+		}
+	}()
+
 	// Handle graceful shutdown
 	go func() {
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-		sig := <-sigChan
-		log.Printf("Received signal: %v, shutting down gracefully...", sig)
+		<-ctx.Done()
+		log.Printf("Received shutdown signal, stopping gRPC server...")
 		grpcServer.GracefulStop()
 	}()
 

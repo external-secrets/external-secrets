@@ -247,7 +247,7 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 			Kind:         "Fake",
 			Name:         "backend",
 			Namespace:    "provider-config-ns",
-			StoreRefKind: esv1.ProviderKindStr,
+			StoreRefKind: esv1.ProviderStoreKindStr,
 		},
 		SourceNamespace: serverTestSourceNamespace,
 		RemoteRef: &pb.ExternalSecretDataRemoteRef{
@@ -270,14 +270,14 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 	if mapper.ref != req.ProviderRef || mapper.sourceNamespace != serverTestSourceNamespace {
 		t.Fatalf("unexpected spec mapper input: ref=%#v namespace=%q", mapper.ref, mapper.sourceNamespace)
 	}
-	if receivedNamespace != serverTestSourceNamespace {
+	if receivedNamespace != "provider-config-ns" {
 		t.Fatalf("unexpected new client namespace: %q", receivedNamespace)
 	}
 	syntheticStore, ok := receivedStore.(*SyntheticStore)
 	if !ok {
 		t.Fatalf("expected SyntheticStore, got %T", receivedStore)
 	}
-	if syntheticStore.Namespace != serverTestSourceNamespace {
+	if syntheticStore.Namespace != "provider-config-ns" {
 		t.Fatalf("unexpected synthetic store namespace: %q", syntheticStore.Namespace)
 	}
 	if syntheticStore.Kind != esv1.SecretStoreKind {
@@ -327,7 +327,7 @@ func TestServerPushSecretMapsClusterProviderStoreKindToClusterSecretStore(t *tes
 			ApiVersion:   "provider.external-secrets.io/v2alpha1",
 			Kind:         "Fake",
 			Name:         "backend",
-			StoreRefKind: esv1.ClusterProviderKindStr,
+			StoreRefKind: esv1.ClusterProviderStoreKindStr,
 		},
 		SourceNamespace: serverTestSourceNamespace,
 		SecretData: map[string][]byte{

@@ -53,6 +53,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
@@ -1094,7 +1095,7 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 		case esv1.ClusterSecretStoreKind:
 			store = &esv1.ClusterSecretStore{}
 			namespace = ""
-		case esv1.ProviderKindStr, esv1.ClusterProviderKindStr, esv1.ProviderStoreKindStr, esv1.ClusterProviderStoreKindStr:
+		case esv1.ProviderStoreKindStr, esv1.ClusterProviderStoreKindStr:
 			// Out-of-process provider-backed stores do not use controllerClass filtering.
 			return false, nil
 		default:
@@ -1277,6 +1278,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return err
 	}
 
+	if err := mgr.GetFieldIndexer().IndexField(ctx, &esv1.ExternalSecret{}, indexESV2StoreRefField, indexExternalSecretV2StoreRefs); err != nil {
+		return err
+	}
+
 	// predicate function to ignore secret events unless they have the "managed" label
 	secretHasESLabel := predicate.NewPredicateFuncs(func(object client.Object) bool {
 		value, hasLabel := object.GetLabels()[esv1.LabelManaged]
@@ -1300,6 +1305,16 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&v1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSecret),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, secretHasESLabel),
+		).
+		Watches(
+			&esv2alpha1.ProviderStore{},
+			handler.EnqueueRequestsFromMapFunc(r.findExternalSecretsForV2Store),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
+		Watches(
+			&esv2alpha1.ClusterProviderStore{},
+			handler.EnqueueRequestsFromMapFunc(r.findExternalSecretsForV2Store),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		)
 
 	// Watch generic targets dynamically via the informer manager

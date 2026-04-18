@@ -31,8 +31,12 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
+	clusterprovidermetrics "github.com/external-secrets/external-secrets/pkg/controllers/clusterprovider"
+	providermetrics "github.com/external-secrets/external-secrets/pkg/controllers/provider"
 	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 )
+
+const defaultRuntimeRefKind = "ClusterProviderClass"
 
 func setReadyCondition(store esv2alpha1.GenericStore, status corev1.ConditionStatus, reason, message string) {
 	condition := esv2alpha1.ProviderStoreCondition{
@@ -81,9 +85,9 @@ func validateStore(ctx context.Context, kubeClient client.Client, store esv2alph
 func assertRuntimeClassReady(ctx context.Context, kubeClient client.Client, runtimeRef esv2alpha1.StoreRuntimeRef) error {
 	runtimeKind := runtimeRef.Kind
 	if runtimeKind == "" {
-		runtimeKind = "ClusterProviderClass"
+		runtimeKind = defaultRuntimeRefKind
 	}
-	if runtimeKind != "ClusterProviderClass" {
+	if runtimeKind != defaultRuntimeRefKind {
 		return fmt.Errorf("unsupported runtimeRef kind %q", runtimeKind)
 	}
 
@@ -100,10 +104,104 @@ func assertRuntimeClassReady(ctx context.Context, kubeClient client.Client, runt
 	return nil
 }
 
+func runtimeRefMatchesClusterProviderClass(runtimeRef esv2alpha1.StoreRuntimeRef, runtimeClass *esv1alpha1.ClusterProviderClass) bool {
+	runtimeKind := runtimeRef.Kind
+	if runtimeKind == "" {
+		runtimeKind = defaultRuntimeRefKind
+	}
+
+	return runtimeKind == defaultRuntimeRefKind && runtimeRef.Name == runtimeClass.Name
+}
+
+func findProviderStoresForRuntimeClass(ctx context.Context, kubeClient client.Client, runtimeClass *esv1alpha1.ClusterProviderClass) []ctrl.Request {
+	var stores esv2alpha1.ProviderStoreList
+	if err := kubeClient.List(ctx, &stores); err != nil {
+		return nil
+	}
+
+	requests := make([]ctrl.Request, 0, len(stores.Items))
+	for i := range stores.Items {
+		if !runtimeRefMatchesClusterProviderClass(stores.Items[i].Spec.RuntimeRef, runtimeClass) {
+			continue
+		}
+		requests = append(requests, ctrl.Request{
+			NamespacedName: client.ObjectKeyFromObject(&stores.Items[i]),
+		})
+	}
+
+	return requests
+}
+
+func findClusterProviderStoresForRuntimeClass(ctx context.Context, kubeClient client.Client, runtimeClass *esv1alpha1.ClusterProviderClass) []ctrl.Request {
+	var stores esv2alpha1.ClusterProviderStoreList
+	if err := kubeClient.List(ctx, &stores); err != nil {
+		return nil
+	}
+
+	requests := make([]ctrl.Request, 0, len(stores.Items))
+	for i := range stores.Items {
+		if !runtimeRefMatchesClusterProviderClass(stores.Items[i].Spec.RuntimeRef, runtimeClass) {
+			continue
+		}
+		requests = append(requests, ctrl.Request{
+			NamespacedName: client.ObjectKeyFromObject(&stores.Items[i]),
+		})
+	}
+
+	return requests
+}
+
 func updateStatus(ctx context.Context, statusWriter client.StatusWriter, store esv2alpha1.GenericStore, requeueAfter time.Duration, log logr.Logger) (ctrl.Result, error) {
 	if err := statusWriter.Update(ctx, store); err != nil {
 		log.Error(err, "failed to update status")
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+}
+
+func getReadyCondition(status esv2alpha1.ProviderStoreStatus) *esv2alpha1.ProviderStoreCondition {
+	for i := range status.Conditions {
+		if status.Conditions[i].Type == esv2alpha1.ProviderStoreReady {
+			return &status.Conditions[i]
+		}
+	}
+	return nil
+}
+
+func recordProviderStoreCompatibilityMetrics(store *esv2alpha1.ProviderStore, duration time.Duration) {
+	if store == nil {
+		return
+	}
+
+	providermetrics.RecordReconcileDuration(store.GetName(), store.GetNamespace(), store.GetLabels(), duration.Seconds())
+	condition := getReadyCondition(store.Status)
+	if condition == nil {
+		return
+	}
+
+	providermetrics.UpdateStatusCondition(
+		store.GetName(),
+		store.GetNamespace(),
+		store.GetLabels(),
+		string(condition.Type),
+		string(condition.Status),
+	)
+}
+
+func recordClusterProviderStoreCompatibilityMetrics(store *esv2alpha1.ClusterProviderStore, duration time.Duration) {
+	if store == nil {
+		return
+	}
+
+	clusterprovidermetrics.RecordReconcileDuration(store.GetName(), duration.Seconds())
+	condition := getReadyCondition(store.Status)
+	if condition == nil {
+		return
+	}
+
+	clusterprovidermetrics.UpdateStatusCondition(
+		store.GetName(),
+		string(condition.Type),
+		string(condition.Status),
+	)
 }
