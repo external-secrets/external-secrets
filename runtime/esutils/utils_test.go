@@ -17,6 +17,7 @@ limitations under the License.
 package esutils
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"reflect"
@@ -29,6 +30,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -1435,6 +1437,36 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFetchCACertFromSourceSecretStoreIgnoresCrossNamespaceConfigMap(t *testing.T) {
+	fakeClient := clientfake.NewClientBuilder().WithObjects(&v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ca-cm",
+			Namespace: "other",
+		},
+		Data: map[string]string{
+			"ca.crt": caCert,
+		},
+	}).Build()
+
+	cert, err := FetchCACertFromSource(context.Background(), CreateCertOpts{
+		CAProvider: &esv1.CAProvider{
+			Type:      esv1.CAProviderTypeConfigMap,
+			Name:      "ca-cm",
+			Key:       "ca.crt",
+			Namespace: Ptr("other"),
+		},
+		StoreKind: esv1.SecretStoreKind,
+		Namespace: "default",
+		Client:    fakeClient,
+	})
+
+	if err == nil {
+		t.Fatalf("expected an error when resolving a cross-namespace CAProvider ConfigMap for SecretStore, got cert length %d", len(cert))
+	}
+	assert.Nil(t, cert)
+	assert.Contains(t, err.Error(), "failed to get cert from configmap")
 }
 
 const mockJWTToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoxNzAwMDAwMDAwfQ.signature"
