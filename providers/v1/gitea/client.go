@@ -68,7 +68,7 @@ func (g *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 
 // PushSecret pushes a secret to Gitea Actions.
 // When remoteRef.GetSecretKey() is set, that specific key's value is pushed;
-// otherwise the entire secret data map is JSON-marshalled and pushed.
+// otherwise the entire secret data map is JSON-marshaled and pushed.
 func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRef esv1.PushSecretData) error {
 	var value []byte
 	if remoteRef.GetSecretKey() != "" {
