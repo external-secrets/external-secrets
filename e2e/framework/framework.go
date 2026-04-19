@@ -17,13 +17,6 @@ limitations under the License.
 package framework
 
 import (
-
-	// nolint
-
-	. "github.com/onsi/ginkgo/v2"
-
-	// nolint
-	. "github.com/onsi/gomega"
 	api "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -35,6 +28,10 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	. "github.com/onsi/ginkgo/v2"
+	// nolint
+	. "github.com/onsi/gomega"
 )
 
 type Framework struct {

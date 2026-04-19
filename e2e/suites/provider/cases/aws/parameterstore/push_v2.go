@@ -19,8 +19,6 @@ package aws
 import (
 	"context"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -30,6 +28,9 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("[aws] v2 push secret", Label("aws", "parameterstore", "v2", "push-secret"), func() {
@@ -63,7 +64,7 @@ func newAWSClusterProviderPushHarness(f *framework.Framework, prov *ProviderV2) 
 			return &common.ClusterProviderPushRuntime{
 				ClusterProviderName:    clusterProviderName,
 				DefaultRemoteNamespace: "",
-				WaitForRemoteSecretValue: func(_, name, _ , expectedValue string) {
+				WaitForRemoteSecretValue: func(_, name, _, expectedValue string) {
 					s.backend.WaitForSecretValue(name, expectedValue)
 				},
 				ExpectNoRemoteSecret: func(_, name string) {

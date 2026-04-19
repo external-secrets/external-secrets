@@ -246,7 +246,7 @@ func findSubstring(s, substr string) bool {
 
 // Global instances.
 var (
-	poolMetrics   PoolMetrics   = &defaultPoolMetrics{}
+	poolMetrics   PoolMetrics     = &defaultPoolMetrics{}
 	clientMetrics RequestObserver = &defaultClientMetrics{}
 )
 

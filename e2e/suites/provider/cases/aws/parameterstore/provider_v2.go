@@ -20,12 +20,13 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("[aws] v2 namespaced provider", Label("aws", "parameterstore", "v2", "namespaced-provider"), func() {

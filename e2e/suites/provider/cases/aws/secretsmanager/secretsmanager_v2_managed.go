@@ -17,13 +17,13 @@ limitations under the License.
 package aws
 
 import (
-	. "github.com/onsi/ginkgo/v2"
-
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("[awsmanaged] v2 IRSA via referenced service account", Label("aws", "secretsmanager", "managed", "v2"), Ordered, func() {

@@ -52,15 +52,15 @@ func TestListExternalSecretsCRDsFiltersByGroup(t *testing.T) {
 		CRClient: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 			&apiextensionsv1.CustomResourceDefinition{
 				ObjectMeta: metav1.ObjectMeta{Name: "externalsecrets.external-secrets.io"},
-				Spec: apiextensionsv1.CustomResourceDefinitionSpec{Group: "external-secrets.io"},
+				Spec:       apiextensionsv1.CustomResourceDefinitionSpec{Group: "external-secrets.io"},
 			},
 			&apiextensionsv1.CustomResourceDefinition{
 				ObjectMeta: metav1.ObjectMeta{Name: "providers.provider.external-secrets.io"},
-				Spec: apiextensionsv1.CustomResourceDefinitionSpec{Group: "provider.external-secrets.io"},
+				Spec:       apiextensionsv1.CustomResourceDefinitionSpec{Group: "provider.external-secrets.io"},
 			},
 			&apiextensionsv1.CustomResourceDefinition{
 				ObjectMeta: metav1.ObjectMeta{Name: "widgets.example.com"},
-				Spec: apiextensionsv1.CustomResourceDefinitionSpec{Group: "example.com"},
+				Spec:       apiextensionsv1.CustomResourceDefinitionSpec{Group: "example.com"},
 			},
 		).Build(),
 	}

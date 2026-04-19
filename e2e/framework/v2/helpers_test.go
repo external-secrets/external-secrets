@@ -21,7 +21,6 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +31,8 @@ import (
 	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestCreateKubernetesProviderUsesProvidedCABundle(t *testing.T) {

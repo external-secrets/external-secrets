@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,6 +28,9 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-secret"), func() {

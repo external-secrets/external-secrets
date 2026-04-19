@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
+
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("[aws] v2 namespaced provider", Label("aws", "secretsmanager", "v2", "namespaced-provider"), func() {

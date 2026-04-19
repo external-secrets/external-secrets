@@ -17,14 +17,14 @@ limitations under the License.
 package aws
 
 import (
-	. "github.com/onsi/ginkgo/v2"
-
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
+
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("[aws] v2 cluster provider", Label("aws", "parameterstore", "v2", "cluster-provider"), func() {
@@ -47,11 +47,11 @@ var _ = Describe("[aws] v2 cluster provider", Label("aws", "parameterstore", "v2
 })
 
 type awsClusterProviderScenario struct {
-	common               awscommon.V2ClusterProviderScenario
-	access               awsV2AccessConfig
-	authScope            esv1.AuthenticationScope
-	backend              *parameterStoreBackend
-	f                    *framework.Framework
+	common    awscommon.V2ClusterProviderScenario
+	access    awsV2AccessConfig
+	authScope esv1.AuthenticationScope
+	backend   *parameterStoreBackend
+	f         *framework.Framework
 }
 
 func newAWSClusterProviderScenario(f *framework.Framework, prefix string, authScope esv1.AuthenticationScope, access awsV2AccessConfig, backend *parameterStoreBackend) *awsClusterProviderScenario {

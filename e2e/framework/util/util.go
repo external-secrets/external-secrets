@@ -45,9 +45,6 @@ import (
 	"k8s.io/client-go/util/homedir"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
@@ -55,6 +52,9 @@ import (
 	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
 	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var scheme = runtime.NewScheme()

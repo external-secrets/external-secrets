@@ -19,6 +19,7 @@ package fake
 import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 

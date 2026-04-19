@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +31,8 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
+
+	. "github.com/onsi/gomega"
 )
 
 type BackendTarget struct {

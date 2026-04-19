@@ -17,12 +17,12 @@ limitations under the License.
 package kubernetes
 
 import (
-	. "github.com/onsi/ginkgo/v2"
-
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("[kubernetes] v2 operational", Serial, Label("kubernetes", "v2", "operational"), func() {

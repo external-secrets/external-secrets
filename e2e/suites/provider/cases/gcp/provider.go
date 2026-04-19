@@ -22,13 +22,8 @@ import (
 	"strings"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
 	// nolint
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	. "github.com/onsi/gomega"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
@@ -42,6 +37,10 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	gcpsm "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // nolint // Better to keep names consistent even if it stutters;

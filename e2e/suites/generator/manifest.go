@@ -19,10 +19,6 @@ package generator
 import (
 	"time"
 
-	//nolint
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	// nolint
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +27,10 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+
+	//nolint
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("manifest target with generator", Label("manifest"), func() {

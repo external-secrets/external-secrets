@@ -22,10 +22,6 @@ import (
 	"encoding/json"
 	"time"
 
-	//nolint
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +30,10 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	//nolint
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // WaitForSecretValue waits until a secret comes into existence and compares the secret.Data
