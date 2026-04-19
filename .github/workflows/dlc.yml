@@ -55,6 +55,10 @@ jobs:
           elif [ -f "$RUNNER_TEMP/fossa-analyze.stderr" ]; then
             echo "FOSSA analyze stderr:"
             cat "$RUNNER_TEMP/fossa-analyze.stderr"
+            if grep -q "Invalid project permission" "$RUNNER_TEMP/fossa-analyze.stderr"; then
+              echo "::warning::FOSSA scan skipped because the configured API key does not have project edit permission in the FOSSA organization."
+              exit 0
+            fi
             summary=$(tail -n 20 "$RUNNER_TEMP/fossa-analyze.stderr" | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
             echo "::error::${summary}"
           else
