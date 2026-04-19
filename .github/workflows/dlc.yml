@@ -42,7 +42,7 @@ jobs:
           FOSSA_BRANCH: ${{ github.head_ref || github.ref_name }}
           FOSSA_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          fossa analyze --debug --branch "$FOSSA_BRANCH" --revision "$FOSSA_REVISION"
+          fossa analyze --debug --branch "$FOSSA_BRANCH" --revision "$FOSSA_REVISION" >"$RUNNER_TEMP/fossa-analyze.stdout" 2>"$RUNNER_TEMP/fossa-analyze.stderr"
 
       - name: "Report FOSSA Scan Failure"
         if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_scan.outcome == 'failure' }}
@@ -51,6 +51,11 @@ jobs:
             echo "FOSSA analyze summary:"
             cat /tmp/fossa-analyze-scan-summary.txt
             summary=$(tail -n 20 /tmp/fossa-analyze-scan-summary.txt | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error::${summary}"
+          elif [ -f "$RUNNER_TEMP/fossa-analyze.stderr" ]; then
+            echo "FOSSA analyze stderr:"
+            cat "$RUNNER_TEMP/fossa-analyze.stderr"
+            summary=$(tail -n 20 "$RUNNER_TEMP/fossa-analyze.stderr" | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
             echo "::error::${summary}"
           else
             echo "::error::FOSSA scan failed before writing /tmp/fossa-analyze-scan-summary.txt"
@@ -65,10 +70,17 @@ jobs:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
           FOSSA_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          fossa test --debug --revision "$FOSSA_REVISION"
+          fossa test --debug --revision "$FOSSA_REVISION" >"$RUNNER_TEMP/fossa-test.stdout" 2>"$RUNNER_TEMP/fossa-test.stderr"
 
       - name: "Report FOSSA Test Failure"
         if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_test.outcome == 'failure' }}
         run: |
-          echo "::error::FOSSA test failed. Inspect the debug artifact or the step log emitted by the action for details."
+          if [ -f "$RUNNER_TEMP/fossa-test.stderr" ]; then
+            echo "FOSSA test stderr:"
+            cat "$RUNNER_TEMP/fossa-test.stderr"
+            summary=$(tail -n 20 "$RUNNER_TEMP/fossa-test.stderr" | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error::${summary}"
+          else
+            echo "::error::FOSSA test failed. No stderr file was captured."
+          fi
           exit 1
