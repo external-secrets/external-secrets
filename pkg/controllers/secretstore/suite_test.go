@@ -38,7 +38,6 @@ import (
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
-	fakeprovider "github.com/external-secrets/external-secrets/providers/v1/fake"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -152,7 +151,6 @@ var _ = AfterSuite(func() {
 })
 
 func init() {
-	esapi.ForceRegister(fakeprovider.NewProvider(), fakeprovider.ProviderSpec(), fakeprovider.MaintenanceStatus())
 	ctrlmetrics.SetUpLabelNames(false)
 	cssmetrics.SetUpMetrics()
 	ssmetrics.SetUpMetrics()
