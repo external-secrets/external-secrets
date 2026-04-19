@@ -4156,6 +4156,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Referencing Secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#folder-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Folder paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4258,6 +4275,17 @@
     <span class="md-ellipsis">
       
         Entry Not Found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-entries-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Entries Found
       
     </span>
   </a>
@@ -5137,6 +5165,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Referencing Secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#folder-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Folder paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5245,6 +5290,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#multiple-entries-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Entries Found
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5301,6 +5357,7 @@
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">dvls</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">serverUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;https://dvls.example.com&#39;</span>
+<span class="w">      </span><span class="nt">vault</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;my-vault&#39;</span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">appId</span><span class="p">:</span>
@@ -5323,6 +5380,10 @@
 <td>The URL of your DVLS instance (e.g., <code>https://dvls.example.com</code>)</td>
 </tr>
 <tr>
+<td><code>vault</code></td>
+<td>(Optional) The name or UUID of the vault to fetch secrets from. When omitted, the vault must be specified in the secret key using the legacy <code>&lt;vault-id&gt;/&lt;entry-id&gt;</code> format.</td>
+</tr>
+<tr>
 <td><code>insecure</code></td>
 <td>(Optional) Set to <code>true</code> to allow plain HTTP connections. <strong>Not recommended for production.</strong></td>
 </tr>
@@ -5338,12 +5399,47 @@
 </table>
 <p><strong>NOTE:</strong> For <code>ClusterSecretStore</code>, ensure you specify the <code>namespace</code> in the secret references.</p>
 <h2 id="referencing-secrets">Referencing Secrets</h2>
-<p>Secrets are referenced using the format: <code>&lt;vault-id&gt;/&lt;entry-id&gt;</code></p>
-<ul>
-<li><strong>vault-id</strong>: The UUID of the vault containing the entry</li>
-<li><strong>entry-id</strong>: The UUID of the credential entry</li>
-</ul>
-<p>You can find these UUIDs in the DVLS web interface by viewing the entry properties.</p>
+<p>Entries can be referenced by <strong>UUID</strong> or <strong>name</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entry UUID</td>
+<td><code>7c9e6679-7425-40de-944b-e07fc1f90ae7</code></td>
+</tr>
+<tr>
+<td>Entry name</td>
+<td><code>db-credentials</code></td>
+</tr>
+<tr>
+<td>Entry name with folder path</td>
+<td><code>infrastructure/databases/db-credentials</code></td>
+</tr>
+<tr>
+<td>Folder path with backslashes</td>
+<td><code>infrastructure\databases\db-credentials</code></td>
+</tr>
+</tbody>
+</table>
+<p>The vault is configured in the SecretStore's <code>vault</code> field (name or UUID), so the key only needs to identify the entry.</p>
+<h3 id="folder-paths">Folder paths</h3>
+<p>If an entry is inside a folder, you can include the folder path before the entry name. Both forward slashes (<code>/</code>) and backslashes (<code>\</code>) are accepted as path separators:</p>
+<div class="highlight"><pre><span></span><code>folder/subfolder/entry-name
+folder\subfolder\entry-name
+</code></pre></div>
+<p><strong>Note:</strong> When using backslashes in YAML, you must escape them with a double backslash (<code>\\</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;folder\\subfolder\\entry-name&quot;</span>
+</code></pre></div>
+<p>Forward slashes do not need escaping and are recommended for simplicity.</p>
+<p><strong>Important:</strong> Entry names containing forward slashes (<code>/</code>) or backslashes (<code>\</code>) are not supported with name-based lookups, as those characters are interpreted as path separators. Use the entry UUID instead.</p>
+<p>The folder path is <strong>optional</strong>. Without a path, the provider searches across all folders in the vault. If multiple entries share the same name in different folders, you can either specify the folder path or use the entry UUID to disambiguate.</p>
+<p><strong>Name-based lookups</strong> resolve the name to a UUID at runtime via an API call. If multiple credential entries match, an error is returned. For write-heavy scenarios (frequent <code>PushSecret</code> operations), prefer UUID references to avoid the extra lookup per operation.</p>
+<p>You can find UUIDs in the DVLS web interface by viewing the entry properties.</p>
 <h2 id="supported-credential-types">Supported Credential Types</h2>
 <p>DVLS supports multiple credential types. The provider maps each type to specific properties:</p>
 <table>
@@ -5394,7 +5490,7 @@
 <h3 id="fetching-individual-properties">Fetching Individual Properties</h3>
 <p>To fetch specific properties from a credential entry:</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="c1"># Fetch a single property from a credential entry</span>
+<span class="c1"># Fetch a single property from a credential entry by name</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5410,14 +5506,14 @@
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/entry-uuid&#39;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;db-credentials&#39;</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/entry-uuid&#39;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;db-credentials&#39;</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 <span class="nn">---</span>
-<span class="c1"># Fetch all fields from a credential entry</span>
+<span class="c1"># Fetch all fields from a credential entry with folder path</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5432,9 +5528,9 @@
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/entry-uuid&#39;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;infrastructure/apis/my-api-key&#39;</span>
 <span class="nn">---</span>
-<span class="c1"># Fetch a Secret entry (Access Code type)</span>
+<span class="c1"># Fetch a Secret entry (Access Code type) by UUID</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5450,7 +5546,7 @@
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/secret-entry-uuid&#39;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;&lt;entry-uuid&gt;&#39;</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 </code></pre></div>
 <h3 id="using-datafrom-to-extract-all-fields">Using dataFrom to Extract All Fields</h3>
@@ -5473,14 +5569,15 @@
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;vault-uuid/entry-uuid&#39;</span>
+<span class="w">          </span><span class="c1"># When vault is set in the SecretStore, remoteKey is the entry name</span>
+<span class="w">          </span><span class="c1"># (or path/name). Without vault, use the legacy &#39;vault-uuid/entry-uuid&#39; format.</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;db-credentials&#39;</span>
 </code></pre></div>
 <p><strong>Note:</strong> Push secret updates an existing entry's password field. The entry must already exist in DVLS.</p>
 <h2 id="limitations">Limitations</h2>
 <ul>
 <li><strong>GetAllSecrets</strong>: The <code>find</code> operation for discovering secrets is not currently supported</li>
 <li><strong>Custom CA Certificates</strong>: Custom TLS certificates for self-signed DVLS instances are not yet supported. Use the <code>SSL_CERT_FILE</code> environment variable as a workaround</li>
-<li><strong>Name-based lookups</strong>: Currently only UUID-based references (<code>vault-id/entry-id</code>) are supported. Path/name-based lookups are planned for future releases</li>
 <li><strong>Certificate entries</strong>: Certificate entry types (<code>Document/Certificate</code>) are not currently supported. Only Credential entries are supported</li>
 </ul>
 <h2 id="troubleshooting">Troubleshooting</h2>
@@ -5494,11 +5591,13 @@
 <h3 id="entry-not-found">Entry Not Found</h3>
 <p>If an entry cannot be found:</p>
 <ol>
-<li>Verify the vault UUID and entry UUID are correct</li>
+<li>Verify the vault and entry references are correct (UUID or name)</li>
 <li>Ensure the application has at least read access to the vault</li>
 <li>Check that the entry exists and is a Credential or Secret type entry</li>
-<li>Ensure the application has at least read, view password, and connect (execute) permissions on the entry.</li>
+<li>Ensure the application has at least read, view password, and connect (execute) permissions on the entry</li>
 </ol>
+<h3 id="multiple-entries-found">Multiple Entries Found</h3>
+<p>If you receive a "multiple entries found" error when using name-based references, it means more than one credential entry shares the same name in the vault. Use the entry UUID instead of the name to target the correct entry.</p>
 
 
 
