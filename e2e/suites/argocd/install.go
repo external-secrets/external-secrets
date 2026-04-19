@@ -20,10 +20,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/external-secrets/external-secrets-e2e/framework/addon"
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
-
-	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 )
 
 const (
