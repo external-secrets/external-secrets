@@ -36,9 +36,9 @@ func TestNeedsCRDPreinstallDisabledWhenHelmCRDsDisabled(t *testing.T) {
 	}
 }
 
-func TestNeedsCRDPreinstallDisabledWithoutV2Providers(t *testing.T) {
+func TestNeedsCRDPreinstallForDefaultV2RuntimeCRDs(t *testing.T) {
 	eso := NewESO(WithCRDs())
-	if needsCRDPreinstall(eso.HelmChart) {
-		t.Fatal("did not expect CRD preinstall without v2 provider runtime classes")
+	if !needsCRDPreinstall(eso.HelmChart) {
+		t.Fatal("expected default chart v2 runtime CRDs to require CRD preinstall")
 	}
 }

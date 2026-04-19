@@ -259,7 +259,13 @@ func (l *ESO) Uninstall() error {
 }
 
 func needsCRDPreinstall(chart *HelmChart) bool {
-	return chart.HasVar(installCRDsVar, "true") &&
-		chart.HasVar("providers.enabled", "true") &&
-		chart.HasVar("crds.createClusterProviderClass", "true")
+	if !chart.HasVar(installCRDsVar, "true") {
+		return false
+	}
+	for _, variable := range chart.Vars {
+		if variable.Key == "crds.createClusterProviderClass" {
+			return variable.Value == "true"
+		}
+	}
+	return true
 }
