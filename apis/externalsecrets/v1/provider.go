@@ -64,10 +64,6 @@ type ProviderInterface interface {
 	Capabilities() SecretStoreCapabilities
 }
 
-// Provider is kept as a compatibility alias while the rest of the tree migrates
-// to the more explicit ProviderInterface name.
-type Provider = ProviderInterface
-
 // +kubebuilder:object:root=false
 // +kubebuilder:object:generate:false
 // +k8s:deepcopy-gen:interfaces=nil
