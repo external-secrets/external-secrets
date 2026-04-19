@@ -84,8 +84,12 @@ func NewSession(ctx context.Context, provider *esv1.VolcengineProvider, kube cli
 // getSecretValue retrieves a value from a Kubernetes secret.
 func getSecretValue(ctx context.Context, kube client.Client, namespace string, secretSelector esmeta.SecretKeySelector) ([]byte, error) {
 	secret := &v1.Secret{}
+	ns := namespace
+	if secretSelector.Namespace != nil && *secretSelector.Namespace != "" {
+		ns = *secretSelector.Namespace
+	}
 	ref := types.NamespacedName{
-		Namespace: namespace,
+		Namespace: ns,
 		Name:      secretSelector.Name,
 	}
 

@@ -299,3 +299,52 @@ func TestNewSession_should_return_error_when_region_is_empty(t *testing.T) {
 	assert.Nil(t, sess)
 	assert.Equal(t, "region must be specified", err.Error())
 }
+
+// TestNewSession_ClusterSecretStore_should_use_secretRef_namespace reproduces the bug:
+// When using ClusterSecretStore, the framework passes namespace="" to NewClient/NewSession.
+// The secretRef.Namespace field ("external-secrets") must be used instead of the empty string,
+// otherwise the Kubernetes API returns "an empty namespace may not be set when a resource name is provided".
+func TestNewSession_ClusterSecretStore_should_use_secretRef_namespace(t *testing.T) {
+	secretNamespace := "external-secrets"
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: secretNamespace, // secret lives in "external-secrets", not "default"
+		},
+		Data: map[string][]byte{
+			accessKeyIDKey:     []byte(testAccessKeyID),
+			secretAccessKeyKey: []byte(testSecretAccessKey),
+		},
+	}
+	store := &esv1.VolcengineProvider{
+		Region: testRegion,
+		Auth: &esv1.VolcengineAuth{
+			SecretRef: &esv1.VolcengineAuthSecretRef{
+				AccessKeyID: esmeta.SecretKeySelector{
+					Name:      secretName,
+					Namespace: &secretNamespace, // explicitly set namespace in secretRef
+					Key:       accessKeyIDKey,
+				},
+				SecretAccessKey: esmeta.SecretKeySelector{
+					Name:      secretName,
+					Namespace: &secretNamespace,
+					Key:       secretAccessKeyKey,
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	_ = v1.AddToScheme(scheme)
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
+
+	// Simulate ClusterSecretStore: framework passes namespace="" (cluster-scoped has no namespace)
+	sess, err := NewSession(context.Background(), store, kube, "")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, sess)
+	creds, err := sess.Config.Credentials.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, testAccessKeyID, creds.AccessKeyID)
+	assert.Equal(t, testSecretAccessKey, creds.SecretAccessKey)
+}
