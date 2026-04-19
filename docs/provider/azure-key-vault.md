@@ -244,7 +244,15 @@ To fetch a P12 certificate (also known as PKCS12 or PFX) from Azure Key Vault an
 You can push secrets from Kubernetes into Azure Key Vault as secrets, keys or certificates by using a `PushSecret`. A `PushSecret` references a Kubernetes Secret as the source of the data. The operator can create, update or delete the corresponding secret in Azure Key Vault to match the desired state defined in the `PushSecret`.
 
 #### Pushing to a Secret
-Pushing to a Secret requires no previous setup. Provided you have a Kubernetes Secret available, you can create a `PushSecret` which references it to have it created on Azure Key Vault. You can optionally set metadata such as content type or tags. The operator will read the data from the Kubernetes Secret and push it to Azure Key Vault as a secret.
+Pushing to a Secret requires no previous setup. Provided you have a Kubernetes Secret available, you can create a `PushSecret` which references it to have it created on Azure Key Vault. The operator will read the data from the Kubernetes Secret and push it to Azure Key Vault as a secret.
+
+You can optionally attach metadata to the secret via the `spec.data[].metadata` field. The following fields are supported:
+
+| Field | Type | Description |
+|---|---|---|
+| `expirationDate` | string | Expiration date for the secret in RFC3339 format (e.g. `2024-12-31T23:59:59Z`). |
+| `contentType` | string | Content type of the secret value (e.g. `application/json`, `text/plain`). |
+| `tags` | map[string]string | Arbitrary key-value tags attached to the secret in Azure Key Vault. |
 
 ```yaml
 {% include 'azkv-pushsecret-secret.yaml' %}
