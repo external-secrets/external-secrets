@@ -21,6 +21,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// StoreRuntimeRef identifies the runtime configuration used by a store.
+type StoreRuntimeRef struct {
+	// Kind identifies the runtime resource type referenced by this store.
+	// +kubebuilder:validation:Enum=ClusterProviderClass
+	// +kubebuilder:default=ClusterProviderClass
+	// +optional
+	Kind string `json:"kind,omitempty"`
+
+	// Name is the runtime resource name referenced by this store.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	Name string `json:"name"`
+}
+
 // SecretStoreSpec defines the desired state of SecretStore.
 type SecretStoreSpec struct {
 	// Used to select the correct ESO controller (think: ingress.ingressClassName)
@@ -42,6 +57,10 @@ type SecretStoreSpec struct {
 	// Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
 	// +optional
 	Conditions []ClusterSecretStoreCondition `json:"conditions,omitempty"`
+
+	// RuntimeRef points to runtime configuration for this store.
+	// +optional
+	RuntimeRef *StoreRuntimeRef `json:"runtimeRef,omitempty"`
 }
 
 // ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in

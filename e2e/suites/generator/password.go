@@ -17,18 +17,17 @@ limitations under the License.
 package generator
 
 import (
-
-	//nolint
-	. "github.com/onsi/gomega"
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	//nolint
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("password generator", Label("password"), func() {

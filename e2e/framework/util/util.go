@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	fluxhelm "github.com/fluxcd/helm-controller/api/v2"
@@ -30,6 +31,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -43,12 +45,16 @@ import (
 	"k8s.io/client-go/util/homedir"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
+	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
+	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var scheme = runtime.NewScheme()
@@ -61,16 +67,24 @@ func init() {
 	// external-secrets schemes
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(esv2alpha1.AddToScheme(scheme))
 	utilruntime.Must(genv1alpha1.AddToScheme(scheme))
 
 	// other schemes
 	utilruntime.Must(fluxhelm.AddToScheme(scheme))
 	utilruntime.Must(fluxsrc.AddToScheme(scheme))
+
+	// v2alpha1 provider schemes
+	utilruntime.Must(awsv2alpha1.AddToScheme(scheme))
+	utilruntime.Must(fakev2alpha1.AddToScheme(scheme))
+	utilruntime.Must(k8sv2alpha1.AddToScheme(scheme))
 }
 
 const (
 	// How often to poll for conditions.
 	Poll = 2 * time.Second
+
+	e2eNamespacePrefix = "e2e-tests-"
 )
 
 // CreateKubeNamespace creates a new Kubernetes Namespace for a test.
@@ -87,6 +101,67 @@ func CreateKubeNamespace(baseName string, kubeClientSet kubernetes.Interface) (*
 // DeleteKubeNamespace will delete a namespace resource.
 func DeleteKubeNamespace(namespace string, kubeClientSet kubernetes.Interface) error {
 	return kubeClientSet.CoreV1().Namespaces().Delete(GinkgoT().Context(), namespace, metav1.DeleteOptions{})
+}
+
+func IsE2ETestNamespace(namespace string) bool {
+	return strings.HasPrefix(namespace, e2eNamespacePrefix)
+}
+
+func IsMissingAPIResourceError(err error) bool {
+	return err != nil && meta.IsNoMatchError(err)
+}
+
+func ClearKnownNamespaceFinalizers(ctx context.Context, c crclient.Client, namespace string) error {
+	var secretList v1.SecretList
+	if err := c.List(ctx, &secretList, crclient.InNamespace(namespace)); err != nil {
+		return err
+	}
+	for i := range secretList.Items {
+		if len(secretList.Items[i].Finalizers) == 0 {
+			continue
+		}
+		secret := secretList.Items[i].DeepCopy()
+		secret.Finalizers = nil
+		if err := c.Update(ctx, secret); err != nil {
+			return err
+		}
+	}
+
+	var pushSecretList esv1alpha1.PushSecretList
+	if err := c.List(ctx, &pushSecretList, crclient.InNamespace(namespace)); err != nil {
+		return err
+	}
+	for i := range pushSecretList.Items {
+		if len(pushSecretList.Items[i].Finalizers) == 0 {
+			continue
+		}
+		pushSecret := pushSecretList.Items[i].DeepCopy()
+		pushSecret.Finalizers = nil
+		if err := c.Update(ctx, pushSecret); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CleanupTerminatingE2ENamespaces(ctx context.Context, c crclient.Client) error {
+	var namespaceList v1.NamespaceList
+	if err := c.List(ctx, &namespaceList); err != nil {
+		return err
+	}
+
+	for i := range namespaceList.Items {
+		namespace := namespaceList.Items[i]
+		if !IsE2ETestNamespace(namespace.Name) || namespace.DeletionTimestamp == nil {
+			continue
+		}
+		if err := ClearKnownNamespaceFinalizers(ctx, c, namespace.Name); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // WaitForKubeNamespaceNotExist will wait for the namespace with the given name
@@ -281,24 +356,49 @@ func GetKubeSecret(client kubernetes.Interface, namespace, secretName string) (*
 }
 
 // NewConfig loads and returns the kubernetes credentials from the environment.
-// KUBECONFIG env var takes precedence, falls back to in-cluster config, then to default KUBECONFIG location.
+// KUBECONFIG env var takes precedence, then ~/.kube/config, then in-cluster config.
 func NewConfig() (*restclient.Config, *kubernetes.Clientset, crclient.Client) {
-	cfg, err := BuildKubeConfig()
+	var kubeConfig *restclient.Config
+	var err error
+	kcPath := os.Getenv("KUBECONFIG")
+	if kcPath != "" {
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kcPath)
+		if err != nil {
+			Fail(err.Error())
+		}
+	} else {
+		// Try ~/.kube/config
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			defaultKubeconfig := homeDir + "/.kube/config"
+			if _, err := os.Stat(defaultKubeconfig); err == nil {
+				kubeConfig, err = clientcmd.BuildConfigFromFlags("", defaultKubeconfig)
+				if err != nil {
+					Fail(err.Error())
+				}
+			}
+		}
+
+		// Fall back to in-cluster config if ~/.kube/config doesn't exist
+		if kubeConfig == nil {
+			kubeConfig, err = restclient.InClusterConfig()
+			if err != nil {
+				Fail(err.Error())
+			}
+		}
+	}
+
+	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		Fail(err.Error())
 	}
 
-	kubeClientSet, err := kubernetes.NewForConfig(cfg)
+	CRClient, err := crclient.New(kubeConfig, crclient.Options{Scheme: scheme})
 	if err != nil {
 		Fail(err.Error())
 	}
 
-	CRClient, err := crclient.New(cfg, crclient.Options{Scheme: scheme})
-	if err != nil {
-		Fail(err.Error())
-	}
-
-	return cfg, kubeClientSet, CRClient
+	return kubeConfig, kubeClientSet, CRClient
 }
 
 func BuildKubeConfig() (*rest.Config, error) {

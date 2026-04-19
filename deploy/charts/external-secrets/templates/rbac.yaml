@@ -13,10 +13,27 @@ metadata:
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 rules:
+  {{- if .Values.v2.enabled }}
+  - apiGroups:
+    - "provider.external-secrets.io"
+    resources:
+    - "kubernetes"
+    - "awssecretsmanagers"
+    - "fakes"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  {{- end }}
   - apiGroups:
     - "external-secrets.io"
     resources:
     - "secretstores"
+    {{- if .Values.v2.enabled }}
+    - "providerstores"
+    - "clusterproviderstores"
+    - "clusterproviderclasses"
+    {{- end }}
     {{- if .Values.processClusterStore }}
     - "clustersecretstores"
     {{- end }}
@@ -37,6 +54,14 @@ rules:
   - apiGroups:
     - "external-secrets.io"
     resources:
+    {{- if .Values.v2.enabled }}
+    - "providerstores"
+    - "providerstores/status"
+    - "clusterproviderstores"
+    - "clusterproviderstores/status"
+    - "clusterproviderclasses"
+    - "clusterproviderclasses/status"
+    {{- end }}
     - "externalsecrets"
     - "externalsecrets/status"
     {{- if .Values.openshiftFinalizers }}
@@ -238,6 +263,10 @@ rules:
     resources:
       - "externalsecrets"
       - "secretstores"
+      {{- if .Values.v2.enabled }}
+      - "providers"
+      - "clusterproviders"
+      {{- end }}
       {{- if .Values.processClusterStore }}
       - "clustersecretstores"
       {{- end }}
@@ -300,6 +329,10 @@ rules:
     resources:
       - "externalsecrets"
       - "secretstores"
+      {{- if .Values.v2.enabled }}
+      - "providers"
+      - "clusterproviders"
+      {{- end }}
       {{- if .Values.processClusterStore }}
       - "clustersecretstores"
       {{- end }}

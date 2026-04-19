@@ -19,11 +19,6 @@ import (
 	"context"
 	"os"
 
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
-	// nolint
-	. "github.com/onsi/gomega"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	vault "github.com/oracle/oci-go-sdk/v65/vault"
 	v1 "k8s.io/api/core/v1"
@@ -33,6 +28,11 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	// nolint
+	. "github.com/onsi/gomega"
 )
 
 type oracleProvider struct {

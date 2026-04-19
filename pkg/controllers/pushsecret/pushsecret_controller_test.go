@@ -178,6 +178,36 @@ var _ = Describe("PushSecret controller", func() {
 		storePrefixTemplate = "SecretStore/%v"
 	)
 
+	It("keeps managed stores when secretStoreRef kind is omitted", func() {
+		store := &esv1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretStore,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Fake: &esv1.FakeProvider{
+						Data: []esv1.FakeProviderData{
+							{Key: "key", Value: "value"},
+						},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(context.Background(), store)).To(Succeed())
+
+		stores, err := removeUnmanagedStores(context.Background(), PushSecretNamespace, &Reconciler{
+			Client: k8sClient,
+		}, map[v1alpha1.PushSecretStoreRef]esv1.GenericStore{
+			{
+				Name:       PushSecretStore,
+				APIVersion: esv1.SchemeGroupVersion.String(),
+			}: store,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stores).To(HaveLen(1))
+	})
+
 	makeDefaultTestcase := func() *testCase {
 		return &testCase{
 			pushsecret: &v1alpha1.PushSecret{
@@ -417,8 +447,8 @@ var _ = Describe("PushSecret controller", func() {
 			Spec: v1alpha1.PushSecretSpec{
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 					{
-						Name: PushSecretStore,
-						Kind: "SecretStore",
+						Name:       PushSecretStore,
+						APIVersion: esv1.SchemeGroupVersion.String(),
 					},
 				},
 				Selector: v1alpha1.PushSecretSelector{

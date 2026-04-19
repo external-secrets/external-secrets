@@ -120,7 +120,7 @@ func TestNewClient(t *testing.T) {
 	type args struct {
 		store    esv1.SecretStore
 		kube     kubeclient.Client
-		provider esv1.Provider
+		provider esv1.ProviderInterface
 	}
 	tests := []struct {
 		name              string
