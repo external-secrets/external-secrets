@@ -17,14 +17,13 @@ limitations under the License.
 package aws
 
 import (
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
 )
 
 // here we use the global eso instance
