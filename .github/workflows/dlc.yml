@@ -27,18 +27,45 @@ jobs:
           persist-credentials: false
 
       - name: "Run FOSSA Scan"
+        id: fossa_scan
         uses: fossas/fossa-action@ff70fe9fe17cbd2040648f1c45e8ec4e4884dcf3 # main
         if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        continue-on-error: true
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
         with:
           api-key: ${{ env.FOSSA_API_KEY }}
+          branch: ${{ github.head_ref || github.ref_name }}
+          debug: true
+
+      - name: "Report FOSSA Scan Failure"
+        if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_scan.outcome == 'failure' }}
+        run: |
+          if [ -f /tmp/fossa-analyze-scan-summary.txt ]; then
+            echo "FOSSA analyze summary:"
+            cat /tmp/fossa-analyze-scan-summary.txt
+            summary=$(tail -n 20 /tmp/fossa-analyze-scan-summary.txt | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error::${summary}"
+          else
+            echo "::error::FOSSA scan failed before writing /tmp/fossa-analyze-scan-summary.txt"
+          fi
+          exit 1
 
       - name: "Run FOSSA Test"
+        id: fossa_test
         uses: fossas/fossa-action@ff70fe9fe17cbd2040648f1c45e8ec4e4884dcf3 # main
-        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_scan.outcome == 'success' }}
+        continue-on-error: true
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
         with:
           api-key: ${{ env.FOSSA_API_KEY }}
+          branch: ${{ github.head_ref || github.ref_name }}
+          debug: true
           run-tests: true
+
+      - name: "Report FOSSA Test Failure"
+        if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_test.outcome == 'failure' }}
+        run: |
+          echo "::error::FOSSA test failed. Inspect the debug artifact or the step log emitted by the action for details."
+          exit 1
