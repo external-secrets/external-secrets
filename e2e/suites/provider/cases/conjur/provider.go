@@ -19,19 +19,19 @@ import (
 	"encoding/base64"
 	"strings"
 
-	//nolint
-	. "github.com/onsi/ginkgo/v2"
-
-	//nolint
-	. "github.com/onsi/gomega"
+	"github.com/cyberark/conjur-api-go/conjurapi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+
+	//nolint
+	. "github.com/onsi/ginkgo/v2"
+	//nolint
+	. "github.com/onsi/gomega"
 )
 
 type conjurProvider struct {

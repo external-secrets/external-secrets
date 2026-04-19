@@ -16,12 +16,12 @@ limitations under the License.
 package conjur
 
 import (
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
 )
 
 const (
