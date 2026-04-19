@@ -160,6 +160,18 @@ test.e2e.managed: generate ## Run e2e tests managed
 	$(MAKE) -C ./e2e test.managed
 	@$(OK) go test e2e-tests-managed
 
+.PHONY: test.e2e.v2
+test.e2e.v2: generate ## Run V2 E2E tests
+	@$(INFO) go test v2 e2e-tests
+	$(MAKE) -C ./e2e test.v2
+	@$(OK) go test v2 e2e-tests
+
+.PHONY: test.e2e.v2.operational
+test.e2e.v2.operational: generate ## Run focused V2 operational E2E tests
+	@$(INFO) go test v2 operational e2e-tests
+	$(MAKE) -C ./e2e test.v2.operational
+	@$(OK) go test v2 operational e2e-tests
+
 .PHONY: test.crds
 test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
 	@$(INFO) $(CTY) test tests

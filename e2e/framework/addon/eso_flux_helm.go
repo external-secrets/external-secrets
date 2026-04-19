@@ -17,22 +17,20 @@ limitations under the License.
 package addon
 
 import (
-	"bytes"
 	"context"
-	"crypto/tls"
-	"net/http"
 	"time"
 
 	fluxhelm "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/meta"
 	fluxsrc "github.com/fluxcd/source-controller/api/v1"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const fluxNamespace = "flux-system"
@@ -130,24 +128,7 @@ func (c *FluxHelmRelease) Install() error {
 		return err
 	}
 
-	// we have to wait for the webhook to become ready
-	tr := &http.Transport{
-		// nolint:gosec
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-	return wait.PollUntilContextTimeout(GinkgoT().Context(), time.Second, time.Minute*5, true, func(ctx context.Context) (bool, error) {
-		const payload = `{"apiVersion": "admission.k8s.io/v1","kind": "AdmissionReview","request": {"uid": "test","kind": {"group": "external-secrets.io","version": "v1","kind": "ExternalSecret"}, "resource": "external-secrets.io/v1.externalsecrets","dryRun": true, "operation": "CREATE", "userInfo":{"username":"test","uid":"test","groups":[],"extra":{}}}}`
-		res, err := client.Post("https://external-secrets-webhook.external-secrets.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", "application/json", bytes.NewBufferString(payload))
-		if err != nil {
-			return false, nil
-		}
-		defer func() {
-			_ = res.Body.Close()
-		}()
-		GinkgoWriter.Printf("webhook res: %d", res.StatusCode)
-		return res.StatusCode == http.StatusOK, nil
-	})
+	return waitForExternalSecretWebhookReady(webhookServiceName(c.Name), c.TargetNamespace)
 }
 
 // Uninstall removes the chart aswell as the repo.
