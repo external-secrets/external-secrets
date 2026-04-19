@@ -1,0 +1,28 @@
+apiVersion: external-secrets.io/v2alpha1
+kind: ClusterProviderStore
+metadata: {}
+spec:
+  backendRef:
+    apiVersion: external-secrets.io/v2alpha1
+    kind: string
+    name: string
+    namespace: string
+  conditions:
+  - namespaceRegexes: [] # minItems 0 of type string
+    namespaceSelector:
+      matchExpressions:
+      - key: string
+        operator: string
+        values: [] # minItems 0 of type string
+      matchLabels: {}
+    namespaces: [] # minItems 0 of type string
+  runtimeRef:
+    kind: "ClusterProviderClass"
+    name: string
+status:
+  conditions:
+  - lastTransitionTime: 2024-10-11T12:48:44Z
+    message: string
+    reason: string
+    status: string
+    type: string

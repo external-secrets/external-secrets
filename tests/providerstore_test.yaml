@@ -1,0 +1,7 @@
+suite: test ProviderStore
+template: tests/crds/providerstore.yml
+tests:
+  - it: matches ProviderStore correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__
