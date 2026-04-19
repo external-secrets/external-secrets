@@ -16,7 +16,14 @@ limitations under the License.
 
 package controller
 
-import "testing"
+import (
+	"testing"
+
+	awsv2 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
+	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
+	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
 
 func TestStoreRequeueIntervalDefault(t *testing.T) {
 	flag := rootCmd.Flags().Lookup("store-requeue-interval")
@@ -26,5 +33,37 @@ func TestStoreRequeueIntervalDefault(t *testing.T) {
 
 	if flag.DefValue != "30s" {
 		t.Fatalf("expected store-requeue-interval default 30s, got %q", flag.DefValue)
+	}
+}
+
+func TestSchemeIncludesProviderV2Kinds(t *testing.T) {
+	t.Helper()
+
+	testCases := []struct {
+		name string
+		gvk  schema.GroupVersionKind
+	}{
+		{
+			name: "aws secretsmanager",
+			gvk:  awsv2.GroupVersion.WithKind(awsv2.SecretsManagerKind),
+		},
+		{
+			name: "aws parameterstore",
+			gvk:  awsv2.GroupVersion.WithKind(awsv2.ParameterStoreKind),
+		},
+		{
+			name: "fake",
+			gvk:  fakev2alpha1.GroupVersion.WithKind(fakev2alpha1.Kind),
+		},
+		{
+			name: "kubernetes",
+			gvk:  k8sv2alpha1.GroupVersion.WithKind(k8sv2alpha1.Kind),
+		},
+	}
+
+	for _, tc := range testCases {
+		if _, err := scheme.New(tc.gvk); err != nil {
+			t.Fatalf("%s kind not registered in controller scheme: %v", tc.name, err)
+		}
 	}
 }
