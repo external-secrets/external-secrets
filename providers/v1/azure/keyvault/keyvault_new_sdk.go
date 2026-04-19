@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"maps"
 	"regexp"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
@@ -45,7 +44,7 @@ import (
 )
 
 // New SDK implementations for setter methods.
-func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName string, value []byte, _ *time.Time, tags map[string]string) error {
+func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName string, value []byte, contentType *string, tags map[string]string) error {
 	// Check if secret exists and if we can create/update it
 	existingSecret, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
@@ -63,13 +62,17 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 			}
 		}
 
-		// Check if secret content is the same
+		// Check if secret content and content type are the same
 		val := string(value)
 		if existingSecret.Value != nil && val == *existingSecret.Value {
 			// Note: We're not checking expiration here since the new SDK doesn't support setting it
 			// This means the new SDK implementation will always update the secret if the content is the same
 			// but different expiration is requested
-			return nil
+			contentTypeUnchanged := (existingSecret.ContentType == nil && contentType == nil) ||
+				(existingSecret.ContentType != nil && contentType != nil && *existingSecret.ContentType == *contentType)
+			if contentTypeUnchanged {
+				return nil
+			}
 		}
 	}
 
@@ -84,8 +87,9 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 	// Set the secret
 	val := string(value)
 	params := azsecrets.SetSecretParameters{
-		Value: &val,
-		Tags:  secretTags,
+		Value:       &val,
+		Tags:        secretTags,
+		ContentType: contentType,
 	}
 
 	// Note: The new SDK doesn't support setting expiration in SetSecretParameters

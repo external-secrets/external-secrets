@@ -154,9 +154,10 @@ type Azure struct {
 }
 
 // PushSecretMetadataSpec defines metadata for pushing secrets to Azure Key Vault,
-// including expiration date and tags.
+// including expiration date, content type, and tags.
 type PushSecretMetadataSpec struct {
 	ExpirationDate string            `json:"expirationDate,omitempty"`
+	ContentType    string            `json:"contentType,omitempty"`
 	Tags           map[string]string `json:"tags,omitempty"`
 }
 
@@ -549,7 +550,7 @@ func canCreate(tags map[string]*string, err error) (bool, error) {
 	return true, nil
 }
 
-func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, tags map[string]string) error {
+func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, contentType *string, tags map[string]string) error {
 	secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
 	ok, err := canCreate(secret.Tags, err)
@@ -564,7 +565,10 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 		if secret.Attributes != nil {
 			if (secret.Attributes.Expires == nil && expires == nil) ||
 				(secret.Attributes.Expires != nil && expires != nil && *secret.Attributes.Expires == *expires) {
-				return nil
+				if (secret.ContentType == nil && contentType == nil) ||
+					(secret.ContentType != nil && contentType != nil && *secret.ContentType == *contentType) {
+					return nil
+				}
 			}
 		}
 	}
@@ -577,6 +581,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 		SecretAttributes: &keyvault.SecretAttributes{
 			Enabled: new(true),
 		},
+		ContentType: contentType,
 	}
 
 	for k, v := range tags {
@@ -737,6 +742,12 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		expires = &unixTime
 	}
 
+	var contentType *string
+	if metadata != nil && metadata.Spec.ContentType != "" {
+		ct := metadata.Spec.ContentType
+		contentType = &ct
+	}
+
 	if metadata != nil && metadata.Spec.Tags != nil {
 		if _, exists := metadata.Spec.Tags[managedBy]; exists {
 			return fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
@@ -748,9 +759,9 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 	switch objectType {
 	case defaultObjType:
 		if a.useNewSDK() {
-			return a.setKeyVaultSecretWithNewSDK(ctx, secretName, value, nil, tags)
+			return a.setKeyVaultSecretWithNewSDK(ctx, secretName, value, contentType, tags)
 		}
-		return a.setKeyVaultSecret(ctx, secretName, value, expires, tags)
+		return a.setKeyVaultSecret(ctx, secretName, value, expires, contentType, tags)
 	case objectTypeCert:
 		if a.useNewSDK() {
 			return a.setKeyVaultCertificateWithNewSDK(ctx, secretName, value, tags)
