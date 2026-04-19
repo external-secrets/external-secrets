@@ -2958,6 +2958,9 @@ spec:
                             resourceManagerEndpoint:
                               description: ResourceManagerEndpoint is the Azure Resource Manager endpoint
                               type: string
+                            keyVaultApiVersion:
+                              description: KeyVaultAPIVersion overrides the Key Vault data-plane api-version used by the new Azure SDK. This is useful for Azure Stack and custom clouds that expose a different Key Vault API version.
+                              type: string
                           required:
                             - activeDirectoryEndpoint
                           type: object
@@ -15063,6 +15066,9 @@ spec:
                               type: string
                             resourceManagerEndpoint:
                               description: ResourceManagerEndpoint is the Azure Resource Manager endpoint
+                              type: string
+                            keyVaultApiVersion:
+                              description: KeyVaultAPIVersion overrides the Key Vault data-plane api-version used by the new Azure SDK. This is useful for Azure Stack and custom clouds that expose a different Key Vault API version.
                               type: string
                           required:
                             - activeDirectoryEndpoint

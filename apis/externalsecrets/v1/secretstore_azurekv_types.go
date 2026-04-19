@@ -72,6 +72,11 @@ type AzureCustomCloudConfig struct {
 	// ResourceManagerEndpoint is the Azure Resource Manager endpoint
 	// +optional
 	ResourceManagerEndpoint *string `json:"resourceManagerEndpoint,omitempty"`
+
+	// KeyVaultAPIVersion overrides the Key Vault data-plane api-version used by the new Azure SDK.
+	// This is useful for Azure Stack and custom clouds that expose a different Key Vault API version.
+	// +optional
+	KeyVaultAPIVersion *string `json:"keyVaultApiVersion,omitempty"`
 }
 
 // AzureKVProvider configures a store to sync secrets using Azure KV.

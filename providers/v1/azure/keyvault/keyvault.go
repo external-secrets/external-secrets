@@ -267,8 +267,10 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 	// vault host; the track-2 clients reject requests unless verification is disabled. See:
 	// https://aka.ms/azsdk/blog/vault-uri
 	disableChallengeResourceVerification := shouldDisableChallengeResourceVerification(az.provider)
+	clientOptions := getKeyVaultClientOptions(az.provider, cloudConfig)
+
 	az.secretsClient, err = azsecrets.NewClient(*az.provider.VaultURL, credential, &azsecrets.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		ClientOptions: clientOptions,
 		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {
@@ -276,7 +278,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 	}
 
 	az.keysClient, err = azkeys.NewClient(*az.provider.VaultURL, credential, &azkeys.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		ClientOptions: clientOptions,
 		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {
@@ -284,7 +286,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 	}
 
 	az.certsClient, err = azcertificates.NewClient(*az.provider.VaultURL, credential, &azcertificates.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		ClientOptions: clientOptions,
 		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {

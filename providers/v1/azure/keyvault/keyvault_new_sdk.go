@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"maps"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -385,6 +386,28 @@ func shouldDisableChallengeResourceVerification(provider *esv1.AzureKVProvider) 
 		return false
 	}
 	return provider.EnvironmentType == esv1.AzureEnvironmentAzureStackCloud || provider.CustomCloudConfig != nil
+}
+
+// effectiveKeyVaultAPIVersion returns the configured custom Key Vault API version when set.
+func effectiveKeyVaultAPIVersion(provider *esv1.AzureKVProvider) string {
+	if provider == nil || provider.CustomCloudConfig == nil || provider.CustomCloudConfig.KeyVaultAPIVersion == nil {
+		return ""
+	}
+
+	return strings.TrimSpace(*provider.CustomCloudConfig.KeyVaultAPIVersion)
+}
+
+// getKeyVaultClientOptions returns shared Azure SDK client options for Key Vault clients.
+func getKeyVaultClientOptions(provider *esv1.AzureKVProvider, cloudConfig cloud.Configuration) azcore.ClientOptions {
+	clientOptions := azcore.ClientOptions{
+		Cloud: cloudConfig,
+	}
+
+	if apiVersion := effectiveKeyVaultAPIVersion(provider); apiVersion != "" {
+		clientOptions.APIVersion = apiVersion
+	}
+
+	return clientOptions
 }
 
 // buildCustomCloudConfiguration creates a custom cloud.Configuration by merging custom config with base config.
