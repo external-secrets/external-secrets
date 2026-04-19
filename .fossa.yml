@@ -1,5 +1,9 @@
 version: 3
 
+paths:
+  exclude:
+    - providers/v2
+
 targets:
   exclude:
     # v2 provider runtime modules are provider-owned deliverables.
