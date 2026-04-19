@@ -25006,6 +25006,7 @@ AzureACRWorkloadIdentityAuth
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.CodeArtifactAuthorizationTokenSpec">CodeArtifactAuthorizationTokenSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationTokenSpec">ECRAuthorizationTokenSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.STSSessionTokenSpec">STSSessionTokenSpec</a>)
 </p>
@@ -25585,6 +25586,196 @@ GeneratorSpec
 </td>
 <td>
 <p>Generator the spec for this generator, must match the kind.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.CodeArtifactAuthorizationToken">CodeArtifactAuthorizationToken
+</h3>
+<p>
+<p>CodeArtifactAuthorizationToken uses the GetAuthorizationToken API to retrieve an
+authorization token for AWS CodeArtifact.
+The authorization token is a temporary bearer token that can be used to authenticate
+package manager clients (pip, npm, maven, gradle, etc.) against a CodeArtifact repository.
+For more information, see:
+<a href="https://docs.aws.amazon.com/codeartifact/latest/ug/tokens-authentication.html">https://docs.aws.amazon.com/codeartifact/latest/ug/tokens-authentication.html</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.CodeArtifactAuthorizationTokenSpec">
+CodeArtifactAuthorizationTokenSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region specifies the region to operate in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines how to authenticate with AWS</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>You can assume a role before making calls to the
+desired AWS service.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>domain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Domain is the name of the CodeArtifact domain.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>domainOwner</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DomainOwner is the AWS account ID that owns the CodeArtifact domain.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.CodeArtifactAuthorizationTokenSpec">CodeArtifactAuthorizationTokenSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.CodeArtifactAuthorizationToken">CodeArtifactAuthorizationToken</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
+</p>
+<p>
+<p>CodeArtifactAuthorizationTokenSpec defines the desired state to generate an AWS CodeArtifact authorization token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region specifies the region to operate in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines how to authenticate with AWS</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>You can assume a role before making calls to the
+desired AWS service.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>domain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Domain is the name of the CodeArtifact domain.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>domainOwner</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DomainOwner is the AWS account ID that owns the CodeArtifact domain.</p>
 </td>
 </tr>
 </tbody>
@@ -26208,6 +26399,9 @@ string
 </tr><tr><td><p>&#34;CloudsmithAccessToken&#34;</p></td>
 <td><p>GeneratorKindCloudsmithAccessToken represents a Cloudsmith access token generator.</p>
 </td>
+</tr><tr><td><p>&#34;CodeArtifactAuthorizationToken&#34;</p></td>
+<td><p>GeneratorKindCodeArtifactAuthorizationToken represents an AWS CodeArtifact authorization token generator.</p>
+</td>
 </tr><tr><td><p>&#34;ECRAuthorizationToken&#34;</p></td>
 <td><p>GeneratorKindECRAuthorizationToken represents an AWS ECR authorization token generator.</p>
 </td>
@@ -26289,6 +26483,18 @@ ACRAccessTokenSpec
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.CloudsmithAccessTokenSpec">
 CloudsmithAccessTokenSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>codeArtifactAuthorizationTokenSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.CodeArtifactAuthorizationTokenSpec">
+CodeArtifactAuthorizationTokenSpec
 </a>
 </em>
 </td>

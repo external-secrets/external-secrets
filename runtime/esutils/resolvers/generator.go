@@ -163,6 +163,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.CloudsmithAccessTokenSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindCodeArtifactAuthorizationToken:
+		if gen.Spec.Generator.CodeArtifactAuthorizationTokenSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, CodeArtifactAuthorizationTokenSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.CodeArtifactAuthorizationToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.CodeArtifactAuthorizationTokenKind,
+			},
+			Spec: *gen.Spec.Generator.CodeArtifactAuthorizationTokenSpec,
+		}, nil
 	case genv1alpha1.GeneratorKindECRAuthorizationToken:
 		if gen.Spec.Generator.ECRAuthorizationTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, ECRAuthorizationTokenSpec must be set", gen.Spec.Kind)
