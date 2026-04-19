@@ -19,6 +19,7 @@ replace (
 	github.com/external-secrets/external-secrets/generators/v1/uuid => ./generators/v1/uuid
 	github.com/external-secrets/external-secrets/generators/v1/vault => ./generators/v1/vault
 	github.com/external-secrets/external-secrets/generators/v1/webhook => ./generators/v1/webhook
+	github.com/external-secrets/external-secrets/proto => ./providers/v2/common/proto
 	github.com/external-secrets/external-secrets/providers/v1/akeyless => ./providers/v1/akeyless
 	github.com/external-secrets/external-secrets/providers/v1/aws => ./providers/v1/aws
 	github.com/external-secrets/external-secrets/providers/v1/azure => ./providers/v1/azure
@@ -58,6 +59,8 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/volcengine => ./providers/v1/volcengine
 	github.com/external-secrets/external-secrets/providers/v1/webhook => ./providers/v1/webhook
 	github.com/external-secrets/external-secrets/providers/v1/yandex => ./providers/v1/yandex
+	github.com/external-secrets/external-secrets/providers/v2/adapter/store => ./providers/v2/adapter/store
+	github.com/external-secrets/external-secrets/providers/v2/common => ./providers/v2/common
 	github.com/external-secrets/external-secrets/runtime => ./runtime
 )
 
@@ -101,7 +104,7 @@ require (
 	golang.org/x/oauth2 v0.36.0 // indirect
 	google.golang.org/api v0.254.0 // indirect
 	google.golang.org/genproto v0.0.0-20251029180050-ab9386a59fda // indirect
-	google.golang.org/grpc v1.79.3 // indirect
+	google.golang.org/grpc v1.79.3
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919 // indirect
 	k8s.io/api v0.35.2
@@ -132,6 +135,7 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/proto v0.0.0
 	github.com/external-secrets/external-secrets/providers/v1/akeyless v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/aws v0.0.0-20251103072335-a9b233b6936f
 	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-20251103072335-a9b233b6936f
@@ -171,6 +175,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/volcengine v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/webhook v0.0.0-20251103080423-08fa383f42e5
 	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v2/common v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
 	sigs.k8s.io/yaml v1.6.0
@@ -247,6 +252,7 @@ require (
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
+	github.com/external-secrets/external-secrets/providers/v2/adapter/store v0.0.0 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fortanix/sdkms-client-go v0.4.1 // indirect
