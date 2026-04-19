@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.39.6
 	github.com/aws/aws-sdk-go-v2/config v1.31.19
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.23
+	github.com/aws/aws-sdk-go-v2/service/acm v1.37.13
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.12
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.67.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.40.1
@@ -17,6 +18,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
+	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	k8s.io/api v0.35.0
 	k8s.io/apiextensions-apiserver v0.35.0
 	k8s.io/apimachinery v0.35.0

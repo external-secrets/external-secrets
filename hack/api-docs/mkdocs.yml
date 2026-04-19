@@ -121,6 +121,7 @@ nav:
   - Provider:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
+      - AWS Certificate Manager: provider/aws-certificate-manager.md
       - AWS Access: provider/aws-access.md
       - Azure Key Vault: provider/azure-key-vault.md
       - Barbican: provider/barbican.md
