@@ -69,6 +69,40 @@ crds:
   createClusterPushSecret: true
   # -- If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false.
   createPushSecret: true
+  # -- If true, create CRDs for External Secret.
+  createExternalSecret: true
+  # -- If true, create CRDs for Arc Access Token
+  createACRAccessToken: true
+  # -- If true, create CRDs for Cloud Smith Access Token
+  createCloudsmithAccessToken: true
+  # -- If true, create CRDs for Ecr Authorization Token
+  createECRAuthorizationToken: true
+  # -- If true, create CRDs for Fake
+  createFake: true
+  # -- If true, create CRDs for Gcr Access Token
+  createGCRAccessToken: true
+  # -- If true, create CRDs for Generator State. If set to false you must also set processGeneratorState: false.
+  createGeneratorState: true
+  # -- If true, create CRDs for Github Access Token
+  createGithubAccessToken: true
+  # -- If true, create CRDs for Grafana
+  createGrafana: true
+  # -- If true, create CRDs for Mfa
+  createMFA: true
+  # -- If true, create CRDs for Password
+  createPassword: true
+  # -- If true, create CRDs for Quay Access Token
+  createQuayAccessToken: true
+  # -- If true, create CRDs for Ssh Key
+  createSSHKey: true
+  # -- If true, create CRDs for Sts Session token
+  createSTSSessionToken: true
+  # -- If true, create CRDs for Uuid
+  createUUID: true
+  # -- If true, create CRDs for Vault Dynamic Secret
+  createVaultDynamicSecret: true
+  # -- If true, create CRDs for Webhook
+  createWebhook: true
   annotations: {}
   conversion:
     # -- Conversion is disabled by default as we stopped supporting v1alpha1.
@@ -131,6 +165,9 @@ processClusterGenerator: true
 
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
+
+# -- if true, the operator will process generator state. Else, it will ignore them.
+processGeneratorState: true
 
 # -- Enable support for generic targets (ConfigMaps, Custom Resources).
 # Warning: Using generic target. Make sure access policies and encryption are properly configured.

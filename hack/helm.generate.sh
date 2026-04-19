@@ -28,13 +28,7 @@ for i in "${HELM_DIR}"/templates/crds/*.yml; do
     $SEDPRG -i '/name: v1beta1/,/served: false/{s/served: false/served: {{ .Values.crds.unsafeServeV1Beta1 }}/}' "$i.bkp"
   fi
 
-  if [[ "${CRDS_FLAG_NAME}" == *"Cluster"* ]]; then
-    echo "{{- if and (.Values.installCRDs) (.Values.crds.$CRDS_FLAG_NAME) }}" > "$i"
-  elif [[ "${CRDS_FLAG_NAME}" == *"PushSecret"* ]]; then
-			echo "{{- if and (.Values.installCRDs) (.Values.crds.$CRDS_FLAG_NAME) }}" > "$i"
-  else
-    echo "{{- if .Values.installCRDs }}" > "$i"
-  fi
+  echo "{{- if and (.Values.installCRDs) (.Values.crds.$CRDS_FLAG_NAME) }}" > "$i"
   cat "$i.bkp" >> "$i"
   echo "{{- end }}" >> "$i"
   rm "$i.bkp"
