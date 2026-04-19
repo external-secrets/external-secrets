@@ -18,13 +18,14 @@ package azure
 import (
 	"fmt"
 
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 
 	// nolint
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
 )
 
 // azure keyvault type=cert should get a certificate from the api.

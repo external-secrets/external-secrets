@@ -1,0 +1,21 @@
+suite: provider class
+templates:
+  - provider-class.yaml
+tests:
+  - it: renders a ClusterProviderClass for each enabled provider
+    set:
+      namespaceOverride: default
+      providers:
+        enabled: true
+        list:
+          - name: aws
+            type: aws
+            enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ClusterProviderClass
+      - equal:
+          path: spec.address
+          value: provider-aws.default.svc:8080

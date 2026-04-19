@@ -1,0 +1,30 @@
+version: 3
+
+paths:
+  exclude:
+    - providers/v2
+
+targets:
+  exclude:
+    # v2 provider runtime modules are provider-owned deliverables.
+    # Keep the core repo FOSSA scan scoped to the existing monorepo targets.
+    - type: gomod
+      path: providers/v2/adapter
+    - type: gomod
+      path: providers/v2/adapter/generator
+    - type: gomod
+      path: providers/v2/adapter/store
+    - type: gomod
+      path: providers/v2/aws
+    - type: gomod
+      path: providers/v2/common
+    - type: gomod
+      path: providers/v2/common/grpc/server
+    - type: gomod
+      path: providers/v2/common/proto
+    - type: gomod
+      path: providers/v2/fake
+    - type: gomod
+      path: providers/v2/hack
+    - type: gomod
+      path: providers/v2/kubernetes

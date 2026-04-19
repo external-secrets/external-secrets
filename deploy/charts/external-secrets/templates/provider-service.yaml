@@ -1,0 +1,35 @@
+{{- if .Values.providers.enabled }}
+{{- range .Values.providers.list }}
+{{- if .enabled }}
+{{- $root := $ }}
+{{- $provider := include "external-secrets.provider.mergeDefaults" (dict "provider" . "root" $root) | fromYaml }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "external-secrets.provider.servicename" (dict "provider" $provider "root" $root) }}
+  namespace: {{ include "external-secrets.namespace" $root }}
+  labels:
+    {{- include "external-secrets.provider.labels" (dict "provider" $provider "root" $root) | nindent 4 }}
+  {{- with $provider.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $provider.service.type | default "ClusterIP" }}
+  ports:
+  - port: {{ $provider.service.port | default 8080 }}
+    targetPort: grpc
+    protocol: TCP
+    name: grpc
+  {{- if and $provider.metrics $provider.metrics.enabled }}
+  - port: {{ $provider.metrics.port | default 8081 }}
+    targetPort: metrics
+    protocol: TCP
+    name: metrics
+  {{- end }}
+  selector:
+    {{- include "external-secrets.provider.selectorLabels" (dict "provider" $provider "root" $root) | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

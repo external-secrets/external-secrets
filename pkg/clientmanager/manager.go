@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package secretstore implements the controllers for managing SecretStore resources
-package secretstore
+// Package clientmanager provides a Manager for provider clients
+package clientmanager
 
 import (
 	"context"
@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -33,14 +34,48 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/storeutil"
+	"github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 )
 
 const (
 	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
-	errSecretStoreNotReady   = "%s %q is not ready"
 	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 )
+
+var (
+	// globalV2ConnectionPool is a singleton connection pool for v2 gRPC providers.
+	// It persists across all reconciles and Manager instances to enable connection reuse.
+	// Initialized once on first use and shared globally.
+	globalV2ConnectionPool     *grpc.ConnectionPool
+	globalV2ConnectionPoolOnce sync.Once
+	globalV2ConnectionPoolLog  logr.Logger
+)
+
+// initGlobalV2ConnectionPool initializes the global connection pool for v2 providers.
+// This is called once on first use via sync.Once.
+func initGlobalV2ConnectionPool() {
+	globalV2ConnectionPoolLog = ctrl.Log.WithName("v2-connection-pool")
+	poolConfig := grpc.DefaultPoolConfig()
+	globalV2ConnectionPool = grpc.NewConnectionPool(poolConfig)
+	globalV2ConnectionPoolLog.Info("global v2 connection pool initialized",
+		"maxIdleTime", poolConfig.MaxIdleTime.String(),
+		"maxLifetime", poolConfig.MaxLifetime.String(),
+		"healthCheckInterval", poolConfig.HealthCheckInterval.String())
+}
+
+// getGlobalV2ConnectionPool returns the global connection pool, initializing it if needed.
+func getGlobalV2ConnectionPool() *grpc.ConnectionPool {
+	globalV2ConnectionPoolOnce.Do(initGlobalV2ConnectionPool)
+	return globalV2ConnectionPool
+}
+
+// v2PooledConnection tracks connection info needed to release connections back to the pool.
+type v2PooledConnection struct {
+	address   string
+	tlsConfig *grpc.TLSConfig
+}
 
 // Manager stores instances of provider clients
 // At any given time we must have no more than one instance
@@ -55,6 +90,9 @@ type Manager struct {
 
 	// store clients by provider type
 	clientMap map[clientKey]*clientVal
+
+	// Track v2 provider connections for release back to pool
+	v2PooledConnections []v2PooledConnection
 }
 
 type clientKey struct {
@@ -120,7 +158,7 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespa
 		return nil, err
 	}
 	// check if store should be handled by this controller instance
-	if !ShouldProcessStore(store, m.controllerClass) {
+	if !storeutil.ShouldProcessStore(store, m.controllerClass) {
 		return nil, errors.New("can not reference unmanaged store")
 	}
 	// when using ClusterSecretStore, validate the ClusterSecretStore namespace conditions
@@ -133,7 +171,7 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespa
 	}
 
 	if m.enableFloodgate {
-		err := assertStoreIsUsable(store)
+		err := storeutil.AssertStoreIsUsable(store)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +182,7 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespa
 // returns a previously stored client from the cache if store and store-version match
 // if a client exists for the same provider which points to a different store or store version
 // it will be cleaned up.
-func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.Provider, store esv1.GenericStore) esv1.SecretsClient {
+func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.ProviderInterface, store esv1.GenericStore) esv1.SecretsClient {
 	idx := storeKey(storeProvider)
 	val, ok := m.clientMap[idx]
 	if !ok {
@@ -179,7 +217,7 @@ func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.Provid
 	return nil
 }
 
-func storeKey(storeProvider esv1.Provider) clientKey {
+func storeKey(storeProvider esv1.ProviderInterface) clientKey {
 	return clientKey{
 		providerType: fmt.Sprintf("%T", storeProvider),
 	}
@@ -209,15 +247,32 @@ func (m *Manager) getStore(ctx context.Context, storeRef *esv1.SecretStoreRef, n
 }
 
 // Close cleans up all clients.
+// For v1 providers, it closes the clients directly.
+// For v2 providers, it releases connections back to the pool for reuse.
 func (m *Manager) Close(ctx context.Context) error {
 	var errs []string
+
+	// Release v2 pooled connections back to the pool
+	pool := getGlobalV2ConnectionPool()
+	for _, pooledConn := range m.v2PooledConnections {
+		pool.Release(pooledConn.address, pooledConn.tlsConfig)
+		m.log.V(1).Info("released v2 connection back to pool",
+			"address", pooledConn.address)
+	}
+	m.v2PooledConnections = nil
+
+	// Close v1 provider clients (they don't use the pool)
 	for key, val := range m.clientMap {
-		err := val.client.Close(ctx)
-		if err != nil {
-			errs = append(errs, err.Error())
+		// Only close v1 clients; v2 clients are managed by the pool
+		if key.providerType != "v2-provider" && key.providerType != "v2-cluster-provider" {
+			err := val.client.Close(ctx)
+			if err != nil {
+				errs = append(errs, err.Error())
+			}
 		}
 		delete(m.clientMap, key)
 	}
+
 	if len(errs) != 0 {
 		return fmt.Errorf("errors while closing clients: %s", strings.Join(errs, ", "))
 	}
@@ -276,16 +331,4 @@ func (m *Manager) shouldProcessSecret(store esv1.GenericStore, ns string) (bool,
 	}
 
 	return false, nil
-}
-
-// assertStoreIsUsable assert that the store is ready to use.
-func assertStoreIsUsable(store esv1.GenericStore) error {
-	if store == nil {
-		return nil
-	}
-	condition := GetSecretStoreCondition(store.GetStatus(), esv1.SecretStoreReady)
-	if condition == nil || condition.Status != v1.ConditionTrue {
-		return fmt.Errorf(errSecretStoreNotReady, store.GetKind(), store.GetName())
-	}
-	return nil
 }

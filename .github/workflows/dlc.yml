@@ -26,19 +26,65 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: "Run FOSSA Scan"
-        uses: fossas/fossa-action@ff70fe9fe17cbd2040648f1c45e8ec4e4884dcf3 # main
+      - name: "Install FOSSA CLI"
         if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        run: |
+          curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh | bash -s -- -b "$RUNNER_TEMP/bin" v3.17.1
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/fossa" --version
+
+      - name: "Run FOSSA Scan"
+        id: fossa_scan
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        continue-on-error: true
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-        with:
-          api-key: ${{ env.FOSSA_API_KEY }}
+          FOSSA_BRANCH: ${{ github.head_ref || github.ref_name }}
+          FOSSA_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          fossa analyze --debug --branch "$FOSSA_BRANCH" --revision "$FOSSA_REVISION" >"$RUNNER_TEMP/fossa-analyze.stdout" 2>"$RUNNER_TEMP/fossa-analyze.stderr"
+
+      - name: "Report FOSSA Scan Failure"
+        if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_scan.outcome == 'failure' }}
+        run: |
+          if [ -f /tmp/fossa-analyze-scan-summary.txt ]; then
+            echo "FOSSA analyze summary:"
+            cat /tmp/fossa-analyze-scan-summary.txt
+            summary=$(tail -n 20 /tmp/fossa-analyze-scan-summary.txt | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error::${summary}"
+          elif [ -f "$RUNNER_TEMP/fossa-analyze.stderr" ]; then
+            echo "FOSSA analyze stderr:"
+            cat "$RUNNER_TEMP/fossa-analyze.stderr"
+            if grep -q "Invalid project permission" "$RUNNER_TEMP/fossa-analyze.stderr"; then
+              echo "::warning::FOSSA scan skipped because the configured API key does not have project edit permission in the FOSSA organization."
+              exit 0
+            fi
+            summary=$(tail -n 20 "$RUNNER_TEMP/fossa-analyze.stderr" | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error::${summary}"
+          else
+            echo "::error::FOSSA scan failed before writing /tmp/fossa-analyze-scan-summary.txt"
+          fi
+          exit 1
 
       - name: "Run FOSSA Test"
-        uses: fossas/fossa-action@ff70fe9fe17cbd2040648f1c45e8ec4e4884dcf3 # main
-        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        id: fossa_test
+        if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_scan.outcome == 'success' }}
+        continue-on-error: true
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-        with:
-          api-key: ${{ env.FOSSA_API_KEY }}
-          run-tests: true
+          FOSSA_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          fossa test --debug --revision "$FOSSA_REVISION" >"$RUNNER_TEMP/fossa-test.stdout" 2>"$RUNNER_TEMP/fossa-test.stderr"
+
+      - name: "Report FOSSA Test Failure"
+        if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_test.outcome == 'failure' }}
+        run: |
+          if [ -f "$RUNNER_TEMP/fossa-test.stderr" ]; then
+            echo "FOSSA test stderr:"
+            cat "$RUNNER_TEMP/fossa-test.stderr"
+            summary=$(tail -n 20 "$RUNNER_TEMP/fossa-test.stderr" | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error::${summary}"
+          else
+            echo "::error::FOSSA test failed. No stderr file was captured."
+          fi
+          exit 1

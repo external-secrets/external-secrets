@@ -55,7 +55,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &gitlabBase{}
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 
 // ProjectsClient is an interface for interacting with GitLab project APIs.
 type ProjectsClient interface {

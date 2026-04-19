@@ -17,13 +17,6 @@ limitations under the License.
 package framework
 
 import (
-
-	// nolint
-
-	. "github.com/onsi/ginkgo/v2"
-
-	// nolint
-	. "github.com/onsi/gomega"
 	api "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -34,6 +27,11 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	. "github.com/onsi/ginkgo/v2"
+	// nolint
+	. "github.com/onsi/gomega"
 )
 
 type Framework struct {
@@ -54,15 +52,28 @@ type Framework struct {
 	Addons []addon.Addon
 
 	MakeRemoteRefKey func(base string) string
+
+	ProviderMode                        string
+	DefaultSecretStoreRefKind           string
+	DefaultPushSecretStoreRefKind       string
+	DefaultPushSecretStoreRefAPIVersion string
 }
+
+var newFrameworkConfig = util.NewConfig
 
 // New returns a new framework instance with defaults.
 func New(baseName string) *Framework {
 	f := &Framework{
-		BaseName:         baseName,
-		MakeRemoteRefKey: func(base string) string { return base },
+		BaseName:                            baseName,
+		MakeRemoteRefKey:                    func(base string) string { return base },
+		ProviderMode:                        GetProviderMode(),
+		DefaultPushSecretStoreRefAPIVersion: esv1.SchemeGroupVersion.String(),
 	}
-	f.KubeConfig, f.KubeClientSet, f.CRClient = util.NewConfig()
+	if f.ProviderMode == ProviderModeV2 {
+		f.DefaultSecretStoreRefKind = esv1.ProviderStoreKindStr
+		f.DefaultPushSecretStoreRefKind = esv1.ProviderStoreKindStr
+	}
+	f.refreshClients()
 
 	BeforeEach(f.BeforeEach)
 	AfterEach(f.AfterEach)
@@ -70,9 +81,16 @@ func New(baseName string) *Framework {
 	return f
 }
 
+func (f *Framework) refreshClients() {
+	f.KubeConfig, f.KubeClientSet, f.CRClient = newFrameworkConfig()
+}
+
 // BeforeEach creates a namespace.
 func (f *Framework) BeforeEach() {
 	var err error
+	f.refreshClients()
+	err = util.CleanupTerminatingE2ENamespaces(GinkgoT().Context(), f.CRClient)
+	Expect(err).ToNot(HaveOccurred())
 	f.Namespace, err = util.CreateKubeNamespace(f.BaseName, f.KubeClientSet)
 	log.Logf("created test namespace %s", f.Namespace.Name)
 	Expect(err).ToNot(HaveOccurred())
@@ -92,7 +110,9 @@ func (f *Framework) AfterEach() {
 	// reset addons to default once the run is done
 	f.Addons = []addon.Addon{}
 	log.Logf("deleting test namespace %s", f.Namespace.Name)
-	err := util.DeleteKubeNamespace(f.Namespace.Name, f.KubeClientSet)
+	err := util.ClearKnownNamespaceFinalizers(GinkgoT().Context(), f.CRClient, f.Namespace.Name)
+	Expect(err).NotTo(HaveOccurred())
+	err = util.DeleteKubeNamespace(f.Namespace.Name, f.KubeClientSet)
 	Expect(err).NotTo(HaveOccurred())
 }
 
