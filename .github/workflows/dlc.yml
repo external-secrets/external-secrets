@@ -26,17 +26,23 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: "Install FOSSA CLI"
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
+        run: |
+          curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh | bash -s -- -b "$RUNNER_TEMP/bin" v3.17.1
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/fossa" --version
+
       - name: "Run FOSSA Scan"
         id: fossa_scan
-        uses: fossas/fossa-action@ff70fe9fe17cbd2040648f1c45e8ec4e4884dcf3 # main
         if: ${{ env.HAS_FOSSA_KEY == 'true' }}
         continue-on-error: true
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-        with:
-          api-key: ${{ env.FOSSA_API_KEY }}
-          branch: ${{ github.head_ref || github.ref_name }}
-          debug: true
+          FOSSA_BRANCH: ${{ github.head_ref || github.ref_name }}
+          FOSSA_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          fossa analyze --debug --branch "$FOSSA_BRANCH" --revision "$FOSSA_REVISION"
 
       - name: "Report FOSSA Scan Failure"
         if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_scan.outcome == 'failure' }}
@@ -53,16 +59,13 @@ jobs:
 
       - name: "Run FOSSA Test"
         id: fossa_test
-        uses: fossas/fossa-action@ff70fe9fe17cbd2040648f1c45e8ec4e4884dcf3 # main
         if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_scan.outcome == 'success' }}
         continue-on-error: true
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-        with:
-          api-key: ${{ env.FOSSA_API_KEY }}
-          branch: ${{ github.head_ref || github.ref_name }}
-          debug: true
-          run-tests: true
+          FOSSA_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          fossa test --debug --revision "$FOSSA_REVISION"
 
       - name: "Report FOSSA Test Failure"
         if: ${{ env.HAS_FOSSA_KEY == 'true' && steps.fossa_test.outcome == 'failure' }}
