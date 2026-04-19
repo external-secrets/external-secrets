@@ -4,8 +4,10 @@ go 1.26.2
 
 require (
 	dario.cat/mergo v1.0.1
+	github.com/Azure/go-ntlmssp v0.1.0
 	github.com/Masterminds/goutils v1.1.1
 	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/aws/aws-sdk-go-v2 v1.39.3
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/proto v0.0.0
@@ -36,6 +38,7 @@ require (
 )
 
 require (
+	github.com/PaesslerAG/gval v1.2.4 // indirect
 	github.com/aws/smithy-go v1.23.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
