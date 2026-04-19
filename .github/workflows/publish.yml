@@ -116,6 +116,7 @@ jobs:
         if: env.IS_FORK != ''
         shell: bash
         env:
+          DOCKER: docker buildx
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: ${{ inputs.build-args }}
           DOCKER_BUILD_ARGS: >-
@@ -128,6 +129,7 @@ jobs:
         if: env.IS_FORK == ''
         shell: bash
         env:
+          DOCKER: docker buildx
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: ${{ inputs.build-args }}
           DOCKER_BUILD_ARGS: --no-cache --load
