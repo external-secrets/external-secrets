@@ -111,6 +111,8 @@ var (
 	tlsMinVersion                         string
 	enableHTTP2                           bool
 	allowGenericTargets                   bool
+	providerNamespace                     string
+	providerServiceNames                  []string
 )
 
 const (
