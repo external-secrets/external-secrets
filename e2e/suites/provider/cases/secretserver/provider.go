@@ -20,8 +20,9 @@ import (
 	"encoding/json"
 
 	"github.com/DelineaXPM/tss-sdk-go/v3/server"
-	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/onsi/gomega"
+
+	"github.com/external-secrets/external-secrets-e2e/framework"
 )
 
 type secretStoreProvider struct {
