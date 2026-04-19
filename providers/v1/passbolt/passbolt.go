@@ -20,8 +20,11 @@ package passbolt
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 
@@ -45,6 +48,7 @@ const (
 	errPassboltExternalSecretMissingFindNameRegExp = "missing: find.name.regexp"
 	errPassboltStoreHostSchemeNotHTTPS             = "host Url has to be https scheme"
 	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password or description"
+	errPassboltCABundleInvalid                     = "failed to parse CA bundle for Passbolt provider"
 	errNotImplemented                              = "not implemented"
 )
 
@@ -84,7 +88,12 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1.Gene
 		return nil, err
 	}
 
-	client, err := api.NewClient(nil, "", config.Host, privateKey, password)
+	httpClient, err := buildHTTPClient(ctx, config, kube, store.GetKind(), namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := api.NewClient(httpClient, "", config.Host, privateKey, password)
 	if err != nil {
 		return nil, err
 	}
@@ -282,6 +291,50 @@ func assureLoggedIn(ctx context.Context, client *api.Client) error {
 		return nil
 	}
 	return client.Login(ctx)
+}
+
+// buildHTTPClient returns an *http.Client configured with the provider's CA bundle
+// or CA provider, if either is set. When neither is set it returns nil so that the
+// underlying SDK uses its default HTTP client (and the system root CAs).
+func buildHTTPClient(ctx context.Context, config *esv1.PassboltProvider, kube kclient.Client, storeKind, namespace string) (*http.Client, error) {
+	if len(config.CABundle) == 0 && config.CAProvider == nil {
+		return nil, nil
+	}
+
+	caCert, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+		CABundle:   config.CABundle,
+		CAProvider: config.CAProvider,
+		StoreKind:  storeKind,
+		Namespace:  namespace,
+		Client:     kube,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return nil, errors.New(errPassboltCABundleInvalid)
+	}
+
+	// Clone the default transport so we keep its proxy/dialer/HTTP2/idle
+	// connection settings and only override the TLS configuration.
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, errors.New("unexpected default http transport type")
+	}
+	transport := defaultTransport.Clone()
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{}
+	} else {
+		transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	}
+	transport.TLSClientConfig.RootCAs = caCertPool
+	transport.TLSClientConfig.MinVersion = tls.VersionTLS12
+
+	return &http.Client{
+		Transport: transport,
+	}, nil
 }
 
 // NewProvider creates a new Provider instance.
