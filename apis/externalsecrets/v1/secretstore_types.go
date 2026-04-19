@@ -227,6 +227,10 @@ type SecretStoreProvider struct {
 	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
 	// +optional
 	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
+
+	// NPWS configures this store to sync secrets using the Netwrix Password Secure provider
+	// +optional
+	NPWS *NPWSProvider `json:"npws,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.
