@@ -3,12 +3,12 @@ module github.com/external-secrets/external-secrets/runtime
 go 1.26.2
 
 require (
-	dario.cat/mergo v1.0.1
+	dario.cat/mergo v1.0.2
 	github.com/Azure/go-ntlmssp v0.1.0
 	github.com/Masterminds/goutils v1.1.1
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/PaesslerAG/jsonpath v0.1.1
-	github.com/aws/aws-sdk-go-v2 v1.39.3
+	github.com/aws/aws-sdk-go-v2 v1.41.5
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/proto v0.0.0
 	github.com/external-secrets/external-secrets/providers/v2/adapter/store v0.0.0
@@ -20,10 +20,10 @@ require (
 	github.com/huandu/xstrings v1.5.0
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/mitchellh/copystructure v1.2.0
-	github.com/oracle/oci-go-sdk/v65 v65.102.1
+	github.com/oracle/oci-go-sdk/v65 v65.103.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/shopspring/decimal v1.4.0
-	github.com/spf13/cast v1.7.0
+	github.com/spf13/cast v1.10.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.49.0
@@ -34,16 +34,16 @@ require (
 	k8s.io/client-go v0.35.2
 	sigs.k8s.io/controller-runtime v0.23.3
 	sigs.k8s.io/yaml v1.6.0
-	software.sslmate.com/src/go-pkcs12 v0.6.0
+	software.sslmate.com/src/go-pkcs12 v0.7.0
 )
 
 require (
 	github.com/PaesslerAG/gval v1.2.4 // indirect
-	github.com/aws/smithy-go v1.23.1 // indirect
+	github.com/aws/smithy-go v1.24.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -62,12 +62,12 @@ require (
 	github.com/go-openapi/swag/stringutils v0.25.5 // indirect
 	github.com/go-openapi/swag/typeutils v0.25.5 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.5 // indirect
-	github.com/goccy/go-json v0.10.3 // indirect
-	github.com/gofrs/flock v0.10.0 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/lestrrat-go/blackmagic v1.0.3 // indirect
+	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/httprc v1.0.6 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
@@ -80,8 +80,8 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
-	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/sony/gobreaker v0.5.0 // indirect
+	github.com/segmentio/asm v1.2.1 // indirect
+	github.com/sony/gobreaker v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
