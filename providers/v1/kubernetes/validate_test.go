@@ -27,6 +27,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 type fakeReviewClient struct {
@@ -70,7 +71,19 @@ func TestValidateStore(t *testing.T) {
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
-						Kubernetes: &esv1.KubernetesProvider{},
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
+								URL: "https://api.example.com",
+							},
+							Auth: &esv1.KubernetesAuth{
+								Token: &esv1.TokenAuth{
+									BearerToken: v1.SecretKeySelector{
+										Name: "token-secret",
+										Key:  "token",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -189,7 +202,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CAProvider: &esv1.CAProvider{
 									Name:      "foobar",
-									Namespace: new("noop"),
+									Namespace: ptr.To("noop"),
 								},
 							},
 						},
@@ -235,7 +248,7 @@ func TestValidateStore(t *testing.T) {
 									ClientCert: v1.SecretKeySelector{
 										Name:      "foobar",
 										Key:       "foobar",
-										Namespace: new("noop"),
+										Namespace: ptr.To("noop"),
 									},
 								},
 							},
@@ -304,7 +317,7 @@ func TestValidateStore(t *testing.T) {
 									BearerToken: v1.SecretKeySelector{
 										Name:      "foobar",
 										Key:       "foobar",
-										Namespace: new("nop"),
+										Namespace: ptr.To("nop"),
 									},
 								},
 							},
@@ -326,7 +339,7 @@ func TestValidateStore(t *testing.T) {
 							Auth: &esv1.KubernetesAuth{
 								ServiceAccount: &v1.ServiceAccountSelector{
 									Name:      "foobar",
-									Namespace: new("foobar"),
+									Namespace: ptr.To("foobar"),
 								},
 							},
 						},

@@ -5539,11 +5539,17 @@ spec:
                           description: configures the Kubernetes server Address.
                           properties:
                             caBundle:
-                              description: CABundle is a base64-encoded CA certificate
+                              description: |-
+                                CABundle is a base64-encoded CA certificate. If neither CABundle nor CAProvider is set,
+                                TLS uses the controller process trust store (public/system roots), matching kubectl when
+                                no certificate-authority is configured.
                               format: byte
                               type: string
                             caProvider:
-                              description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
+                              description: |-
+                                CAProvider references a Secret or ConfigMap holding PEM CA certificate(s). If unset
+                                together with CABundle, TLS uses the process trust store; see CABundle.
+                                see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
                               properties:
                                 key:
                                   description: The key where the CA certificate can be found in the Secret or ConfigMap.
@@ -10481,11 +10487,17 @@ spec:
                           description: configures the Kubernetes server Address.
                           properties:
                             caBundle:
-                              description: CABundle is a base64-encoded CA certificate
+                              description: |-
+                                CABundle is a base64-encoded CA certificate. If neither CABundle nor CAProvider is set,
+                                TLS uses the controller process trust store (public/system roots), matching kubectl when
+                                no certificate-authority is configured.
                               format: byte
                               type: string
                             caProvider:
-                              description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
+                              description: |-
+                                CAProvider references a Secret or ConfigMap holding PEM CA certificate(s). If unset
+                                together with CABundle, TLS uses the process trust store; see CABundle.
+                                see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
                               properties:
                                 key:
                                   description: The key where the CA certificate can be found in the Secret or ConfigMap.
@@ -17645,11 +17657,17 @@ spec:
                           description: configures the Kubernetes server Address.
                           properties:
                             caBundle:
-                              description: CABundle is a base64-encoded CA certificate
+                              description: |-
+                                CABundle is a base64-encoded CA certificate. If neither CABundle nor CAProvider is set,
+                                TLS uses the controller process trust store (public/system roots), matching kubectl when
+                                no certificate-authority is configured.
                               format: byte
                               type: string
                             caProvider:
-                              description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
+                              description: |-
+                                CAProvider references a Secret or ConfigMap holding PEM CA certificate(s). If unset
+                                together with CABundle, TLS uses the process trust store; see CABundle.
+                                see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
                               properties:
                                 key:
                                   description: The key where the CA certificate can be found in the Secret or ConfigMap.
@@ -22587,11 +22605,17 @@ spec:
                           description: configures the Kubernetes server Address.
                           properties:
                             caBundle:
-                              description: CABundle is a base64-encoded CA certificate
+                              description: |-
+                                CABundle is a base64-encoded CA certificate. If neither CABundle nor CAProvider is set,
+                                TLS uses the controller process trust store (public/system roots), matching kubectl when
+                                no certificate-authority is configured.
                               format: byte
                               type: string
                             caProvider:
-                              description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
+                              description: |-
+                                CAProvider references a Secret or ConfigMap holding PEM CA certificate(s). If unset
+                                together with CABundle, TLS uses the process trust store; see CABundle.
+                                see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
                               properties:
                                 key:
                                   description: The key where the CA certificate can be found in the Secret or ConfigMap.

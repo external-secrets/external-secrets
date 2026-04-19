@@ -41,6 +41,8 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
 	var warnings admission.Warnings
+	// When neither caBundle nor caProvider is set, the client uses the process trust store
+	// for TLS verification (same idea as kubectl with no certificate-authority set).
 	if k8sSpec.AuthRef == nil && k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
 		warnings = append(warnings, warnNoCAConfigured)
 	}
