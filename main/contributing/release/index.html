@@ -4997,7 +4997,7 @@
 <p>⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
 Otherwise the <code>latest</code> documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).</p>
 <ol>
-<li>Make sure the <a href="https://external-secrets.io/main/introduction/stability-support/">stability &amp; support page</a> is up to date. The new version should be listed in the version table before proceeding with the release.</li>
+<li>Make sure the <a href="https://external-secrets.io/latest/introduction/stability-support/">stability &amp; support page</a> is up to date. The new version should be listed in the version table before proceeding with the release.</li>
 <li>Make sure there is no pending CI jobs running. This is to avoid promoting a stale image to a new version (we need to rely on <em>existing</em> pushed images for release).</li>
 <li>Run <code>Create Release</code> Action to create a new release, pass in the desired version number to release.<ol>
 <li>choose the right <code>branch</code> to execute the action: use <code>main</code> when creating a new release.</li>
