@@ -4019,6 +4019,11 @@ spec:
                         serverUrl:
                           description: ServerURL is the DVLS instance URL (e.g., https://dvls.example.com).
                           type: string
+                        vault:
+                          description: |-
+                            Vault is the name or UUID of the vault to fetch secrets from.
+                            When omitted, the vault must be specified in the secret key using the legacy format "<vault-id>/<entry-id>".
+                          type: string
                       required:
                         - auth
                         - serverUrl
@@ -16124,6 +16129,11 @@ spec:
                           type: boolean
                         serverUrl:
                           description: ServerURL is the DVLS instance URL (e.g., https://dvls.example.com).
+                          type: string
+                        vault:
+                          description: |-
+                            Vault is the name or UUID of the vault to fetch secrets from.
+                            When omitted, the vault must be specified in the secret key using the legacy format "<vault-id>/<entry-id>".
                           type: string
                       required:
                         - auth
