@@ -42,8 +42,8 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.30
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0
-	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.6
+	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.2
 	github.com/akeylesslabs/akeyless-go/v4 v4.3.0
 	github.com/aws/aws-sdk-go-v2 v1.39.5
 	github.com/aws/aws-sdk-go-v2/config v1.31.16
