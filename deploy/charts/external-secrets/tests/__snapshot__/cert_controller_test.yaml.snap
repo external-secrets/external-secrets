@@ -49,14 +49,17 @@ should match snapshot of default values:
                   name: metrics
                   protocol: TCP
                 - containerPort: 8081
-                  protocol: TCP
                   name: ready
+                  protocol: TCP
               readinessProbe:
+                failureThreshold: 3
                 httpGet:
                   path: /readyz
                   port: ready
                 initialDelaySeconds: 20
                 periodSeconds: 5
+                successThreshold: 1
+                timeoutSeconds: 5
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities:
