@@ -7,7 +7,6 @@ replace (
 	github.com/external-secrets/external-secrets/apis => ../../../../apis
 	github.com/external-secrets/external-secrets/proto => ../../common/proto
 	github.com/external-secrets/external-secrets/providers/v2/common => ../../common
-	github.com/external-secrets/external-secrets/providers/v2/proto => ../../common/proto
 )
 
 require (

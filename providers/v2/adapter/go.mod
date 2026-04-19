@@ -9,7 +9,6 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v2/adapter/generator => ./generator
 	github.com/external-secrets/external-secrets/providers/v2/adapter/store => ./store
 	github.com/external-secrets/external-secrets/providers/v2/common => ../common
-	github.com/external-secrets/external-secrets/providers/v2/proto => ../common/proto
 	github.com/external-secrets/external-secrets/runtime => ../../../runtime
 )
 

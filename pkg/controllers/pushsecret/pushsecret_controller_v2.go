@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	"github.com/external-secrets/external-secrets/runtime/clientmanager"
@@ -70,7 +69,7 @@ func (r *Reconciler) GetSecretStoresV2(ctx context.Context, ps esv1alpha1.PushSe
 
 func isCleanStoreRef(ref esv1alpha1.PushSecretStoreRef) bool {
 	switch ref.Kind {
-	case esv1.ProviderStoreKindStr, esv1.ClusterProviderStoreKindStr:
+	case esapi.ProviderStoreKindStr, esapi.ClusterProviderStoreKindStr:
 		return true
 	}
 	return ref.APIVersion == esv2alpha1.SchemeGroupVersion.String()
@@ -86,7 +85,7 @@ func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef
 	stores := make(map[esv1alpha1.PushSecretStoreRef]any)
 
 	switch storeRef.Kind {
-	case esv1.ProviderStoreKindStr:
+	case esapi.ProviderStoreKindStr:
 		listOptions.Namespace = namespace
 		var storeList esv2alpha1.ProviderStoreList
 		if err := r.List(ctx, &storeList, listOptions); err != nil {
@@ -94,35 +93,35 @@ func (r *Reconciler) getSecretStoresFromSelectorV2(ctx context.Context, storeRef
 		}
 		for i := range storeList.Items {
 			store := &storeList.Items[i]
-			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esv1.ProviderStoreKindStr}] = store
+			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esapi.ProviderStoreKindStr}] = store
 		}
-	case esv1.ClusterProviderStoreKindStr:
+	case esapi.ClusterProviderStoreKindStr:
 		var storeList esv2alpha1.ClusterProviderStoreList
 		if err := r.List(ctx, &storeList, listOptions); err != nil {
 			return nil, fmt.Errorf("could not list ClusterProviderStores: %w", err)
 		}
 		for i := range storeList.Items {
 			store := &storeList.Items[i]
-			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esv1.ClusterProviderStoreKindStr}] = store
+			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esapi.ClusterProviderStoreKindStr}] = store
 		}
-	case esv1.ClusterSecretStoreKind:
-		var storeList esv1.ClusterSecretStoreList
+	case esapi.ClusterSecretStoreKind:
+		var storeList esapi.ClusterSecretStoreList
 		if err := r.List(ctx, &storeList, listOptions); err != nil {
 			return nil, fmt.Errorf("could not list cluster Secret Stores: %w", err)
 		}
 		for i := range storeList.Items {
 			store := &storeList.Items[i]
-			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esv1.ClusterSecretStoreKind}] = store
+			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esapi.ClusterSecretStoreKind}] = store
 		}
 	default:
 		listOptions.Namespace = namespace
-		var storeList esv1.SecretStoreList
+		var storeList esapi.SecretStoreList
 		if err := r.List(ctx, &storeList, listOptions); err != nil {
 			return nil, fmt.Errorf("could not list Secret Stores: %w", err)
 		}
 		for i := range storeList.Items {
 			store := &storeList.Items[i]
-			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esv1.SecretStoreKind}] = store
+			stores[esv1alpha1.PushSecretStoreRef{Name: store.Name, Kind: esapi.SecretStoreKind}] = store
 		}
 	}
 
@@ -138,14 +137,14 @@ func (r *Reconciler) resolveV2Store(ctx context.Context, storeRef esv1alpha1.Pus
 	}
 
 	switch storeRef.Kind {
-	case esv1.ProviderStoreKindStr:
+	case esapi.ProviderStoreKindStr:
 		var store esv2alpha1.ProviderStore
 		storeKey := types.NamespacedName{Name: storeRef.Name, Namespace: namespace}
 		if err := r.Client.Get(ctx, storeKey, &store); err != nil {
 			return nil, true, fmt.Errorf("failed to get v2 ProviderStore %s: %w", storeRef.Name, err)
 		}
 		return &store, true, nil
-	case esv1.ClusterProviderStoreKindStr:
+	case esapi.ClusterProviderStoreKindStr:
 		var store esv2alpha1.ClusterProviderStore
 		storeKey := types.NamespacedName{Name: storeRef.Name}
 		if err := r.Client.Get(ctx, storeKey, &store); err != nil {

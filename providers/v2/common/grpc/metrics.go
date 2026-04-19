@@ -144,8 +144,8 @@ type PoolMetrics interface {
 	RecordConnectionIdle(address string, tlsEnabled bool, idle time.Duration)
 }
 
-// ClientMetrics records client request metrics.
-type ClientMetrics interface {
+// RequestObserver records client request metrics.
+type RequestObserver interface {
 	ObserveRequest(method, target string, err error, duration time.Duration)
 }
 
@@ -190,7 +190,7 @@ func (m *defaultPoolMetrics) RecordConnectionIdle(address string, tlsEnabled boo
 	connectionIdle.WithLabelValues(address, strconv.FormatBool(tlsEnabled)).Observe(idle.Seconds())
 }
 
-// defaultClientMetrics implements ClientMetrics using Prometheus.
+// defaultClientMetrics implements RequestObserver using Prometheus.
 type defaultClientMetrics struct{}
 
 // ObserveRequest records metrics for a client request.
@@ -247,7 +247,7 @@ func findSubstring(s, substr string) bool {
 // Global instances.
 var (
 	poolMetrics   PoolMetrics   = &defaultPoolMetrics{}
-	clientMetrics ClientMetrics = &defaultClientMetrics{}
+	clientMetrics RequestObserver = &defaultClientMetrics{}
 )
 
 // RegisterMetrics registers all gRPC metrics with Prometheus.
@@ -287,6 +287,6 @@ func GetPoolMetrics() PoolMetrics {
 }
 
 // GetClientMetrics returns the client metrics instance for testing.
-func GetClientMetrics() ClientMetrics {
+func GetClientMetrics() RequestObserver {
 	return clientMetrics
 }

@@ -112,5 +112,4 @@ replace (
 	github.com/external-secrets/external-secrets/proto => ../providers/v2/common/proto
 	github.com/external-secrets/external-secrets/providers/v2/adapter/store => ../providers/v2/adapter/store
 	github.com/external-secrets/external-secrets/providers/v2/common => ../providers/v2/common
-	github.com/external-secrets/external-secrets/providers/v2/proto => ../providers/v2/common/proto
 )

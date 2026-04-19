@@ -50,6 +50,8 @@ const (
 
 	// certValidityDuration is the validity period for generated certificates (10 years).
 	certValidityDuration = 87600 * time.Hour
+
+	errGeneratePrivateKey = "failed to generate private key: %w"
 )
 
 // ProviderCertConfig defines configuration for a single provider's certificates.
@@ -237,7 +239,7 @@ func (r *ProviderCertReconciler) createCACert(begin, end time.Time) (*KeyPairArt
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate private key: %w", err)
+		return nil, fmt.Errorf(errGeneratePrivateKey, err)
 	}
 
 	certDER, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
@@ -293,7 +295,7 @@ func (r *ProviderCertReconciler) createProviderServerCert(
 	// Generate private key
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to generate private key: %w", err)
+		return nil, nil, fmt.Errorf(errGeneratePrivateKey, err)
 	}
 
 	// Create certificate
@@ -338,7 +340,7 @@ func (r *ProviderCertReconciler) createProviderClientCert(
 	// Generate private key
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to generate private key: %w", err)
+		return nil, nil, fmt.Errorf(errGeneratePrivateKey, err)
 	}
 
 	// Create certificate

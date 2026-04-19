@@ -1,4 +1,4 @@
-module github.com/external-secrets/external-secrets/providers/v2/proto
+module github.com/external-secrets/external-secrets/proto
 
 go 1.25.1
 

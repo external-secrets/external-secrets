@@ -135,6 +135,5 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v2/common => ../common
 	github.com/external-secrets/external-secrets/providers/v2/common/grpc/server => ../common/grpc/server
 	github.com/external-secrets/external-secrets/providers/v2/common/proto => ../common/proto
-	github.com/external-secrets/external-secrets/providers/v2/proto => ../common/proto
 	github.com/external-secrets/external-secrets/runtime => ../../../runtime
 )

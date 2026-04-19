@@ -81,5 +81,4 @@ require (
 replace (
 	github.com/external-secrets/external-secrets/apis => ../../../apis
 	github.com/external-secrets/external-secrets/proto => ./proto
-	github.com/external-secrets/external-secrets/providers/v2/proto => ./proto
 )
