@@ -1864,6 +1864,308 @@ Can only be defined when used in a ClusterSecretStore.</p>
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1.CRDProvider">CRDProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>CRDProvider configures a store to fetch data from arbitrary Kubernetes
+custom resources.</p>
+<h1>Authentication modes</h1>
+<p>Legacy (in-cluster): set serviceAccountRef only. The controller uses in-cluster
+config and mints a short-lived token for the referenced ServiceAccount, which is
+then used to read CRDs from the local cluster.</p>
+<p>Explicit (remote cluster): set server + auth (or authRef). The auth.serviceAccount
+identifies the SA whose token is used to authenticate against the remote cluster.
+Optionally, set serviceAccountRef to impersonate a different identity on that remote
+cluster: the controller will set the Kubernetes Impersonate-User header to
+&ldquo;system:serviceaccount/<namespace>/<name>&rdquo; after connecting.</p>
+<h1>Remote reference keys</h1>
+<ul>
+<li>SecretStore: the key is the object name only; &lsquo;/&rsquo; is not allowed. The API
+namespace is always the store namespace (ExternalSecret namespace, or
+remoteNamespace when set), never part of the key.</li>
+<li>ClusterSecretStore: use &ldquo;namespace/objectName&rdquo; to read a namespaced CR;
+a key without &lsquo;/&rsquo; addresses a cluster-scoped CR by object name. For
+dataFrom Find with a namespaced kind, listing uses all namespaces unless
+remoteNamespace is set, and result keys are &ldquo;namespace/objectName&rdquo;.</li>
+</ul>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef references the ServiceAccount used for authentication.</p>
+<p>Legacy mode (no server/auth/authRef): the controller mints a short-lived
+token for this SA and uses it against the local cluster. For SecretStore
+the namespace field is ignored (the SA must be in the store&rsquo;s namespace).
+For ClusterSecretStore, namespace is required so the controller knows
+where the SA lives; when omitted it defaults to &ldquo;default&rdquo;.</p>
+<p>Explicit mode (server + auth or authRef): serviceAccountRef is optional.
+When set, the controller impersonates this SA on the remote cluster after
+connecting via auth/authRef. For SecretStore the SA namespace is the store
+namespace; for ClusterSecretStore, namespace must be set explicitly.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesServer">
+KubernetesServer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Server configures the Kubernetes API address and TLS trust, same as the
+Kubernetes provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesAuth">
+KubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth configures authentication to the Kubernetes API, same as the
+Kubernetes provider. Required when Server.URL is set (unless using AuthRef).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuthRef references a Secret containing a kubeconfig. Same semantics as the
+Kubernetes provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>remoteNamespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RemoteNamespace is the default namespace for namespaced API calls on SecretStore.
+For ClusterSecretStore with a namespaced resource, when set it limits dataFrom
+List to that namespace (keys in the result map are object names only). When
+empty, List spans all namespaces and keys are namespace/objectName. Per-entry
+namespace for Get uses remoteRef.key namespace/objectName for ClusterSecretStore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+<a href="#external-secrets.io/v1.CRDProviderResource">
+CRDProviderResource
+</a>
+</em>
+</td>
+<td>
+<p>Resource identifies the CRD by its API group, version and kind.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>whitelist</code></br>
+<em>
+<a href="#external-secrets.io/v1.CRDProviderWhitelist">
+CRDProviderWhitelist
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Whitelist optionally restricts which object names and requested properties
+are allowed to be read.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CRDProviderResource">CRDProviderResource
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>)
+</p>
+<p>
+<p>CRDProviderResource identifies a Kubernetes custom resource by its full
+API coordinates: group, version and kind.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>group</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Group is the API group of the resource (e.g. &ldquo;config.example.io&rdquo;).
+Use an empty string for core Kubernetes resources such as ConfigMap.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version is the API version of the resource (e.g. &ldquo;v1alpha1&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind is the Kubernetes resource kind (e.g. &ldquo;MyCustomResource&rdquo;).</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CRDProviderWhitelist">CRDProviderWhitelist
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>)
+</p>
+<p>
+<p>CRDProviderWhitelist configures allow-list rules for CRD reads.
+If any rules are present, a request must satisfy ALL non-empty filters of at
+least one rule; requests that match no rule are denied.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>rules</code></br>
+<em>
+<a href="#external-secrets.io/v1.CRDProviderWhitelistRule">
+[]CRDProviderWhitelistRule
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Rules is a list of allow rules. If rules are set, at least one rule must
+match for a request to be allowed.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CRDProviderWhitelistRule">CRDProviderWhitelistRule
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProviderWhitelist">CRDProviderWhitelist</a>)
+</p>
+<p>
+<p>CRDProviderWhitelistRule defines a single allow rule for CRD reads.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name is an optional regular expression matched against the bare object name.
+For both SecretStore and ClusterSecretStore this is always the object name
+without any namespace prefix (e.g. &ldquo;my-db-spec&rdquo;, not &ldquo;prod/my-db-spec&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Namespace is an optional regular expression matched against the namespace of
+the object. Applies only when a ClusterSecretStore is used; it is ignored
+for SecretStore (where the namespace is fixed to the store namespace).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>properties</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Properties is an optional list of regular expressions matched against
+requested property keys (for example: &ldquo;spec.secretValue&rdquo;).</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.CSMAuth">CSMAuth
 </h3>
 <p>
@@ -6794,6 +7096,7 @@ bool
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesProvider">KubernetesProvider</a>)
 </p>
 <p>
@@ -6972,6 +7275,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesProvider">KubernetesProvider</a>)
 </p>
 <p>
@@ -9649,6 +9953,21 @@ KubernetesProvider
 <td>
 <em>(Optional)</em>
 <p>Kubernetes configures this store to sync secrets using a Kubernetes cluster provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>crd</code></br>
+<em>
+<a href="#external-secrets.io/v1.CRDProvider">
+CRDProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CRD configures this store to sync secrets from arbitrary Kubernetes custom resources
+using the CRD provider.</p>
 </td>
 </tr>
 <tr>
