@@ -73,6 +73,9 @@ type secretManagerTestCase struct {
 	secret *corev1.Secret
 	// for testing changes in expiration date for akv secrets
 	newExpiry *date.UnixTime
+	// optional hook; called with the SetSecret params captured by the fake.
+	// params is nil if SetSecret was not invoked during the test.
+	verifySetSecret func(t *testing.T, key int, params *keyvault.SecretSetParameters)
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
@@ -405,6 +408,28 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	secretKey := "fakeSecretKey"
 	tagKey := "fakeTagKey"
 	tagValue := "fakeTagValue"
+	expectSetSecretContentType := func(expected *string) func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+		return func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+			if params == nil {
+				t.Errorf("[%d] expected SetSecret to be called, but it was not", key)
+				return
+			}
+			got := params.ContentType
+			switch {
+			case expected == nil && got != nil:
+				t.Errorf("[%d] expected ContentType=nil, got %q", key, *got)
+			case expected != nil && got == nil:
+				t.Errorf("[%d] expected ContentType=%q, got nil", key, *expected)
+			case expected != nil && got != nil && *got != *expected:
+				t.Errorf("[%d] ContentType mismatch: got=%q expected=%q", key, *got, *expected)
+			}
+		}
+	}
+	expectSetSecretNotCalled := func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+		if params != nil {
+			t.Errorf("[%d] expected SetSecret to NOT be called, but it was (ContentType=%v)", key, params.ContentType)
+		}
+	}
 	mdataWithTag := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
 		APIVersion: metadata.APIVersion,
 		Kind:       metadata.Kind,
@@ -543,6 +568,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			Value:       &goodSecret,
 			ContentType: &contentType,
 		}
+		smtc.verifySetSecret = expectSetSecretContentType(&contentType)
 	}
 	secretNoChangeWithContentType := func(smtc *secretManagerTestCase) {
 		contentType := contentTypeJSON
@@ -571,6 +597,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			Attributes:  &keyvault.SecretAttributes{},
 		}
 		smtc.setErr = errors.New("SetSecret should not be called when nothing changed")
+		smtc.verifySetSecret = expectSetSecretNotCalled
 	}
 	secretContentTypeChange := func(smtc *secretManagerTestCase) {
 		newContentType := contentTypeJSON
@@ -601,6 +628,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.setErr = errors.New("content type changed, SetSecret called")
 		smtc.expectError = "content type changed, SetSecret called"
+		smtc.verifySetSecret = expectSetSecretContentType(&newContentType)
 	}
 	secretContentTypeAddedToExisting := func(smtc *secretManagerTestCase) {
 		newContentType := contentTypeJSON
@@ -629,6 +657,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.setErr = errors.New("contentType added, SetSecret called")
 		smtc.expectError = "contentType added, SetSecret called"
+		smtc.verifySetSecret = expectSetSecretContentType(&newContentType)
 	}
 	secretContentTypeRemoved := func(smtc *secretManagerTestCase) {
 		existingContentType := contentTypeJSON
@@ -647,6 +676,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.setErr = errors.New("contentType removed, SetSecret called")
 		smtc.expectError = "contentType removed, SetSecret called"
+		smtc.verifySetSecret = expectSetSecretContentType(nil)
 	}
 	secretContentTypeWithExpiration := func(smtc *secretManagerTestCase) {
 		contentType := contentTypeJSON
@@ -680,6 +710,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			},
 		}
 		smtc.setErr = errors.New("SetSecret should not be called when nothing changed")
+		smtc.verifySetSecret = expectSetSecretNotCalled
 	}
 	wholeSecretNoKey := func(smtc *secretManagerTestCase) {
 		wholeSecretMap := map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}
@@ -1153,6 +1184,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			} else {
 				t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 			}
+		}
+		if v.verifySetSecret != nil {
+			v.verifySetSecret(t, k, v.mockClient.LastSetSecretParams)
 		}
 		if len(v.expectedData) > 0 {
 			sm.baseClient = v.mockClient
