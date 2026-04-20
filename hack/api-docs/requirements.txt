@@ -39,4 +39,4 @@ tornado==6.5.5
 urllib3==2.6.3
 verspec==0.1.0
 watchdog==6.0.0
-zipp==3.23.0
+zipp==3.23.1
