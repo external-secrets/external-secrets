@@ -43,36 +43,42 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
+func isNotFoundErr(err error) bool {
+	var respErr *azcore.ResponseError
+	return errors.As(err, &respErr) && respErr.StatusCode == 404
+}
+
+func isManagedByESONewSDK(tags map[string]*string) bool {
+	if tags == nil {
+		return true
+	}
+	managedByTag, exists := tags[managedBy]
+	return exists && managedByTag != nil && *managedByTag == managerLabel
+}
+
+func newSDKSecretUnchanged(existingValue, existingContentType *string, value []byte, contentType *string) bool {
+	if existingValue == nil || string(value) != *existingValue {
+		return false
+	}
+	return sameStringPtr(existingContentType, contentType)
+}
+
 // New SDK implementations for setter methods.
 func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName string, value []byte, contentType *string, tags map[string]string) error {
-	// Check if secret exists and if we can create/update it
 	existingSecret, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
 
-	if err != nil {
-		var respErr *azcore.ResponseError
-		if !errors.As(err, &respErr) || respErr.StatusCode != 404 {
-			return fmt.Errorf("cannot get secret %v: %w", secretName, parseNewSDKError(err))
+	if err != nil && !isNotFoundErr(err) {
+		return fmt.Errorf("cannot get secret %v: %w", secretName, parseNewSDKError(err))
+	}
+	if err == nil {
+		if !isManagedByESONewSDK(existingSecret.Tags) {
+			return fmt.Errorf("secret %v not managed by external-secrets", secretName)
 		}
-	} else {
-		// Check if managed by external-secrets using new SDK tags
-		if existingSecret.Tags != nil {
-			if managedByTag, exists := existingSecret.Tags[managedBy]; !exists || managedByTag == nil || *managedByTag != managerLabel {
-				return fmt.Errorf("secret %v not managed by external-secrets", secretName)
-			}
-		}
-
-		// Check if secret content and content type are the same
-		val := string(value)
-		if existingSecret.Value != nil && val == *existingSecret.Value {
-			// Note: We're not checking expiration here since the new SDK doesn't support setting it
-			// This means the new SDK implementation will always update the secret if the content is the same
-			// but different expiration is requested
-			contentTypeUnchanged := (existingSecret.ContentType == nil && contentType == nil) ||
-				(existingSecret.ContentType != nil && contentType != nil && *existingSecret.ContentType == *contentType)
-			if contentTypeUnchanged {
-				return nil
-			}
+		// Note: the new SDK doesn't set expiration in SetSecretParameters, so
+		// changes to expiration alone won't trigger an update on this path.
+		if newSDKSecretUnchanged(existingSecret.Value, existingSecret.ContentType, value, contentType) {
+			return nil
 		}
 	}
 

@@ -550,6 +550,25 @@ func canCreate(tags map[string]*string, err error) (bool, error) {
 	return true, nil
 }
 
+func sameStringPtr(a, b *string) bool {
+	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
+}
+
+func sameUnixTimePtr(a, b *date.UnixTime) bool {
+	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
+}
+
+func legacySecretUnchanged(secret keyvault.SecretBundle, value []byte, expires *date.UnixTime, contentType *string) bool {
+	if secret.Value == nil || string(value) != *secret.Value {
+		return false
+	}
+	if secret.Attributes == nil {
+		return false
+	}
+	return sameUnixTimePtr(secret.Attributes.Expires, expires) &&
+		sameStringPtr(secret.ContentType, contentType)
+}
+
 func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, contentType *string, tags map[string]string) error {
 	secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
@@ -560,19 +579,11 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	if !ok {
 		return nil
 	}
-	val := string(value)
-	if secret.Value != nil && val == *secret.Value {
-		if secret.Attributes != nil {
-			if (secret.Attributes.Expires == nil && expires == nil) ||
-				(secret.Attributes.Expires != nil && expires != nil && *secret.Attributes.Expires == *expires) {
-				if (secret.ContentType == nil && contentType == nil) ||
-					(secret.ContentType != nil && contentType != nil && *secret.ContentType == *contentType) {
-					return nil
-				}
-			}
-		}
+	if legacySecretUnchanged(secret, value, expires, contentType) {
+		return nil
 	}
 
+	val := string(value)
 	secretParams := keyvault.SecretSetParameters{
 		Value: &val,
 		Tags: map[string]*string{
@@ -593,7 +604,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	}
 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
 	}
