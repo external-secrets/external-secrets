@@ -584,7 +584,7 @@ func TestGetKeyVaultClientOptionsUsesCustomAPIVersion(t *testing.T) {
 	provider := &esv1.AzureKVProvider{
 		CustomCloudConfig: &esv1.AzureCustomCloudConfig{
 			ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
-			KeyVaultAPIVersion:     &version,
+			KeyVaultAPIVersion:      &version,
 		},
 	}
 
@@ -612,7 +612,7 @@ func TestEffectiveKeyVaultAPIVersionTrimsWhitespace(t *testing.T) {
 	provider := &esv1.AzureKVProvider{
 		CustomCloudConfig: &esv1.AzureCustomCloudConfig{
 			ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
-			KeyVaultAPIVersion:     &version,
+			KeyVaultAPIVersion:      &version,
 		},
 	}
 

@@ -270,7 +270,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 	clientOptions := getKeyVaultClientOptions(az.provider, cloudConfig)
 
 	az.secretsClient, err = azsecrets.NewClient(*az.provider.VaultURL, credential, &azsecrets.ClientOptions{
-		ClientOptions: clientOptions,
+		ClientOptions:                        clientOptions,
 		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {
@@ -278,7 +278,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 	}
 
 	az.keysClient, err = azkeys.NewClient(*az.provider.VaultURL, credential, &azkeys.ClientOptions{
-		ClientOptions: clientOptions,
+		ClientOptions:                        clientOptions,
 		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {
@@ -286,7 +286,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 	}
 
 	az.certsClient, err = azcertificates.NewClient(*az.provider.VaultURL, credential, &azcertificates.ClientOptions{
-		ClientOptions: clientOptions,
+		ClientOptions:                        clientOptions,
 		DisableChallengeResourceVerification: disableChallengeResourceVerification,
 	})
 	if err != nil {
