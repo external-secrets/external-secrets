@@ -248,11 +248,11 @@ Pushing to a Secret requires no previous setup. Provided you have a Kubernetes S
 
 You can optionally attach metadata to the secret via the `spec.data[].metadata` field. The following fields are supported:
 
-| Field | Type | Description |
-|---|---|---|
-| `expirationDate` | string | Expiration date for the secret in RFC3339 format (e.g. `2024-12-31T23:59:59Z`). |
-| `contentType` | string | Content type of the secret value (e.g. `application/json`, `text/plain`). |
-| `tags` | map[string]string | Arbitrary key-value tags attached to the secret in Azure Key Vault. |
+| Field | Type | Description
+|---|---|---
+| `expirationDate` | string | Expiration date for the secret in RFC3339 format (e.g. `2099-12-31T23:59:59Z`).
+| `contentType` | string | Content type of the secret value (e.g. `application/json`, `text/plain`).
+| `tags` | map[string]string | Arbitrary key-value tags attached to the secret in Azure Key Vault.
 
 ```yaml
 {% include 'azkv-pushsecret-secret.yaml' %}
