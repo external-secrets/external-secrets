@@ -588,6 +588,11 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 		return nil
 	}
 
+	effectiveContentType := contentType
+	if effectiveContentType == nil {
+		effectiveContentType = secret.ContentType
+	}
+
 	val := string(value)
 	secretParams := keyvault.SecretSetParameters{
 		Value: &val,
@@ -597,7 +602,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 		SecretAttributes: &keyvault.SecretAttributes{
 			Enabled: new(true),
 		},
-		ContentType: contentType,
+		ContentType: effectiveContentType,
 	}
 
 	for k, v := range tags {

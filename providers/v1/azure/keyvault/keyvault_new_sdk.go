@@ -96,12 +96,17 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 		secretTags[k] = &v
 	}
 
+	effectiveContentType := contentType
+	if effectiveContentType == nil {
+		effectiveContentType = existingSecret.ContentType
+	}
+
 	// Set the secret
 	val := string(value)
 	params := azsecrets.SetSecretParameters{
 		Value:       &val,
 		Tags:        secretTags,
-		ContentType: contentType,
+		ContentType: effectiveContentType,
 	}
 
 	// Note: The new SDK doesn't support setting expiration in SetSecretParameters
