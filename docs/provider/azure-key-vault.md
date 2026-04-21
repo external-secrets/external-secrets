@@ -261,6 +261,9 @@ You can optionally attach metadata to the secret via the `spec.data[].metadata` 
 !!! note
     In order to create a PushSecret targeting Secrets, the [Key Vault Secrets Officer](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-officer) role, alternatively Access Policy permissions `Set` and `Delete` for Secrets must be granted to the identity configured on the SecretStore.
 
+!!! note
+    Omitting `contentType` (or setting it to an empty string) is interpreted as "don't change" rather than "clear": if the secret in Azure Key Vault already has a `ContentType` set, it will be preserved on update. There is currently no way to clear an existing `ContentType` via PushSecret — if you need to remove it, delete the secret from Azure Key Vault directly and let PushSecret recreate it.
+
 #### Pushing to a Key
 The first step is to generate a valid private key. Supported formats include `PRIVATE KEY`, `RSA PRIVATE KEY` AND `EC PRIVATE KEY` (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:
 
