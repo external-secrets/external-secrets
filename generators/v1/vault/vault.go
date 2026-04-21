@@ -116,7 +116,25 @@ func (g *Generator) fetchVaultSecret(ctx context.Context, res *genv1alpha1.Vault
 	)
 
 	if res.Spec.Method == "" || res.Spec.Method == "GET" {
-		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, nil)
+
+		var raw map[string]interface{}
+		if res.Spec.Parameters != nil {
+			if err := json.Unmarshal(res.Spec.Parameters.Raw, &raw); err != nil {
+				return nil, err
+			}
+		}
+
+		params := make(map[string][]string)
+		for k, v := range raw {
+			switch value := v.(type) {
+			case string:
+				// scalar → single-element slice
+				params[k] = []string{value}
+			default:
+				return nil, errors.New("unsupported type for the GET parameter")
+			}
+		}
+		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, params)
 	} else if res.Spec.Method == "LIST" {
 		result, err = cl.Logical().ListWithContext(ctx, res.Spec.Path)
 	} else if res.Spec.Method == "DELETE" {
