@@ -3243,6 +3243,19 @@ string
 </tr>
 <tr>
 <td>
+<code>vault</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Vault is the name or UUID of the vault to fetch secrets from.
+When omitted, the vault must be specified in the secret key using the legacy format &ldquo;<vault-id>/<entry-id>&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>insecure</code></br>
 <em>
 bool
@@ -4081,6 +4094,20 @@ ExternalSecretDecodingStrategy
 <p>Used to define a decoding Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nullBytePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretNullBytePolicy">
+ExternalSecretNullBytePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controls how ESO handles fetched secret data containing NUL bytes for this source.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretDecodingStrategy">ExternalSecretDecodingStrategy
@@ -4232,6 +4259,20 @@ ExternalSecretDecodingStrategy
 <p>Used to define a decoding Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nullBytePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretNullBytePolicy">
+ExternalSecretNullBytePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controls how ESO handles fetched secret data containing NUL bytes for this find source.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretMetadata">ExternalSecretMetadata
@@ -4296,6 +4337,31 @@ map[string]string
 </td>
 </tr><tr><td><p>&#34;None&#34;</p></td>
 <td><p>ExternalSecretMetadataPolicyNone specifies that no metadata should be fetched from the provider.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretNullBytePolicy">ExternalSecretNullBytePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
+</p>
+<p>
+<p>ExternalSecretNullBytePolicy defines how fetched secret data containing NUL bytes should be handled.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Fail&#34;</p></td>
+<td><p>ExternalSecretNullBytePolicyFail fails reconciliation if fetched secret data contains NUL bytes.</p>
+</td>
+</tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td><p>ExternalSecretNullBytePolicyIgnore allows fetched secret data to contain NUL bytes.</p>
 </td>
 </tr></tbody>
 </table>
@@ -5992,6 +6058,21 @@ string
 <p>environment will be used to fetch secrets from a particular environment within a github repository</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>orgSecretVisibility</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+Valid values are &ldquo;all&rdquo; or &ldquo;private&rdquo;.
+When unset, new secrets are created with visibility &ldquo;all&rdquo; and existing secrets preserve
+whatever visibility they already have in GitHub.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GitlabAuth">GitlabAuth
@@ -6705,6 +6786,16 @@ External Secrets meta/v1.SecretKeySelector
 <code>folderID</code></br>
 <em>
 string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>getByTitleFallback</code></br>
+<em>
+bool
 </em>
 </td>
 <td>
@@ -11312,6 +11403,18 @@ string
 <em>(Optional)</em>
 <p>Path where the Certificate authentication backend is mounted
 in Vault, e.g: &ldquo;cert&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VaultRole specifies the Vault role to use for TLS certificate authentication.</p>
 </td>
 </tr>
 <tr>

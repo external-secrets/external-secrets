@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -588,16 +589,23 @@ func TestGetVault(t *testing.T) {
 }
 
 type fakeLister struct {
-	listAllResult []onepassword.ItemOverview
-	createCalled  bool
-	putCalled     bool
-	deleteCalled  bool
-	getResult     onepassword.Item
-	fileLister    onepassword.ItemsFilesAPI
+	listAllResult    []onepassword.ItemOverview
+	createCalled     bool
+	createdFieldType onepassword.ItemFieldType
+	createdParams    onepassword.ItemCreateParams
+	putCalled        bool
+	putItem          onepassword.Item
+	deleteCalled     bool
+	getResult        onepassword.Item
+	fileLister       onepassword.ItemsFilesAPI
 }
 
 func (f *fakeLister) Create(ctx context.Context, params onepassword.ItemCreateParams) (onepassword.Item, error) {
 	f.createCalled = true
+	f.createdParams = params
+	if len(params.Fields) > 0 {
+		f.createdFieldType = params.Fields[0].FieldType
+	}
 	return onepassword.Item{}, nil
 }
 
@@ -607,6 +615,7 @@ func (f *fakeLister) Get(ctx context.Context, vaultID, itemID string) (onepasswo
 
 func (f *fakeLister) Put(ctx context.Context, item onepassword.Item) (onepassword.Item, error) {
 	f.putCalled = true
+	f.putItem = item
 	return onepassword.Item{}, nil
 }
 
@@ -1190,6 +1199,243 @@ var _ onepassword.ItemsAPI = &fakeLister{}
 var _ onepassword.SecretsAPI = &fakeClientWithCounter{}
 var _ onepassword.ItemsAPI = &fakeListerWithCounter{}
 
+func TestSecretExists(t *testing.T) {
+	fc := &fakeClient{
+		listAllResult: []onepassword.VaultOverview{
+			{ID: "vault-id", Title: "vault"},
+		},
+	}
+
+	itemWithPassword := &fakeLister{
+		listAllResult: []onepassword.ItemOverview{
+			{ID: "item-id", Title: "key", VaultID: "vault-id"},
+		},
+		getResult: onepassword.Item{
+			ID: "item-id", Title: "key", VaultID: "vault-id",
+			Fields: []onepassword.ItemField{
+				{Title: "password", Value: "s3cr3t"},
+			},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		ref         v1alpha1.PushSecretRemoteRef
+		lister      *fakeLister
+		wantExists  bool
+		assertError func(t *testing.T, err error)
+	}{
+		{
+			name:        "item does not exist returns false",
+			ref:         v1alpha1.PushSecretRemoteRef{RemoteKey: "missing"},
+			lister:      &fakeLister{listAllResult: []onepassword.ItemOverview{}},
+			wantExists:  false,
+			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
+		},
+		{
+			name:        "item exists no property returns true",
+			ref:         v1alpha1.PushSecretRemoteRef{RemoteKey: "key"},
+			lister:      itemWithPassword,
+			wantExists:  true,
+			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
+		},
+		{
+			name:        "item exists field present returns true",
+			ref:         v1alpha1.PushSecretRemoteRef{RemoteKey: "key", Property: "password"},
+			lister:      itemWithPassword,
+			wantExists:  true,
+			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
+		},
+		{
+			name:        "item exists field absent returns false",
+			ref:         v1alpha1.PushSecretRemoteRef{RemoteKey: "key", Property: "api-token"},
+			lister:      itemWithPassword,
+			wantExists:  false,
+			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
+		},
+		{
+			name: "pushAllKeys scenario: item exists with no fields returns true",
+			ref:  v1alpha1.PushSecretRemoteRef{RemoteKey: "key"},
+			lister: &fakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "item-id", Title: "key", VaultID: "vault-id"},
+				},
+				getResult: onepassword.Item{
+					ID: "item-id", Title: "key", VaultID: "vault-id",
+					Fields: []onepassword.ItemField{},
+				},
+			},
+			wantExists:  true,
+			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &SecretsClient{
+				client: &onepassword.Client{
+					SecretsAPI: fc,
+					VaultsAPI:  fc,
+					ItemsAPI:   tt.lister,
+				},
+				vaultID: "vault-id",
+			}
+			exists, err := p.SecretExists(t.Context(), tt.ref)
+			tt.assertError(t, err)
+			assert.Equal(t, tt.wantExists, exists)
+		})
+	}
+}
+
+func TestResolveFieldType(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected onepassword.ItemFieldType
+	}{
+		{"text", onepassword.ItemFieldTypeText},
+		{"Text", onepassword.ItemFieldTypeText},
+		{"TEXT", onepassword.ItemFieldTypeText},
+		{"concealed", onepassword.ItemFieldTypeConcealed},
+		{"Concealed", onepassword.ItemFieldTypeConcealed},
+		{"url", onepassword.ItemFieldTypeURL},
+		{"URL", onepassword.ItemFieldTypeURL},
+		{"email", onepassword.ItemFieldTypeEmail},
+		{"Email", onepassword.ItemFieldTypeEmail},
+		{"phone", onepassword.ItemFieldTypePhone},
+		{"date", onepassword.ItemFieldTypeDate},
+		{"monthYear", onepassword.ItemFieldTypeMonthYear},
+		{"monthyear", onepassword.ItemFieldTypeMonthYear},
+		{"MONTHYEAR", onepassword.ItemFieldTypeMonthYear},
+		{"", onepassword.ItemFieldTypeConcealed},
+		{"unknown", onepassword.ItemFieldTypeConcealed},
+		{"otp", onepassword.ItemFieldTypeConcealed},
+		{"file", onepassword.ItemFieldTypeConcealed},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := resolveFieldType(tt.input)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func TestPushSecretFieldType(t *testing.T) {
+	fc := &fakeClient{
+		listAllResult: []onepassword.VaultOverview{
+			{ID: "vault-id", Title: "vault"},
+		},
+	}
+
+	tests := []struct {
+		name          string
+		metadataJSON  string
+		wantFieldType onepassword.ItemFieldType
+	}{
+		{
+			name:          "no metadata defaults to Concealed",
+			metadataJSON:  "",
+			wantFieldType: onepassword.ItemFieldTypeConcealed,
+		},
+		{
+			name:          "fieldType text creates Text field",
+			metadataJSON:  `{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"fieldType":"text"}}`,
+			wantFieldType: onepassword.ItemFieldTypeText,
+		},
+		{
+			name:          "fieldType URL case-insensitive",
+			metadataJSON:  `{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"fieldType":"URL"}}`,
+			wantFieldType: onepassword.ItemFieldTypeURL,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fl := &fakeLister{
+				listAllResult: []onepassword.ItemOverview{},
+			}
+			p := &SecretsClient{
+				client: &onepassword.Client{
+					SecretsAPI: fc,
+					VaultsAPI:  fc,
+					ItemsAPI:   fl,
+				},
+				vaultID: "vault-id",
+			}
+
+			ref := v1alpha1.PushSecretData{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "key",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "item", Property: "field"},
+				},
+			}
+			if tt.metadataJSON != "" {
+				raw := apiextensionsv1.JSON{Raw: []byte(tt.metadataJSON)}
+				ref.Metadata = &raw
+			}
+
+			secret := &corev1.Secret{
+				Data: map[string][]byte{"key": []byte("value")},
+			}
+
+			err := p.PushSecret(t.Context(), secret, ref)
+			require.NoError(t, err)
+			require.True(t, fl.createCalled, "Create should have been called")
+			assert.Equal(t, tt.wantFieldType, fl.createdFieldType)
+		})
+	}
+}
+
+func TestUpdateFieldValueChangesFieldType(t *testing.T) {
+	// Regression test: updateFieldValue must update FieldType when spec.fieldType changes,
+	// not only when Value changes.
+	fields := []onepassword.ItemField{
+		{Title: "myfield", Value: "secret", FieldType: onepassword.ItemFieldTypeConcealed},
+	}
+
+	updated, err := updateFieldValue(fields, "myfield", "secret", onepassword.ItemFieldTypeText)
+	require.NoError(t, err)
+	require.Len(t, updated, 1)
+	assert.Equal(t, onepassword.ItemFieldTypeText, updated[0].FieldType, "FieldType should be updated even when Value is unchanged")
+	assert.Equal(t, "secret", updated[0].Value)
+}
+
+func TestGenerateNewItemFieldHasNonEmptyID(t *testing.T) {
+	// Regression test: fields created without an ID cause "duplicate field ids" errors
+	// when two PushSecret data entries target the same 1Password item.
+	// See: generateNewItemField must always produce a non-empty ID.
+	tests := []struct {
+		title     string
+		fieldType onepassword.ItemFieldType
+	}{
+		{"password", onepassword.ItemFieldTypeConcealed},
+		{"api-endpoint", onepassword.ItemFieldTypeURL},
+		{"username", onepassword.ItemFieldTypeText},
+	}
+	for _, tt := range tests {
+		field := generateNewItemField(tt.title, "value", tt.fieldType)
+		assert.NotEmpty(t, field.ID, "field ID must be non-empty to avoid duplicate ID errors on Put")
+		assert.Equal(t, tt.title, field.Title)
+		assert.Equal(t, "value", field.Value)
+	}
+}
+
+func TestNormalizeItemFields(t *testing.T) {
+	// Regression test: fields fetched from 1Password can have SectionID pointing to ""
+	// instead of nil. The SDK rejects Put when a field references a section ID that
+	// doesn't exist in item.Sections — even an empty-string pointer triggers this.
+	emptyStr := ""
+	realSection := "extra"
+	fields := []onepassword.ItemField{
+		{ID: "a", Title: "a", SectionID: &emptyStr},
+		{ID: "b", Title: "b", SectionID: nil},
+		{ID: "c", Title: "c", SectionID: &realSection},
+	}
+	got := normalizeItemFields(fields)
+	assert.Nil(t, got[0].SectionID, "empty-string SectionID should be normalized to nil")
+	assert.Nil(t, got[1].SectionID, "nil SectionID should remain nil")
+	assert.Equal(t, &realSection, got[2].SectionID, "non-empty SectionID should be unchanged")
+}
+
 func TestIsNativeItemID(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -1215,4 +1461,98 @@ func TestIsNativeItemID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPushAllKeys(t *testing.T) {
+	const (
+		testExistingItem = "existing-item"
+		testOldKey       = "old-key"
+	)
+
+	fc := &fakeClient{listAllResult: []onepassword.VaultOverview{{ID: "vault-id", Title: "vault"}}}
+
+	existingItem := onepassword.Item{
+		ID: "item-id", Title: testExistingItem, VaultID: "vault-id",
+		Fields: []onepassword.ItemField{
+			{ID: testOldKey, Title: testOldKey, Value: "old-val", FieldType: onepassword.ItemFieldTypeConcealed},
+		},
+	}
+
+	newLister := func(existing ...onepassword.Item) *fakeLister {
+		fl := &fakeLister{listAllResult: []onepassword.ItemOverview{}}
+		if len(existing) > 0 {
+			fl.getResult = existing[0]
+			fl.listAllResult = []onepassword.ItemOverview{{ID: existing[0].ID, Title: existing[0].Title, VaultID: existing[0].VaultID}}
+		}
+		return fl
+	}
+
+	fieldsMap := func(fields []onepassword.ItemField) map[string]onepassword.ItemField {
+		m := make(map[string]onepassword.ItemField, len(fields))
+		for _, f := range fields {
+			m[f.Title] = f
+		}
+		return m
+	}
+
+	ref := func(key, remoteKey string, meta ...string) v1alpha1.PushSecretData {
+		d := v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{SecretKey: key, RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: remoteKey}}}
+		if len(meta) > 0 {
+			raw := apiextensionsv1.JSON{Raw: []byte(meta[0])}
+			d.Metadata = &raw
+		}
+		return d
+	}
+
+	secret := func(kv ...string) *corev1.Secret {
+		s := &corev1.Secret{Data: map[string][]byte{}}
+		for i := 0; i+1 < len(kv); i += 2 {
+			s.Data[kv[i]] = []byte(kv[i+1])
+		}
+		return s
+	}
+
+	t.Run("creates new item with all secret keys as concealed fields", func(t *testing.T) {
+		fl := newLister()
+		p := &SecretsClient{client: &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl}, vaultID: "vault-id"}
+		require.NoError(t, p.PushSecret(t.Context(), secret("alpha", "val-alpha", "beta", "val-beta"), ref("", "my-item")))
+		require.True(t, fl.createCalled)
+		assert.False(t, fl.putCalled)
+		fm := fieldsMap(fl.createdParams.Fields)
+		assert.Equal(t, "val-alpha", fm["alpha"].Value)
+		assert.Equal(t, onepassword.ItemFieldTypeConcealed, fm["alpha"].FieldType)
+		assert.Equal(t, "val-beta", fm["beta"].Value)
+	})
+
+	t.Run("updates existing item with all secret keys", func(t *testing.T) {
+		fl := newLister(onepassword.Item{ID: "item-id", Title: testExistingItem, VaultID: "vault-id"})
+		p := &SecretsClient{client: &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl}, vaultID: "vault-id"}
+		require.NoError(t, p.PushSecret(t.Context(), secret("key1", "value1", "key2", "value2"), ref("", testExistingItem)))
+		assert.False(t, fl.createCalled)
+		require.True(t, fl.putCalled)
+		fm := fieldsMap(fl.putItem.Fields)
+		assert.Equal(t, "value1", fm["key1"].Value)
+		assert.Equal(t, "value2", fm["key2"].Value)
+	})
+
+	t.Run("applies tags from metadata on create", func(t *testing.T) {
+		fl := newLister()
+		p := &SecretsClient{client: &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl}, vaultID: "vault-id"}
+		meta := `{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"tags":["env:prod","team:backend"]}}`
+		require.NoError(t, p.PushSecret(t.Context(), secret("k", "v"), ref("", "tagged-item", meta)))
+		require.True(t, fl.createCalled)
+		assert.Equal(t, []string{"env:prod", "team:backend"}, fl.createdParams.Tags)
+	})
+
+	t.Run("removes fields deleted from the secret", func(t *testing.T) {
+		fl := newLister(existingItem) // existingItem has field testOldKey
+		p := &SecretsClient{client: &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl}, vaultID: "vault-id"}
+		// secret no longer contains testOldKey, only "new-key"
+		require.NoError(t, p.PushSecret(t.Context(), secret("new-key", "new-val"), ref("", testExistingItem)))
+		require.True(t, fl.putCalled)
+		fm := fieldsMap(fl.putItem.Fields)
+		assert.Equal(t, "new-val", fm["new-key"].Value, "new field must be added")
+		_, stillThere := fm[testOldKey]
+		assert.False(t, stillThere, "deleted key must be removed from the 1Password item")
+	})
 }

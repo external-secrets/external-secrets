@@ -31,12 +31,12 @@ Use these values when configuring the OIDC service in your Cloudsmith Workspace 
 
 ## Configuration Parameters
 
-| Parameter           | Description                                                              | Required |
-| ------------------- | ------------------------------------------------------------------------ | -------- |
-| `apiHost`          | The Cloudsmith API host. Defaults to `api.cloudsmith.io`.               | No       |
-| `orgSlug`          | The organization slug in Cloudsmith.                                    | Yes      |
-| `serviceSlug`      | The OIDC service slug configured in Cloudsmith.                         | Yes      |
-| `serviceAccountRef` | Reference to the Kubernetes service account for OIDC token exchange.    | Yes      |
+| Parameter           | Description                                                                   | Required |
+| ------------------- | ----------------------------------------------------------------------------- | -------- |
+| `apiHost`           | The Cloudsmith API host. Defaults to `api.cloudsmith.io`.                     | No       |
+| `orgSlug`           | The organization slug in Cloudsmith.                                          | Yes      |
+| `serviceSlug`       | The service account slug associated with the OIDC provider within cloudsmith. | Yes      |
+| `serviceAccountRef` | Reference to the Kubernetes service account for OIDC token exchange.          | Yes      |
 
 ## Example Manifest
 

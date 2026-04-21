@@ -113,6 +113,13 @@ spec:
                                   - None
                                   - Fetch
                                 type: string
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               property:
                                 description: Used to select a specific property of the Provider value (if a map), if supported
                                 type: string
@@ -240,6 +247,13 @@ spec:
                                   - None
                                   - Fetch
                                 type: string
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               property:
                                 description: Used to select a specific property of the Provider value (if a map), if supported
                                 type: string
@@ -277,6 +291,13 @@ spec:
                                     description: Finds secrets base
                                     type: string
                                 type: object
+                              nullBytePolicy:
+                                default: Ignore
+                                description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               path:
                                 description: A root path to start the find operations.
                                 type: string
@@ -3998,6 +4019,11 @@ spec:
                         serverUrl:
                           description: ServerURL is the DVLS instance URL (e.g., https://dvls.example.com).
                           type: string
+                        vault:
+                          description: |-
+                            Vault is the name or UUID of the vault to fetch secrets from.
+                            When omitted, the vault must be specified in the secret key using the legacy format "<vault-id>/<entry-id>".
+                          type: string
                       required:
                         - auth
                         - serverUrl
@@ -4328,6 +4354,16 @@ spec:
                           description: installationID specifies the Github APP installation that will be used to authenticate the client
                           format: int64
                           type: integer
+                        orgSecretVisibility:
+                          description: |-
+                            orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+                            Valid values are "all" or "private".
+                            When unset, new secrets are created with visibility "all" and existing secrets preserve
+                            whatever visibility they already have in GitHub.
+                          enum:
+                            - all
+                            - private
+                          type: string
                         organization:
                           description: organization will be used to fetch secrets from the Github organization
                           type: string
@@ -5336,6 +5372,8 @@ spec:
                           type: object
                         folderID:
                           type: string
+                        getByTitleFallback:
+                          type: boolean
                       required:
                         - authRef
                         - folderID
@@ -6876,6 +6914,9 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                vaultRole:
+                                  description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                                  type: string
                               type: object
                             gcp:
                               description: |-
@@ -12550,6 +12591,13 @@ spec:
                               - None
                               - Fetch
                             type: string
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           property:
                             description: Used to select a specific property of the Provider value (if a map), if supported
                             type: string
@@ -12677,6 +12725,13 @@ spec:
                               - None
                               - Fetch
                             type: string
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           property:
                             description: Used to select a specific property of the Provider value (if a map), if supported
                             type: string
@@ -12714,6 +12769,13 @@ spec:
                                 description: Finds secrets base
                                 type: string
                             type: object
+                          nullBytePolicy:
+                            default: Ignore
+                            description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           path:
                             description: A root path to start the find operations.
                             type: string
@@ -16176,6 +16238,11 @@ spec:
                         serverUrl:
                           description: ServerURL is the DVLS instance URL (e.g., https://dvls.example.com).
                           type: string
+                        vault:
+                          description: |-
+                            Vault is the name or UUID of the vault to fetch secrets from.
+                            When omitted, the vault must be specified in the secret key using the legacy format "<vault-id>/<entry-id>".
+                          type: string
                       required:
                         - auth
                         - serverUrl
@@ -16506,6 +16573,16 @@ spec:
                           description: installationID specifies the Github APP installation that will be used to authenticate the client
                           format: int64
                           type: integer
+                        orgSecretVisibility:
+                          description: |-
+                            orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+                            Valid values are "all" or "private".
+                            When unset, new secrets are created with visibility "all" and existing secrets preserve
+                            whatever visibility they already have in GitHub.
+                          enum:
+                            - all
+                            - private
+                          type: string
                         organization:
                           description: organization will be used to fetch secrets from the Github organization
                           type: string
@@ -17514,6 +17591,8 @@ spec:
                           type: object
                         folderID:
                           type: string
+                        getByTitleFallback:
+                          type: boolean
                       required:
                         - authRef
                         - folderID
@@ -19054,6 +19133,9 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                                vaultRole:
+                                  description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                                  type: string
                               type: object
                             gcp:
                               description: |-
@@ -26187,6 +26269,9 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
+                                    vaultRole:
+                                      description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                                      type: string
                                   type: object
                                 gcp:
                                   description: |-
@@ -28874,6 +28959,9 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            vaultRole:
+                              description: VaultRole specifies the Vault role to use for TLS certificate authentication.
+                              type: string
                           type: object
                         gcp:
                           description: |-

@@ -658,8 +658,16 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 	return err
 }
 
-func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
-	meta, err := sm.constructMetadataWithDefaults(metadata)
+func (sm *SecretsManager) patchTags(ctx context.Context, rawMetadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
+	rawMeta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](rawMetadata)
+	if err != nil {
+		return err
+	}
+	if rawMeta == nil || len(rawMeta.Spec.Tags) == 0 {
+		return nil
+	}
+
+	meta, err := sm.constructMetadataWithDefaults(rawMetadata)
 	if err != nil {
 		return err
 	}
@@ -866,6 +874,33 @@ func (sm *SecretsManager) resolveResourcePolicy(ctx context.Context, policyRef *
 	}
 }
 
+// unmarshalPolicyJSON parses a JSON policy string into a map.
+// Returns nil map for empty input, allowing comparison with a populated policy.
+func unmarshalPolicyJSON(policy string) (map[string]any, error) {
+	if policy == "" {
+		return nil, nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(policy), &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (sm *SecretsManager) deleteResourcePolicy(ctx context.Context, secretID *string) error {
+	deletePolicyInput := &awssm.DeleteResourcePolicyInput{
+		SecretId: secretID,
+	}
+	_, err := sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
+
+	var nf *types.ResourceNotFoundException
+	if err != nil && !errors.As(err, &nf) {
+		return fmt.Errorf("failed to delete resource policy: %w", err)
+	}
+	return nil
+}
+
 // manageResourcePolicy applies or removes the resource policy based on metadata.
 func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string) error {
 	meta, err := sm.constructMetadataWithDefaults(metadata)
@@ -875,24 +910,16 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 
 	// Delete policy if policyRef is nil and the policy exists.
 	if meta.Spec.ResourcePolicy == nil {
-		deletePolicyInput := &awssm.DeleteResourcePolicyInput{
-			SecretId: secretID,
-		}
-		_, err = sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
-
-		var nf *types.ResourceNotFoundException
-		if err != nil && !errors.As(err, &nf) {
-			return fmt.Errorf("failed to delete resource policy: %w", err)
-		}
-
-		return nil
+		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
 	// Normal flow, is to create the policy.
 	policyJSON, err := sm.resolveResourcePolicy(ctx, meta.Spec.ResourcePolicy.PolicySourceRef)
 	if err != nil {
 		return fmt.Errorf("failed to resolve resource policy: %w", err)
+	}
+	if policyJSON == "" {
+		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
 	getCurrentPolicyInput := &awssm.GetResourcePolicyInput{
@@ -911,20 +938,17 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		currentPolicy = *currentPolicyOutput.ResourcePolicy
 	}
 
-	// convert to maps so we can do a stable comparison.
-	var (
-		currentPolicyMap map[string]any
-		policyJSONMaps   map[string]any
-	)
-
-	if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
-		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
-	}
-	if err := json.Unmarshal([]byte(policyJSON), &policyJSONMaps); err != nil {
+	currentPolicyMap, err := unmarshalPolicyJSON(currentPolicy)
+	if err != nil {
 		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
 	}
 
-	if reflect.DeepEqual(currentPolicyMap, policyJSONMaps) {
+	desiredPolicyMap, err := unmarshalPolicyJSON(policyJSON)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal desired resource policy: %w", err)
+	}
+
+	if reflect.DeepEqual(currentPolicyMap, desiredPolicyMap) {
 		return nil
 	}
 
