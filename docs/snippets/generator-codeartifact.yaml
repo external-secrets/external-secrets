@@ -32,9 +32,7 @@ spec:
         name: "my-aws-creds"
         key: "access-secret"
 
-    # option 2: IAM Roles for Service Accounts
-    # point to a service account that should be used
-    # that is configured for IAM Roles for Service Accounts (IRSA)
-    jwt:
-      serviceAccountRef:
-        name: "codeartifact-token-sync"
+    # option 2: IAM Roles for Service Accounts (uncomment below, remove secretRef above)
+    # jwt:
+    #   serviceAccountRef:
+    #     name: "codeartifact-token-sync"
