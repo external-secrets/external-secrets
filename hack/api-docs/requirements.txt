@@ -8,7 +8,7 @@ ghp-import==2.1.0
 htmlmin==0.1.12
 idna==3.11
 importlib-metadata==9.0.0
-importlib-resources==6.5.2
+importlib-resources==7.1.0
 Jinja2==3.1.6
 jsmin==3.0.1
 livereload==2.7.1
@@ -21,11 +21,11 @@ mkdocs-macros-plugin==1.5.0
 mkdocs-material==9.7.6
 mkdocs-material-extensions==1.3.1
 mkdocs-minify-plugin==0.8.0
-packaging==26.0
+packaging==26.1
 paginate==0.5.7
 pathspec==1.0.4
 pep562==1.1
-platformdirs==4.9.4
+platformdirs==4.9.6
 Pygments==2.20.0
 pymdown-extensions==10.21.2
 python-dateutil==2.9.0.post0
@@ -39,4 +39,4 @@ tornado==6.5.5
 urllib3==2.6.3
 verspec==0.1.0
 watchdog==6.0.0
-zipp==3.23.0
+zipp==3.23.1
