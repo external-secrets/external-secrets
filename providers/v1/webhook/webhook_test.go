@@ -835,3 +835,150 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
+
+func makeWebhookStore(serverURL, topURL, topBody string, ops *esv1.WebhookOperationsConfig) *esv1.ClusterSecretStore {
+	return &esv1.ClusterSecretStore{
+		TypeMeta:   metav1.TypeMeta{Kind: "ClusterSecretStore"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-store", Namespace: "default"},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Webhook: &esv1.WebhookProvider{
+					URL:        serverURL + topURL,
+					Body:       topBody,
+					Operations: ops,
+					Result:     esv1.WebhookResult{},
+				},
+			},
+		},
+	}
+}
+
+func opConfig(serverURL, path, body string) *esv1.WebhookOperationConfig {
+	url := ""
+	if path != "" {
+		url = serverURL + path
+	}
+	return &esv1.WebhookOperationConfig{URL: url, Body: body}
+}
+
+// TestWebhookGetSecretOperationOverride verifies per-operation overrides for GetSecret.
+func TestWebhookGetSecretOperationOverride(t *testing.T) {
+	tests := []struct {
+		name     string
+		topURL   string
+		topBody  string
+		opPath   string
+		opBody   string
+		wantPath string
+		wantBody *string
+	}{
+		{
+			name:     "per-op URL overrides top-level URL",
+			topURL:   "/top/secret",
+			opPath:   "/op/secret?id={{ .remoteRef.key }}",
+			wantPath: "/op/secret?id=mykey",
+		},
+		{
+			name:     "falls back to top-level URL when no per-op URL set",
+			topURL:   "/top/secret?id={{ .remoteRef.key }}",
+			wantPath: "/top/secret?id=mykey",
+		},
+		{
+			name:     "per-op body overrides top-level body",
+			topURL:   "/top/secret?id={{ .remoteRef.key }}",
+			topBody:  `{"source":"top"}`,
+			opBody:   `{"source":"op"}`,
+			wantPath: "/top/secret?id=mykey",
+			wantBody: strPtr(`{"source":"op"}`),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotPath, gotBody string
+			ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				gotPath = req.URL.String()
+				b, _ := io.ReadAll(req.Body)
+				gotBody = string(b)
+				rw.WriteHeader(http.StatusOK)
+				rw.Write([]byte(`"value"`))
+			}))
+			defer ts.Close()
+
+			var ops *esv1.WebhookOperationsConfig
+			if tt.opPath != "" || tt.opBody != "" {
+				ops = &esv1.WebhookOperationsConfig{
+					GetSecret: opConfig(ts.URL, tt.opPath, tt.opBody),
+				}
+			}
+
+			store := makeWebhookStore(ts.URL, tt.topURL, tt.topBody, ops)
+			client, err := (&Provider{}).NewClient(context.Background(), store, nil, "testnamespace")
+			if err != nil {
+				t.Fatalf("NewClient: %v", err)
+			}
+			_, _ = client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "mykey"})
+
+			if gotPath != tt.wantPath {
+				t.Errorf("path: got %q, want %q", gotPath, tt.wantPath)
+			}
+			if tt.wantBody != nil && gotBody != *tt.wantBody {
+				t.Errorf("body: got %q, want %q", gotBody, *tt.wantBody)
+			}
+		})
+	}
+}
+
+// TestWebhookPushSecretOperationOverride verifies per-operation overrides for PushSecret.
+func TestWebhookPushSecretOperationOverride(t *testing.T) {
+	tests := []struct {
+		name     string
+		topURL   string
+		opPath   string
+		wantPath string
+	}{
+		{
+			name:     "per-op URL overrides top-level URL",
+			topURL:   "/top/push",
+			opPath:   "/op/push?key={{ .remoteRef.remoteKey }}",
+			wantPath: "/op/push?key=mykey",
+		},
+		{
+			name:     "falls back to top-level URL when no per-op URL set",
+			topURL:   "/top/push?key={{ .remoteRef.remoteKey }}",
+			wantPath: "/top/push?key=mykey",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotPath string
+			ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				gotPath = req.URL.String()
+				rw.WriteHeader(http.StatusOK)
+			}))
+			defer ts.Close()
+
+			var ops *esv1.WebhookOperationsConfig
+			if tt.opPath != "" {
+				ops = &esv1.WebhookOperationsConfig{
+					PushSecret: opConfig(ts.URL, tt.opPath, ""),
+				}
+			}
+
+			store := makeWebhookStore(ts.URL, tt.topURL, "", ops)
+			client, err := (&Provider{}).NewClient(context.Background(), store, nil, "testnamespace")
+			if err != nil {
+				t.Fatalf("NewClient: %v", err)
+			}
+			pushRef := v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "mykey"}}}
+			_ = client.PushSecret(context.Background(), &corev1.Secret{Data: map[string][]byte{"mykey": []byte("val")}}, pushRef)
+
+			if gotPath != tt.wantPath {
+				t.Errorf("path: got %q, want %q", gotPath, tt.wantPath)
+			}
+		})
+	}
+}
+
+func strPtr(s string) *string { return &s }

@@ -218,14 +218,20 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1.
 		method = http.MethodGet
 	}
 
+	// resolve per-operation overrides (falls back to top-level when nil)
+	var getSecretOp *OperationConfig
+	if provider.Operations != nil {
+		getSecretOp = provider.Operations.GetSecret
+	}
+
 	// set url
-	url, err := ExecuteTemplateString(provider.URL, escapedData)
+	url, err := ExecuteTemplateString(effectiveURL(provider.URL, getSecretOp), escapedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse url: %w", err)
 	}
 
 	// set body
-	body, err := ExecuteTemplate(provider.Body, rawData)
+	body, err := ExecuteTemplate(effectiveBody(provider.Body, getSecretOp), rawData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse body: %w", err)
 	}
@@ -256,12 +262,18 @@ func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []by
 	}
 	rawData["remoteRef"][remoteKey.GetRemoteKey()] = string(data)
 
-	url, err := ExecuteTemplateString(provider.URL, escapedData)
+	// resolve per-operation overrides (falls back to top-level when nil)
+	var pushSecretOp *OperationConfig
+	if provider.Operations != nil {
+		pushSecretOp = provider.Operations.PushSecret
+	}
+
+	url, err := ExecuteTemplateString(effectiveURL(provider.URL, pushSecretOp), escapedData)
 	if err != nil {
 		return fmt.Errorf("failed to parse url: %w", err)
 	}
 
-	bodyt := provider.Body
+	bodyt := effectiveBody(provider.Body, pushSecretOp)
 	if bodyt == "" {
 		bodyt = fmt.Sprintf("{{ .remoteRef.%s }}", remoteKey.GetRemoteKey())
 	}
@@ -424,6 +436,34 @@ func (w *Webhook) GetCACertPool(ctx context.Context, provider *Spec) (*x509.Cert
 	}
 
 	return caCertPool, nil
+}
+
+// EffectiveURL returns the per-operation URL if one is configured, otherwise
+// falls back to the top-level provider URL.
+func EffectiveURL(providerURL string, op *OperationConfig) string {
+	if op != nil && op.URL != "" {
+		return op.URL
+	}
+	return providerURL
+}
+
+// EffectiveBody returns the per-operation body template if one is configured,
+// otherwise falls back to the top-level provider body.
+func EffectiveBody(providerBody string, op *OperationConfig) string {
+	if op != nil && op.Body != "" {
+		return op.Body
+	}
+	return providerBody
+}
+
+// effectiveURL is an unexported alias kept for internal use within this package.
+func effectiveURL(providerURL string, op *OperationConfig) string {
+	return EffectiveURL(providerURL, op)
+}
+
+// effectiveBody is an unexported alias kept for internal use within this package.
+func effectiveBody(providerBody string, op *OperationConfig) string {
+	return EffectiveBody(providerBody, op)
 }
 
 // ExecuteTemplateString executes a template and returns the result as a string.

@@ -121,7 +121,12 @@ func (w *WebHook) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRem
 		},
 	}
 
-	url, err := webhook.ExecuteTemplateString(provider.URL, escapedData)
+	var deleteOp *webhook.OperationConfig
+	if provider.Operations != nil {
+		deleteOp = provider.Operations.DeleteSecret
+	}
+
+	url, err := webhook.ExecuteTemplateString(webhook.EffectiveURL(provider.URL, deleteOp), escapedData)
 	if err != nil {
 		return fmt.Errorf("failed to parse url: %w", err)
 	}
