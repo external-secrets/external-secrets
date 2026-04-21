@@ -28,7 +28,7 @@ jobs:
     outputs:
       check_run_id: ${{ steps.create_check.outputs.check_run_id }}
     steps:
-      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+      - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
         with:
           egress-policy: audit
 
@@ -82,7 +82,7 @@ jobs:
       TF_VAR_AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
       TF_VAR_AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
     steps:
-      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+      - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
         with:
           egress-policy: audit
 
@@ -104,14 +104,14 @@ jobs:
           echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
@@ -169,7 +169,7 @@ jobs:
       GCP_FED_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
       GCP_FED_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
     steps:
-      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+      - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
         with:
           egress-policy: audit
 
@@ -191,14 +191,14 @@ jobs:
           echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
@@ -264,7 +264,7 @@ jobs:
       TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
       TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
     steps:
-      - uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+      - uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
         with:
           egress-policy: audit
 
@@ -286,14 +286,14 @@ jobs:
           echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
