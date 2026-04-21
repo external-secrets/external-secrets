@@ -48,8 +48,24 @@ type Client struct {
 // and is able to retrieve secrets from the BeyondTrust Secrets provider.
 // If the validation result is unknown it will be ignored.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
+	// Check for nil receiver
+	if c == nil {
+		return esv1.ValidationResultError, fmt.Errorf("client is nil")
+	}
+
+	// Check for nil beyondtrustSecretsClient
+	if c.beyondtrustSecretsClient == nil {
+		return esv1.ValidationResultError, fmt.Errorf("beyondtrustSecretsClient is not initialized")
+	}
+
+	// Check for nil BaseURL
+	baseURL := c.beyondtrustSecretsClient.BaseURL()
+	if baseURL == nil {
+		return esv1.ValidationResultError, fmt.Errorf("base URL is not configured")
+	}
+
 	timeout := 15 * time.Second
-	clientURL := c.beyondtrustSecretsClient.BaseURL().String()
+	clientURL := baseURL.String()
 	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
 		return esv1.ValidationResultError, err
 	}
