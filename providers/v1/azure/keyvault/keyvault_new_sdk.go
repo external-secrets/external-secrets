@@ -50,7 +50,7 @@ func isNotFoundErr(err error) bool {
 
 func isManagedByESONewSDK(tags map[string]*string) bool {
 	if tags == nil {
-		return true
+		return false
 	}
 	managedByTag, exists := tags[managedBy]
 	return exists && managedByTag != nil && *managedByTag == managerLabel
@@ -60,7 +60,13 @@ func newSDKSecretUnchanged(existingValue, existingContentType *string, value []b
 	if existingValue == nil || string(value) != *existingValue {
 		return false
 	}
-	return sameStringPtr(existingContentType, contentType)
+	// contentType == nil means the caller did not request any specific
+	// contentType; treat it as "don't care" so we don't reconcile solely
+	// because the existing secret has a contentType set.
+	if contentType == nil {
+		return true
+	}
+	return comp(existingContentType, contentType)
 }
 
 // New SDK implementations for setter methods.

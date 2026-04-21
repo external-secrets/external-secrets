@@ -550,11 +550,7 @@ func canCreate(tags map[string]*string, err error) (bool, error) {
 	return true, nil
 }
 
-func sameStringPtr(a, b *string) bool {
-	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
-}
-
-func sameUnixTimePtr(a, b *date.UnixTime) bool {
+func comp[T comparable](a, b *T) bool {
 	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
 }
 
@@ -562,11 +558,20 @@ func legacySecretUnchanged(secret keyvault.SecretBundle, value []byte, expires *
 	if secret.Value == nil || string(value) != *secret.Value {
 		return false
 	}
-	if secret.Attributes == nil {
+	var existingExpires *date.UnixTime
+	if secret.Attributes != nil {
+		existingExpires = secret.Attributes.Expires
+	}
+	if !comp(existingExpires, expires) {
 		return false
 	}
-	return sameUnixTimePtr(secret.Attributes.Expires, expires) &&
-		sameStringPtr(secret.ContentType, contentType)
+	// contentType == nil means the caller did not request any specific
+	// contentType; treat it as "don't care" so we don't reconcile solely
+	// because the existing secret has a contentType set.
+	if contentType == nil {
+		return true
+	}
+	return comp(secret.ContentType, contentType)
 }
 
 func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, contentType *string, tags map[string]string) error {

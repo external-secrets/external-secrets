@@ -659,7 +659,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		smtc.expectError = "contentType added, SetSecret called"
 		smtc.verifySetSecret = expectSetSecretContentType(&newContentType)
 	}
-	secretContentTypeRemoved := func(smtc *secretManagerTestCase) {
+	secretContentTypeOmittedFromRequest := func(smtc *secretManagerTestCase) {
 		existingContentType := contentTypeJSON
 		smtc.setValue = []byte(goodSecret)
 		smtc.pushData = testingfake.PushSecretData{
@@ -674,9 +674,8 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			ContentType: &existingContentType,
 			Attributes:  &keyvault.SecretAttributes{},
 		}
-		smtc.setErr = errors.New("contentType removed, SetSecret called")
-		smtc.expectError = "contentType removed, SetSecret called"
-		smtc.verifySetSecret = expectSetSecretContentType(nil)
+		smtc.setErr = errors.New("SetSecret should not be called when contentType is unset")
+		smtc.verifySetSecret = expectSetSecretNotCalled
 	}
 	secretContentTypeWithExpiration := func(smtc *secretManagerTestCase) {
 		contentType := contentTypeJSON
@@ -1159,7 +1158,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(secretNoChangeWithContentType),
 		makeValidSecretManagerTestCaseCustom(secretContentTypeChange),
 		makeValidSecretManagerTestCaseCustom(secretContentTypeAddedToExisting),
-		makeValidSecretManagerTestCaseCustom(secretContentTypeRemoved),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeOmittedFromRequest),
 		makeValidSecretManagerTestCaseCustom(secretContentTypeWithExpiration),
 		makeValidSecretManagerTestCaseCustom(certWithTags),
 		makeValidSecretManagerTestCaseCustom(keyWithTags),
