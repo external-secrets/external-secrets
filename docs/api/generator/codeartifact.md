@@ -16,7 +16,7 @@ You can choose from three authentication mechanisms:
 
 * static credentials using `spec.auth.secretRef`
 * point to an IRSA Service Account with `spec.auth.jwt`
-* use credentials from the [SDK default credentials chain](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/configure-gosdk.html#specifying-credentials) from the controller environment
+* use credentials from the [SDK default credentials chain](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default) from the controller environment
 
 ## Example Manifest
 
