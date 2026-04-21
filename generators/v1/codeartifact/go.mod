@@ -92,7 +92,6 @@ require (
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ../../../apis
+	github.com/external-secrets/external-secrets/providers/v1/aws => ../../../providers/v1/aws
 	github.com/external-secrets/external-secrets/runtime => ../../../runtime
 )
-
-replace github.com/external-secrets/external-secrets/providers/v1/aws => ../../../providers/v1/aws
