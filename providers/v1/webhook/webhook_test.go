@@ -981,4 +981,71 @@ func TestWebhookPushSecretOperationOverride(t *testing.T) {
 	}
 }
 
+// TestWebhookDeleteSecretOperationOverride verifies per-operation overrides for DeleteSecret.
+func TestWebhookDeleteSecretOperationOverride(t *testing.T) {
+	tests := []struct {
+		name     string
+		topURL   string
+		opPath   string
+		opBody   string
+		wantPath string
+		wantBody *string
+	}{
+		{
+			name:     "per-op URL overrides top-level URL",
+			topURL:   "/top/delete",
+			opPath:   "/op/delete?key={{ .remoteRef.remoteKey }}",
+			wantPath: "/op/delete?key=mykey",
+		},
+		{
+			name:     "falls back to top-level URL when no per-op URL set",
+			topURL:   "/top/delete?key={{ .remoteRef.remoteKey }}",
+			wantPath: "/top/delete?key=mykey",
+		},
+		{
+			name:     "per-op body is sent when configured",
+			topURL:   "/op/delete",
+			opPath:   "/op/delete",
+			opBody:   `{"key":"{{ .remoteRef.remoteKey }}"}`,
+			wantPath: "/op/delete",
+			wantBody: strPtr(`{"key":"mykey"}`),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotPath, gotBody string
+			ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				gotPath = req.URL.String()
+				b, _ := io.ReadAll(req.Body)
+				gotBody = string(b)
+				rw.WriteHeader(http.StatusOK)
+			}))
+			defer ts.Close()
+
+			var ops *esv1.WebhookOperationsConfig
+			if tt.opPath != "" || tt.opBody != "" {
+				ops = &esv1.WebhookOperationsConfig{
+					DeleteSecret: opConfig(ts.URL, tt.opPath, tt.opBody),
+				}
+			}
+
+			store := makeWebhookStore(ts.URL, tt.topURL, "", ops)
+			client, err := (&Provider{}).NewClient(context.Background(), store, nil, "testnamespace")
+			if err != nil {
+				t.Fatalf("NewClient: %v", err)
+			}
+			remoteRef := v1alpha1.PushSecretRemoteRef{RemoteKey: "mykey"}
+			_ = client.DeleteSecret(context.Background(), remoteRef)
+
+			if gotPath != tt.wantPath {
+				t.Errorf("path: got %q, want %q", gotPath, tt.wantPath)
+			}
+			if tt.wantBody != nil && gotBody != *tt.wantBody {
+				t.Errorf("body: got %q, want %q", gotBody, *tt.wantBody)
+			}
+		})
+	}
+}
+
 func strPtr(s string) *string { return &s }
