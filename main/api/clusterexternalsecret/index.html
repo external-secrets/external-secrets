@@ -1027,6 +1027,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reducing-provider-calls-for-large-namespace-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reducing provider calls for large namespace sets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#synchronizing-corresponding-externalsecrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4946,6 +4957,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reducing-provider-calls-for-large-namespace-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reducing provider calls for large namespace sets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#synchronizing-corresponding-externalsecrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5104,6 +5126,91 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
 <span class="w">    </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2022-01-12T12:33:02Z&quot;</span>
 </code></pre></div>
+<h2 id="reducing-provider-calls-for-large-namespace-sets">Reducing provider calls for large namespace sets</h2>
+<p>A <code>ClusterExternalSecret</code> creates one <code>ExternalSecret</code> per matched namespace,
+and <strong>each of those <code>ExternalSecret</code>s independently polls the upstream provider</strong> on its own <code>refreshInterval</code>. 
+This means provider API calls scale linearly with the number of matched namespaces, which can be costly or hit rate limits. 
+This is a known characteristic of the design.</p>
+<p><img alt="Direct polling: each namespace polls the provider independently" src="../../pictures/diagrams-ces-direct-polling.png" /></p>
+<p>If your selector matches more than a handful of namespaces, the recommended pattern is to pull
+from the upstream provider <strong>once</strong> into a single in-cluster <code>Secret</code>, then
+use the <a href="../../provider/kubernetes/">Kubernetes provider</a> to fan that
+<code>Secret</code> out via the <code>ClusterExternalSecret</code>:</p>
+<ol>
+<li>A single namespace-scoped <code>ExternalSecret</code> pulls from the upstream
+   provider and writes a <code>Secret</code> in a dedicated "source" namespace.</li>
+<li>A <code>ClusterSecretStore</code> using the Kubernetes provider points at that
+   source <code>Secret</code>.</li>
+<li>A <code>ClusterExternalSecret</code> references that <code>ClusterSecretStore</code>,
+   replicating the <code>Secret</code> into every matched namespace. Regardless of how
+   many namespaces match, the upstream provider is only called by the single
+   source <code>ExternalSecret</code> in step 1.</li>
+</ol>
+<p><img alt="Fan-out pattern: only the source ExternalSecret polls the provider" src="../../pictures/diagrams-ces-fanout-pattern.png" /></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Step 1: A single ExternalSecret pulls from the upstream provider.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-fanout-source</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-upstream-store</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/shared-credentials</span>
+<span class="nn">---</span>
+<span class="c1"># Step 2: ClusterSecretStore reads the source Secret via the Kubernetes provider.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-fanout-source</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">caProvider</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kube-root-ca.crt</span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-fanout-source</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">serviceAccount</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-fanout-reader</span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-fanout-source</span>
+<span class="nn">---</span>
+<span class="c1"># Step 3: ClusterExternalSecret fans the Secret out to matching namespaces.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">externalSecretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">  </span><span class="nt">namespaceSelectors</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">shared-credentials</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">  </span><span class="nt">externalSecretSpec</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span>
+<span class="w">    </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials-store</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">    </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+</code></pre></div>
+<p>The <code>ServiceAccount</code> and RBAC for the Kubernetes provider store are the same
+as described in the <a href="../../provider/kubernetes/">Kubernetes provider docs</a>.</p>
+<p>Direct use of <code>ClusterExternalSecret</code> against a cloud-backed store is still
+appropriate for small namespace sets or when per-namespace refresh isolation
+is intentional. This is a recommendation for minimizing provider load, not
+a deprecation of the simpler pattern shown above.</p>
 <h2 id="synchronizing-corresponding-externalsecrets">Synchronizing corresponding ExternalSecrets</h2>
 <p>Regular refreshes can be controlled using the <code>refreshPolicy</code> and
 <code>refreshInterval</code> fields. Adhoc synchronizations can be triggered by
