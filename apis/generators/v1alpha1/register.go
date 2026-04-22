@@ -72,9 +72,9 @@ var (
 	// ClusterGeneratorKind is the kind name for ClusterGenerator resource.
 	ClusterGeneratorKind = reflect.TypeFor[ClusterGenerator]().Name()
 	// CloudsmithAccessTokenKind is the kind name for CloudsmithAccessToken resource.
-	CloudsmithAccessTokenKind = reflect.TypeOf(CloudsmithAccessToken{}).Name()
+	CloudsmithAccessTokenKind = reflect.TypeFor[CloudsmithAccessToken]().Name()
 	// BeyondtrustSecretsDynamicSecretKind is the kind name for BeyondtrustSecretsDynamicSecret resource.
-	BeyondtrustSecretsDynamicSecretKind = reflect.TypeOf(BeyondtrustSecretsDynamicSecret{}).Name()
+	BeyondtrustSecretsDynamicSecretKind = reflect.TypeFor[BeyondtrustSecretsDynamicSecret]().Name()
 )
 
 func init() {
