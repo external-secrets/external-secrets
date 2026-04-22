@@ -8957,6 +8957,126 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 <p>PushSecretRemoteRef is an interface to allow using v1alpha1.PushSecretRemoteRef in Provider registered in v1.</p>
 </p>
+<h3 id="external-secrets.io/v1.SakuraAuth">SakuraAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SakuraProvider">SakuraProvider</a>)
+</p>
+<p>
+<p>SakuraAuth defines the information necessary to authenticate against Sakura Cloud.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.SakuraSecretRef">
+SakuraSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SakuraProvider">SakuraProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures a store to sync secrets with a Sakura Cloud Secret Manager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>vaultResourceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>VaultResourceID is the resource ID of the target vault.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.SakuraAuth">
+SakuraAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against Sakura Cloud.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SakuraSecretRef">SakuraSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SakuraAuth">SakuraAuth</a>)
+</p>
+<p>
+<p>SakuraSecretRef holds secret references for Sakura Cloud credentials
+both AccessToken and AccessTokenSecret must be defined in order to properly authenticate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The AccessToken is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessTokenSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The AccessTokenSecret is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.ScalewayProvider">ScalewayProvider
 </h3>
 <p>
@@ -10013,6 +10133,20 @@ NebiusMysteryboxProvider
 <td>
 <em>(Optional)</em>
 <p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sakura</code></br>
+<em>
+<a href="#external-secrets.io/v1.SakuraProvider">
+SakuraProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Sakura configures this store to sync secrets using the Sakura Cloud Secret Manager provider</p>
 </td>
 </tr>
 </tbody>
