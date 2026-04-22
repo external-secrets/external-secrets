@@ -40,11 +40,43 @@ func TestValidateStore(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name:    "empty VaultResourceID",
+			wantErr: true,
+			args: args{
+				store: &esv1.SecretStore{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-store",
+						Namespace: "default",
+					},
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Sakura: &esv1.SakuraProvider{
+								VaultResourceID: "",
+								Auth: esv1.SakuraAuth{
+									SecretRef: esv1.SakuraSecretRef{
+										AccessToken: esmeta.SecretKeySelector{
+											Name: "secret-name",
+											Key:  "access-token",
+										},
+										AccessTokenSecret: esmeta.SecretKeySelector{
+											Name: "secret-name",
+											Key:  "access-token-secret",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name:    "AccessToken namespace mismatch",
 			wantErr: true,
 			args: args{
 				store: &esv1.SecretStore{
 					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-store",
 						Namespace: "default",
 					},
 					Spec: esv1.SecretStoreSpec{
@@ -76,6 +108,7 @@ func TestValidateStore(t *testing.T) {
 			args: args{
 				store: &esv1.SecretStore{
 					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-store",
 						Namespace: "default",
 					},
 					Spec: esv1.SecretStoreSpec{
@@ -107,6 +140,7 @@ func TestValidateStore(t *testing.T) {
 			args: args{
 				store: &esv1.SecretStore{
 					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-store",
 						Namespace: "default",
 					},
 					Spec: esv1.SecretStoreSpec{
@@ -137,6 +171,7 @@ func TestValidateStore(t *testing.T) {
 			args: args{
 				store: &esv1.SecretStore{
 					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-store",
 						Namespace: "default",
 					},
 					Spec: esv1.SecretStoreSpec{
@@ -171,6 +206,10 @@ func TestValidateStore(t *testing.T) {
 					TypeMeta: metav1.TypeMeta{
 						Kind: esv1.ClusterSecretStoreKind,
 					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-cluster-store",
+					},
+
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							Sakura: &esv1.SakuraProvider{
@@ -201,6 +240,10 @@ func TestValidateStore(t *testing.T) {
 					TypeMeta: metav1.TypeMeta{
 						Kind: esv1.ClusterSecretStoreKind,
 					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-cluster-store",
+					},
+
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							Sakura: &esv1.SakuraProvider{
