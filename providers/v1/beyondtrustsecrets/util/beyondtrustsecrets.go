@@ -22,17 +22,28 @@ import (
 	"net/url"
 )
 
+// SecretMetadata represents metadata for a secret, including tags and version information.
+type SecretMetadata struct {
+	ID        string            `json:"id"`
+	Tags      map[string]string `json:"tags,omitempty"`
+	Version   int               `json:"version,omitempty"`
+	CreatedAt string            `json:"createdAt,omitempty"`
+	DeletedAt string            `json:"deletedAt,omitempty"`
+}
+
 // KV represents a key-value secret with its metadata.
 type KV struct {
-	Secret map[string]interface{} `json:"secret"`
-	Type   string                 `json:"type,omitempty"`
-	Path   string                 `json:"path,omitempty"`
+	Secret   map[string]interface{} `json:"secret"`
+	Type     string                 `json:"type,omitempty"`
+	Path     string                 `json:"path,omitempty"`
+	Metadata *SecretMetadata        `json:"metadata,omitempty"`
 }
 
 // KVListItem represents a minimal secret list item.
 type KVListItem struct {
-	Path string `json:"path"`
-	Type string `json:"type"`
+	Path     string          `json:"path"`
+	Type     string          `json:"type"`
+	Metadata *SecretMetadata `json:"metadata,omitempty"`
 }
 
 // GeneratedSecret represents a dynamically generated secret response.

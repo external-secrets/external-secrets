@@ -189,6 +189,13 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 			continue
 		}
 
+		// Filter by tags if specified (all tags must match)
+		if ref.Tags != nil && len(ref.Tags) > 0 {
+			if fullSecret.Metadata == nil || !matchTags(fullSecret.Metadata.Tags, ref.Tags) {
+				continue
+			}
+		}
+
 		// Marshal the entire secret as the value for this secret name
 		secretBytes, err := json.Marshal(fullSecret.Secret)
 		if err != nil {
@@ -243,6 +250,26 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	}
 
 	return result, nil
+}
+
+// matchTags checks if all required tags (filter) are present in the secret's tags
+// with matching values. Returns true if all filter tags match, false otherwise.
+func matchTags(secretTags map[string]string, filterTags map[string]string) bool {
+	if len(filterTags) == 0 {
+		return true
+	}
+	if len(secretTags) == 0 {
+		return false
+	}
+
+	// All filter tags must be present and match
+	for filterKey, filterValue := range filterTags {
+		secretValue, exists := secretTags[filterKey]
+		if !exists || secretValue != filterValue {
+			return false
+		}
+	}
+	return true
 }
 
 /////////////////////////
