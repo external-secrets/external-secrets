@@ -2385,14 +2385,14 @@ spec:
                               APIVersion of the referenced store resource.
                               This field is optional and depends on the selected store kind.
                             type: string
-                        kind:
-                          description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
-                          enum:
-                            - SecretStore
-                            - ClusterSecretStore
-                            - ProviderStore
-                            - ClusterProviderStore
-                          type: string
+                          kind:
+                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                            enum:
+                              - SecretStore
+                              - ClusterSecretStore
+                              - ProviderStore
+                              - ClusterProviderStore
+                            type: string
                           labelSelector:
                             description: Optionally, sync to secret stores with label selector
                             properties:
