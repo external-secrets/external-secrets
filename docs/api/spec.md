@@ -8995,7 +8995,7 @@ SakuraSecretRef
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>Configures a store to sync secrets with a Sakura Cloud Secret Manager.</p>
+<p>SakuraProvider configures a store to sync secrets with a Sakura Cloud Secret Manager.</p>
 </p>
 <table>
 <thead>
