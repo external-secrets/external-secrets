@@ -543,6 +543,35 @@ func TestManagerGetRoutesProviderStoreKinds(t *testing.T) {
 	}
 }
 
+func TestManagerCloseSkipsV2ProviderStoreClients(t *testing.T) {
+	scheme := newManagerTestScheme(t)
+	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+	manager := NewManager(client, "", false)
+
+	v2Client := &MockFakeClient{id: "v2"}
+	v2ClusterClient := &MockFakeClient{id: "v2-cluster"}
+	v1Client := &MockFakeClient{id: "v1"}
+
+	manager.clientMap = map[clientKey]*clientVal{
+		{providerType: v2ProviderStoreCacheKey, v2ProviderName: "store", v2ProviderNamespace: "team-a"}: {
+			client: v2Client,
+		},
+		{providerType: v2ClusterProviderStoreCache, v2ProviderName: "store", v2ProviderNamespace: "team-a"}: {
+			client: v2ClusterClient,
+		},
+		{providerType: "v1-provider"}: {
+			client: v1Client,
+		},
+	}
+
+	err := manager.Close(context.Background())
+	require.NoError(t, err)
+	assert.False(t, v2Client.closeCalled)
+	assert.False(t, v2ClusterClient.closeCalled)
+	assert.True(t, v1Client.closeCalled)
+	assert.Empty(t, manager.clientMap)
+}
+
 func TestGetStoreDefaultsToSecretStoreForUnknownKind(t *testing.T) {
 	scheme := newManagerTestScheme(t)
 

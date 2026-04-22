@@ -297,22 +297,22 @@ type v2BackendRef struct {
 	namespace  string
 }
 
-func (m *Manager) getV2ProviderStoreClient(ctx context.Context, storeName, callerNamespace string) (esv1.SecretsClient, error) {
+func (m *Manager) getV2ProviderStoreClientFallback(ctx context.Context, storeName, callerNamespace string) (esv1.SecretsClient, error) {
 	store, err := m.fetchV2Store(ctx, providerStoreKindStr, storeName, callerNamespace)
 	if err != nil {
 		return nil, err
 	}
 
 	if m.enableFloodgate {
-		if err := assertV2StoreIsUsable(store); err != nil {
+		if err := assertV2StoreIsUsableFallback(store); err != nil {
 			return nil, err
 		}
 	}
 
-	return m.getOrCreateProviderStoreClient(ctx, store, callerNamespace, callerNamespace)
+	return m.getOrCreateProviderStoreClientFallback(ctx, store, callerNamespace, callerNamespace)
 }
 
-func (m *Manager) getV2ClusterProviderStoreClient(ctx context.Context, storeName, callerNamespace string) (esv1.SecretsClient, error) {
+func (m *Manager) getV2ClusterProviderStoreClientFallback(ctx context.Context, storeName, callerNamespace string) (esv1.SecretsClient, error) {
 	store, err := m.fetchV2Store(ctx, clusterProviderStoreKindStr, storeName, "")
 	if err != nil {
 		return nil, err
@@ -327,7 +327,7 @@ func (m *Manager) getV2ClusterProviderStoreClient(ctx context.Context, storeName
 	}
 
 	if m.enableFloodgate {
-		if err := assertV2StoreIsUsable(store); err != nil {
+		if err := assertV2StoreIsUsableFallback(store); err != nil {
 			return nil, err
 		}
 	}
@@ -337,10 +337,10 @@ func (m *Manager) getV2ClusterProviderStoreClient(ctx context.Context, storeName
 		effectiveBackendNamespace = callerNamespace
 	}
 
-	return m.getOrCreateProviderStoreClient(ctx, store, callerNamespace, effectiveBackendNamespace)
+	return m.getOrCreateProviderStoreClientFallback(ctx, store, callerNamespace, effectiveBackendNamespace)
 }
 
-func (m *Manager) getOrCreateProviderStoreClient(ctx context.Context, store *v2StoreInfo, callerNamespace, effectiveBackendNamespace string) (esv1.SecretsClient, error) {
+func (m *Manager) getOrCreateProviderStoreClientFallback(ctx context.Context, store *v2StoreInfo, callerNamespace, effectiveBackendNamespace string) (esv1.SecretsClient, error) {
 	cacheKeyType := v2ProviderStoreCacheKey
 	isClusterScoped := false
 	if store.kind == clusterProviderStoreKindStr {
@@ -528,7 +528,7 @@ func v2StoreReady(rawConditions []interface{}) bool {
 	return false
 }
 
-func assertV2StoreIsUsable(store *v2StoreInfo) error {
+func assertV2StoreIsUsableFallback(store *v2StoreInfo) error {
 	if store == nil {
 		return nil
 	}
@@ -599,10 +599,10 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespa
 	}
 
 	if storeRef.Kind == providerStoreKindStr {
-		return m.getV2ProviderStoreClient(ctx, storeRef.Name, namespace)
+		return m.getV2ProviderStoreClientFallback(ctx, storeRef.Name, namespace)
 	}
 	if storeRef.Kind == clusterProviderStoreKindStr {
-		return m.getV2ClusterProviderStoreClient(ctx, storeRef.Name, namespace)
+		return m.getV2ClusterProviderStoreClientFallback(ctx, storeRef.Name, namespace)
 	}
 
 	store, err := m.getStore(ctx, &storeRef, namespace)
@@ -730,9 +730,12 @@ func (m *Manager) Close(ctx context.Context) error {
 	// Close cached clients. Runtime-ref-backed clients release their pooled
 	// connection through their Close implementation.
 	for key, val := range m.clientMap {
-		err := val.client.Close(ctx)
-		if err != nil {
-			errs = append(errs, err.Error())
+		if key.providerType != v2ProviderStoreCacheKey &&
+			key.providerType != v2ClusterProviderStoreCache {
+			err := val.client.Close(ctx)
+			if err != nil {
+				errs = append(errs, err.Error())
+			}
 		}
 		delete(m.clientMap, key)
 	}
