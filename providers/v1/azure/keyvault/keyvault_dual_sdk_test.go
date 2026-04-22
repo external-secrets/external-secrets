@@ -607,7 +607,7 @@ func TestGetKeyVaultClientOptionsUsesDefaultAPIVersionWhenUnset(t *testing.T) {
 	}
 }
 
-func TestEffectiveKeyVaultAPIVersionTrimsWhitespace(t *testing.T) {
+func TestGetKeyVaultClientOptionsTrimsKeyVaultAPIVersion(t *testing.T) {
 	version := " 7.2-preview "
 	provider := &esv1.AzureKVProvider{
 		CustomCloudConfig: &esv1.AzureCustomCloudConfig{
@@ -616,7 +616,8 @@ func TestEffectiveKeyVaultAPIVersionTrimsWhitespace(t *testing.T) {
 		},
 	}
 
-	if got := effectiveKeyVaultAPIVersion(provider); got != "7.2-preview" {
-		t.Fatalf("expected trimmed API version, got %q", got)
+	opts := getKeyVaultClientOptions(provider, cloud.AzurePublic)
+	if opts.APIVersion != "7.2-preview" {
+		t.Fatalf("expected trimmed API version, got %q", opts.APIVersion)
 	}
 }
