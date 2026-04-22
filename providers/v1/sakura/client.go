@@ -91,7 +91,30 @@ func (c *Client) secretExists(ctx context.Context, name string) (bool, error) {
 
 // GetSecret returns a single secret from the provider.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return c.unveilSecret(ctx, ref.Key, ref.Version)
+	data, err := c.unveilSecret(ctx, ref.Key, ref.Version)
+	if err != nil {
+		return nil, err
+	}
+	if ref.Property == "" {
+		return data, nil
+	}
+
+	kv := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &kv); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal secret %s as JSON: %w", ref.Key, err)
+	}
+
+	value, ok := kv[ref.Property]
+	if !ok {
+		return nil, fmt.Errorf("property %q not found in secret %s", ref.Property, ref.Key)
+	}
+
+	var strVal string
+	if err := json.Unmarshal(value, &strVal); err == nil {
+		return []byte(strVal), nil
+	}
+
+	return value, nil
 }
 
 // PushSecret will write a single secret into the provider.
@@ -149,6 +172,17 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	kv := make(map[string]json.RawMessage)
 	if err = json.Unmarshal(data, &kv); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal secret %s as JSON: %w", ref.Key, err)
+	}
+	if ref.Property != "" {
+		value, ok := kv[ref.Property]
+		if !ok {
+			return nil, fmt.Errorf("property %q not found in secret %s", ref.Property, ref.Key)
+		}
+
+		kv = make(map[string]json.RawMessage)
+		if err = json.Unmarshal(value, &kv); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal property %q in secret %s as JSON: %w", ref.Property, ref.Key, err)
+		}
 	}
 
 	secretData := make(map[string][]byte)
