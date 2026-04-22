@@ -40,19 +40,17 @@ import (
 )
 
 const (
-	errGetClusterSecretStore      = "could not get ClusterSecretStore %q, %w"
-	errGetSecretStore             = "could not get SecretStore %q, %w"
-	errSecretStoreNotReady        = "%s %q is not ready"
-	errClusterStoreMismatch       = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
-	errClusterProviderStoreDenied = "using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions"
+	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
+	errGetSecretStore        = "could not get SecretStore %q, %w"
+	errSecretStoreNotReady   = "%s %q is not ready"
+	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 
-	providerMetricsLabel        = "provider"
-	clusterProviderMetricsLabel = "cluster-provider"
-	cacheInvalidationGeneration = "generation_change"
-	cacheInvalidationMismatch   = "store_mismatch"
-	v2ProviderStoreCacheKey     = "v2-provider-store"
-	v2ClusterProviderStoreCache = "v2-cluster-provider-store"
-	runtimeRefCacheKeyType      = "runtime-ref"
+	providerMetricsLabel                   = "provider"
+	clusterProviderMetricsLabel            = "cluster-provider"
+	cacheInvalidationGeneration            = "generation_change"
+	cacheInvalidationMismatch              = "store_mismatch"
+	runtimeRefCacheKeyType                 = "runtime-ref"
+	errRuntimeRefProviderClassClusterStore = "ClusterSecretStore runtimeRef.kind must not be \"ProviderClass\""
 )
 
 var (
@@ -121,14 +119,6 @@ type clientVal struct {
 	v2ProviderGeneration int64
 }
 
-func providerMetricsLabelForScope(isClusterScoped bool) string {
-	if isClusterScoped {
-		return clusterProviderMetricsLabel
-	}
-
-	return providerMetricsLabel
-}
-
 func providerMetricsLabelForKey(key clientKey) string {
 	if key.v2ProviderName == "" {
 		return "unknown"
@@ -188,12 +178,9 @@ func (m *Manager) GetFromStore(ctx context.Context, store esv1.GenericStore, nam
 
 func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericStore, namespace string) (esv1.SecretsClient, error) {
 	runtimeRef := store.GetSpec().RuntimeRef
-	runtimeKind := runtimeRef.Kind
-	if runtimeKind == "" {
-		runtimeKind = runtimeRefKindClusterProviderClass
-	}
-	if runtimeKind != runtimeRefKindClusterProviderClass {
-		return nil, fmt.Errorf("unsupported runtimeRef kind %q", runtimeKind)
+	runtimeDetails, err := m.resolveRuntimeRef(ctx, store, runtimeRef)
+	if err != nil {
+		return nil, err
 	}
 
 	cacheKey := runtimeRefStoreKey(store, namespace)
@@ -201,30 +188,25 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 		return cached, nil
 	}
 
-	var runtimeClass esv1alpha1.ClusterProviderClass
-	if err := m.client.Get(ctx, types.NamespacedName{Name: runtimeRef.Name}, &runtimeClass); err != nil {
-		return nil, fmt.Errorf("failed to get %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
-	}
-
 	compatStore, err := buildCompatibilityStore(store)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build compatibility store for %s %q: %w", store.GetKind(), store.GetName(), err)
 	}
 
-	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(runtimeClass.Spec.Address, "", "", "")
-	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, m.client, runtimeClass.Spec.Address, tlsSecretNamespace)
+	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(runtimeDetails.address, "", "", "")
+	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, m.client, runtimeDetails.address, tlsSecretNamespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load TLS config for %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
+		return nil, fmt.Errorf("failed to load TLS config for %s %q: %w", runtimeDetails.kind, runtimeRef.Name, err)
 	}
 
 	pool := getGlobalV2ConnectionPool()
-	grpcClient, err := pool.Get(ctx, runtimeClass.Spec.Address, tlsConfig)
+	grpcClient, err := pool.Get(ctx, runtimeDetails.address, tlsConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get gRPC client from pool for %s %q: %w", runtimeRefKindClusterProviderClass, runtimeRef.Name, err)
+		return nil, fmt.Errorf("failed to get gRPC client from pool for %s %q: %w", runtimeDetails.kind, runtimeRef.Name, err)
 	}
 
 	compatibilityClient := adapterstore.NewCompatibilityClientWithCloser(grpcClient, compatStore, namespace, func(context.Context) error {
-		pool.Release(runtimeClass.Spec.Address, tlsConfig)
+		pool.Release(runtimeDetails.address, tlsConfig)
 		return nil
 	})
 
@@ -234,6 +216,49 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 	}
 
 	return compatibilityClient, nil
+}
+
+type runtimeRefDetails struct {
+	kind    string
+	address string
+}
+
+func (m *Manager) resolveRuntimeRef(ctx context.Context, store esv1.GenericStore, runtimeRef *esv1.StoreRuntimeRef) (*runtimeRefDetails, error) {
+	runtimeKind, err := runtimeRefKindForStore(store, runtimeRef)
+	if err != nil {
+		return nil, err
+	}
+
+	switch runtimeKind {
+	case esv1.StoreRuntimeRefKindProviderClass:
+		var runtimeClass esv1alpha1.ProviderClass
+		if err := m.client.Get(ctx, types.NamespacedName{Name: runtimeRef.Name, Namespace: store.GetNamespace()}, &runtimeClass); err != nil {
+			return nil, fmt.Errorf("failed to get %s %q: %w", runtimeKind, runtimeRef.Name, err)
+		}
+		return &runtimeRefDetails{kind: runtimeKind, address: runtimeClass.Spec.Address}, nil
+	case esv1.StoreRuntimeRefKindClusterProviderClass:
+		var runtimeClass esv1alpha1.ClusterProviderClass
+		if err := m.client.Get(ctx, types.NamespacedName{Name: runtimeRef.Name}, &runtimeClass); err != nil {
+			return nil, fmt.Errorf("failed to get %s %q: %w", runtimeKind, runtimeRef.Name, err)
+		}
+		return &runtimeRefDetails{kind: runtimeKind, address: runtimeClass.Spec.Address}, nil
+	default:
+		return nil, fmt.Errorf("unsupported runtimeRef kind %q", runtimeKind)
+	}
+}
+
+func runtimeRefKindForStore(store esv1.GenericStore, runtimeRef *esv1.StoreRuntimeRef) (string, error) {
+	runtimeKind := runtimeRef.Kind
+	if runtimeKind == "" {
+		if store.GetKind() == esv1.ClusterSecretStoreKind {
+			return esv1.StoreRuntimeRefKindClusterProviderClass, nil
+		}
+		return esv1.StoreRuntimeRefKindProviderClass, nil
+	}
+	if store.GetKind() == esv1.ClusterSecretStoreKind && runtimeKind == esv1.StoreRuntimeRefKindProviderClass {
+		return "", fmt.Errorf(errRuntimeRefProviderClassClusterStore)
+	}
+	return runtimeKind, nil
 }
 
 func runtimeRefStoreKey(store esv1.GenericStore, sourceNamespace string) clientKey {
@@ -287,13 +312,6 @@ func (m *Manager) getStoredRuntimeRefClient(ctx context.Context, key clientKey, 
 func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespace string, sourceRef *esv1.StoreGeneratorSourceRef) (esv1.SecretsClient, error) {
 	if sourceRef != nil && sourceRef.SecretStoreRef != nil {
 		storeRef = *sourceRef.SecretStoreRef
-	}
-
-	if storeRef.Kind == esv1.ProviderStoreKindStr {
-		return m.getV2ProviderStoreClient(ctx, storeRef.Name, namespace)
-	}
-	if storeRef.Kind == esv1.ClusterProviderStoreKindStr {
-		return m.getV2ClusterProviderStoreClient(ctx, storeRef.Name, namespace)
 	}
 
 	store, err := m.getStore(ctx, &storeRef, namespace)
@@ -385,21 +403,25 @@ func (m *Manager) getStore(ctx context.Context, storeRef *esv1.SecretStoreRef, n
 	ref := types.NamespacedName{
 		Name: storeRef.Name,
 	}
-	if storeRef.Kind == esv1.ClusterSecretStoreKind {
+	switch storeRef.Kind {
+	case "", esv1.SecretStoreKind:
+		ref.Namespace = namespace
+		var store esv1.SecretStore
+		err := m.client.Get(ctx, ref, &store)
+		if err != nil {
+			return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
+		}
+		return &store, nil
+	case esv1.ClusterSecretStoreKind:
 		var store esv1.ClusterSecretStore
 		err := m.client.Get(ctx, ref, &store)
 		if err != nil {
 			return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
 		}
 		return &store, nil
+	default:
+		return nil, fmt.Errorf("unsupported SecretStore kind %q", storeRef.Kind)
 	}
-	ref.Namespace = namespace
-	var store esv1.SecretStore
-	err := m.client.Get(ctx, ref, &store)
-	if err != nil {
-		return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
-	}
-	return &store, nil
 }
 
 // Close cleans up all clients.
@@ -417,15 +439,12 @@ func (m *Manager) Close(ctx context.Context) error {
 	}
 	m.v2PooledConnections = nil
 
-	// Close v1 provider clients (they don't use the pool)
+	// Close cached clients. Runtime-ref-backed clients release their pooled
+	// connection through their Close implementation.
 	for key, val := range m.clientMap {
-		// Only close v1 clients; v2 clients are managed by the pool
-		if key.providerType != v2ProviderStoreCacheKey &&
-			key.providerType != v2ClusterProviderStoreCache {
-			err := val.client.Close(ctx)
-			if err != nil {
-				errs = append(errs, err.Error())
-			}
+		err := val.client.Close(ctx)
+		if err != nil {
+			errs = append(errs, err.Error())
 		}
 		delete(m.clientMap, key)
 	}
