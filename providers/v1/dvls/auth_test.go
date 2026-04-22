@@ -90,6 +90,7 @@ func TestNewDVLSClient_CrossNamespaceSecurityConstraint(t *testing.T) {
 
 			provider := &esv1.DVLSProvider{
 				ServerURL: testServerURL,
+				Vault:     testVaultUUID,
 				Auth: esv1.DVLSAuth{
 					SecretRef: esv1.DVLSAuthSecretRef{
 						AppID: esmeta.SecretKeySelector{
@@ -106,19 +107,21 @@ func TestNewDVLSClient_CrossNamespaceSecurityConstraint(t *testing.T) {
 				},
 			}
 
-			client, err := NewDVLSClient(context.Background(), kube, tt.storeKind, tt.namespace, provider)
+			credClient, vaultID, err := NewDVLSClient(context.Background(), kube, tt.storeKind, tt.namespace, provider)
 
 			if tt.expectError {
 				require.Error(t, err)
-				require.Nil(t, client)
+				require.Nil(t, credClient)
+				require.Empty(t, vaultID)
 				if tt.errorMsg != "" {
 					assert.Contains(t, err.Error(), tt.errorMsg)
 				}
-			} else if err != nil {
-				// Verify Kubernetes secret access succeeded (DVLS connection will fail due to fake server).
-				assert.NotContains(t, err.Error(), "failed to get appId")
-				assert.NotContains(t, err.Error(), "failed to get appSecret")
-				assert.NotContains(t, err.Error(), "cannot get Kubernetes secret")
+			} else {
+				// DVLS connection will fail due to fake server URL, but we should
+				// have gotten past secret resolution. Verify the error comes from
+				// the DVLS client creation step, not from Kubernetes secret access.
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to create DVLS client")
 			}
 		})
 	}

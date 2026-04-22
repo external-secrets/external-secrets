@@ -658,8 +658,16 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 	return err
 }
 
-func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
-	meta, err := sm.constructMetadataWithDefaults(metadata)
+func (sm *SecretsManager) patchTags(ctx context.Context, rawMetadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
+	rawMeta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](rawMetadata)
+	if err != nil {
+		return err
+	}
+	if rawMeta == nil || len(rawMeta.Spec.Tags) == 0 {
+		return nil
+	}
+
+	meta, err := sm.constructMetadataWithDefaults(rawMetadata)
 	if err != nil {
 		return err
 	}
