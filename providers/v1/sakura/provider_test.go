@@ -102,7 +102,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "SecretStore without namespace",
+			name:    "SecretRef without namespace",
 			wantErr: false,
 			args: args{
 				store: &esv1.SecretStore{

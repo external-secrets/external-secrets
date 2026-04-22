@@ -107,7 +107,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		Name:  data.GetRemoteKey(),
 		Value: string(value),
 	}); err != nil {
-		return fmt.Errorf("failed to update secret: %w", err)
+		return fmt.Errorf("failed to create/update secret: %w", err)
 	}
 
 	return nil

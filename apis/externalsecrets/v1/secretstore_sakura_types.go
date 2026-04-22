@@ -22,17 +22,19 @@ import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 type SakuraProvider struct {
 	// VaultResourceID is the resource ID of the target vault.
 	// +required
-	VaultResourceID string `json:"vaultResourceID,omitempty"`
+	// +kubebuilder:validation:Length=12
+	// +kubebuilder:validation:Pattern="^[0-9]+$"
+	VaultResourceID string `json:"vaultResourceID"`
 
 	// Auth defines the information necessary to authenticate against Sakura Cloud.
 	// +required
-	Auth SakuraAuth `json:"auth,omitempty"`
+	Auth SakuraAuth `json:"auth"`
 }
 
 // SakuraAuth defines the information necessary to authenticate against Sakura Cloud.
 type SakuraAuth struct {
 	// +required
-	SecretRef SakuraSecretRef `json:"secretRef,omitempty"`
+	SecretRef SakuraSecretRef `json:"secretRef"`
 }
 
 // SakuraSecretRef holds secret references for Sakura Cloud credentials
@@ -40,9 +42,9 @@ type SakuraAuth struct {
 type SakuraSecretRef struct {
 	// The AccessToken is used for authentication
 	// +required
-	AccessToken esmeta.SecretKeySelector `json:"accessToken,omitempty"`
+	AccessToken esmeta.SecretKeySelector `json:"accessToken"`
 
 	// The AccessTokenSecret is used for authentication
 	// +required
-	AccessTokenSecret esmeta.SecretKeySelector `json:"accessTokenSecret,omitempty"`
+	AccessTokenSecret esmeta.SecretKeySelector `json:"accessTokenSecret"`
 }

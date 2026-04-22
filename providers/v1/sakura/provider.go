@@ -19,6 +19,7 @@ package sakura
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/sacloud/saclient-go"
@@ -69,12 +70,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, fmt.Errorf("failed to set Sakura Cloud client environment: %w", err)
 	}
 
-	client, err := secretmanager.NewClient(&theClient)
+	smClient, err := secretmanager.NewClient(&theClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Sakura Cloud client: %w", err)
 	}
 
-	return NewClient(secretmanager.NewSecretOp(client, provider.VaultResourceID)), nil
+	return NewClient(secretmanager.NewSecretOp(smClient, provider.VaultResourceID)), nil
 }
 
 // ValidateStore validates the store's configuration.
@@ -84,6 +85,9 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, err
 	}
 
+	if prov.VaultResourceID == "" {
+		return nil, errors.New("vaultResourceID is required")
+	}
 	if err := esutils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.AccessToken); err != nil {
 		return nil, fmt.Errorf("invalid Auth.SecretRef.AccessToken: %w", err)
 	}
