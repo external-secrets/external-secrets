@@ -127,6 +127,46 @@ func (c *Client) SetBaseURL(urlStr string) error {
 	return nil
 }
 
+// CheckSession verifies if the current authentication session is valid.
+func (c *Client) CheckSession(ctx context.Context) error {
+	endpoint := fmt.Sprintf("%s/session", c.baseURL.String())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
+	if err != nil {
+		return fmt.Errorf("failed to create session check request: %w", err)
+	}
+
+	c.setHeaders(req)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to check session: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read session check response: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		var sessionResp struct {
+			Valid bool `json:"valid"`
+		}
+		if err := json.Unmarshal(body, &sessionResp); err != nil {
+			return fmt.Errorf("failed to unmarshal session check response: %w", err)
+		}
+
+		if !sessionResp.Valid {
+			return fmt.Errorf("session is not valid")
+		}
+
+		return nil
+	}
+
+	return parseError(body, resp.StatusCode, "/session")
+}
+
 // GetSecret fetches a single secret by name from the specified folder path.
 func (c *Client) GetSecret(ctx context.Context, name string, folderPath *string) (*btsutil.KV, error) {
 	path := formatPath(folderPath)

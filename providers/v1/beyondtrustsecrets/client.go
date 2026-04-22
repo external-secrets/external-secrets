@@ -70,7 +70,13 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 		return esv1.ValidationResultError, err
 	}
 
-	// --TODO: validate auth?
+	// Validate authentication by checking session
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	if err := c.beyondtrustSecretsClient.CheckSession(ctx); err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("authentication validation failed: %w", err)
+	}
 
 	return esv1.ValidationResultReady, nil
 }

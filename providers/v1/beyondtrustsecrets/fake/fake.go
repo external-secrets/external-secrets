@@ -39,6 +39,11 @@ func (c *BeyondtrustSecretsClient) SetBaseURL(urlStr string) error {
 	return nil
 }
 
+func (c *BeyondtrustSecretsClient) CheckSession(ctx context.Context) error {
+	// By default, fake client returns success for session check
+	return nil
+}
+
 func (c *BeyondtrustSecretsClient) Authenticate() error {
 	return nil
 }

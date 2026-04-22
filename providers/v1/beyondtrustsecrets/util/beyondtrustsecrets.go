@@ -59,6 +59,7 @@ type GeneratedSecret struct {
 type Client interface {
 	BaseURL() *url.URL
 	SetBaseURL(urlStr string) error
+	CheckSession(ctx context.Context) error
 	GetSecret(ctx context.Context, name string, folderPath *string) (*KV, error)
 	GetSecrets(ctx context.Context, folderPath *string) ([]KVListItem, error)
 	GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (*GeneratedSecret, error)
