@@ -170,6 +170,14 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 //
 //	Only Name filter is supported
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	// Fail fast for unsupported filters
+	if ref.Path != nil {
+		return nil, fmt.Errorf("path filter is not supported by the Sakura provider")
+	}
+	if len(ref.Tags) > 0 {
+		return nil, fmt.Errorf("tag filter is not supported by the Sakura provider")
+	}
+
 	secrets, err := c.api.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list secrets: %w", err)
