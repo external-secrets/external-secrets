@@ -21,11 +21,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	StoreRuntimeRefKindProviderClass        = "ProviderClass"
+	StoreRuntimeRefKindClusterProviderClass = "ClusterProviderClass"
+)
+
 // StoreRuntimeRef identifies the runtime configuration used by a store.
 type StoreRuntimeRef struct {
 	// Kind identifies the runtime resource type referenced by this store.
-	// +kubebuilder:validation:Enum=ClusterProviderClass
-	// +kubebuilder:default=ClusterProviderClass
+	// +kubebuilder:validation:Enum=ProviderClass;ClusterProviderClass
 	// +optional
 	Kind string `json:"kind,omitempty"`
 

@@ -74,6 +74,9 @@ func validateStore(store GenericStore) (admission.Warnings, error) {
 	if err := validateConditions(store); err != nil {
 		return nil, err
 	}
+	if err := validateRuntimeRef(store); err != nil {
+		return nil, err
+	}
 
 	provider, err := GetProvider(store)
 	if err != nil {
@@ -107,4 +110,18 @@ func validateConditions(store GenericStore) error {
 	}
 
 	return errs
+}
+
+func validateRuntimeRef(store GenericStore) error {
+	if store == nil || store.GetSpec() == nil {
+		return nil
+	}
+	runtimeRef := store.GetSpec().RuntimeRef
+	if runtimeRef == nil {
+		return nil
+	}
+	if store.GetKind() == ClusterSecretStoreKind && runtimeRef.Kind == StoreRuntimeRefKindProviderClass {
+		return fmt.Errorf("%s runtimeRef.kind must not be %q", store.GetKind(), runtimeRef.Kind)
+	}
+	return nil
 }

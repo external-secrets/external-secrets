@@ -154,3 +154,18 @@ func TestValidateSecretStore(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateStoreRejectsProviderClassForClusterSecretStore(t *testing.T) {
+	store := &ClusterSecretStore{
+		Spec: SecretStoreSpec{
+			RuntimeRef: &StoreRuntimeRef{
+				Kind: "ProviderClass",
+				Name: "aws",
+			},
+		},
+	}
+
+	_, err := validateStore(store)
+	require.Error(t, err)
+	assert.EqualError(t, err, "ClusterSecretStore runtimeRef.kind must not be \"ProviderClass\"")
+}
