@@ -93,6 +93,7 @@ leaderElect: false
 # -- ID of the lease object used for leader election.
 # Leave empty to use the default ('external-secrets-controller').
 # Set to a unique value when running multiple independent ESO deployments in the same namespace.
+# @default -- "external-secrets-controller"
 leaderElectionID: ""
 
 # -- If set external secrets will filter matching
