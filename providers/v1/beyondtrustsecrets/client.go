@@ -145,8 +145,8 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 
 	result := map[string][]byte{}
 
-	// List all secrets in the folder
-	secretsList, err := c.beyondtrustSecretsClient.GetSecrets(ctx, &folderPath)
+	// List all secrets in the folder (recursive to get all secrets under the path)
+	secretsList, err := c.beyondtrustSecretsClient.GetSecrets(ctx, &folderPath, true)
 	if err != nil {
 		// Treat 404 from listing API as NoSecretError (folder not found or empty)
 		var apiErr *httpclient.APIError

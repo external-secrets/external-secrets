@@ -208,14 +208,23 @@ func (c *Client) GetSecret(ctx context.Context, name string, folderPath *string)
 }
 
 // GetSecrets fetches a list of secrets at the specified folder path.
-func (c *Client) GetSecrets(ctx context.Context, folderPath *string) ([]btsutil.KVListItem, error) {
+func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive bool) ([]btsutil.KVListItem, error) {
 	path := formatPath(folderPath)
 
 	endpoint := fmt.Sprintf("%s/static", c.baseURL.String())
 
-	// Add path query parameter if specified
+	// Build query parameters
+	params := url.Values{}
 	if folderPath != nil && *folderPath != "" {
-		endpoint += fmt.Sprintf("?path=%s", url.QueryEscape(*folderPath))
+		params.Set("path", *folderPath)
+	}
+	if recursive {
+		params.Set("recursive", "true")
+	}
+
+	// Add query string if there are parameters
+	if len(params) > 0 {
+		endpoint += "?" + params.Encode()
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)

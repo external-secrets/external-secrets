@@ -22,6 +22,13 @@ import (
 	"net/url"
 )
 
+// VersionInfo represents version information for a secret or folder.
+type VersionInfo struct {
+	Version   int    `json:"version"`
+	CreatedAt string `json:"createdAt"`
+	DeletedAt string `json:"deletedAt,omitempty"`
+}
+
 // SecretMetadata represents metadata for a secret, including tags and version information.
 type SecretMetadata struct {
 	ID        string            `json:"id"`
@@ -29,6 +36,7 @@ type SecretMetadata struct {
 	Version   int               `json:"version,omitempty"`
 	CreatedAt string            `json:"createdAt,omitempty"`
 	DeletedAt string            `json:"deletedAt,omitempty"`
+	CreatedBy string            `json:"createdBy,omitempty"`
 }
 
 // KV represents a key-value secret with its metadata.
@@ -37,6 +45,7 @@ type KV struct {
 	Type     string                 `json:"type,omitempty"`
 	Path     string                 `json:"path,omitempty"`
 	Metadata *SecretMetadata        `json:"metadata,omitempty"`
+	Versions []VersionInfo          `json:"versions,omitempty"`
 }
 
 // KVListItem represents a minimal secret list item.
@@ -44,6 +53,7 @@ type KVListItem struct {
 	Path     string          `json:"path"`
 	Type     string          `json:"type"`
 	Metadata *SecretMetadata `json:"metadata,omitempty"`
+	Versions []VersionInfo   `json:"versions,omitempty"`
 }
 
 // GeneratedSecret represents a dynamically generated secret response.
@@ -61,6 +71,6 @@ type Client interface {
 	SetBaseURL(urlStr string) error
 	CheckSession(ctx context.Context) error
 	GetSecret(ctx context.Context, name string, folderPath *string) (*KV, error)
-	GetSecrets(ctx context.Context, folderPath *string) ([]KVListItem, error)
+	GetSecrets(ctx context.Context, folderPath *string, recursive bool) ([]KVListItem, error)
 	GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (*GeneratedSecret, error)
 }

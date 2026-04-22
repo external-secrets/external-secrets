@@ -26,7 +26,7 @@ import (
 
 type BeyondtrustSecretsClient struct {
 	getSecret             func(ctx context.Context, name string, folderPath *string) (*btsutil.KV, error)
-	getSecrets            func(ctx context.Context, folderPath *string) ([]btsutil.KVListItem, error)
+	getSecrets            func(ctx context.Context, folderPath *string, recursive bool) ([]btsutil.KVListItem, error)
 	generateDynamicSecret func(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error)
 	getCalls              int
 }
@@ -55,11 +55,11 @@ func (c *BeyondtrustSecretsClient) GetSecret(ctx context.Context, name string, f
 	return c.getSecret(ctx, name, folderPath)
 }
 
-func (c *BeyondtrustSecretsClient) GetSecrets(ctx context.Context, folderPath *string) ([]btsutil.KVListItem, error) {
+func (c *BeyondtrustSecretsClient) GetSecrets(ctx context.Context, folderPath *string, recursive bool) ([]btsutil.KVListItem, error) {
 	if c.getSecrets == nil {
 		return nil, errors.New("GetSecrets not configured in fake client")
 	}
-	return c.getSecrets(ctx, folderPath)
+	return c.getSecrets(ctx, folderPath, recursive)
 }
 
 func (c *BeyondtrustSecretsClient) GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error) {
@@ -87,7 +87,7 @@ func (c *BeyondtrustSecretsClient) WithValues(ctx context.Context, name, folderP
 		return nil, errors.New(*getErrMsg)
 	}
 
-	c.getSecrets = func(ctxIn context.Context, folderPathIn *string) ([]btsutil.KVListItem, error) {
+	c.getSecrets = func(ctxIn context.Context, folderPathIn *string, recursive bool) ([]btsutil.KVListItem, error) {
 		if ctxIn != ctx || (folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
 			return nil, errors.New("unexpected test argument getSecrets")
 		}
@@ -135,7 +135,7 @@ func (c *BeyondtrustSecretsClient) WithMultiValues(
 		return nil, errors.New(*getErrMsg)
 	}
 
-	c.getSecrets = func(ctxIn context.Context, folderPathIn *string) ([]btsutil.KVListItem, error) {
+	c.getSecrets = func(ctxIn context.Context, folderPathIn *string, recursive bool) ([]btsutil.KVListItem, error) {
 		if ctxIn != ctx || (folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
 			return nil, errors.New("unexpected test argument in getSecrets")
 		}
