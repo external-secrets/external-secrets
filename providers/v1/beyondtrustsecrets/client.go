@@ -188,21 +188,13 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 			// Skip empty/missing entries in list mode
 			continue
 		}
-		// Merge keys from this secret into result.
-		for k, v := range fullSecret.Secret {
-			switch val := v.(type) {
-			case string:
-				result[k] = []byte(val)
-			case []byte:
-				result[k] = val
-			default:
-				b, err := json.Marshal(val)
-				if err != nil {
-					return nil, fmt.Errorf("failed to marshal secret value for key %q from %s: %w", k, itemName, err)
-				}
-				result[k] = b
-			}
+
+		// Marshal the entire secret as the value for this secret name
+		secretBytes, err := json.Marshal(fullSecret.Secret)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal secret %q: %w", itemName, err)
 		}
+		result[itemName] = secretBytes
 	}
 
 	// If no secrets matched the criteria, return NoSecretError
