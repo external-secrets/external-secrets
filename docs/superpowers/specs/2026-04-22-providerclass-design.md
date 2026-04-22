@@ -194,6 +194,36 @@ Add or update tests for:
 - error reporting when a referenced `ProviderClass` is missing
 - readiness reconciliation for `ProviderClass`
 - CRD and snapshot output showing the new enum/default behavior
+- e2e coverage for runtime-class resolution using the v2 Fake provider
+
+### E2E coverage
+
+Add end-to-end tests that exercise runtime-class resolution through real reconciliation, not only through unit tests.
+
+Recommended test strategy:
+
+- use the v2 Fake provider as the working runtime target because the e2e suite already provisions it
+- create one valid runtime object that points at the real Fake provider service
+- create a shadow runtime object with the same name in the other scope that points at an invalid address
+- assert success or failure based on which runtime class ESO should resolve
+
+Required scenarios:
+
+1. `SecretStore` with omitted `runtimeRef.kind`
+- create `ProviderClass/<ns>/<name>` with the valid Fake provider address
+- create `ClusterProviderClass/<name>` with an invalid address
+- assert the `ExternalSecret` sync succeeds, proving default namespaced resolution chose `ProviderClass`
+
+2. `SecretStore` with explicit `runtimeRef.kind: ClusterProviderClass`
+- create `ProviderClass/<ns>/<name>` with an invalid address
+- create `ClusterProviderClass/<name>` with the valid Fake provider address
+- assert the `ExternalSecret` sync succeeds, proving explicit cluster-scoped resolution chose `ClusterProviderClass`
+
+3. `ClusterSecretStore` with omitted `runtimeRef.kind`
+- create `ClusterProviderClass/<name>` with the valid Fake provider address
+- assert the `ExternalSecret` sync succeeds, proving the cluster-scoped default remains `ClusterProviderClass`
+
+These tests should live in the existing provider v2 e2e area so they can reuse the Fake provider addon and helper functions.
 
 ## Migration Impact
 
