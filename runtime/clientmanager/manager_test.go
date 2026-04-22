@@ -492,6 +492,77 @@ func TestGetFromStoreReturnsErrorWhenRuntimeClassMissing(t *testing.T) {
 	}
 }
 
+func TestGetFromStoreRuntimeRefCacheHitSkipsRuntimeLookup(t *testing.T) {
+	scheme := newManagerTestScheme(t)
+	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+
+	store := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "aws-prod",
+			Namespace:  "team-a",
+			UID:        types.UID("uid-1"),
+			Generation: 7,
+		},
+		Spec: esv1.SecretStoreSpec{
+			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
+			},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(store).Build()
+	manager := NewManager(kubeClient, "", false)
+
+	cacheKey := runtimeRefStoreKey(store, "team-a")
+	cachedClient := &MockFakeClient{id: "cached"}
+	manager.clientMap[cacheKey] = &clientVal{
+		client: cachedClient,
+		store:  store,
+	}
+
+	got, err := manager.GetFromStore(context.Background(), store, "team-a")
+	require.NoError(t, err)
+	assert.Same(t, cachedClient, got)
+}
+
+func TestManagerGetRoutesProviderStoreKinds(t *testing.T) {
+	scheme := newManagerTestScheme(t)
+	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+	manager := NewManager(client, "", false)
+
+	_, err := manager.Get(context.Background(), esv1.SecretStoreRef{Name: "missing", Kind: "ProviderStore"}, "team-a", nil)
+	if err == nil || !strings.Contains(err.Error(), "failed to get ProviderStore") {
+		t.Fatalf("expected ProviderStore lookup error, got %v", err)
+	}
+
+	_, err = manager.Get(context.Background(), esv1.SecretStoreRef{Name: "missing", Kind: "ClusterProviderStore"}, "team-a", nil)
+	if err == nil || !strings.Contains(err.Error(), "failed to get ClusterProviderStore") {
+		t.Fatalf("expected ClusterProviderStore lookup error, got %v", err)
+	}
+}
+
+func TestGetStoreDefaultsToSecretStoreForUnknownKind(t *testing.T) {
+	scheme := newManagerTestScheme(t)
+
+	store := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-prod",
+			Namespace: "team-a",
+		},
+		Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{Fake: &esv1.FakeProvider{}}},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(store).Build()
+	manager := NewManager(kubeClient, "", false)
+
+	got, err := manager.getStore(context.Background(), &esv1.SecretStoreRef{Name: "aws-prod", Kind: "OtherKind"}, "team-a")
+	require.NoError(t, err)
+	assert.Equal(t, esv1.SecretStoreKind, got.GetKind())
+}
+
 func TestGetFromStoreDefaultsRuntimeRefKindToProviderClass(t *testing.T) {
 	resetGlobalV2ConnectionPoolForTest(t)
 
