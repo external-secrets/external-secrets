@@ -270,6 +270,10 @@ func TestDeleteSecret(t *testing.T) {
 				mc.WithDeleteFunc(func(_ context.Context, _ v1.DeleteSecret) error {
 					return nil
 				})
+				mc.WithCreateFunc(func(_ context.Context, _ v1.CreateSecret) (*v1.Secret, error) {
+					t.Errorf("Create must not be called when deleting an entire secret")
+					return &v1.Secret{}, nil
+				})
 			},
 			wantErr: false,
 		},

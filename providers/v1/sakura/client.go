@@ -165,6 +165,8 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		}); err != nil {
 			return fmt.Errorf("failed to delete secret: %w", err)
 		}
+
+		return nil
 	}
 
 	if err := c.upsertSecret(
