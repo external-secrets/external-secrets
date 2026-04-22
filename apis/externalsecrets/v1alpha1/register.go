@@ -63,6 +63,7 @@ var (
 
 func init() {
 	SchemeBuilder.Register(&ClusterProviderClass{}, &ClusterProviderClassList{})
+	SchemeBuilder.Register(&ProviderClass{}, &ProviderClassList{})
 	SchemeBuilder.Register(&PushSecret{}, &PushSecretList{})
 	SchemeBuilder.Register(&ClusterPushSecret{}, &ClusterPushSecretList{})
 }
