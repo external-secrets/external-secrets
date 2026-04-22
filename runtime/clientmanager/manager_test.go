@@ -39,7 +39,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -540,6 +542,43 @@ func TestManagerGetRoutesProviderStoreKinds(t *testing.T) {
 	_, err = manager.Get(context.Background(), esv1.SecretStoreRef{Name: "missing", Kind: "ClusterProviderStore"}, "team-a", nil)
 	if err == nil || !strings.Contains(err.Error(), "failed to get ClusterProviderStore") {
 		t.Fatalf("expected ClusterProviderStore lookup error, got %v", err)
+	}
+}
+
+func TestManagerGetClusterProviderStoreDeniedErrorMessage(t *testing.T) {
+	scheme := newManagerTestScheme(t)
+
+	store := &unstructured.Unstructured{}
+	store.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   esv1.Group,
+		Version: "v2alpha1",
+		Kind:    "ClusterProviderStore",
+	})
+	store.SetName("aws-prod")
+
+	store.Object["spec"] = map[string]interface{}{
+		"runtimeRef": map[string]interface{}{
+			"name": "runtime",
+		},
+		"backendRef": map[string]interface{}{
+			"apiVersion": "example/v1",
+			"kind":       "Backend",
+			"name":       "backend",
+		},
+		"conditions": []interface{}{
+			map[string]interface{}{
+				"namespaces": []interface{}{"other"},
+			},
+		},
+	}
+
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "team-a"}}
+	client := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(store, namespace).Build()
+	manager := NewManager(client, "", false)
+
+	_, err := manager.Get(context.Background(), esv1.SecretStoreRef{Name: "aws-prod", Kind: "ClusterProviderStore"}, "team-a", nil)
+	if err == nil || !strings.Contains(err.Error(), "using ClusterProviderStore \"aws-prod\" is not allowed from namespace \"team-a\": denied by spec.conditions") {
+		t.Fatalf("expected ClusterProviderStore denied message, got %v", err)
 	}
 }
 

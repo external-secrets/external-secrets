@@ -48,7 +48,7 @@ const (
 	errGetSecretStore             = "could not get SecretStore %q, %w"
 	errSecretStoreNotReady        = "%s %q is not ready"
 	errClusterStoreMismatch       = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
-	errClusterProviderStoreDenied = "using cluster provider store %q is not allowed from namespace %q: denied by spec.condition"
+	errClusterProviderStoreDenied = "using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions"
 
 	providerMetricsLabel                   = "provider"
 	clusterProviderMetricsLabel            = "cluster-provider"
