@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"regexp"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -166,8 +168,19 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if BeyondtrustSecretsStoreSpec.Server.APIURL == "" {
 		return nil, ErrNoAPIURL
 	}
+
+	// Validate APIURL format
+	if err := validateAPIURL(BeyondtrustSecretsStoreSpec.Server.APIURL); err != nil {
+		return nil, fmt.Errorf("invalid apiUrl: %w", err)
+	}
+
 	if BeyondtrustSecretsStoreSpec.Server.SiteID == "" {
 		return nil, ErrNoSiteID
+	}
+
+	// Validate SiteID format (should be UUID)
+	if err := validateSiteID(BeyondtrustSecretsStoreSpec.Server.SiteID); err != nil {
+		return nil, fmt.Errorf("invalid siteId: %w", err)
 	}
 
 	return nil, nil
@@ -209,8 +222,18 @@ func loadURLFromSpec(spec *esv1.BeyondtrustSecretsProvider) (string, string, err
 		return "", "", ErrNoAPIURL
 	}
 
+	// Validate APIURL format
+	if err := validateAPIURL(spec.Server.APIURL); err != nil {
+		return "", "", fmt.Errorf("invalid apiUrl: %w", err)
+	}
+
 	if spec.Server.SiteID == "" {
 		return "", "", ErrNoSiteID
+	}
+
+	// Validate SiteID format
+	if err := validateSiteID(spec.Server.SiteID); err != nil {
+		return "", "", fmt.Errorf("invalid siteId: %w", err)
 	}
 
 	return spec.Server.APIURL, spec.Server.SiteID, nil
@@ -253,4 +276,51 @@ func ProviderSpec() *esv1.SecretStoreProvider {
 // MaintenanceStatus returns the maintenance status of the provider.
 func MaintenanceStatus() esv1.MaintenanceStatus {
 	return esv1.MaintenanceStatusMaintained
+}
+
+// validateAPIURL validates the BeyondTrust API URL format.
+func validateAPIURL(apiURL string) error {
+	if apiURL == "" {
+		return fmt.Errorf("apiUrl cannot be empty")
+	}
+
+	parsedURL, err := url.Parse(apiURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse apiUrl: %w", err)
+	}
+
+	if parsedURL.Scheme == "" {
+		return fmt.Errorf("apiUrl must include a scheme (https)")
+	}
+
+	if parsedURL.Scheme != "https" {
+		return fmt.Errorf("apiUrl must use https scheme, got %q", parsedURL.Scheme)
+	}
+
+	if parsedURL.Host == "" {
+		return fmt.Errorf("apiUrl must include a host")
+	}
+
+	return nil
+}
+
+// validateSiteID validates the BeyondTrust site ID format (must be a valid UUID).
+func validateSiteID(siteID string) error {
+	if siteID == "" {
+		return fmt.Errorf("siteId cannot be empty")
+	}
+
+	// UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+	// More lenient: accepts any UUID format
+	uuidPattern := `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`
+	matched, err := regexp.MatchString(uuidPattern, siteID)
+	if err != nil {
+		return fmt.Errorf("failed to validate siteId format: %w", err)
+	}
+
+	if !matched {
+		return fmt.Errorf("siteId must be a valid UUID format, got %q", siteID)
+	}
+
+	return nil
 }
