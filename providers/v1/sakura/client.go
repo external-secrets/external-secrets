@@ -49,7 +49,7 @@ func NewClient(api secretmanager.SecretAPI) *Client {
 // ----------------- Utilities -----------------
 
 // unveilSecret retrieves the secret value.
-func (c *Client) unveilSecret(ctx context.Context, name, version string) ([]byte, error) {
+func (c *Client) unveilSecret(ctx context.Context, key, version, property string) ([]byte, error) {
 	versionOpt := v1.OptNilInt{}
 	if version != "" {
 		versionInt, err := strconv.Atoi(version)
@@ -61,52 +61,26 @@ func (c *Client) unveilSecret(ctx context.Context, name, version string) ([]byte
 	}
 
 	res, err := c.api.Unveil(ctx, v1.Unveil{
-		Name:    name,
+		Name:    key,
 		Version: versionOpt,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to unveil secret: %w", err)
 	}
 
-	return []byte(res.GetValue()), nil
-}
-
-// secretExists checks if a secret with the given name exists.
-func (c *Client) secretExists(ctx context.Context, name string) (bool, error) {
-	secrets, err := c.api.List(ctx)
-	if err != nil {
-		return false, fmt.Errorf("failed to list secrets: %w", err)
-	}
-
-	for _, secret := range secrets {
-		if secret.Name == name {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-// ----------------- Interface implementation -----------------
-
-// GetSecret returns a single secret from the provider.
-func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, err := c.unveilSecret(ctx, ref.Key, ref.Version)
-	if err != nil {
-		return nil, err
-	}
-	if ref.Property == "" {
+	data := []byte(res.GetValue())
+	if property == "" {
 		return data, nil
 	}
 
 	kv := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(data, &kv); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal secret %s as JSON: %w", ref.Key, err)
+		return nil, fmt.Errorf("failed to unmarshal secret as JSON: %w", err)
 	}
 
-	value, ok := kv[ref.Property]
+	value, ok := kv[property]
 	if !ok {
-		return nil, fmt.Errorf("property %q not found in secret %s", ref.Property, ref.Key)
+		return nil, fmt.Errorf("property not found in secret")
 	}
 
 	var strVal string
@@ -117,17 +91,34 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return value, nil
 }
 
-// PushSecret will write a single secret into the provider.
-func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	value, err := esutils.ExtractSecretData(data, secret)
-	if err != nil {
-		return fmt.Errorf("failed to extract secret data: %w", err)
+// upsertSecret creates or updates a secret with the given name and value.
+//
+//	If property is specified, it tries to merge the new value with the existing secret as JSON using the provided mergeFunc.
+func (c *Client) upsertSecret(
+	ctx context.Context, key, property string, value []byte,
+	mergeFunc func(property string, value []byte, kv map[string]json.RawMessage),
+) error {
+	// If property is specified, try to get existing secret value and merge with new value
+	if property != "" {
+		existingData, err := c.unveilSecret(ctx, key, "", "")
+		if err != nil {
+			return fmt.Errorf("failed to get existing secret: %w", err)
+		}
+
+		kv := make(map[string]json.RawMessage)
+		if err := json.Unmarshal(existingData, &kv); err != nil {
+			return fmt.Errorf("failed to unmarshal existing secret as JSON: %w", err)
+		}
+
+		mergeFunc(property, value, kv)
+		// suppress error since we always expect that we can marshal kv as JSON
+		value, _ = json.Marshal(kv)
 	}
 
 	// Since Create and Update methods are not distinguished in SecretAPI, simply call Create here
 	// 	ref: https://github.com/sacloud/secretmanager-api-go/blob/main/secrets.go#L65-L68
-	if _, err = c.api.Create(ctx, v1.CreateSecret{
-		Name:  data.GetRemoteKey(),
+	if _, err := c.api.Create(ctx, v1.CreateSecret{
+		Name:  key,
 		Value: string(value),
 	}); err != nil {
 		return fmt.Errorf("failed to create/update secret: %w", err)
@@ -136,12 +127,52 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	return nil
 }
 
+// ----------------- Interface implementation -----------------
+
+// GetSecret returns a single secret from the provider.
+func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	data, err := c.unveilSecret(ctx, ref.Key, ref.Version, ref.Property)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// PushSecret will write a single secret into the provider.
+func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	value, err := esutils.ExtractSecretData(data, secret)
+	if err != nil {
+		return fmt.Errorf("failed to extract secret data: %w", err)
+	}
+
+	if err = c.upsertSecret(
+		ctx, data.GetRemoteKey(), data.GetProperty(), value,
+		func(property string, value []byte, kv map[string]json.RawMessage) {
+			kv[property] = json.RawMessage(value)
+		}); err != nil {
+		return fmt.Errorf("failed to upsert secret with property: %w", err)
+	}
+
+	return nil
+}
+
 // DeleteSecret will delete the secret from a provider.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
-	if err := c.api.Delete(ctx, v1.DeleteSecret{
-		Name: remoteRef.GetRemoteKey(),
-	}); err != nil {
-		return fmt.Errorf("failed to delete secret: %w", err)
+	if remoteRef.GetProperty() == "" {
+		if err := c.api.Delete(ctx, v1.DeleteSecret{
+			Name: remoteRef.GetRemoteKey(),
+		}); err != nil {
+			return fmt.Errorf("failed to delete secret: %w", err)
+		}
+	}
+
+	if err := c.upsertSecret(
+		ctx, remoteRef.GetRemoteKey(), remoteRef.GetProperty(), nil,
+		func(property string, _ []byte, kv map[string]json.RawMessage) {
+			delete(kv, property)
+		}); err != nil {
+		return fmt.Errorf("failed to upsert secret with property: %w", err)
 	}
 
 	return nil
@@ -149,7 +180,44 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 // SecretExists checks if a secret is already present in the provider at the given location.
 func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
-	return c.secretExists(ctx, remoteRef.GetRemoteKey())
+	remoteKey := remoteRef.GetRemoteKey()
+	property := remoteRef.GetProperty()
+
+	secrets, err := c.api.List(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to list secrets: %w", err)
+	}
+
+	exists := false
+	for _, secret := range secrets {
+		if secret.Name == remoteKey {
+			exists = true
+		}
+	}
+
+	if !exists {
+		return false, nil
+	}
+	if property == "" {
+		return true, nil
+	}
+
+	data, err := c.unveilSecret(ctx, remoteKey, "", "")
+	if err != nil {
+		return false, err
+	}
+
+	kv := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &kv); err != nil {
+		return false, fmt.Errorf("failed to unmarshal secret as JSON: %w", err)
+	}
+
+	_, ok := kv[property]
+	if !ok {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // Validate checks if the client is configured correctly and is able to retrieve secrets from the provider.
@@ -163,7 +231,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := c.unveilSecret(ctx, ref.Key, ref.Version)
+	data, err := c.unveilSecret(ctx, ref.Key, ref.Version, ref.Property)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get secret: %w", err)
 	}
@@ -172,17 +240,6 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	kv := make(map[string]json.RawMessage)
 	if err = json.Unmarshal(data, &kv); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal secret %s as JSON: %w", ref.Key, err)
-	}
-	if ref.Property != "" {
-		value, ok := kv[ref.Property]
-		if !ok {
-			return nil, fmt.Errorf("property %q not found in secret %s", ref.Property, ref.Key)
-		}
-
-		kv = make(map[string]json.RawMessage)
-		if err = json.Unmarshal(value, &kv); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal property %q in secret %s as JSON: %w", ref.Property, ref.Key, err)
-		}
 	}
 
 	secretData := make(map[string][]byte)
@@ -235,7 +292,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 			continue
 		}
 
-		res, err := c.unveilSecret(ctx, s.Name, "")
+		res, err := c.unveilSecret(ctx, s.Name, "", "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to unveil secret %s: %w", s.Name, err)
 		}
