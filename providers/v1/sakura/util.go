@@ -40,7 +40,13 @@ func getSakuraProvider(store esv1.GenericStore) (*esv1.SakuraProvider, error) {
 
 	prov := spc.Provider.Sakura
 	if prov == nil {
-		return nil, fmt.Errorf("invalid provider spec: missing Sakura field in store %s", store.GetObjectMeta().String())
+		meta := store.GetObjectMeta()
+		storeRef := meta.Name
+		if meta.Namespace != "" {
+			storeRef = fmt.Sprintf("%s/%s", meta.Namespace, meta.Name)
+		}
+
+		return nil, fmt.Errorf("invalid provider spec: missing Sakura field in store %s", storeRef)
 	}
 
 	return prov, nil
