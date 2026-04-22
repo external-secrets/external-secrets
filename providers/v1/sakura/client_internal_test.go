@@ -18,6 +18,7 @@ package sakura
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -34,14 +35,16 @@ func TestUnveilSecret(t *testing.T) {
 		name       string
 		secretName string
 		version    string
+		property   string
 		mockSetup  func(*fake.MockSecretAPIClient)
 		wantData   []byte
 		wantErr    bool
 	}{
 		{
-			name:       "without version",
+			name:       "without version or property",
 			secretName: "test-secret",
 			version:    "",
+			property:   "",
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
 				response := &v1.Unveil{}
 				response.SetValue("secret-value")
@@ -53,9 +56,10 @@ func TestUnveilSecret(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:       "with version",
+			name:       "with version, without property",
 			secretName: "test-secret",
 			version:    "2",
+			property:   "",
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
 				response := &v1.Unveil{}
 				response.SetValue("secret-value-v2")
@@ -67,17 +71,79 @@ func TestUnveilSecret(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name:       "without version, with property",
+			secretName: "test-secret",
+			version:    "",
+			property:   "password",
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				response := &v1.Unveil{}
+				response.SetValue(`{"username":"user1","password":"pass1"}`)
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					return response, nil
+				})
+			},
+			wantData: []byte("pass1"),
+			wantErr:  false,
+		},
+		{
+			name:       "with version and property",
+			secretName: "test-secret",
+			version:    "3",
+			property:   "password",
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				response := &v1.Unveil{}
+				response.SetValue(`{"username":"user1","password":"pass1"}`)
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					return response, nil
+				})
+			},
+			wantData: []byte("pass1"),
+			wantErr:  false,
+		},
+		{
 			name:       "invalid version format",
 			secretName: "test-secret",
 			version:    "invalid",
+			property:   "",
 			mockSetup:  func(mc *fake.MockSecretAPIClient) {},
 			wantData:   nil,
 			wantErr:    true,
 		},
 		{
+			name:       "unable to parse secret as JSON",
+			secretName: "test-secret",
+			version:    "",
+			property:   "password",
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				response := &v1.Unveil{}
+				response.SetValue("not-a-json")
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					return response, nil
+				})
+			},
+			wantData: nil,
+			wantErr:  true,
+		},
+		{
+			name:       "property not found",
+			secretName: "test-secret",
+			version:    "",
+			property:   "nonexistent",
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				response := &v1.Unveil{}
+				response.SetValue(`{"username":"user1","password":"pass1"}`)
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					return response, nil
+				})
+			},
+			wantData: nil,
+			wantErr:  true,
+		},
+		{
 			name:       "unveil API error",
 			secretName: "test-secret",
 			version:    "",
+			property:   "",
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
 					return nil, errors.New("API error")
@@ -96,7 +162,7 @@ func TestUnveilSecret(t *testing.T) {
 			tt.mockSetup(mockClient)
 			client := NewClient(mockClient)
 
-			data, err := client.unveilSecret(context.Background(), tt.secretName, tt.version)
+			data, err := client.unveilSecret(context.Background(), tt.secretName, tt.version, tt.property)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -107,68 +173,125 @@ func TestUnveilSecret(t *testing.T) {
 	}
 }
 
-func TestSecretExists(t *testing.T) {
+func TestUpsertSecret(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name       string
 		secretName string
+		property   string
+		value      []byte
 		mockSetup  func(*fake.MockSecretAPIClient)
-		wantExists bool
+		mergeFunc  func(property string, value []byte, kv map[string]json.RawMessage)
 		wantErr    bool
 	}{
 		{
-			name:       "secret exists",
-			secretName: "existing-secret",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
-				secrets := []v1.Secret{
-					{Name: "other-secret"},
-					{Name: "existing-secret"},
-					{Name: "another-secret"},
-				}
-				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
-					return secrets, nil
-				})
-			},
-			wantExists: true,
-			wantErr:    false,
-		},
-		{
-			name:       "secret does not exist",
-			secretName: "non-existing-secret",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
-				secrets := []v1.Secret{
-					{Name: "other-secret"},
-					{Name: "another-secret"},
-				}
-				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
-					return secrets, nil
-				})
-			},
-			wantExists: false,
-			wantErr:    false,
-		},
-		{
-			name:       "empty list",
-			secretName: "any-secret",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
-				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
-					return []v1.Secret{}, nil
-				})
-			},
-			wantExists: false,
-			wantErr:    false,
-		},
-		{
-			name:       "list API error",
+			name:       "create secret without property",
 			secretName: "test-secret",
+			property:   "",
+			value:      []byte("plain-value"),
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
-				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					assert.Equal(t, "test-secret", params.Name)
+					assert.Equal(t, "plain-value", params.Value)
+					return &v1.Secret{Name: "test-secret"}, nil
+				})
+			},
+			mergeFunc: func(property string, value []byte, kv map[string]json.RawMessage) {
+			},
+			wantErr: false,
+		},
+		{
+			name:       "merge property into existing secret",
+			secretName: "test-secret",
+			property:   "password",
+			value:      []byte(`"pass1"`),
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					response := &v1.Unveil{}
+					response.SetValue(`{"username":"user1"}`)
+					return response, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					assert.Equal(t, "test-secret", params.Name)
+					assert.JSONEq(t, `{"username":"user1","password":"pass1"}`, params.Value)
+					return &v1.Secret{Name: "test-secret"}, nil
+				})
+			},
+			mergeFunc: func(property string, value []byte, kv map[string]json.RawMessage) {
+				kv[property] = json.RawMessage(value)
+			},
+			wantErr: false,
+		},
+		{
+			name:       "delete property from existing secret",
+			secretName: "test-secret",
+			property:   "password",
+			value:      nil,
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					response := &v1.Unveil{}
+					response.SetValue(`{"username":"user1","password":"pass1"}`)
+					return response, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					assert.Equal(t, "test-secret", params.Name)
+					assert.JSONEq(t, `{"username":"user1"}`, params.Value)
+					return &v1.Secret{Name: "test-secret"}, nil
+				})
+			},
+			mergeFunc: func(property string, value []byte, kv map[string]json.RawMessage) {
+				delete(kv, property)
+			},
+			wantErr: false,
+		},
+		{
+			name:       "invalid existing secret JSON",
+			secretName: "test-secret",
+			property:   "password",
+			value:      []byte("pass1"),
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
+					response := &v1.Unveil{}
+					response.SetValue("not-a-json")
+					return response, nil
+				})
+			},
+			mergeFunc: func(property string, value []byte, kv map[string]json.RawMessage) {
+				kv[property] = json.RawMessage(value)
+			},
+			wantErr: true,
+		},
+		{
+			name:       "unveil API error during merge",
+			secretName: "test-secret",
+			property:   "password",
+			value:      []byte(`"pass1"`),
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithUnveilFunc(func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
 					return nil, errors.New("API error")
 				})
 			},
-			wantExists: false,
-			wantErr:    true,
+			mergeFunc: func(property string, value []byte, kv map[string]json.RawMessage) {
+				kv[property] = json.RawMessage(value)
+			},
+			wantErr: true,
+		},
+		{
+			name:       "create API error",
+			secretName: "test-secret",
+			property:   "",
+			value:      []byte("plain-value"),
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					assert.Equal(t, "test-secret", params.Name)
+					assert.Equal(t, "plain-value", params.Value)
+					return nil, errors.New("API error")
+				})
+			},
+			mergeFunc: func(property string, value []byte, kv map[string]json.RawMessage) {
+			},
+			wantErr: true,
 		},
 	}
 
@@ -180,13 +303,12 @@ func TestSecretExists(t *testing.T) {
 			tt.mockSetup(mockClient)
 			client := NewClient(mockClient)
 
-			exists, err := client.secretExists(context.Background(), tt.secretName)
+			err := client.upsertSecret(context.Background(), tt.secretName, tt.property, tt.value, tt.mergeFunc)
 			if tt.wantErr {
 				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.wantExists, exists)
+				return
 			}
+			assert.NoError(t, err)
 		})
 	}
 }
