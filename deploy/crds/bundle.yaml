@@ -1249,16 +1249,16 @@ spec:
                     secretStoreRef:
                       description: SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
                       properties:
-                                  kind:
-                                    description: |-
-                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
-                                      Defaults to `SecretStore`
-                                    enum:
-                                      - SecretStore
-                                      - ClusterSecretStore
-                                      - ProviderStore
-                                      - ClusterProviderStore
-                                    type: string
+                        kind:
+                          description: |-
+                            Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                            Defaults to `SecretStore`
+                          enum:
+                            - SecretStore
+                            - ClusterSecretStore
+                            - ProviderStore
+                            - ClusterProviderStore
+                          type: string
                         name:
                           description: Name of the SecretStore resource
                           maxLength: 253
@@ -13068,16 +13068,16 @@ spec:
                           storeRef:
                             description: SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
                             properties:
-                                  kind:
-                                    description: |-
-                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
-                                      Defaults to `SecretStore`
-                                    enum:
-                                      - SecretStore
-                                      - ClusterSecretStore
-                                      - ProviderStore
-                                      - ClusterProviderStore
-                                    type: string
+                              kind:
+                                description: |-
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                  Defaults to `SecretStore`
+                                enum:
+                                  - SecretStore
+                                  - ClusterSecretStore
+                                  - ProviderStore
+                                  - ClusterProviderStore
+                                type: string
                               name:
                                 description: Name of the SecretStore resource
                                 maxLength: 253
