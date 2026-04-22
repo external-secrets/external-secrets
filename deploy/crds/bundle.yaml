@@ -6609,7 +6609,11 @@ spec:
                             - secretRef
                           type: object
                         vaultResourceID:
+                          default: "123456789012"
                           description: VaultResourceID is the resource ID of the target vault.
+                          maxLength: 12
+                          minLength: 12
+                          pattern: ^[0-9]+$
                           type: string
                       required:
                         - auth
@@ -18837,7 +18841,11 @@ spec:
                             - secretRef
                           type: object
                         vaultResourceID:
+                          default: "123456789012"
                           description: VaultResourceID is the resource ID of the target vault.
+                          maxLength: 12
+                          minLength: 12
+                          pattern: ^[0-9]+$
                           type: string
                       required:
                         - auth
