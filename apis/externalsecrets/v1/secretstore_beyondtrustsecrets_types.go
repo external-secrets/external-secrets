@@ -35,8 +35,6 @@ type BeyondtrustSecretAuth struct {
 type BeyondtrustSecretsServer struct {
 	// +required
 	APIURL string `json:"apiUrl"`
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty"`
 	// +required
 	SiteID string `json:"siteId"`
 }

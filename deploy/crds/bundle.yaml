@@ -3406,8 +3406,6 @@ spec:
                           properties:
                             apiUrl:
                               type: string
-                            apiVersion:
-                              type: string
                             siteId:
                               type: string
                           required:
@@ -15618,8 +15616,6 @@ spec:
                           properties:
                             apiUrl:
                               type: string
-                            apiVersion:
-                              type: string
                             siteId:
                               type: string
                           required:
@@ -25036,8 +25032,6 @@ spec:
                       properties:
                         apiUrl:
                           type: string
-                        apiVersion:
-                          type: string
                         siteId:
                           type: string
                       required:
@@ -25453,8 +25447,6 @@ spec:
                               description: Server configures the BeyondtrustSecret server connection details
                               properties:
                                 apiUrl:
-                                  type: string
-                                apiVersion:
                                   type: string
                                 siteId:
                                   type: string
