@@ -1,11 +1,11 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    https://www.apache.org/licenses/LICENSE-2.0
+	https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -49,7 +49,7 @@ func NewClient(api secretmanager.SecretAPI) *Client {
 // ----------------- Utilities -----------------
 
 // unveilSecret retrieves the secret value.
-func (c *Client) unveilSecret(ctx context.Context, name string, version string) ([]byte, error) {
+func (c *Client) unveilSecret(ctx context.Context, name, version string) ([]byte, error) {
 	versionOpt := v1.OptNilInt{}
 	if version != "" {
 		versionInt, err := strconv.Atoi(version)
@@ -89,10 +89,12 @@ func (c *Client) secretExists(ctx context.Context, name string) (bool, error) {
 
 // ----------------- Interface implementation -----------------
 
+// GetSecret returns a single secret from the provider.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return c.unveilSecret(ctx, ref.Key, ref.Version)
 }
 
+// PushSecret will write a single secret into the provider.
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	value, err := esutils.ExtractSecretData(data, secret)
 	if err != nil {
@@ -111,6 +113,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	return nil
 }
 
+// DeleteSecret will delete the secret from a provider.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	if err := c.api.Delete(ctx, v1.DeleteSecret{
 		Name: remoteRef.GetRemoteKey(),
@@ -121,10 +124,12 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return nil
 }
 
+// SecretExists checks if a secret is already present in the provider at the given location.
 func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
 	return c.secretExists(ctx, remoteRef.GetRemoteKey())
 }
 
+// Validate checks if the client is configured correctly and is able to retrieve secrets from the provider.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	if _, err := c.api.List(context.Background()); err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("failed to validate client: %w", err)
@@ -133,6 +138,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+// GetSecretMap returns multiple k/v pairs from the provider.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.unveilSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
@@ -160,7 +166,9 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return secretData, nil
 }
 
-// Only Name filter is supported
+// GetAllSecrets returns multiple k/v pairs from the provider
+//
+//	Only Name filter is supported
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	secrets, err := c.api.List(ctx)
 	if err != nil {
@@ -196,6 +204,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	return secretMap, nil
 }
 
-func (c *Client) Close(ctx context.Context) error {
+// Close closes the client.
+func (c *Client) Close(_ context.Context) error {
 	return nil
 }

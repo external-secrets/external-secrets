@@ -1,11 +1,11 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    https://www.apache.org/licenses/LICENSE-2.0
+	https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package sakura implements the esv1.SecretsClient interface for Sakura Cloud Secret Manager.
 package sakura
 
 import (
@@ -30,6 +31,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
+// Provider implements a secret store provider for Sakura Cloud Secret Manager.
 type Provider struct{}
 
 // Check if the Provider satisfies the esv1.Provider interface.
@@ -57,11 +59,15 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve auth.secretRef.accessTokenSecret: %w", err)
 	}
+
 	var theClient saclient.Client
-	theClient.SetEnviron([]string{
+	err = theClient.SetEnviron([]string{
 		fmt.Sprintf("SAKURA_ACCESS_TOKEN=%s", accessToken),
 		fmt.Sprintf("SAKURA_ACCESS_TOKEN_SECRET=%s", accessTokenSecret),
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to set Sakura Cloud client environment: %w", err)
+	}
 
 	client, err := secretmanager.NewClient(&theClient)
 	if err != nil {

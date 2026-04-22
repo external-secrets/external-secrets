@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -57,7 +56,7 @@ func TestValidateStore(t *testing.T) {
 										AccessToken: esmeta.SecretKeySelector{
 											Name:      "secret-name",
 											Key:       "access-token",
-											Namespace: ptr.To("different-namespace"),
+											Namespace: new("different-namespace"),
 										},
 										AccessTokenSecret: esmeta.SecretKeySelector{
 											Name: "secret-name",
@@ -92,7 +91,7 @@ func TestValidateStore(t *testing.T) {
 										AccessTokenSecret: esmeta.SecretKeySelector{
 											Name:      "secret-name",
 											Key:       "access-token-secret",
-											Namespace: ptr.To("different-namespace"),
+											Namespace: new("different-namespace"),
 										},
 									},
 								},
@@ -149,12 +148,12 @@ func TestValidateStore(t *testing.T) {
 										AccessToken: esmeta.SecretKeySelector{
 											Name:      "secret-name",
 											Key:       "access-token",
-											Namespace: ptr.To("default"),
+											Namespace: new("default"),
 										},
 										AccessTokenSecret: esmeta.SecretKeySelector{
 											Name:      "secret-name",
 											Key:       "access-token-secret",
-											Namespace: ptr.To("default"),
+											Namespace: new("default"),
 										},
 									},
 								},
@@ -211,12 +210,12 @@ func TestValidateStore(t *testing.T) {
 										AccessToken: esmeta.SecretKeySelector{
 											Name:      "secret-name",
 											Key:       "access-token",
-											Namespace: ptr.To("some-namespace"),
+											Namespace: new("some-namespace"),
 										},
 										AccessTokenSecret: esmeta.SecretKeySelector{
 											Name:      "secret-name",
 											Key:       "access-token-secret",
-											Namespace: ptr.To("some-namespace"),
+											Namespace: new("some-namespace"),
 										},
 									},
 								},
