@@ -306,6 +306,11 @@ type ExternalSecretDataRemoteRef struct {
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 
 	// +optional
+	// Used to define a version Strategy
+	// +kubebuilder:default="None"
+	VersionStrategy ExternalSecretVersionStrategy `json:"versionStrategy,omitempty"`
+
+	// +optional
 	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
 	// +kubebuilder:default="Ignore"
 	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
@@ -346,6 +351,16 @@ const (
 	ExternalSecretDecodeBase64URL ExternalSecretDecodingStrategy = "Base64URL"
 	// ExternalSecretDecodeNone specifies that no decoding should be performed.
 	ExternalSecretDecodeNone ExternalSecretDecodingStrategy = "None"
+)
+
+type ExternalSecretVersionStrategy string
+
+const (
+	ExternalSecretVersionAuto ExternalSecretVersionStrategy = "Auto"
+	// ExternalSecretVersionAvailable specifies that all available versions should be fetched.
+	// Many stores have a concept of soft or hard deleting secret versions.
+	// This strategy will fetch all secret versions that are neither soft nor hard deleted.
+	ExternalSecretVersionAvailable ExternalSecretVersionStrategy = "Available"
 )
 
 // ExternalSecretDataFromRemoteRef defines the connection between the Kubernetes Secret keys and the Provider data
@@ -484,6 +499,11 @@ type ExternalSecretFind struct {
 	// Find secrets based on tags.
 	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
+
+	// +optional
+	// Used to define a version Strategy
+	// +kubebuilder:default="Default"
+	VersionStrategy ExternalSecretVersionStrategy `json:"versionStrategy,omitempty"`
 
 	// +optional
 	// Used to define a conversion Strategy

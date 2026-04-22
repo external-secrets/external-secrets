@@ -91,6 +91,7 @@ Individual features are described in the [Guides section](../guides/introduction
 * [Secret Ownership and Deletion](../guides/ownership-deletion-policy.md)
 * [Key Rewriting](../guides/datafrom-rewrite.md)
 * [Decoding Strategy](../guides/decoding-strategy.md)
+* [Version Strategy](../guides/version-strategy.md)
 
 ## Example
 
