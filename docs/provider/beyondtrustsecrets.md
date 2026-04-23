@@ -1,8 +1,10 @@
 ## BeyondTrust Secrets Manager
 
-External Secrets Operator integrates with BeyondTrust Secrets Manager for secret management.
+External Secrets Operator integrates with [BeyondTrust Secrets Manager](https://docs.beyondtrust.com/bt-docs/docs/secrets-api) for secret management.
 
 The provider supports static key-value secrets stored in folders. For dynamic secret generation (e.g., temporary AWS credentials), refer to the [BeyondTrust Secrets Manager Generator](../api/generator/beyondtrustsecrets.md).
+
+For complete BeyondTrust Secrets Manager API documentation, see: [https://docs.beyondtrust.com/bt-docs/docs/secrets-api](https://docs.beyondtrust.com/bt-docs/docs/secrets-api)
 
 ### Example
 

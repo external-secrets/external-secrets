@@ -5,6 +5,8 @@ Dynamic secret definitions must be created in BeyondTrust Secrets Manager before
 referenced by the generator. The generator calls the generation endpoint to produce fresh credentials
 each time it is invoked.
 
+For complete BeyondTrust Secrets Manager API documentation, see: [https://docs.beyondtrust.com/bt-docs/docs/secrets-api](https://docs.beyondtrust.com/bt-docs/docs/secrets-api)
+
 Any authentication method supported by the BeyondTrust Secrets Manager provider can be used here
 (`provider` block of the spec).
 

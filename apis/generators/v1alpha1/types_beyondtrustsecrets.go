@@ -23,20 +23,33 @@ import (
 )
 
 // BeyondtrustSecretsDynamicSecretSpec defines the desired spec for BeyondtrustSecrets dynamic generator.
+// This generator enables obtaining temporary, short-lived credentials from BeyondTrust Secrets Manager.
+// For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 type BeyondtrustSecretsDynamicSecretSpec struct {
-	// Controller selects the controller that should handle this generator
+	// Controller selects the controller that should handle this generator.
+	// Leave empty to use the default controller.
 	// +optional
 	Controller string `json:"controller,omitempty"`
 
-	// Provider contains the BeyondtrustSecrets provider configuration (apiUrl, siteId, auth)
+	// Provider contains the BeyondtrustSecrets provider configuration including authentication,
+	// server connection details, and the folder path to the dynamic secret definition.
+	// The folderPath should point to a dynamic secret definition that has been created in
+	// BeyondTrust Secrets Manager (e.g., "production/aws-temp").
+	// For setup details, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+	// +required
 	Provider *esv1.BeyondtrustSecretsProvider `json:"provider"`
 
-	// Used to configure http retries if failed
+	// RetrySettings configures exponential backoff for failed API requests.
+	// If not specified, uses the default retry settings.
 	// +optional
 	RetrySettings *esv1.SecretStoreRetrySettings `json:"retrySettings,omitempty"`
 }
 
-// BeyondtrustSecretsDynamicSecret represents a generator that requests dynamic credentials from BeyondtrustSecrets
+// BeyondtrustSecretsDynamicSecret represents a generator that requests dynamic credentials from BeyondTrust Secrets Manager.
+// This generator calls the BeyondTrust Secrets Manager API to generate fresh, temporary credentials
+// (such as AWS STS credentials) each time an ExternalSecret is refreshed.
+// Dynamic secret definitions must be created in BeyondTrust Secrets Manager before they can be referenced.
+// For complete documentation, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
