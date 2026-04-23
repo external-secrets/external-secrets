@@ -24,13 +24,13 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 
 	. "github.com/onsi/gomega"
 )
@@ -143,6 +143,6 @@ func scaleDeployment(f *framework.Framework, namespace, name string, replicas in
 	})).To(Succeed())
 }
 
-func WaitForClusterProviderNotReady(f *framework.Framework, name string, timeout time.Duration) *esv2alpha1.ClusterProviderStore {
+func WaitForClusterProviderNotReady(f *framework.Framework, name string, timeout time.Duration) *unstructured.Unstructured {
 	return WaitForClusterProviderCondition(f, name, metav1.ConditionFalse, timeout)
 }

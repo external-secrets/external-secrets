@@ -247,7 +247,7 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 			Kind:         "Fake",
 			Name:         "backend",
 			Namespace:    "provider-config-ns",
-			StoreRefKind: esv1.ProviderStoreKindStr,
+			StoreRefKind: esv1.SecretStoreKind,
 		},
 		SourceNamespace: serverTestSourceNamespace,
 		RemoteRef: &pb.ExternalSecretDataRemoteRef{
@@ -300,7 +300,7 @@ func TestServerGetSecretMapsRemoteRefAndSyntheticStoreNamespace(t *testing.T) {
 	}
 }
 
-func TestServerPushSecretMapsClusterProviderStoreKindToClusterSecretStore(t *testing.T) {
+func TestServerPushSecretUsesClusterSecretStoreKind(t *testing.T) {
 	mapper := &specMapperRecorder{
 		spec: &esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
@@ -327,7 +327,7 @@ func TestServerPushSecretMapsClusterProviderStoreKindToClusterSecretStore(t *tes
 			ApiVersion:   "provider.external-secrets.io/v2alpha1",
 			Kind:         "Fake",
 			Name:         "backend",
-			StoreRefKind: esv1.ClusterProviderStoreKindStr,
+			StoreRefKind: esv1.ClusterSecretStoreKind,
 		},
 		SourceNamespace: serverTestSourceNamespace,
 		SecretData: map[string][]byte{

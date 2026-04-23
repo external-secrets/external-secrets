@@ -31,7 +31,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-const clusterProviderClassCRDName = "clusterproviderclasses.external-secrets.io"
+var requiredRuntimeCRDNames = []string{
+	"clusterproviderclasses.external-secrets.io",
+	"providerclasses.external-secrets.io",
+}
 
 var (
 	externalSecretsCRDInstallPollInterval = time.Second
@@ -47,19 +50,27 @@ func installCRDs(cfg *Config) error {
 	}
 
 	return wait.PollUntilContextTimeout(GinkgoT().Context(), externalSecretsCRDInstallPollInterval, externalSecretsCRDInstallTimeout, true, func(ctx context.Context) (bool, error) {
-		var crd apiextensionsv1.CustomResourceDefinition
-		err := cfg.CRClient.Get(ctx, types.NamespacedName{Name: clusterProviderClassCRDName}, &crd)
-		if apierrors.IsNotFound(err) {
-			return false, nil
-		}
-		if err != nil {
-			return false, err
-		}
-		for _, condition := range crd.Status.Conditions {
-			if condition.Type == apiextensionsv1.Established && condition.Status == apiextensionsv1.ConditionTrue {
-				return true, nil
+		for _, crdName := range requiredRuntimeCRDNames {
+			var crd apiextensionsv1.CustomResourceDefinition
+			err := cfg.CRClient.Get(ctx, types.NamespacedName{Name: crdName}, &crd)
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			if err != nil {
+				return false, err
+			}
+
+			established := false
+			for _, condition := range crd.Status.Conditions {
+				if condition.Type == apiextensionsv1.Established && condition.Status == apiextensionsv1.ConditionTrue {
+					established = true
+					break
+				}
+			}
+			if !established {
+				return false, nil
 			}
 		}
-		return false, nil
+		return true, nil
 	})
 }

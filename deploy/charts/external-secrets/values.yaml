@@ -63,10 +63,6 @@ crds:
   createClusterSecretStore: true
   # -- If true, create CRDs for Cluster Provider Class.
   createClusterProviderClass: true
-  # -- If true, create CRDs for Provider Store.
-  createProviderStore: true
-  # -- If true, create CRDs for Cluster Provider Store.
-  createClusterProviderStore: true
   # -- If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false.
   createSecretStore: true
   # -- If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false.
@@ -145,7 +141,7 @@ processClusterGenerator: true
 processPushSecret: true
 
 # -- Experimental v2 out-of-process provider runtime support.
-# Enables ProviderStore / ClusterProviderStore and SecretStore runtimeRef compatibility flows.
+# Enables SecretStore runtimeRef compatibility flows.
 v2:
   enabled: true
 

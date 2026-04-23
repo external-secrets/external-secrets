@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -38,7 +37,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
@@ -53,34 +51,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestShouldSkipClusterStoreReturnsTrueForClusterProviderStoreWhenDisabled(t *testing.T) {
-	r := &Reconciler{ClusterSecretStoreEnabled: false}
-	es := &esv1.ExternalSecret{}
-	es.Spec.SecretStoreRef.Kind = esv1.ClusterProviderStoreKindStr
-
-	if !shouldSkipClusterSecretStore(r, es) {
-		t.Fatal("expected ClusterProviderStore to be skipped when cluster stores are disabled")
-	}
-}
-
-func TestShouldSkipUnmanagedStoreAllowsProviderStore(t *testing.T) {
-	r := &Reconciler{
-		Client:          fakeclient.NewClientBuilder().Build(),
-		ControllerClass: "default",
-	}
-	es := &esv1.ExternalSecret{}
-	es.Namespace = "tenant-a"
-	es.Spec.SecretStoreRef = esv1.SecretStoreRef{Name: "aws-prod", Kind: esv1.ProviderStoreKindStr}
-
-	skip, err := shouldSkipUnmanagedStore(context.Background(), es.Namespace, r, es)
-	if err != nil {
-		t.Fatalf("shouldSkipUnmanagedStore() error = %v", err)
-	}
-	if skip {
-		t.Fatal("expected ProviderStore refs to be allowed")
-	}
-}
 
 const (
 	labelKey           = "label-key"

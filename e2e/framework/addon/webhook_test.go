@@ -20,9 +20,23 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestWebhookServiceNameUsesReleaseName(t *testing.T) {
+	eso := NewESO()
+	serviceName := webhookServiceName(eso.ReleaseName)
+	if serviceName != "eso-webhook" {
+		t.Fatalf("expected classic ESO release to use eso-webhook, got %q", serviceName)
+	}
+
+	url := externalSecretWebhookURL(serviceName, eso.Namespace)
+	if !strings.Contains(url, "https://eso-webhook.default.") {
+		t.Fatalf("expected classic webhook readiness URL to target eso-webhook.default, got %q", url)
+	}
+}
 
 func TestWaitForExternalSecretWebhookReadyRetriesUntilOK(t *testing.T) {
 	t.Helper()
@@ -49,12 +63,12 @@ func TestWaitForExternalSecretWebhookReadyRetriesUntilOK(t *testing.T) {
 	}))
 	defer server.Close()
 
-	externalSecretWebhookURL = func(string) string { return server.URL }
+	externalSecretWebhookURL = func(string, string) string { return server.URL }
 	webhookReadyPollInterval = 10 * time.Millisecond
 	webhookReadyTimeout = time.Second
 	webhookReadyContext = context.Background
 
-	if err := waitForExternalSecretWebhookReady("external-secrets-system"); err != nil {
+	if err := waitForExternalSecretWebhookReady("external-secrets-webhook", "external-secrets-system"); err != nil {
 		t.Fatalf("waitForExternalSecretWebhookReady returned error: %v", err)
 	}
 	if attempts != 3 {
@@ -81,12 +95,12 @@ func TestWaitForExternalSecretWebhookReadyTimesOut(t *testing.T) {
 	}))
 	defer server.Close()
 
-	externalSecretWebhookURL = func(string) string { return server.URL }
+	externalSecretWebhookURL = func(string, string) string { return server.URL }
 	webhookReadyPollInterval = 10 * time.Millisecond
 	webhookReadyTimeout = 50 * time.Millisecond
 	webhookReadyContext = context.Background
 
-	if err := waitForExternalSecretWebhookReady("external-secrets-system"); err == nil {
+	if err := waitForExternalSecretWebhookReady("external-secrets-webhook", "external-secrets-system"); err == nil {
 		t.Fatal("expected waitForExternalSecretWebhookReady to time out")
 	}
 }

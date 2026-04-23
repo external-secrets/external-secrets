@@ -38,14 +38,12 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	awsv2 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
 	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
-	clusterprovidermetrics "github.com/external-secrets/external-secrets/pkg/controllers/clusterprovider"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterproviderclass"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
@@ -54,8 +52,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/generatorstate"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
-	providermetrics "github.com/external-secrets/external-secrets/pkg/controllers/provider"
-	"github.com/external-secrets/external-secrets/pkg/controllers/providerstore"
+	"github.com/external-secrets/external-secrets/pkg/controllers/providerclass"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
@@ -131,7 +128,6 @@ func init() {
 	// external-secrets schemes
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(esv2alpha1.AddToScheme(scheme))
 	utilruntime.Must(genv1alpha1.AddToScheme(scheme))
 
 	// v2 provider schemes
@@ -242,21 +238,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		if enableSecretStoreReconciler {
-			providermetrics.SetUpMetrics()
-			if err = (&providerstore.StoreReconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("ProviderStore"),
-				Scheme:          mgr.GetScheme(),
-				RequeueInterval: storeRequeueInterval,
-			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
-				setupLog.Error(err, errCreateController, "controller", "ProviderStore")
-				os.Exit(1)
-			}
-		}
-
 		if enableClusterStoreReconciler {
-			clusterprovidermetrics.SetUpMetrics()
 			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
 				Client:            mgr.GetClient(),
@@ -271,18 +253,6 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		if enableClusterStoreReconciler {
-			if err = (&providerstore.ClusterStoreReconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("ClusterProviderStore"),
-				Scheme:          mgr.GetScheme(),
-				RequeueInterval: storeRequeueInterval,
-			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
-				setupLog.Error(err, errCreateController, "controller", "ClusterProviderStore")
-				os.Exit(1)
-			}
-		}
-
 		if err = (&clusterproviderclass.Reconciler{
 			Client:          mgr.GetClient(),
 			Log:             ctrl.Log.WithName("controllers").WithName("ClusterProviderClass"),
@@ -293,6 +263,19 @@ var rootCmd = &cobra.Command{
 			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ClusterProviderClass")
+			os.Exit(1)
+		}
+
+		if err = (&providerclass.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("ProviderClass"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: storeRequeueInterval,
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "ProviderClass")
 			os.Exit(1)
 		}
 

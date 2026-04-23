@@ -25,6 +25,9 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -34,7 +37,6 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 
@@ -42,8 +44,14 @@ import (
 )
 
 const (
-	ProviderNamespace = "external-secrets-system"
-	DefaultSAName     = "default"
+	ProviderNamespace  = "external-secrets-system"
+	DefaultSAName      = "default"
+	providerStoreReady = "Ready"
+)
+
+var (
+	providerStoreGVK        = schema.GroupVersionKind{Group: "external-secrets.io", Version: "v2alpha1", Kind: "ProviderStore"}
+	clusterProviderStoreGVK = schema.GroupVersionKind{Group: "external-secrets.io", Version: "v2alpha1", Kind: "ClusterProviderStore"}
 )
 
 func ProviderAddress(providerName string) string {
@@ -163,39 +171,57 @@ func ensureClusterProviderClass(f *framework.Framework, name, address string) *e
 	return runtimeClass
 }
 
-func mapStoreConditions(conditions []esv1.ClusterSecretStoreCondition) []esv2alpha1.StoreNamespaceCondition {
-	if len(conditions) == 0 {
-		return nil
-	}
-	out := make([]esv2alpha1.StoreNamespaceCondition, 0, len(conditions))
-	for _, condition := range conditions {
-		out = append(out, esv2alpha1.StoreNamespaceCondition{
-			NamespaceSelector: condition.NamespaceSelector,
-			Namespaces:        condition.Namespaces,
-			NamespaceRegexes:  condition.NamespaceRegexes,
-		})
-	}
-	return out
-}
-
-func CreateProviderConnection(f *framework.Framework, namespace, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string) *esv2alpha1.ProviderStore {
-	runtimeClass := ensureClusterProviderClass(f, runtimeClassName(name), address)
-
-	providerStore := &esv2alpha1.ProviderStore{
+func ensureProviderClass(f *framework.Framework, namespace, name, address string) *esv1alpha1.ProviderClass {
+	runtimeClass := &esv1alpha1.ProviderClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: esv2alpha1.ProviderStoreSpec{
-			RuntimeRef: esv2alpha1.StoreRuntimeRef{
-				Name: runtimeClass.Name,
-			},
-			BackendRef: esv2alpha1.BackendObjectReference{
-				APIVersion: providerAPIVersion,
-				Kind:       providerKind,
-				Name:       providerName,
-				Namespace:  providerNamespace,
-			},
+		Spec: esv1alpha1.ProviderClassSpec{
+			Address: address,
+		},
+	}
+	Expect(createOrIgnoreAlreadyExists(f, runtimeClass)).To(Succeed())
+	log.Logf("created ProviderClass: %s/%s", namespace, name)
+	return runtimeClass
+}
+
+func mapStoreConditions(conditions []esv1.ClusterSecretStoreCondition) []any {
+	if len(conditions) == 0 {
+		return nil
+	}
+	out := make([]any, 0, len(conditions))
+	for _, condition := range conditions {
+		item := map[string]any{
+			"namespaces":       condition.Namespaces,
+			"namespaceRegexes": condition.NamespaceRegexes,
+		}
+		if condition.NamespaceSelector != nil {
+			selector, err := runtime.DefaultUnstructuredConverter.ToUnstructured(condition.NamespaceSelector)
+			Expect(err).NotTo(HaveOccurred())
+			item["namespaceSelector"] = selector
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func CreateProviderConnection(f *framework.Framework, namespace, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string) *unstructured.Unstructured {
+	runtimeClass := ensureClusterProviderClass(f, runtimeClassName(name), address)
+
+	providerStore := &unstructured.Unstructured{}
+	providerStore.SetGroupVersionKind(providerStoreGVK)
+	providerStore.SetName(name)
+	providerStore.SetNamespace(namespace)
+	providerStore.Object["spec"] = map[string]any{
+		"runtimeRef": map[string]any{
+			"name": runtimeClass.Name,
+		},
+		"backendRef": map[string]any{
+			"apiVersion": providerAPIVersion,
+			"kind":       providerKind,
+			"name":       providerName,
+			"namespace":  providerNamespace,
 		},
 	}
 	Expect(createOrIgnoreAlreadyExists(f, providerStore)).To(Succeed())
@@ -203,86 +229,152 @@ func CreateProviderConnection(f *framework.Framework, namespace, name, address, 
 	return providerStore
 }
 
-func CreateClusterProviderConnection(f *framework.Framework, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string, _ esv1.AuthenticationScope, conditions []esv1.ClusterSecretStoreCondition) *esv2alpha1.ClusterProviderStore {
+func CreateClusterProviderConnection(f *framework.Framework, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string, _ esv1.AuthenticationScope, conditions []esv1.ClusterSecretStoreCondition) *unstructured.Unstructured {
 	runtimeClass := ensureClusterProviderClass(f, runtimeClassName(name), address)
 
-	clusterProviderStore := &esv2alpha1.ClusterProviderStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+	clusterProviderStore := &unstructured.Unstructured{}
+	clusterProviderStore.SetGroupVersionKind(clusterProviderStoreGVK)
+	clusterProviderStore.SetName(name)
+	clusterProviderStore.Object["spec"] = map[string]any{
+		"runtimeRef": map[string]any{
+			"name": runtimeClass.Name,
 		},
-		Spec: esv2alpha1.ClusterProviderStoreSpec{
-			RuntimeRef: esv2alpha1.StoreRuntimeRef{
-				Name: runtimeClass.Name,
-			},
-			BackendRef: esv2alpha1.BackendObjectReference{
-				APIVersion: providerAPIVersion,
-				Kind:       providerKind,
-				Name:       providerName,
-				Namespace:  providerNamespace,
-			},
-			Conditions: mapStoreConditions(conditions),
+		"backendRef": map[string]any{
+			"apiVersion": providerAPIVersion,
+			"kind":       providerKind,
+			"name":       providerName,
+			"namespace":  providerNamespace,
 		},
+		"conditions": mapStoreConditions(conditions),
 	}
 	Expect(createOrIgnoreAlreadyExists(f, clusterProviderStore)).To(Succeed())
 	log.Logf("created ClusterProviderStore: %s", name)
 	return clusterProviderStore
 }
 
-func WaitForProviderConnectionReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv2alpha1.ProviderStore {
+func WaitForProviderConnectionReady(f *framework.Framework, namespace, name string, timeout time.Duration) *unstructured.Unstructured {
 	return WaitForProviderConnectionCondition(f, namespace, name, metav1.ConditionTrue, timeout)
 }
 
-func WaitForProviderConnectionNotReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv2alpha1.ProviderStore {
+func WaitForProviderConnectionNotReady(f *framework.Framework, namespace, name string, timeout time.Duration) *unstructured.Unstructured {
 	return WaitForProviderConnectionCondition(f, namespace, name, metav1.ConditionFalse, timeout)
 }
 
-func WaitForProviderConnectionCondition(f *framework.Framework, namespace, name string, status metav1.ConditionStatus, timeout time.Duration) *esv2alpha1.ProviderStore {
-	var providerStore esv2alpha1.ProviderStore
+func WaitForSecretStoreReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv1.SecretStore {
+	return WaitForSecretStoreCondition(f, namespace, name, metav1.ConditionTrue, timeout)
+}
+
+func WaitForSecretStoreNotReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv1.SecretStore {
+	return WaitForSecretStoreCondition(f, namespace, name, metav1.ConditionFalse, timeout)
+}
+
+func WaitForSecretStoreCondition(f *framework.Framework, namespace, name string, status metav1.ConditionStatus, timeout time.Duration) *esv1.SecretStore {
+	store := &esv1.SecretStore{}
+	Eventually(func() bool {
+		err := f.CRClient.Get(context.Background(), types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, store)
+		if err != nil {
+			log.Logf("failed to get SecretStore: %v", err)
+			return false
+		}
+
+		return hasSecretStoreReadyConditionStatus(store.Status.Conditions, status)
+	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("SecretStore should become %s", status))
+
+	return store
+}
+
+func WaitForProviderConnectionCondition(f *framework.Framework, namespace, name string, status metav1.ConditionStatus, timeout time.Duration) *unstructured.Unstructured {
+	providerStore := &unstructured.Unstructured{}
+	providerStore.SetGroupVersionKind(providerStoreGVK)
 	Eventually(func() bool {
 		err := f.CRClient.Get(context.Background(),
 			types.NamespacedName{Name: name, Namespace: namespace},
-			&providerStore)
+			providerStore)
 		if err != nil {
 			log.Logf("failed to get ProviderStore: %v", err)
 			return false
 		}
 
-		for _, condition := range providerStore.Status.Conditions {
-			if condition.Type == esv2alpha1.ProviderStoreReady && condition.Status == corev1.ConditionStatus(status) {
-				return true
-			}
-		}
-		return false
+		return hasReadyConditionStatus(providerStore, status)
 	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ProviderStore should become %s", status))
 
-	return &providerStore
+	return providerStore
 }
 
-func WaitForClusterProviderReady(f *framework.Framework, name string, timeout time.Duration) *esv2alpha1.ClusterProviderStore {
+func WaitForClusterProviderReady(f *framework.Framework, name string, timeout time.Duration) *unstructured.Unstructured {
 	return WaitForClusterProviderCondition(f, name, metav1.ConditionTrue, timeout)
 }
 
-func WaitForClusterProviderCondition(f *framework.Framework, name string, status metav1.ConditionStatus, timeout time.Duration) *esv2alpha1.ClusterProviderStore {
-	var clusterProviderStore esv2alpha1.ClusterProviderStore
+func WaitForClusterSecretStoreReady(f *framework.Framework, name string, timeout time.Duration) *esv1.ClusterSecretStore {
+	return WaitForClusterSecretStoreCondition(f, name, metav1.ConditionTrue, timeout)
+}
+
+func WaitForClusterSecretStoreNotReady(f *framework.Framework, name string, timeout time.Duration) *esv1.ClusterSecretStore {
+	return WaitForClusterSecretStoreCondition(f, name, metav1.ConditionFalse, timeout)
+}
+
+func WaitForClusterSecretStoreCondition(f *framework.Framework, name string, status metav1.ConditionStatus, timeout time.Duration) *esv1.ClusterSecretStore {
+	store := &esv1.ClusterSecretStore{}
+	Eventually(func() bool {
+		err := f.CRClient.Get(context.Background(), types.NamespacedName{Name: name}, store)
+		if err != nil {
+			log.Logf("failed to get ClusterSecretStore: %v", err)
+			return false
+		}
+
+		return hasSecretStoreReadyConditionStatus(store.Status.Conditions, status)
+	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ClusterSecretStore should become %s", status))
+
+	return store
+}
+
+func WaitForClusterProviderCondition(f *framework.Framework, name string, status metav1.ConditionStatus, timeout time.Duration) *unstructured.Unstructured {
+	clusterProviderStore := &unstructured.Unstructured{}
+	clusterProviderStore.SetGroupVersionKind(clusterProviderStoreGVK)
 	Eventually(func() bool {
 		err := f.CRClient.Get(context.Background(),
 			types.NamespacedName{Name: name},
-			&clusterProviderStore)
+			clusterProviderStore)
 		if err != nil {
 			log.Logf("failed to get ClusterProviderStore: %v", err)
 			return false
 		}
 
-		for _, condition := range clusterProviderStore.Status.Conditions {
-			if condition.Type == esv2alpha1.ProviderStoreReady && condition.Status == corev1.ConditionStatus(status) {
-				return true
-			}
-		}
-		return false
+		return hasReadyConditionStatus(clusterProviderStore, status)
 	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ClusterProviderStore should become %s", status))
 
-	return &clusterProviderStore
+	return clusterProviderStore
 }
+
+func hasReadyConditionStatus(obj *unstructured.Unstructured, status metav1.ConditionStatus) bool {
+	conditions, found, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
+	if err != nil || !found {
+		return false
+	}
+	for _, condition := range conditions {
+		conditionMap, ok := condition.(map[string]any)
+		if !ok {
+			continue
+		}
+		if conditionMap["type"] == providerStoreReady && conditionMap["status"] == string(status) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasSecretStoreReadyConditionStatus(conditions []esv1.SecretStoreStatusCondition, status metav1.ConditionStatus) bool {
+	for _, condition := range conditions {
+		if string(condition.Type) == providerStoreReady && string(condition.Status) == string(status) {
+			return true
+		}
+	}
+	return false
+}
+
 func createOrIgnoreAlreadyExists(f *framework.Framework, obj client.Object) error {
 	err := f.CRClient.Create(context.Background(), obj)
 	if err == nil {

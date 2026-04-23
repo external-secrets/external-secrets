@@ -10,8 +10,6 @@ v2:
   enabled: true
 crds:
   createClusterProviderClass: true
-  createProviderStore: true
-  createClusterProviderStore: true
 
 providers:
   enabled: true

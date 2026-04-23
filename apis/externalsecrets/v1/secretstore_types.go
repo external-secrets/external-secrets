@@ -22,6 +22,8 @@ import (
 )
 
 const (
+	ProviderStoreKindStr                     = "ProviderStore"
+	ClusterProviderStoreKindStr              = "ClusterProviderStore"
 	StoreRuntimeRefKindProviderClass        = "ProviderClass"
 	StoreRuntimeRefKindClusterProviderClass = "ClusterProviderClass"
 )

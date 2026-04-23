@@ -33,6 +33,7 @@ rules:
     - "providerstores"
     - "clusterproviderstores"
     - "clusterproviderclasses"
+    - "providerclasses"
     {{- end }}
     {{- if .Values.processClusterStore }}
     - "clustersecretstores"
@@ -61,6 +62,8 @@ rules:
     - "clusterproviderstores/status"
     - "clusterproviderclasses"
     - "clusterproviderclasses/status"
+    - "providerclasses"
+    - "providerclasses/status"
     {{- end }}
     - "externalsecrets"
     - "externalsecrets/status"

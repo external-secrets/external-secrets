@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 
@@ -78,9 +77,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	err = genv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = esv2alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{

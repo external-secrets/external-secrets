@@ -48,7 +48,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
@@ -215,45 +214,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}()
 	// Get secret stores early so they can be used for finalizer deletion
-	secretStoresV2, err := r.GetSecretStoresV2(ctx, ps)
+	secretStores, err := r.GetSecretStores(ctx, ps)
 	if err != nil {
 		r.markAsFailed(err.Error(), &ps, nil)
 		return ctrl.Result{}, err
 	}
 
-	// Filter and prepare stores (this logic was moved from later)
-	activeSecretStores := make(map[esapi.PushSecretStoreRef]any, len(secretStoresV2))
-	for ref, store := range secretStoresV2 {
-		if v1Store, ok := store.(esv1.GenericStore); ok {
-			if !v1Store.GetDeletionTimestamp().IsZero() {
-				log.Info("skipping SecretStore that is being deleted", "storeName", v1Store.GetName(), "storeKind", v1Store.GetKind())
-				continue
-			}
+	activeSecretStores := make(map[esapi.PushSecretStoreRef]esv1.GenericStore, len(secretStores))
+	for ref, store := range secretStores {
+		if !store.GetDeletionTimestamp().IsZero() {
+			log.Info("skipping SecretStore that is being deleted", "storeName", store.GetName(), "storeKind", store.GetKind())
+			continue
 		}
 		activeSecretStores[ref] = store
 	}
 
-	activeSecretStoresV1 := make(map[esapi.PushSecretStoreRef]esv1.GenericStore)
-	for ref, store := range activeSecretStores {
-		if v1Store, ok := store.(esv1.GenericStore); ok {
-			activeSecretStoresV1[ref] = v1Store
-		}
-	}
-
-	filteredV1Stores, err := removeUnmanagedStores(ctx, req.Namespace, r, activeSecretStoresV1)
+	finalStores, err := removeUnmanagedStores(ctx, req.Namespace, r, activeSecretStores)
 	if err != nil {
 		r.markAsFailed(err.Error(), &ps, nil)
 		return ctrl.Result{}, err
-	}
-
-	finalStores := make(map[esapi.PushSecretStoreRef]any)
-	for ref, store := range filteredV1Stores {
-		finalStores[ref] = store
-	}
-	for ref, store := range activeSecretStores {
-		if _, ok := store.(esv1.GenericStore); !ok {
-			finalStores[ref] = store
-		}
 	}
 
 	switch ps.Spec.DeletionPolicy {
@@ -268,7 +247,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		} else if controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
 			// trigger a cleanup with no Synced Map
-			badState, err := r.DeleteSecretFromProvidersV2(ctx, &ps, esapi.SyncedPushSecretsMap{}, finalStores)
+			badState, err := r.DeleteSecretFromProviders(ctx, &ps, esapi.SyncedPushSecretsMap{}, mgr)
 			if err != nil {
 				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
 				r.markAsFailed(msg, &ps, badState)
@@ -341,7 +320,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, err
 		}
 
-		syncedSecrets, err := r.PushSecretToProvidersV2(ctx, finalStores, ps, &secret, mgr)
+		syncedSecrets, err := r.PushSecretToProviders(ctx, finalStores, ps, &secret, mgr)
 		if err != nil {
 			if errors.Is(err, locks.ErrConflict) {
 				log.Info("retry to acquire lock to update the secret later", "error", err)
@@ -356,7 +335,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 		switch ps.Spec.DeletionPolicy {
 		case esapi.PushSecretDeletionPolicyDelete:
-			badSyncState, err := r.DeleteSecretFromProvidersV2(ctx, &ps, syncedSecrets, finalStores)
+			badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets, mgr)
 			if err != nil {
 				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
 				r.markAsFailed(msg, &ps, badSyncState)
@@ -519,7 +498,10 @@ func (r *Reconciler) PushSecretToProviders(
 	out := make(esapi.SyncedPushSecretsMap)
 	var err error
 	for ref, store := range stores {
-		si := storeInfo{Name: store.GetName(), Kind: ref.Kind, Labels: store.GetLabels()}
+		si, ok := resolvedStoreInfo(ref, store)
+		if !ok {
+			return out, fmt.Errorf("could not resolve store info for store %q", store.GetName())
+		}
 		out, err = r.handlePushSecretDataForStore(ctx, ps, secret, out, mgr, si)
 		if err != nil {
 			return out, err
@@ -767,7 +749,9 @@ func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (
 			if err != nil {
 				return nil, err
 			}
-			stores[refStore] = store
+			key := refStore
+			key.Kind = resolvedPushStoreKind(refStore.Kind, store)
+			stores[key] = store
 		}
 	}
 	return stores, nil
@@ -780,21 +764,25 @@ func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.
 	ref := types.NamespacedName{
 		Name: refStore.Name,
 	}
-	if refStore.Kind == esv1.ClusterSecretStoreKind {
+	switch refStore.Kind {
+	case "", esv1.SecretStoreKind:
+		ref.Namespace = ns
+		var store esv1.SecretStore
+		err := r.Get(ctx, ref, &store)
+		if err != nil {
+			return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
+		}
+		return &store, nil
+	case esv1.ClusterSecretStoreKind:
 		var store esv1.ClusterSecretStore
 		err := r.Get(ctx, ref, &store)
 		if err != nil {
 			return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
 		}
 		return &store, nil
+	default:
+		return nil, fmt.Errorf("unsupported SecretStore kind %q", refStore.Kind)
 	}
-	ref.Namespace = ns
-	var store esv1.SecretStore
-	err := r.Get(ctx, ref, &store)
-	if err != nil {
-		return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
-	}
-	return &store, nil
 }
 
 // NewPushSecretCondition creates a new PushSecret condition.
@@ -865,8 +853,13 @@ func statusRef(ref esv1.PushSecretData) string {
 // Returns a map containing only managed stores.
 func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]esv1.GenericStore) (map[esapi.PushSecretStoreRef]esv1.GenericStore, error) {
 	for ref := range ss {
+		kind := ref.Kind
+		if kind == "" {
+			kind = esv1.SecretStoreKind
+		}
+
 		var store esv1.GenericStore
-		switch ref.Kind {
+		switch kind {
 		case esv1.SecretStoreKind:
 			store = &esv1.SecretStore{}
 		case esv1.ClusterSecretStoreKind:
@@ -1184,14 +1177,7 @@ func resolvedPushStoreKind(refKind string, store any) string {
 		return genericStore.GetKind()
 	}
 
-	switch store.(type) {
-	case *esv2alpha1.ProviderStore:
-		return esv1.ProviderStoreKindStr
-	case *esv2alpha1.ClusterProviderStore:
-		return esv1.ClusterProviderStoreKindStr
-	default:
-		return esv1.SecretStoreKind
-	}
+	return esv1.SecretStoreKind
 }
 
 // validateDataToMatchesResolvedStores checks that every dataTo entry with a

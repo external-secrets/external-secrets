@@ -91,7 +91,7 @@ func (SecretStoreCapabilities) EnumDescriptor() ([]byte, []int) {
 // ProviderReference identifies the backend/provider configuration object that
 // the runtime should load for this request.
 // This can originate from Provider/ClusterProvider or clean stores
-// (ProviderStore/ClusterProviderStore).
+// (SecretStore/ClusterSecretStore).
 type ProviderReference struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -109,7 +109,7 @@ type ProviderReference struct {
 	// If empty, the resource is cluster-scoped or resolved relative to source_namespace.
 	Namespace string `protobuf:"bytes,4,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	// Kind of the originating ESO store reference.
-	// Example: "Provider", "ClusterProvider", "ProviderStore", "ClusterProviderStore"
+	// Example: "Provider", "ClusterProvider", "SecretStore", "ClusterSecretStore"
 	StoreRefKind string `protobuf:"bytes,5,opt,name=store_ref_kind,json=storeRefKind,proto3" json:"store_ref_kind,omitempty"`
 }
 

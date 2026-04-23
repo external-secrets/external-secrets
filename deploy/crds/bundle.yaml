@@ -188,13 +188,11 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
                                       - ClusterSecretStore
-                                      - ProviderStore
-                                      - ClusterProviderStore
                                     type: string
                                   name:
                                     description: Name of the SecretStore resource
@@ -439,13 +437,11 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
                                       - ClusterSecretStore
-                                      - ProviderStore
-                                      - ClusterProviderStore
                                     type: string
                                   name:
                                     description: Name of the SecretStore resource
@@ -483,13 +479,11 @@ spec:
                       properties:
                         kind:
                           description: |-
-                            Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                            Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                             Defaults to `SecretStore`
                           enum:
                             - SecretStore
                             - ClusterSecretStore
-                            - ProviderStore
-                            - ClusterProviderStore
                           type: string
                         name:
                           description: Name of the SecretStore resource
@@ -1012,13 +1006,11 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
                                       - ClusterSecretStore
-                                      - ProviderStore
-                                      - ClusterProviderStore
                                     type: string
                                   name:
                                     description: Name of the SecretStore resource
@@ -1207,13 +1199,11 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
                                       - ClusterSecretStore
-                                      - ProviderStore
-                                      - ClusterProviderStore
                                     type: string
                                   name:
                                     description: Name of the SecretStore resource
@@ -1251,13 +1241,11 @@ spec:
                       properties:
                         kind:
                           description: |-
-                            Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                            Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                             Defaults to `SecretStore`
                           enum:
                             - SecretStore
                             - ClusterSecretStore
-                            - ProviderStore
-                            - ClusterProviderStore
                           type: string
                         name:
                           description: Name of the SecretStore resource
@@ -1589,346 +1577,6 @@ spec:
           type: object
       served: false
       storage: false
-      subresources:
-        status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
-  name: providerstores.external-secrets.io
-spec:
-  group: external-secrets.io
-  names:
-    categories:
-      - externalsecrets
-    kind: ProviderStore
-    listKind: ProviderStoreList
-    plural: providerstores
-    shortNames:
-      - pstore
-    singular: providerstore
-  scope: Namespaced
-  versions:
-    - additionalPrinterColumns:
-        - jsonPath: .status.conditions[?(@.type=="Ready")].status
-          name: Ready
-          type: string
-        - jsonPath: .spec.runtimeRef.name
-          name: Runtime
-          type: string
-        - jsonPath: .spec.backendRef.name
-          name: Backend
-          type: string
-        - jsonPath: .metadata.creationTimestamp
-          name: Age
-          type: date
-      name: v2alpha1
-      schema:
-        openAPIV3Schema:
-          description: ProviderStore is the namespaced clean store API.
-          properties:
-            apiVersion:
-              description: |-
-                APIVersion defines the versioned schema of this representation of an object.
-                Servers should convert recognized schemas to the latest internal value, and
-                may reject unrecognized values.
-                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-              type: string
-            kind:
-              description: |-
-                Kind is a string value representing the REST resource this object represents.
-                Servers may infer this from the endpoint the client submits requests to.
-                Cannot be updated.
-                In CamelCase.
-                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-              type: string
-            metadata:
-              type: object
-            spec:
-              description: ProviderStoreSpec defines the desired state of ProviderStore.
-              properties:
-                backendRef:
-                  description: BackendRef references the provider-owned backend configuration object.
-                  properties:
-                    apiVersion:
-                      description: APIVersion of the referenced backend resource.
-                      minLength: 1
-                      type: string
-                    kind:
-                      description: Kind of the referenced backend resource.
-                      minLength: 1
-                      type: string
-                    name:
-                      description: Name of the referenced backend resource.
-                      maxLength: 253
-                      minLength: 1
-                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                      type: string
-                    namespace:
-                      description: Namespace of the referenced backend resource.
-                      maxLength: 63
-                      minLength: 1
-                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                      type: string
-                  required:
-                    - apiVersion
-                    - kind
-                    - name
-                  type: object
-                runtimeRef:
-                  description: RuntimeRef points to the runtime configuration used by this store.
-                  properties:
-                    kind:
-                      default: ClusterProviderClass
-                      description: Kind identifies the runtime resource type referenced by this store.
-                      enum:
-                        - ClusterProviderClass
-                      type: string
-                    name:
-                      description: Name is the runtime resource name referenced by this store.
-                      maxLength: 253
-                      minLength: 1
-                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                      type: string
-                  required:
-                    - name
-                  type: object
-              required:
-                - backendRef
-                - runtimeRef
-              type: object
-            status:
-              description: ProviderStoreStatus defines the observed state of a provider store.
-              properties:
-                conditions:
-                  items:
-                    description: ProviderStoreCondition describes the state of a store at a certain point.
-                    properties:
-                      lastTransitionTime:
-                        format: date-time
-                        type: string
-                      message:
-                        type: string
-                      reason:
-                        type: string
-                      status:
-                        type: string
-                      type:
-                        description: ProviderStoreConditionType is the type of a ProviderStore status condition.
-                        type: string
-                    required:
-                      - status
-                      - type
-                    type: object
-                  type: array
-              type: object
-          type: object
-      served: true
-      storage: true
-      subresources:
-        status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
-  name: clusterproviderstores.external-secrets.io
-spec:
-  group: external-secrets.io
-  names:
-    categories:
-      - externalsecrets
-    kind: ClusterProviderStore
-    listKind: ClusterProviderStoreList
-    plural: clusterproviderstores
-    shortNames:
-      - cpstore
-    singular: clusterproviderstore
-  scope: Cluster
-  versions:
-    - additionalPrinterColumns:
-        - jsonPath: .status.conditions[?(@.type=="Ready")].status
-          name: Ready
-          type: string
-        - jsonPath: .spec.runtimeRef.name
-          name: Runtime
-          type: string
-        - jsonPath: .spec.backendRef.name
-          name: Backend
-          type: string
-        - jsonPath: .metadata.creationTimestamp
-          name: Age
-          type: date
-      name: v2alpha1
-      schema:
-        openAPIV3Schema:
-          description: ClusterProviderStore is the cluster-scoped clean store API.
-          properties:
-            apiVersion:
-              description: |-
-                APIVersion defines the versioned schema of this representation of an object.
-                Servers should convert recognized schemas to the latest internal value, and
-                may reject unrecognized values.
-                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-              type: string
-            kind:
-              description: |-
-                Kind is a string value representing the REST resource this object represents.
-                Servers may infer this from the endpoint the client submits requests to.
-                Cannot be updated.
-                In CamelCase.
-                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-              type: string
-            metadata:
-              type: object
-            spec:
-              description: ClusterProviderStoreSpec defines the desired state of ClusterProviderStore.
-              properties:
-                backendRef:
-                  description: BackendRef references the provider-owned backend configuration object.
-                  properties:
-                    apiVersion:
-                      description: APIVersion of the referenced backend resource.
-                      minLength: 1
-                      type: string
-                    kind:
-                      description: Kind of the referenced backend resource.
-                      minLength: 1
-                      type: string
-                    name:
-                      description: Name of the referenced backend resource.
-                      maxLength: 253
-                      minLength: 1
-                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                      type: string
-                    namespace:
-                      description: Namespace of the referenced backend resource.
-                      maxLength: 63
-                      minLength: 1
-                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                      type: string
-                  required:
-                    - apiVersion
-                    - kind
-                    - name
-                  type: object
-                conditions:
-                  description: Conditions constrain where this ClusterProviderStore can be used from.
-                  items:
-                    description: StoreNamespaceCondition describes conditions that constrain where a cluster store can be used from.
-                    properties:
-                      namespaceRegexes:
-                        description: Choose namespaces by using regex matching.
-                        items:
-                          type: string
-                        type: array
-                      namespaceSelector:
-                        description: Choose namespace using a labelSelector.
-                        properties:
-                          matchExpressions:
-                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                            items:
-                              description: |-
-                                A label selector requirement is a selector that contains values, a key, and an operator that
-                                relates the key and values.
-                              properties:
-                                key:
-                                  description: key is the label key that the selector applies to.
-                                  type: string
-                                operator:
-                                  description: |-
-                                    operator represents a key's relationship to a set of values.
-                                    Valid operators are In, NotIn, Exists and DoesNotExist.
-                                  type: string
-                                values:
-                                  description: |-
-                                    values is an array of string values. If the operator is In or NotIn,
-                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                    the values array must be empty. This array is replaced during a strategic
-                                    merge patch.
-                                  items:
-                                    type: string
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                              required:
-                                - key
-                                - operator
-                              type: object
-                            type: array
-                            x-kubernetes-list-type: atomic
-                          matchLabels:
-                            additionalProperties:
-                              type: string
-                            description: |-
-                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                              map is equivalent to an element of matchExpressions, whose key field is "key", the
-                              operator is "In", and the values array contains only "value". The requirements are ANDed.
-                            type: object
-                        type: object
-                        x-kubernetes-map-type: atomic
-                      namespaces:
-                        description: Choose namespaces by name.
-                        items:
-                          maxLength: 63
-                          minLength: 1
-                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                          type: string
-                        type: array
-                    type: object
-                  type: array
-                runtimeRef:
-                  description: RuntimeRef points to the runtime configuration used by this store.
-                  properties:
-                    kind:
-                      default: ClusterProviderClass
-                      description: Kind identifies the runtime resource type referenced by this store.
-                      enum:
-                        - ClusterProviderClass
-                      type: string
-                    name:
-                      description: Name is the runtime resource name referenced by this store.
-                      maxLength: 253
-                      minLength: 1
-                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                      type: string
-                  required:
-                    - name
-                  type: object
-              required:
-                - backendRef
-                - runtimeRef
-              type: object
-            status:
-              description: ProviderStoreStatus defines the observed state of a provider store.
-              properties:
-                conditions:
-                  items:
-                    description: ProviderStoreCondition describes the state of a store at a certain point.
-                    properties:
-                      lastTransitionTime:
-                        format: date-time
-                        type: string
-                      message:
-                        type: string
-                      reason:
-                        type: string
-                      status:
-                        type: string
-                      type:
-                        description: ProviderStoreConditionType is the type of a ProviderStore status condition.
-                        type: string
-                    required:
-                      - status
-                      - type
-                    type: object
-                  type: array
-              type: object
-          type: object
-      served: true
-      storage: true
       subresources:
         status: {}
 ---
@@ -2300,12 +1948,10 @@ spec:
                                   This field is optional and depends on the selected store kind.
                                 type: string
                               kind:
-                                description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                 enum:
                                   - SecretStore
                                   - ClusterSecretStore
-                                  - ProviderStore
-                                  - ClusterProviderStore
                                 type: string
                               labelSelector:
                                 description: Optionally, sync to secret stores with label selector
@@ -2386,12 +2032,10 @@ spec:
                               This field is optional and depends on the selected store kind.
                             type: string
                           kind:
-                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                             enum:
                               - SecretStore
                               - ClusterSecretStore
-                              - ProviderStore
-                              - ClusterProviderStore
                             type: string
                           labelSelector:
                             description: Optionally, sync to secret stores with label selector
@@ -8628,9 +8272,9 @@ spec:
                   description: RuntimeRef points to runtime configuration for this store.
                   properties:
                     kind:
-                      default: ClusterProviderClass
                       description: Kind identifies the runtime resource type referenced by this store.
                       enum:
+                        - ProviderClass
                         - ClusterProviderClass
                       type: string
                     name:
@@ -12841,9 +12485,9 @@ spec:
                   description: RuntimeRef points to runtime configuration for this store.
                   properties:
                     kind:
-                      default: ClusterProviderClass
                       description: Kind identifies the runtime resource type referenced by this store.
                       enum:
+                        - ProviderClass
                         - ClusterProviderClass
                       type: string
                     name:
@@ -13070,13 +12714,11 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
                                   - ClusterSecretStore
-                                  - ProviderStore
-                                  - ClusterProviderStore
                                 type: string
                               name:
                                 description: Name of the SecretStore resource
@@ -13321,13 +12963,11 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
                                   - ClusterSecretStore
-                                  - ProviderStore
-                                  - ClusterProviderStore
                                 type: string
                               name:
                                 description: Name of the SecretStore resource
@@ -13365,13 +13005,11 @@ spec:
                   properties:
                     kind:
                       description: |-
-                        Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                        Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                         Defaults to `SecretStore`
                       enum:
                         - SecretStore
                         - ClusterSecretStore
-                        - ProviderStore
-                        - ClusterProviderStore
                       type: string
                     name:
                       description: Name of the SecretStore resource
@@ -13780,13 +13418,11 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
                                   - ClusterSecretStore
-                                  - ProviderStore
-                                  - ClusterProviderStore
                                 type: string
                               name:
                                 description: Name of the SecretStore resource
@@ -13975,13 +13611,11 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
                                   - ClusterSecretStore
-                                  - ProviderStore
-                                  - ClusterProviderStore
                                 type: string
                               name:
                                 description: Name of the SecretStore resource
@@ -14019,13 +13653,11 @@ spec:
                   properties:
                     kind:
                       description: |-
-                        Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                        Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                         Defaults to `SecretStore`
                       enum:
                         - SecretStore
                         - ClusterSecretStore
-                        - ProviderStore
-                        - ClusterProviderStore
                       type: string
                     name:
                       description: Name of the SecretStore resource
@@ -14555,12 +14187,10 @@ spec:
                               This field is optional and depends on the selected store kind.
                             type: string
                           kind:
-                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                             enum:
                               - SecretStore
                               - ClusterSecretStore
-                              - ProviderStore
-                              - ClusterProviderStore
                             type: string
                           labelSelector:
                             description: Optionally, sync to secret stores with label selector
@@ -14641,12 +14271,10 @@ spec:
                           This field is optional and depends on the selected store kind.
                         type: string
                       kind:
-                        description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+                        description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                         enum:
                           - SecretStore
                           - ClusterSecretStore
-                          - ProviderStore
-                          - ClusterProviderStore
                         type: string
                       labelSelector:
                         description: Optionally, sync to secret stores with label selector
@@ -20911,9 +20539,9 @@ spec:
                   description: RuntimeRef points to runtime configuration for this store.
                   properties:
                     kind:
-                      default: ClusterProviderClass
                       description: Kind identifies the runtime resource type referenced by this store.
                       enum:
+                        - ProviderClass
                         - ClusterProviderClass
                       type: string
                     name:
@@ -25124,9 +24752,9 @@ spec:
                   description: RuntimeRef points to runtime configuration for this store.
                   properties:
                     kind:
-                      default: ClusterProviderClass
                       description: Kind identifies the runtime resource type referenced by this store.
                       enum:
+                        - ProviderClass
                         - ClusterProviderClass
                       type: string
                     name:

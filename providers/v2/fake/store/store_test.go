@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -44,6 +45,52 @@ func TestNewClient(t *testing.T) {
 	// missing provider
 	_, err = p.NewClient(context.Background(), &esv1.SecretStore{}, nil, "")
 	gomega.Expect(err).To(gomega.HaveOccurred())
+}
+
+func TestNewClientConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
+	p := &Provider{}
+	const goroutines = 32
+
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	errs := make(chan error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			<-start
+
+			_, err := p.NewClient(context.Background(), &esv1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("secret-store-%d", i),
+				},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
+							Data: []esv1.FakeProviderData{{
+								Key:   fmt.Sprintf("key-%d", i),
+								Value: fmt.Sprintf("value-%d", i),
+							}},
+						},
+					},
+				},
+			}, nil, "")
+			errs <- err
+		}(i)
+	}
+
+	close(start)
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("NewClient returned error: %v", err)
+		}
+	}
 }
 
 func TestValidateStore(t *testing.T) {

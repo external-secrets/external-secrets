@@ -127,12 +127,12 @@ func (s *ProviderV2) BeforeEach() {
 
 	frameworkv2.ScaleDeploymentBySelectorAndWait(s.framework, fakeBackendTarget(), 1, defaultV2WaitTimeout)
 	s.createStore()
-	frameworkv2.WaitForProviderConnectionReady(s.framework, s.framework.Namespace.Name, s.framework.Namespace.Name, defaultV2WaitTimeout)
+	frameworkv2.WaitForSecretStoreReady(s.framework, s.framework.Namespace.Name, s.framework.Namespace.Name, defaultV2WaitTimeout)
 }
 
 func (s *ProviderV2) CreateSecret(key string, val framework.SecretEntry) {
-	s.updateStore(func(fake *fakev2alpha1.Fake) {
-		fake.Spec.Data = upsertFakeProviderData(fake.Spec.Data, esv1.FakeProviderData{
+	s.updateStore(func(fake *esv1.FakeProvider) {
+		fake.Data = upsertFakeProviderData(fake.Data, esv1.FakeProviderData{
 			Key:   key,
 			Value: val.Value,
 		})
@@ -140,27 +140,20 @@ func (s *ProviderV2) CreateSecret(key string, val framework.SecretEntry) {
 }
 
 func (s *ProviderV2) DeleteSecret(key string) {
-	s.updateStore(func(fake *fakev2alpha1.Fake) {
-		fake.Spec.Data = removeFakeProviderData(fake.Spec.Data, key, "")
+	s.updateStore(func(fake *esv1.FakeProvider) {
+		fake.Data = removeFakeProviderData(fake.Data, key, "")
 	})
 }
 
 func (s *ProviderV2) createStore() {
-	createFakeProviderConfig(s.framework, s.framework.Namespace.Name, s.framework.Namespace.Name)
-	frameworkv2.CreateProviderConnection(
-		s.framework,
-		s.framework.Namespace.Name,
-		s.framework.Namespace.Name,
-		frameworkv2.ProviderAddress("fake"),
-		fakeProviderAPIVersion,
-		fakeProviderKind,
-		s.framework.Namespace.Name,
-		"",
-	)
+	createNamespacedFakeSecretStore(s.framework, s.framework.Namespace.Name, s.framework.Namespace.Name)
 }
 
-func (s *ProviderV2) updateStore(mutate func(*fakev2alpha1.Fake)) {
-	updateFakeProviderConfig(s.framework, s.framework.Namespace.Name, s.framework.Namespace.Name, mutate)
+func (s *ProviderV2) updateStore(mutate func(*esv1.FakeProvider)) {
+	newLegacyRuntimeRefProvider(s.framework, esv1.SecretStoreRef{
+		Name: s.framework.Namespace.Name,
+		Kind: esv1.SecretStoreKind,
+	}, s.framework.Namespace.Name).mutateStore(mutate)
 }
 
 func fakeBackendTarget() frameworkv2.BackendTarget {
@@ -175,13 +168,13 @@ func (s *ProviderV2) prepareNamespacedOperationalRuntime() *common.OperationalRu
 		Provider: s,
 		ProviderRef: esv1.SecretStoreRef{
 			Name: s.framework.Namespace.Name,
-			Kind: esv1.ProviderStoreKindStr,
+			Kind: esv1.SecretStoreKind,
 		},
 		DefaultRemoteNamespace: s.framework.Namespace.Name,
 		WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
 			waitForPushedValueViaExternalSecret(s.framework, esv1.SecretStoreRef{
 				Name: s.framework.Namespace.Name,
-				Kind: esv1.ProviderStoreKindStr,
+				Kind: esv1.SecretStoreKind,
 			}, name, expectedValue)
 		},
 		MakeUnavailable: func() {
@@ -197,12 +190,10 @@ func (s *ProviderV2) prepareNamespacedOperationalRuntime() *common.OperationalRu
 }
 
 type fakeClusterProviderScenario struct {
-	f                    *framework.Framework
-	namePrefix           string
-	authScope            esv1.AuthenticationScope
-	fakeConfigNamespace  string
-	providerRefNamespace string
-	configName           string
+	f                      *framework.Framework
+	namePrefix             string
+	authScope              esv1.AuthenticationScope
+	defaultRemoteNamespace string
 }
 
 func newFakeClusterProviderScenario(f *framework.Framework, prefix string, authScope esv1.AuthenticationScope) *fakeClusterProviderScenario {
@@ -212,36 +203,41 @@ func newFakeClusterProviderScenario(f *framework.Framework, prefix string, authS
 	}
 
 	s := &fakeClusterProviderScenario{
-		f:                    f,
-		namePrefix:           fmt.Sprintf("%s-%s", f.Namespace.Name, prefix),
-		authScope:            authScope,
-		fakeConfigNamespace:  fakeConfigNamespaceForAuthScope(authScope, f.Namespace.Name, providerNamespace),
-		providerRefNamespace: providerReferenceNamespace(authScope, providerNamespace),
-		configName:           fmt.Sprintf("%s-config", prefix),
+		f:                      f,
+		namePrefix:             fmt.Sprintf("%s-%s", f.Namespace.Name, prefix),
+		authScope:              authScope,
+		defaultRemoteNamespace: fakeConfigNamespaceForAuthScope(authScope, f.Namespace.Name, providerNamespace),
 	}
-	createFakeProviderConfig(s.f, s.fakeConfigNamespace, s.configName)
 	return s
 }
 
 func (s *fakeClusterProviderScenario) createClusterProvider(conditions []esv1.ClusterSecretStoreCondition) string {
 	clusterProviderName := fmt.Sprintf("%s-cluster-provider", s.namePrefix)
-	frameworkv2.CreateClusterProviderConnection(
-		s.f,
-		clusterProviderName,
-		frameworkv2.ProviderAddress("fake"),
-		fakeProviderAPIVersion,
-		fakeProviderKind,
-		s.configName,
-		s.providerRefNamespace,
-		s.authScope,
-		conditions,
-	)
+	runtimeName := fakeRuntimeClassName(clusterProviderName)
+	Expect(s.f.CreateObjectWithRetry(&esv1alpha1.ClusterProviderClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: runtimeName,
+		},
+		Spec: esv1alpha1.ClusterProviderClassSpec{
+			Address: frameworkv2.ProviderAddress("fake"),
+		},
+	})).To(Succeed())
+	Expect(s.f.CreateObjectWithRetry(newRuntimeRefClusterSecretStore(clusterProviderName, runtimeName, ""))).To(Succeed())
+
+	var store esv1.ClusterSecretStore
+	Expect(s.f.CRClient.Get(context.Background(), types.NamespacedName{Name: clusterProviderName}, &store)).To(Succeed())
+	base := store.DeepCopy()
+	store.Spec.Conditions = conditions
+	Expect(s.f.CRClient.Patch(context.Background(), &store, client.MergeFrom(base))).To(Succeed())
 	return clusterProviderName
 }
 
 func (s *fakeClusterProviderScenario) CreateSecret(key string, val framework.SecretEntry) {
-	updateFakeProviderConfig(s.f, s.fakeConfigNamespace, s.configName, func(fake *fakev2alpha1.Fake) {
-		fake.Spec.Data = upsertFakeProviderData(fake.Spec.Data, esv1.FakeProviderData{
+	newLegacyRuntimeRefProvider(s.f, esv1.SecretStoreRef{
+		Name: s.clusterProviderName(),
+		Kind: esv1.ClusterSecretStoreKind,
+	}, "").mutateStore(func(fake *esv1.FakeProvider) {
+		fake.Data = upsertFakeProviderData(fake.Data, esv1.FakeProviderData{
 			Key:   key,
 			Value: val.Value,
 		})
@@ -249,8 +245,11 @@ func (s *fakeClusterProviderScenario) CreateSecret(key string, val framework.Sec
 }
 
 func (s *fakeClusterProviderScenario) DeleteSecret(key string) {
-	updateFakeProviderConfig(s.f, s.fakeConfigNamespace, s.configName, func(fake *fakev2alpha1.Fake) {
-		fake.Spec.Data = removeFakeProviderData(fake.Spec.Data, key, "")
+	newLegacyRuntimeRefProvider(s.f, esv1.SecretStoreRef{
+		Name: s.clusterProviderName(),
+		Kind: esv1.ClusterSecretStoreKind,
+	}, "").mutateStore(func(fake *esv1.FakeProvider) {
+		fake.Data = removeFakeProviderData(fake.Data, key, "")
 	})
 }
 
@@ -259,11 +258,15 @@ func newFakeClusterProviderExternalSecretHarness(f *framework.Framework) common.
 		Prepare: func(tc *framework.TestCase, cfg common.ClusterProviderConfig) *common.ClusterProviderExternalSecretRuntime {
 			s := newFakeClusterProviderScenario(f, cfg.Name, cfg.AuthScope)
 			clusterProviderName := s.createClusterProvider(cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.ClusterProviderExternalSecretRuntime{
 				ClusterProviderName: clusterProviderName,
-				Provider:            s,
+				StoreRef: esv1.SecretStoreRef{
+					Name: clusterProviderName,
+					Kind: esv1.ClusterSecretStoreKind,
+				},
+				Provider: s,
 			}
 		},
 	}
@@ -274,15 +277,19 @@ func newFakeClusterProviderPushHarness(f *framework.Framework) common.ClusterPro
 		Prepare: func(tc *framework.TestCase, cfg common.ClusterProviderConfig) *common.ClusterProviderPushRuntime {
 			s := newFakeClusterProviderScenario(f, cfg.Name, cfg.AuthScope)
 			clusterProviderName := s.createClusterProvider(cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.ClusterProviderPushRuntime{
-				ClusterProviderName:    clusterProviderName,
-				DefaultRemoteNamespace: s.fakeConfigNamespace,
+				ClusterProviderName: clusterProviderName,
+				StoreRef: esv1.SecretStoreRef{
+					Name: clusterProviderName,
+					Kind: esv1.ClusterSecretStoreKind,
+				},
+				DefaultRemoteNamespace: s.defaultRemoteNamespace,
 				WaitForRemoteSecretValue: func(_, name, _ string, expectedValue string) {
 					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
-						Kind: esv1.ClusterProviderStoreKindStr,
+						Kind: esv1.ClusterSecretStoreKind,
 					}, name, expectedValue)
 				},
 			}
@@ -298,19 +305,19 @@ func newFakeOperationalExternalSecretHarness(f *framework.Framework, prov *Provi
 		PrepareCluster: func(_ *framework.TestCase, cfg common.ClusterProviderConfig) *common.OperationalRuntime {
 			s := newFakeClusterProviderScenario(f, cfg.Name, cfg.AuthScope)
 			clusterProviderName := s.createClusterProvider(cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.OperationalRuntime{
 				Provider: s,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: clusterProviderName,
-					Kind: esv1.ClusterProviderStoreKindStr,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
-				DefaultRemoteNamespace: s.fakeConfigNamespace,
+				DefaultRemoteNamespace: s.defaultRemoteNamespace,
 				WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
 					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
-						Kind: esv1.ClusterProviderStoreKindStr,
+						Kind: esv1.ClusterSecretStoreKind,
 					}, name, expectedValue)
 				},
 				MakeUnavailable: func() {
@@ -335,19 +342,19 @@ func newFakeOperationalPushHarness(f *framework.Framework, prov *ProviderV2) com
 		PrepareCluster: func(_ *framework.TestCase, cfg common.ClusterProviderConfig) *common.OperationalRuntime {
 			s := newFakeClusterProviderScenario(f, cfg.Name, cfg.AuthScope)
 			clusterProviderName := s.createClusterProvider(cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.OperationalRuntime{
 				Provider: s,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: clusterProviderName,
-					Kind: esv1.ClusterProviderStoreKindStr,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
-				DefaultRemoteNamespace: s.fakeConfigNamespace,
+				DefaultRemoteNamespace: s.defaultRemoteNamespace,
 				WaitForRemoteSecret: func(_, name, _ string, expectedValue string) {
 					waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
-						Kind: esv1.ClusterProviderStoreKindStr,
+						Kind: esv1.ClusterSecretStoreKind,
 					}, name, expectedValue)
 				},
 				MakeUnavailable: func() {
@@ -395,10 +402,32 @@ func fakePushSecretImplicitProviderKind(f *framework.Framework) (string, func(*f
 			commonWaitForPushSecretReady(tc.Framework, ps.Namespace, ps.Name, corev1.ConditionTrue)
 			waitForPushedValueViaExternalSecret(tc.Framework, esv1.SecretStoreRef{
 				Name: f.Namespace.Name,
-				Kind: esv1.ProviderStoreKindStr,
+				Kind: esv1.SecretStoreKind,
 			}, "fake-push-implicit-kind-remote", "implicit-kind-value")
 		}
 	}
+}
+
+func createNamespacedFakeSecretStore(f *framework.Framework, namespace, name string) {
+	runtimeName := fakeRuntimeClassName(name)
+	Expect(f.CreateObjectWithRetry(&esv1alpha1.ProviderClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      runtimeName,
+			Namespace: namespace,
+		},
+		Spec: esv1alpha1.ProviderClassSpec{
+			Address: frameworkv2.ProviderAddress("fake"),
+		},
+	})).To(Succeed())
+	Expect(f.CreateObjectWithRetry(newRuntimeRefSecretStore(namespace, name, runtimeName, ""))).To(Succeed())
+}
+
+func (s *fakeClusterProviderScenario) clusterProviderName() string {
+	return fmt.Sprintf("%s-cluster-provider", s.namePrefix)
+}
+
+func fakeRuntimeClassName(name string) string {
+	return fmt.Sprintf("%s-runtime", name)
 }
 
 func commonWaitForPushSecretReady(f *framework.Framework, namespace, name string, status corev1.ConditionStatus) {

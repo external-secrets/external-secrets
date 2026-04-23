@@ -42,6 +42,7 @@ type ClusterProviderPushHarness struct {
 
 type ClusterProviderPushRuntime struct {
 	ClusterProviderName       string
+	StoreRef                  esv1.SecretStoreRef
 	DefaultRemoteNamespace    string
 	BreakAuth                 func()
 	RepairAuth                func()
@@ -283,7 +284,7 @@ func ClusterProviderPushDeniedByConditions(f *framework.Framework, harness Clust
 				if runtime.SupportsRemoteAbsenceAssertions() {
 					runtime.ExpectNoRemoteSecret(runtime.DefaultRemoteNamespace, remoteSecretName)
 				}
-				expectEventMessage(tc.Framework, ps.Namespace, ps.Name, "PushSecret", fmt.Sprintf("using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name))
+				expectEventMessage(tc.Framework, ps.Namespace, ps.Name, "PushSecret", clusterProviderPushDeniedEventMessage(runtime, f.Namespace.Name))
 			}
 		}
 	}
@@ -361,9 +362,10 @@ func applyClusterProviderPushSecret(tc *framework.TestCase, runtime *ClusterProv
 	}
 
 	tc.PushSecret.ObjectMeta.Name = fmt.Sprintf("%s-push-secret", tc.PushSecretSource.Name)
+	storeRef := clusterProviderPushStoreRef(runtime)
 	tc.PushSecret.Spec.SecretStoreRefs = []esv1alpha1.PushSecretStoreRef{{
-		Name: runtime.ClusterProviderName,
-		Kind: esv1.ClusterProviderStoreKindStr,
+		Name: storeRef.Name,
+		Kind: storeRef.Kind,
 	}}
 	tc.PushSecret.Spec.Selector = esv1alpha1.PushSecretSelector{
 		Secret: &esv1alpha1.PushSecretSecret{
@@ -379,6 +381,24 @@ func applyClusterProviderPushSecret(tc *framework.TestCase, runtime *ClusterProv
 			},
 		},
 	}}
+}
+
+func clusterProviderPushStoreRef(runtime *ClusterProviderPushRuntime) esv1.SecretStoreRef {
+	if runtime != nil && runtime.StoreRef.Name != "" {
+		return runtime.StoreRef
+	}
+	return esv1.SecretStoreRef{
+		Name: runtime.ClusterProviderName,
+		Kind: esv1.ClusterProviderStoreKindStr,
+	}
+}
+
+func clusterProviderPushDeniedEventMessage(runtime *ClusterProviderPushRuntime, namespace string) string {
+	ref := clusterProviderPushStoreRef(runtime)
+	if ref.Kind == esv1.ClusterSecretStoreKind {
+		return fmt.Sprintf("using cluster store %q is not allowed from namespace %q: denied by spec.condition", ref.Name, namespace)
+	}
+	return fmt.Sprintf("using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions", ref.Name, namespace)
 }
 
 func waitForPushSecretStatus(f *framework.Framework, namespace, name string, status corev1.ConditionStatus) {

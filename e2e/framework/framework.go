@@ -70,8 +70,8 @@ func New(baseName string) *Framework {
 		DefaultPushSecretStoreRefAPIVersion: esv1.SchemeGroupVersion.String(),
 	}
 	if f.ProviderMode == ProviderModeV2 {
-		f.DefaultSecretStoreRefKind = esv1.ProviderStoreKindStr
-		f.DefaultPushSecretStoreRefKind = esv1.ProviderStoreKindStr
+		f.DefaultSecretStoreRefKind = esv1.SecretStoreKind
+		f.DefaultPushSecretStoreRefKind = esv1.SecretStoreKind
 	}
 	f.refreshClients()
 

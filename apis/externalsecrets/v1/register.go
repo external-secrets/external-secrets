@@ -72,12 +72,6 @@ var (
 	ClusterSecretStoreGroupVersionKind = SchemeGroupVersion.WithKind(ClusterSecretStoreKind)
 )
 
-// Provider kind string constants for use in SecretStoreRef.
-const (
-	ProviderStoreKindStr        = "ProviderStore"
-	ClusterProviderStoreKindStr = "ClusterProviderStore"
-)
-
 func init() {
 	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
 	SchemeBuilder.Register(&ClusterExternalSecret{}, &ClusterExternalSecretList{})

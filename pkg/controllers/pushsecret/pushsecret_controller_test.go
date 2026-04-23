@@ -258,6 +258,11 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	syncSuccessfullyWhenStoreKindOmitted := func(tc *testCase) {
+		tc.pushsecret.Spec.SecretStoreRefs[0].Kind = ""
+		syncSuccessfully(tc)
+	}
+
 	updateIfNotExists := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
@@ -2498,6 +2503,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should track deleted stores if Delete fails", failDeleteStore),
 		Entry("should delete all secrets if SecretStore changes", deleteWholeStore),
 		Entry("should sync to stores matching labels", syncMatchingLabels),
+		Entry("should default an omitted store kind to SecretStore", syncSuccessfullyWhenStoreKindOmitted),
 		Entry("should sync with ClusterStore", syncWithClusterStore),
 		Entry("should sync with ClusterStore matching labels", syncWithClusterStoreMatchingLabels),
 		Entry("should sync with Generator", syncWithGenerator),

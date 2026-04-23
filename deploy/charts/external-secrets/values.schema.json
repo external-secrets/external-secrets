@@ -297,16 +297,10 @@
                 "createClusterProviderClass": {
                     "type": "boolean"
                 },
-                "createClusterProviderStore": {
-                    "type": "boolean"
-                },
                 "createClusterPushSecret": {
                     "type": "boolean"
                 },
                 "createClusterSecretStore": {
-                    "type": "boolean"
-                },
-                "createProviderStore": {
                     "type": "boolean"
                 },
                 "createPushSecret": {

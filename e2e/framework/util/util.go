@@ -33,7 +33,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -47,7 +49,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv2alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v2alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
@@ -59,6 +60,13 @@ import (
 
 var scheme = runtime.NewScheme()
 
+var (
+	providerStoreGVK        = schema.GroupVersionKind{Group: "external-secrets.io", Version: "v2alpha1", Kind: "ProviderStore"}
+	providerStoreListGVK    = schema.GroupVersionKind{Group: "external-secrets.io", Version: "v2alpha1", Kind: "ProviderStoreList"}
+	clusterProviderStoreGVK = schema.GroupVersionKind{Group: "external-secrets.io", Version: "v2alpha1", Kind: "ClusterProviderStore"}
+	clusterProviderListGVK  = schema.GroupVersionKind{Group: "external-secrets.io", Version: "v2alpha1", Kind: "ClusterProviderStoreList"}
+)
+
 func init() {
 	// kubernetes schemes
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -67,8 +75,11 @@ func init() {
 	// external-secrets schemes
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(esv2alpha1.AddToScheme(scheme))
 	utilruntime.Must(genv1alpha1.AddToScheme(scheme))
+	scheme.AddKnownTypeWithName(providerStoreGVK, &unstructured.Unstructured{})
+	scheme.AddKnownTypeWithName(providerStoreListGVK, &unstructured.UnstructuredList{})
+	scheme.AddKnownTypeWithName(clusterProviderStoreGVK, &unstructured.Unstructured{})
+	scheme.AddKnownTypeWithName(clusterProviderListGVK, &unstructured.UnstructuredList{})
 
 	// other schemes
 	utilruntime.Must(fluxhelm.AddToScheme(scheme))

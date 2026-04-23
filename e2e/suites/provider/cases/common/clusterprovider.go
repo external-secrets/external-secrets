@@ -45,6 +45,7 @@ type ClusterProviderExternalSecretHarness struct {
 
 type ClusterProviderExternalSecretRuntime struct {
 	ClusterProviderName string
+	StoreRef            esv1.SecretStoreRef
 	Provider            framework.SecretStoreProvider
 	BreakAuth           func()
 	RepairAuth          func()
@@ -109,7 +110,7 @@ func ClusterProviderDeniedByConditions(f *framework.Framework, harness ClusterPr
 				tc.ExternalSecret.Namespace,
 				tc.ExternalSecret.Name,
 				"ExternalSecret",
-				fmt.Sprintf("using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions", runtime.ClusterProviderName, f.Namespace.Name),
+				clusterProviderDeniedEventMessage(runtime, f.Namespace.Name),
 			)
 		}
 	}
@@ -194,8 +195,25 @@ func clusterProviderRecoveryCase(f *framework.Framework, harness ClusterProvider
 
 func applyClusterProviderExternalSecret(tc *framework.TestCase, runtime *ClusterProviderExternalSecretRuntime) {
 	tc.ProviderOverride = runtime.Provider
-	tc.ExternalSecret.Spec.SecretStoreRef.Name = runtime.ClusterProviderName
-	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterProviderStoreKindStr
+	tc.ExternalSecret.Spec.SecretStoreRef = clusterProviderExternalSecretRef(runtime)
+}
+
+func clusterProviderExternalSecretRef(runtime *ClusterProviderExternalSecretRuntime) esv1.SecretStoreRef {
+	if runtime != nil && runtime.StoreRef.Name != "" {
+		return runtime.StoreRef
+	}
+	return esv1.SecretStoreRef{
+		Name: runtime.ClusterProviderName,
+		Kind: esv1.ClusterProviderStoreKindStr,
+	}
+}
+
+func clusterProviderDeniedEventMessage(runtime *ClusterProviderExternalSecretRuntime, namespace string) string {
+	ref := clusterProviderExternalSecretRef(runtime)
+	if ref.Kind == esv1.ClusterSecretStoreKind {
+		return fmt.Sprintf("using cluster store %q is not allowed from namespace %q: denied by spec.condition", ref.Name, namespace)
+	}
+	return fmt.Sprintf("using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions", ref.Name, namespace)
 }
 
 func waitForExternalSecretStatus(f *framework.Framework, namespace, name string, status corev1.ConditionStatus) {

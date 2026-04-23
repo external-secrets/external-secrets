@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
@@ -53,9 +54,17 @@ type Data struct {
 	Origin  SourceOrigin
 }
 type Config map[string]*Data
+
+type storeState struct {
+	mu     sync.RWMutex
+	config Config
+}
+
 type Provider struct {
 	config           Config
-	database         map[string]Config
+	configMu         *sync.RWMutex
+	databaseMu       sync.Mutex
+	database         map[string]*storeState
 	validationResult *esv1.ValidationResult
 }
 
@@ -65,17 +74,28 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
-	if p.database == nil {
-		p.database = make(map[string]Config)
-	}
 	c, err := getProvider(store)
 	if err != nil {
 		return nil, err
 	}
-	cfg := p.database[store.GetName()]
-	if cfg == nil {
-		cfg = Config{}
+
+	p.databaseMu.Lock()
+	if p.database == nil {
+		p.database = make(map[string]*storeState)
 	}
+	state := p.database[store.GetName()]
+	if state == nil {
+		state = &storeState{
+			config: Config{},
+		}
+		p.database[store.GetName()] = state
+	}
+	p.databaseMu.Unlock()
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	cfg := state.config
 	// We want to remove any FakeSecretStore entry from memory
 	// this will ensure SecretStores can delete from memory.
 	for key, data := range cfg {
@@ -91,9 +111,9 @@ func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, _ clien
 			Origin:  FakeSecretStore,
 		}
 	}
-	p.database[store.GetName()] = cfg
 	return &Provider{
 		config:           cfg,
+		configMu:         &state.mu,
 		validationResult: c.ValidationResult,
 	}, nil
 }
@@ -114,11 +134,17 @@ func (p *Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) e
 }
 
 func (p *Provider) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	p.configRLock()
+	defer p.configRUnlock()
+
 	_, ok := p.config[ref.GetRemoteKey()]
 	return ok, nil
 }
 
 func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	p.configLock()
+	defer p.configUnlock()
+
 	value := secret.Data[data.GetSecretKey()]
 	currentData, ok := p.config[data.GetRemoteKey()]
 	if !ok {
@@ -149,6 +175,9 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		return nil, err
 	}
 
+	p.configRLock()
+	defer p.configRUnlock()
+
 	dataMap := p.collectMatchingSecrets(matcher)
 	return esutils.ConvertKeys(ref.ConversionStrategy, dataMap)
 }
@@ -178,6 +207,13 @@ func (p *Provider) updateLatestVersion(originalKey string, data *Data, latestVer
 
 // GetSecret returns a single secret from the provider.
 func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	p.configRLock()
+	defer p.configRUnlock()
+
+	return p.getSecret(ref)
+}
+
+func (p *Provider) getSecret(ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	data, ok := p.config[mapKey(ref.Key, ref.Version)]
 	if !ok || data.Version != ref.Version {
 		return nil, esv1.NoSecretErr
@@ -197,12 +233,15 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	p.configRLock()
+	defer p.configRUnlock()
+
 	ddata, ok := p.config[mapKey(ref.Key, ref.Version)]
 	if !ok || ddata.Version != ref.Version {
 		return nil, esv1.NoSecretErr
 	}
 
-	data, err := p.GetSecret(ctx, ref)
+	data, err := p.getSecret(ref)
 	if err != nil {
 		return nil, err
 	}
@@ -229,6 +268,30 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 
 func (p *Provider) Close(_ context.Context) error {
 	return nil
+}
+
+func (p *Provider) configLock() {
+	if p.configMu != nil {
+		p.configMu.Lock()
+	}
+}
+
+func (p *Provider) configUnlock() {
+	if p.configMu != nil {
+		p.configMu.Unlock()
+	}
+}
+
+func (p *Provider) configRLock() {
+	if p.configMu != nil {
+		p.configMu.RLock()
+	}
+}
+
+func (p *Provider) configRUnlock() {
+	if p.configMu != nil {
+		p.configMu.RUnlock()
+	}
 }
 
 func (p *Provider) Validate() (esv1.ValidationResult, error) {

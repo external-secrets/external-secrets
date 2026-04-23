@@ -1,4 +1,4 @@
-# Provider Deployment Guide
+# Providers Reference
 
 This guide explains how to deploy External Secrets with integrated provider deployments using the monolithic Helm chart.
 

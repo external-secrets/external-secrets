@@ -15,8 +15,6 @@ v2:
   enabled: true
 crds:
   createClusterProviderClass: true
-  createProviderStore: true
-  createClusterProviderStore: true
 
 # Enable provider deployments
 providers:

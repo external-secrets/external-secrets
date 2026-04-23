@@ -80,7 +80,7 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 					RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 					SecretStoreRef: esv1.SecretStoreRef{
 						Name: f.Namespace.Name,
-						Kind: esv1.ProviderStoreKindStr,
+						Kind: esv1.SecretStoreKind,
 					},
 					Target: esv1.ExternalSecretTarget{
 						Name: targetName,
@@ -126,19 +126,13 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 			expectedValue := fmt.Sprintf("fanout-%d", i)
 			targetName := fmt.Sprintf("fake-fanout-target-%d", i)
 
-			frameworkv2.CreateProviderConnection(
-				f,
-				f.Namespace.Name,
-				providerName,
-				frameworkv2.ProviderAddress("fake"),
-				fakeProviderAPIVersion,
-				fakeProviderKind,
-				f.Namespace.Name,
-				"",
-			)
-			frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, providerName, defaultV2WaitTimeout)
+			createNamespacedFakeSecretStore(f, f.Namespace.Name, providerName)
+			frameworkv2.WaitForSecretStoreReady(f, f.Namespace.Name, providerName, defaultV2WaitTimeout)
 
-			prov.CreateSecret(remoteKey, framework.SecretEntry{
+			newLegacyRuntimeRefProvider(f, esv1.SecretStoreRef{
+				Name: providerName,
+				Kind: esv1.SecretStoreKind,
+			}, f.Namespace.Name).CreateSecret(remoteKey, framework.SecretEntry{
 				Value: fmt.Sprintf(`{"value":"%s"}`, expectedValue),
 			})
 
@@ -151,7 +145,7 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 					RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 					SecretStoreRef: esv1.SecretStoreRef{
 						Name: providerName,
-						Kind: esv1.ProviderStoreKindStr,
+						Kind: esv1.SecretStoreKind,
 					},
 					Target: esv1.ExternalSecretTarget{
 						Name: targetName,
@@ -221,7 +215,7 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 				RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 				SecretStoreRefs: []esv1alpha1.PushSecretStoreRef{{
 					Name:       f.Namespace.Name,
-					Kind:       esv1.ProviderStoreKindStr,
+					Kind:       esv1.SecretStoreKind,
 					APIVersion: esv1.SchemeGroupVersion.String(),
 				}},
 				Selector: esv1alpha1.PushSecretSelector{
@@ -247,12 +241,12 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 		commonWaitForPushSecretReady(f, f.Namespace.Name, pushSecretName, corev1.ConditionTrue)
 		waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 			Name: f.Namespace.Name,
-			Kind: esv1.ProviderStoreKindStr,
+			Kind: esv1.SecretStoreKind,
 		}, remoteSecretKey, "before-outage")
 
 		DeferCleanup(func() {
 			frameworkv2.ScaleDeploymentBySelectorAndWait(f, fakeBackendTarget(), 1, defaultV2WaitTimeout)
-			frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
+			frameworkv2.WaitForSecretStoreReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 		})
 		frameworkv2.ScaleDeploymentBySelectorAndWait(f, fakeBackendTarget(), 0, defaultV2WaitTimeout)
 		commonWaitForPushSecretReady(f, f.Namespace.Name, pushSecretName, corev1.ConditionFalse)
@@ -263,11 +257,11 @@ var _ = Describe("[fake] v2 operational", Serial, Label("fake", "v2", "operation
 		Expect(f.CRClient.Update(context.Background(), &updated)).To(Succeed())
 
 		frameworkv2.ScaleDeploymentBySelectorAndWait(f, fakeBackendTarget(), 1, defaultV2WaitTimeout)
-		frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 		commonWaitForPushSecretReady(f, f.Namespace.Name, pushSecretName, corev1.ConditionTrue)
 		waitForPushedValueViaExternalSecret(f, esv1.SecretStoreRef{
 			Name: f.Namespace.Name,
-			Kind: esv1.ProviderStoreKindStr,
+			Kind: esv1.SecretStoreKind,
 		}, remoteSecretKey, "after-outage")
 	})
 })

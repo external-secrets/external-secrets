@@ -46,7 +46,7 @@ func NewSyntheticStore(spec *esv1.SecretStoreSpec, namespace, storeRefKind strin
 	}
 
 	storeKind := esv1.SecretStoreKind
-	if storeRefKind == esv1.ClusterProviderStoreKindStr {
+	if storeRefKind == esv1.ClusterSecretStoreKind {
 		storeKind = esv1.ClusterSecretStoreKind
 	}
 

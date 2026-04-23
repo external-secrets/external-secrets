@@ -36,10 +36,13 @@ gendoc::build() {
 gendoc::exec() {
     local readonly confdir="${REPO}/hack/api-docs"
 
-    ${GOBIN}/gen-crd-api-reference-docs \
-        -template-dir ${confdir} \
-        -config ${confdir}/config.json \
-        "$@"
+    (
+        cd "${REPO}/apis"
+        env GOWORK=off ${GOBIN}/gen-crd-api-reference-docs \
+            -template-dir ${confdir} \
+            -config ${confdir}/config.json \
+            "$@"
+    )
 }
 
 if [ "$#" != "1" ]; then

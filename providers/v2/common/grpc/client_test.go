@@ -162,7 +162,7 @@ func TestClientGetSecretSendsProviderReferenceAndNamespace(t *testing.T) {
 	defer cleanup()
 
 	client := NewClientWithConn(conn)
-	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ProviderStoreKindStr}
+	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.SecretStoreKind}
 	ref := esv1.ExternalSecretDataRemoteRef{
 		Key:              "test-key",
 		Version:          "v1",
@@ -207,7 +207,7 @@ func TestClientGetSecretMapSendsProviderReferenceAndNamespace(t *testing.T) {
 	defer cleanup()
 
 	client := NewClientWithConn(conn)
-	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ProviderStoreKindStr}
+	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.SecretStoreKind}
 
 	value, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "test-key"}, providerRef, nil, testSourceNamespace)
 	if err != nil {
@@ -232,7 +232,7 @@ func TestClientGetAllSecretsSendsFindCriteria(t *testing.T) {
 	defer cleanup()
 
 	client := NewClientWithConn(conn)
-	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ProviderStoreKindStr}
+	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.SecretStoreKind}
 	path := "/team-a"
 
 	secrets, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
@@ -596,7 +596,7 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 	defer cleanup()
 
 	client := NewClientWithConn(conn)
-	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ProviderStoreKindStr}
+	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.SecretStoreKind}
 
 	err := client.PushSecret(context.Background(), &corev1.Secret{
 		Data: map[string][]byte{"token": []byte("value")},
@@ -666,7 +666,7 @@ func TestClientPushSecretSendsExpandedKubernetesSecretFields(t *testing.T) {
 	defer cleanup()
 
 	client := NewClientWithConn(conn)
-	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ClusterProviderStoreKindStr}
+	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ClusterSecretStoreKind}
 
 	err := client.PushSecret(context.Background(), &corev1.Secret{
 		Type: corev1.SecretTypeDockerConfigJson,
@@ -717,7 +717,7 @@ func TestClientValidate(t *testing.T) {
 		defer cleanup()
 
 		client := NewClientWithConn(conn)
-		providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.ProviderStoreKindStr}
+		providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.SecretStoreKind}
 
 		err := client.Validate(context.Background(), providerRef, nil, testSourceNamespace)
 		if err != nil {

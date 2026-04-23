@@ -646,7 +646,7 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 		providerRef := &pb.ProviderReference{
 			Name:         "provider",
 			Namespace:    "config-ns",
-			StoreRefKind: esv1.ProviderStoreKindStr,
+			StoreRefKind: esv1.SecretStoreKind,
 		}
 		provider := &fakeV2Provider{}
 		client := NewClient(provider, providerRef, testSourceNamespace)
@@ -661,7 +661,7 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 		if provider.validateProviderRef != providerRef {
 			t.Fatalf("unexpected provider ref: %#v", provider.validateProviderRef)
 		}
-		if provider.validateProviderRef.StoreRefKind != esv1.ProviderStoreKindStr {
+		if provider.validateProviderRef.StoreRefKind != esv1.SecretStoreKind {
 			t.Fatalf("unexpected store_ref_kind: %q", provider.validateProviderRef.StoreRefKind)
 		}
 		if provider.validateNamespace != testSourceNamespace {

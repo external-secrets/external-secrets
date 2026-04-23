@@ -47,9 +47,9 @@ type PushSecretStoreRef struct {
 	// +optional
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 
-	// Kind of the SecretStore resource (SecretStore, ClusterSecretStore, ProviderStore, or ClusterProviderStore)
+	// Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
 	// +optional
-	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore;ProviderStore;ClusterProviderStore
+	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore
 	Kind string `json:"kind,omitempty"`
 
 	// APIVersion of the referenced store resource.

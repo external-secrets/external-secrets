@@ -1,7 +1,0 @@
-suite: test ClusterProviderStore
-template: tests/crds/clusterproviderstore.yml
-tests:
-  - it: matches ClusterProviderStore correctly
-    asserts:
-      - matchSnapshot:
-          path: tests/__snapshot__

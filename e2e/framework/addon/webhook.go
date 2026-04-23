@@ -32,21 +32,25 @@ import (
 const externalSecretValidationReview = `{"apiVersion":"admission.k8s.io/v1","kind":"AdmissionReview","request":{"uid":"test","kind":{"group":"external-secrets.io","version":"v1","kind":"ExternalSecret"},"resource":{"group":"external-secrets.io","version":"v1","resource":"externalsecrets"},"dryRun":true,"operation":"CREATE","userInfo":{"username":"test","uid":"test","groups":[],"extra":{}}}}`
 
 var (
-	externalSecretWebhookURL = func(namespace string) string {
-		return fmt.Sprintf("https://external-secrets-webhook.%s.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", namespace)
+	externalSecretWebhookURL = func(serviceName, namespace string) string {
+		return fmt.Sprintf("https://%s.%s.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", serviceName, namespace)
 	}
 	webhookReadyPollInterval = time.Second
 	webhookReadyTimeout      = 5 * time.Minute
 	webhookReadyContext      = func() context.Context { return GinkgoT().Context() }
 )
 
-func waitForExternalSecretWebhookReady(namespace string) error {
+func webhookServiceName(releaseName string) string {
+	return fmt.Sprintf("%s-webhook", releaseName)
+}
+
+func waitForExternalSecretWebhookReady(serviceName, namespace string) error {
 	tr := &http.Transport{
 		// nolint:gosec
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	url := externalSecretWebhookURL(namespace)
+	url := externalSecretWebhookURL(serviceName, namespace)
 
 	return wait.PollUntilContextTimeout(webhookReadyContext(), webhookReadyPollInterval, webhookReadyTimeout, true, func(ctx context.Context) (bool, error) {
 		res, err := client.Post(url, "application/json", bytes.NewBufferString(externalSecretValidationReview))
