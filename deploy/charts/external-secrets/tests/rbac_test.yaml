@@ -66,3 +66,24 @@ tests:
       - equal:
           path: subjects[0].namespace
           value: NAMESPACE
+
+  - it: should configure custom lease name when leaderElectionID is set
+    set:
+      leaderElectionID: "custom-eso-lease"
+      scopedRBAC: true
+    asserts:
+      - matchSnapshot: {}
+
+  - it: should render resourceName as external-secrets-controller by default
+    set:
+      scopedRBAC: true
+    documentSelector:
+      path: rules[0].resourceNames[0]
+      value: "external-secrets-controller"
+    asserts:
+      - isKind:
+          of: Role
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-leaderelection
+
