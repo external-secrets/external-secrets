@@ -52,9 +52,9 @@ var (
 
 // Provider is a BeyondtrustSecrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
 type Provider struct {
-	// NewBeyondtrustSecretsClient is a function that returns a new BeyondtrustSecrets client.
+	// NewBeyondTrustSecretsClient is a function that returns a new BeyondTrust Secrets client.
 	// This is used for testing to inject a fake client.
-	NewBeyondtrustSecretsClient func(server, token string) (btsutil.Client, error)
+	NewBeyondTrustSecretsClient func(server, token string) (btsutil.Client, error)
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -92,7 +92,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 }
 
 // newClient is a shared helper creates the appropriate BeyondtrustSecrets client based on the provided spec.
-func (p *Provider) newClient(ctx context.Context, serverURL, apiKey string, btSpec *esv1.BeyondtrustSecretsProvider, kube kclient.Client, namespace, storeKind string) (btsutil.Client, error) {
+func (p *Provider) newClient(ctx context.Context, serverURL, apiKey string, btSpec *esv1.BeyondTrustSecretsProvider, kube kclient.Client, namespace, storeKind string) (btsutil.Client, error) {
 	// Fetch CA from CABundle/CAProvider using ESO helper
 	var caCert []byte
 	var err error
@@ -110,16 +110,16 @@ func (p *Provider) newClient(ctx context.Context, serverURL, apiKey string, btSp
 	}
 
 	if len(caCert) > 0 {
-		return httpclient.NewBeyondtrustSecretsClientWithCustomCA(serverURL, apiKey, caCert)
+		return httpclient.NewBeyondTrustSecretsClientWithCustomCA(serverURL, apiKey, caCert)
 	}
-	if p.NewBeyondtrustSecretsClient != nil {
-		return p.NewBeyondtrustSecretsClient(serverURL, apiKey)
+	if p.NewBeyondTrustSecretsClient != nil {
+		return p.NewBeyondTrustSecretsClient(serverURL, apiKey)
 	}
-	return httpclient.NewBeyondtrustSecretsClient(serverURL, apiKey)
+	return httpclient.NewBeyondTrustSecretsClient(serverURL, apiKey)
 }
 
 // NewGeneratorClient creates a new BeyondtrustSecrets client for the generator controller.
-func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, btSpec *esv1.BeyondtrustSecretsProvider, namespace string) (btsutil.Client, error) {
+func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, btSpec *esv1.BeyondTrustSecretsProvider, namespace string) (btsutil.Client, error) {
 	if btSpec == nil {
 		return nil, ErrNoStore
 	}
@@ -191,7 +191,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
-func loadAPIKeyFromSpec(ctx context.Context, spec *esv1.BeyondtrustSecretsProvider, kube kclient.Client, namespace, storeKind string) (string, error) {
+func loadAPIKeyFromSpec(ctx context.Context, spec *esv1.BeyondTrustSecretsProvider, kube kclient.Client, namespace, storeKind string) (string, error) {
 	if spec == nil {
 		return "", ErrNoStore
 	}
@@ -210,7 +210,7 @@ func loadAPIKeyFromSpec(ctx context.Context, spec *esv1.BeyondtrustSecretsProvid
 	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &tokenRef)
 }
 
-func loadURLFromSpec(spec *esv1.BeyondtrustSecretsProvider) (string, string, error) {
+func loadURLFromSpec(spec *esv1.BeyondTrustSecretsProvider) (string, string, error) {
 	if spec == nil {
 		return "", "", ErrNoStore
 	}
@@ -239,7 +239,7 @@ func loadURLFromSpec(spec *esv1.BeyondtrustSecretsProvider) (string, string, err
 	return spec.Server.APIURL, spec.Server.SiteID, nil
 }
 
-func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondtrustSecretsProvider, kube kclient.Client, namespace, storeKind string) (string, string, error) {
+func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondTrustSecretsProvider, kube kclient.Client, namespace, storeKind string) (string, string, error) {
 	if spec == nil {
 		return "", "", ErrNoStore
 	}
@@ -262,14 +262,14 @@ func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondtrustSecret
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
 	return &Provider{
-		NewBeyondtrustSecretsClient: httpclient.NewBeyondtrustSecretsClient,
+		NewBeyondTrustSecretsClient: httpclient.NewBeyondTrustSecretsClient,
 	}
 }
 
 // ProviderSpec returns the provider specification for registration.
 func ProviderSpec() *esv1.SecretStoreProvider {
 	return &esv1.SecretStoreProvider{
-		BeyondtrustSecrets: &esv1.BeyondtrustSecretsProvider{},
+		BeyondtrustSecrets: &esv1.BeyondTrustSecretsProvider{},
 	}
 }
 

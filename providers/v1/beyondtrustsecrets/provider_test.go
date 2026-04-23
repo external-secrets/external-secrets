@@ -45,7 +45,7 @@ const (
 
 type beyondtrustsecretsGetSecretTestCase struct {
 	label                 string
-	fakeBtsecretsClient   *fake.BeyondtrustSecretsClient
+	fakeBtsecretsClient   *fake.BeyondTrustSecretsClient
 	ctx                   context.Context
 	name                  *string
 	folderPath            *string
@@ -58,7 +58,7 @@ type beyondtrustsecretsGetSecretTestCase struct {
 
 type beyondtrustsecretsGetAllSecretsTestCase struct {
 	label                     string
-	fakeBtsecretsClient       *fake.BeyondtrustSecretsClient
+	fakeBtsecretsClient       *fake.BeyondTrustSecretsClient
 	ctx                       context.Context
 	name                      *string
 	names                     []string
@@ -80,7 +80,7 @@ type beyondtrustsecretsGetAllSecretsTestCase struct {
 // makeValidGetSecretTestCase creates a valid test case for GetSecret tests.
 func makeValidGetSecretTestCase() *beyondtrustsecretsGetSecretTestCase {
 	return &beyondtrustsecretsGetSecretTestCase{
-		fakeBtsecretsClient: &fake.BeyondtrustSecretsClient{},
+		fakeBtsecretsClient: &fake.BeyondTrustSecretsClient{},
 		ctx:                 context.Background(),
 		name:                ptr.String(validSecretName),
 		folderPath:          ptr.String(validFolderPath),
@@ -91,7 +91,7 @@ func makeValidGetSecretTestCase() *beyondtrustsecretsGetSecretTestCase {
 // makeValidGetAllSecretsTestCase creates a valid test case for GetSecrets tests.
 func makeValidGetAllSecretsTestCase() *beyondtrustsecretsGetAllSecretsTestCase {
 	return &beyondtrustsecretsGetAllSecretsTestCase{
-		fakeBtsecretsClient: &fake.BeyondtrustSecretsClient{},
+		fakeBtsecretsClient: &fake.BeyondTrustSecretsClient{},
 		ctx:                 context.Background(),
 		name:                ptr.String(validSecretName),
 		folderPath:          ptr.String(validFolderPath),
@@ -99,7 +99,7 @@ func makeValidGetAllSecretsTestCase() *beyondtrustsecretsGetAllSecretsTestCase {
 	}
 }
 
-// makeValidGetSecretTestCaseWithValues injects values into the faked BeyondtrustSecretsClient for GetSecret tests.
+// makeValidGetSecretTestCaseWithValues injects values into the faked BeyondTrustSecretsClient for GetSecret tests.
 func makeValidGetSecretTestCaseWithValues(tweaks ...func(tc *beyondtrustsecretsGetSecretTestCase)) *beyondtrustsecretsGetSecretTestCase {
 	vtc := makeValidGetSecretTestCase()
 	for _, fn := range tweaks {
@@ -111,7 +111,7 @@ func makeValidGetSecretTestCaseWithValues(tweaks ...func(tc *beyondtrustsecretsG
 	return vtc
 }
 
-// makeValidGetAllSecretsTestCaseWithValues injects values into the faked BeyondtrustSecretsClient for GetSecrets tests.
+// makeValidGetAllSecretsTestCaseWithValues injects values into the faked BeyondTrustSecretsClient for GetSecrets tests.
 func makeValidGetAllSecretsTestCaseWithValues(tweaks ...func(tc *beyondtrustsecretsGetAllSecretsTestCase)) *beyondtrustsecretsGetAllSecretsTestCase {
 	vtc := makeValidGetAllSecretsTestCase()
 	for _, fn := range tweaks {
@@ -123,7 +123,7 @@ func makeValidGetAllSecretsTestCaseWithValues(tweaks ...func(tc *beyondtrustsecr
 	return vtc
 }
 
-// makeValidGetAllSecretsTestCaseWithMultiValues injects values with multiple GET responses into the faked BeyondtrustSecretsClient for GetSecrets tests.
+// makeValidGetAllSecretsTestCaseWithMultiValues injects values with multiple GET responses into the faked BeyondTrustSecretsClient for GetSecrets tests.
 func makeValidGetAllSecretsTestCaseWithMultiValues(tweaks ...func(tc *beyondtrustsecretsGetAllSecretsTestCase)) *beyondtrustsecretsGetAllSecretsTestCase {
 	vtc := makeValidGetAllSecretsTestCase()
 	for _, fn := range tweaks {
@@ -237,7 +237,7 @@ func TestGetSecret(t *testing.T) {
 		makeValidGetSecretTestCaseWithValues(invalidSecret),
 	}
 
-	c := Client{store: &esv1.BeyondtrustSecretsProvider{}}
+	c := Client{store: &esv1.BeyondTrustSecretsProvider{}}
 
 	for i, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
@@ -521,7 +521,7 @@ func TestGetAllSecrets(t *testing.T) {
 		makeValidGetAllSecretsTestCaseWithValues(invalidSecretInList),
 	}
 
-	c := Client{store: &esv1.BeyondtrustSecretsProvider{}}
+	c := Client{store: &esv1.BeyondTrustSecretsProvider{}}
 
 	for i, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
@@ -632,7 +632,7 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidGetSecretTestCaseWithValues(invalidSecret),
 	}
 
-	c := Client{store: &esv1.BeyondtrustSecretsProvider{}}
+	c := Client{store: &esv1.BeyondTrustSecretsProvider{}}
 
 	for i, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {

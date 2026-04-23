@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/generators/v1/beyondtrustsecrets
 
-go 1.25.7
+go 1.26.2
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
@@ -17,7 +17,6 @@ require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.1-0.20241028115027-8cb06fe3c8b0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

@@ -51,7 +51,7 @@ type testCase struct {
 	want   want
 }
 
-func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
+func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 	namespace := "test-namespace"
 
 	cases := map[string]testCase{
@@ -143,7 +143,7 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 					},
 				}).Build(),
 				btsClientFn: func(server, token string) (btsutil.Client, error) {
-					client := &fake.BeyondtrustSecretsClient{}
+					client := &fake.BeyondTrustSecretsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
@@ -183,7 +183,7 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 					},
 				}).Build(),
 				btsClientFn: func(server, token string) (btsutil.Client, error) {
-					client := &fake.BeyondtrustSecretsClient{}
+					client := &fake.BeyondTrustSecretsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
@@ -221,7 +221,7 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 					},
 				}).Build(),
 				btsClientFn: func(server, token string) (btsutil.Client, error) {
-					client := &fake.BeyondtrustSecretsClient{}
+					client := &fake.BeyondTrustSecretsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
@@ -238,7 +238,7 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// Create client factory function with mock setup
 			newClientFn := func(server, token string) (btsutil.Client, error) {
-				client := &fake.BeyondtrustSecretsClient{}
+				client := &fake.BeyondTrustSecretsClient{}
 				client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 
 				// Set up the generate mock if provided
@@ -259,7 +259,7 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 					}
 
 					// If it's a fake client, set up the generate mock
-					if fakeClient, ok := client.(*fake.BeyondtrustSecretsClient); ok && tc.args.generateMock != nil {
+					if fakeClient, ok := client.(*fake.BeyondTrustSecretsClient); ok && tc.args.generateMock != nil {
 						fakeClient.WithGenerateDynamicSecret(tc.args.generateMock)
 					}
 
@@ -269,7 +269,7 @@ func TestBeyondtrustSecretsDynamicSecretGenerator(t *testing.T) {
 
 			// Create generator with injected client factory
 			gen := &Generator{
-				NewBeyondtrustSecretsClient: newClientFn,
+				NewBeyondTrustSecretsClient: newClientFn,
 			}
 
 			// Call gen.Generate() for all test cases

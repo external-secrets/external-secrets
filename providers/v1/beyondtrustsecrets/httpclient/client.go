@@ -399,12 +399,12 @@ func parseError(body []byte, statusCode int, path string) error {
 // Ensure Client implements btsutil.Client interface.
 var _ btsutil.Client = (*Client)(nil)
 
-// NewBeyondtrustSecretsClient is a wrapper for backward compatibility.
-func NewBeyondtrustSecretsClient(server, token string) (btsutil.Client, error) {
+// NewBeyondTrustSecretsClient is a wrapper for backward compatibility.
+func NewBeyondTrustSecretsClient(server, token string) (btsutil.Client, error) {
 	return NewClient(server, token)
 }
 
-// NewBeyondtrustSecretsClientWithCustomCA is a wrapper for backward compatibility.
-func NewBeyondtrustSecretsClientWithCustomCA(server, token string, caBundlePEM []byte) (btsutil.Client, error) {
+// NewBeyondTrustSecretsClientWithCustomCA is a wrapper for backward compatibility.
+func NewBeyondTrustSecretsClientWithCustomCA(server, token string, caBundlePEM []byte) (btsutil.Client, error) {
 	return NewClientWithCustomCA(server, token, caBundlePEM)
 }

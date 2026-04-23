@@ -20,10 +20,10 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// BeyondtrustSecretAuthSecretRef defines a reference to a secret containing credentials for the BeyondtrustSecret provider.
+// BeyondTrustSecretAuthSecretRef defines a reference to a secret containing credentials for the BeyondTrust Secrets Manager provider.
 // The nested structure supports multiple authentication methods (currently only API token is supported).
 // For more information on authentication, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
-type BeyondtrustSecretAuthSecretRef struct {
+type BeyondTrustSecretAuthSecretRef struct {
 	// Token references the Kubernetes secret containing the BeyondTrust Secrets Manager API token.
 	// The secret should contain the API key used to authenticate with BeyondTrust Secrets Manager.
 	// Create an API token in your BeyondTrust Secrets Manager console and store it in a Kubernetes secret.
@@ -31,18 +31,18 @@ type BeyondtrustSecretAuthSecretRef struct {
 	Token esmeta.SecretKeySelector `json:"token"`
 }
 
-// BeyondtrustSecretAuth defines the authentication method for the BeyondtrustSecret provider.
+// BeyondTrustSecretAuth defines the authentication method for the BeyondTrust Secrets Manager provider.
 // Currently supports API key authentication via Kubernetes secret reference.
 // For authentication documentation, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
-type BeyondtrustSecretAuth struct {
+type BeyondTrustSecretAuth struct {
 	// APIKey configures API token authentication for BeyondTrust Secrets Manager.
 	// The token is retrieved from a Kubernetes secret and used as a Bearer token for API requests.
-	APIKey BeyondtrustSecretAuthSecretRef `json:"apikey"`
+	APIKey BeyondTrustSecretAuthSecretRef `json:"apikey"`
 }
 
-// BeyondtrustSecretsServer defines connection configuration for BeyondTrust Secrets Manager.
+// BeyondTrustSecretsServer defines connection configuration for BeyondTrust Secrets Manager.
 // For API reference documentation, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
-type BeyondtrustSecretsServer struct {
+type BeyondTrustSecretsServer struct {
 	// APIURL is the base URL of your BeyondTrust Secrets Manager API server.
 	// This should be the full URL to your BeyondTrust instance.
 	// Example: https://example.secretsmanager.cyberark.cloud
@@ -59,22 +59,22 @@ type BeyondtrustSecretsServer struct {
 	SiteID string `json:"siteId"`
 }
 
-// BeyondtrustSecretsProvider configures a store to sync secrets using the BeyondtrustSecrets provider.
+// BeyondTrustSecretsProvider configures a store to sync secrets using the BeyondTrust Secrets Manager provider.
 // BeyondTrust Secrets Manager provides secure storage for static secrets and dynamic credential generation.
 // This provider supports reading secrets and generating dynamic credentials (e.g., temporary AWS credentials).
 // For complete documentation, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
-type BeyondtrustSecretsProvider struct {
+type BeyondTrustSecretsProvider struct {
 	// Auth configures how the Operator authenticates with the BeyondTrust Secrets Manager API.
 	// Currently supports API key authentication via Kubernetes secret reference.
 	// For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
 	// +required
-	Auth *BeyondtrustSecretAuth `json:"auth"`
+	Auth *BeyondTrustSecretAuth `json:"auth"`
 
 	// Server configures the BeyondTrust Secrets Manager server connection details.
 	// Includes the API URL and Site ID for your BeyondTrust instance.
 	// For API reference, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 	// +required
-	Server *BeyondtrustSecretsServer `json:"server"`
+	Server *BeyondTrustSecretsServer `json:"server"`
 
 	// FolderPath specifies the default folder path for secret retrieval.
 	// Secrets will be fetched from this folder unless overridden in the ExternalSecret spec.

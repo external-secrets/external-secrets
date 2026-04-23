@@ -41,7 +41,7 @@ const ErrMsgNotImplemented = "not implemented: %s"
 // Client implements the SecretsClient interface for BeyondTrust Secrets.
 type Client struct {
 	beyondtrustSecretsClient btsutil.Client
-	store                    *esv1.BeyondtrustSecretsProvider
+	store                    *esv1.BeyondTrustSecretsProvider
 }
 
 // Validate checks if the client is configured correctly

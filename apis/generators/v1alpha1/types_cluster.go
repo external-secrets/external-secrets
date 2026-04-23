@@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustSecretsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
+// +kubebuilder:validation:Enum=ACRAccessToken;BeyondTrustSecretsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 type GeneratorKind string
 
 const (
@@ -64,17 +64,17 @@ const (
 	GeneratorKindMFA GeneratorKind = "MFA"
 	// GeneratorKindCloudsmithAccessToken represents a Cloudsmith access token generator.
 	GeneratorKindCloudsmithAccessToken GeneratorKind = "CloudsmithAccessToken"
-	// GeneratorKindBeyondtrustSecretsDynamicSecret represents a BeyondtrustSecrets dynamic secret generator.
-	GeneratorKindBeyondtrustSecretsDynamicSecret GeneratorKind = "BeyondtrustSecretsDynamicSecret"
+	// GeneratorKindBeyondTrustSecretsDynamicSecret represents a BeyondTrust Secrets dynamic secret generator.
+	GeneratorKindBeyondTrustSecretsDynamicSecret GeneratorKind = "BeyondTrustSecretsDynamicSecret"
 )
 
 // GeneratorSpec defines the configuration for various supported generator types.
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type GeneratorSpec struct {
-	ACRAccessTokenSpec                  *ACRAccessTokenSpec                  `json:"acrAccessTokenSpec,omitempty"`
-	BeyondtrustSecretsDynamicSecretSpec *BeyondtrustSecretsDynamicSecretSpec `json:"beyondtrustSecretsDynamicSecretSpec,omitempty"`
-	CloudsmithAccessTokenSpec           *CloudsmithAccessTokenSpec           `json:"cloudsmithAccessTokenSpec,omitempty"`
+	ACRAccessTokenSpec                 *ACRAccessTokenSpec                 `json:"acrAccessTokenSpec,omitempty"`
+	BeyondTrustSecretsDynamicSecretSpec *BeyondTrustSecretsDynamicSecretSpec `json:"beyondTrustSecretsDynamicSecretSpec,omitempty"`
+	CloudsmithAccessTokenSpec          *CloudsmithAccessTokenSpec          `json:"cloudsmithAccessTokenSpec,omitempty"`
 	ECRAuthorizationTokenSpec           *ECRAuthorizationTokenSpec           `json:"ecrAuthorizationTokenSpec,omitempty"`
 	FakeSpec                            *FakeSpec                            `json:"fakeSpec,omitempty"`
 	GCRAccessTokenSpec                  *GCRAccessTokenSpec                  `json:"gcrAccessTokenSpec,omitempty"`

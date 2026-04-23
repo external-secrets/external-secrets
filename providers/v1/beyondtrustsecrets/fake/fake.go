@@ -24,45 +24,45 @@ import (
 	btsutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/util"
 )
 
-type BeyondtrustSecretsClient struct {
+type BeyondTrustSecretsClient struct {
 	getSecret             func(ctx context.Context, name string, folderPath *string) (*btsutil.KV, error)
 	getSecrets            func(ctx context.Context, folderPath *string, recursive bool) ([]btsutil.KVListItem, error)
 	generateDynamicSecret func(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error)
 	getCalls              int
 }
 
-func (c *BeyondtrustSecretsClient) BaseURL() *url.URL {
+func (c *BeyondTrustSecretsClient) BaseURL() *url.URL {
 	return &url.URL{Scheme: "", Host: ""}
 }
 
-func (c *BeyondtrustSecretsClient) SetBaseURL(urlStr string) error {
+func (c *BeyondTrustSecretsClient) SetBaseURL(urlStr string) error {
 	return nil
 }
 
-func (c *BeyondtrustSecretsClient) CheckSession(ctx context.Context) error {
+func (c *BeyondTrustSecretsClient) CheckSession(ctx context.Context) error {
 	// By default, fake client returns success for session check
 	return nil
 }
 
-func (c *BeyondtrustSecretsClient) Authenticate() error {
+func (c *BeyondTrustSecretsClient) Authenticate() error {
 	return nil
 }
 
-func (c *BeyondtrustSecretsClient) GetSecret(ctx context.Context, name string, folderPath *string) (*btsutil.KV, error) {
+func (c *BeyondTrustSecretsClient) GetSecret(ctx context.Context, name string, folderPath *string) (*btsutil.KV, error) {
 	if c.getSecret == nil {
 		return nil, errors.New("GetSecret not configured in fake client")
 	}
 	return c.getSecret(ctx, name, folderPath)
 }
 
-func (c *BeyondtrustSecretsClient) GetSecrets(ctx context.Context, folderPath *string, recursive bool) ([]btsutil.KVListItem, error) {
+func (c *BeyondTrustSecretsClient) GetSecrets(ctx context.Context, folderPath *string, recursive bool) ([]btsutil.KVListItem, error) {
 	if c.getSecrets == nil {
 		return nil, errors.New("GetSecrets not configured in fake client")
 	}
 	return c.getSecrets(ctx, folderPath, recursive)
 }
 
-func (c *BeyondtrustSecretsClient) GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error) {
+func (c *BeyondTrustSecretsClient) GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error) {
 	if c.generateDynamicSecret == nil {
 		return nil, errors.New("GenerateDynamicSecret not implemented in fake")
 	}
@@ -70,7 +70,7 @@ func (c *BeyondtrustSecretsClient) GenerateDynamicSecret(ctx context.Context, na
 }
 
 // WithValues sets up the fake client to return specific values or errors for GetSecret and GetSecrets calls.
-func (c *BeyondtrustSecretsClient) WithValues(ctx context.Context, name, folderPath *string, getResponse *btsutil.KV, getAllResponse []btsutil.KVListItem, getErrMsg, listErrMsg *string) {
+func (c *BeyondTrustSecretsClient) WithValues(ctx context.Context, name, folderPath *string, getResponse *btsutil.KV, getAllResponse []btsutil.KVListItem, getErrMsg, listErrMsg *string) {
 	if c == nil {
 		return
 	}
@@ -101,7 +101,7 @@ func (c *BeyondtrustSecretsClient) WithValues(ctx context.Context, name, folderP
 }
 
 // WithMultiValues sets up the fake client to return multiple responses for GetSecret calls in sequence, or errors for GetSecret and GetSecrets calls.
-func (c *BeyondtrustSecretsClient) WithMultiValues(
+func (c *BeyondTrustSecretsClient) WithMultiValues(
 	ctx context.Context,
 	names []string,
 	folderPath *string,
@@ -148,7 +148,7 @@ func (c *BeyondtrustSecretsClient) WithMultiValues(
 	}
 }
 
-func (c *BeyondtrustSecretsClient) WithGenerateDynamicSecret(fn func(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error)) {
+func (c *BeyondTrustSecretsClient) WithGenerateDynamicSecret(fn func(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error)) {
 	if c == nil {
 		return
 	}

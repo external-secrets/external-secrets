@@ -22,10 +22,10 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// BeyondtrustSecretsDynamicSecretSpec defines the desired spec for BeyondtrustSecrets dynamic generator.
+// BeyondTrustSecretsDynamicSecretSpec defines the desired spec for BeyondtrustSecrets dynamic generator.
 // This generator enables obtaining temporary, short-lived credentials from BeyondTrust Secrets Manager.
 // For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
-type BeyondtrustSecretsDynamicSecretSpec struct {
+type BeyondTrustSecretsDynamicSecretSpec struct {
 	// Controller selects the controller that should handle this generator.
 	// Leave empty to use the default controller.
 	// +optional
@@ -37,7 +37,7 @@ type BeyondtrustSecretsDynamicSecretSpec struct {
 	// BeyondTrust Secrets Manager (e.g., "production/aws-temp").
 	// For setup details, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 	// +required
-	Provider *esv1.BeyondtrustSecretsProvider `json:"provider"`
+	Provider *esv1.BeyondTrustSecretsProvider `json:"provider"`
 
 	// RetrySettings configures exponential backoff for failed API requests.
 	// If not specified, uses the default retry settings.
@@ -45,7 +45,7 @@ type BeyondtrustSecretsDynamicSecretSpec struct {
 	RetrySettings *esv1.SecretStoreRetrySettings `json:"retrySettings,omitempty"`
 }
 
-// BeyondtrustSecretsDynamicSecret represents a generator that requests dynamic credentials from BeyondTrust Secrets Manager.
+// BeyondTrustSecretsDynamicSecret represents a generator that requests dynamic credentials from BeyondTrust Secrets Manager.
 // This generator calls the BeyondTrust Secrets Manager API to generate fresh, temporary credentials
 // (such as AWS STS credentials) each time an ExternalSecret is refreshed.
 // Dynamic secret definitions must be created in BeyondTrust Secrets Manager before they can be referenced.
@@ -55,17 +55,17 @@ type BeyondtrustSecretsDynamicSecretSpec struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators}
-type BeyondtrustSecretsDynamicSecret struct {
+type BeyondTrustSecretsDynamicSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec BeyondtrustSecretsDynamicSecretSpec `json:"spec,omitempty"`
+	Spec BeyondTrustSecretsDynamicSecretSpec `json:"spec,omitempty"`
 }
 
-// BeyondtrustSecretsDynamicSecretList contains a list of BeyondtrustSecretsDynamicSecret resources.
+// BeyondTrustSecretsDynamicSecretList contains a list of BeyondTrustSecretsDynamicSecret resources.
 // +kubebuilder:object:root=true
-type BeyondtrustSecretsDynamicSecretList struct {
+type BeyondTrustSecretsDynamicSecretList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []BeyondtrustSecretsDynamicSecret `json:"items"`
+	Items           []BeyondTrustSecretsDynamicSecret `json:"items"`
 }
