@@ -22,7 +22,6 @@ import (
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -65,21 +64,22 @@ func newAWSClusterProviderScenario(f *framework.Framework, prefix string, authSc
 		backend:   backend,
 		f:         f,
 	}
-	createParameterStoreV2Config(s.f, s.common.ConfigNamespace, s.common.ConfigName, s.access)
 	return s
 }
 
 func (s *awsClusterProviderScenario) createClusterProvider(conditions []esv1.ClusterSecretStoreCondition) string {
 	clusterProviderName := s.common.ClusterProviderName()
-	frameworkv2.CreateClusterProviderConnection(
+	var authNamespace *string
+	if s.common.AuthScope == esv1.AuthenticationScopeProviderNamespace {
+		authNamespace = &s.common.ConfigNamespace
+	}
+	createParameterStoreV2RuntimeClusterSecretStore(
 		s.f,
 		clusterProviderName,
-		frameworkv2.ProviderAddress("aws"),
-		awsProviderAPIVersion,
-		awsv2alpha1.ParameterStoreKind,
-		s.common.ConfigName,
-		s.common.ProviderRefNamespace,
-		s.common.AuthScope,
+		s.common.ConfigNamespace,
+		awscommon.CredentialsSecretName(s.common.ConfigName),
+		s.access,
+		authNamespace,
 		conditions,
 	)
 	return clusterProviderName
@@ -98,11 +98,15 @@ func newAWSClusterProviderExternalSecretHarness(f *framework.Framework, prov *Pr
 		Prepare: func(_ *framework.TestCase, cfg common.ClusterProviderConfig) *common.ClusterProviderExternalSecretRuntime {
 			s := newAWSClusterProviderScenario(f, cfg.Name, cfg.AuthScope, prov.access, prov.backend)
 			clusterProviderName := s.createClusterProvider(cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.ClusterProviderExternalSecretRuntime{
 				ClusterProviderName: clusterProviderName,
-				Provider:            s,
+				StoreRef: esv1.SecretStoreRef{
+					Name: clusterProviderName,
+					Kind: esv1.ClusterSecretStoreKind,
+				},
+				Provider: s,
 			}
 		},
 	}

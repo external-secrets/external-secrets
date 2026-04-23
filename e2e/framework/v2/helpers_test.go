@@ -23,45 +23,30 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 
 	. "github.com/onsi/gomega"
 )
 
-func TestCreateKubernetesProviderUsesProvidedCABundle(t *testing.T) {
+func TestNewKubernetesStoreProviderUsesProvidedCABundle(t *testing.T) {
 	t.Helper()
 	RegisterTestingT(t)
 
-	scheme := runtime.NewScheme()
-	Expect(corev1.AddToScheme(scheme)).To(Succeed())
-	Expect(k8sv2alpha1.AddToScheme(scheme)).To(Succeed())
+	provider := NewKubernetesStoreProvider("remote-ns", "eso-auth", nil, []byte("inline-ca"))
 
-	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
-	f := &framework.Framework{
-		CRClient: cl,
-	}
-
-	CreateKubernetesProvider(f, "provider-ns", "example", "remote-ns", "eso-auth", nil, []byte("inline-ca"))
-
-	var provider k8sv2alpha1.Kubernetes
-	err := cl.Get(context.Background(), client.ObjectKey{
-		Namespace: "provider-ns",
-		Name:      "example",
-	}, &provider)
-	Expect(err).NotTo(HaveOccurred())
-
-	Expect(provider.Spec.Server.CABundle).To(Equal([]byte("inline-ca")))
-	Expect(provider.Spec.Server.CAProvider).To(BeNil())
-	Expect(provider.Spec.Auth).NotTo(BeNil())
-	Expect(provider.Spec.Auth.ServiceAccount).To(Equal(&esmeta.ServiceAccountSelector{
+	Expect(provider).NotTo(BeNil())
+	Expect(provider.Kubernetes).NotTo(BeNil())
+	Expect(provider.Kubernetes.Server.CABundle).To(Equal([]byte("inline-ca")))
+	Expect(provider.Kubernetes.Server.CAProvider).To(BeNil())
+	Expect(provider.Kubernetes.Auth).NotTo(BeNil())
+	Expect(provider.Kubernetes.Auth.ServiceAccount).To(Equal(&esmeta.ServiceAccountSelector{
 		Name:      "eso-auth",
 		Namespace: nil,
 	}))
@@ -95,30 +80,71 @@ func TestGetClusterCABundleWaitsForRootCAConfigMap(t *testing.T) {
 	Expect(GetClusterCABundle(f, "test")).To(Equal([]byte("root-ca-data")))
 }
 
-func TestWaitForProviderConnectionConditionMatchesReadyStatus(t *testing.T) {
+func TestCreateRuntimeSecretStoreCreatesStoreAndProviderClass(t *testing.T) {
 	t.Helper()
 	RegisterTestingT(t)
 
 	scheme := runtime.NewScheme()
-	scheme.AddKnownTypeWithName(providerStoreGVK, &unstructured.Unstructured{})
+	Expect(esv1.AddToScheme(scheme)).To(Succeed())
+	Expect(esv1alpha1.AddToScheme(scheme)).To(Succeed())
 
-	storeObj := &unstructured.Unstructured{}
-	storeObj.SetGroupVersionKind(providerStoreGVK)
-	storeObj.SetName("example")
-	storeObj.SetNamespace("test")
-	storeObj.Object["status"] = map[string]any{
-		"conditions": []any{map[string]any{
-			"type":   providerStoreReady,
-			"status": string(corev1.ConditionTrue),
-		}},
-	}
-
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(storeObj).Build()
+	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 	f := &framework.Framework{CRClient: cl}
 
-	store := WaitForProviderConnectionCondition(f, "test", "example", metav1.ConditionTrue, 100*time.Millisecond)
+	store := CreateRuntimeSecretStore(f, "test", "example", "provider-fake.test.svc:8080", &esv1.SecretStoreProvider{
+		Fake: &esv1.FakeProvider{},
+	})
+
 	Expect(store).NotTo(BeNil())
-	Expect(store.GetName()).To(Equal("example"))
+	Expect(store.Spec.RuntimeRef).NotTo(BeNil())
+	Expect(store.Spec.RuntimeRef.Name).To(Equal(runtimeClassName("example")))
+	Expect(store.Spec.RuntimeRef.Kind).To(BeEmpty())
+
+	var persistedStore esv1.SecretStore
+	err := cl.Get(context.Background(), client.ObjectKey{Name: "example", Namespace: "test"}, &persistedStore)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(persistedStore.Spec.Provider).NotTo(BeNil())
+	Expect(persistedStore.Spec.Provider.Fake).NotTo(BeNil())
+
+	var runtimeClass esv1alpha1.ProviderClass
+	err = cl.Get(context.Background(), client.ObjectKey{Name: runtimeClassName("example"), Namespace: "test"}, &runtimeClass)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(runtimeClass.Spec.Address).To(Equal("provider-fake.test.svc:8080"))
+}
+
+func TestCreateRuntimeClusterSecretStoreCreatesStoreAndClusterProviderClass(t *testing.T) {
+	t.Helper()
+	RegisterTestingT(t)
+
+	scheme := runtime.NewScheme()
+	Expect(esv1.AddToScheme(scheme)).To(Succeed())
+	Expect(esv1alpha1.AddToScheme(scheme)).To(Succeed())
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
+	f := &framework.Framework{CRClient: cl}
+
+	store := CreateRuntimeClusterSecretStore(f, "example", "provider-fake.external-secrets-system.svc:8080", &esv1.SecretStoreProvider{
+		Fake: &esv1.FakeProvider{},
+	}, []esv1.ClusterSecretStoreCondition{{
+		Namespaces: []string{"tenant-a"},
+	}})
+
+	Expect(store).NotTo(BeNil())
+	Expect(store.Spec.RuntimeRef).NotTo(BeNil())
+	Expect(store.Spec.RuntimeRef.Name).To(Equal(runtimeClassName("example")))
+	Expect(store.Spec.RuntimeRef.Kind).To(BeEmpty())
+	Expect(store.Spec.Conditions).To(HaveLen(1))
+
+	var persistedStore esv1.ClusterSecretStore
+	err := cl.Get(context.Background(), client.ObjectKey{Name: "example"}, &persistedStore)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(persistedStore.Spec.Provider).NotTo(BeNil())
+	Expect(persistedStore.Spec.Provider.Fake).NotTo(BeNil())
+
+	var runtimeClass esv1alpha1.ClusterProviderClass
+	err = cl.Get(context.Background(), client.ObjectKey{Name: runtimeClassName("example")}, &runtimeClass)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(runtimeClass.Spec.Address).To(Equal("provider-fake.external-secrets-system.svc:8080"))
 }
 
 func TestWaitForSecretStoreConditionMatchesReadyStatus(t *testing.T) {
@@ -147,31 +173,6 @@ func TestWaitForSecretStoreConditionMatchesReadyStatus(t *testing.T) {
 	got := WaitForSecretStoreCondition(f, "test", "example", metav1.ConditionTrue, 100*time.Millisecond)
 	Expect(got).NotTo(BeNil())
 	Expect(got.GetName()).To(Equal("example"))
-}
-
-func TestWaitForClusterProviderConditionMatchesReadyStatus(t *testing.T) {
-	t.Helper()
-	RegisterTestingT(t)
-
-	scheme := runtime.NewScheme()
-	scheme.AddKnownTypeWithName(clusterProviderStoreGVK, &unstructured.Unstructured{})
-
-	storeObj := &unstructured.Unstructured{}
-	storeObj.SetGroupVersionKind(clusterProviderStoreGVK)
-	storeObj.SetName("example")
-	storeObj.Object["status"] = map[string]any{
-		"conditions": []any{map[string]any{
-			"type":   providerStoreReady,
-			"status": string(corev1.ConditionTrue),
-		}},
-	}
-
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(storeObj).Build()
-	f := &framework.Framework{CRClient: cl}
-
-	store := WaitForClusterProviderCondition(f, "example", metav1.ConditionTrue, 100*time.Millisecond)
-	Expect(store).NotTo(BeNil())
-	Expect(store.GetName()).To(Equal("example"))
 }
 
 func TestWaitForClusterSecretStoreConditionMatchesReadyStatus(t *testing.T) {

@@ -28,6 +28,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -42,7 +43,7 @@ var _ = Describe("[kubernetes] v2 push secret", Label("kubernetes", "v2", "push-
 		if !framework.IsV2ProviderMode() {
 			Skip("v2 mode only")
 		}
-		frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 	})
 
 	DescribeTable("push secret",
@@ -66,17 +67,27 @@ func newKubernetesClusterProviderPushHarness(f *framework.Framework) common.Clus
 			s.allowRemoteAccessForScope(cfg.AuthScope, cfg.Name)
 
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			// Kubernetes push harness supports all optional ClusterProvider push capabilities.
 			return &common.ClusterProviderPushRuntime{
-				ClusterProviderName:    clusterProviderName,
+				ClusterProviderName: clusterProviderName,
+				StoreRef: esv1.SecretStoreRef{
+					Name: clusterProviderName,
+					Kind: esv1.ClusterSecretStoreKind,
+				},
 				DefaultRemoteNamespace: s.remoteNamespace,
 				BreakAuth: func() {
-					updateKubernetesProviderServiceAccount(f, s.backendNamespace, s.providerConfigName(cfg.Name), "missing-service-account")
+					updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
+						Name: clusterProviderName,
+						Kind: esv1.ClusterSecretStoreKind,
+					}, "", "missing-service-account")
 				},
 				RepairAuth: func() {
-					updateKubernetesProviderServiceAccount(f, s.backendNamespace, s.providerConfigName(cfg.Name), s.serviceAccount)
+					updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
+						Name: clusterProviderName,
+						Kind: esv1.ClusterSecretStoreKind,
+					}, "", s.serviceAccount)
 				},
 				WaitForRemoteSecretValue: func(namespace, name, key, expectedValue string) {
 					waitForSecretValueInNamespace(f, namespace, name, key, expectedValue)

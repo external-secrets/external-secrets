@@ -19,24 +19,25 @@ package aws
 import (
 	"strings"
 	"testing"
-
-	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 )
 
-func TestNewParameterStoreV2ConfigUsesStaticSessionTokenSelector(t *testing.T) {
+func TestNewParameterStoreV2StoreProviderUsesStaticSessionTokenSelector(t *testing.T) {
 	t.Parallel()
 
-	cfg := newParameterStoreV2Config("ns", "ps-static", awsV2AccessConfig{
+	provider := newParameterStoreV2StoreProvider("ps-static-credentials", awsV2AccessConfig{
 		Region: "eu-central-1",
-	})
-	if cfg.TypeMeta.Kind != awsv2alpha1.ParameterStoreKind {
-		t.Fatalf("expected kind %q, got %q", awsv2alpha1.ParameterStoreKind, cfg.TypeMeta.Kind)
+	}, nil)
+	if provider.AWS == nil {
+		t.Fatal("expected AWS provider config")
 	}
-	if cfg.Spec.Auth.SecretRef == nil || cfg.Spec.Auth.SecretRef.SessionToken == nil {
+	if provider.AWS.Service != "ParameterStore" {
+		t.Fatalf("expected ParameterStore service, got %q", provider.AWS.Service)
+	}
+	if provider.AWS.Auth.SecretRef == nil || provider.AWS.Auth.SecretRef.SessionToken == nil {
 		t.Fatal("expected session token selector to be configured for static auth")
 	}
-	if cfg.Spec.Auth.SecretRef.SessionToken.Name != "ps-static-credentials" || cfg.Spec.Auth.SecretRef.SessionToken.Key != "st" {
-		t.Fatalf("unexpected session token selector: %+v", cfg.Spec.Auth.SecretRef.SessionToken)
+	if provider.AWS.Auth.SecretRef.SessionToken.Name != "ps-static-credentials" || provider.AWS.Auth.SecretRef.SessionToken.Key != "st" {
+		t.Fatalf("unexpected session token selector: %+v", provider.AWS.Auth.SecretRef.SessionToken)
 	}
 }
 

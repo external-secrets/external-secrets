@@ -148,22 +148,3 @@ func TestIsMissingAPIResourceError(t *testing.T) {
 		t.Fatal("did not expect unrelated errors to be treated as ignorable")
 	}
 }
-
-func TestSchemeIncludesV2StoreTypes(t *testing.T) {
-	t.Parallel()
-
-	tests := []schema.GroupVersionKind{
-		providerStoreGVK,
-		clusterProviderStoreGVK,
-	}
-
-	for _, gvk := range tests {
-		gvk := gvk
-		t.Run(gvk.Kind, func(t *testing.T) {
-			t.Parallel()
-			if !scheme.Recognizes(gvk) {
-				t.Fatalf("scheme does not recognize %s", gvk.String())
-			}
-		})
-	}
-}

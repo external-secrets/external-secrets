@@ -67,27 +67,33 @@ func TestStaticAWSAuthUsesSessionTokenSelector(t *testing.T) {
 func TestSecretsManagerConfigForExternalID(t *testing.T) {
 	t.Parallel()
 
-	cfg := newSecretsManagerV2Config("ns", "sm-extid", awsAccessConfig{
+	provider := newSecretsManagerV2StoreProvider("sm-extid-credentials", awsAccessConfig{
 		Region: "eu-west-1",
 		Role:   awscommon.IAMRoleExternalID,
-	}, awsAuthProfileExternalID)
-	if cfg.Spec.ExternalID != awscommon.IAMTrustedExternalID {
-		t.Fatalf("expected external ID %q, got %q", awscommon.IAMTrustedExternalID, cfg.Spec.ExternalID)
+	}, awsAuthProfileExternalID, nil)
+	if provider.AWS == nil {
+		t.Fatal("expected AWS provider config")
+	}
+	if provider.AWS.ExternalID != awscommon.IAMTrustedExternalID {
+		t.Fatalf("expected external ID %q, got %q", awscommon.IAMTrustedExternalID, provider.AWS.ExternalID)
 	}
 }
 
 func TestSecretsManagerConfigForSessionTags(t *testing.T) {
 	t.Parallel()
 
-	cfg := newSecretsManagerV2Config("ns", "sm-tags", awsAccessConfig{
+	provider := newSecretsManagerV2StoreProvider("sm-tags-credentials", awsAccessConfig{
 		Region: "eu-west-1",
 		Role:   awscommon.IAMRoleSessionTags,
-	}, awsAuthProfileSessionTags)
-	if len(cfg.Spec.SessionTags) != 1 {
-		t.Fatalf("expected one session tag, got %d", len(cfg.Spec.SessionTags))
+	}, awsAuthProfileSessionTags, nil)
+	if provider.AWS == nil {
+		t.Fatal("expected AWS provider config")
 	}
-	if cfg.Spec.SessionTags[0].Key != "namespace" || cfg.Spec.SessionTags[0].Value != "e2e-test" {
-		t.Fatalf("unexpected session tags: %+v", cfg.Spec.SessionTags)
+	if len(provider.AWS.SessionTags) != 1 {
+		t.Fatalf("expected one session tag, got %d", len(provider.AWS.SessionTags))
+	}
+	if provider.AWS.SessionTags[0].Key != "namespace" || provider.AWS.SessionTags[0].Value != "e2e-test" {
+		t.Fatalf("unexpected session tags: %+v", provider.AWS.SessionTags)
 	}
 }
 

@@ -60,10 +60,14 @@ func newAWSClusterProviderPushHarness(f *framework.Framework, prov *ProviderV2) 
 		Prepare: func(_ *framework.TestCase, cfg common.ClusterProviderConfig) *common.ClusterProviderPushRuntime {
 			s := newAWSClusterProviderScenario(f, cfg.Name, cfg.AuthScope, prov.access, prov.backend)
 			clusterProviderName := s.createClusterProvider(cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.ClusterProviderPushRuntime{
-				ClusterProviderName:    clusterProviderName,
+				ClusterProviderName: clusterProviderName,
+				StoreRef: esv1.SecretStoreRef{
+					Name: clusterProviderName,
+					Kind: esv1.ClusterSecretStoreKind,
+				},
 				DefaultRemoteNamespace: "",
 				WaitForRemoteSecretValue: func(_, name, key, expectedValue string) {
 					s.waitForRemoteSecretValue(name, key, expectedValue)

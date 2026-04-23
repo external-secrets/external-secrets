@@ -39,9 +39,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -527,88 +525,6 @@ func TestGetFromStoreRuntimeRefCacheHitSkipsRuntimeLookup(t *testing.T) {
 	got, err := manager.GetFromStore(context.Background(), store, "team-a")
 	require.NoError(t, err)
 	assert.Same(t, cachedClient, got)
-}
-
-func TestManagerGetRoutesProviderStoreKinds(t *testing.T) {
-	scheme := newManagerTestScheme(t)
-	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
-	manager := NewManager(client, "", false)
-
-	_, err := manager.Get(context.Background(), esv1.SecretStoreRef{Name: "missing", Kind: "ProviderStore"}, "team-a", nil)
-	if err == nil || !strings.Contains(err.Error(), "failed to get ProviderStore") {
-		t.Fatalf("expected ProviderStore lookup error, got %v", err)
-	}
-
-	_, err = manager.Get(context.Background(), esv1.SecretStoreRef{Name: "missing", Kind: "ClusterProviderStore"}, "team-a", nil)
-	if err == nil || !strings.Contains(err.Error(), "failed to get ClusterProviderStore") {
-		t.Fatalf("expected ClusterProviderStore lookup error, got %v", err)
-	}
-}
-
-func TestManagerGetClusterProviderStoreDeniedErrorMessage(t *testing.T) {
-	scheme := newManagerTestScheme(t)
-
-	store := &unstructured.Unstructured{}
-	store.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   esv1.Group,
-		Version: "v2alpha1",
-		Kind:    "ClusterProviderStore",
-	})
-	store.SetName("aws-prod")
-
-	store.Object["spec"] = map[string]interface{}{
-		"runtimeRef": map[string]interface{}{
-			"name": "runtime",
-		},
-		"backendRef": map[string]interface{}{
-			"apiVersion": "example/v1",
-			"kind":       "Backend",
-			"name":       "backend",
-		},
-		"conditions": []interface{}{
-			map[string]interface{}{
-				"namespaces": []interface{}{"other"},
-			},
-		},
-	}
-
-	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "team-a"}}
-	client := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(store, namespace).Build()
-	manager := NewManager(client, "", false)
-
-	_, err := manager.Get(context.Background(), esv1.SecretStoreRef{Name: "aws-prod", Kind: "ClusterProviderStore"}, "team-a", nil)
-	if err == nil || !strings.Contains(err.Error(), "using ClusterProviderStore \"aws-prod\" is not allowed from namespace \"team-a\": denied by spec.conditions") {
-		t.Fatalf("expected ClusterProviderStore denied message, got %v", err)
-	}
-}
-
-func TestManagerCloseSkipsV2ProviderStoreClients(t *testing.T) {
-	scheme := newManagerTestScheme(t)
-	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
-	manager := NewManager(client, "", false)
-
-	v2Client := &MockFakeClient{id: "v2"}
-	v2ClusterClient := &MockFakeClient{id: "v2-cluster"}
-	v1Client := &MockFakeClient{id: "v1"}
-
-	manager.clientMap = map[clientKey]*clientVal{
-		{providerType: v2ProviderStoreCacheKey, v2ProviderName: "store", v2ProviderNamespace: "team-a"}: {
-			client: v2Client,
-		},
-		{providerType: v2ClusterProviderStoreCache, v2ProviderName: "store", v2ProviderNamespace: "team-a"}: {
-			client: v2ClusterClient,
-		},
-		{providerType: "v1-provider"}: {
-			client: v1Client,
-		},
-	}
-
-	err := manager.Close(context.Background())
-	require.NoError(t, err)
-	assert.False(t, v2Client.closeCalled)
-	assert.False(t, v2ClusterClient.closeCalled)
-	assert.True(t, v1Client.closeCalled)
-	assert.Empty(t, manager.clientMap)
 }
 
 func TestGetStoreDefaultsToSecretStoreForUnknownKind(t *testing.T) {

@@ -33,7 +33,7 @@ var _ = Describe("[kubernetes] v2 operational", Serial, Label("kubernetes", "v2"
 		if !framework.IsV2ProviderMode() {
 			Skip("v2 mode only")
 		}
-		frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 	})
 
 	DescribeTable("external secret operational behavior",
@@ -65,7 +65,7 @@ func newKubernetesOperationalExternalSecretHarness(f *framework.Framework, prov 
 				Provider: prov,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
-					Kind: esv1.ProviderStoreKindStr,
+					Kind: esv1.SecretStoreKind,
 				},
 				MakeUnavailable: func() {
 					frameworkv2.ScaleDeploymentBySelector(f, kubernetesBackendTarget(), 0)
@@ -83,13 +83,13 @@ func newKubernetesOperationalExternalSecretHarness(f *framework.Framework, prov 
 			s.allowRemoteAccessForScope(cfg.AuthScope, cfg.Name)
 
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.OperationalRuntime{
 				Provider: s,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: clusterProviderName,
-					Kind: esv1.ClusterProviderStoreKindStr,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
 				MakeUnavailable: func() {
 					frameworkv2.ScaleDeploymentBySelector(f, kubernetesBackendTarget(), 0)
@@ -112,7 +112,7 @@ func newKubernetesOperationalPushHarness(f *framework.Framework, prov *Provider)
 				Provider: prov,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
-					Kind: esv1.ProviderStoreKindStr,
+					Kind: esv1.SecretStoreKind,
 				},
 				DefaultRemoteNamespace: f.Namespace.Name,
 				WaitForRemoteSecret: func(namespace, name, key, expectedValue string) {
@@ -137,13 +137,13 @@ func newKubernetesOperationalPushHarness(f *framework.Framework, prov *Provider)
 			s.allowRemoteAccessForScope(cfg.AuthScope, cfg.Name)
 
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.OperationalRuntime{
 				Provider: s,
 				ProviderRef: esv1.SecretStoreRef{
 					Name: clusterProviderName,
-					Kind: esv1.ClusterProviderStoreKindStr,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
 				DefaultRemoteNamespace: s.remoteNamespace,
 				WaitForRemoteSecret: func(namespace, name, key, expectedValue string) {

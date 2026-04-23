@@ -23,8 +23,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
@@ -141,8 +139,4 @@ func scaleDeployment(f *framework.Framework, namespace, name string, replicas in
 		deployment.Spec.Replicas = &replicas
 		return f.CRClient.Update(context.Background(), &deployment)
 	})).To(Succeed())
-}
-
-func WaitForClusterProviderNotReady(f *framework.Framework, name string, timeout time.Duration) *unstructured.Unstructured {
-	return WaitForClusterProviderCondition(f, name, metav1.ConditionFalse, timeout)
 }

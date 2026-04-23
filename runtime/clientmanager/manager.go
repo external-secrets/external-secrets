@@ -28,27 +28,22 @@ import (
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	pb "github.com/external-secrets/external-secrets/proto/provider"
 	adapterstore "github.com/external-secrets/external-secrets/providers/v2/adapter/store"
 	"github.com/external-secrets/external-secrets/providers/v2/common/grpc"
 )
 
 const (
-	errGetClusterSecretStore      = "could not get ClusterSecretStore %q, %w"
-	errGetSecretStore             = "could not get SecretStore %q, %w"
-	errSecretStoreNotReady        = "%s %q is not ready"
-	errClusterStoreMismatch       = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
-	errClusterProviderStoreDenied = "using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions"
+	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
+	errGetSecretStore        = "could not get SecretStore %q, %w"
+	errSecretStoreNotReady   = "%s %q is not ready"
+	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 
 	providerMetricsLabel                   = "provider"
 	clusterProviderMetricsLabel            = "cluster-provider"
@@ -56,11 +51,6 @@ const (
 	cacheInvalidationMismatch              = "store_mismatch"
 	runtimeRefCacheKeyType                 = "runtime-ref"
 	errRuntimeRefProviderClassClusterStore = "ClusterSecretStore runtimeRef.kind must not be \"ProviderClass\""
-	v2ProviderStoreCacheKey                = "v2-providerstore"
-	v2ClusterProviderStoreCache            = "v2-cluster-providerstore"
-	providerStoreKindStr                   = "ProviderStore"
-	clusterProviderStoreKindStr            = "ClusterProviderStore"
-	providerStoreAPIVersion                = "external-secrets.io/v2alpha1"
 )
 
 var (
@@ -125,8 +115,6 @@ type clientKey struct {
 type clientVal struct {
 	client esv1.SecretsClient
 	store  esv1.GenericStore
-	// For v2 providers, store the generation for cache invalidation
-	v2ProviderGeneration int64
 }
 
 func providerMetricsLabelForKey(key clientKey) string {
@@ -278,273 +266,6 @@ func runtimeRefKindForStore(store esv1.GenericStore, runtimeRef *esv1.StoreRunti
 	return runtimeKind, nil
 }
 
-type v2StoreInfo struct {
-	kind        string
-	name        string
-	namespace   string
-	generation  int64
-	runtimeKind string
-	runtimeName string
-	backendRef  v2BackendRef
-	conditions  []esv1.ClusterSecretStoreCondition
-	ready       bool
-}
-
-type v2BackendRef struct {
-	apiVersion string
-	kind       string
-	name       string
-	namespace  string
-}
-
-func (m *Manager) getV2ProviderStoreClientFallback(ctx context.Context, storeName, callerNamespace string) (esv1.SecretsClient, error) {
-	store, err := m.fetchV2Store(ctx, providerStoreKindStr, storeName, callerNamespace)
-	if err != nil {
-		return nil, err
-	}
-
-	if m.enableFloodgate {
-		if err := assertV2StoreIsUsableFallback(store); err != nil {
-			return nil, err
-		}
-	}
-
-	return m.getOrCreateProviderStoreClientFallback(ctx, store, callerNamespace, callerNamespace)
-}
-
-func (m *Manager) getV2ClusterProviderStoreClientFallback(ctx context.Context, storeName, callerNamespace string) (esv1.SecretsClient, error) {
-	store, err := m.fetchV2Store(ctx, clusterProviderStoreKindStr, storeName, "")
-	if err != nil {
-		return nil, err
-	}
-
-	shouldProcess, err := m.validateNamespaceConditions(store.conditions, callerNamespace)
-	if err != nil {
-		return nil, err
-	}
-	if !shouldProcess {
-		return nil, fmt.Errorf(errClusterProviderStoreDenied, storeName, callerNamespace)
-	}
-
-	if m.enableFloodgate {
-		if err := assertV2StoreIsUsableFallback(store); err != nil {
-			return nil, err
-		}
-	}
-
-	effectiveBackendNamespace := store.backendRef.namespace
-	if effectiveBackendNamespace == "" {
-		effectiveBackendNamespace = callerNamespace
-	}
-
-	return m.getOrCreateProviderStoreClientFallback(ctx, store, callerNamespace, effectiveBackendNamespace)
-}
-
-func (m *Manager) getOrCreateProviderStoreClientFallback(ctx context.Context, store *v2StoreInfo, callerNamespace, effectiveBackendNamespace string) (esv1.SecretsClient, error) {
-	cacheKeyType := v2ProviderStoreCacheKey
-	isClusterScoped := false
-	if store.kind == clusterProviderStoreKindStr {
-		cacheKeyType = v2ClusterProviderStoreCache
-		isClusterScoped = true
-	}
-
-	cacheKey := clientKey{
-		providerType:        cacheKeyType,
-		v2ProviderName:      store.name,
-		v2ProviderNamespace: callerNamespace,
-	}
-
-	if cached, ok := m.clientMap[cacheKey]; ok {
-		if cached.v2ProviderGeneration == store.generation {
-			clientManagerMetrics.RecordCacheHit(providerMetricsLabelForScope(isClusterScoped))
-			return cached.client, nil
-		}
-		clientManagerMetrics.RecordCacheInvalidation(providerMetricsLabelForScope(isClusterScoped), cacheInvalidationGeneration)
-		delete(m.clientMap, cacheKey)
-	}
-
-	runtimeKind := store.runtimeKind
-	if runtimeKind == "" {
-		runtimeKind = esv1.StoreRuntimeRefKindClusterProviderClass
-	}
-	if runtimeKind != esv1.StoreRuntimeRefKindClusterProviderClass {
-		return nil, fmt.Errorf("unsupported runtimeRef kind %q", runtimeKind)
-	}
-
-	var runtimeClass esv1alpha1.ClusterProviderClass
-	if err := m.client.Get(ctx, types.NamespacedName{Name: store.runtimeName}, &runtimeClass); err != nil {
-		return nil, fmt.Errorf("failed to get %s %q: %w", runtimeKind, store.runtimeName, err)
-	}
-
-	if runtimeClass.Spec.Address == "" {
-		return nil, fmt.Errorf("provider address is required in %s %q", runtimeKind, store.runtimeName)
-	}
-
-	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(runtimeClass.Spec.Address, "", "", effectiveBackendNamespace)
-	tlsConfig, err := grpc.LoadClientTLSConfig(ctx, m.client, runtimeClass.Spec.Address, tlsSecretNamespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load TLS config for %s %q: %w", runtimeKind, store.runtimeName, err)
-	}
-
-	pool := getGlobalV2ConnectionPool()
-	grpcClient, err := pool.Get(ctx, runtimeClass.Spec.Address, tlsConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get gRPC client from pool for %s %q: %w", runtimeKind, store.runtimeName, err)
-	}
-
-	m.v2PooledConnections = append(m.v2PooledConnections, v2PooledConnection{
-		address:   runtimeClass.Spec.Address,
-		tlsConfig: tlsConfig,
-	})
-
-	providerRef := &pb.ProviderReference{
-		ApiVersion:   store.backendRef.apiVersion,
-		Kind:         store.backendRef.kind,
-		Name:         store.backendRef.name,
-		Namespace:    effectiveBackendNamespace,
-		StoreRefKind: store.kind,
-	}
-
-	wrappedClient := adapterstore.NewClient(grpcClient, providerRef, callerNamespace)
-	m.clientMap[cacheKey] = &clientVal{
-		client:               wrappedClient,
-		v2ProviderGeneration: store.generation,
-	}
-
-	return wrappedClient, nil
-}
-
-func (m *Manager) fetchV2Store(ctx context.Context, kind, name, namespace string) (*v2StoreInfo, error) {
-	store := &unstructured.Unstructured{}
-	store.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   esv1.Group,
-		Version: "v2alpha1",
-		Kind:    kind,
-	})
-	storeKey := types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}
-	if err := m.client.Get(ctx, storeKey, store); err != nil {
-		return nil, fmt.Errorf("failed to get %s %q: %w", kind, name, err)
-	}
-
-	return v2StoreInfoFromUnstructured(store)
-}
-
-func v2StoreInfoFromUnstructured(store *unstructured.Unstructured) (*v2StoreInfo, error) {
-	info := &v2StoreInfo{
-		kind:       store.GetKind(),
-		name:       store.GetName(),
-		namespace:  store.GetNamespace(),
-		generation: store.GetGeneration(),
-	}
-
-	info.runtimeKind = nestedString(store.Object, "spec", "runtimeRef", "kind")
-	info.runtimeName = nestedString(store.Object, "spec", "runtimeRef", "name")
-	info.backendRef = v2BackendRef{
-		apiVersion: nestedString(store.Object, "spec", "backendRef", "apiVersion"),
-		kind:       nestedString(store.Object, "spec", "backendRef", "kind"),
-		name:       nestedString(store.Object, "spec", "backendRef", "name"),
-		namespace:  nestedString(store.Object, "spec", "backendRef", "namespace"),
-	}
-
-	if rawConditions, found, _ := unstructured.NestedSlice(store.Object, "spec", "conditions"); found {
-		conditions, err := parseStoreNamespaceConditions(rawConditions)
-		if err != nil {
-			return nil, err
-		}
-		info.conditions = conditions
-	}
-
-	if rawStatus, found, _ := unstructured.NestedSlice(store.Object, "status", "conditions"); found {
-		info.ready = v2StoreReady(rawStatus)
-	}
-
-	return info, nil
-}
-
-func parseStoreNamespaceConditions(rawConditions []interface{}) ([]esv1.ClusterSecretStoreCondition, error) {
-	conditions := make([]esv1.ClusterSecretStoreCondition, 0, len(rawConditions))
-	for _, rawCondition := range rawConditions {
-		conditionMap, ok := rawCondition.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		var selector *metav1.LabelSelector
-		if rawSelector, ok := conditionMap["namespaceSelector"].(map[string]interface{}); ok {
-			var parsed metav1.LabelSelector
-			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(rawSelector, &parsed); err != nil {
-				return nil, err
-			}
-			selector = &parsed
-		}
-
-		conditions = append(conditions, esv1.ClusterSecretStoreCondition{
-			NamespaceSelector: selector,
-			Namespaces:        stringSliceFromInterface(conditionMap["namespaces"]),
-			NamespaceRegexes:  stringSliceFromInterface(conditionMap["namespaceRegexes"]),
-		})
-	}
-
-	return conditions, nil
-}
-
-func stringSliceFromInterface(value interface{}) []string {
-	rawValues, ok := value.([]interface{})
-	if !ok {
-		return nil
-	}
-
-	out := make([]string, 0, len(rawValues))
-	for _, raw := range rawValues {
-		if str, ok := raw.(string); ok {
-			out = append(out, str)
-		}
-	}
-
-	return out
-}
-
-func v2StoreReady(rawConditions []interface{}) bool {
-	for _, rawCondition := range rawConditions {
-		conditionMap, ok := rawCondition.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		condType, _ := conditionMap["type"].(string)
-		if condType != "Ready" {
-			continue
-		}
-
-		status, _ := conditionMap["status"].(string)
-		if status == string(v1.ConditionTrue) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func assertV2StoreIsUsableFallback(store *v2StoreInfo) error {
-	if store == nil {
-		return nil
-	}
-
-	if !store.ready {
-		return fmt.Errorf(errSecretStoreNotReady, store.kind, store.name)
-	}
-
-	return nil
-}
-
-func nestedString(obj map[string]interface{}, fields ...string) string {
-	value, _, _ := unstructured.NestedString(obj, fields...)
-	return value
-}
-
 func runtimeRefStoreKey(store esv1.GenericStore, sourceNamespace string) clientKey {
 	return clientKey{
 		providerType:           runtimeRefCacheKeyType + ":" + store.GetKind(),
@@ -596,13 +317,6 @@ func (m *Manager) getStoredRuntimeRefClient(ctx context.Context, key clientKey, 
 func (m *Manager) Get(ctx context.Context, storeRef esv1.SecretStoreRef, namespace string, sourceRef *esv1.StoreGeneratorSourceRef) (esv1.SecretsClient, error) {
 	if sourceRef != nil && sourceRef.SecretStoreRef != nil {
 		storeRef = *sourceRef.SecretStoreRef
-	}
-
-	if storeRef.Kind == providerStoreKindStr {
-		return m.getV2ProviderStoreClientFallback(ctx, storeRef.Name, namespace)
-	}
-	if storeRef.Kind == clusterProviderStoreKindStr {
-		return m.getV2ClusterProviderStoreClientFallback(ctx, storeRef.Name, namespace)
 	}
 
 	store, err := m.getStore(ctx, &storeRef, namespace)
@@ -730,12 +444,9 @@ func (m *Manager) Close(ctx context.Context) error {
 	// Close cached clients. Runtime-ref-backed clients release their pooled
 	// connection through their Close implementation.
 	for key, val := range m.clientMap {
-		if key.providerType != v2ProviderStoreCacheKey &&
-			key.providerType != v2ClusterProviderStoreCache {
-			err := val.client.Close(ctx)
-			if err != nil {
-				errs = append(errs, err.Error())
-			}
+		err := val.client.Close(ctx)
+		if err != nil {
+			errs = append(errs, err.Error())
 		}
 		delete(m.clientMap, key)
 	}

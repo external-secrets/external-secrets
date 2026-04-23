@@ -37,18 +37,15 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
-	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 const (
-	awsProviderAPIVersion = "provider.external-secrets.io/v2alpha1"
 	defaultV2WaitTimeout  = 60 * time.Second
 	defaultV2PollInterval = 2 * time.Second
 )
@@ -285,43 +282,35 @@ func isAssumeRoleAccessDenied(err error) bool {
 	return strings.Contains(msg, "sts:assumerole") || strings.Contains(msg, "sts:tagsession")
 }
 
-func newSecretsManagerV2Config(namespace, name string, access awsAccessConfig, profile awsAuthProfile) *awsv2alpha1.SecretsManager {
-	cfg := &awsv2alpha1.SecretsManager{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: awsv2alpha1.GroupVersion.String(),
-			Kind:       awsv2alpha1.SecretsManagerKind,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: awsv2alpha1.SecretsManagerSpec{
-			Region: access.Region,
+func newSecretsManagerV2StoreProvider(secretName string, access awsAccessConfig, profile awsAuthProfile, authNamespace *string) *esv1.SecretStoreProvider {
+	provider := &esv1.SecretStoreProvider{
+		AWS: &esv1.AWSProvider{
+			Service: esv1.AWSServiceSecretsManager,
+			Region:  access.Region,
 		},
 	}
-
 	switch profile {
 	case awsAuthProfileStatic:
-		cfg.Spec.Auth = staticAWSAuth(awscommon.CredentialsSecretName(name))
+		provider.AWS.Auth = staticAWSAuth(secretName)
 	case awsAuthProfileExternalID:
-		cfg.Spec.Auth = staticAWSAuth(awscommon.CredentialsSecretName(name))
-		cfg.Spec.Role = access.Role
-		if cfg.Spec.Role == "" {
-			cfg.Spec.Role = awscommon.IAMRoleExternalID
+		provider.AWS.Auth = staticAWSAuth(secretName)
+		provider.AWS.Role = access.Role
+		if provider.AWS.Role == "" {
+			provider.AWS.Role = awscommon.IAMRoleExternalID
 		}
-		cfg.Spec.ExternalID = awscommon.IAMTrustedExternalID
+		provider.AWS.ExternalID = awscommon.IAMTrustedExternalID
 	case awsAuthProfileSessionTags:
-		cfg.Spec.Auth = staticAWSAuth(awscommon.CredentialsSecretName(name))
-		cfg.Spec.Role = access.Role
-		if cfg.Spec.Role == "" {
-			cfg.Spec.Role = awscommon.IAMRoleSessionTags
+		provider.AWS.Auth = staticAWSAuth(secretName)
+		provider.AWS.Role = access.Role
+		if provider.AWS.Role == "" {
+			provider.AWS.Role = awscommon.IAMRoleSessionTags
 		}
-		cfg.Spec.SessionTags = []*esv1.Tag{{
+		provider.AWS.SessionTags = []*esv1.Tag{{
 			Key:   "namespace",
 			Value: "e2e-test",
 		}}
 	case awsAuthProfileReferencedIRSA:
-		cfg.Spec.Auth = esv1.AWSAuth{
+		provider.AWS.Auth = esv1.AWSAuth{
 			JWTAuth: &esv1.AWSJWTAuth{
 				ServiceAccountRef: &esmetav1.ServiceAccountSelector{
 					Name:      access.SAName,
@@ -330,35 +319,21 @@ func newSecretsManagerV2Config(namespace, name string, access awsAccessConfig, p
 			},
 		}
 	case awsAuthProfileMountedIRSA:
-		cfg.Spec.Auth = esv1.AWSAuth{}
+		provider.AWS.Auth = esv1.AWSAuth{}
 	default:
-		cfg.Spec.Auth = staticAWSAuth(awscommon.CredentialsSecretName(name))
+		provider.AWS.Auth = staticAWSAuth(secretName)
 	}
-
-	return cfg
-}
-
-func createSecretsManagerV2Config(f *framework.Framework, namespace, name string, access awsAccessConfig, profile awsAuthProfile) *awsv2alpha1.SecretsManager {
-	if profile == awsAuthProfileStatic || profile == awsAuthProfileExternalID || profile == awsAuthProfileSessionTags {
-		createStaticCredentialsSecret(f, namespace, awscommon.CredentialsSecretName(name), access)
+	if authNamespace != nil && provider.AWS.Auth.SecretRef != nil {
+		provider.AWS.Auth.SecretRef.AccessKeyID.Namespace = authNamespace
+		provider.AWS.Auth.SecretRef.SecretAccessKey.Namespace = authNamespace
+		if provider.AWS.Auth.SecretRef.SessionToken != nil {
+			provider.AWS.Auth.SecretRef.SessionToken.Namespace = authNamespace
+		}
 	}
-
-	cfg := newSecretsManagerV2Config(namespace, name, access, profile)
-	Expect(f.CRClient.Create(GinkgoT().Context(), cfg)).To(Succeed())
-	return cfg
-}
-
-func createSecretsManagerV2ProviderConnection(f *framework.Framework, namespace, name, providerName, providerNamespace string) {
-	frameworkv2.CreateProviderConnection(
-		f,
-		namespace,
-		name,
-		frameworkv2.ProviderAddress("aws"),
-		awsProviderAPIVersion,
-		awsv2alpha1.SecretsManagerKind,
-		providerName,
-		providerNamespace,
-	)
+	if authNamespace != nil && provider.AWS.Auth.JWTAuth != nil && provider.AWS.Auth.JWTAuth.ServiceAccountRef != nil {
+		provider.AWS.Auth.JWTAuth.ServiceAccountRef.Namespace = authNamespace
+	}
+	return provider
 }
 
 func loadAWSConfig(access awsAccessConfig) (aws.Config, error) {

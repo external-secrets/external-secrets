@@ -30,8 +30,6 @@ import (
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -45,7 +43,7 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 		if !framework.IsV2ProviderMode() {
 			Skip("v2 mode only")
 		}
-		frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 	})
 
 	DescribeTable("namespaced provider read paths",
@@ -97,9 +95,12 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 			Value: `{"value":"provider-v2-recovered"}`,
 		})
 
-		updateKubernetesProviderServiceAccount(f, f.Namespace.Name, providerConfigName(f.Namespace.Name, ""), "missing-service-account")
+		updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
+			Name: f.Namespace.Name,
+			Kind: esv1.SecretStoreKind,
+		}, f.Namespace.Name, "missing-service-account")
 
-		frameworkv2.WaitForProviderConnectionNotReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreNotReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 
 		externalSecret := &esv1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -109,7 +110,7 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 			Spec: esv1.ExternalSecretSpec{
 				SecretStoreRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
-					Kind: esv1.ProviderStoreKindStr,
+					Kind: esv1.SecretStoreKind,
 				},
 				RefreshInterval: &metav1.Duration{Duration: time.Hour},
 				Target: esv1.ExternalSecretTarget{
@@ -129,9 +130,12 @@ var _ = Describe("[kubernetes] v2 namespaced provider", Label("kubernetes", "v2"
 		waitForExternalSecretReadyStatus(f, f.Namespace.Name, externalSecret.Name, corev1.ConditionFalse)
 		expectSecretToBeAbsent(f, f.Namespace.Name, "provider-v2-recovery-target")
 
-		updateKubernetesProviderServiceAccount(f, f.Namespace.Name, providerConfigName(f.Namespace.Name, ""), frameworkv2.DefaultSAName)
+		updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
+			Name: f.Namespace.Name,
+			Kind: esv1.SecretStoreKind,
+		}, f.Namespace.Name, frameworkv2.DefaultSAName)
 
-		frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
 
 		_, err := waitForSecretValueWithin(f, 30*time.Second, f.Namespace.Name, "provider-v2-recovery-target", &corev1.Secret{
 			Type: corev1.SecretTypeOpaque,
@@ -152,22 +156,6 @@ func updateRemoteSecretValue(f *framework.Framework, namespace, name, value stri
 
 	secret.Data["value"] = []byte(value)
 	Expect(f.CRClient.Update(context.Background(), &secret)).To(Succeed())
-}
-
-func updateKubernetesProviderServiceAccount(f *framework.Framework, namespace, name, serviceAccountName string) {
-	var providerConfig k8sv2alpha1.Kubernetes
-	Expect(f.CRClient.Get(context.Background(), types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, &providerConfig)).To(Succeed())
-
-	if providerConfig.Spec.Auth == nil || providerConfig.Spec.Auth.ServiceAccount == nil {
-		providerConfig.Spec.Auth = &esv1.KubernetesAuth{
-			ServiceAccount: &esmeta.ServiceAccountSelector{},
-		}
-	}
-	providerConfig.Spec.Auth.ServiceAccount.Name = serviceAccountName
-	Expect(f.CRClient.Update(context.Background(), &providerConfig)).To(Succeed())
 }
 
 func waitForExternalSecretReadyStatus(f *framework.Framework, namespace, name string, expectedStatus corev1.ConditionStatus) {

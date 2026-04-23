@@ -40,8 +40,6 @@ func TestExternalSecretsChartDefaultsEnableV2StoreAPIs(t *testing.T) {
 	v2 := requireMap(t, values, "v2")
 
 	requireBool(t, crds, "createClusterProviderClass", true)
-	requireBool(t, crds, "createProviderStore", true)
-	requireBool(t, crds, "createClusterProviderStore", true)
 	requireBool(t, v2, "enabled", true)
 }
 

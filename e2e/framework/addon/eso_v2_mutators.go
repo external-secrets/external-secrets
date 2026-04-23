@@ -85,8 +85,6 @@ func ensureV2ProviderConfig(chart *HelmChart) {
 	requiredVars := []StringTuple{
 		{Key: "v2.enabled", Value: "true"},
 		{Key: "crds.createClusterProviderClass", Value: "true"},
-		{Key: "crds.createProviderStore", Value: "true"},
-		{Key: "crds.createClusterProviderStore", Value: "true"},
 		{Key: "providers.enabled", Value: "true"},
 	}
 	for _, variable := range requiredVars {

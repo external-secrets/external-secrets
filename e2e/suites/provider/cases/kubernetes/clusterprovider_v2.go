@@ -66,16 +66,26 @@ func newKubernetesClusterProviderExternalSecretHarness(f *framework.Framework) c
 			s.allowRemoteAccessForScope(cfg.AuthScope, cfg.Name)
 
 			clusterProviderName := s.createClusterProvider(cfg.Name, cfg.AuthScope, cfg.Conditions)
-			frameworkv2.WaitForClusterProviderReady(f, clusterProviderName, defaultV2WaitTimeout)
+			frameworkv2.WaitForClusterSecretStoreReady(f, clusterProviderName, defaultV2WaitTimeout)
 
 			return &common.ClusterProviderExternalSecretRuntime{
 				ClusterProviderName: clusterProviderName,
-				Provider:            s,
+				StoreRef: esv1.SecretStoreRef{
+					Name: clusterProviderName,
+					Kind: esv1.ClusterSecretStoreKind,
+				},
+				Provider: s,
 				BreakAuth: func() {
-					updateKubernetesProviderServiceAccount(f, s.backendNamespace, s.providerConfigName(cfg.Name), "missing-service-account")
+					updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
+						Name: clusterProviderName,
+						Kind: esv1.ClusterSecretStoreKind,
+					}, "", "missing-service-account")
 				},
 				RepairAuth: func() {
-					updateKubernetesProviderServiceAccount(f, s.backendNamespace, s.providerConfigName(cfg.Name), s.serviceAccount)
+					updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
+						Name: clusterProviderName,
+						Kind: esv1.ClusterSecretStoreKind,
+					}, "", s.serviceAccount)
 				},
 			}
 		},
@@ -173,34 +183,24 @@ func (s *clusterProviderV2Scenario) allowRemoteAccessForScope(authScope esv1.Aut
 }
 
 func (s *clusterProviderV2Scenario) createClusterProvider(suffix string, authScope esv1.AuthenticationScope, conditions []esv1.ClusterSecretStoreCondition) string {
-	providerConfigName := s.providerConfigName(suffix)
-	frameworkv2.CreateKubernetesProvider(
-		s.f,
-		s.backendNamespace,
-		providerConfigName,
-		s.remoteNamespace,
-		s.serviceAccount,
-		nil,
-		s.caBundle,
-	)
-
 	clusterProviderName := fmt.Sprintf("%s-cluster-provider-%s", s.namePrefix, suffix)
-	frameworkv2.CreateClusterProviderConnection(
+	var serviceAccountNamespace *string
+	if authScope == esv1.AuthenticationScopeProviderNamespace {
+		serviceAccountNamespace = &s.providerNamespace
+	}
+	frameworkv2.CreateRuntimeClusterSecretStore(
 		s.f,
 		clusterProviderName,
 		frameworkv2.ProviderAddress("kubernetes"),
-		kubernetesProviderAPIVersion,
-		"Kubernetes",
-		providerConfigName,
-		s.providerRefNamespace,
-		authScope,
+		frameworkv2.NewKubernetesStoreProvider(
+			s.remoteNamespace,
+			s.serviceAccount,
+			serviceAccountNamespace,
+			s.caBundle,
+		),
 		conditions,
 	)
 	return clusterProviderName
-}
-
-func (s *clusterProviderV2Scenario) providerConfigName(suffix string) string {
-	return fmt.Sprintf("%s-config-%s", s.namePrefix, suffix)
 }
 
 func (s *clusterProviderV2Scenario) CreateSecret(key string, val framework.SecretEntry) {

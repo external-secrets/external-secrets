@@ -25,9 +25,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -38,7 +35,6 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 
 	. "github.com/onsi/gomega"
 )
@@ -47,11 +43,6 @@ const (
 	ProviderNamespace  = "external-secrets-system"
 	DefaultSAName      = "default"
 	providerStoreReady = "Ready"
-)
-
-var (
-	providerStoreGVK        = schema.GroupVersionKind{Group: "external-secrets.io", Version: "v2alpha1", Kind: "ProviderStore"}
-	clusterProviderStoreGVK = schema.GroupVersionKind{Group: "external-secrets.io", Version: "v2alpha1", Kind: "ClusterProviderStore"}
 )
 
 func ProviderAddress(providerName string) string {
@@ -124,17 +115,9 @@ func CreateKubernetesAccessRole(f *framework.Framework, name, serviceAccountName
 	Expect(createOrIgnoreAlreadyExists(f, roleBinding)).To(Succeed())
 }
 
-func CreateKubernetesProvider(f *framework.Framework, namespace, name, remoteNamespace, serviceAccountName string, serviceAccountNamespace *string, caBundle []byte) *k8sv2alpha1.Kubernetes {
-	k8ss := &k8sv2alpha1.Kubernetes{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Kubernetes",
-			APIVersion: "provider.external-secrets.io/v2alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: esv1.KubernetesProvider{
+func NewKubernetesStoreProvider(remoteNamespace, serviceAccountName string, serviceAccountNamespace *string, caBundle []byte) *esv1.SecretStoreProvider {
+	return &esv1.SecretStoreProvider{
+		Kubernetes: &esv1.KubernetesProvider{
 			Server: esv1.KubernetesServer{
 				URL:      "https://kubernetes.default.svc",
 				CABundle: caBundle,
@@ -148,9 +131,6 @@ func CreateKubernetesProvider(f *framework.Framework, namespace, name, remoteNam
 			},
 		},
 	}
-	Expect(createOrIgnoreAlreadyExists(f, k8ss)).To(Succeed())
-	log.Logf("created Kubernetes provider: %s/%s", namespace, name)
-	return k8ss
 }
 
 func runtimeClassName(name string) string {
@@ -186,78 +166,55 @@ func ensureProviderClass(f *framework.Framework, namespace, name, address string
 	return runtimeClass
 }
 
-func mapStoreConditions(conditions []esv1.ClusterSecretStoreCondition) []any {
+func deepCopyClusterStoreConditions(conditions []esv1.ClusterSecretStoreCondition) []esv1.ClusterSecretStoreCondition {
 	if len(conditions) == 0 {
 		return nil
 	}
-	out := make([]any, 0, len(conditions))
+	out := make([]esv1.ClusterSecretStoreCondition, 0, len(conditions))
 	for _, condition := range conditions {
-		item := map[string]any{
-			"namespaces":       condition.Namespaces,
-			"namespaceRegexes": condition.NamespaceRegexes,
-		}
-		if condition.NamespaceSelector != nil {
-			selector, err := runtime.DefaultUnstructuredConverter.ToUnstructured(condition.NamespaceSelector)
-			Expect(err).NotTo(HaveOccurred())
-			item["namespaceSelector"] = selector
-		}
-		out = append(out, item)
+		out = append(out, *condition.DeepCopy())
 	}
 	return out
 }
 
-func CreateProviderConnection(f *framework.Framework, namespace, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string) *unstructured.Unstructured {
-	runtimeClass := ensureClusterProviderClass(f, runtimeClassName(name), address)
+func CreateRuntimeSecretStore(f *framework.Framework, namespace, name, address string, provider *esv1.SecretStoreProvider) *esv1.SecretStore {
+	runtimeClass := ensureProviderClass(f, namespace, runtimeClassName(name), address)
 
-	providerStore := &unstructured.Unstructured{}
-	providerStore.SetGroupVersionKind(providerStoreGVK)
-	providerStore.SetName(name)
-	providerStore.SetNamespace(namespace)
-	providerStore.Object["spec"] = map[string]any{
-		"runtimeRef": map[string]any{
-			"name": runtimeClass.Name,
+	store := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
 		},
-		"backendRef": map[string]any{
-			"apiVersion": providerAPIVersion,
-			"kind":       providerKind,
-			"name":       providerName,
-			"namespace":  providerNamespace,
+		Spec: esv1.SecretStoreSpec{
+			Provider: provider.DeepCopy(),
+			RuntimeRef: &esv1.StoreRuntimeRef{
+				Name: runtimeClass.Name,
+			},
 		},
 	}
-	Expect(createOrIgnoreAlreadyExists(f, providerStore)).To(Succeed())
-	log.Logf("created ProviderStore: %s/%s", namespace, name)
-	return providerStore
+	Expect(createOrIgnoreAlreadyExists(f, store)).To(Succeed())
+	log.Logf("created SecretStore: %s/%s", namespace, name)
+	return store
 }
 
-func CreateClusterProviderConnection(f *framework.Framework, name, address, providerAPIVersion, providerKind, providerName, providerNamespace string, _ esv1.AuthenticationScope, conditions []esv1.ClusterSecretStoreCondition) *unstructured.Unstructured {
+func CreateRuntimeClusterSecretStore(f *framework.Framework, name, address string, provider *esv1.SecretStoreProvider, conditions []esv1.ClusterSecretStoreCondition) *esv1.ClusterSecretStore {
 	runtimeClass := ensureClusterProviderClass(f, runtimeClassName(name), address)
 
-	clusterProviderStore := &unstructured.Unstructured{}
-	clusterProviderStore.SetGroupVersionKind(clusterProviderStoreGVK)
-	clusterProviderStore.SetName(name)
-	clusterProviderStore.Object["spec"] = map[string]any{
-		"runtimeRef": map[string]any{
-			"name": runtimeClass.Name,
+	store := &esv1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
 		},
-		"backendRef": map[string]any{
-			"apiVersion": providerAPIVersion,
-			"kind":       providerKind,
-			"name":       providerName,
-			"namespace":  providerNamespace,
+		Spec: esv1.SecretStoreSpec{
+			Provider:   provider.DeepCopy(),
+			Conditions: deepCopyClusterStoreConditions(conditions),
+			RuntimeRef: &esv1.StoreRuntimeRef{
+				Name: runtimeClass.Name,
+			},
 		},
-		"conditions": mapStoreConditions(conditions),
 	}
-	Expect(createOrIgnoreAlreadyExists(f, clusterProviderStore)).To(Succeed())
-	log.Logf("created ClusterProviderStore: %s", name)
-	return clusterProviderStore
-}
-
-func WaitForProviderConnectionReady(f *framework.Framework, namespace, name string, timeout time.Duration) *unstructured.Unstructured {
-	return WaitForProviderConnectionCondition(f, namespace, name, metav1.ConditionTrue, timeout)
-}
-
-func WaitForProviderConnectionNotReady(f *framework.Framework, namespace, name string, timeout time.Duration) *unstructured.Unstructured {
-	return WaitForProviderConnectionCondition(f, namespace, name, metav1.ConditionFalse, timeout)
+	Expect(createOrIgnoreAlreadyExists(f, store)).To(Succeed())
+	log.Logf("created ClusterSecretStore: %s", name)
+	return store
 }
 
 func WaitForSecretStoreReady(f *framework.Framework, namespace, name string, timeout time.Duration) *esv1.SecretStore {
@@ -286,28 +243,6 @@ func WaitForSecretStoreCondition(f *framework.Framework, namespace, name string,
 	return store
 }
 
-func WaitForProviderConnectionCondition(f *framework.Framework, namespace, name string, status metav1.ConditionStatus, timeout time.Duration) *unstructured.Unstructured {
-	providerStore := &unstructured.Unstructured{}
-	providerStore.SetGroupVersionKind(providerStoreGVK)
-	Eventually(func() bool {
-		err := f.CRClient.Get(context.Background(),
-			types.NamespacedName{Name: name, Namespace: namespace},
-			providerStore)
-		if err != nil {
-			log.Logf("failed to get ProviderStore: %v", err)
-			return false
-		}
-
-		return hasReadyConditionStatus(providerStore, status)
-	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ProviderStore should become %s", status))
-
-	return providerStore
-}
-
-func WaitForClusterProviderReady(f *framework.Framework, name string, timeout time.Duration) *unstructured.Unstructured {
-	return WaitForClusterProviderCondition(f, name, metav1.ConditionTrue, timeout)
-}
-
 func WaitForClusterSecretStoreReady(f *framework.Framework, name string, timeout time.Duration) *esv1.ClusterSecretStore {
 	return WaitForClusterSecretStoreCondition(f, name, metav1.ConditionTrue, timeout)
 }
@@ -329,41 +264,6 @@ func WaitForClusterSecretStoreCondition(f *framework.Framework, name string, sta
 	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ClusterSecretStore should become %s", status))
 
 	return store
-}
-
-func WaitForClusterProviderCondition(f *framework.Framework, name string, status metav1.ConditionStatus, timeout time.Duration) *unstructured.Unstructured {
-	clusterProviderStore := &unstructured.Unstructured{}
-	clusterProviderStore.SetGroupVersionKind(clusterProviderStoreGVK)
-	Eventually(func() bool {
-		err := f.CRClient.Get(context.Background(),
-			types.NamespacedName{Name: name},
-			clusterProviderStore)
-		if err != nil {
-			log.Logf("failed to get ClusterProviderStore: %v", err)
-			return false
-		}
-
-		return hasReadyConditionStatus(clusterProviderStore, status)
-	}, timeout, time.Second).Should(BeTrue(), fmt.Sprintf("ClusterProviderStore should become %s", status))
-
-	return clusterProviderStore
-}
-
-func hasReadyConditionStatus(obj *unstructured.Unstructured, status metav1.ConditionStatus) bool {
-	conditions, found, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
-	if err != nil || !found {
-		return false
-	}
-	for _, condition := range conditions {
-		conditionMap, ok := condition.(map[string]any)
-		if !ok {
-			continue
-		}
-		if conditionMap["type"] == providerStoreReady && conditionMap["status"] == string(status) {
-			return true
-		}
-	}
-	return false
 }
 
 func hasSecretStoreReadyConditionStatus(conditions []esv1.SecretStoreStatusCondition, status metav1.ConditionStatus) bool {

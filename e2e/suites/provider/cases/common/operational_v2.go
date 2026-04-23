@@ -335,12 +335,8 @@ func waitForProviderRefCondition(f *framework.Framework, namespace string, ref e
 	switch ref.Kind {
 	case esv1.ClusterSecretStoreKind:
 		frameworkv2.WaitForClusterSecretStoreCondition(f, ref.Name, status, operationalTimeout)
-	case esv1.ClusterProviderStoreKindStr:
-		frameworkv2.WaitForClusterProviderCondition(f, ref.Name, status, operationalTimeout)
 	case esv1.SecretStoreKind, "":
 		frameworkv2.WaitForSecretStoreCondition(f, namespace, ref.Name, status, operationalTimeout)
-	default:
-		frameworkv2.WaitForProviderConnectionCondition(f, namespace, ref.Name, status, operationalTimeout)
 	}
 }
 

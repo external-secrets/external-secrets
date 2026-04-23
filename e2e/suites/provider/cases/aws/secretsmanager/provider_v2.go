@@ -22,8 +22,8 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
+	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -161,18 +161,17 @@ func (p *ProviderV2) prepareNamespacedProviderAtAddress(profile awsAuthProfile, 
 		skipIfAWSAssumeRoleProbeDenied(p.access, profile)
 
 		configName := p.providerConfigName(profile)
-		createSecretsManagerV2Config(p.framework, p.framework.Namespace.Name, configName, p.access, profile)
-		frameworkv2.CreateProviderConnection(
+		if profile == awsAuthProfileStatic || profile == awsAuthProfileExternalID || profile == awsAuthProfileSessionTags {
+			createStaticCredentialsSecret(p.framework, p.framework.Namespace.Name, awscommon.CredentialsSecretName(configName), p.access)
+		}
+		frameworkv2.CreateRuntimeSecretStore(
 			p.framework,
 			p.framework.Namespace.Name,
 			p.framework.Namespace.Name,
 			address,
-			awsProviderAPIVersion,
-			awsv2alpha1.SecretsManagerKind,
-			configName,
-			p.framework.Namespace.Name,
+			newSecretsManagerV2StoreProvider(awscommon.CredentialsSecretName(configName), p.access, profile, nil),
 		)
-		frameworkv2.WaitForProviderConnectionReady(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreReady(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, defaultV2WaitTimeout)
 	}
 }
 

@@ -17,6 +17,7 @@ limitations under the License.
 package kubernetes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -36,8 +37,6 @@ import (
 	// nolint
 	. "github.com/onsi/gomega"
 )
-
-const kubernetesProviderAPIVersion = "provider.external-secrets.io/v2alpha1"
 
 type Provider struct {
 	framework *framework.Framework
@@ -209,27 +208,19 @@ func (s *Provider) CreateStoreV2() {
 	)
 
 	serviceAccountNamespace := namespace
-	frameworkv2.CreateKubernetesProvider(
-		s.framework,
-		namespace,
-		providerConfigName(namespace, ""),
-		namespace,
-		frameworkv2.DefaultSAName,
-		&serviceAccountNamespace,
-		frameworkv2.GetClusterCABundle(s.framework, namespace),
-	)
-
-	frameworkv2.CreateProviderConnection(
+	frameworkv2.CreateRuntimeSecretStore(
 		s.framework,
 		namespace,
 		namespace,
 		frameworkv2.ProviderAddress("kubernetes"),
-		kubernetesProviderAPIVersion,
-		"Kubernetes",
-		providerConfigName(namespace, ""),
-		namespace,
+		frameworkv2.NewKubernetesStoreProvider(
+			namespace,
+			frameworkv2.DefaultSAName,
+			&serviceAccountNamespace,
+			frameworkv2.GetClusterCABundle(s.framework, namespace),
+		),
 	)
-	frameworkv2.WaitForProviderConnectionReady(s.framework, namespace, namespace, 30*time.Second)
+	frameworkv2.WaitForSecretStoreReady(s.framework, namespace, namespace, 30*time.Second)
 }
 
 func (s *Provider) CreateReferentStoreV2() {
@@ -244,39 +235,54 @@ func (s *Provider) CreateReferentStoreV2() {
 		namespace,
 	)
 
-	frameworkv2.CreateKubernetesProvider(
-		s.framework,
-		namespace,
-		providerConfigName(namespace, "referent"),
-		namespace,
-		frameworkv2.DefaultSAName,
-		nil,
-		frameworkv2.GetClusterCABundle(s.framework, namespace),
-	)
-
-	frameworkv2.CreateClusterProviderConnection(
+	frameworkv2.CreateRuntimeClusterSecretStore(
 		s.framework,
 		referentName,
 		frameworkv2.ProviderAddress("kubernetes"),
-		kubernetesProviderAPIVersion,
-		"Kubernetes",
-		providerConfigName(namespace, "referent"),
-		namespace,
-		esv1.AuthenticationScopeManifestNamespace,
+		frameworkv2.NewKubernetesStoreProvider(
+			namespace,
+			frameworkv2.DefaultSAName,
+			nil,
+			frameworkv2.GetClusterCABundle(s.framework, namespace),
+		),
 		nil,
 	)
-	frameworkv2.WaitForClusterProviderReady(s.framework, referentName, 30*time.Second)
+	frameworkv2.WaitForClusterSecretStoreReady(s.framework, referentName, 30*time.Second)
 }
 
 func referentStoreName(f *framework.Framework) string {
 	return fmt.Sprintf("%s-referent", f.Namespace.Name)
 }
 
-func providerConfigName(namespace, suffix string) string {
-	if suffix == "" {
-		return fmt.Sprintf("%s-kubernetes", namespace)
+func updateKubernetesStoreServiceAccount(f *framework.Framework, ref esv1.SecretStoreRef, namespace, serviceAccountName string) {
+	switch ref.Kind {
+	case esv1.ClusterSecretStoreKind:
+		var store esv1.ClusterSecretStore
+		Expect(f.CRClient.Get(context.Background(), client.ObjectKey{Name: ref.Name}, &store)).To(Succeed())
+		Expect(store.Spec.Provider).NotTo(BeNil())
+		Expect(store.Spec.Provider.Kubernetes).NotTo(BeNil())
+		if store.Spec.Provider.Kubernetes.Auth == nil {
+			store.Spec.Provider.Kubernetes.Auth = &esv1.KubernetesAuth{}
+		}
+		if store.Spec.Provider.Kubernetes.Auth.ServiceAccount == nil {
+			store.Spec.Provider.Kubernetes.Auth.ServiceAccount = &esmeta.ServiceAccountSelector{}
+		}
+		store.Spec.Provider.Kubernetes.Auth.ServiceAccount.Name = serviceAccountName
+		Expect(f.CRClient.Update(context.Background(), &store)).To(Succeed())
+	default:
+		var store esv1.SecretStore
+		Expect(f.CRClient.Get(context.Background(), client.ObjectKey{Name: ref.Name, Namespace: namespace}, &store)).To(Succeed())
+		Expect(store.Spec.Provider).NotTo(BeNil())
+		Expect(store.Spec.Provider.Kubernetes).NotTo(BeNil())
+		if store.Spec.Provider.Kubernetes.Auth == nil {
+			store.Spec.Provider.Kubernetes.Auth = &esv1.KubernetesAuth{}
+		}
+		if store.Spec.Provider.Kubernetes.Auth.ServiceAccount == nil {
+			store.Spec.Provider.Kubernetes.Auth.ServiceAccount = &esmeta.ServiceAccountSelector{}
+		}
+		store.Spec.Provider.Kubernetes.Auth.ServiceAccount.Name = serviceAccountName
+		Expect(f.CRClient.Update(context.Background(), &store)).To(Succeed())
 	}
-	return fmt.Sprintf("%s-kubernetes-%s", namespace, suffix)
 }
 
 func storeAccessName(namespace, suffix string) string {

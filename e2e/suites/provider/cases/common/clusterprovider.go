@@ -204,16 +204,13 @@ func clusterProviderExternalSecretRef(runtime *ClusterProviderExternalSecretRunt
 	}
 	return esv1.SecretStoreRef{
 		Name: runtime.ClusterProviderName,
-		Kind: esv1.ClusterProviderStoreKindStr,
+		Kind: esv1.ClusterSecretStoreKind,
 	}
 }
 
 func clusterProviderDeniedEventMessage(runtime *ClusterProviderExternalSecretRuntime, namespace string) string {
 	ref := clusterProviderExternalSecretRef(runtime)
-	if ref.Kind == esv1.ClusterSecretStoreKind {
-		return fmt.Sprintf("using cluster store %q is not allowed from namespace %q: denied by spec.condition", ref.Name, namespace)
-	}
-	return fmt.Sprintf("using ClusterProviderStore %q is not allowed from namespace %q: denied by spec.conditions", ref.Name, namespace)
+	return fmt.Sprintf("using cluster store %q is not allowed from namespace %q: denied by spec.condition", ref.Name, namespace)
 }
 
 func waitForExternalSecretStatus(f *framework.Framework, namespace, name string, status corev1.ConditionStatus) {

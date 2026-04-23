@@ -30,8 +30,6 @@ rules:
     resources:
     - "secretstores"
     {{- if .Values.v2.enabled }}
-    - "providerstores"
-    - "clusterproviderstores"
     - "clusterproviderclasses"
     - "providerclasses"
     {{- end }}
@@ -56,10 +54,6 @@ rules:
     - "external-secrets.io"
     resources:
     {{- if .Values.v2.enabled }}
-    - "providerstores"
-    - "providerstores/status"
-    - "clusterproviderstores"
-    - "clusterproviderstores/status"
     - "clusterproviderclasses"
     - "clusterproviderclasses/status"
     - "providerclasses"

@@ -39,14 +39,12 @@ import (
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 const (
-	awsProviderAPIVersion = "provider.external-secrets.io/v2alpha1"
 	defaultV2WaitTimeout  = 60 * time.Second
 	defaultV2PollInterval = 2 * time.Second
 )
@@ -127,28 +125,22 @@ func createStaticCredentialsSecret(f *framework.Framework, namespace, name strin
 	Expect(f.CRClient.Create(GinkgoT().Context(), newStaticCredentialsSecret(namespace, name, access))).To(Succeed())
 }
 
-func newParameterStoreV2Config(namespace, name string, access awsV2AccessConfig) *awsv2alpha1.ParameterStore {
-	return &awsv2alpha1.ParameterStore{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: awsv2alpha1.GroupVersion.String(),
-			Kind:       awsv2alpha1.ParameterStoreKind,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: awsv2alpha1.ParameterStoreSpec{
-			Region: access.Region,
-			Auth:   staticAWSV2Auth(awscommon.CredentialsSecretName(name)),
+func newParameterStoreV2StoreProvider(secretName string, access awsV2AccessConfig, authNamespace *string) *esv1.SecretStoreProvider {
+	provider := &esv1.SecretStoreProvider{
+		AWS: &esv1.AWSProvider{
+			Service: esv1.AWSServiceParameterStore,
+			Region:  access.Region,
+			Auth:    staticAWSV2Auth(secretName),
 		},
 	}
-}
-
-func createParameterStoreV2Config(f *framework.Framework, namespace, name string, access awsV2AccessConfig) *awsv2alpha1.ParameterStore {
-	createStaticCredentialsSecret(f, namespace, awscommon.CredentialsSecretName(name), access)
-	cfg := newParameterStoreV2Config(namespace, name, access)
-	Expect(f.CRClient.Create(GinkgoT().Context(), cfg)).To(Succeed())
-	return cfg
+	if authNamespace != nil && provider.AWS.Auth.SecretRef != nil {
+		provider.AWS.Auth.SecretRef.AccessKeyID.Namespace = authNamespace
+		provider.AWS.Auth.SecretRef.SecretAccessKey.Namespace = authNamespace
+		if provider.AWS.Auth.SecretRef.SessionToken != nil {
+			provider.AWS.Auth.SecretRef.SessionToken.Namespace = authNamespace
+		}
+	}
+	return provider
 }
 
 func loadParameterStoreAWSConfig(access awsV2AccessConfig) (aws.Config, error) {
@@ -309,18 +301,15 @@ func useV2StaticAuth(prov *ProviderV2) func(*framework.TestCase) {
 func (p *ProviderV2) prepareNamespacedProvider() func(*framework.TestCase, framework.SecretStoreProvider) {
 	return func(_ *framework.TestCase, _ framework.SecretStoreProvider) {
 		configName := p.providerConfigName()
-		createParameterStoreV2Config(p.framework, p.framework.Namespace.Name, configName, p.access)
-		frameworkv2.CreateProviderConnection(
+		createStaticCredentialsSecret(p.framework, p.framework.Namespace.Name, awscommon.CredentialsSecretName(configName), p.access)
+		frameworkv2.CreateRuntimeSecretStore(
 			p.framework,
 			p.framework.Namespace.Name,
 			p.framework.Namespace.Name,
 			frameworkv2.ProviderAddress("aws"),
-			awsProviderAPIVersion,
-			awsv2alpha1.ParameterStoreKind,
-			configName,
-			p.framework.Namespace.Name,
+			newParameterStoreV2StoreProvider(awscommon.CredentialsSecretName(configName), p.access, nil),
 		)
-		frameworkv2.WaitForProviderConnectionReady(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreReady(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, defaultV2WaitTimeout)
 	}
 }
 
@@ -328,16 +317,14 @@ func (p *ProviderV2) providerConfigName() string {
 	return fmt.Sprintf("%s-parameterstore", p.framework.Namespace.Name)
 }
 
-func createParameterStoreV2ProviderConnection(f *framework.Framework, namespace, name, providerName, providerNamespace string) {
-	frameworkv2.CreateProviderConnection(
+func createParameterStoreV2RuntimeClusterSecretStore(f *framework.Framework, name, secretNamespace, secretName string, access awsV2AccessConfig, authNamespace *string, conditions []esv1.ClusterSecretStoreCondition) {
+	createStaticCredentialsSecret(f, secretNamespace, secretName, access)
+	frameworkv2.CreateRuntimeClusterSecretStore(
 		f,
-		namespace,
 		name,
 		frameworkv2.ProviderAddress("aws"),
-		awsProviderAPIVersion,
-		awsv2alpha1.ParameterStoreKind,
-		providerName,
-		providerNamespace,
+		newParameterStoreV2StoreProvider(secretName, access, authNamespace),
+		conditions,
 	)
-	log.Logf("created ParameterStore Provider connection: %s/%s", namespace, name)
+	log.Logf("created ParameterStore ClusterSecretStore: %s", name)
 }

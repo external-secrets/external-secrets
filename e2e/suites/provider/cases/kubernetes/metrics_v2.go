@@ -72,8 +72,8 @@ var _ = Describe("[kubernetes] v2 metrics", Label("kubernetes", "v2", "metrics")
 		if !framework.IsV2ProviderMode() {
 			Skip("v2 mode only")
 		}
-		frameworkv2.WaitForProviderConnectionReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
-		frameworkv2.WaitForClusterProviderReady(f, referentStoreName(f), defaultV2WaitTimeout)
+		frameworkv2.WaitForSecretStoreReady(f, f.Namespace.Name, f.Namespace.Name, defaultV2WaitTimeout)
+		frameworkv2.WaitForClusterSecretStoreReady(f, referentStoreName(f), defaultV2WaitTimeout)
 	})
 
 	It("exposes Provider and ClusterProvider controller metrics", func() {
@@ -139,7 +139,7 @@ var _ = Describe("[kubernetes] v2 metrics", Label("kubernetes", "v2", "metrics")
 				RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 				SecretStoreRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
-					Kind: esv1.ProviderStoreKindStr,
+					Kind: esv1.SecretStoreKind,
 				},
 				Target: esv1.ExternalSecretTarget{
 					Name: targetSecretName,
@@ -226,7 +226,7 @@ var _ = Describe("[kubernetes] v2 metrics", Label("kubernetes", "v2", "metrics")
 					RefreshInterval: &metav1.Duration{Duration: defaultV2RefreshInterval},
 					SecretStoreRef: esv1.SecretStoreRef{
 						Name: f.Namespace.Name,
-						Kind: esv1.ProviderStoreKindStr,
+						Kind: esv1.SecretStoreKind,
 					},
 					Target: esv1.ExternalSecretTarget{
 						Name: targetName,
