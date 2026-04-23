@@ -117,6 +117,17 @@ type GCPWorkloadIdentityFederation struct {
 	// URL is having the expected value.
 	// +kubebuilder:validation:Optional
 	ExternalTokenEndpoint string `json:"externalTokenEndpoint,omitempty"`
+
+	// GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+	// after Workload Identity Federation. Use this to grant access through the service account's
+	// IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+	// service_account_impersonation_url in the external account JSON from credConfig;
+	// when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+	// on that ServiceAccount.
+	// +kubebuilder:example:="my-gsa@my-project.iam.gserviceaccount.com"
+	// +kubebuilder:validation:Pattern:=^.*@.*\.iam\.gserviceaccount\.com$
+	// +kubebuilder:validation:Optional
+	GCPServiceAccountEmail string `json:"gcpServiceAccountEmail,omitempty"`
 }
 
 // ConfigMapReference holds the details of a configmap.

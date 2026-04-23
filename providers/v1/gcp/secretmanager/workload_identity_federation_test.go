@@ -42,6 +42,7 @@ type workloadIdentityFederationTest struct {
 	genSAToken             func(context.Context, []string, string, string) (*authv1.TokenRequest, error)
 	expectError            string
 	expectTokenSource      bool
+	assertImpersonation    bool
 	expectImpersonationURL string
 }
 
@@ -52,6 +53,8 @@ const (
 	testAudience                       = "//iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/test-pool/providers/test-provider"
 	testServiceAccountImpersonationURL = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken"
 	testGCPServiceAccountEmail         = "test@test.iam.gserviceaccount.com"
+	testOverrideGCPServiceAccountEmail = "override@override.iam.gserviceaccount.com"
+	testFromCredGCPServiceAccountEmail = "from-cred@cred.iam.gserviceaccount.com"
 	testSAToken                        = "test-sa-token"
 	testAwsRegion                      = "us-west-2"
 	// below values taken from https://docs.aws.amazon.com/sdkref/latest/guide/feature-static-credentials.html
@@ -71,9 +74,11 @@ const (
 )
 
 var (
-	testNamespace    = "external-secrets-tests"
-	testTokenURL     = fmt.Sprintf(workloadIdentityTokenURLFormat, defaultUniverseDomain)
-	testTokenInfoURL = fmt.Sprintf(workloadIdentityTokenInfoURLFormat, defaultUniverseDomain)
+	testNamespace                = "external-secrets-tests"
+	testTokenURL                 = fmt.Sprintf(workloadIdentityTokenURLFormat, defaultUniverseDomain)
+	testTokenInfoURL             = fmt.Sprintf(workloadIdentityTokenInfoURLFormat, defaultUniverseDomain)
+	testOverrideImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, testOverrideGCPServiceAccountEmail)
+	testFromCredImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, testFromCredGCPServiceAccountEmail)
 )
 
 func createValidK8sExternalAccountConfig(audience string) string {
@@ -86,6 +91,24 @@ func createValidK8sExternalAccountConfig(audience string) string {
 			"file": "/var/run/secrets/oidc_token",
 		},
 		"token_info_url": testTokenInfoURL,
+	}
+	data, _ := json.Marshal(config)
+	return string(data)
+}
+
+// createK8sExternalAccountConfigWithImpersonation includes service_account_impersonation_url in the
+// external_account JSON to test precedence against GCPServiceAccountEmail and annotations.
+func createK8sExternalAccountConfigWithImpersonation(audience, serviceAccountImpersonationURL string) string {
+	config := map[string]any{
+		"type":                              externalAccountCredentialType,
+		"audience":                          audience,
+		"subject_token_type":                workloadIdentitySubjectTokenType,
+		"token_url":                         testTokenURL,
+		"token_info_url":                    testTokenInfoURL,
+		"service_account_impersonation_url": serviceAccountImpersonationURL,
+		"credential_source": map[string]any{
+			"file": "/var/run/secrets/oidc_token",
+		},
 	}
 	data, _ := json.Marshal(config)
 	return string(data)
@@ -427,7 +450,84 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 					},
 				}, nil
 			},
+			assertImpersonation:    true,
 			expectImpersonationURL: testServiceAccountImpersonationURL,
+			expectTokenSource:      true,
+		},
+		{
+			name: "kubernetes service account without gcp annotation has no service account impersonation URL",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				Audience: testAudience,
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testServiceAccount,
+						Namespace: testNamespace,
+					},
+				},
+			},
+			genSAToken:             defaultSATokenGenerator,
+			assertImpersonation:    true,
+			expectImpersonationURL: "",
+			expectTokenSource:      true,
+		},
+		{
+			name: "GCPServiceAccountEmail on spec overrides service_account_impersonation_url in credConfig JSON",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				Audience:               testAudience,
+				GCPServiceAccountEmail: testOverrideGCPServiceAccountEmail,
+				CredConfig: &esv1.ConfigMapReference{
+					Name:      testConfigMapName,
+					Key:       testConfigMapKey,
+					Namespace: testNamespace,
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testConfigMapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						testConfigMapKey: createK8sExternalAccountConfigWithImpersonation(testAudience, testFromCredImpersonationURL),
+					},
+				},
+			},
+			assertImpersonation:    true,
+			expectImpersonationURL: testOverrideImpersonationURL,
+			expectTokenSource:      true,
+		},
+		{
+			name: "GCPServiceAccountEmail on spec overrides ServiceAccount annotation",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				Audience:               testAudience,
+				GCPServiceAccountEmail: testOverrideGCPServiceAccountEmail,
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testServiceAccount,
+						Namespace: testNamespace,
+						Annotations: map[string]string{
+							gcpSAAnnotation: testGCPServiceAccountEmail,
+						},
+					},
+				},
+			},
+			genSAToken:             defaultSATokenGenerator,
+			assertImpersonation:    true,
+			expectImpersonationURL: testOverrideImpersonationURL,
 			expectTokenSource:      true,
 		},
 		{
@@ -591,7 +691,7 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 				namespace:        testNamespace,
 			}
 
-			if tc.expectImpersonationURL != "" {
+			if tc.assertImpersonation {
 				cfg, cfgErr := wif.generateExternalAccountConfig(context.Background(), nil)
 				assert.NoError(t, cfgErr)
 				assert.Equal(t, tc.expectImpersonationURL, cfg.ServiceAccountImpersonationURL)
@@ -945,6 +1045,85 @@ func TestReadCredConfig(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+// TestUpdateServiceAccountImpersonationURL covers ordering edge cases for impersonation that are not
+// asserted by TestWorkloadIdentityFederation: (1) cred JSON already set a URL and an empty spec does
+// not clear it, (2) annotation replaces a URL from cred, (3) no annotation keeps a URL from cred.
+// Flows also covered by WIF (email vs cred/annotation, annotation-only, missing SA) are tested there only.
+func TestUpdateServiceAccountImpersonationURL(t *testing.T) {
+	annotationURL := testServiceAccountImpersonationURL
+	credImpersonationURL := testFromCredImpersonationURL
+
+	baseSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testServiceAccount,
+			Namespace: testNamespace,
+		},
+	}
+	saWithGcpAnnotation := baseSA.DeepCopy()
+	saWithGcpAnnotation.Annotations = map[string]string{
+		gcpSAAnnotation: testGCPServiceAccountEmail,
+	}
+
+	tests := []struct {
+		name       string
+		wif        *workloadIdentityFederation
+		initialURL string
+		wantURL    string
+	}{
+		{
+			name: "no gcp service account email and no service account ref leaves initial URL unchanged",
+			wif: &workloadIdentityFederation{
+				kubeClient: clientfake.NewClientBuilder().Build(),
+				config:     &esv1.GCPWorkloadIdentityFederation{},
+			},
+			initialURL: credImpersonationURL,
+			wantURL:    credImpersonationURL,
+		},
+		{
+			name: "kubernetes service account annotation overwrites initial impersonation URL from cred",
+			wif: &workloadIdentityFederation{
+				kubeClient: clientfake.NewClientBuilder().WithObjects(saWithGcpAnnotation).Build(),
+				config: &esv1.GCPWorkloadIdentityFederation{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name:      testServiceAccount,
+						Namespace: &testNamespace,
+					},
+				},
+				namespace:     testNamespace,
+				isClusterKind: true,
+			},
+			initialURL: credImpersonationURL,
+			wantURL:    annotationURL,
+		},
+		{
+			name: "kubernetes service account without gcp annotation leaves initial impersonation URL from cred",
+			wif: &workloadIdentityFederation{
+				kubeClient: clientfake.NewClientBuilder().WithObjects(baseSA).Build(),
+				config: &esv1.GCPWorkloadIdentityFederation{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name:      testServiceAccount,
+						Namespace: &testNamespace,
+					},
+				},
+				namespace:     testNamespace,
+				isClusterKind: true,
+			},
+			initialURL: credImpersonationURL,
+			wantURL:    credImpersonationURL,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := &externalaccount.Config{ServiceAccountImpersonationURL: tc.initialURL}
+			err := tc.wif.updateServiceAccountImpersonationURL(context.Background(), cfg)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantURL, cfg.ServiceAccountImpersonationURL)
 		})
 	}
 }

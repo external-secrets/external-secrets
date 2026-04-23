@@ -4256,6 +4256,17 @@ spec:
                                     credential_source.url in the provided credConfig. This field is merely to double-check the external token source
                                     URL is having the expected value.
                                   type: string
+                                gcpServiceAccountEmail:
+                                  description: |-
+                                    GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+                                    after Workload Identity Federation. Use this to grant access through the service account's
+                                    IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+                                    service_account_impersonation_url in the external account JSON from credConfig;
+                                    when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+                                    on that ServiceAccount.
+                                  example: my-gsa@my-project.iam.gserviceaccount.com
+                                  pattern: ^.*@.*\.iam\.gserviceaccount\.com$
+                                  type: string
                                 serviceAccountRef:
                                   description: |-
                                     serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
@@ -16367,6 +16378,17 @@ spec:
                                     credential_source.url in the provided credConfig. This field is merely to double-check the external token source
                                     URL is having the expected value.
                                   type: string
+                                gcpServiceAccountEmail:
+                                  description: |-
+                                    GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+                                    after Workload Identity Federation. Use this to grant access through the service account's
+                                    IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+                                    service_account_impersonation_url in the external account JSON from credConfig;
+                                    when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+                                    on that ServiceAccount.
+                                  example: my-gsa@my-project.iam.gserviceaccount.com
+                                  pattern: ^.*@.*\.iam\.gserviceaccount\.com$
+                                  type: string
                                 serviceAccountRef:
                                   description: |-
                                     serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
@@ -25359,6 +25381,17 @@ spec:
                                     credential_source.url in the provided credConfig. This field is merely to double-check the external token source
                                     URL is having the expected value.
                                   type: string
+                                gcpServiceAccountEmail:
+                                  description: |-
+                                    GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+                                    after Workload Identity Federation. Use this to grant access through the service account's
+                                    IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+                                    service_account_impersonation_url in the external account JSON from credConfig;
+                                    when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+                                    on that ServiceAccount.
+                                  example: my-gsa@my-project.iam.gserviceaccount.com
+                                  pattern: ^.*@.*\.iam\.gserviceaccount\.com$
+                                  type: string
                                 serviceAccountRef:
                                   description: |-
                                     serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
@@ -27501,6 +27534,17 @@ spec:
                             externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
                             credential_source.url in the provided credConfig. This field is merely to double-check the external token source
                             URL is having the expected value.
+                          type: string
+                        gcpServiceAccountEmail:
+                          description: |-
+                            GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+                            after Workload Identity Federation. Use this to grant access through the service account's
+                            IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+                            service_account_impersonation_url in the external account JSON from credConfig;
+                            when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+                            on that ServiceAccount.
+                          example: my-gsa@my-project.iam.gserviceaccount.com
+                          pattern: ^.*@.*\.iam\.gserviceaccount\.com$
                           type: string
                         serviceAccountRef:
                           description: |-
