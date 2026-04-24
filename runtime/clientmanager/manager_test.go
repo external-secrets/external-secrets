@@ -453,7 +453,7 @@ func TestBuildProviderReferenceUsesStoreNamespaceForSecretStore(t *testing.T) {
 
 func TestBuildProviderReferenceUsesSourceNamespaceForClusterSecretStore(t *testing.T) {
 	store := &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		TypeMeta:   metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
 		ObjectMeta: metav1.ObjectMeta{Name: "fake-store"},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Name: "fake-runtime"},
@@ -503,7 +503,7 @@ func TestGetFromStoreReturnsErrorWhenRuntimeClassMissing(t *testing.T) {
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -534,7 +534,7 @@ func TestGetFromStoreRuntimeRefCacheHitSkipsRuntimeLookup(t *testing.T) {
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -603,7 +603,7 @@ func TestGetFromStoreDefaultsRuntimeRefKindToProviderClass(t *testing.T) {
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Name: "aws-runtime"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Name: "aws-runtime"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -661,7 +661,7 @@ func TestGetFromStoreDefaultsRuntimeRefKindToClusterProviderClass(t *testing.T) 
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Name: "aws-runtime"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Name: "aws-runtime"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -717,7 +717,7 @@ func TestGetFromStoreRuntimeRefProviderClassUsesStoreNamespace(t *testing.T) {
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -772,7 +772,7 @@ func TestGetFromStoreRuntimeRefProviderClassMissingReturnsKindedError(t *testing
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -803,7 +803,7 @@ func TestGetFromStoreRuntimeRefClusterStoreRejectsProviderClass(t *testing.T) {
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -841,7 +841,7 @@ func TestGetFromStoreWithRuntimeRefReturnsClientThatValidates(t *testing.T) {
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -902,7 +902,7 @@ func TestGetFromStoreWithRuntimeRefReusesCachedClient(t *testing.T) {
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
@@ -963,7 +963,7 @@ func TestGetFromStoreWithRuntimeRefDoesNotReuseClientAcrossSourceNamespaces(t *t
 			Generation: 7,
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
+			RuntimeRef:  &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
 			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}

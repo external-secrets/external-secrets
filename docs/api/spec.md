@@ -2736,6 +2736,20 @@ SecretStoreProvider
 </tr>
 <tr>
 <td>
+<code>providerRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.StoreProviderRef">
+StoreProviderRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderRef references a provider configuration managed externally.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>retrySettings</code></br>
 <em>
 <a href="#external-secrets.io/v1.SecretStoreRetrySettings">
@@ -9347,6 +9361,20 @@ SecretStoreProvider
 </tr>
 <tr>
 <td>
+<code>providerRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.StoreProviderRef">
+StoreProviderRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderRef references a provider configuration managed externally.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>retrySettings</code></br>
 <em>
 <a href="#external-secrets.io/v1.SecretStoreRetrySettings">
@@ -10175,6 +10203,20 @@ SecretStoreProvider
 </tr>
 <tr>
 <td>
+<code>providerRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.StoreProviderRef">
+StoreProviderRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderRef references a provider configuration managed externally.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>retrySettings</code></br>
 <em>
 <a href="#external-secrets.io/v1.SecretStoreRetrySettings">
@@ -10612,6 +10654,70 @@ GeneratorRef
 <td>
 <em>(Optional)</em>
 <p>GeneratorRef points to a generator custom resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.StoreProviderRef">StoreProviderRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>)
+</p>
+<p>
+<p>StoreProviderRef identifies the provider configuration used by a store.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIVersion identifies the API schema version for the provider resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind identifies the provider resource type referenced by this store.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the provider resource name referenced by this store.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Namespace is the provider resource namespace referenced by this store.</p>
 </td>
 </tr>
 </tbody>
@@ -13583,6 +13689,133 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.ProviderClass">ProviderClass
+</h3>
+<p>
+<p>ProviderClass is a namespaced store runtime class.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ProviderClassSpec">
+ProviderClassSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>address</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ProviderClassStatus">
+ProviderClassStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.ProviderClassSpec">ProviderClassSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ProviderClass">ProviderClass</a>)
+</p>
+<p>
+<p>ProviderClassSpec defines the desired state of ProviderClass.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>address</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.ProviderClassStatus">ProviderClassStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ProviderClass">ProviderClass</a>)
+</p>
+<p>
+<p>ProviderClassStatus defines the observed state of ProviderClass.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -17049,6 +17282,20 @@ SecretStoreProvider
 </td>
 <td>
 <p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.StoreProviderRef">
+StoreProviderRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderRef references a provider configuration managed externally.</p>
 </td>
 </tr>
 <tr>
@@ -21741,6 +21988,20 @@ SecretStoreProvider
 </tr>
 <tr>
 <td>
+<code>providerRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.StoreProviderRef">
+StoreProviderRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderRef references a provider configuration managed externally.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>retrySettings</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
@@ -22499,6 +22760,20 @@ SecretStoreProvider
 </tr>
 <tr>
 <td>
+<code>providerRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.StoreProviderRef">
+StoreProviderRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderRef references a provider configuration managed externally.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>retrySettings</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
@@ -22911,6 +23186,70 @@ GeneratorRef
 <td>
 <em>(Optional)</em>
 <p>GeneratorRef points to a generator custom resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.StoreProviderRef">StoreProviderRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
+</p>
+<p>
+<p>StoreProviderRef identifies the provider configuration used by a store.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIVersion identifies the API schema version for the provider resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind identifies the provider resource type referenced by this store.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the provider resource name referenced by this store.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Namespace is the provider resource namespace referenced by this store.</p>
 </td>
 </tr>
 </tbody>

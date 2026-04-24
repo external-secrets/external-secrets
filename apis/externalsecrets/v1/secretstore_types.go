@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// StoreRuntimeRefKind constants define the supported runtime reference kinds.
 const (
 	StoreRuntimeRefKindProviderClass        = "ProviderClass"
 	StoreRuntimeRefKindClusterProviderClass = "ClusterProviderClass"

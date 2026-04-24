@@ -129,13 +129,6 @@ func providerMetricsLabelForKey(key clientKey) string {
 	return providerMetricsLabel
 }
 
-func providerMetricsLabelForScope(isClusterScoped bool) string {
-	if isClusterScoped {
-		return clusterProviderMetricsLabel
-	}
-	return providerMetricsLabel
-}
-
 // NewManager constructs a new manager with defaults.
 func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgate bool) *Manager {
 	log := ctrl.Log.WithName("clientmanager")

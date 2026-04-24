@@ -312,7 +312,7 @@ func TestServerGetSecretRejectsMissingProviderReference(t *testing.T) {
 		SourceNamespace: serverTestSourceNamespace,
 		RemoteRef:       &pb.ExternalSecretDataRemoteRef{Key: "sample"},
 	})
-	if err == nil || err.Error() != "provider reference is required" {
+	if !errors.Is(err, errProviderReferenceRequired) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -324,7 +324,7 @@ func TestServerGetSecretMapRejectsMissingProviderReference(t *testing.T) {
 		SourceNamespace: serverTestSourceNamespace,
 		RemoteRef:       &pb.ExternalSecretDataRemoteRef{Key: "sample"},
 	})
-	if err == nil || err.Error() != "provider reference is required" {
+	if !errors.Is(err, errProviderReferenceRequired) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -336,7 +336,7 @@ func TestServerGetAllSecretsRejectsMissingProviderReference(t *testing.T) {
 		SourceNamespace: serverTestSourceNamespace,
 		Find:            &pb.ExternalSecretFind{},
 	})
-	if err == nil || err.Error() != "provider reference is required" {
+	if !errors.Is(err, errProviderReferenceRequired) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

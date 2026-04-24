@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"slices"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,14 +35,7 @@ func TestAddToSchemeRegistersProviderClass(t *testing.T) {
 		t.Fatalf("ObjectKinds: %v", err)
 	}
 	expected := SchemeGroupVersion.WithKind("ProviderClass")
-	found := false
-	for _, gvk := range gvks {
-		if gvk == expected {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !slices.Contains(gvks, expected) {
 		t.Fatalf("expected scheme to register %s, got %v", expected, gvks)
 	}
 }

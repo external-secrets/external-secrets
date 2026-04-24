@@ -18,6 +18,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -49,6 +50,8 @@ type ProviderMapping map[schema.GroupVersionKind]esv1.ProviderInterface
 // SpecMapper maps a provider reference to a SecretStoreSpec.
 // This is used to create a synthetic store for the v1 provider.
 type SpecMapper func(ref *pb.ProviderReference, sourceNamespace string) (*esv1.SecretStoreSpec, error)
+
+var errProviderReferenceRequired = errors.New("provider reference is required")
 
 // NewServer creates a new AdapterServer that wraps v1 providers and generators.
 func NewServer(kubeClient client.Client, resourceMapping ProviderMapping, specMapping SpecMapper) *Server {
@@ -85,7 +88,7 @@ func (s *Server) resolveProvider(ref *pb.ProviderReference) (esv1.ProviderInterf
 
 func (s *Server) getClient(ctx context.Context, ref *pb.ProviderReference, namespace string) (esv1.SecretsClient, error) {
 	if ref == nil {
-		return nil, fmt.Errorf("provider reference is required")
+		return nil, errProviderReferenceRequired
 	}
 
 	spec, err := s.specMapper(ref, namespace)
@@ -118,7 +121,7 @@ func (s *Server) getReadClient(ctx context.Context, providerRef *pb.ProviderRefe
 
 func validateProviderReference(providerRef *pb.ProviderReference) error {
 	if providerRef == nil {
-		return fmt.Errorf("provider reference is required")
+		return errProviderReferenceRequired
 	}
 	return nil
 }
@@ -138,7 +141,7 @@ func (s *Server) getClientForRemoteRef(
 
 	client, err := s.getReadClient(ctx, providerRef, sourceNamespace)
 	if err != nil {
-		if err.Error() == "provider reference is required" {
+		if errors.Is(err, errProviderReferenceRequired) {
 			return nil, esv1.ExternalSecretDataRemoteRef{}, err
 		}
 		return nil, esv1.ExternalSecretDataRemoteRef{}, fmt.Errorf("failed to get client: %w", err)
@@ -212,7 +215,7 @@ func (s *Server) PushSecret(ctx context.Context, req *pb.PushSecretRequest) (*pb
 
 	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
-		if err.Error() == "provider reference is required" {
+		if errors.Is(err, errProviderReferenceRequired) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get client: %w", err)
@@ -256,7 +259,7 @@ func (s *Server) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) 
 
 	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
-		if err.Error() == "provider reference is required" {
+		if errors.Is(err, errProviderReferenceRequired) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get client: %w", err)
@@ -288,7 +291,7 @@ func (s *Server) SecretExists(ctx context.Context, req *pb.SecretExistsRequest) 
 
 	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
-		if err.Error() == "provider reference is required" {
+		if errors.Is(err, errProviderReferenceRequired) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get client: %w", err)
@@ -322,7 +325,7 @@ func (s *Server) GetAllSecrets(ctx context.Context, req *pb.GetAllSecretsRequest
 	}
 	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
-		if err.Error() == "provider reference is required" {
+		if errors.Is(err, errProviderReferenceRequired) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get client: %w", err)

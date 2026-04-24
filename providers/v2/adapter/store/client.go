@@ -19,6 +19,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -138,8 +139,10 @@ func (w *Client) Capabilities(ctx context.Context) (esv1.SecretStoreCapabilities
 		return esv1.SecretStoreReadOnly, nil
 	case pb.SecretStoreCapabilities_WRITE_ONLY:
 		return esv1.SecretStoreWriteOnly, nil
-	default:
+	case pb.SecretStoreCapabilities_READ_WRITE:
 		return esv1.SecretStoreReadWrite, nil
+	default:
+		return esv1.SecretStoreReadOnly, fmt.Errorf("unsupported provider capabilities: %v", caps)
 	}
 }
 
