@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#example-manifest" class="md-skip">
+        <a href="#macro-rendering-error" class="md-skip">
           Skip to content
         </a>
       
@@ -1381,24 +1381,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Vault Dynamic Secret
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -1416,34 +1400,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#example-manifest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example manifest
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -4888,25 +4844,8 @@
   
   
   
+    
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#example-manifest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example manifest
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -4926,57 +4865,22 @@
   
 
 
-  <h1>Vault Dynamic Secret</h1>
-
-<p>The <code>VaultDynamicSecret</code> Generator provides an interface to HashiCorp Vault's
-<a href="https://developer.hashicorp.com/vault/docs/secrets">Secrets engines</a>. Specifically,
-it enables obtaining dynamic secrets not covered by the
-<a href="../../../provider/hashicorp-vault/">HashiCorp Vault provider</a>.</p>
-<p>Any Vault authentication method supported by the provider can be used here
-(<code>provider</code> block of the spec).</p>
-<p>All secrets engines should be supported by providing matching <code>path</code>, <code>method</code>
-and <code>parameters</code> values to the Generator spec (see example below).</p>
-<p>Exact output keys and values depend on the Vault secret engine used; nested values
-are stored into the resulting Secret in JSON format. The generator exposes <code>data</code>
-section of the response from Vault API by default. To adjust the behaviour, use
-<code>resultType</code> key.</p>
-<h2 id="example-manifest">Example manifest</h2>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">VaultDynamicSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pki-example&quot;</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/pki/issue/example-dot-com&quot;</span>
-<span class="w">  </span><span class="nt">method</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;POST&quot;</span>
-<span class="w">  </span><span class="nt">parameters</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">common_name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;localhost&quot;</span>
-<span class="w">    </span><span class="nt">ip_sans</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;127.0.0.1,127.0.0.11&quot;</span>
-<span class="w">  </span><span class="nt">resultType</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Data&quot;</span><span class="w">  </span><span class="c1"># &quot;Auth&quot; and &quot;Raw&quot; are also available</span>
-<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://vault.default.svc.cluster.local:8200&quot;</span>
-<span class="w">    </span><span class="nt">auth</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">kubernetes</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kubernetes&quot;</span>
-<span class="w">        </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;external-secrets-operator&quot;</span>
-<span class="w">        </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;default&quot;</span>
+<h1 id="macro-rendering-error"><em>Macro Rendering Error</em></h1>
+<p><em>File</em>: <code>api/generator/vault.md</code></p>
+<p><em>TemplateNotFound</em>: 'generator-vault-get.yaml' not found in search path: 'docs/snippets'</p>
+<div class="highlight"><pre><span></span><code>Traceback (most recent call last):
+  File &quot;/.venv/lib/python3.12/site-packages/mkdocs_macros/plugin.py&quot;, line 703, in render
+    return md_template.render(**page_variables)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/.venv/lib/python3.12/site-packages/jinja2/environment.py&quot;, line 1295, in render
+    self.environment.handle_exception()
+  File &quot;/.venv/lib/python3.12/site-packages/jinja2/environment.py&quot;, line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File &quot;&lt;template&gt;&quot;, line 36, in top-level template code
+  File &quot;/.venv/lib/python3.12/site-packages/jinja2/loaders.py&quot;, line 209, in get_source
+    raise TemplateNotFound(
+jinja2.exceptions.TemplateNotFound: &#39;generator-vault-get.yaml&#39; not found in search path: &#39;docs/snippets&#39;
 </code></pre></div>
-<p>Example <code>ExternalSecret</code> that references the Vault generator:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pki-example-com&quot;</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;768h0m0s&quot;</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pki-example-com</span>
-<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">generatorRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
-<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">VaultDynamicSecret</span>
-<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pki-example&quot;</span>
-</code></pre></div></p>
 
 
 
