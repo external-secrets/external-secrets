@@ -71,6 +71,7 @@ var (
 	healthzAddr                           string
 	controllerClass                       string
 	enableLeaderElection                  bool
+	leaderElectionID                      string
 	enableSecretsCache                    bool
 	enableConfigMapsCache                 bool
 	enableManagedSecretsCache             bool
@@ -172,7 +173,7 @@ var rootCmd = &cobra.Command{
 				},
 			},
 			LeaderElection:   enableLeaderElection,
-			LeaderElectionID: "external-secrets-controller",
+			LeaderElectionID: leaderElectionID,
 		}
 		if namespace != "" {
 			mgrOpts.Cache.DefaultNamespaces = map[string]cache.Config{
@@ -335,6 +336,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	rootCmd.Flags().StringVar(&leaderElectionID, "leader-election-id", "external-secrets-controller",
+		"The ID of the lease object used for leader election. Set this to a unique value when running multiple deployments in the same namespace.")
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")

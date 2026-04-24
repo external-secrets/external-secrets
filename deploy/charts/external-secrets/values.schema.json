@@ -467,6 +467,9 @@
         "leaderElect": {
             "type": "boolean"
         },
+        "leaderElectionID": {
+            "type": "string"
+        },
         "livenessProbe": {
             "type": "object",
             "properties": {
