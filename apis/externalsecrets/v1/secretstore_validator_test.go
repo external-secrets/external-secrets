@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -143,7 +144,7 @@ func TestValidateSecretStore(t *testing.T) {
 			},
 		},
 		{
-			name: "no registered store backend",
+			name: "requires provider or providerRef",
 			obj: &SecretStore{
 				Spec: SecretStoreSpec{
 					Conditions: []ClusterSecretStoreCondition{
@@ -154,7 +155,111 @@ func TestValidateSecretStore(t *testing.T) {
 				},
 			},
 			assertErr: func(t *testing.T, err error) {
-				assert.EqualError(t, err, "store error for : secret stores must only have exactly one backend specified, found 0")
+				assert.EqualError(t, err, "exactly one of spec.provider or spec.providerRef must be set")
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "rejects provider and providerRef together",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					Provider: &SecretStoreProvider{
+						AWS: &AWSProvider{},
+					},
+					ProviderRef: &StoreProviderRef{
+						Name: "aws",
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.EqualError(t, err, "exactly one of spec.provider or spec.providerRef must be set")
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "rejects provider with runtimeRef",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					Provider: &SecretStoreProvider{
+						AWS: &AWSProvider{},
+					},
+					RuntimeRef: &StoreRuntimeRef{
+						Kind: "ProviderClass",
+						Name: "aws",
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.EqualError(t, err, "spec.runtimeRef must be empty when spec.provider is set")
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "rejects providerRef without runtimeRef",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					ProviderRef: &StoreProviderRef{
+						Name: "aws",
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.EqualError(t, err, "spec.runtimeRef is required when spec.providerRef is set")
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "rejects providerRef namespace mismatch",
+			obj: &SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "store",
+					Namespace: "default",
+				},
+				Spec: SecretStoreSpec{
+					ProviderRef: &StoreProviderRef{
+						Name:      "aws",
+						Namespace: "other",
+					},
+					RuntimeRef: &StoreRuntimeRef{
+						Kind: "ProviderClass",
+						Name: "aws",
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.EqualError(t, err, "spec.providerRef.namespace must be empty or match metadata.namespace")
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "allows providerRef with runtimeRef",
+			obj: &SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "store",
+					Namespace: "default",
+				},
+				Spec: SecretStoreSpec{
+					ProviderRef: &StoreProviderRef{
+						Name: "aws",
+					},
+					RuntimeRef: &StoreRuntimeRef{
+						Kind: "ProviderClass",
+						Name: "aws",
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
 			},
 			assertWarns: func(t *testing.T, warns admission.Warnings) {
 				require.Equal(t, 0, len(warns))
@@ -204,6 +309,9 @@ func TestValidateSecretStore(t *testing.T) {
 func TestValidateStoreRejectsProviderClassForClusterSecretStore(t *testing.T) {
 	store := &ClusterSecretStore{
 		Spec: SecretStoreSpec{
+			ProviderRef: &StoreProviderRef{
+				Name: "aws",
+			},
 			RuntimeRef: &StoreRuntimeRef{
 				Kind: "ProviderClass",
 				Name: "aws",
@@ -214,5 +322,23 @@ func TestValidateStoreRejectsProviderClassForClusterSecretStore(t *testing.T) {
 	warns, err := validateStore(store)
 	require.Error(t, err)
 	assert.EqualError(t, err, "ClusterSecretStore runtimeRef.kind must not be \"ProviderClass\"")
+	require.Len(t, warns, 0)
+}
+
+func TestValidateClusterSecretStoreAllowsProviderRefRuntimeRef(t *testing.T) {
+	store := &ClusterSecretStore{
+		Spec: SecretStoreSpec{
+			ProviderRef: &StoreProviderRef{
+				Name: "aws",
+			},
+			RuntimeRef: &StoreRuntimeRef{
+				Kind: "ClusterProviderClass",
+				Name: "aws",
+			},
+		},
+	}
+
+	warns, err := validateStore(store)
+	require.NoError(t, err)
 	require.Len(t, warns, 0)
 }

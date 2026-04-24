@@ -40,6 +40,25 @@ type StoreRuntimeRef struct {
 	Name string `json:"name"`
 }
 
+// StoreProviderRef identifies the provider configuration used by a store.
+type StoreProviderRef struct {
+	// APIVersion identifies the API schema version for the provider resource.
+	// +optional
+	APIVersion string `json:"apiVersion,omitempty"`
+
+	// Kind identifies the provider resource type referenced by this store.
+	// +optional
+	Kind string `json:"kind,omitempty"`
+
+	// Name is the provider resource name referenced by this store.
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// Namespace is the provider resource namespace referenced by this store.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
 // SecretStoreSpec defines the desired state of SecretStore.
 type SecretStoreSpec struct {
 	// Used to select the correct ESO controller (think: ingress.ingressClassName)
@@ -48,7 +67,11 @@ type SecretStoreSpec struct {
 	Controller string `json:"controller,omitempty"`
 
 	// Used to configure the provider. Only one provider may be set
-	Provider *SecretStoreProvider `json:"provider"`
+	Provider *SecretStoreProvider `json:"provider,omitempty"`
+
+	// ProviderRef references a provider configuration managed externally.
+	// +optional
+	ProviderRef *StoreProviderRef `json:"providerRef,omitempty"`
 
 	// Used to configure HTTP retries on failures.
 	// +optional
