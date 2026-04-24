@@ -21,6 +21,7 @@ import (
 
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
@@ -149,42 +150,54 @@ func TestBuildMetadata(t *testing.T) {
 func TestBuildReplication(t *testing.T) {
 	const cmek = "projects/p/locations/global/keyRings/r/cryptoKeys/k"
 
+	userManaged := func(replicas ...*secretmanagerpb.Replication_UserManaged_Replica) *secretmanagerpb.Replication {
+		return &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_UserManaged_{
+				UserManaged: &secretmanagerpb.Replication_UserManaged{Replicas: replicas},
+			},
+		}
+	}
+	automatic := func(key string) *secretmanagerpb.Replication {
+		return &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{
+					CustomerManagedEncryption: &secretmanagerpb.CustomerManagedEncryption{KmsKeyName: key},
+				},
+			},
+		}
+	}
+	replica := func(loc, key string) *secretmanagerpb.Replication_UserManaged_Replica {
+		r := &secretmanagerpb.Replication_UserManaged_Replica{Location: loc}
+		if key != "" {
+			r.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{KmsKeyName: key}
+		}
+		return r
+	}
+
 	tests := []struct {
-		name              string
-		spec              PushSecretMetadataSpec
-		wantNil           bool
-		wantUserManaged   bool
-		expectedLocations []string
-		expectedCMEK      string
+		name string
+		spec PushSecretMetadataSpec
+		want *secretmanagerpb.Replication
 	}{
 		{
-			name:    "no replication configured",
-			spec:    PushSecretMetadataSpec{},
-			wantNil: true,
+			name: "no replication configured",
+			spec: PushSecretMetadataSpec{},
+			want: nil,
 		},
 		{
 			name: "single location via deprecated field",
-			spec: PushSecretMetadataSpec{
-				ReplicationLocation: "us-east1",
-			},
-			wantUserManaged:   true,
-			expectedLocations: []string{"us-east1"},
+			spec: PushSecretMetadataSpec{ReplicationLocation: "us-east1"},
+			want: userManaged(replica("us-east1", "")),
 		},
 		{
 			name: "single location via new field",
-			spec: PushSecretMetadataSpec{
-				ReplicationLocations: []string{"us-east1"},
-			},
-			wantUserManaged:   true,
-			expectedLocations: []string{"us-east1"},
+			spec: PushSecretMetadataSpec{ReplicationLocations: []string{"us-east1"}},
+			want: userManaged(replica("us-east1", "")),
 		},
 		{
 			name: "multiple locations",
-			spec: PushSecretMetadataSpec{
-				ReplicationLocations: []string{"us-east1", "europe-west1", "asia-southeast1"},
-			},
-			wantUserManaged:   true,
-			expectedLocations: []string{"us-east1", "europe-west1", "asia-southeast1"},
+			spec: PushSecretMetadataSpec{ReplicationLocations: []string{"us-east1", "europe-west1", "asia-southeast1"}},
+			want: userManaged(replica("us-east1", ""), replica("europe-west1", ""), replica("asia-southeast1", "")),
 		},
 		{
 			name: "new field takes precedence over deprecated when both set",
@@ -192,8 +205,7 @@ func TestBuildReplication(t *testing.T) {
 				ReplicationLocation:  "us-east1",
 				ReplicationLocations: []string{"europe-west1", "asia-southeast1"},
 			},
-			wantUserManaged:   true,
-			expectedLocations: []string{"europe-west1", "asia-southeast1"},
+			want: userManaged(replica("europe-west1", ""), replica("asia-southeast1", "")),
 		},
 		{
 			name: "multiple locations with CMEK applied to all",
@@ -201,49 +213,23 @@ func TestBuildReplication(t *testing.T) {
 				ReplicationLocations: []string{"us-east1", "europe-west1"},
 				CMEKKeyName:          cmek,
 			},
-			wantUserManaged:   true,
-			expectedLocations: []string{"us-east1", "europe-west1"},
-			expectedCMEK:      cmek,
+			want: userManaged(replica("us-east1", cmek), replica("europe-west1", cmek)),
 		},
 		{
 			name: "CMEK without locations falls back to automatic replication carrying CMEK",
-			spec: PushSecretMetadataSpec{
-				CMEKKeyName: cmek,
-			},
-			expectedCMEK: cmek,
+			spec: PushSecretMetadataSpec{CMEKKeyName: cmek},
+			want: automatic(cmek),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := buildReplication(tt.spec)
-			if tt.wantNil {
+			if tt.want == nil {
 				assert.Nil(t, got)
 				return
 			}
-			assert.NotNil(t, got)
-
-			if tt.wantUserManaged {
-				um, ok := got.Replication.(*secretmanagerpb.Replication_UserManaged_)
-				assert.True(t, ok, "expected UserManaged replication")
-				assert.Len(t, um.UserManaged.Replicas, len(tt.expectedLocations))
-				for i, loc := range tt.expectedLocations {
-					assert.Equal(t, loc, um.UserManaged.Replicas[i].Location)
-					if tt.expectedCMEK != "" {
-						assert.NotNil(t, um.UserManaged.Replicas[i].CustomerManagedEncryption)
-						assert.Equal(t, tt.expectedCMEK, um.UserManaged.Replicas[i].CustomerManagedEncryption.KmsKeyName)
-					} else {
-						assert.Nil(t, um.UserManaged.Replicas[i].CustomerManagedEncryption)
-					}
-				}
-				return
-			}
-
-			// CMEK-only path: expect Automatic replication with CMEK attached.
-			auto, ok := got.Replication.(*secretmanagerpb.Replication_Automatic_)
-			assert.True(t, ok, "expected Automatic replication")
-			assert.NotNil(t, auto.Automatic.CustomerManagedEncryption)
-			assert.Equal(t, tt.expectedCMEK, auto.Automatic.CustomerManagedEncryption.KmsKeyName)
+			assert.True(t, proto.Equal(tt.want, got), "want %v, got %v", tt.want, got)
 		})
 	}
 }
