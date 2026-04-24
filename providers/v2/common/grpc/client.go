@@ -33,8 +33,7 @@ import (
 
 const (
 	// defaultTimeout is the default timeout for gRPC calls.
-	defaultTimeout          = 30 * time.Second
-	readIdentityRequiredErr = "provider reference or compatibility store is required for read operations"
+	defaultTimeout = 30 * time.Second
 )
 
 // grpcProviderClient implements the v2.Provider interface using gRPC.
@@ -52,7 +51,6 @@ func (c *grpcProviderClient) GetSecret(
 	ctx context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) ([]byte, error) {
 	start := time.Now()
@@ -60,19 +58,19 @@ func (c *grpcProviderClient) GetSecret(
 	defer func() {
 		clientMetrics.ObserveRequest("GetSecret", c.conn.Target(), err, time.Since(start))
 	}()
-	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+	if validationErr := validateProviderReference(providerRef); validationErr != nil {
 		err = validationErr
 		return nil, err
 	}
 
-	logFields := append([]any{
+	logFields := []any{
 		"key", ref.Key,
 		"version", ref.Version,
 		"property", ref.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
 		"sourceNamespace", sourceNamespace,
-	}, compatibilityStoreLogFields(compatibilityStore)...)
+	}
 	c.log.V(1).Info("getting secret via gRPC", logFields...)
 
 	// Check connection state before call
@@ -98,10 +96,9 @@ func (c *grpcProviderClient) GetSecret(
 
 	// Make gRPC call with provider reference
 	req := &pb.GetSecretRequest{
-		RemoteRef:          pbRef,
-		ProviderRef:        providerRef,
-		CompatibilityStore: compatibilityStore,
-		SourceNamespace:    sourceNamespace,
+		RemoteRef:       pbRef,
+		ProviderRef:     providerRef,
+		SourceNamespace: sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling GetSecret RPC",
@@ -130,7 +127,6 @@ func (c *grpcProviderClient) GetSecretMap(
 	ctx context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (map[string][]byte, error) {
 	start := time.Now()
@@ -138,19 +134,19 @@ func (c *grpcProviderClient) GetSecretMap(
 	defer func() {
 		clientMetrics.ObserveRequest("GetSecretMap", c.conn.Target(), err, time.Since(start))
 	}()
-	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+	if validationErr := validateProviderReference(providerRef); validationErr != nil {
 		err = validationErr
 		return nil, err
 	}
 
-	logFields := append([]any{
+	logFields := []any{
 		"key", ref.Key,
 		"version", ref.Version,
 		"property", ref.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
 		"sourceNamespace", sourceNamespace,
-	}, compatibilityStoreLogFields(compatibilityStore)...)
+	}
 	c.log.V(1).Info("getting secret map via gRPC", logFields...)
 
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
@@ -165,10 +161,9 @@ func (c *grpcProviderClient) GetSecretMap(
 	}
 
 	req := &pb.GetSecretMapRequest{
-		RemoteRef:          pbRef,
-		ProviderRef:        providerRef,
-		CompatibilityStore: compatibilityStore,
-		SourceNamespace:    sourceNamespace,
+		RemoteRef:       pbRef,
+		ProviderRef:     providerRef,
+		SourceNamespace: sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling GetSecretMap RPC",
@@ -190,13 +185,13 @@ func (c *grpcProviderClient) GetSecretMap(
 }
 
 // Validate checks if the provider is properly configured via gRPC.
-func (c *grpcProviderClient) Validate(ctx context.Context, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (c *grpcProviderClient) Validate(ctx context.Context, providerRef *pb.ProviderReference, sourceNamespace string) error {
 	start := time.Now()
 	var err error
 	defer func() {
 		clientMetrics.ObserveRequest("Validate", c.conn.Target(), err, time.Since(start))
 	}()
-	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+	if validationErr := validateProviderReference(providerRef); validationErr != nil {
 		err = validationErr
 		return err
 	}
@@ -205,8 +200,7 @@ func (c *grpcProviderClient) Validate(ctx context.Context, providerRef *pb.Provi
 		"target", c.conn.Target(),
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
-		"sourceNamespace", sourceNamespace,
-		"compatibilityStore", compatibilityStore != nil)
+		"sourceNamespace", sourceNamespace)
 
 	// Check connection state before call
 	state := c.conn.GetState()
@@ -227,9 +221,8 @@ func (c *grpcProviderClient) Validate(ctx context.Context, providerRef *pb.Provi
 
 	// Make gRPC call with provider reference
 	req := &pb.ValidateRequest{
-		ProviderRef:        providerRef,
-		CompatibilityStore: compatibilityStore,
-		SourceNamespace:    sourceNamespace,
+		ProviderRef:     providerRef,
+		SourceNamespace: sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling Validate RPC",
@@ -273,7 +266,6 @@ func (c *grpcProviderClient) GetAllSecrets(
 	ctx context.Context,
 	find esv1.ExternalSecretFind,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (map[string][]byte, error) {
 	start := time.Now()
@@ -281,17 +273,17 @@ func (c *grpcProviderClient) GetAllSecrets(
 	defer func() {
 		clientMetrics.ObserveRequest("GetAllSecrets", c.conn.Target(), err, time.Since(start))
 	}()
-	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+	if validationErr := validateProviderReference(providerRef); validationErr != nil {
 		err = validationErr
 		return nil, err
 	}
 
-	logFields := append([]any{
+	logFields := []any{
 		"tags", find.Tags,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
 		"sourceNamespace", sourceNamespace,
-	}, compatibilityStoreLogFields(compatibilityStore)...)
+	}
 	c.log.V(1).Info("getting all secrets via gRPC", logFields...)
 
 	// Create context with timeout
@@ -317,10 +309,9 @@ func (c *grpcProviderClient) GetAllSecrets(
 
 	// Make gRPC call
 	req := &pb.GetAllSecretsRequest{
-		ProviderRef:        providerRef,
-		CompatibilityStore: compatibilityStore,
-		Find:               pbFind,
-		SourceNamespace:    sourceNamespace,
+		ProviderRef:     providerRef,
+		Find:            pbFind,
+		SourceNamespace: sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling GetAllSecrets RPC",
@@ -341,26 +332,11 @@ func (c *grpcProviderClient) GetAllSecrets(
 	return resp.Secrets, nil
 }
 
-func validateReadIdentity(providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore) error {
-	if providerRef == nil && compatibilityStore == nil {
-		return fmt.Errorf(readIdentityRequiredErr)
+func validateProviderReference(providerRef *pb.ProviderReference) error {
+	if providerRef == nil {
+		return fmt.Errorf("provider reference is required")
 	}
 	return nil
-}
-
-func compatibilityStoreLogFields(store *pb.CompatibilityStore) []any {
-	if store == nil {
-		return nil
-	}
-
-	return []any{
-		"compatibilityStoreKind", store.GetStoreKind(),
-		"compatibilityStoreName", store.GetStoreName(),
-		"compatibilityStoreNamespace", store.GetStoreNamespace(),
-		"compatibilityStoreUID", store.GetStoreUid(),
-		"compatibilityStoreGeneration", store.GetStoreGeneration(),
-		"compatibilityStoreSpecBytes", len(store.GetStoreSpecJson()),
-	}
 }
 
 // PushSecret writes a secret to the provider via gRPC.
@@ -369,7 +345,6 @@ func (c *grpcProviderClient) PushSecret(
 	secret *corev1.Secret,
 	pushSecretData *pb.PushSecretData,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) error {
 	start := time.Now()
@@ -377,18 +352,18 @@ func (c *grpcProviderClient) PushSecret(
 	defer func() {
 		clientMetrics.ObserveRequest("PushSecret", c.conn.Target(), err, time.Since(start))
 	}()
-	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+	if validationErr := validateProviderReference(providerRef); validationErr != nil {
 		err = validationErr
 		return err
 	}
 
-	logFields := append([]any{
+	logFields := []any{
 		"remoteKey", pushSecretData.RemoteKey,
 		"property", pushSecretData.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
 		"sourceNamespace", sourceNamespace,
-	}, compatibilityStoreLogFields(compatibilityStore)...)
+	}
 	c.log.V(1).Info("pushing secret via gRPC", logFields...)
 
 	// Create context with timeout
@@ -397,14 +372,13 @@ func (c *grpcProviderClient) PushSecret(
 
 	// Make gRPC call
 	req := &pb.PushSecretRequest{
-		ProviderRef:        providerRef,
-		CompatibilityStore: compatibilityStore,
-		SecretData:         secret.Data,
-		PushSecretData:     pushSecretData,
-		SourceNamespace:    sourceNamespace,
-		SecretType:         string(secret.Type),
-		SecretLabels:       secret.Labels,
-		SecretAnnotations:  secret.Annotations,
+		ProviderRef:       providerRef,
+		SecretData:        secret.Data,
+		PushSecretData:    pushSecretData,
+		SourceNamespace:   sourceNamespace,
+		SecretType:        string(secret.Type),
+		SecretLabels:      secret.Labels,
+		SecretAnnotations: secret.Annotations,
 	}
 
 	c.log.V(1).Info("calling PushSecret RPC",
@@ -430,7 +404,6 @@ func (c *grpcProviderClient) DeleteSecret(
 	ctx context.Context,
 	remoteRef *pb.PushSecretRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) error {
 	start := time.Now()
@@ -438,18 +411,18 @@ func (c *grpcProviderClient) DeleteSecret(
 	defer func() {
 		clientMetrics.ObserveRequest("DeleteSecret", c.conn.Target(), err, time.Since(start))
 	}()
-	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+	if validationErr := validateProviderReference(providerRef); validationErr != nil {
 		err = validationErr
 		return err
 	}
 
-	logFields := append([]any{
+	logFields := []any{
 		"remoteKey", remoteRef.RemoteKey,
 		"property", remoteRef.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
 		"sourceNamespace", sourceNamespace,
-	}, compatibilityStoreLogFields(compatibilityStore)...)
+	}
 	c.log.V(1).Info("deleting secret via gRPC", logFields...)
 
 	// Create context with timeout
@@ -458,10 +431,9 @@ func (c *grpcProviderClient) DeleteSecret(
 
 	// Make gRPC call
 	req := &pb.DeleteSecretRequest{
-		ProviderRef:        providerRef,
-		CompatibilityStore: compatibilityStore,
-		RemoteRef:          remoteRef,
-		SourceNamespace:    sourceNamespace,
+		ProviderRef:     providerRef,
+		RemoteRef:       remoteRef,
+		SourceNamespace: sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling DeleteSecret RPC",
@@ -487,7 +459,6 @@ func (c *grpcProviderClient) SecretExists(
 	ctx context.Context,
 	remoteRef *pb.PushSecretRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (bool, error) {
 	start := time.Now()
@@ -495,18 +466,18 @@ func (c *grpcProviderClient) SecretExists(
 	defer func() {
 		clientMetrics.ObserveRequest("SecretExists", c.conn.Target(), err, time.Since(start))
 	}()
-	if validationErr := validateReadIdentity(providerRef, compatibilityStore); validationErr != nil {
+	if validationErr := validateProviderReference(providerRef); validationErr != nil {
 		err = validationErr
 		return false, err
 	}
 
-	logFields := append([]any{
+	logFields := []any{
 		"remoteKey", remoteRef.RemoteKey,
 		"property", remoteRef.Property,
 		"connectionState", c.conn.GetState().String(),
 		"providerRef", providerRef,
 		"sourceNamespace", sourceNamespace,
-	}, compatibilityStoreLogFields(compatibilityStore)...)
+	}
 	c.log.V(1).Info("checking if secret exists via gRPC", logFields...)
 
 	// Create context with timeout
@@ -515,10 +486,9 @@ func (c *grpcProviderClient) SecretExists(
 
 	// Make gRPC call
 	req := &pb.SecretExistsRequest{
-		ProviderRef:        providerRef,
-		CompatibilityStore: compatibilityStore,
-		RemoteRef:          remoteRef,
-		SourceNamespace:    sourceNamespace,
+		ProviderRef:     providerRef,
+		RemoteRef:       remoteRef,
+		SourceNamespace: sourceNamespace,
 	}
 
 	c.log.V(1).Info("calling SecretExists RPC",

@@ -17,7 +17,6 @@ limitations under the License.
 package grpc
 
 import (
-	"bytes"
 	"context"
 	"net"
 	"testing"
@@ -35,9 +34,8 @@ import (
 )
 
 const (
-	bufSize                    = 1024 * 1024
-	testCompatibilityStoreName = "compat-store"
-	testSourceNamespace        = "tenant-a"
+	bufSize             = 1024 * 1024
+	testSourceNamespace = "tenant-a"
 )
 
 type mockServer struct {
@@ -171,7 +169,7 @@ func TestClientGetSecretSendsProviderReferenceAndNamespace(t *testing.T) {
 		MetadataPolicy:   esv1.ExternalSecretMetadataPolicyFetch,
 	}
 
-	value, err := client.GetSecret(context.Background(), ref, providerRef, nil, testSourceNamespace)
+	value, err := client.GetSecret(context.Background(), ref, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("GetSecret failed: %v", err)
 	}
@@ -209,7 +207,7 @@ func TestClientGetSecretMapSendsProviderReferenceAndNamespace(t *testing.T) {
 	client := NewClientWithConn(conn)
 	providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.SecretStoreKind}
 
-	value, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "test-key"}, providerRef, nil, testSourceNamespace)
+	value, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "test-key"}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("GetSecretMap failed: %v", err)
 	}
@@ -239,7 +237,7 @@ func TestClientGetAllSecretsSendsFindCriteria(t *testing.T) {
 		Tags: map[string]string{"team": "a"},
 		Path: &path,
 		Name: &esv1.FindName{RegExp: "db-.*"},
-	}, providerRef, nil, testSourceNamespace)
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("GetAllSecrets failed: %v", err)
 	}
@@ -262,241 +260,20 @@ func TestClientGetAllSecretsSendsFindCriteria(t *testing.T) {
 	}
 }
 
-func TestClientGetSecretSendsCompatibilityStore(t *testing.T) {
+func TestClientGetSecretRequiresProviderReference(t *testing.T) {
 	mock := &mockServer{}
 	conn, cleanup := setupTestServer(t, mock)
 	defer cleanup()
 
 	client := NewClientWithConn(conn)
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       testCompatibilityStoreName,
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"test-key","value":"test-secret-value"}]}}}`),
-	}
 
-	value, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "test-key"}, nil, compatibilityStore, testSourceNamespace)
-	if err != nil {
-		t.Fatalf("GetSecret failed: %v", err)
-	}
-
-	if string(value) != "test-secret-value" {
-		t.Fatalf("expected test-secret-value, got %q", string(value))
-	}
-	if mock.getSecretRequest == nil {
-		t.Fatal("expected get secret request to be recorded")
-	}
-	if mock.getSecretRequest.ProviderRef != nil {
-		t.Fatalf("expected provider ref to be omitted, got %#v", mock.getSecretRequest.ProviderRef)
-	}
-	if mock.getSecretRequest.CompatibilityStore == nil {
-		t.Fatal("expected compatibility store to be recorded")
-	}
-	if mock.getSecretRequest.CompatibilityStore.StoreName != testCompatibilityStoreName {
-		t.Fatalf("unexpected compatibility store: %#v", mock.getSecretRequest.CompatibilityStore)
+	_, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"}, nil, testSourceNamespace)
+	if err == nil || err.Error() != "provider reference is required" {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestClientGetSecretMapSendsCompatibilityStore(t *testing.T) {
-	mock := &mockServer{}
-	conn, cleanup := setupTestServer(t, mock)
-	defer cleanup()
-
-	client := NewClientWithConn(conn)
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       testCompatibilityStoreName,
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"test-key","value":"test-secret-value"}]}}}`),
-	}
-
-	_, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "test-key"}, nil, compatibilityStore, testSourceNamespace)
-	if err != nil {
-		t.Fatalf("GetSecretMap failed: %v", err)
-	}
-
-	if mock.getSecretMapRequest == nil {
-		t.Fatal("expected get secret map request to be recorded")
-	}
-	if mock.getSecretMapRequest.ProviderRef != nil {
-		t.Fatalf("expected provider ref to be omitted, got %#v", mock.getSecretMapRequest.ProviderRef)
-	}
-	if mock.getSecretMapRequest.CompatibilityStore == nil {
-		t.Fatal("expected compatibility store to be recorded")
-	}
-	if mock.getSecretMapRequest.CompatibilityStore.StoreName != testCompatibilityStoreName {
-		t.Fatalf("unexpected compatibility store: %#v", mock.getSecretMapRequest.CompatibilityStore)
-	}
-}
-
-func TestClientGetAllSecretsSendsCompatibilityStore(t *testing.T) {
-	mock := &mockServer{}
-	conn, cleanup := setupTestServer(t, mock)
-	defer cleanup()
-
-	client := NewClientWithConn(conn)
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       testCompatibilityStoreName,
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"test-key","value":"test-secret-value"}]}}}`),
-	}
-
-	_, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{}, nil, compatibilityStore, testSourceNamespace)
-	if err != nil {
-		t.Fatalf("GetAllSecrets failed: %v", err)
-	}
-
-	if mock.getAllSecretsRequest == nil {
-		t.Fatal("expected get all secrets request to be recorded")
-	}
-	if mock.getAllSecretsRequest.ProviderRef != nil {
-		t.Fatalf("expected provider ref to be omitted, got %#v", mock.getAllSecretsRequest.ProviderRef)
-	}
-	if mock.getAllSecretsRequest.CompatibilityStore == nil {
-		t.Fatal("expected compatibility store to be recorded")
-	}
-	if mock.getAllSecretsRequest.CompatibilityStore.StoreName != testCompatibilityStoreName {
-		t.Fatalf("unexpected compatibility store: %#v", mock.getAllSecretsRequest.CompatibilityStore)
-	}
-}
-
-func TestClientValidateSendsCompatibilityStore(t *testing.T) {
-	mock := &mockServer{}
-	conn, cleanup := setupTestServer(t, mock)
-	defer cleanup()
-
-	client := NewClientWithConn(conn)
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       testCompatibilityStoreName,
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"test-key","value":"test-secret-value"}]}}}`),
-	}
-
-	err := client.Validate(context.Background(), nil, compatibilityStore, testSourceNamespace)
-	if err != nil {
-		t.Fatalf("Validate failed: %v", err)
-	}
-
-	if mock.validateRequest == nil {
-		t.Fatal("expected validate request to be recorded")
-	}
-	if mock.validateRequest.ProviderRef != nil {
-		t.Fatalf("expected provider ref to be omitted, got %#v", mock.validateRequest.ProviderRef)
-	}
-	if mock.validateRequest.CompatibilityStore == nil {
-		t.Fatal("expected compatibility store to be recorded")
-	}
-}
-
-func TestClientPushSecretSendsCompatibilityStore(t *testing.T) {
-	mock := &mockServer{}
-	conn, cleanup := setupTestServer(t, mock)
-	defer cleanup()
-
-	client := NewClientWithConn(conn)
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       testCompatibilityStoreName,
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"test-key","value":"test-secret-value"}]}}}`),
-	}
-
-	err := client.PushSecret(context.Background(), &corev1.Secret{
-		Data: map[string][]byte{"token": []byte("value")},
-	}, &pb.PushSecretData{RemoteKey: "remote", SecretKey: "token"}, nil, compatibilityStore, testSourceNamespace)
-	if err != nil {
-		t.Fatalf("PushSecret failed: %v", err)
-	}
-
-	if mock.pushSecretRequest == nil {
-		t.Fatal("expected push secret request to be recorded")
-	}
-	if mock.pushSecretRequest.ProviderRef != nil {
-		t.Fatalf("expected provider ref to be omitted, got %#v", mock.pushSecretRequest.ProviderRef)
-	}
-	if mock.pushSecretRequest.CompatibilityStore == nil {
-		t.Fatal("expected compatibility store to be recorded")
-	}
-}
-
-func TestClientDeleteSecretSendsCompatibilityStore(t *testing.T) {
-	mock := &mockServer{}
-	conn, cleanup := setupTestServer(t, mock)
-	defer cleanup()
-
-	client := NewClientWithConn(conn)
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       testCompatibilityStoreName,
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"test-key","value":"test-secret-value"}]}}}`),
-	}
-
-	err := client.DeleteSecret(context.Background(), &pb.PushSecretRemoteRef{RemoteKey: "remote"}, nil, compatibilityStore, testSourceNamespace)
-	if err != nil {
-		t.Fatalf("DeleteSecret failed: %v", err)
-	}
-
-	if mock.deleteRequest == nil {
-		t.Fatal("expected delete secret request to be recorded")
-	}
-	if mock.deleteRequest.ProviderRef != nil {
-		t.Fatalf("expected provider ref to be omitted, got %#v", mock.deleteRequest.ProviderRef)
-	}
-	if mock.deleteRequest.CompatibilityStore == nil {
-		t.Fatal("expected compatibility store to be recorded")
-	}
-}
-
-func TestClientSecretExistsSendsCompatibilityStore(t *testing.T) {
-	mock := &mockServer{}
-	conn, cleanup := setupTestServer(t, mock)
-	defer cleanup()
-
-	client := NewClientWithConn(conn)
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       testCompatibilityStoreName,
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"test-key","value":"test-secret-value"}]}}}`),
-	}
-
-	exists, err := client.SecretExists(context.Background(), &pb.PushSecretRemoteRef{RemoteKey: "remote"}, nil, compatibilityStore, testSourceNamespace)
-	if err != nil {
-		t.Fatalf("SecretExists failed: %v", err)
-	}
-	if !exists {
-		t.Fatal("expected secret to exist")
-	}
-
-	if mock.existsRequest == nil {
-		t.Fatal("expected secret exists request to be recorded")
-	}
-	if mock.existsRequest.ProviderRef != nil {
-		t.Fatalf("expected provider ref to be omitted, got %#v", mock.existsRequest.ProviderRef)
-	}
-	if mock.existsRequest.CompatibilityStore == nil {
-		t.Fatal("expected compatibility store to be recorded")
-	}
-}
-
-func TestReadRequestIdentityValidationRejectsMissingReadIdentity(t *testing.T) {
+func TestProviderReferenceValidationRejectsMissingProviderReference(t *testing.T) {
 	testCases := []struct {
 		name string
 		call func(client v2.Provider) error
@@ -504,21 +281,21 @@ func TestReadRequestIdentityValidationRejectsMissingReadIdentity(t *testing.T) {
 		{
 			name: "get secret",
 			call: func(client v2.Provider) error {
-				_, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"}, nil, nil, testSourceNamespace)
+				_, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"}, nil, testSourceNamespace)
 				return err
 			},
 		},
 		{
 			name: "get secret map",
 			call: func(client v2.Provider) error {
-				_, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"}, nil, nil, testSourceNamespace)
+				_, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"}, nil, testSourceNamespace)
 				return err
 			},
 		},
 		{
 			name: "get all secrets",
 			call: func(client v2.Provider) error {
-				_, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{}, nil, nil, testSourceNamespace)
+				_, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{}, nil, testSourceNamespace)
 				return err
 			},
 		},
@@ -531,62 +308,10 @@ func TestReadRequestIdentityValidationRejectsMissingReadIdentity(t *testing.T) {
 			defer cleanup()
 
 			err := tc.call(NewClientWithConn(conn))
-			if err == nil || err.Error() != "provider reference or compatibility store is required for read operations" {
+			if err == nil || err.Error() != "provider reference is required" {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
-	}
-}
-
-func TestCompatibilityStoreLogFieldsRedactSpecPayload(t *testing.T) {
-	specPayload := []byte(`{"provider":{"fake":{"data":[{"key":"db","value":"secret-value"}]}}}`)
-	store := &pb.CompatibilityStore{
-		StoreName:       testCompatibilityStoreName,
-		StoreNamespace:  "team-a",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   specPayload,
-	}
-
-	fields := compatibilityStoreLogFields(store)
-	if len(fields) == 0 {
-		t.Fatal("expected compatibility store log fields")
-	}
-
-	found := map[string]bool{}
-	for i := 0; i < len(fields); i += 2 {
-		key, ok := fields[i].(string)
-		if !ok {
-			t.Fatalf("expected string log key, got %T", fields[i])
-		}
-		found[key] = true
-		if bytes.Equal([]byte(key), specPayload) {
-			t.Fatalf("unexpected spec payload key: %q", key)
-		}
-		value := fields[i+1]
-		if value == store {
-			t.Fatalf("unexpected raw compatibility store in log fields")
-		}
-		if payload, ok := value.([]byte); ok && bytes.Equal(payload, specPayload) {
-			t.Fatalf("unexpected raw spec payload in log fields")
-		}
-		if text, ok := value.(string); ok && text == string(specPayload) {
-			t.Fatalf("unexpected raw spec payload string in log fields")
-		}
-	}
-
-	for _, key := range []string{
-		"compatibilityStoreKind",
-		"compatibilityStoreName",
-		"compatibilityStoreNamespace",
-		"compatibilityStoreUID",
-		"compatibilityStoreGeneration",
-		"compatibilityStoreSpecBytes",
-	} {
-		if !found[key] {
-			t.Fatalf("expected log field %q, got %#v", key, fields)
-		}
 	}
 }
 
@@ -605,7 +330,7 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 		SecretKey: "token",
 		Property:  "property",
 		Metadata:  []byte(`{"mergePolicy":"replace"}`),
-	}, providerRef, nil, testSourceNamespace)
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("PushSecret failed: %v", err)
 	}
@@ -623,7 +348,7 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 	err = client.DeleteSecret(context.Background(), &pb.PushSecretRemoteRef{
 		RemoteKey: "remote/path",
 		Property:  "property",
-	}, providerRef, nil, testSourceNamespace)
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("DeleteSecret failed: %v", err)
 	}
@@ -635,7 +360,7 @@ func TestClientPushDeleteExistsAndCapabilitiesSendProviderReferenceAndNamespace(
 	exists, err := client.SecretExists(context.Background(), &pb.PushSecretRemoteRef{
 		RemoteKey: "remote/path",
 		Property:  "property",
-	}, providerRef, nil, testSourceNamespace)
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("SecretExists failed: %v", err)
 	}
@@ -682,7 +407,7 @@ func TestClientPushSecretSendsExpandedKubernetesSecretFields(t *testing.T) {
 		SecretKey: ".dockerconfigjson",
 		Property:  "property",
 		Metadata:  []byte(`{"mergePolicy":"replace"}`),
-	}, providerRef, nil, testSourceNamespace)
+	}, providerRef, testSourceNamespace)
 	if err != nil {
 		t.Fatalf("PushSecret failed: %v", err)
 	}
@@ -719,7 +444,7 @@ func TestClientValidate(t *testing.T) {
 		client := NewClientWithConn(conn)
 		providerRef := &pb.ProviderReference{Name: "provider", Namespace: "config-ns", StoreRefKind: esv1.SecretStoreKind}
 
-		err := client.Validate(context.Background(), providerRef, nil, testSourceNamespace)
+		err := client.Validate(context.Background(), providerRef, testSourceNamespace)
 		if err != nil {
 			t.Fatalf("Validate failed: %v", err)
 		}
@@ -744,7 +469,7 @@ func TestClientValidate(t *testing.T) {
 
 		client := NewClientWithConn(conn)
 
-		err := client.Validate(context.Background(), &pb.ProviderReference{Name: "provider"}, nil, testSourceNamespace)
+		err := client.Validate(context.Background(), &pb.ProviderReference{Name: "provider"}, testSourceNamespace)
 		if err == nil {
 			t.Fatal("Expected validation to fail, but it succeeded")
 		}
@@ -784,7 +509,7 @@ func assertProviderRefEqual(t *testing.T, got, want *pb.ProviderReference) {
 	}
 }
 
-func TestProtoCompatibilityRequestsExposeCompatibilityStoreField(t *testing.T) {
+func TestProtoRequestsOmitCompatibilityStoreField(t *testing.T) {
 	cases := []struct {
 		name string
 		msg  protoreflect.ProtoMessage
@@ -801,8 +526,8 @@ func TestProtoCompatibilityRequestsExposeCompatibilityStoreField(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			fields := tc.msg.ProtoReflect().Descriptor().Fields()
-			if fields.ByName("compatibility_store") == nil {
-				t.Fatalf("expected %s to have field compatibility_store", tc.name)
+			if fields.ByName(protoreflect.Name("compatibility_store")) != nil {
+				t.Fatalf("expected %s not to have field compatibility_store", tc.name)
 			}
 		})
 	}

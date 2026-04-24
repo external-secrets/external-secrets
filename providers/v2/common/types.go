@@ -32,58 +32,46 @@ import (
 type Provider interface {
 	// GetSecret retrieves a single secret from the provider.
 	// If the secret doesn't exist, it should return an error.
-	// At least one of providerRef or compatibilityStore must be provided.
-	// If both are present, compatibilityStore takes precedence for read operations.
 	// sourceNamespace is the namespace of the ExternalSecret.
-	GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) ([]byte, error)
+	GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) ([]byte, error)
 
 	// GetSecretMap retrieves multiple key/value pairs from a single secret object.
-	// At least one of providerRef or compatibilityStore must be provided.
-	// If both are present, compatibilityStore takes precedence for read operations.
 	// sourceNamespace is the namespace of the ExternalSecret.
 	GetSecretMap(
 		ctx context.Context,
 		ref esv1.ExternalSecretDataRemoteRef,
 		providerRef *pb.ProviderReference,
-		compatibilityStore *pb.CompatibilityStore,
 		sourceNamespace string,
 	) (map[string][]byte, error)
 
 	// GetAllSecrets retrieves multiple secrets based on find criteria.
 	// Returns a map of secret names to their byte values.
-	// At least one of providerRef or compatibilityStore must be provided.
-	// If both are present, compatibilityStore takes precedence for read operations.
 	// sourceNamespace is the namespace of the ExternalSecret.
-	GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (map[string][]byte, error)
+	GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind, providerRef *pb.ProviderReference, sourceNamespace string) (map[string][]byte, error)
 
 	// PushSecret writes a secret to the provider.
 	// The secret is the Kubernetes Secret object to push, and pushSecretData contains the push configuration.
-	// At least one of providerRef or compatibilityStore must be provided.
 	// sourceNamespace is the namespace of the PushSecret.
 	PushSecret(
 		ctx context.Context,
 		secret *corev1.Secret,
 		pushSecretData *pb.PushSecretData,
 		providerRef *pb.ProviderReference,
-		compatibilityStore *pb.CompatibilityStore,
 		sourceNamespace string,
 	) error
 
 	// DeleteSecret deletes a secret from the provider.
-	// At least one of providerRef or compatibilityStore must be provided.
 	// sourceNamespace is the namespace of the PushSecret.
-	DeleteSecret(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error
+	DeleteSecret(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) error
 
 	// SecretExists checks if a secret exists in the provider.
-	// At least one of providerRef or compatibilityStore must be provided.
 	// sourceNamespace is the namespace of the PushSecret.
-	SecretExists(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) (bool, error)
+	SecretExists(ctx context.Context, remoteRef *pb.PushSecretRemoteRef, providerRef *pb.ProviderReference, sourceNamespace string) (bool, error)
 
 	// Validate checks if the provider is properly configured and can communicate with the backend.
 	// This is called by the SecretStore controller during reconciliation.
-	// At least one of providerRef or compatibilityStore must be provided.
 	// sourceNamespace is the namespace of the requesting store.
-	Validate(ctx context.Context, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error
+	Validate(ctx context.Context, providerRef *pb.ProviderReference, sourceNamespace string) error
 
 	// Capabilities returns what operations the provider supports (ReadOnly, WriteOnly, ReadWrite).
 	// The providerRef references the provider configuration CRD, and sourceNamespace is the namespace of the Provider.

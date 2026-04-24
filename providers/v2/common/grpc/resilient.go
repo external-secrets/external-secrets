@@ -93,11 +93,10 @@ func (rc *ResilientClient) PushSecret(
 	secret *corev1.Secret,
 	pushSecretData *pb.PushSecretData,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		return client.PushSecret(ctx, secret, pushSecretData, providerRef, compatibilityStore, sourceNamespace)
+		return client.PushSecret(ctx, secret, pushSecretData, providerRef, sourceNamespace)
 	})
 }
 
@@ -106,11 +105,10 @@ func (rc *ResilientClient) DeleteSecret(
 	ctx context.Context,
 	remoteRef *pb.PushSecretRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		return client.DeleteSecret(ctx, remoteRef, providerRef, compatibilityStore, sourceNamespace)
+		return client.DeleteSecret(ctx, remoteRef, providerRef, sourceNamespace)
 	})
 }
 
@@ -119,13 +117,12 @@ func (rc *ResilientClient) SecretExists(
 	ctx context.Context,
 	remoteRef *pb.PushSecretRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (bool, error) {
 	var result bool
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		exists, err := client.SecretExists(ctx, remoteRef, providerRef, compatibilityStore, sourceNamespace)
+		exists, err := client.SecretExists(ctx, remoteRef, providerRef, sourceNamespace)
 		if err != nil {
 			return err
 		}
@@ -141,13 +138,12 @@ func (rc *ResilientClient) GetSecret(
 	ctx context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) ([]byte, error) {
 	var result []byte
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		secretData, err := client.GetSecret(ctx, ref, providerRef, compatibilityStore, sourceNamespace)
+		secretData, err := client.GetSecret(ctx, ref, providerRef, sourceNamespace)
 		if err != nil {
 			return err
 		}
@@ -163,13 +159,12 @@ func (rc *ResilientClient) GetSecretMap(
 	ctx context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (map[string][]byte, error) {
 	var result map[string][]byte
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		secretMap, err := client.GetSecretMap(ctx, ref, providerRef, compatibilityStore, sourceNamespace)
+		secretMap, err := client.GetSecretMap(ctx, ref, providerRef, sourceNamespace)
 		if err != nil {
 			return err
 		}
@@ -185,13 +180,12 @@ func (rc *ResilientClient) GetAllSecrets(
 	ctx context.Context,
 	find esv1.ExternalSecretFind,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (map[string][]byte, error) {
 	var result map[string][]byte
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		secrets, err := client.GetAllSecrets(ctx, find, providerRef, compatibilityStore, sourceNamespace)
+		secrets, err := client.GetAllSecrets(ctx, find, providerRef, sourceNamespace)
 		if err != nil {
 			return err
 		}
@@ -203,9 +197,9 @@ func (rc *ResilientClient) GetAllSecrets(
 }
 
 // Validate validates the provider configuration with retry logic.
-func (rc *ResilientClient) Validate(ctx context.Context, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (rc *ResilientClient) Validate(ctx context.Context, providerRef *pb.ProviderReference, sourceNamespace string) error {
 	return rc.executeWithResilience(ctx, func(client v2.Provider) error {
-		return client.Validate(ctx, providerRef, compatibilityStore, sourceNamespace)
+		return client.Validate(ctx, providerRef, sourceNamespace)
 	})
 }
 

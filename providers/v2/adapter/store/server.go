@@ -31,8 +31,6 @@ import (
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 )
 
-const readIdentityRequiredErr = "provider reference or compatibility store is required for read operations"
-
 // Server wraps v1 providers and generators and exposes them as v2 gRPC services.
 // This allows existing v1 provider and generator implementations to be used in the v2 architecture.
 type Server struct {
@@ -43,8 +41,6 @@ type Server struct {
 	// with apiVersion+kind to the corresponding v1 provider
 	resourceMapping ProviderMapping
 	specMapper      SpecMapper
-	// compatibilityProvider handles read requests that carry a serialized v1 SecretStore payload.
-	compatibilityProvider esv1.ProviderInterface
 }
 
 // ProviderMapping maps Kubernetes resources to their provider implementations.
@@ -56,22 +52,10 @@ type SpecMapper func(ref *pb.ProviderReference, sourceNamespace string) (*esv1.S
 
 // NewServer creates a new AdapterServer that wraps v1 providers and generators.
 func NewServer(kubeClient client.Client, resourceMapping ProviderMapping, specMapping SpecMapper) *Server {
-	return NewServerWithCompatibilityProvider(kubeClient, resourceMapping, specMapping, nil)
-}
-
-// NewServerWithCompatibilityProvider creates a new AdapterServer with an explicit provider
-// for compatibility-store based read requests.
-func NewServerWithCompatibilityProvider(
-	kubeClient client.Client,
-	resourceMapping ProviderMapping,
-	specMapping SpecMapper,
-	compatibilityProvider esv1.ProviderInterface,
-) *Server {
 	return &Server{
-		kubeClient:            kubeClient,
-		resourceMapping:       resourceMapping,
-		specMapper:            specMapping,
-		compatibilityProvider: compatibilityProvider,
+		kubeClient:      kubeClient,
+		resourceMapping: resourceMapping,
+		specMapper:      specMapping,
 	}
 }
 
@@ -125,38 +109,16 @@ func (s *Server) getClient(ctx context.Context, ref *pb.ProviderReference, names
 	return provider.NewClient(ctx, syntheticStore, s.kubeClient, clientNamespace)
 }
 
-func (s *Server) getCompatibilityClient(ctx context.Context, store *pb.CompatibilityStore, namespace string) (esv1.SecretsClient, error) {
-	if s.compatibilityProvider == nil {
-		return nil, fmt.Errorf("compatibility provider is not configured")
-	}
-
-	syntheticStore, err := CompatibilityStoreToSyntheticStore(store)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create synthetic store from compatibility payload: %w", err)
-	}
-
-	return s.compatibilityProvider.NewClient(ctx, syntheticStore, s.kubeClient, namespace)
-}
-
-func (s *Server) getReadClient(
-	ctx context.Context,
-	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
-	sourceNamespace string,
-) (esv1.SecretsClient, error) {
-	if err := validateReadIdentity(providerRef, compatibilityStore); err != nil {
+func (s *Server) getReadClient(ctx context.Context, providerRef *pb.ProviderReference, sourceNamespace string) (esv1.SecretsClient, error) {
+	if err := validateProviderReference(providerRef); err != nil {
 		return nil, err
 	}
-	if compatibilityStore != nil {
-		return s.getCompatibilityClient(ctx, compatibilityStore, sourceNamespace)
-	}
-
 	return s.getClient(ctx, providerRef, sourceNamespace)
 }
 
-func validateReadIdentity(providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore) error {
-	if providerRef == nil && compatibilityStore == nil {
-		return fmt.Errorf(readIdentityRequiredErr)
+func validateProviderReference(providerRef *pb.ProviderReference) error {
+	if providerRef == nil {
+		return fmt.Errorf("provider reference is required")
 	}
 	return nil
 }
@@ -164,7 +126,6 @@ func validateReadIdentity(providerRef *pb.ProviderReference, compatibilityStore 
 func (s *Server) getClientForRemoteRef(
 	ctx context.Context,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 	remoteRef *pb.ExternalSecretDataRemoteRef,
 ) (esv1.SecretsClient, esv1.ExternalSecretDataRemoteRef, error) {
@@ -175,9 +136,9 @@ func (s *Server) getClientForRemoteRef(
 		return nil, esv1.ExternalSecretDataRemoteRef{}, err
 	}
 
-	client, err := s.getReadClient(ctx, providerRef, compatibilityStore, sourceNamespace)
+	client, err := s.getReadClient(ctx, providerRef, sourceNamespace)
 	if err != nil {
-		if err.Error() == readIdentityRequiredErr {
+		if err.Error() == "provider reference is required" {
 			return nil, esv1.ExternalSecretDataRemoteRef{}, err
 		}
 		return nil, esv1.ExternalSecretDataRemoteRef{}, fmt.Errorf("failed to get client: %w", err)
@@ -203,7 +164,7 @@ func (s *Server) GetSecret(ctx context.Context, req *pb.GetSecretRequest) (*pb.G
 	if req == nil {
 		return nil, fmt.Errorf("request or remote ref is nil")
 	}
-	client, ref, err := s.getClientForRemoteRef(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace, req.RemoteRef)
+	client, ref, err := s.getClientForRemoteRef(ctx, req.ProviderRef, req.SourceNamespace, req.RemoteRef)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +185,7 @@ func (s *Server) GetSecretMap(ctx context.Context, req *pb.GetSecretMapRequest) 
 	if req == nil {
 		return nil, fmt.Errorf("request or remote ref is nil")
 	}
-	client, ref, err := s.getClientForRemoteRef(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace, req.RemoteRef)
+	client, ref, err := s.getClientForRemoteRef(ctx, req.ProviderRef, req.SourceNamespace, req.RemoteRef)
 	if err != nil {
 		return nil, err
 	}
@@ -249,8 +210,11 @@ func (s *Server) PushSecret(ctx context.Context, req *pb.PushSecretRequest) (*pb
 		return nil, err
 	}
 
-	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
+		if err.Error() == "provider reference is required" {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
 	defer func() { _ = client.Close(ctx) }()
@@ -290,8 +254,11 @@ func (s *Server) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) 
 		return nil, err
 	}
 
-	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
+		if err.Error() == "provider reference is required" {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
 	defer func() { _ = client.Close(ctx) }()
@@ -319,8 +286,11 @@ func (s *Server) SecretExists(ctx context.Context, req *pb.SecretExistsRequest) 
 		return nil, err
 	}
 
-	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
+		if err.Error() == "provider reference is required" {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
 	defer func() { _ = client.Close(ctx) }()
@@ -350,9 +320,9 @@ func (s *Server) GetAllSecrets(ctx context.Context, req *pb.GetAllSecretsRequest
 	if err := validateSourceNamespace(req.SourceNamespace); err != nil {
 		return nil, err
 	}
-	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
-		if err.Error() == readIdentityRequiredErr {
+		if err.Error() == "provider reference is required" {
 			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get client: %w", err)
@@ -395,7 +365,7 @@ func (s *Server) Validate(ctx context.Context, req *pb.ValidateRequest) (*pb.Val
 		return nil, fmt.Errorf("request is nil")
 	}
 
-	client, err := s.getReadClient(ctx, req.ProviderRef, req.CompatibilityStore, req.SourceNamespace)
+	client, err := s.getReadClient(ctx, req.ProviderRef, req.SourceNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}

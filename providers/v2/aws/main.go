@@ -77,7 +77,6 @@ func main() {
 	// Setup v1 provider(s)
 	v1Provider0 := store.NewProvider()
 	v1Provider1 := store.NewProvider()
-	compatibilityProvider := v1Provider0
 	providerMapping := adapterstore.ProviderMapping{
 		schema.GroupVersionKind{
 			Group:   "provider.external-secrets.io",
@@ -105,7 +104,7 @@ func main() {
 			Kind:    "STSSessionToken",
 		}: generator.NewSTSGenerator(),
 	}
-	storeServer := adapterstore.NewServerWithCompatibilityProvider(kubeClient, providerMapping, specMapper, compatibilityProvider)
+	storeServer := adapterstore.NewServer(kubeClient, providerMapping, specMapper)
 	generatorServer := adaptergenerator.NewServer(kubeClient, scheme, generatorMapping)
 
 	log.Printf("[PROVIDER] Using v1 AWS Provider provider with generators wrapped with v2 adapter")

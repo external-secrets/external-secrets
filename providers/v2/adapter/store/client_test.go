@@ -39,49 +39,42 @@ const (
 )
 
 type fakeV2Provider struct {
-	getSecretResponse           []byte
-	getSecretErr                error
-	getSecretRef                esv1.ExternalSecretDataRemoteRef
-	getSecretProviderRef        *pb.ProviderReference
-	getSecretCompatibilityStore *pb.CompatibilityStore
-	getSecretNamespace          string
+	getSecretResponse    []byte
+	getSecretErr         error
+	getSecretRef         esv1.ExternalSecretDataRemoteRef
+	getSecretProviderRef *pb.ProviderReference
+	getSecretNamespace   string
 
-	getSecretMapResponse           map[string][]byte
-	getSecretMapErr                error
-	getSecretMapRef                esv1.ExternalSecretDataRemoteRef
-	getSecretMapCompatibilityStore *pb.CompatibilityStore
+	getSecretMapResponse map[string][]byte
+	getSecretMapErr      error
+	getSecretMapRef      esv1.ExternalSecretDataRemoteRef
 
-	getAllSecretsResponse           map[string][]byte
-	getAllSecretsErr                error
-	getAllSecretsFind               esv1.ExternalSecretFind
-	getAllSecretsCompatibilityStore *pb.CompatibilityStore
+	getAllSecretsResponse map[string][]byte
+	getAllSecretsErr      error
+	getAllSecretsFind     esv1.ExternalSecretFind
 
-	pushSecretErr                error
-	pushSecretData               map[string][]byte
-	pushSecretSecret             *corev1.Secret
-	pushSecretPayload            *pb.PushSecretData
-	pushSecretProviderRef        *pb.ProviderReference
-	pushSecretCompatibilityStore *pb.CompatibilityStore
-	pushSecretNamespace          string
+	pushSecretErr         error
+	pushSecretData        map[string][]byte
+	pushSecretSecret      *corev1.Secret
+	pushSecretPayload     *pb.PushSecretData
+	pushSecretProviderRef *pb.ProviderReference
+	pushSecretNamespace   string
 
-	deleteSecretErr                error
-	deleteSecretRemoteRef          *pb.PushSecretRemoteRef
-	deleteSecretProviderRef        *pb.ProviderReference
-	deleteSecretCompatibilityStore *pb.CompatibilityStore
-	deleteSecretNamespace          string
+	deleteSecretErr         error
+	deleteSecretRemoteRef   *pb.PushSecretRemoteRef
+	deleteSecretProviderRef *pb.ProviderReference
+	deleteSecretNamespace   string
 
-	secretExistsResponse           bool
-	secretExistsErr                error
-	secretExistsRemoteRef          *pb.PushSecretRemoteRef
-	secretExistsProviderRef        *pb.ProviderReference
-	secretExistsCompatibilityStore *pb.CompatibilityStore
-	secretExistsNamespace          string
+	secretExistsResponse    bool
+	secretExistsErr         error
+	secretExistsRemoteRef   *pb.PushSecretRemoteRef
+	secretExistsProviderRef *pb.ProviderReference
+	secretExistsNamespace   string
 
-	validateErr                error
-	validateProviderRef        *pb.ProviderReference
-	validateCompatibilityStore *pb.CompatibilityStore
-	validateNamespace          string
-	validateCalled             bool
+	validateErr         error
+	validateProviderRef *pb.ProviderReference
+	validateNamespace   string
+	validateCalled      bool
 
 	closeErr    error
 	closeCalled bool
@@ -91,12 +84,10 @@ func (f *fakeV2Provider) GetSecret(
 	_ context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) ([]byte, error) {
 	f.getSecretRef = ref
 	f.getSecretProviderRef = providerRef
-	f.getSecretCompatibilityStore = compatibilityStore
 	f.getSecretNamespace = sourceNamespace
 	return f.getSecretResponse, f.getSecretErr
 }
@@ -105,12 +96,10 @@ func (f *fakeV2Provider) GetSecretMap(
 	_ context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (map[string][]byte, error) {
 	f.getSecretMapRef = ref
 	f.getSecretProviderRef = providerRef
-	f.getSecretMapCompatibilityStore = compatibilityStore
 	f.getSecretNamespace = sourceNamespace
 	return f.getSecretMapResponse, f.getSecretMapErr
 }
@@ -119,12 +108,10 @@ func (f *fakeV2Provider) GetAllSecrets(
 	_ context.Context,
 	find esv1.ExternalSecretFind,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (map[string][]byte, error) {
 	f.getAllSecretsFind = find
 	f.getSecretProviderRef = providerRef
-	f.getAllSecretsCompatibilityStore = compatibilityStore
 	f.getSecretNamespace = sourceNamespace
 	return f.getAllSecretsResponse, f.getAllSecretsErr
 }
@@ -134,14 +121,12 @@ func (f *fakeV2Provider) PushSecret(
 	secret *corev1.Secret,
 	pushSecretData *pb.PushSecretData,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) error {
 	f.pushSecretData = secret.Data
 	f.pushSecretSecret = secret.DeepCopy()
 	f.pushSecretPayload = pushSecretData
 	f.pushSecretProviderRef = providerRef
-	f.pushSecretCompatibilityStore = compatibilityStore
 	f.pushSecretNamespace = sourceNamespace
 	return f.pushSecretErr
 }
@@ -150,12 +135,10 @@ func (f *fakeV2Provider) DeleteSecret(
 	_ context.Context,
 	remoteRef *pb.PushSecretRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) error {
 	f.deleteSecretRemoteRef = remoteRef
 	f.deleteSecretProviderRef = providerRef
-	f.deleteSecretCompatibilityStore = compatibilityStore
 	f.deleteSecretNamespace = sourceNamespace
 	return f.deleteSecretErr
 }
@@ -164,20 +147,17 @@ func (f *fakeV2Provider) SecretExists(
 	_ context.Context,
 	remoteRef *pb.PushSecretRemoteRef,
 	providerRef *pb.ProviderReference,
-	compatibilityStore *pb.CompatibilityStore,
 	sourceNamespace string,
 ) (bool, error) {
 	f.secretExistsRemoteRef = remoteRef
 	f.secretExistsProviderRef = providerRef
-	f.secretExistsCompatibilityStore = compatibilityStore
 	f.secretExistsNamespace = sourceNamespace
 	return f.secretExistsResponse, f.secretExistsErr
 }
 
-func (f *fakeV2Provider) Validate(_ context.Context, providerRef *pb.ProviderReference, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) error {
+func (f *fakeV2Provider) Validate(_ context.Context, providerRef *pb.ProviderReference, sourceNamespace string) error {
 	f.validateCalled = true
 	f.validateProviderRef = providerRef
-	f.validateCompatibilityStore = compatibilityStore
 	f.validateNamespace = sourceNamespace
 	return f.validateErr
 }
@@ -318,175 +298,6 @@ func TestClientGetAllSecretsDelegatesFindCriteria(t *testing.T) {
 	}
 	if provider.getSecretNamespace != testSourceNamespace {
 		t.Fatalf("unexpected source namespace: %q", provider.getSecretNamespace)
-	}
-}
-
-func TestCompatibilityClientGetSecretDelegatesCompatibilityStore(t *testing.T) {
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
-	}
-	provider := &fakeV2Provider{getSecretResponse: []byte(testSecretValue)}
-	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
-
-	value, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"})
-	if err != nil {
-		t.Fatalf("GetSecret() error = %v", err)
-	}
-
-	if string(value) != testSecretValue {
-		t.Fatalf("expected %s, got %q", testSecretValue, string(value))
-	}
-	if provider.getSecretProviderRef != nil {
-		t.Fatalf("expected provider ref to be nil, got %#v", provider.getSecretProviderRef)
-	}
-	if provider.getSecretCompatibilityStore != compatibilityStore {
-		t.Fatalf("unexpected compatibility store: %#v", provider.getSecretCompatibilityStore)
-	}
-}
-
-func TestCompatibilityClientGetSecretMapDelegatesCompatibilityStore(t *testing.T) {
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
-	}
-	provider := &fakeV2Provider{getSecretMapResponse: map[string][]byte{"foo": []byte(testBarValue)}}
-	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
-
-	secretMap, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "sample"})
-	if err != nil {
-		t.Fatalf("GetSecretMap() error = %v", err)
-	}
-
-	if string(secretMap["foo"]) != testBarValue {
-		t.Fatalf("unexpected secret map: %#v", secretMap)
-	}
-	if provider.getSecretProviderRef != nil {
-		t.Fatalf("expected provider ref to be nil, got %#v", provider.getSecretProviderRef)
-	}
-	if provider.getSecretMapCompatibilityStore != compatibilityStore {
-		t.Fatalf("unexpected compatibility store: %#v", provider.getSecretMapCompatibilityStore)
-	}
-}
-
-func TestCompatibilityClientGetAllSecretsDelegatesCompatibilityStore(t *testing.T) {
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
-	}
-	provider := &fakeV2Provider{getAllSecretsResponse: map[string][]byte{"db-password": []byte(testValue)}}
-	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
-
-	secrets, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
-	if err != nil {
-		t.Fatalf("GetAllSecrets() error = %v", err)
-	}
-
-	if string(secrets["db-password"]) != testValue {
-		t.Fatalf("unexpected secret value: %#v", secrets)
-	}
-	if provider.getSecretProviderRef != nil {
-		t.Fatalf("expected provider ref to be nil, got %#v", provider.getSecretProviderRef)
-	}
-	if provider.getAllSecretsCompatibilityStore != compatibilityStore {
-		t.Fatalf("unexpected compatibility store: %#v", provider.getAllSecretsCompatibilityStore)
-	}
-}
-
-func TestCompatibilityClientPushSecretDelegatesCompatibilityStore(t *testing.T) {
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
-	}
-	provider := &fakeV2Provider{}
-	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
-
-	err := client.PushSecret(context.Background(), &corev1.Secret{
-		Data: map[string][]byte{"token": []byte(testValue)},
-	}, fakePushSecretData{remoteKey: serverTestRemoteKey, secretKey: "token"})
-	if err != nil {
-		t.Fatalf("PushSecret() error = %v", err)
-	}
-
-	if provider.pushSecretProviderRef != nil {
-		t.Fatalf("expected provider ref to be nil, got %#v", provider.pushSecretProviderRef)
-	}
-	if provider.pushSecretCompatibilityStore != compatibilityStore {
-		t.Fatalf("unexpected compatibility store: %#v", provider.pushSecretCompatibilityStore)
-	}
-}
-
-func TestCompatibilityClientDeleteSecretDelegatesCompatibilityStore(t *testing.T) {
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
-	}
-	provider := &fakeV2Provider{}
-	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
-
-	err := client.DeleteSecret(context.Background(), fakePushSecretRemoteRef{
-		remoteKey: serverTestRemoteKey,
-		property:  testProperty,
-	})
-	if err != nil {
-		t.Fatalf("DeleteSecret() error = %v", err)
-	}
-
-	if provider.deleteSecretProviderRef != nil {
-		t.Fatalf("expected provider ref to be nil, got %#v", provider.deleteSecretProviderRef)
-	}
-	if provider.deleteSecretCompatibilityStore != compatibilityStore {
-		t.Fatalf("unexpected compatibility store: %#v", provider.deleteSecretCompatibilityStore)
-	}
-}
-
-func TestCompatibilityClientSecretExistsDelegatesCompatibilityStore(t *testing.T) {
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "compat-store",
-		StoreNamespace:  "config-ns",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"sample","value":"secret-value"}]}}}`),
-	}
-	provider := &fakeV2Provider{secretExistsResponse: true}
-	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
-
-	exists, err := client.SecretExists(context.Background(), fakePushSecretRemoteRef{
-		remoteKey: serverTestRemoteKey,
-		property:  testProperty,
-	})
-	if err != nil {
-		t.Fatalf("SecretExists() error = %v", err)
-	}
-	if !exists {
-		t.Fatal("expected secret to exist")
-	}
-	if provider.secretExistsProviderRef != nil {
-		t.Fatalf("expected provider ref to be nil, got %#v", provider.secretExistsProviderRef)
-	}
-	if provider.secretExistsCompatibilityStore != compatibilityStore {
-		t.Fatalf("unexpected compatibility store: %#v", provider.secretExistsCompatibilityStore)
 	}
 }
 
@@ -682,56 +493,6 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 			t.Fatalf("expected ValidationResultError, got %q", result)
 		}
 	})
-}
-
-func TestCompatibilityClientValidateUsesCompatibilityStore(t *testing.T) {
-	provider := &fakeV2Provider{}
-	compatibilityStore := &pb.CompatibilityStore{
-		StoreName:       "runtime-store",
-		StoreNamespace:  "tenant-a",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"db","value":"secret"}]}}}`),
-	}
-	client := NewCompatibilityClient(provider, compatibilityStore, testSourceNamespace)
-
-	result, err := client.Validate()
-	if err != nil {
-		t.Fatalf("Validate() error = %v", err)
-	}
-	if result != esv1.ValidationResultReady {
-		t.Fatalf("expected ValidationResultReady, got %q", result)
-	}
-	if !provider.validateCalled {
-		t.Fatal("expected provider Validate to be called")
-	}
-	if provider.validateProviderRef != nil {
-		t.Fatalf("expected provider ref to be nil, got %#v", provider.validateProviderRef)
-	}
-	if provider.validateCompatibilityStore != compatibilityStore {
-		t.Fatalf("unexpected compatibility store: %#v", provider.validateCompatibilityStore)
-	}
-}
-
-func TestCompatibilityClientValidateReturnsErrorWhenValidationHookFails(t *testing.T) {
-	validateErr := errors.New("runtime not serving")
-	client := NewCompatibilityClient(&fakeV2Provider{validateErr: validateErr}, &pb.CompatibilityStore{
-		StoreName:       "runtime-store",
-		StoreNamespace:  "tenant-a",
-		StoreKind:       esv1.SecretStoreKind,
-		StoreUid:        "uid-1",
-		StoreGeneration: 7,
-		StoreSpecJson:   []byte(`{"provider":{"fake":{"data":[{"key":"db","value":"secret"}]}}}`),
-	}, testSourceNamespace)
-
-	result, err := client.Validate()
-	if !errors.Is(err, validateErr) {
-		t.Fatalf("expected %v, got %v", validateErr, err)
-	}
-	if result != esv1.ValidationResultError {
-		t.Fatalf("expected ValidationResultError, got %q", result)
-	}
 }
 
 func TestClientCloseDelegates(t *testing.T) {

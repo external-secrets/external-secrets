@@ -30,11 +30,10 @@ import (
 // Client wraps a v2.Provider (gRPC client) and exposes it as an esv1.SecretsClient.
 // This allows v2 providers to be used with the existing client manager infrastructure.
 type Client struct {
-	v2Provider         v2.Provider
-	providerRef        *pb.ProviderReference
-	compatibilityStore *pb.CompatibilityStore
-	sourceNamespace    string
-	closeFunc          func(context.Context) error
+	v2Provider      v2.Provider
+	providerRef     *pb.ProviderReference
+	sourceNamespace string
+	closeFunc       func(context.Context) error
 }
 
 // Ensure Client implements SecretsClient interface.
@@ -55,34 +54,19 @@ func NewClientWithCloser(v2Provider v2.Provider, providerRef *pb.ProviderReferen
 	}
 }
 
-// NewCompatibilityClient creates a compatibility-store based wrapper for runtimeRef reads.
-func NewCompatibilityClient(v2Provider v2.Provider, compatibilityStore *pb.CompatibilityStore, sourceNamespace string) esv1.SecretsClient {
-	return NewCompatibilityClientWithCloser(v2Provider, compatibilityStore, sourceNamespace, nil)
-}
-
-// NewCompatibilityClientWithCloser creates a compatibility-store based wrapper with a custom close function.
-func NewCompatibilityClientWithCloser(v2Provider v2.Provider, compatibilityStore *pb.CompatibilityStore, sourceNamespace string, closeFunc func(context.Context) error) esv1.SecretsClient {
-	return &Client{
-		v2Provider:         v2Provider,
-		compatibilityStore: compatibilityStore,
-		sourceNamespace:    sourceNamespace,
-		closeFunc:          closeFunc,
-	}
-}
-
 // GetSecret retrieves a single secret from the provider.
 func (w *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return w.v2Provider.GetSecret(ctx, ref, w.providerRef, w.compatibilityStore, w.sourceNamespace)
+	return w.v2Provider.GetSecret(ctx, ref, w.providerRef, w.sourceNamespace)
 }
 
 // GetSecretMap retrieves a secret object and returns its key/value pairs.
 func (w *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return w.v2Provider.GetSecretMap(ctx, ref, w.providerRef, w.compatibilityStore, w.sourceNamespace)
+	return w.v2Provider.GetSecretMap(ctx, ref, w.providerRef, w.sourceNamespace)
 }
 
 // GetAllSecrets retrieves multiple secrets based on find criteria.
 func (w *Client) GetAllSecrets(ctx context.Context, find esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return w.v2Provider.GetAllSecrets(ctx, find, w.providerRef, w.compatibilityStore, w.sourceNamespace)
+	return w.v2Provider.GetAllSecrets(ctx, find, w.providerRef, w.sourceNamespace)
 }
 
 // PushSecret writes a secret to the provider.
@@ -101,7 +85,7 @@ func (w *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		Metadata:  metadata,
 	}
 
-	return w.v2Provider.PushSecret(ctx, secret, pushSecretData, w.providerRef, w.compatibilityStore, w.sourceNamespace)
+	return w.v2Provider.PushSecret(ctx, secret, pushSecretData, w.providerRef, w.sourceNamespace)
 }
 
 // DeleteSecret deletes a secret from the provider.
@@ -112,7 +96,7 @@ func (w *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		Property:  remoteRef.GetProperty(),
 	}
 
-	return w.v2Provider.DeleteSecret(ctx, pbRemoteRef, w.providerRef, w.compatibilityStore, w.sourceNamespace)
+	return w.v2Provider.DeleteSecret(ctx, pbRemoteRef, w.providerRef, w.sourceNamespace)
 }
 
 // SecretExists checks if a secret exists in the provider.
@@ -123,18 +107,12 @@ func (w *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 		Property:  remoteRef.GetProperty(),
 	}
 
-	return w.v2Provider.SecretExists(ctx, pbRemoteRef, w.providerRef, w.compatibilityStore, w.sourceNamespace)
+	return w.v2Provider.SecretExists(ctx, pbRemoteRef, w.providerRef, w.sourceNamespace)
 }
 
 // Validate checks if the provider is properly configured.
 func (w *Client) Validate() (esv1.ValidationResult, error) {
-	if w.compatibilityStore != nil {
-		if _, err := CompatibilityStoreToSyntheticStore(w.compatibilityStore); err != nil {
-			return esv1.ValidationResultError, err
-		}
-	}
-
-	err := w.v2Provider.Validate(context.Background(), w.providerRef, w.compatibilityStore, w.sourceNamespace)
+	err := w.v2Provider.Validate(context.Background(), w.providerRef, w.sourceNamespace)
 	if err != nil {
 		return esv1.ValidationResultError, err
 	}
