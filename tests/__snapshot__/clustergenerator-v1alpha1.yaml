@@ -201,6 +201,7 @@ spec:
     vaultDynamicSecretSpec:
       allowEmptyResponse: false
       controller: string
+      getParameters: {}
       method: string
       parameters: 
       path: string

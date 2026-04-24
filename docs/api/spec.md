@@ -28759,6 +28759,20 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </tr>
 <tr>
 <td>
+<code>getParameters</code></br>
+<em>
+map[string][]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GetParameters are query-string parameters passed to Vault on GET calls.
+Each key may map to multiple values, matching HTTP query-string semantics.
+Ignored for non-GET methods; use Parameters for write bodies.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>resultType</code></br>
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecretResultType">
@@ -28908,6 +28922,20 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </td>
 <td>
 <p>Parameters to pass to Vault write (for non-GET methods)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>getParameters</code></br>
+<em>
+map[string][]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GetParameters are query-string parameters passed to Vault on GET calls.
+Each key may map to multiple values, matching HTTP query-string semantics.
+Ignored for non-GET methods; use Parameters for write bodies.</p>
 </td>
 </tr>
 <tr>
