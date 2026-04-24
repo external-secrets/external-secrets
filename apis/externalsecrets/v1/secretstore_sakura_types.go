@@ -22,10 +22,10 @@ import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 type SakuraProvider struct {
 	// VaultResourceID is the resource ID of the target vault.
 	// +required
-	// +kubebuilder:validation:MinLength:=12
-	// +kubebuilder:validation:MaxLength:=12
-	// +kubebuilder:validation:Pattern:=^[0-9]+$
-	// +kubebuilder:default:="123456789012"
+	// +kubebuilder:validation:MinLength=12
+	// +kubebuilder:validation:MaxLength=12
+	// +kubebuilder:validation:Pattern=^[0-9]+$
+	// +kubebuilder:example="123456789012"
 	VaultResourceID string `json:"vaultResourceID"`
 
 	// Auth defines the information necessary to authenticate against Sakura Cloud.
