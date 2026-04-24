@@ -439,7 +439,11 @@ spec:
           name: "testing"
   method: GET
   getParameters:
-    scope: "applied-permissions/user"
+    scope:
+      - "applied-permissions/user"
+    tag:
+      - "prod"
+      - "blue"
   path: "github/token/example"`)}
 		_, _, err := (&Generator{}).generate(context.Background(),
 			c, spec,
@@ -448,7 +452,11 @@ spec:
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if diff := cmp.Diff(map[string][]string{"scope": {"applied-permissions/user"}}, got); diff != "" {
+		want := map[string][]string{
+			"scope": {"applied-permissions/user"},
+			"tag":   {"prod", "blue"},
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("forwarded params mismatch:\n%s", diff)
 		}
 	})
