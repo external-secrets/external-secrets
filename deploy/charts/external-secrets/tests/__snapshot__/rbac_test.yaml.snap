@@ -1,0 +1,354 @@
+should configure custom lease name when leaderElectionID is set:
+  1: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/version: v2.4.0
+        helm.sh/chart: external-secrets-2.4.0
+      name: RELEASE-NAME-external-secrets-controller
+    rules:
+      - apiGroups:
+          - external-secrets.io
+        resources:
+          - secretstores
+          - clustersecretstores
+          - externalsecrets
+          - clusterexternalsecrets
+          - pushsecrets
+          - clusterpushsecrets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - external-secrets.io
+        resources:
+          - externalsecrets
+          - externalsecrets/status
+          - externalsecrets/finalizers
+          - secretstores
+          - secretstores/status
+          - secretstores/finalizers
+          - clustersecretstores
+          - clustersecretstores/status
+          - clustersecretstores/finalizers
+          - clusterexternalsecrets
+          - clusterexternalsecrets/status
+          - clusterexternalsecrets/finalizers
+          - pushsecrets
+          - pushsecrets/status
+          - pushsecrets/finalizers
+          - clusterpushsecrets
+          - clusterpushsecrets/status
+          - clusterpushsecrets/finalizers
+        verbs:
+          - get
+          - update
+          - patch
+      - apiGroups:
+          - generators.external-secrets.io
+        resources:
+          - generatorstates
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+          - deletecollection
+      - apiGroups:
+          - generators.external-secrets.io
+        resources:
+          - acraccesstokens
+          - cloudsmithaccesstokens
+          - clustergenerators
+          - ecrauthorizationtokens
+          - fakes
+          - gcraccesstokens
+          - githubaccesstokens
+          - quayaccesstokens
+          - passwords
+          - sshkeys
+          - stssessiontokens
+          - uuids
+          - vaultdynamicsecrets
+          - webhooks
+          - grafanas
+          - mfas
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - serviceaccounts
+          - namespaces
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - namespaces
+        verbs:
+          - update
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - delete
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - serviceaccounts/token
+        verbs:
+          - create
+      - apiGroups:
+          - ""
+        resources:
+          - events
+        verbs:
+          - create
+          - patch
+      - apiGroups:
+          - external-secrets.io
+        resources:
+          - externalsecrets
+        verbs:
+          - create
+          - update
+          - delete
+      - apiGroups:
+          - external-secrets.io
+        resources:
+          - pushsecrets
+        verbs:
+          - create
+          - update
+          - delete
+  2: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/version: v2.4.0
+        helm.sh/chart: external-secrets-2.4.0
+        rbac.authorization.k8s.io/aggregate-to-admin: "true"
+        rbac.authorization.k8s.io/aggregate-to-edit: "true"
+        rbac.authorization.k8s.io/aggregate-to-view: "true"
+      name: RELEASE-NAME-external-secrets-view
+    rules:
+      - apiGroups:
+          - external-secrets.io
+        resources:
+          - externalsecrets
+          - secretstores
+          - clustersecretstores
+          - pushsecrets
+          - clusterpushsecrets
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - generators.external-secrets.io
+        resources:
+          - acraccesstokens
+          - cloudsmithaccesstokens
+          - clustergenerators
+          - ecrauthorizationtokens
+          - fakes
+          - gcraccesstokens
+          - githubaccesstokens
+          - quayaccesstokens
+          - passwords
+          - sshkeys
+          - vaultdynamicsecrets
+          - webhooks
+          - grafanas
+          - generatorstates
+          - mfas
+          - uuids
+        verbs:
+          - get
+          - watch
+          - list
+  3: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/version: v2.4.0
+        helm.sh/chart: external-secrets-2.4.0
+        rbac.authorization.k8s.io/aggregate-to-admin: "true"
+        rbac.authorization.k8s.io/aggregate-to-edit: "true"
+      name: RELEASE-NAME-external-secrets-edit
+    rules:
+      - apiGroups:
+          - external-secrets.io
+        resources:
+          - externalsecrets
+          - secretstores
+          - clustersecretstores
+          - pushsecrets
+          - clusterpushsecrets
+        verbs:
+          - create
+          - delete
+          - deletecollection
+          - patch
+          - update
+      - apiGroups:
+          - generators.external-secrets.io
+        resources:
+          - acraccesstokens
+          - cloudsmithaccesstokens
+          - clustergenerators
+          - ecrauthorizationtokens
+          - fakes
+          - gcraccesstokens
+          - githubaccesstokens
+          - quayaccesstokens
+          - passwords
+          - sshkeys
+          - vaultdynamicsecrets
+          - webhooks
+          - grafanas
+          - generatorstates
+          - mfas
+          - uuids
+        verbs:
+          - create
+          - delete
+          - deletecollection
+          - patch
+          - update
+  4: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/version: v2.4.0
+        helm.sh/chart: external-secrets-2.4.0
+      name: RELEASE-NAME-external-secrets-controller
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: RELEASE-NAME-external-secrets-controller
+    subjects:
+      - kind: ServiceAccount
+        name: RELEASE-NAME-external-secrets
+        namespace: NAMESPACE
+  5: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/version: v2.4.0
+        helm.sh/chart: external-secrets-2.4.0
+      name: RELEASE-NAME-external-secrets-leaderelection
+      namespace: NAMESPACE
+    rules:
+      - apiGroups:
+          - ""
+        resourceNames:
+          - custom-eso-lease
+        resources:
+          - configmaps
+        verbs:
+          - get
+          - update
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+        verbs:
+          - create
+      - apiGroups:
+          - coordination.k8s.io
+        resources:
+          - leases
+        verbs:
+          - get
+          - create
+          - update
+          - patch
+  6: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/version: v2.4.0
+        helm.sh/chart: external-secrets-2.4.0
+      name: RELEASE-NAME-external-secrets-leaderelection
+      namespace: NAMESPACE
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: RELEASE-NAME-external-secrets-leaderelection
+    subjects:
+      - kind: ServiceAccount
+        name: RELEASE-NAME-external-secrets
+        namespace: NAMESPACE
+  7: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/version: v2.4.0
+        helm.sh/chart: external-secrets-2.4.0
+        servicebinding.io/controller: "true"
+      name: RELEASE-NAME-external-secrets-servicebindings
+    rules:
+      - apiGroups:
+          - external-secrets.io
+        resources:
+          - externalsecrets
+          - pushsecrets
+        verbs:
+          - get
+          - list
+          - watch

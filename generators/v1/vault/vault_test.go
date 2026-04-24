@@ -412,3 +412,93 @@ spec:
 		})
 	}
 }
+
+func TestVaultDynamicSecretGetParameters(t *testing.T) {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{Name: "testing", Namespace: "testing"},
+		Secrets:    []corev1.ObjectReference{{Name: "test"}},
+	}
+
+	t.Run("ForwardsGetParameters", func(t *testing.T) {
+		var got map[string][]string
+		clientFn := fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+			cl.MockLogical.ReadWithDataWithContextFn = func(_ context.Context, _ string, data map[string][]string) (*vaultapi.Secret, error) {
+				got = data
+				return &vaultapi.Secret{Data: map[string]any{"key": "value"}}, nil
+			}
+		})
+		c := &provider.Provider{NewVaultClient: clientFn}
+		spec := &apiextensions.JSON{Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
+spec:
+  provider:
+    auth:
+      kubernetes:
+        role: test
+        serviceAccountRef:
+          name: "testing"
+  method: GET
+  getParameters:
+    scope:
+      - "applied-permissions/user"
+    tag:
+      - "prod"
+      - "blue"
+  path: "github/token/example"`)}
+		_, _, err := (&Generator{}).generate(context.Background(),
+			c, spec,
+			clientfake.NewClientBuilder().WithObjects(sa).Build(),
+			utilfake.NewCreateTokenMock().WithToken("ok"), "testing")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := map[string][]string{
+			"scope": {"applied-permissions/user"},
+			"tag":   {"prod", "blue"},
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("forwarded params mismatch:\n%s", diff)
+		}
+	})
+
+	t.Run("IgnoresParametersOnGET", func(t *testing.T) {
+		var got map[string][]string
+		called := false
+		clientFn := fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+			cl.MockLogical.ReadWithDataWithContextFn = func(_ context.Context, _ string, data map[string][]string) (*vaultapi.Secret, error) {
+				called = true
+				got = data
+				return &vaultapi.Secret{Data: map[string]any{"key": "value"}}, nil
+			}
+		})
+		c := &provider.Provider{NewVaultClient: clientFn}
+		spec := &apiextensions.JSON{Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
+spec:
+  provider:
+    auth:
+      kubernetes:
+        role: test
+        serviceAccountRef:
+          name: "testing"
+  method: GET
+  parameters:
+    ttl: 60
+    nested:
+      key: "value"
+  path: "github/token/example"`)}
+		_, _, err := (&Generator{}).generate(context.Background(),
+			c, spec,
+			clientfake.NewClientBuilder().WithObjects(sa).Build(),
+			utilfake.NewCreateTokenMock().WithToken("ok"), "testing")
+		if err != nil {
+			t.Fatalf("Parameters on GET should be ignored, got error: %v", err)
+		}
+		if !called {
+			t.Fatal("expected ReadWithDataWithContext to be called")
+		}
+		if got != nil {
+			t.Errorf("expected nil params on GET when only Parameters is set, got: %v", got)
+		}
+	})
+}
