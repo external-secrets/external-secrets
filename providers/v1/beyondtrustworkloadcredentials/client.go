@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package beyondtrustsecrets provides a client for BeyondTrust Secrets Manager.
-package beyondtrustsecrets
+// Package beyondtrustworkloadcredentials provides a client for BeyondTrust Workload Credentials.
+package beyondtrustworkloadcredentials
 
 import (
 	"context"
@@ -30,8 +30,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/httpclient"
-	btsutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/util"
+	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/httpclient"
+	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
@@ -40,8 +40,8 @@ const ErrMsgNotImplemented = "not implemented: %s"
 
 // Client implements the SecretsClient interface for BeyondTrust Secrets.
 type Client struct {
-	beyondtrustSecretsClient btsutil.Client
-	store                    *esv1.BeyondTrustSecretsProvider
+	beyondtrustWorkloadCredentialsClient btwcutil.Client
+	store                    *esv1.BeyondtrustWorkloadCredentialsProvider
 }
 
 // Validate checks if the client is configured correctly
@@ -53,13 +53,13 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 		return esv1.ValidationResultError, fmt.Errorf("client is nil")
 	}
 
-	// Check for nil beyondtrustSecretsClient
-	if c.beyondtrustSecretsClient == nil {
-		return esv1.ValidationResultError, fmt.Errorf("beyondtrustSecretsClient is not initialized")
+	// Check for nil beyondtrustWorkloadCredentialsClient
+	if c.beyondtrustWorkloadCredentialsClient == nil {
+		return esv1.ValidationResultError, fmt.Errorf("beyondtrustWorkloadCredentialsClient is not initialized")
 	}
 
 	// Check for nil BaseURL
-	baseURL := c.beyondtrustSecretsClient.BaseURL()
+	baseURL := c.beyondtrustWorkloadCredentialsClient.BaseURL()
 	if baseURL == nil {
 		return esv1.ValidationResultError, fmt.Errorf("base URL is not configured")
 	}
@@ -74,7 +74,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	if err := c.beyondtrustSecretsClient.CheckSession(ctx); err != nil {
+	if err := c.beyondtrustWorkloadCredentialsClient.CheckSession(ctx); err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("authentication validation failed: %w", err)
 	}
 
@@ -88,7 +88,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	folderPath := c.store.FolderPath
 
-	secret, err := c.beyondtrustSecretsClient.GetSecret(ctx, ref.Key, &folderPath)
+	secret, err := c.beyondtrustWorkloadCredentialsClient.GetSecret(ctx, ref.Key, &folderPath)
 	if err != nil {
 		// Wrap 404s as NoSecretError to allow ESO deletionPolicy handling
 		var apiErr *httpclient.APIError
@@ -146,7 +146,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	result := map[string][]byte{}
 
 	// List all secrets in the folder (recursive to get all secrets under the path)
-	secretsList, err := c.beyondtrustSecretsClient.GetSecrets(ctx, &folderPath, true)
+	secretsList, err := c.beyondtrustWorkloadCredentialsClient.GetSecrets(ctx, &folderPath, true)
 	if err != nil {
 		// Treat 404 from listing API as NoSecretError (folder not found or empty)
 		var apiErr *httpclient.APIError
@@ -181,7 +181,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		}
 
 		// Fetch the full secret for this matched item
-		fullSecret, err := c.beyondtrustSecretsClient.GetSecret(ctx, itemName, &itemFolderPath)
+		fullSecret, err := c.beyondtrustWorkloadCredentialsClient.GetSecret(ctx, itemName, &itemFolderPath)
 		if err != nil {
 			// In name-regex listing, skip missing items instead of failing the entire operation
 			var apiErr *httpclient.APIError
@@ -223,7 +223,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	folderPath := c.store.FolderPath
 
-	secret, err := c.beyondtrustSecretsClient.GetSecret(ctx, ref.Key, &folderPath)
+	secret, err := c.beyondtrustWorkloadCredentialsClient.GetSecret(ctx, ref.Key, &folderPath)
 	if err != nil {
 		// Wrap 404s as NoSecretError to allow ESO deletionPolicy handling
 		var apiErr *httpclient.APIError

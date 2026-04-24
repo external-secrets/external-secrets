@@ -208,9 +208,9 @@ type SecretStoreProvider struct {
 	// +optional
 	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
 
-	// BeyondtrustSecrets configures this store to sync secrets using the BeyondTrust Secrets provider.
+	// BeyondtrustWorkloadCredentials configures this store to sync secrets using the BeyondTrust Workload Credentials provider.
 	// +optional
-	BeyondtrustSecrets *BeyondTrustSecretsProvider `json:"beyondtrustsecrets,omitempty"`
+	BeyondtrustWorkloadCredentials *BeyondtrustWorkloadCredentialsProvider `json:"beyondtrustworkloadcredentials,omitempty"`
 
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional

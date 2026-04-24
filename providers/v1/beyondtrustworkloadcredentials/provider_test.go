@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package beyondtrustsecrets
+package beyondtrustworkloadcredentials
 
 import (
 	"context"
@@ -28,8 +28,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/fake"
-	btsutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/util"
+	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/fake"
+	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
 )
 
 const (
@@ -43,30 +43,30 @@ const (
 // test case structs //
 ///////////////////////
 
-type beyondtrustsecretsGetSecretTestCase struct {
+type beyondtrustworkloadcredentialsGetSecretTestCase struct {
 	label                 string
-	fakeBtsecretsClient   *fake.BeyondTrustSecretsClient
+	fakeBtsecretsClient   *fake.BeyondtrustWorkloadCredentialsClient
 	ctx                   context.Context
 	name                  *string
 	folderPath            *string
 	remoteRef             esv1.ExternalSecretDataRemoteRef
-	fakeBtsecretsResponse *btsutil.KV
+	fakeBtsecretsResponse *btwcutil.KV
 	fakeBtsecretsError    *string
 	expectedError         *string
 	expectedResponse      []byte
 }
 
-type beyondtrustsecretsGetAllSecretsTestCase struct {
+type beyondtrustworkloadcredentialsGetAllSecretsTestCase struct {
 	label                     string
-	fakeBtsecretsClient       *fake.BeyondTrustSecretsClient
+	fakeBtsecretsClient       *fake.BeyondtrustWorkloadCredentialsClient
 	ctx                       context.Context
 	name                      *string
 	names                     []string
 	folderPath                *string
 	remoteRef                 esv1.ExternalSecretFind
-	fakeBtsecretsGetResponse  *btsutil.KV
-	fakeBtsecretsGetResponses []btsutil.KV
-	fakeBtsecretsListResponse []btsutil.KVListItem
+	fakeBtsecretsGetResponse  *btwcutil.KV
+	fakeBtsecretsGetResponses []btwcutil.KV
+	fakeBtsecretsListResponse []btwcutil.KVListItem
 	fakeBtsecretsGetError     *string
 	fakeBtsecretsListError    *string
 	expectedError             *string
@@ -78,9 +78,9 @@ type beyondtrustsecretsGetAllSecretsTestCase struct {
 ////////////
 
 // makeValidGetSecretTestCase creates a valid test case for GetSecret tests.
-func makeValidGetSecretTestCase() *beyondtrustsecretsGetSecretTestCase {
-	return &beyondtrustsecretsGetSecretTestCase{
-		fakeBtsecretsClient: &fake.BeyondTrustSecretsClient{},
+func makeValidGetSecretTestCase() *beyondtrustworkloadcredentialsGetSecretTestCase {
+	return &beyondtrustworkloadcredentialsGetSecretTestCase{
+		fakeBtsecretsClient: &fake.BeyondtrustWorkloadCredentialsClient{},
 		ctx:                 context.Background(),
 		name:                ptr.String(validSecretName),
 		folderPath:          ptr.String(validFolderPath),
@@ -89,9 +89,9 @@ func makeValidGetSecretTestCase() *beyondtrustsecretsGetSecretTestCase {
 }
 
 // makeValidGetAllSecretsTestCase creates a valid test case for GetSecrets tests.
-func makeValidGetAllSecretsTestCase() *beyondtrustsecretsGetAllSecretsTestCase {
-	return &beyondtrustsecretsGetAllSecretsTestCase{
-		fakeBtsecretsClient: &fake.BeyondTrustSecretsClient{},
+func makeValidGetAllSecretsTestCase() *beyondtrustworkloadcredentialsGetAllSecretsTestCase {
+	return &beyondtrustworkloadcredentialsGetAllSecretsTestCase{
+		fakeBtsecretsClient: &fake.BeyondtrustWorkloadCredentialsClient{},
 		ctx:                 context.Background(),
 		name:                ptr.String(validSecretName),
 		folderPath:          ptr.String(validFolderPath),
@@ -99,8 +99,8 @@ func makeValidGetAllSecretsTestCase() *beyondtrustsecretsGetAllSecretsTestCase {
 	}
 }
 
-// makeValidGetSecretTestCaseWithValues injects values into the faked BeyondTrustSecretsClient for GetSecret tests.
-func makeValidGetSecretTestCaseWithValues(tweaks ...func(tc *beyondtrustsecretsGetSecretTestCase)) *beyondtrustsecretsGetSecretTestCase {
+// makeValidGetSecretTestCaseWithValues injects values into the faked BeyondtrustWorkloadCredentialsClient for GetSecret tests.
+func makeValidGetSecretTestCaseWithValues(tweaks ...func(tc *beyondtrustworkloadcredentialsGetSecretTestCase)) *beyondtrustworkloadcredentialsGetSecretTestCase {
 	vtc := makeValidGetSecretTestCase()
 	for _, fn := range tweaks {
 		fn(vtc)
@@ -111,8 +111,8 @@ func makeValidGetSecretTestCaseWithValues(tweaks ...func(tc *beyondtrustsecretsG
 	return vtc
 }
 
-// makeValidGetAllSecretsTestCaseWithValues injects values into the faked BeyondTrustSecretsClient for GetSecrets tests.
-func makeValidGetAllSecretsTestCaseWithValues(tweaks ...func(tc *beyondtrustsecretsGetAllSecretsTestCase)) *beyondtrustsecretsGetAllSecretsTestCase {
+// makeValidGetAllSecretsTestCaseWithValues injects values into the faked BeyondtrustWorkloadCredentialsClient for GetSecrets tests.
+func makeValidGetAllSecretsTestCaseWithValues(tweaks ...func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase)) *beyondtrustworkloadcredentialsGetAllSecretsTestCase {
 	vtc := makeValidGetAllSecretsTestCase()
 	for _, fn := range tweaks {
 		fn(vtc)
@@ -123,8 +123,8 @@ func makeValidGetAllSecretsTestCaseWithValues(tweaks ...func(tc *beyondtrustsecr
 	return vtc
 }
 
-// makeValidGetAllSecretsTestCaseWithMultiValues injects values with multiple GET responses into the faked BeyondTrustSecretsClient for GetSecrets tests.
-func makeValidGetAllSecretsTestCaseWithMultiValues(tweaks ...func(tc *beyondtrustsecretsGetAllSecretsTestCase)) *beyondtrustsecretsGetAllSecretsTestCase {
+// makeValidGetAllSecretsTestCaseWithMultiValues injects values with multiple GET responses into the faked BeyondtrustWorkloadCredentialsClient for GetSecrets tests.
+func makeValidGetAllSecretsTestCaseWithMultiValues(tweaks ...func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase)) *beyondtrustworkloadcredentialsGetAllSecretsTestCase {
 	vtc := makeValidGetAllSecretsTestCase()
 	for _, fn := range tweaks {
 		fn(vtc)
@@ -142,8 +142,8 @@ func makeValidGetAllSecretsTestCaseWithMultiValues(tweaks ...func(tc *beyondtrus
 func TestGetSecret(t *testing.T) {
 	// happy paths
 
-	validSecret := func(tc *beyondtrustsecretsGetSecretTestCase) {
-		fakeKV := &btsutil.KV{
+	validSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 			Secret: map[string]interface{}{"valid": "test"},
 		}
@@ -158,10 +158,10 @@ func TestGetSecret(t *testing.T) {
 		tc.expectedResponse = fakeKVBytes
 	}
 
-	validSecretProperty := func(tc *beyondtrustsecretsGetSecretTestCase) {
+	validSecretProperty := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
 		propertyValue := "test"
 
-		fakeKV := &btsutil.KV{
+		fakeKV := &btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 			Secret: map[string]interface{}{"valid": propertyValue, "doNotInclude": "this"},
 		}
@@ -174,17 +174,17 @@ func TestGetSecret(t *testing.T) {
 
 	// sad paths
 
-	clientError := func(tc *beyondtrustsecretsGetSecretTestCase) {
+	clientError := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
 		tc.label = "GetSecret - Client Error"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName}
-		tc.fakeBtsecretsError = ptr.String("beyondtrustsecrets error")
+		tc.fakeBtsecretsError = ptr.String("beyondtrustworkloadcredentials error")
 		tc.expectedError = ptr.String("failed to get secret")
 	}
 
-	nilSecret := func(tc *beyondtrustsecretsGetSecretTestCase) {
-		fakeKV := &btsutil.KV{
+	nilSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path: fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 		}
 
@@ -196,8 +196,8 @@ func TestGetSecret(t *testing.T) {
 		tc.expectedError = ptr.String("secret value is nil")
 	}
 
-	invalidSecretProperty := func(tc *beyondtrustsecretsGetSecretTestCase) {
-		fakeKV := &btsutil.KV{
+	invalidSecretProperty := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 			Secret: map[string]interface{}{"invalid": "test"},
 		}
@@ -212,8 +212,8 @@ func TestGetSecret(t *testing.T) {
 		tc.expectedError = ptr.String(fmt.Sprintf("property %s not found in secret", ref.Property))
 	}
 
-	invalidSecret := func(tc *beyondtrustsecretsGetSecretTestCase) {
-		fakeKV := &btsutil.KV{
+	invalidSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 			Secret: map[string]interface{}{"invalid": func() {}},
 		}
@@ -226,7 +226,7 @@ func TestGetSecret(t *testing.T) {
 		tc.expectedError = ptr.String("failed to marshal secret")
 	}
 
-	testCases := []*beyondtrustsecretsGetSecretTestCase{
+	testCases := []*beyondtrustworkloadcredentialsGetSecretTestCase{
 		// happy paths
 		makeValidGetSecretTestCaseWithValues(validSecret),
 		makeValidGetSecretTestCaseWithValues(validSecretProperty),
@@ -237,11 +237,11 @@ func TestGetSecret(t *testing.T) {
 		makeValidGetSecretTestCaseWithValues(invalidSecret),
 	}
 
-	c := Client{store: &esv1.BeyondTrustSecretsProvider{}}
+	c := Client{store: &esv1.BeyondtrustWorkloadCredentialsProvider{}}
 
 	for i, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
-			c.beyondtrustSecretsClient = tc.fakeBtsecretsClient
+			c.beyondtrustWorkloadCredentialsClient = tc.fakeBtsecretsClient
 			c.store.FolderPath = *tc.folderPath
 
 			out, err := c.GetSecret(context.Background(), tc.remoteRef)
@@ -282,13 +282,13 @@ func ErrorContains(out error, want string) bool {
 func TestGetAllSecrets(t *testing.T) {
 	// happy paths
 
-	validSecretKVs := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
-		fakeKV := &btsutil.KV{
+	validSecretKVs := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 			Secret: map[string]interface{}{"key1": "val1", "key2": "val2", "key3": "val3"},
 		}
 
-		fakeListItem := btsutil.KVListItem{
+		fakeListItem := btwcutil.KVListItem{
 			Path: fakeKV.Path,
 		}
 
@@ -300,38 +300,38 @@ func TestGetAllSecrets(t *testing.T) {
 
 		tc.label = "GetAllSecrets - Secret KVs - Valid"
 		tc.remoteRef = esv1.ExternalSecretFind{Path: ptr.String(validFolderPath)}
-		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{fakeListItem}
+		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
 		tc.expectedResponse = fakeKVBytes
 	}
 
-	validNamedSecrets := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
+	validNamedSecrets := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		findName := fmt.Sprintf("%s-include", validSecretName)
 
-		fakeKV1 := btsutil.KV{
+		fakeKV1 := btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s-fakeKV1", validFolderPath, findName),
 			Secret: map[string]interface{}{"key1": "val1", "key2": "val2", "key3": "val3"},
 		}
 
-		fakeKV2 := btsutil.KV{
+		fakeKV2 := btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 			Secret: map[string]interface{}{"key4": "val4", "key5": "val5"},
 		}
 
-		fakeKV3 := btsutil.KV{
+		fakeKV3 := btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s-fakeKV3", validFolderPath, findName),
 			Secret: map[string]interface{}{"key6": "val6"},
 		}
 
-		fakeListItem1 := btsutil.KVListItem{
+		fakeListItem1 := btwcutil.KVListItem{
 			Path: fakeKV1.Path,
 		}
 
-		fakeListItem2 := btsutil.KVListItem{
+		fakeListItem2 := btwcutil.KVListItem{
 			Path: fakeKV2.Path,
 		}
 
-		fakeListItem3 := btsutil.KVListItem{
+		fakeListItem3 := btwcutil.KVListItem{
 			Path: fakeKV3.Path,
 		}
 
@@ -348,38 +348,38 @@ func TestGetAllSecrets(t *testing.T) {
 		tc.label = "GetAllSecrets - Secret KVs - Valid Find RegExp"
 		tc.names = []string{name1, name3}
 		tc.remoteRef = esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: fmt.Sprintf("^%s.*", findName)}}
-		tc.fakeBtsecretsGetResponses = []btsutil.KV{fakeKV1, fakeKV3}
-		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{fakeListItem1, fakeListItem2, fakeListItem3}
+		tc.fakeBtsecretsGetResponses = []btwcutil.KV{fakeKV1, fakeKV3}
+		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{fakeListItem1, fakeListItem2, fakeListItem3}
 		tc.expectedResponse = fakeResponseBytes
 	}
 
-	validAllSecrets := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
+	validAllSecrets := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		findPath := fmt.Sprintf("%s/%s-include", validFolderPath, validSecretName)
 
-		fakeKV1 := btsutil.KV{
+		fakeKV1 := btwcutil.KV{
 			Path:   fmt.Sprintf("%s-fakeKV1", findPath),
 			Secret: map[string]interface{}{"key1": "val1", "key2": "val2", "key3": "val3"},
 		}
 
-		fakeKV2 := btsutil.KV{
+		fakeKV2 := btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 			Secret: map[string]interface{}{"key4": "val4", "key5": "val5"},
 		}
 
-		fakeKV3 := btsutil.KV{
+		fakeKV3 := btwcutil.KV{
 			Path:   fmt.Sprintf("%s-fakeKV3", findPath),
 			Secret: map[string]interface{}{"key6": "val6"},
 		}
 
-		fakeListItem1 := btsutil.KVListItem{
+		fakeListItem1 := btwcutil.KVListItem{
 			Path: fmt.Sprintf("%s-fakeKV1", findPath),
 		}
 
-		fakeListItem2 := btsutil.KVListItem{
+		fakeListItem2 := btwcutil.KVListItem{
 			Path: fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 		}
 
-		fakeListItem3 := btsutil.KVListItem{
+		fakeListItem3 := btwcutil.KVListItem{
 			Path: fmt.Sprintf("%s-fakeKV3", findPath),
 		}
 
@@ -398,28 +398,28 @@ func TestGetAllSecrets(t *testing.T) {
 
 		tc.label = "GetAllSecrets - List Secrets - Valid"
 		tc.names = []string{name1, name2, name3}
-		tc.fakeBtsecretsGetResponses = []btsutil.KV{fakeKV1, fakeKV2, fakeKV3}
-		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{fakeListItem1, fakeListItem2, fakeListItem3}
+		tc.fakeBtsecretsGetResponses = []btwcutil.KV{fakeKV1, fakeKV2, fakeKV3}
+		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{fakeListItem1, fakeListItem2, fakeListItem3}
 		tc.expectedResponse = fakeResponseBytes
 	}
 
 	// sad paths
 
-	clientGetError := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
+	clientGetError := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		tc.label = "GetAllSecrets - Secret KVs - Client Error"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretFind{Path: ptr.String(invalidFolderPath)}
-		tc.fakeBtsecretsListError = ptr.String("beyondtrustsecrets list error")
+		tc.fakeBtsecretsListError = ptr.String("beyondtrustworkloadcredentials list error")
 		tc.expectedError = ptr.String("failed to list secrets:")
 	}
 
-	nilSecret := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
-		fakeKV := &btsutil.KV{
+	nilSecret := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path: fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 		}
 
-		fakeListItem := btsutil.KVListItem{
+		fakeListItem := btwcutil.KVListItem{
 			Path: fakeKV.Path,
 		}
 
@@ -427,19 +427,19 @@ func TestGetAllSecrets(t *testing.T) {
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretFind{Path: ptr.String(invalidFolderPath)}
-		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{fakeListItem}
+		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
 		// Provider now returns NoSecretError when no results are found
 		tc.expectedError = ptr.String("Secret does not exist")
 	}
 
-	invalidSecret := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
-		fakeKV := &btsutil.KV{
+	invalidSecret := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 			Secret: map[string]interface{}{"invalid": func() {}},
 		}
 
-		fakeListItem := btsutil.KVListItem{
+		fakeListItem := btwcutil.KVListItem{
 			Path: fakeKV.Path,
 		}
 
@@ -447,20 +447,20 @@ func TestGetAllSecrets(t *testing.T) {
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretFind{Path: ptr.String(invalidFolderPath)}
-		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{fakeListItem}
+		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
 		tc.expectedError = ptr.String("failed to marshal secret value for key")
 	}
 
-	clientListError := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
+	clientListError := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		tc.label = "GetAllSecrets - List Secrets - Client Error"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
-		tc.fakeBtsecretsListError = ptr.String("beyondtrustsecrets list error")
+		tc.fakeBtsecretsListError = ptr.String("beyondtrustworkloadcredentials list error")
 		tc.expectedError = ptr.String("failed to list secrets:")
 	}
 
-	invalidFindRegex := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
+	invalidFindRegex := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		tc.label = "GetAllSecrets - List Secrets - Invalid Find RegExp"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
@@ -468,17 +468,17 @@ func TestGetAllSecrets(t *testing.T) {
 		tc.expectedError = ptr.String("invalid name regexp")
 	}
 
-	clientGetErrorInList := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
+	clientGetErrorInList := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		tc.label = "GetAllSecrets - List Secrets - Get KVs - Client Error"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
-		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{{}}
-		tc.fakeBtsecretsGetError = ptr.String("beyondtrustsecrets get error in list")
+		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{{}}
+		tc.fakeBtsecretsGetError = ptr.String("beyondtrustworkloadcredentials get error in list")
 		tc.expectedError = ptr.String("failed to get secret at path")
 	}
 
-	nilSecretInList := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
-		fakeKV := &btsutil.KV{
+	nilSecretInList := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path: fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 		}
 
@@ -486,13 +486,13 @@ func TestGetAllSecrets(t *testing.T) {
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
 		tc.fakeBtsecretsGetResponse = fakeKV
-		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{{Path: fakeKV.Path}}
+		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{{Path: fakeKV.Path}}
 		// In list mode, skip missing entries; when no results are found, return NoSecretError
 		tc.expectedError = ptr.String("Secret does not exist")
 	}
 
-	invalidSecretInList := func(tc *beyondtrustsecretsGetAllSecretsTestCase) {
-		fakeKV := &btsutil.KV{
+	invalidSecretInList := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 			Secret: map[string]interface{}{"invalid": func() {}},
 		}
@@ -501,11 +501,11 @@ func TestGetAllSecrets(t *testing.T) {
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
 		tc.fakeBtsecretsGetResponse = fakeKV
-		tc.fakeBtsecretsListResponse = []btsutil.KVListItem{{Path: fakeKV.Path}}
+		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{{Path: fakeKV.Path}}
 		tc.expectedError = ptr.String("failed to marshal secret value for key")
 	}
 
-	testCases := []*beyondtrustsecretsGetAllSecretsTestCase{
+	testCases := []*beyondtrustworkloadcredentialsGetAllSecretsTestCase{
 		// happy paths
 		makeValidGetAllSecretsTestCaseWithValues(validSecretKVs),
 		makeValidGetAllSecretsTestCaseWithMultiValues(validNamedSecrets),
@@ -521,11 +521,11 @@ func TestGetAllSecrets(t *testing.T) {
 		makeValidGetAllSecretsTestCaseWithValues(invalidSecretInList),
 	}
 
-	c := Client{store: &esv1.BeyondTrustSecretsProvider{}}
+	c := Client{store: &esv1.BeyondtrustWorkloadCredentialsProvider{}}
 
 	for i, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
-			c.beyondtrustSecretsClient = tc.fakeBtsecretsClient
+			c.beyondtrustWorkloadCredentialsClient = tc.fakeBtsecretsClient
 			c.store.FolderPath = *tc.folderPath
 
 			out, err := c.GetAllSecrets(context.Background(), tc.remoteRef)
@@ -556,8 +556,8 @@ func TestGetAllSecrets(t *testing.T) {
 func TestGetSecretMap(t *testing.T) {
 	// happy paths
 
-	validSecretMap := func(tc *beyondtrustsecretsGetSecretTestCase) {
-		fakeKV := &btsutil.KV{
+	validSecretMap := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path:   fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 			Secret: map[string]interface{}{"username": "admin", "password": "secret123", "port": 5432},
 		}
@@ -568,8 +568,8 @@ func TestGetSecretMap(t *testing.T) {
 		// This test will use a custom comparison below
 	}
 
-	validSecretMapWithTypes := func(tc *beyondtrustsecretsGetSecretTestCase) {
-		fakeKV := &btsutil.KV{
+	validSecretMapWithTypes := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path: fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 			Secret: map[string]interface{}{
 				"username": "admin",
@@ -583,17 +583,17 @@ func TestGetSecretMap(t *testing.T) {
 
 	// sad paths
 
-	clientError := func(tc *beyondtrustsecretsGetSecretTestCase) {
+	clientError := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
 		tc.label = "GetSecretMap - Client Error"
 		tc.name = ptr.String(invalidSecretName)
 		tc.folderPath = ptr.String(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName}
-		tc.fakeBtsecretsError = ptr.String("beyondtrustsecrets error")
+		tc.fakeBtsecretsError = ptr.String("beyondtrustworkloadcredentials error")
 		tc.expectedError = ptr.String("failed to get secret")
 	}
 
-	nilSecret := func(tc *beyondtrustsecretsGetSecretTestCase) {
-		fakeKV := &btsutil.KV{
+	nilSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path: fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 		}
 
@@ -605,8 +605,8 @@ func TestGetSecretMap(t *testing.T) {
 		tc.expectedError = ptr.String("secret value is nil")
 	}
 
-	invalidSecret := func(tc *beyondtrustsecretsGetSecretTestCase) {
-		fakeKV := &btsutil.KV{
+	invalidSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
+		fakeKV := &btwcutil.KV{
 			Path: fmt.Sprintf("%s/%s", invalidFolderPath, invalidSecretName),
 			Secret: map[string]interface{}{
 				"valid":   "test",
@@ -622,7 +622,7 @@ func TestGetSecretMap(t *testing.T) {
 		tc.expectedError = ptr.String("failed to marshal secret value for key")
 	}
 
-	testCases := []*beyondtrustsecretsGetSecretTestCase{
+	testCases := []*beyondtrustworkloadcredentialsGetSecretTestCase{
 		// happy paths
 		makeValidGetSecretTestCaseWithValues(validSecretMap),
 		makeValidGetSecretTestCaseWithValues(validSecretMapWithTypes),
@@ -632,11 +632,11 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidGetSecretTestCaseWithValues(invalidSecret),
 	}
 
-	c := Client{store: &esv1.BeyondTrustSecretsProvider{}}
+	c := Client{store: &esv1.BeyondtrustWorkloadCredentialsProvider{}}
 
 	for i, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
-			c.beyondtrustSecretsClient = tc.fakeBtsecretsClient
+			c.beyondtrustWorkloadCredentialsClient = tc.fakeBtsecretsClient
 			c.store.FolderPath = *tc.folderPath
 
 			out, err := c.GetSecretMap(context.Background(), tc.remoteRef)

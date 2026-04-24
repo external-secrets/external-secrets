@@ -1,17 +1,17 @@
-## BeyondTrust Secrets Manager
+## BeyondTrust Workload Credentials
 
-External Secrets Operator integrates with [BeyondTrust Secrets Manager](https://docs.beyondtrust.com/bt-docs/docs/secrets-api) for secret management.
+External Secrets Operator integrates with [BeyondTrust Workload Credentials](https://docs.beyondtrust.com/bt-docs/docs/secrets-api) for secret management.
 
-The provider supports static key-value secrets stored in folders. For dynamic secret generation (e.g., temporary AWS credentials), refer to the [BeyondTrust Secrets Manager Generator](../api/generator/beyondtrustsecrets.md).
+The provider supports static key-value secrets stored in folders. For dynamic secret generation (e.g., temporary AWS credentials), refer to the [BeyondTrust Workload Credentials Generator](../api/generator/beyondtrustworkloadcredentials.md).
 
-For complete BeyondTrust Secrets Manager API documentation, see: [https://docs.beyondtrust.com/bt-docs/docs/secrets-api](https://docs.beyondtrust.com/bt-docs/docs/secrets-api)
+For complete BeyondTrust Workload Credentials API documentation, see: [https://docs.beyondtrust.com/bt-docs/docs/secrets-api](https://docs.beyondtrust.com/bt-docs/docs/secrets-api)
 
 ### Example
 
-First, create a SecretStore with a BeyondTrust Secrets Manager backend. You'll need an API token and the server configuration:
+First, create a SecretStore with a BeyondTrust Workload Credentials backend. You'll need an API token and the server configuration:
 
 ```yaml
-{% include 'beyondtrustsecrets-secret-store.yaml' %}
+{% include 'beyondtrustworkloadcredentials-secret-store.yaml' %}
 ```
 
 Create the API token secret:
@@ -31,7 +31,7 @@ kubectl create secret generic my-ca-bundle \
 Now create an ExternalSecret that uses the above SecretStore:
 
 ```yaml
-{% include 'beyondtrustsecrets-external-secret.yaml' %}
+{% include 'beyondtrustworkloadcredentials-external-secret.yaml' %}
 ```
 
 This will automatically create a Kubernetes Secret with the synced data.
@@ -51,7 +51,7 @@ metadata:
 spec:
   refreshInterval: 1m
   secretStoreRef:
-    name: beyondtrustsecrets-ss
+    name: beyondtrustworkloadcredentials-ss
     kind: SecretStore
   target:
     name: postgres-creds
@@ -80,7 +80,7 @@ metadata:
 spec:
   refreshInterval: 1m
   secretStoreRef:
-    name: beyondtrustsecrets-ss
+    name: beyondtrustworkloadcredentials-ss
     kind: SecretStore
   target:
     name: postgres-creds-json
@@ -105,7 +105,7 @@ metadata:
 spec:
   refreshInterval: 1m
   secretStoreRef:
-    name: beyondtrustsecrets-ss
+    name: beyondtrustworkloadcredentials-ss
     kind: SecretStore
   target:
     name: postgres-creds-extracted
@@ -141,7 +141,7 @@ metadata:
 spec:
   refreshInterval: 1m
   secretStoreRef:
-    name: beyondtrustsecrets-ss
+    name: beyondtrustworkloadcredentials-ss
     kind: SecretStore
   target:
     name: all-folder-secrets
@@ -166,7 +166,7 @@ metadata:
 spec:
   refreshInterval: 1m
   secretStoreRef:
-    name: beyondtrustsecrets-ss
+    name: beyondtrustworkloadcredentials-ss
     kind: SecretStore
   target:
     name: filtered-folder-secrets
@@ -191,7 +191,7 @@ metadata:
 spec:
   refreshInterval: 1m
   secretStoreRef:
-    name: beyondtrustsecrets-ss
+    name: beyondtrustworkloadcredentials-ss
     kind: SecretStore
   target:
     name: subfolder-data
@@ -208,7 +208,7 @@ This will list all secrets in the `eso/production` folder, regardless of the `fo
 
 ### Handling Source Secret Deletion
 
-By default, when a source secret is deleted from BeyondTrust Secrets Manager, the managed Kubernetes secret is retained. You can change this behavior using `deletionPolicy`:
+By default, when a source secret is deleted from BeyondTrust Workload Credentials, the managed Kubernetes secret is retained. You can change this behavior using `deletionPolicy`:
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -219,7 +219,7 @@ metadata:
 spec:
   refreshInterval: 1m
   secretStoreRef:
-    name: beyondtrustsecrets-ss
+    name: beyondtrustworkloadcredentials-ss
     kind: SecretStore
   target:
     name: managed-secret
@@ -236,17 +236,17 @@ Valid values:
 
 ### Authentication
 
-BeyondTrust Secrets Manager uses API key authentication. The API key is stored in a Kubernetes Secret and referenced in the SecretStore:
+BeyondTrust Workload Credentials uses API key authentication. The API key is stored in a Kubernetes Secret and referenced in the SecretStore:
 
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
-  name: beyondtrustsecrets-ss
+  name: beyondtrustworkloadcredentials-ss
   namespace: external-secrets
 spec:
   provider:
-    beyondtrustsecrets:
+    beyondtrustworkloadcredentials:
       auth:
         apikey:
           token:
@@ -269,14 +269,14 @@ auth:
 ### Server Configuration
 
 The server configuration consists of:
-- `apiUrl`: The base URL of your BeyondTrust Secrets Manager API
+- `apiUrl`: The base URL of your BeyondTrust Workload Credentials API
 - `siteId`: Your BeyondTrust site identifier (UUID format)
 
 The provider automatically constructs the full API endpoint as: `{apiUrl}/{siteId}/secrets`
 
 ### Certificate Trust
 
-BeyondTrust Secrets Manager typically uses certificates signed by public CAs, requiring no additional configuration.
+BeyondTrust Workload Credentials typically uses certificates signed by public CAs, requiring no additional configuration.
 
 If using self-signed certificates, configure trust using either `caBundle` or `caProvider`:
 
@@ -285,7 +285,7 @@ If using self-signed certificates, configure trust using either `caBundle` or `c
 ```yaml
 spec:
   provider:
-    beyondtrustsecrets:
+    beyondtrustworkloadcredentials:
       # ... other config ...
       caProvider:
         type: Secret
@@ -308,7 +308,7 @@ Alternatively, embed the base64-encoded PEM certificate directly:
 ```yaml
 spec:
   provider:
-    beyondtrustsecrets:
+    beyondtrustworkloadcredentials:
       # ... other config ...
       server:
         apiUrl: "https://api.beyondtrust.io/site"
@@ -353,10 +353,10 @@ To use a ClusterSecretStore (accessible across all namespaces):
 apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
-  name: beyondtrustsecrets-css
+  name: beyondtrustworkloadcredentials-css
 spec:
   provider:
-    beyondtrustsecrets:
+    beyondtrustworkloadcredentials:
       auth:
         apikey:
           token:
@@ -378,7 +378,7 @@ metadata:
   namespace: my-app
 spec:
   secretStoreRef:
-    name: beyondtrustsecrets-css
+    name: beyondtrustworkloadcredentials-css
     kind: ClusterSecretStore  # Specify ClusterSecretStore
   # ... rest of spec
 ```

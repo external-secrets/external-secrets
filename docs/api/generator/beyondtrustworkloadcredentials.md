@@ -1,24 +1,24 @@
-The `BeyondtrustSecretsDynamicSecret` Generator provides an interface to BeyondTrust Secrets Manager's
+The `BeyondtrustSecretsDynamicSecret` Generator provides an interface to BeyondTrust Workload Credentials's
 dynamic secret generation capabilities. This enables obtaining temporary, short-lived credentials.
 
-Dynamic secret definitions must be created in BeyondTrust Secrets Manager before they can be
+Dynamic secret definitions must be created in BeyondTrust Workload Credentials before they can be
 referenced by the generator. The generator calls the generation endpoint to produce fresh credentials
 each time it is invoked.
 
-For complete BeyondTrust Secrets Manager API documentation, see: [https://docs.beyondtrust.com/bt-docs/docs/secrets-api](https://docs.beyondtrust.com/bt-docs/docs/secrets-api)
+For complete BeyondTrust Workload Credentials API documentation, see: [https://docs.beyondtrust.com/bt-docs/docs/secrets-api](https://docs.beyondtrust.com/bt-docs/docs/secrets-api)
 
-Any authentication method supported by the BeyondTrust Secrets Manager provider can be used here
+Any authentication method supported by the BeyondTrust Workload Credentials provider can be used here
 (`provider` block of the spec).
 
 ## Example manifest
 
 ```yaml
-{% include 'beyondtrustsecrets-dynamic-secret.yaml' %}
+{% include 'beyondtrustworkloadcredentials-dynamic-secret.yaml' %}
 ```
 
-Example `ExternalSecret` that references the BeyondTrust Secrets Manager generator:
+Example `ExternalSecret` that references the BeyondTrust Workload Credentials generator:
 ```yaml
-{% include 'beyondtrustsecrets-dynamic-external-secret.yaml' %}
+{% include 'beyondtrustworkloadcredentials-dynamic-external-secret.yaml' %}
 ```
 
 ## Configuration
@@ -29,7 +29,7 @@ The `folderPath` in the generator spec uses the format `{folder}/{secretName}`:
 - `folder`: The folder containing the dynamic secret definition (e.g., `eso`)
 - `secretName`: The name of the dynamic secret definition (e.g., `dynamic`)
 
-For example, if your dynamic secret is stored at path `my/dynamic` in BeyondTrust Secrets Manager:
+For example, if your dynamic secret is stored at path `my/dynamic` in BeyondTrust Workload Credentials:
 
 ```yaml
 spec:
@@ -49,7 +49,7 @@ stringData:
 ```
 All fields are automatically populated in the target Kubernetes secret.
 ### Credential Refresh and Expiration
-**Important:** External Secrets Operator does NOT automatically handle credential expiration/TTL from BeyondTrust Secrets Manager. The refresh is controlled solely by the `refreshInterval` specified in the ExternalSecret spec.
+**Important:** External Secrets Operator does NOT automatically handle credential expiration/TTL from BeyondTrust Workload Credentials. The refresh is controlled solely by the `refreshInterval` specified in the ExternalSecret spec.
 
 #### Setting Refresh Interval
 
@@ -69,7 +69,7 @@ spec:
         generatorRef:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: BeyondtrustSecretsDynamicSecret
-          name: beyondtrustsecrets-ds
+          name: beyondtrustworkloadcredentials-ds
 ```
 
 #### What happens if refreshInterval > credential expiration?
@@ -110,7 +110,7 @@ spec:
     - sourceRef:
         generatorRef:
           kind: BeyondtrustSecretsDynamicSecret
-          name: beyondtrustsecrets-ds
+          name: beyondtrustworkloadcredentials-ds
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -124,20 +124,20 @@ spec:
     - sourceRef:
         generatorRef:
           kind: BeyondtrustSecretsDynamicSecret
-          name: beyondtrustsecrets-ds
+          name: beyondtrustworkloadcredentials-ds
 ```
 
 **Important:** Each reference triggers a **new credential generation**. In the example above, `app-1` and `app-2` will receive different, independent sets of credentials.
 
 ### Authentication
 
-The generator uses the same authentication mechanism as the BeyondTrust Secrets Manager provider (API key authentication):
+The generator uses the same authentication mechanism as the BeyondTrust Workload Credentials provider (API key authentication):
 
 ```yaml
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: BeyondtrustSecretsDynamicSecret
 metadata:
-  name: beyondtrustsecrets-ds
+  name: beyondtrustworkloadcredentials-ds
   namespace: external-secrets
 spec:
   provider:
@@ -178,7 +178,7 @@ kubectl create secret generic my-ca-bundle \
 
 ### Server Configuration
 
-Configure the BeyondTrust Secrets Manager API endpoint:
+Configure the BeyondTrust Workload Credentials API endpoint:
 
 ```yaml
 spec:
@@ -188,7 +188,7 @@ spec:
       siteId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 ```
 
-- `apiUrl`: The base URL of your BeyondTrust Secrets Manager API
+- `apiUrl`: The base URL of your BeyondTrust Workload Credentials API
 - `siteId`: Your BeyondTrust site identifier (UUID format)
 
 ### Complete Example
@@ -265,7 +265,7 @@ data:
 #### Empty Credential Fields
 
 If the generated secret has empty values:
-1. Verify the dynamic secret exists in BeyondTrust Secrets Manager at the specified path
+1. Verify the dynamic secret exists in BeyondTrust Workload Credentials at the specified path
 2. Check the API token has permissions to generate credentials
 3. Verify the `folderPath` format is correct (`folder/secretName`)
 4. Check controller logs: `kubectl logs -l app.kubernetes.io/name=external-secrets -n external-secrets`
@@ -280,7 +280,7 @@ If you see 403/401 errors:
 #### Timeout Errors
 
 If credential generation times out:
-1. Check network connectivity from the cluster to BeyondTrust Secrets Manager API
+1. Check network connectivity from the cluster to BeyondTrust Workload Credentials API
 2. Verify the API endpoint is responsive
 3. Check if there are firewall rules blocking the connection
 

@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package btsutil provides utility types and functions for interacting with BeyondtrustSecrets.
-package btsutil
+// Package btwcutil provides utility types and functions for interacting with BeyondtrustWorkloadCredentials.
+package btwcutil
 
 import (
 	"context"
@@ -65,7 +65,7 @@ type GeneratedSecret struct {
 	Expiration      string `json:"expiration"`
 }
 
-// Client defines the interface for a BeyondtrustSecrets client with methods for secret operations.
+// Client defines the interface for a BeyondtrustWorkloadCredentials client with methods for secret operations.
 type Client interface {
 	BaseURL() *url.URL
 	SetBaseURL(urlStr string) error

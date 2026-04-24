@@ -14,21 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package beyondtrustsecretsdynamic
+package beyondtrustworkloadcredentialsdynamic
 
-// Test fixtures containing JSON spec strings for BeyondtrustSecrets dynamic secret generator tests.
+// Test fixtures containing JSON spec strings for BeyondtrustWorkloadCredentials dynamic secret generator tests.
 
 const (
-	// validDynamicSecretSpec is a valid BeyondTrustSecretsDynamicSecret spec with all required fields.
+	// validDynamicSecretSpec is a valid BeyondtrustWorkloadCredentialsDynamicSecret spec with all required fields.
 	validDynamicSecretSpec = `apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondTrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 spec:
   provider:
     folderPath: "test/aws-dynamic"
     auth:
       apikey:
         token:
-          name: "beyondtrustsecrets-token"
+          name: "beyondtrustworkloadcredentials-token"
           key: "token"
     server:
       apiUrl: "https://example.com"
@@ -36,14 +36,14 @@ spec:
 
 	// validDynamicSecretSpecNoFolder is a spec with a secret at root level (no folder prefix).
 	validDynamicSecretSpecNoFolder = `apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondTrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 spec:
   provider:
     folderPath: "mysecret"
     auth:
       apikey:
         token:
-          name: "beyondtrustsecrets-token"
+          name: "beyondtrustworkloadcredentials-token"
           key: "token"
     server:
       apiUrl: "https://example.com"
@@ -51,13 +51,13 @@ spec:
 
 	// specMissingFolderPath has no folderPath field.
 	specMissingFolderPath = `apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondTrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 spec:
   provider:
     auth:
       apikey:
         token:
-          name: "beyondtrustsecrets-token"
+          name: "beyondtrustworkloadcredentials-token"
           key: "token"
     server:
       apiUrl: "https://example.com"
@@ -65,7 +65,7 @@ spec:
 
 	// specMissingAuth has no auth field.
 	specMissingAuth = `apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondTrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 spec:
   provider:
     folderPath: "test/dynamic-secret"
@@ -75,7 +75,7 @@ spec:
 
 	// specSecretNotFound references a non-existent secret.
 	specSecretNotFound = `apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondTrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 spec:
   provider:
     folderPath: "test/dynamic-secret"
@@ -90,14 +90,14 @@ spec:
 
 	// validDynamicSecretSpecWithFolder is used for error and non-string value tests.
 	validDynamicSecretSpecWithFolder = `apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondTrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 spec:
   provider:
     folderPath: "test/dynamic-secret"
     auth:
       apikey:
         token:
-          name: "beyondtrustsecrets-token"
+          name: "beyondtrustworkloadcredentials-token"
           key: "token"
     server:
       apiUrl: "https://example.com"
@@ -105,14 +105,14 @@ spec:
 
 	// specEmptySecretName has a folderPath ending with "/" resulting in empty secret name.
 	specEmptySecretName = `apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondTrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 spec:
   provider:
     folderPath: "test/folder/"
     auth:
       apikey:
         token:
-          name: "beyondtrustsecrets-token"
+          name: "beyondtrustworkloadcredentials-token"
           key: "token"
     server:
       apiUrl: "https://example.com"

@@ -22,22 +22,22 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// BeyondTrustSecretsDynamicSecretSpec defines the desired spec for BeyondtrustSecrets dynamic generator.
-// This generator enables obtaining temporary, short-lived credentials from BeyondTrust Secrets Manager.
+// BeyondtrustWorkloadCredentialsDynamicSecretSpec defines the desired spec for BeyondtrustWorkloadCredentials dynamic generator.
+// This generator enables obtaining temporary, short-lived credentials from BeyondTrust Workload Credentials.
 // For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
-type BeyondTrustSecretsDynamicSecretSpec struct {
+type BeyondtrustWorkloadCredentialsDynamicSecretSpec struct {
 	// Controller selects the controller that should handle this generator.
 	// Leave empty to use the default controller.
 	// +optional
 	Controller string `json:"controller,omitempty"`
 
-	// Provider contains the BeyondtrustSecrets provider configuration including authentication,
+	// Provider contains the BeyondtrustWorkloadCredentials provider configuration including authentication,
 	// server connection details, and the folder path to the dynamic secret definition.
 	// The folderPath should point to a dynamic secret definition that has been created in
-	// BeyondTrust Secrets Manager (e.g., "production/aws-temp").
+	// BeyondTrust Workload Credentials (e.g., "production/aws-temp").
 	// For setup details, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 	// +required
-	Provider *esv1.BeyondTrustSecretsProvider `json:"provider"`
+	Provider *esv1.BeyondtrustWorkloadCredentialsProvider `json:"provider"`
 
 	// RetrySettings configures exponential backoff for failed API requests.
 	// If not specified, uses the default retry settings.
@@ -45,27 +45,27 @@ type BeyondTrustSecretsDynamicSecretSpec struct {
 	RetrySettings *esv1.SecretStoreRetrySettings `json:"retrySettings,omitempty"`
 }
 
-// BeyondTrustSecretsDynamicSecret represents a generator that requests dynamic credentials from BeyondTrust Secrets Manager.
-// This generator calls the BeyondTrust Secrets Manager API to generate fresh, temporary credentials
+// BeyondtrustWorkloadCredentialsDynamicSecret represents a generator that requests dynamic credentials from BeyondTrust Workload Credentials.
+// This generator calls the BeyondTrust Workload Credentials API to generate fresh, temporary credentials
 // (such as AWS STS credentials) each time an ExternalSecret is refreshed.
-// Dynamic secret definitions must be created in BeyondTrust Secrets Manager before they can be referenced.
+// Dynamic secret definitions must be created in BeyondTrust Workload Credentials before they can be referenced.
 // For complete documentation, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators}
-type BeyondTrustSecretsDynamicSecret struct {
+type BeyondtrustWorkloadCredentialsDynamicSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec BeyondTrustSecretsDynamicSecretSpec `json:"spec,omitempty"`
+	Spec BeyondtrustWorkloadCredentialsDynamicSecretSpec `json:"spec,omitempty"`
 }
 
-// BeyondTrustSecretsDynamicSecretList contains a list of BeyondTrustSecretsDynamicSecret resources.
+// BeyondtrustWorkloadCredentialsDynamicSecretList contains a list of BeyondtrustWorkloadCredentialsDynamicSecret resources.
 // +kubebuilder:object:root=true
-type BeyondTrustSecretsDynamicSecretList struct {
+type BeyondtrustWorkloadCredentialsDynamicSecretList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []BeyondTrustSecretsDynamicSecret `json:"items"`
+	Items           []BeyondtrustWorkloadCredentialsDynamicSecret `json:"items"`
 }

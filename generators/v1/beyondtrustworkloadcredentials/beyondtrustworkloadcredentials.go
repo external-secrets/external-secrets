@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package beyondtrustsecretsdynamic provides a generator for BeyondTrust Secrets Manager dynamic credentials.
-package beyondtrustsecretsdynamic
+// Package beyondtrustworkloadcredentialsdynamic provides a generator for BeyondTrust Workload Credentials dynamic credentials.
+package beyondtrustworkloadcredentialsdynamic
 
 import (
 	"context"
@@ -29,27 +29,27 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	beyondtrustsecretsprovider "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets"
-	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/httpclient"
-	btsutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/util"
+	beyondtrustworkloadcredentialsprovider "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials"
+	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/httpclient"
+	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
 )
 
-// Generator implements BeyondTrustSecrets dynamic generator.
+// Generator implements BeyondtrustWorkloadCredentials dynamic generator.
 type Generator struct {
-	// NewBeyondTrustSecretsClient is a factory function to create a BeyondTrustSecrets client.
-	// If nil, defaults to httpclient.NewBeyondTrustSecretsClient.
-	NewBeyondTrustSecretsClient func(server, token string) (btsutil.Client, error)
+	// NewBeyondtrustWorkloadCredentialsClient is a factory function to create a BeyondtrustWorkloadCredentials client.
+	// If nil, defaults to httpclient.NewBeyondtrustWorkloadCredentialsClient.
+	NewBeyondtrustWorkloadCredentialsClient func(server, token string) (btwcutil.Client, error)
 }
 
 const (
 	errNoSpec        = "no config spec provided"
 	errParseSpec     = "unable to parse spec: %w"
-	errMissingConfig = "no beyondtrustsecrets provider config in spec"
+	errMissingConfig = "no beyondtrustworkloadcredentials provider config in spec"
 	errNoPath        = "path is required in spec"
 	errGetSecret     = "unable to generate dynamic secret: %w"
 )
 
-// Generate creates the dynamic credentials by calling BeyondTrustSecrets generate endpoint.
+// Generate creates the dynamic credentials by calling BeyondtrustWorkloadCredentials generate endpoint.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	spec, err := getDynamicSecretSpec(jsonSpec)
 	if err != nil {
@@ -64,17 +64,17 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		return nil, nil, fmt.Errorf("invalid path: missing secret name in %q", fullPath)
 	}
 
-	// create BeyondTrustSecrets provider and initialize a client for generator controller
-	clientFactory := g.NewBeyondTrustSecretsClient
+	// create BeyondtrustWorkloadCredentials provider and initialize a client for generator controller
+	clientFactory := g.NewBeyondtrustWorkloadCredentialsClient
 	if clientFactory == nil {
-		clientFactory = httpclient.NewBeyondTrustSecretsClient
+		clientFactory = httpclient.NewBeyondtrustWorkloadCredentialsClient
 	}
-	prov := beyondtrustsecretsprovider.Provider{
-		NewBeyondTrustSecretsClient: clientFactory,
+	prov := beyondtrustworkloadcredentialsprovider.Provider{
+		NewBeyondtrustWorkloadCredentialsClient: clientFactory,
 	}
 	cl, err := prov.NewGeneratorClient(ctx, kube, provider, namespace)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create BeyondTrustSecrets client: %w", err)
+		return nil, nil, fmt.Errorf("failed to create BeyondtrustWorkloadCredentials client: %w", err)
 	}
 
 	// call generate
@@ -99,13 +99,13 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	return out, gpState, nil
 }
 
-// Cleanup is a no-op for BeyondTrustSecrets dynamic generator.
+// Cleanup is a no-op for BeyondtrustWorkloadCredentials dynamic generator.
 func (g *Generator) Cleanup(_ context.Context, _ *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 
 // getDynamicSecretSpec checks if the provided spec is valid.
-func getDynamicSecretSpec(jsonSpec *apiextensions.JSON) (*genv1alpha1.BeyondTrustSecretsDynamicSecret, error) {
+func getDynamicSecretSpec(jsonSpec *apiextensions.JSON) (*genv1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret, error) {
 	if jsonSpec == nil {
 		return nil, errors.New(errNoSpec)
 	}
@@ -124,9 +124,9 @@ func getDynamicSecretSpec(jsonSpec *apiextensions.JSON) (*genv1alpha1.BeyondTrus
 	return spec, nil
 }
 
-// parseSpec unmarshals the JSON spec into a BeyondTrustSecretsDynamicSecret struct.
-func parseSpec(data []byte) (*genv1alpha1.BeyondTrustSecretsDynamicSecret, error) {
-	var spec genv1alpha1.BeyondTrustSecretsDynamicSecret
+// parseSpec unmarshals the JSON spec into a BeyondtrustWorkloadCredentialsDynamicSecret struct.
+func parseSpec(data []byte) (*genv1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret, error) {
+	var spec genv1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret
 	if err := yaml.Unmarshal(data, &spec); err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func parsePath(fullPath string) (*string, string) {
 }
 
 // Convert generatedSecret to map[string][]byte.
-func convertToByteMap(generatedSecret *btsutil.GeneratedSecret) map[string][]byte {
+func convertToByteMap(generatedSecret *btwcutil.GeneratedSecret) map[string][]byte {
 	out := make(map[string][]byte)
 
 	// Defensive nil check
@@ -171,12 +171,12 @@ func convertToByteMap(generatedSecret *btsutil.GeneratedSecret) map[string][]byt
 	return out
 }
 
-// NewGenerator creates a new BeyondTrustSecrets generator instance.
+// NewGenerator creates a new BeyondtrustWorkloadCredentials generator instance.
 func NewGenerator() genv1alpha1.Generator {
 	return &Generator{}
 }
 
 // Kind returns the generator kind string.
 func Kind() string {
-	return string(genv1alpha1.GeneratorKindBeyondTrustSecretsDynamicSecret)
+	return string(genv1alpha1.GeneratorKindBeyondtrustWorkloadCredentialsDynamicSecret)
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package beyondtrustsecretsdynamic
+package beyondtrustworkloadcredentialsdynamic
 
 import (
 	"context"
@@ -28,15 +28,15 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/fake"
-	btsutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/util"
+	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/fake"
+	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
 )
 
 type args struct {
 	jsonSpec     *apiextensions.JSON
 	kube         kclient.Client
-	btsClientFn  func(server, token string) (btsutil.Client, error)
-	generateMock func(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error)
+	btsClientFn  func(server, token string) (btwcutil.Client, error)
+	generateMock func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error)
 }
 
 type want struct {
@@ -51,7 +51,7 @@ type testCase struct {
 	want   want
 }
 
-func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
+func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 	namespace := "test-namespace"
 
 	cases := map[string]testCase{
@@ -72,7 +72,7 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 				},
 			},
 			want: want{
-				err: errors.New("no beyondtrustsecrets provider config in spec"),
+				err: errors.New("no beyondtrustworkloadcredentials provider config in spec"),
 			},
 		},
 		"MissingFolderPath": {
@@ -108,7 +108,7 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: errors.New("failed to create BeyondtrustSecrets client: failed to load credentials: missing or invalid BeyondtrustSecrets API Token in BeyondtrustSecrets SecretStore"),
+				err: errors.New("failed to create BeyondtrustWorkloadCredentials client: failed to load credentials: missing or invalid BeyondtrustWorkloadCredentials API Token in BeyondtrustWorkloadCredentials SecretStore"),
 			},
 		},
 		"SecretNotFound": {
@@ -121,7 +121,7 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 			},
 			want: want{
 				err: errors.New(
-					"failed to create BeyondtrustSecrets client: failed to load credentials: " +
+					"failed to create BeyondtrustWorkloadCredentials client: failed to load credentials: " +
 						"cannot get Kubernetes secret \"nonexistent-secret\" from namespace \"test-namespace\": " +
 						"secrets \"nonexistent-secret\" not found",
 				),
@@ -135,20 +135,20 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "beyondtrustsecrets-token",
+						Name:      "beyondtrustworkloadcredentials-token",
 						Namespace: namespace,
 					},
 					Data: map[string][]byte{
 						"token": []byte("test-token"),
 					},
 				}).Build(),
-				btsClientFn: func(server, token string) (btsutil.Client, error) {
-					client := &fake.BeyondTrustSecretsClient{}
+				btsClientFn: func(server, token string) (btwcutil.Client, error) {
+					client := &fake.BeyondtrustWorkloadCredentialsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
-				generateMock: func(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error) {
-					return &btsutil.GeneratedSecret{
+				generateMock: func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
+					return &btwcutil.GeneratedSecret{
 						AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
 						SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 						SessionToken:    "FwoGZXIvYXdzEBYaD...",
@@ -175,24 +175,24 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "beyondtrustsecrets-token",
+						Name:      "beyondtrustworkloadcredentials-token",
 						Namespace: namespace,
 					},
 					Data: map[string][]byte{
 						"token": []byte("test-token"),
 					},
 				}).Build(),
-				btsClientFn: func(server, token string) (btsutil.Client, error) {
-					client := &fake.BeyondTrustSecretsClient{}
+				btsClientFn: func(server, token string) (btwcutil.Client, error) {
+					client := &fake.BeyondtrustWorkloadCredentialsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
-				generateMock: func(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error) {
+				generateMock: func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
 					if folderPath != nil {
 						return nil, errors.New("expected nil folder path")
 					}
 					// For generic secrets, we'll just return empty fields
-					return &btsutil.GeneratedSecret{
+					return &btwcutil.GeneratedSecret{
 						AccessKeyID:     "admin",
 						SecretAccessKey: "secret123",
 					}, nil
@@ -213,19 +213,19 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "beyondtrustsecrets-token",
+						Name:      "beyondtrustworkloadcredentials-token",
 						Namespace: namespace,
 					},
 					Data: map[string][]byte{
 						"token": []byte("test-token"),
 					},
 				}).Build(),
-				btsClientFn: func(server, token string) (btsutil.Client, error) {
-					client := &fake.BeyondTrustSecretsClient{}
+				btsClientFn: func(server, token string) (btwcutil.Client, error) {
+					client := &fake.BeyondtrustWorkloadCredentialsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
-				generateMock: func(ctx context.Context, name string, folderPath *string) (*btsutil.GeneratedSecret, error) {
+				generateMock: func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
 					return nil, errors.New("API error: insufficient permissions")
 				},
 			},
@@ -237,8 +237,8 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			// Create client factory function with mock setup
-			newClientFn := func(server, token string) (btsutil.Client, error) {
-				client := &fake.BeyondTrustSecretsClient{}
+			newClientFn := func(server, token string) (btwcutil.Client, error) {
+				client := &fake.BeyondtrustWorkloadCredentialsClient{}
 				client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 
 				// Set up the generate mock if provided
@@ -252,14 +252,14 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 			if tc.args.btsClientFn != nil {
 				// If a custom client function is provided, wrap it to add the generate mock
 				customFn := tc.args.btsClientFn
-				newClientFn = func(server, token string) (btsutil.Client, error) {
+				newClientFn = func(server, token string) (btwcutil.Client, error) {
 					client, err := customFn(server, token)
 					if err != nil {
 						return nil, err
 					}
 
 					// If it's a fake client, set up the generate mock
-					if fakeClient, ok := client.(*fake.BeyondTrustSecretsClient); ok && tc.args.generateMock != nil {
+					if fakeClient, ok := client.(*fake.BeyondtrustWorkloadCredentialsClient); ok && tc.args.generateMock != nil {
 						fakeClient.WithGenerateDynamicSecret(tc.args.generateMock)
 					}
 
@@ -269,7 +269,7 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 
 			// Create generator with injected client factory
 			gen := &Generator{
-				NewBeyondTrustSecretsClient: newClientFn,
+				NewBeyondtrustWorkloadCredentialsClient: newClientFn,
 			}
 
 			// Call gen.Generate() for all test cases
@@ -279,28 +279,28 @@ func TestBeyondTrustSecretsDynamicSecretGenerator(t *testing.T) {
 			if tc.want.err != nil {
 				if err != nil {
 					if diff := cmp.Diff(tc.want.err.Error(), err.Error()); diff != "" {
-						t.Errorf("\n%s\nbeyondtrustsecrets.Generate(...): -want error, +got error:\n%s", tc.reason, diff)
+						t.Errorf("\n%s\nbeyondtrustworkloadcredentials.Generate(...): -want error, +got error:\n%s", tc.reason, diff)
 					}
 				} else {
-					t.Errorf("\n%s\nbeyondtrustsecrets.Generate(...): -want error, +got val:\n%v", tc.reason, val)
+					t.Errorf("\n%s\nbeyondtrustworkloadcredentials.Generate(...): -want error, +got val:\n%v", tc.reason, val)
 				}
 			} else if tc.want.partialVal != nil {
 				// Success case: expect no error
 				if err != nil {
-					t.Fatalf("\n%s\nbeyondtrustsecrets.Generate(...): unexpected error: expected nil, got %v", tc.reason, err)
+					t.Fatalf("\n%s\nbeyondtrustworkloadcredentials.Generate(...): unexpected error: expected nil, got %v", tc.reason, err)
 				}
 				for k, v := range tc.want.partialVal {
 					if diff := cmp.Diff(v, val[k]); diff != "" {
-						t.Errorf("\n%s\nbeyondtrustsecrets.Generate(...) -> %s: -want partial, +got partial:\n%s", tc.reason, k, diff)
+						t.Errorf("\n%s\nbeyondtrustworkloadcredentials.Generate(...) -> %s: -want partial, +got partial:\n%s", tc.reason, k, diff)
 					}
 				}
 			} else {
 				// Success case: expect no error
 				if err != nil {
-					t.Fatalf("\n%s\nbeyondtrustsecrets.Generate(...): unexpected error: expected nil, got %v", tc.reason, err)
+					t.Fatalf("\n%s\nbeyondtrustworkloadcredentials.Generate(...): unexpected error: expected nil, got %v", tc.reason, err)
 				}
 				if diff := cmp.Diff(tc.want.val, val); diff != "" {
-					t.Errorf("\n%s\nbeyondtrustsecrets.Generate(...): -want val, +got val:\n%s", tc.reason, diff)
+					t.Errorf("\n%s\nbeyondtrustworkloadcredentials.Generate(...): -want val, +got val:\n%s", tc.reason, diff)
 				}
 			}
 		})
@@ -356,12 +356,12 @@ func TestPathParsing(t *testing.T) {
 func TestConvertToByteMap(t *testing.T) {
 	tests := []struct {
 		name  string
-		input *btsutil.GeneratedSecret
+		input *btwcutil.GeneratedSecret
 		want  map[string][]byte
 	}{
 		{
 			name: "Valid string values",
-			input: &btsutil.GeneratedSecret{
+			input: &btwcutil.GeneratedSecret{
 				AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
 				SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 				SessionToken:    "FwoGZXIvYXdzEBYaD...",
@@ -378,7 +378,7 @@ func TestConvertToByteMap(t *testing.T) {
 		},
 		{
 			name: "Empty session token",
-			input: &btsutil.GeneratedSecret{
+			input: &btwcutil.GeneratedSecret{
 				AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
 				SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 				LeaseID:         "aws/creds/example/abc123",

@@ -21,10 +21,14 @@ package register
 
 import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	beyondtrustsecrets "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets"
+	beyondtrustworkloadcredentials "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials"
 )
 
 func init() {
-	// Register beyondtrust provider
-	esv1.Register(beyondtrustsecrets.NewProvider(), beyondtrustsecrets.ProviderSpec(), beyondtrustsecrets.MaintenanceStatus())
+	// Register beyondtrustworkloadcredentials provider
+	esv1.Register(
+		beyondtrustworkloadcredentials.NewProvider(),
+		beyondtrustworkloadcredentials.ProviderSpec(),
+		beyondtrustworkloadcredentials.MaintenanceStatus(),
+	)
 }

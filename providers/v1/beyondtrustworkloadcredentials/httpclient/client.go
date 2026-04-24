@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package httpclient provides an HTTP client for interacting with BeyondTrust Secrets Manager API.
+// Package httpclient provides an HTTP client for interacting with BeyondTrust Workload Credentials API.
 package httpclient
 
 import (
@@ -29,11 +29,11 @@ import (
 	"strings"
 	"time"
 
-	btsutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustsecrets/util"
+	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
 )
 
 const (
-	// API version header for BeyondTrust Secrets Manager.
+	// API version header for BeyondTrust Workload Credentials.
 	apiVersionHeader = "bt-secrets-api-version"
 	apiVersion       = "2026-02-16"
 
@@ -41,14 +41,14 @@ const (
 	defaultTimeout = 30 * time.Second
 )
 
-// Client represents a client for interacting with BeyondTrust Secrets Manager API.
+// Client represents a client for interacting with BeyondTrust Workload Credentials API.
 type Client struct {
 	httpClient *http.Client
 	baseURL    *url.URL
 	token      string
 }
 
-// NewClient creates a new BeyondTrust Secrets Manager HTTP client.
+// NewClient creates a new BeyondTrust Workload Credentials HTTP client.
 func NewClient(serverURL, token string) (*Client, error) {
 	if err := validateServerURL(serverURL); err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (c *Client) CheckSession(ctx context.Context) error {
 }
 
 // GetSecret fetches a single secret by name from the specified folder path.
-func (c *Client) GetSecret(ctx context.Context, name string, folderPath *string) (*btsutil.KV, error) {
+func (c *Client) GetSecret(ctx context.Context, name string, folderPath *string) (*btwcutil.KV, error) {
 	path := formatPath(folderPath)
 
 	endpoint := fmt.Sprintf("%s/static/%s", c.baseURL.String(), url.PathEscape(name))
@@ -197,7 +197,7 @@ func (c *Client) GetSecret(ctx context.Context, name string, folderPath *string)
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		var kv btsutil.KV
+		var kv btwcutil.KV
 		if err := json.Unmarshal(body, &kv); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal secret response: %w", err)
 		}
@@ -208,7 +208,7 @@ func (c *Client) GetSecret(ctx context.Context, name string, folderPath *string)
 }
 
 // GetSecrets fetches a list of secrets at the specified folder path.
-func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive bool) ([]btsutil.KVListItem, error) {
+func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive bool) ([]btwcutil.KVListItem, error) {
 	path := formatPath(folderPath)
 
 	endpoint := fmt.Sprintf("%s/static", c.baseURL.String())
@@ -247,7 +247,7 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive b
 
 	if resp.StatusCode == http.StatusOK {
 		var listResp struct {
-			Data  []btsutil.KVListItem `json:"data"`
+			Data  []btwcutil.KVListItem `json:"data"`
 			Error string               `json:"error,omitempty"`
 		}
 		if err := json.Unmarshal(body, &listResp); err != nil {
@@ -261,7 +261,7 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive b
 
 		// Empty folder is valid - return empty list
 		if len(listResp.Data) == 0 {
-			return []btsutil.KVListItem{}, nil
+			return []btwcutil.KVListItem{}, nil
 		}
 
 		return listResp.Data, nil
@@ -271,7 +271,7 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive b
 }
 
 // GenerateDynamicSecret calls the dynamic secret generation endpoint.
-func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, folderPath *string) (*btsutil.GeneratedSecret, error) {
+func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
 	path := formatPath(folderPath)
 
 	endpoint := fmt.Sprintf("%s/dynamic/%s/generate", c.baseURL.String(), url.PathEscape(secretName))
@@ -301,7 +301,7 @@ func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, f
 
 	if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
 		var wrapped struct {
-			Secret btsutil.GeneratedSecret `json:"secret"`
+			Secret btwcutil.GeneratedSecret `json:"secret"`
 		}
 		if err := json.Unmarshal(body, &wrapped); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal generated secret response: %w", err)
@@ -396,15 +396,15 @@ func parseError(body []byte, statusCode int, path string) error {
 	}
 }
 
-// Ensure Client implements btsutil.Client interface.
-var _ btsutil.Client = (*Client)(nil)
+// Ensure Client implements btwcutil.Client interface.
+var _ btwcutil.Client = (*Client)(nil)
 
-// NewBeyondTrustSecretsClient is a wrapper for backward compatibility.
-func NewBeyondTrustSecretsClient(server, token string) (btsutil.Client, error) {
+// NewBeyondtrustWorkloadCredentialsClient is a wrapper for backward compatibility.
+func NewBeyondtrustWorkloadCredentialsClient(server, token string) (btwcutil.Client, error) {
 	return NewClient(server, token)
 }
 
-// NewBeyondTrustSecretsClientWithCustomCA is a wrapper for backward compatibility.
-func NewBeyondTrustSecretsClientWithCustomCA(server, token string, caBundlePEM []byte) (btsutil.Client, error) {
+// NewBeyondtrustWorkloadCredentialsClientWithCustomCA is a wrapper for backward compatibility.
+func NewBeyondtrustWorkloadCredentialsClientWithCustomCA(server, token string, caBundlePEM []byte) (btwcutil.Client, error) {
 	return NewClientWithCustomCA(server, token, caBundlePEM)
 }
