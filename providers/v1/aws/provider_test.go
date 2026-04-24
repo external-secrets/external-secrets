@@ -18,19 +18,15 @@ package aws
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	awsauth "github.com/external-secrets/external-secrets/providers/v1/aws/auth"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager"
 )
@@ -481,62 +477,3 @@ func TestValidateStore(t *testing.T) {
 	}
 }
 
-func TestValidRetryInput(t *testing.T) {
-	invalid := "Invalid"
-	spec := &esv1.SecretStore{
-		Spec: esv1.SecretStoreSpec{
-			Provider: &esv1.SecretStoreProvider{
-				AWS: &esv1.AWSProvider{
-					Service: "ParameterStore",
-					Region:  validRegion,
-					Auth: esv1.AWSAuth{
-						SecretRef: &esv1.AWSAuthSecretRef{
-							SecretAccessKey: esmeta.SecretKeySelector{
-								Name: "creds",
-								Key:  "sak",
-							},
-							AccessKeyID: esmeta.SecretKeySelector{
-								Name: "creds",
-								Key:  "ak",
-							},
-						},
-					},
-				},
-			},
-			RetrySettings: &esv1.SecretStoreRetrySettings{
-				RetryInterval: &invalid,
-			},
-		},
-	}
-
-	expected := fmt.Sprintf("unable to initialize aws provider: time: invalid duration %q", invalid)
-	ctx := context.TODO()
-
-	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "creds",
-			Namespace: "default",
-		},
-		Data: map[string][]byte{
-			"sak": []byte("OK"),
-			"ak":  []byte("OK"),
-		},
-	}).Build()
-	provider := func(*aws.Config) awsauth.STSprovider { return nil }
-
-	_, err := newClient(ctx, spec, kube, "default", provider)
-
-	if !ErrorContains(err, expected) {
-		t.Errorf("CheckValidRetryInput unexpected error: %s, expected: '%s'", err.Error(), expected)
-	}
-}
-
-func ErrorContains(out error, want string) bool {
-	if out == nil {
-		return want == ""
-	}
-	if want == "" {
-		return false
-	}
-	return strings.Contains(out.Error(), want)
-}

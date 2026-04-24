@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/pflag"
@@ -222,12 +221,8 @@ func (p *Provider) prepareConfig(
 		}
 
 		if retrySettings.RetryInterval != nil {
-			retryWait, err := time.ParseDuration(*retrySettings.RetryInterval)
-			if err != nil {
-				return nil, nil, err
-			}
-			cfg.MinRetryWait = retryWait
-			cfg.MaxRetryWait = retryWait
+			cfg.MinRetryWait = retrySettings.RetryInterval.Duration
+			cfg.MaxRetryWait = retrySettings.RetryInterval.Duration
 		}
 	}
 

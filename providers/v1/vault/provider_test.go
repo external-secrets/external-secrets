@@ -294,27 +294,13 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: errors.New(errVaultStore),
 			},
 		},
-		"InvalidRetrySettings": {
-			reason: "Should return error if given an invalid Retry Interval.",
-			args: args{
-				store: makeSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
-						MaxRetries:    new(int32(3)),
-						RetryInterval: new("not-an-interval"),
-					}
-				}),
-			},
-			want: want{
-				err: func() error { _, err := time.ParseDuration("not-an-interval"); return err }(),
-			},
-		},
 		"ValidRetrySettings": {
 			reason: "Should return a Vault provider with custom retry settings",
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
 						MaxRetries:    new(int32(3)),
-						RetryInterval: new("10m"),
+						RetryInterval: &metav1.Duration{Duration: 10 * time.Minute},
 					}
 				}),
 				ns:            "default",

@@ -372,7 +372,7 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1.SecretStoreRetrySettings{
-						RetryInterval: new("1s"),
+						RetryInterval: &metav1.Duration{Duration: time.Second},
 						MaxRetries:    new(int32(5)),
 					},
 				},
@@ -390,7 +390,7 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1.SecretStoreRetrySettings{
-						RetryInterval: new("1s"),
+						RetryInterval: &metav1.Duration{Duration: time.Second},
 					},
 				},
 			},
@@ -437,29 +437,11 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1.SecretStoreRetrySettings{
-						RetryInterval: new("invalid"),
+						RetryInterval: &metav1.Duration{Duration: time.Second},
 					},
 				},
 			},
 			expectedErr: `cannot get Kubernetes secret "non-existing-secret" from namespace "default": secrets "non-existing-secret" not found`,
-		},
-		{
-			desc: "invalid retry interval",
-			secretStore: &esv1.SecretStore{
-				Spec: esv1.SecretStoreSpec{
-					Provider: &esv1.SecretStoreProvider{
-						Oracle: &esv1.OracleProvider{
-							Vault:  vaultOCID,
-							Region: region,
-							Auth:   auth,
-						},
-					},
-					RetrySettings: &esv1.SecretStoreRetrySettings{
-						RetryInterval: new("invalid"),
-					},
-				},
-			},
-			expectedErr: "cannot setup new oracle client: time: invalid duration",
 		},
 	}
 

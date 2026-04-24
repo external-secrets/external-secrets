@@ -28,7 +28,6 @@ import (
 	"os"
 	"regexp"
 	"sync"
-	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/common/auth"
@@ -353,11 +352,7 @@ func (vms *VaultManagementService) constructOptions(storeSpec *esv1.SecretStoreS
 	}
 
 	if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
-		i, err := time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
-		if err != nil {
-			return nil, fmt.Errorf(errOracleClient, err)
-		}
-		opts = append(opts, common.WithFixedBackoff(i))
+		opts = append(opts, common.WithFixedBackoff(ri.Duration))
 	}
 	return opts, nil
 }

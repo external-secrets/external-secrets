@@ -253,7 +253,7 @@ type SecretStoreRetrySettings struct {
 	// MaxRetries is the maximum number of retry attempts.
 	MaxRetries *int32 `json:"maxRetries,omitempty"`
 	// RetryInterval is the interval between retry attempts.
-	RetryInterval *string `json:"retryInterval,omitempty"`
+	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
 }
 
 // SecretStoreConditionType represents the condition type of the SecretStore.

@@ -730,14 +730,12 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 		}
 
 		if storeSpec.RetrySettings.RetryInterval != nil {
-			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+			retryDuration = storeSpec.RetrySettings.RetryInterval.Duration
 		} else {
 			retryDuration = 5 * time.Second
 		}
 
-		if err == nil {
-			secretsManager.Service.EnableRetries(retryAmount, retryDuration)
-		}
+		secretsManager.Service.EnableRetries(retryAmount, retryDuration)
 	}
 
 	if err != nil {

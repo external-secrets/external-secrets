@@ -3688,7 +3688,7 @@ func (in *SecretStoreRetrySettings) DeepCopyInto(out *SecretStoreRetrySettings) 
 	}
 	if in.RetryInterval != nil {
 		in, out := &in.RetryInterval, &out.RetryInterval
-		*out = new(string)
+		*out = new(metav1.Duration)
 		**out = **in
 	}
 }

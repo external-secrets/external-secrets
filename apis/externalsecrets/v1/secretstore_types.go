@@ -271,8 +271,8 @@ type CAProvider struct {
 
 // SecretStoreRetrySettings defines the retry settings for accessing external secrets manager stores.
 type SecretStoreRetrySettings struct {
-	MaxRetries    *int32  `json:"maxRetries,omitempty"`
-	RetryInterval *string `json:"retryInterval,omitempty"`
+	MaxRetries    *int32           `json:"maxRetries,omitempty"`
+	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
 }
 
 // SecretStoreConditionType represents the condition of the SecretStore.
