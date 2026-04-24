@@ -65,7 +65,7 @@ func (c *Client) unveilSecret(ctx context.Context, key, version, property string
 		Version: versionOpt,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to unveil secret: %w", err)
+		return nil, fmt.Errorf("failed to unveil secret with key %q: %w", key, err)
 	}
 
 	data := []byte(res.GetValue())
@@ -75,12 +75,12 @@ func (c *Client) unveilSecret(ctx context.Context, key, version, property string
 
 	kv := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(data, &kv); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal secret as JSON: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal secret with key %q as JSON: %w", key, err)
 	}
 
 	value, ok := kv[property]
 	if !ok {
-		return nil, fmt.Errorf("property not found in secret")
+		return nil, fmt.Errorf("property %q not found in secret %q", property, key)
 	}
 
 	var strVal string
@@ -151,7 +151,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		func(property string, value []byte, kv map[string]json.RawMessage) {
 			kv[property] = json.RawMessage(value)
 		}); err != nil {
-		return fmt.Errorf("failed to upsert secret with property: %w", err)
+		return fmt.Errorf("failed to upsert secret: %w", err)
 	}
 
 	return nil
