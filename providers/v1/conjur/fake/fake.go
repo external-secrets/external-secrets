@@ -38,6 +38,8 @@ type LoadPolicyCall struct {
 type ConjurMockClient struct {
 	AddSecretCalls  []AddSecretCall
 	LoadPolicyCalls []LoadPolicyCall
+	SecretDetails   map[string]*conjurapi.StaticSecretResponse
+	SecretValues    map[string][]byte
 }
 
 func (mc *ConjurMockClient) AddSecret(variable, secret string) error {
@@ -48,15 +50,18 @@ func (mc *ConjurMockClient) AddSecret(variable, secret string) error {
 	return nil
 }
 
-func (mc *ConjurMockClient) GetStaticSecretDetails(identifier string) (*conjurapi.StaticSecretResponse, error) {
-	return &conjurapi.StaticSecretResponse{
-		StaticSecret: conjurapi.StaticSecret{
-			Annotations: map[string]string{
-				"managed-by": "external-secrets",
+func (mc *ConjurMockClient) GetStaticSecretDetails(id string) (*conjurapi.StaticSecretResponse, error) {
+	if mc.SecretDetails == nil || mc.SecretDetails[id] == nil {
+		return &conjurapi.StaticSecretResponse{
+			StaticSecret: conjurapi.StaticSecret{
+				Annotations: map[string]string{
+					"managed-by": "external-secrets",
+				},
 			},
-		},
-		Permissions: conjurapi.Permission{},
-	}, nil
+			Permissions: conjurapi.Permission{},
+		}, nil
+	}
+	return mc.SecretDetails[id], nil
 }
 
 func (mc *ConjurMockClient) LoadPolicy(policyMode conjurapi.PolicyMode, policyID string, policy io.Reader) (*conjurapi.PolicyResponse, error) {
@@ -69,6 +74,9 @@ func (mc *ConjurMockClient) LoadPolicy(policyMode conjurapi.PolicyMode, policyID
 }
 
 func (mc *ConjurMockClient) RetrieveSecret(secret string) (result []byte, err error) {
+	if value, ok := mc.SecretValues[secret]; ok {
+		return value, nil
+	}
 	if secret == "error" {
 		err = errors.New("error")
 		return nil, err
