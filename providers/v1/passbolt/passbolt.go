@@ -48,7 +48,7 @@ const (
 	errPassboltExternalSecretMissingFindNameRegExp = "missing: find.name.regexp"
 	errPassboltStoreHostSchemeNotHTTPS             = "host Url has to be https scheme"
 	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password or description"
-	errPassboltCABundleInvalid                     = "failed to parse CA bundle for Passbolt provider"
+	errPassboltCAInvalid                           = "failed to parse CA certificate for Passbolt provider"
 	errNotImplemented                              = "not implemented"
 )
 
@@ -314,7 +314,7 @@ func buildHTTPClient(ctx context.Context, config *esv1.PassboltProvider, kube kc
 
 	caCertPool := x509.NewCertPool()
 	if !caCertPool.AppendCertsFromPEM(caCert) {
-		return nil, errors.New(errPassboltCABundleInvalid)
+		return nil, errors.New(errPassboltCAInvalid)
 	}
 
 	// Clone the default transport so we keep its proxy/dialer/HTTP2/idle
