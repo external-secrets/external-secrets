@@ -110,53 +110,9 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 	// Before we apply policy, we should check any existing secrets to make sure that if they exist, they have the "managed-by" annotation
 	// If they don't, we should leave them alone.
 	// Also, any value that hasn't changed should be removed to avoid spurious updates
-	updateVars := []string{}
-	for _, v := range vars {
-		n := fmt.Sprintf("%s/%s", fqSecretName, v)
-		resp, err := conjurClient.GetStaticSecretDetails(n)
-		if err != nil {
-			// assume doesn't exist, so we should create it
-			// Could also be no permission - but that just looks like not found, and then it should fail when we try to create it
-			updateVars = append(updateVars, v)
-			continue
-		}
-		found := false
-		for ak, av := range resp.Annotations {
-			if ak == "managed-by" && av == "external-secrets" {
-				found = true
-				break
-			}
-		}
-		if found == false {
-			continue
-		}
-		secret, err := conjurClient.RetrieveSecret(n)
-		// if we can't read the secret value, assume it's out of our control, don't update it.
-		if err != nil {
-			continue
-		}
-		secretValue := string(secret)
-		if property != "" {
-			// if property and key are present, just a value check
-			if key != "" {
-				if secretValue == values[key] {
-					continue
-				}
-			} else {
-				value, err := esutils.JSONMarshal(values)
-				if err != nil {
-					return err
-				}
-				if secretValue == string(value) {
-					continue
-				}
-			}
-		} else {
-			if secretValue == values[v] {
-				continue
-			}
-		}
-		updateVars = append(updateVars, v)
+	updateVars, err := checkSecrets(conjurClient, fqSecretName, vars, values, property, key)
+	if err != nil {
+		return err
 	}
 
 	// Nothing to update
@@ -199,4 +155,59 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 		}
 	}
 	return nil
+}
+
+// checkSecrets checks if secrets exists, if they are managed by eso, and if the values are different.
+// Returns the set of secrets that we should update/create.
+func checkSecrets(conjurClient SecretsClient, conjurSecretName string, conjurVars []string, secretData map[string]string, property, key string) ([]string, error) {
+	updateVars := []string{}
+	for _, v := range conjurVars {
+		n := fmt.Sprintf("%s/%s", conjurSecretName, v)
+		resp, err := conjurClient.GetStaticSecretDetails(n)
+		if err != nil {
+			// assume doesn't exist, so we should create it
+			// Could also be no permission - but that just looks like not found, and then it should fail when we try to create it
+			updateVars = append(updateVars, v)
+			continue
+		}
+		found := false
+		for ak, av := range resp.Annotations {
+			if ak == "managed-by" && av == "external-secrets" {
+				found = true
+				break
+			}
+		}
+		if found == false {
+			continue
+		}
+		secret, err := conjurClient.RetrieveSecret(n)
+		// if we can't read the secret value, assume it's out of our control, don't update it.
+		if err != nil {
+			continue
+		}
+		secretValue := string(secret)
+		if property != "" {
+			// if property and key are present, just a value check
+			if key != "" {
+				if secretValue == secretData[key] {
+					continue
+				}
+			} else {
+				value, err := esutils.JSONMarshal(secretData)
+				if err != nil {
+					return nil, err
+				}
+				if secretValue == string(value) {
+					continue
+				}
+			}
+		} else {
+			if secretValue == secretData[v] {
+				continue
+			}
+		}
+		updateVars = append(updateVars, v)
+	}
+
+	return updateVars, nil
 }
