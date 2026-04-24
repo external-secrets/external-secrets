@@ -28548,7 +28548,7 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </em>
 </td>
 <td>
-<p>Parameters to pass to Vault write (for non-GET methods)</p>
+<p>Parameters to pass to Vault for write and Get calls. GET calls only support string value types.</p>
 </td>
 </tr>
 <tr>
@@ -28701,7 +28701,7 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </em>
 </td>
 <td>
-<p>Parameters to pass to Vault write (for non-GET methods)</p>
+<p>Parameters to pass to Vault for write and Get calls. GET calls only support string value types.</p>
 </td>
 </tr>
 <tr>
