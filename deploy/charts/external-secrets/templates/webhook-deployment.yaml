@@ -107,6 +107,12 @@ spec:
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              port: ready
+              path: /healthz
+            initialDelaySeconds: 30
+            periodSeconds: 10
           {{- with .Values.webhook.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}

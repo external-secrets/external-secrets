@@ -117,6 +117,12 @@ spec:
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              port: ready
+              path: /healthz
+            initialDelaySeconds: 30
+            periodSeconds: 10
           {{- if .Values.certController.startupProbe.enabled }}
           startupProbe:
             httpGet:

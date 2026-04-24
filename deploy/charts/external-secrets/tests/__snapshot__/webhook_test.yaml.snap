@@ -58,6 +58,12 @@ should match snapshot of default values:
                   port: ready
                 initialDelaySeconds: 20
                 periodSeconds: 5
+              livenessProbe:
+                httpGet:
+                  path: /healthz
+                  port: ready
+                initialDelaySeconds: 30
+                periodSeconds: 10
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities:
