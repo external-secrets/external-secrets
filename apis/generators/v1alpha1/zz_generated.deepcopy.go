@@ -1860,6 +1860,13 @@ func (in *VaultDynamicSecretSpec) DeepCopyInto(out *VaultDynamicSecretSpec) {
 		*out = new(v1.JSON)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.GetParameters != nil {
+		in, out := &in.GetParameters, &out.GetParameters
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.RetrySettings != nil {
 		in, out := &in.RetrySettings, &out.RetrySettings
 		*out = new(externalsecretsv1.SecretStoreRetrySettings)

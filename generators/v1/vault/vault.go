@@ -116,19 +116,12 @@ func (g *Generator) fetchVaultSecret(ctx context.Context, res *genv1alpha1.Vault
 	)
 
 	if res.Spec.Method == "" || res.Spec.Method == "GET" {
-		var raw map[string]any
-		if res.Spec.Parameters != nil {
-			if err := json.Unmarshal(res.Spec.Parameters.Raw, &raw); err != nil {
-				return nil, fmt.Errorf("failed to parse parameters for GET call: %w", err)
+		var params map[string][]string
+		if len(res.Spec.GetParameters) > 0 {
+			params = make(map[string][]string, len(res.Spec.GetParameters))
+			for k, v := range res.Spec.GetParameters {
+				params[k] = []string{v}
 			}
-		}
-		params := make(map[string][]string, len(raw))
-		for k, v := range raw {
-			s, ok := v.(string)
-			if !ok {
-				return nil, fmt.Errorf("unsupported type for GET parameter %q: %T", k, v)
-			}
-			params[k] = []string{s}
 		}
 		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, params)
 	} else if res.Spec.Method == "LIST" {
