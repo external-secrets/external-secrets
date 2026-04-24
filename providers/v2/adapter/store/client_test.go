@@ -76,6 +76,10 @@ type fakeV2Provider struct {
 	validateNamespace   string
 	validateCalled      bool
 
+	capabilitiesResponse pb.SecretStoreCapabilities
+	capabilitiesErr      error
+	capabilitiesSet      bool
+
 	closeErr    error
 	closeCalled bool
 }
@@ -163,7 +167,10 @@ func (f *fakeV2Provider) Validate(_ context.Context, providerRef *pb.ProviderRef
 }
 
 func (f *fakeV2Provider) Capabilities(context.Context, *pb.ProviderReference, string) (pb.SecretStoreCapabilities, error) {
-	return pb.SecretStoreCapabilities_READ_WRITE, nil
+	if !f.capabilitiesSet && f.capabilitiesErr == nil {
+		return pb.SecretStoreCapabilities_READ_WRITE, nil
+	}
+	return f.capabilitiesResponse, f.capabilitiesErr
 }
 
 func (f *fakeV2Provider) Close(context.Context) error {
@@ -493,6 +500,49 @@ func TestClientValidateMapsProviderErrors(t *testing.T) {
 			t.Fatalf("expected ValidationResultError, got %q", result)
 		}
 	})
+}
+
+func TestClientCapabilitiesMapsProviderCapabilities(t *testing.T) {
+	tests := []struct {
+		name     string
+		caps     pb.SecretStoreCapabilities
+		expected esv1.SecretStoreCapabilities
+	}{
+		{
+			name:     "read only",
+			caps:     pb.SecretStoreCapabilities_READ_ONLY,
+			expected: esv1.SecretStoreReadOnly,
+		},
+		{
+			name:     "write only",
+			caps:     pb.SecretStoreCapabilities_WRITE_ONLY,
+			expected: esv1.SecretStoreWriteOnly,
+		},
+		{
+			name:     "read write",
+			caps:     pb.SecretStoreCapabilities_READ_WRITE,
+			expected: esv1.SecretStoreReadWrite,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := &fakeV2Provider{capabilitiesResponse: tt.caps, capabilitiesSet: true}
+			client := NewClient(provider, &pb.ProviderReference{Name: "provider"}, testSourceNamespace)
+			capabilityClient, ok := client.(CapabilityAwareClient)
+			if !ok {
+				t.Fatalf("expected client to implement CapabilityAwareClient")
+			}
+
+			got, err := capabilityClient.Capabilities(context.Background())
+			if err != nil {
+				t.Fatalf("Capabilities() error = %v", err)
+			}
+			if got != tt.expected {
+				t.Fatalf("expected %v, got %v", tt.expected, got)
+			}
+		})
+	}
 }
 
 func TestClientCloseDelegates(t *testing.T) {

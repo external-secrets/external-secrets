@@ -91,20 +91,26 @@ func TestCreateRuntimeSecretStoreCreatesStoreAndProviderClass(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 	f := &framework.Framework{CRClient: cl}
 
-	store := CreateRuntimeSecretStore(f, "test", "example", "provider-fake.test.svc:8080", &esv1.SecretStoreProvider{
-		Fake: &esv1.FakeProvider{},
+	store := CreateRuntimeSecretStore(f, "test", "example", "provider-fake.test.svc:8080", &esv1.StoreProviderRef{
+		APIVersion: "provider.external-secrets.io/v2alpha1",
+		Kind:       "Fake",
+		Name:       "fake-config",
 	})
 
 	Expect(store).NotTo(BeNil())
 	Expect(store.Spec.RuntimeRef).NotTo(BeNil())
 	Expect(store.Spec.RuntimeRef.Name).To(Equal(runtimeClassName("example")))
 	Expect(store.Spec.RuntimeRef.Kind).To(BeEmpty())
+	Expect(store.Spec.Provider).To(BeNil())
+	Expect(store.Spec.ProviderRef).NotTo(BeNil())
+	Expect(store.Spec.ProviderRef.Name).To(Equal("fake-config"))
 
 	var persistedStore esv1.SecretStore
 	err := cl.Get(context.Background(), client.ObjectKey{Name: "example", Namespace: "test"}, &persistedStore)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(persistedStore.Spec.Provider).NotTo(BeNil())
-	Expect(persistedStore.Spec.Provider.Fake).NotTo(BeNil())
+	Expect(persistedStore.Spec.Provider).To(BeNil())
+	Expect(persistedStore.Spec.ProviderRef).NotTo(BeNil())
+	Expect(persistedStore.Spec.ProviderRef.Kind).To(Equal("Fake"))
 
 	var runtimeClass esv1alpha1.ProviderClass
 	err = cl.Get(context.Background(), client.ObjectKey{Name: runtimeClassName("example"), Namespace: "test"}, &runtimeClass)
@@ -123,8 +129,10 @@ func TestCreateRuntimeClusterSecretStoreCreatesStoreAndClusterProviderClass(t *t
 	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 	f := &framework.Framework{CRClient: cl}
 
-	store := CreateRuntimeClusterSecretStore(f, "example", "provider-fake.external-secrets-system.svc:8080", &esv1.SecretStoreProvider{
-		Fake: &esv1.FakeProvider{},
+	store := CreateRuntimeClusterSecretStore(f, "example", "provider-fake.external-secrets-system.svc:8080", &esv1.StoreProviderRef{
+		APIVersion: "provider.external-secrets.io/v2alpha1",
+		Kind:       "Fake",
+		Name:       "fake-config",
 	}, []esv1.ClusterSecretStoreCondition{{
 		Namespaces: []string{"tenant-a"},
 	}})
@@ -134,12 +142,16 @@ func TestCreateRuntimeClusterSecretStoreCreatesStoreAndClusterProviderClass(t *t
 	Expect(store.Spec.RuntimeRef.Name).To(Equal(runtimeClassName("example")))
 	Expect(store.Spec.RuntimeRef.Kind).To(BeEmpty())
 	Expect(store.Spec.Conditions).To(HaveLen(1))
+	Expect(store.Spec.Provider).To(BeNil())
+	Expect(store.Spec.ProviderRef).NotTo(BeNil())
+	Expect(store.Spec.ProviderRef.Name).To(Equal("fake-config"))
 
 	var persistedStore esv1.ClusterSecretStore
 	err := cl.Get(context.Background(), client.ObjectKey{Name: "example"}, &persistedStore)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(persistedStore.Spec.Provider).NotTo(BeNil())
-	Expect(persistedStore.Spec.Provider.Fake).NotTo(BeNil())
+	Expect(persistedStore.Spec.Provider).To(BeNil())
+	Expect(persistedStore.Spec.ProviderRef).NotTo(BeNil())
+	Expect(persistedStore.Spec.ProviderRef.Kind).To(Equal("Fake"))
 
 	var runtimeClass esv1alpha1.ClusterProviderClass
 	err = cl.Get(context.Background(), client.ObjectKey{Name: runtimeClassName("example")}, &runtimeClass)

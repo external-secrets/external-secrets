@@ -177,7 +177,15 @@ func deepCopyClusterStoreConditions(conditions []esv1.ClusterSecretStoreConditio
 	return out
 }
 
-func CreateRuntimeSecretStore(f *framework.Framework, namespace, name, address string, provider *esv1.SecretStoreProvider) *esv1.SecretStore {
+func copyStoreProviderRef(providerRef *esv1.StoreProviderRef) *esv1.StoreProviderRef {
+	if providerRef == nil {
+		return nil
+	}
+	copy := *providerRef
+	return &copy
+}
+
+func CreateRuntimeSecretStore(f *framework.Framework, namespace, name, address string, providerRef *esv1.StoreProviderRef) *esv1.SecretStore {
 	runtimeClass := ensureProviderClass(f, namespace, runtimeClassName(name), address)
 
 	store := &esv1.SecretStore{
@@ -186,10 +194,10 @@ func CreateRuntimeSecretStore(f *framework.Framework, namespace, name, address s
 			Namespace: namespace,
 		},
 		Spec: esv1.SecretStoreSpec{
-			Provider: provider.DeepCopy(),
 			RuntimeRef: &esv1.StoreRuntimeRef{
 				Name: runtimeClass.Name,
 			},
+			ProviderRef: copyStoreProviderRef(providerRef),
 		},
 	}
 	Expect(createOrIgnoreAlreadyExists(f, store)).To(Succeed())
@@ -197,7 +205,7 @@ func CreateRuntimeSecretStore(f *framework.Framework, namespace, name, address s
 	return store
 }
 
-func CreateRuntimeClusterSecretStore(f *framework.Framework, name, address string, provider *esv1.SecretStoreProvider, conditions []esv1.ClusterSecretStoreCondition) *esv1.ClusterSecretStore {
+func CreateRuntimeClusterSecretStore(f *framework.Framework, name, address string, providerRef *esv1.StoreProviderRef, conditions []esv1.ClusterSecretStoreCondition) *esv1.ClusterSecretStore {
 	runtimeClass := ensureClusterProviderClass(f, runtimeClassName(name), address)
 
 	store := &esv1.ClusterSecretStore{
@@ -205,11 +213,11 @@ func CreateRuntimeClusterSecretStore(f *framework.Framework, name, address strin
 			Name: name,
 		},
 		Spec: esv1.SecretStoreSpec{
-			Provider:   provider.DeepCopy(),
 			Conditions: deepCopyClusterStoreConditions(conditions),
 			RuntimeRef: &esv1.StoreRuntimeRef{
 				Name: runtimeClass.Name,
 			},
+			ProviderRef: copyStoreProviderRef(providerRef),
 		},
 	}
 	Expect(createOrIgnoreAlreadyExists(f, store)).To(Succeed())

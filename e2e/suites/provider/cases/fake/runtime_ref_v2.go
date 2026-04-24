@@ -30,6 +30,7 @@ import (
 	frameworkv2 "github.com/external-secrets/external-secrets-e2e/framework/v2"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -58,6 +59,7 @@ func namespacedProviderClassDefaultCase(f *framework.Framework) (string, func(*f
 	return "uses ProviderClass by default for SecretStore", func(tc *framework.TestCase) {
 		storeName := "runtime-ref-store"
 		runtimeName := fmt.Sprintf("%s-providerclass-default-runtime", f.Namespace.Name)
+		providerName := fmt.Sprintf("%s-providerclass-default-config", storeName)
 
 		tc.ExternalSecret.ObjectMeta.Name = "providerclass-default"
 		tc.ExternalSecret.Spec.SecretStoreRef = esv1.SecretStoreRef{
@@ -96,8 +98,9 @@ func namespacedProviderClassDefaultCase(f *framework.Framework) (string, func(*f
 					Address: frameworkv2.ProviderAddress("fake"),
 				},
 			})).To(Succeed())
+			createFakeProviderConfig(f, f.Namespace.Name, providerName)
 			Expect(f.CreateObjectWithRetry(shadowRuntime)).To(Succeed())
-			Expect(f.CreateObjectWithRetry(newRuntimeRefSecretStore(f.Namespace.Name, storeName, runtimeName, ""))).To(Succeed())
+			Expect(f.CreateObjectWithRetry(newRuntimeRefSecretStore(f.Namespace.Name, storeName, runtimeName, "", fakeStoreProviderRef(providerName, "")))).To(Succeed())
 
 			tc.ProviderOverride = newLegacyRuntimeRefProvider(f, tc.ExternalSecret.Spec.SecretStoreRef, f.Namespace.Name)
 			appendCleanup(tc, func() {
@@ -111,6 +114,7 @@ func explicitClusterProviderClassCase(f *framework.Framework) (string, func(*fra
 	return fmt.Sprintf("uses ClusterProviderClass when SecretStore runtimeRef.kind=%s", esv1.StoreRuntimeRefKindClusterProviderClass), func(tc *framework.TestCase) {
 		storeName := "runtime-ref-store"
 		runtimeName := fmt.Sprintf("%s-clusterproviderclass-explicit-runtime", f.Namespace.Name)
+		providerName := fmt.Sprintf("%s-clusterproviderclass-explicit-config", storeName)
 
 		tc.ExternalSecret.ObjectMeta.Name = "clusterproviderclass-explicit"
 		tc.ExternalSecret.Spec.SecretStoreRef = esv1.SecretStoreRef{
@@ -148,8 +152,9 @@ func explicitClusterProviderClassCase(f *framework.Framework) (string, func(*fra
 				Spec:       esv1alpha1.ClusterProviderClassSpec{Address: frameworkv2.ProviderAddress("fake")},
 			}
 			Expect(f.CreateObjectWithRetry(validRuntime)).To(Succeed())
+			createFakeProviderConfig(f, f.Namespace.Name, providerName)
 			Expect(f.CreateObjectWithRetry(shadowRuntime)).To(Succeed())
-			Expect(f.CreateObjectWithRetry(newRuntimeRefSecretStore(f.Namespace.Name, storeName, runtimeName, esv1.StoreRuntimeRefKindClusterProviderClass))).To(Succeed())
+			Expect(f.CreateObjectWithRetry(newRuntimeRefSecretStore(f.Namespace.Name, storeName, runtimeName, esv1.StoreRuntimeRefKindClusterProviderClass, fakeStoreProviderRef(providerName, "")))).To(Succeed())
 
 			tc.ProviderOverride = newLegacyRuntimeRefProvider(f, tc.ExternalSecret.Spec.SecretStoreRef, f.Namespace.Name)
 			appendCleanup(tc, func() {
@@ -163,6 +168,7 @@ func clusterSecretStoreDefaultCase(f *framework.Framework) (string, func(*framew
 	return "uses ClusterProviderClass by default for ClusterSecretStore", func(tc *framework.TestCase) {
 		storeName := fmt.Sprintf("%s-runtime-ref-cluster-store", f.Namespace.Name)
 		runtimeName := fmt.Sprintf("%s-clustersecretstore-default-runtime", f.Namespace.Name)
+		providerName := fmt.Sprintf("%s-clustersecretstore-default-config", storeName)
 
 		tc.ExternalSecret.ObjectMeta.Name = "clustersecretstore-default"
 		tc.ExternalSecret.Spec.SecretStoreRef = esv1.SecretStoreRef{
@@ -187,13 +193,14 @@ func clusterSecretStoreDefaultCase(f *framework.Framework) (string, func(*framew
 			},
 		}
 
-		clusterStore := newRuntimeRefClusterSecretStore(storeName, runtimeName, "")
+		clusterStore := newRuntimeRefClusterSecretStore(storeName, runtimeName, "", fakeStoreProviderRef(providerName, ""))
 		validRuntime := &esv1alpha1.ClusterProviderClass{
 			ObjectMeta: metav1.ObjectMeta{Name: runtimeName},
 			Spec:       esv1alpha1.ClusterProviderClassSpec{Address: frameworkv2.ProviderAddress("fake")},
 		}
 		tc.Prepare = func(tc *framework.TestCase, _ framework.SecretStoreProvider) {
 			Expect(f.CreateObjectWithRetry(validRuntime)).To(Succeed())
+			createFakeProviderConfig(f, f.Namespace.Name, providerName)
 			Expect(f.CreateObjectWithRetry(&esv1alpha1.ProviderClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      runtimeName,
@@ -203,7 +210,7 @@ func clusterSecretStoreDefaultCase(f *framework.Framework) (string, func(*framew
 			})).To(Succeed())
 			Expect(f.CreateObjectWithRetry(clusterStore)).To(Succeed())
 
-			tc.ProviderOverride = newLegacyRuntimeRefProvider(f, tc.ExternalSecret.Spec.SecretStoreRef, "")
+			tc.ProviderOverride = newLegacyRuntimeRefProvider(f, tc.ExternalSecret.Spec.SecretStoreRef, f.Namespace.Name)
 			appendCleanup(tc, func() {
 				deleteObject(f, validRuntime)
 				deleteObject(f, clusterStore)
@@ -252,31 +259,28 @@ func (p *legacyRuntimeRefProvider) mutateStore(mutate func(*esv1.FakeProvider)) 
 			Name:      p.storeRef.Name,
 			Namespace: p.storeNamespace,
 		}, &store)).To(Succeed())
-		Expect(store.Spec.Provider).NotTo(BeNil())
-		Expect(store.Spec.Provider.Fake).NotTo(BeNil())
-
-		base := store.DeepCopy()
-		mutate(store.Spec.Provider.Fake)
-		Expect(p.framework.CRClient.Patch(ctx, &store, client.MergeFrom(base))).To(Succeed())
+		Expect(store.Spec.ProviderRef).NotTo(BeNil())
+		updateFakeProviderConfig(p.framework, storeProviderRefNamespace(store.Spec.ProviderRef.Namespace, store.Namespace, p.storeNamespace), store.Spec.ProviderRef.Name, func(fake *fakev2alpha1.Fake) {
+			mutate(&fake.Spec)
+		})
 	case esv1.ClusterSecretStoreKind:
 		var store esv1.ClusterSecretStore
 		Expect(p.framework.CRClient.Get(ctx, types.NamespacedName{Name: p.storeRef.Name}, &store)).To(Succeed())
-		Expect(store.Spec.Provider).NotTo(BeNil())
-		Expect(store.Spec.Provider.Fake).NotTo(BeNil())
-
-		base := store.DeepCopy()
-		mutate(store.Spec.Provider.Fake)
-		Expect(p.framework.CRClient.Patch(ctx, &store, client.MergeFrom(base))).To(Succeed())
+		Expect(store.Spec.ProviderRef).NotTo(BeNil())
+		updateFakeProviderConfig(p.framework, storeProviderRefNamespace(store.Spec.ProviderRef.Namespace, "", p.storeNamespace), store.Spec.ProviderRef.Name, func(fake *fakev2alpha1.Fake) {
+			mutate(&fake.Spec)
+		})
 	default:
 		Fail(fmt.Sprintf("unsupported runtime-ref store kind %q", p.storeRef.Kind))
 	}
 }
 
-func newRuntimeRefSecretStore(namespace, name, runtimeName, runtimeKind string) *esv1.SecretStore {
+func newRuntimeRefSecretStore(namespace, name, runtimeName, runtimeKind string, providerRef *esv1.StoreProviderRef) *esv1.SecretStore {
 	runtimeRef := &esv1.StoreRuntimeRef{Name: runtimeName}
 	if runtimeKind != "" {
 		runtimeRef.Kind = runtimeKind
 	}
+	providerRefCopy := *providerRef
 
 	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -285,20 +289,17 @@ func newRuntimeRefSecretStore(namespace, name, runtimeName, runtimeKind string) 
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: runtimeRef,
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{
-					Data: []esv1.FakeProviderData{},
-				},
-			},
+			ProviderRef: &providerRefCopy,
 		},
 	}
 }
 
-func newRuntimeRefClusterSecretStore(name, runtimeName, runtimeKind string) *esv1.ClusterSecretStore {
+func newRuntimeRefClusterSecretStore(name, runtimeName, runtimeKind string, providerRef *esv1.StoreProviderRef) *esv1.ClusterSecretStore {
 	runtimeRef := &esv1.StoreRuntimeRef{Name: runtimeName}
 	if runtimeKind != "" {
 		runtimeRef.Kind = runtimeKind
 	}
+	providerRefCopy := *providerRef
 
 	return &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -306,13 +307,19 @@ func newRuntimeRefClusterSecretStore(name, runtimeName, runtimeKind string) *esv
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: runtimeRef,
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{
-					Data: []esv1.FakeProviderData{},
-				},
-			},
+			ProviderRef: &providerRefCopy,
 		},
 	}
+}
+
+func storeProviderRefNamespace(explicitNamespace, storeNamespace, sourceNamespace string) string {
+	if explicitNamespace != "" {
+		return explicitNamespace
+	}
+	if storeNamespace != "" {
+		return storeNamespace
+	}
+	return sourceNamespace
 }
 
 func appendCleanup(tc *framework.TestCase, cleanup func()) {

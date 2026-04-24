@@ -29,6 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
+	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
+	kubernetesv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 )
 
 func TestClearKnownNamespaceFinalizers(t *testing.T) {
@@ -146,5 +149,26 @@ func TestIsMissingAPIResourceError(t *testing.T) {
 	}
 	if IsMissingAPIResourceError(context.Canceled) {
 		t.Fatal("did not expect unrelated errors to be treated as ignorable")
+	}
+}
+
+func TestSchemeRegistersV2ProviderCRDsUsedByE2E(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]client.Object{
+		"fake":            &fakev2alpha1.Fake{},
+		"aws-parameter":   &awsv2alpha1.ParameterStore{},
+		"aws-secrets":     &awsv2alpha1.SecretsManager{},
+		"kubernetes":      &kubernetesv2alpha1.Kubernetes{},
+	}
+
+	for name, obj := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			if _, err := apiutil.GVKForObject(obj, scheme); err != nil {
+				t.Fatalf("GVKForObject(%T) error = %v", obj, err)
+			}
+		})
 	}
 }

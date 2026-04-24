@@ -169,7 +169,13 @@ func (p *ProviderV2) prepareNamespacedProviderAtAddress(profile awsAuthProfile, 
 			p.framework.Namespace.Name,
 			p.framework.Namespace.Name,
 			address,
-			newSecretsManagerV2StoreProvider(awscommon.CredentialsSecretName(configName), p.access, profile, nil),
+			createSecretsManagerV2ProviderConfig(
+				p.framework,
+				p.framework.Namespace.Name,
+				configName,
+				"",
+				newSecretsManagerV2StoreProvider(awscommon.CredentialsSecretName(configName), p.access, profile, nil),
+			),
 		)
 		frameworkv2.WaitForSecretStoreReady(p.framework, p.framework.Namespace.Name, p.framework.Namespace.Name, defaultV2WaitTimeout)
 	}

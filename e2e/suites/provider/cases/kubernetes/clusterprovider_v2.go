@@ -79,13 +79,13 @@ func newKubernetesClusterProviderExternalSecretHarness(f *framework.Framework) c
 					updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
 						Kind: esv1.ClusterSecretStoreKind,
-					}, "", "missing-service-account")
+					}, s.providerConfigNamespace(), "missing-service-account")
 				},
 				RepairAuth: func() {
 					updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
 						Kind: esv1.ClusterSecretStoreKind,
-					}, "", s.serviceAccount)
+					}, s.providerConfigNamespace(), s.serviceAccount)
 				},
 			}
 		},
@@ -164,6 +164,13 @@ func (s *clusterProviderV2Scenario) createServiceAccount(namespace string) {
 	})).To(Succeed())
 }
 
+func (s *clusterProviderV2Scenario) providerConfigNamespace() string {
+	if s.providerRefNamespace != "" {
+		return s.providerRefNamespace
+	}
+	return s.backendNamespace
+}
+
 func (s *clusterProviderV2Scenario) allowRemoteAccessFrom(serviceAccountNamespace, suffix string) {
 	frameworkv2.CreateKubernetesAccessRole(
 		s.f,
@@ -192,11 +199,17 @@ func (s *clusterProviderV2Scenario) createClusterProvider(suffix string, authSco
 		s.f,
 		clusterProviderName,
 		frameworkv2.ProviderAddress("kubernetes"),
-		frameworkv2.NewKubernetesStoreProvider(
-			s.remoteNamespace,
-			s.serviceAccount,
-			serviceAccountNamespace,
-			s.caBundle,
+		createKubernetesProviderConfig(
+			s.f,
+			s.backendNamespace,
+			clusterProviderName+"-config",
+			s.providerRefNamespace,
+			frameworkv2.NewKubernetesStoreProvider(
+				s.remoteNamespace,
+				s.serviceAccount,
+				serviceAccountNamespace,
+				s.caBundle,
+			),
 		),
 		conditions,
 	)

@@ -214,6 +214,7 @@ func newFakeClusterProviderScenario(f *framework.Framework, prefix string, authS
 func (s *fakeClusterProviderScenario) createClusterProvider(conditions []esv1.ClusterSecretStoreCondition) string {
 	clusterProviderName := fmt.Sprintf("%s-cluster-provider", s.namePrefix)
 	runtimeName := fakeRuntimeClassName(clusterProviderName)
+	providerName := fmt.Sprintf("%s-config", clusterProviderName)
 	Expect(s.f.CreateObjectWithRetry(&esv1alpha1.ClusterProviderClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: runtimeName,
@@ -222,7 +223,13 @@ func (s *fakeClusterProviderScenario) createClusterProvider(conditions []esv1.Cl
 			Address: frameworkv2.ProviderAddress("fake"),
 		},
 	})).To(Succeed())
-	Expect(s.f.CreateObjectWithRetry(newRuntimeRefClusterSecretStore(clusterProviderName, runtimeName, ""))).To(Succeed())
+	createFakeProviderConfig(s.f, s.defaultRemoteNamespace, providerName)
+	Expect(s.f.CreateObjectWithRetry(newRuntimeRefClusterSecretStore(
+		clusterProviderName,
+		runtimeName,
+		"",
+		fakeStoreProviderRef(providerName, providerReferenceNamespace(s.authScope, s.defaultRemoteNamespace)),
+	))).To(Succeed())
 
 	var store esv1.ClusterSecretStore
 	Expect(s.f.CRClient.Get(context.Background(), types.NamespacedName{Name: clusterProviderName}, &store)).To(Succeed())
@@ -236,7 +243,7 @@ func (s *fakeClusterProviderScenario) CreateSecret(key string, val framework.Sec
 	newLegacyRuntimeRefProvider(s.f, esv1.SecretStoreRef{
 		Name: s.clusterProviderName(),
 		Kind: esv1.ClusterSecretStoreKind,
-	}, "").mutateStore(func(fake *esv1.FakeProvider) {
+	}, s.f.Namespace.Name).mutateStore(func(fake *esv1.FakeProvider) {
 		fake.Data = upsertFakeProviderData(fake.Data, esv1.FakeProviderData{
 			Key:   key,
 			Value: val.Value,
@@ -248,7 +255,7 @@ func (s *fakeClusterProviderScenario) DeleteSecret(key string) {
 	newLegacyRuntimeRefProvider(s.f, esv1.SecretStoreRef{
 		Name: s.clusterProviderName(),
 		Kind: esv1.ClusterSecretStoreKind,
-	}, "").mutateStore(func(fake *esv1.FakeProvider) {
+	}, s.f.Namespace.Name).mutateStore(func(fake *esv1.FakeProvider) {
 		fake.Data = removeFakeProviderData(fake.Data, key, "")
 	})
 }
@@ -410,6 +417,7 @@ func fakePushSecretImplicitProviderKind(f *framework.Framework) (string, func(*f
 
 func createNamespacedFakeSecretStore(f *framework.Framework, namespace, name string) {
 	runtimeName := fakeRuntimeClassName(name)
+	providerName := fmt.Sprintf("%s-config", name)
 	Expect(f.CreateObjectWithRetry(&esv1alpha1.ProviderClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      runtimeName,
@@ -419,7 +427,8 @@ func createNamespacedFakeSecretStore(f *framework.Framework, namespace, name str
 			Address: frameworkv2.ProviderAddress("fake"),
 		},
 	})).To(Succeed())
-	Expect(f.CreateObjectWithRetry(newRuntimeRefSecretStore(namespace, name, runtimeName, ""))).To(Succeed())
+	createFakeProviderConfig(f, namespace, providerName)
+	Expect(f.CreateObjectWithRetry(newRuntimeRefSecretStore(namespace, name, runtimeName, "", fakeStoreProviderRef(providerName, "")))).To(Succeed())
 }
 
 func (s *fakeClusterProviderScenario) clusterProviderName() string {
@@ -531,6 +540,15 @@ func updateFakeProviderConfig(f *framework.Framework, namespace, name string, mu
 	base := fake.DeepCopy()
 	mutate(&fake)
 	Expect(f.CRClient.Patch(context.Background(), &fake, client.MergeFrom(base))).To(Succeed())
+}
+
+func fakeStoreProviderRef(name, namespace string) *esv1.StoreProviderRef {
+	return &esv1.StoreProviderRef{
+		APIVersion: fakeProviderAPIVersion,
+		Kind:       fakeProviderKind,
+		Name:       name,
+		Namespace:  namespace,
+	}
 }
 
 func providerReferenceNamespace(authScope esv1.AuthenticationScope, providerNamespace string) string {

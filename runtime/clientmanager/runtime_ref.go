@@ -17,24 +17,46 @@ limitations under the License.
 package clientmanager
 
 import (
-	"encoding/json"
+	"fmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	pb "github.com/external-secrets/external-secrets/proto/provider"
 )
 
-func buildCompatibilityStore(store esv1.GenericStore) (*pb.CompatibilityStore, error) {
-	specJSON, err := json.Marshal(store.GetSpec())
+func buildProviderReference(store esv1.GenericStore, sourceNamespace string) (*pb.ProviderReference, error) {
+	spec := store.GetSpec()
+	if spec == nil || spec.ProviderRef == nil {
+		return nil, fmt.Errorf("%s spec.providerRef is required when spec.runtimeRef is set", store.GetKind())
+	}
+
+	namespace, err := resolveProviderRefNamespace(store, sourceNamespace)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.CompatibilityStore{
-		StoreName:       store.GetName(),
-		StoreNamespace:  store.GetNamespace(),
-		StoreKind:       store.GetKind(),
-		StoreUid:        string(store.GetUID()),
-		StoreGeneration: store.GetGeneration(),
-		StoreSpecJson:   specJSON,
+	return &pb.ProviderReference{
+		ApiVersion:   spec.ProviderRef.APIVersion,
+		Kind:         spec.ProviderRef.Kind,
+		Name:         spec.ProviderRef.Name,
+		Namespace:    namespace,
+		StoreRefKind: store.GetKind(),
 	}, nil
+}
+
+func resolveProviderRefNamespace(store esv1.GenericStore, sourceNamespace string) (string, error) {
+	ref := store.GetSpec().ProviderRef
+	if store.GetKind() == esv1.SecretStoreKind {
+		if ref.Namespace == "" {
+			return store.GetNamespace(), nil
+		}
+		return ref.Namespace, nil
+	}
+
+	if ref.Namespace != "" {
+		return ref.Namespace, nil
+	}
+	if sourceNamespace == "" {
+		return "", fmt.Errorf("%s spec.providerRef.namespace requires a caller namespace", store.GetKind())
+	}
+	return sourceNamespace, nil
 }

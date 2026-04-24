@@ -125,6 +125,32 @@ func TestClusterProviderV2NamespacesForProviderScope(t *testing.T) {
 	}
 }
 
+func TestClusterProviderV2ProviderConfigNamespaceUsesBackendNamespaceForManifestScope(t *testing.T) {
+	t.Helper()
+
+	scenario := &clusterProviderV2Scenario{
+		backendNamespace:     "workload-ns",
+		providerRefNamespace: "",
+	}
+
+	if got := scenario.providerConfigNamespace(); got != "workload-ns" {
+		t.Fatalf("expected provider config namespace to use backend namespace, got %q", got)
+	}
+}
+
+func TestClusterProviderV2ProviderConfigNamespaceUsesExplicitProviderRefNamespace(t *testing.T) {
+	t.Helper()
+
+	scenario := &clusterProviderV2Scenario{
+		backendNamespace:     "workload-ns",
+		providerRefNamespace: "provider-ns",
+	}
+
+	if got := scenario.providerConfigNamespace(); got != "provider-ns" {
+		t.Fatalf("expected provider config namespace to use providerRef namespace, got %q", got)
+	}
+}
+
 func newClusterProviderScenarioTestClient(t *testing.T, objs ...client.Object) client.Client {
 	t.Helper()
 

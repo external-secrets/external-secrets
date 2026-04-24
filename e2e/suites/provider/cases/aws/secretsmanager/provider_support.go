@@ -40,6 +40,7 @@ import (
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -334,6 +335,39 @@ func newSecretsManagerV2StoreProvider(secretName string, access awsAccessConfig,
 		provider.AWS.Auth.JWTAuth.ServiceAccountRef.Namespace = authNamespace
 	}
 	return provider
+}
+
+func createSecretsManagerV2ProviderConfig(f *framework.Framework, namespace, name, providerRefNamespace string, provider *esv1.SecretStoreProvider) *esv1.StoreProviderRef {
+	Expect(provider).NotTo(BeNil())
+	Expect(provider.AWS).NotTo(BeNil())
+	Expect(f.CreateObjectWithRetry(&awsv2alpha1.SecretsManager{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "provider.external-secrets.io/v2alpha1",
+			Kind:       "SecretsManager",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: awsv2alpha1.SecretsManagerSpec{
+			Auth:              provider.AWS.Auth,
+			Role:              provider.AWS.Role,
+			Region:            provider.AWS.Region,
+			AdditionalRoles:   provider.AWS.AdditionalRoles,
+			ExternalID:        provider.AWS.ExternalID,
+			SessionTags:       provider.AWS.SessionTags,
+			SecretsManager:    provider.AWS.SecretsManager,
+			TransitiveTagKeys: provider.AWS.TransitiveTagKeys,
+			Prefix:            provider.AWS.Prefix,
+		},
+	})).To(Succeed())
+
+	return &esv1.StoreProviderRef{
+		APIVersion: "provider.external-secrets.io/v2alpha1",
+		Kind:       "SecretsManager",
+		Name:       name,
+		Namespace:  providerRefNamespace,
+	}
 }
 
 func loadAWSConfig(access awsAccessConfig) (aws.Config, error) {

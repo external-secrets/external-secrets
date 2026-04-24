@@ -79,7 +79,13 @@ func (s *awsClusterProviderScenario) createClusterProvider(conditions []esv1.Clu
 		s.f,
 		clusterProviderName,
 		frameworkv2.ProviderAddress("aws"),
-		newSecretsManagerV2StoreProvider(secretName, s.access, awsAuthProfileStatic, authNamespace),
+		createSecretsManagerV2ProviderConfig(
+			s.f,
+			s.common.ConfigNamespace,
+			s.common.ConfigName,
+			s.common.ProviderRefNamespace,
+			newSecretsManagerV2StoreProvider(secretName, s.access, awsAuthProfileStatic, authNamespace),
+		),
 		conditions,
 	)
 	return clusterProviderName

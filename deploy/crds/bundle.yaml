@@ -8257,6 +8257,34 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: ProviderRef references a provider configuration managed externally.
+                  properties:
+                    apiVersion:
+                      description: APIVersion identifies the API schema version for the provider resource.
+                      minLength: 1
+                      type: string
+                    kind:
+                      description: Kind identifies the provider resource type referenced by this store.
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the provider resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: Namespace is the provider resource namespace referenced by this store.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
@@ -8286,9 +8314,14 @@ spec:
                   required:
                     - name
                   type: object
-              required:
-                - provider
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of spec.provider or spec.providerRef must be set
+                  rule: (has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))
+                - message: spec.runtimeRef must be empty when spec.provider is set
+                  rule: '!(has(self.provider) && has(self.runtimeRef))'
+                - message: spec.runtimeRef is required when spec.providerRef is set
+                  rule: '!has(self.providerRef) || has(self.runtimeRef)'
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
@@ -12467,6 +12500,34 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: ProviderRef references a provider configuration managed externally.
+                  properties:
+                    apiVersion:
+                      description: APIVersion identifies the API schema version for the provider resource.
+                      minLength: 1
+                      type: string
+                    kind:
+                      description: Kind identifies the provider resource type referenced by this store.
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the provider resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: Namespace is the provider resource namespace referenced by this store.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
@@ -12499,9 +12560,14 @@ spec:
                   required:
                     - name
                   type: object
-              required:
-                - provider
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of spec.provider or spec.providerRef must be set
+                  rule: (has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))
+                - message: spec.runtimeRef must be empty when spec.provider is set
+                  rule: '!(has(self.provider) && has(self.runtimeRef))'
+                - message: spec.runtimeRef is required when spec.providerRef is set
+                  rule: '!has(self.providerRef) || has(self.runtimeRef)'
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
@@ -20524,6 +20590,34 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: ProviderRef references a provider configuration managed externally.
+                  properties:
+                    apiVersion:
+                      description: APIVersion identifies the API schema version for the provider resource.
+                      minLength: 1
+                      type: string
+                    kind:
+                      description: Kind identifies the provider resource type referenced by this store.
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the provider resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: Namespace is the provider resource namespace referenced by this store.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
@@ -20553,9 +20647,14 @@ spec:
                   required:
                     - name
                   type: object
-              required:
-                - provider
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of spec.provider or spec.providerRef must be set
+                  rule: (has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))
+                - message: spec.runtimeRef must be empty when spec.provider is set
+                  rule: '!(has(self.provider) && has(self.runtimeRef))'
+                - message: spec.runtimeRef is required when spec.providerRef is set
+                  rule: '!has(self.providerRef) || has(self.runtimeRef)'
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
@@ -24734,6 +24833,34 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: ProviderRef references a provider configuration managed externally.
+                  properties:
+                    apiVersion:
+                      description: APIVersion identifies the API schema version for the provider resource.
+                      minLength: 1
+                      type: string
+                    kind:
+                      description: Kind identifies the provider resource type referenced by this store.
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the provider resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: Namespace is the provider resource namespace referenced by this store.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
@@ -24766,9 +24893,14 @@ spec:
                   required:
                     - name
                   type: object
-              required:
-                - provider
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of spec.provider or spec.providerRef must be set
+                  rule: (has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))
+                - message: spec.runtimeRef must be empty when spec.provider is set
+                  rule: '!(has(self.provider) && has(self.runtimeRef))'
+                - message: spec.runtimeRef is required when spec.providerRef is set
+                  rule: '!has(self.providerRef) || has(self.runtimeRef)'
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:

@@ -370,3 +370,21 @@ func TestValidateClusterSecretStoreAllowsProviderRefRuntimeRef(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, warns, 0)
 }
+
+func TestValidateStoreSkipsInlineProviderValidationForProviderRefMode(t *testing.T) {
+	store := &SecretStore{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "team-a"},
+		Spec: SecretStoreSpec{
+			RuntimeRef: &StoreRuntimeRef{Name: "fake-runtime"},
+			ProviderRef: &StoreProviderRef{
+				APIVersion: "provider.external-secrets.io/v2alpha1",
+				Kind:       "Fake",
+				Name:       "fake-config",
+			},
+		},
+	}
+
+	warns, err := validateStore(store)
+	require.NoError(t, err)
+	require.Empty(t, warns)
+}

@@ -48,7 +48,9 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	awsv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
 	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
+	kubernetesv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -71,7 +73,9 @@ func init() {
 	utilruntime.Must(fluxsrc.AddToScheme(scheme))
 
 	// v2alpha1 provider schemes
+	utilruntime.Must(awsv2alpha1.AddToScheme(scheme))
 	utilruntime.Must(fakev2alpha1.AddToScheme(scheme))
+	utilruntime.Must(kubernetesv2alpha1.AddToScheme(scheme))
 }
 
 const (

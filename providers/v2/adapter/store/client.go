@@ -39,6 +39,13 @@ type Client struct {
 // Ensure Client implements SecretsClient interface.
 var _ esv1.SecretsClient = &Client{}
 
+// CapabilityAwareClient exposes store capabilities for remote provider-ref mode.
+type CapabilityAwareClient interface {
+	Capabilities(context.Context) (esv1.SecretStoreCapabilities, error)
+}
+
+var _ CapabilityAwareClient = &Client{}
+
 // NewClient creates a new wrapper that adapts a v2.Provider to esv1.SecretsClient.
 func NewClient(v2Provider v2.Provider, providerRef *pb.ProviderReference, sourceNamespace string) esv1.SecretsClient {
 	return NewClientWithCloser(v2Provider, providerRef, sourceNamespace, nil)
@@ -117,6 +124,23 @@ func (w *Client) Validate() (esv1.ValidationResult, error) {
 		return esv1.ValidationResultError, err
 	}
 	return esv1.ValidationResultReady, nil
+}
+
+// Capabilities returns the provider capabilities using the v2 gRPC API.
+func (w *Client) Capabilities(ctx context.Context) (esv1.SecretStoreCapabilities, error) {
+	caps, err := w.v2Provider.Capabilities(ctx, w.providerRef, w.sourceNamespace)
+	if err != nil {
+		return esv1.SecretStoreReadOnly, err
+	}
+
+	switch caps {
+	case pb.SecretStoreCapabilities_READ_ONLY:
+		return esv1.SecretStoreReadOnly, nil
+	case pb.SecretStoreCapabilities_WRITE_ONLY:
+		return esv1.SecretStoreWriteOnly, nil
+	default:
+		return esv1.SecretStoreReadWrite, nil
+	}
 }
 
 // Close cleans up any resources held by the provider client.

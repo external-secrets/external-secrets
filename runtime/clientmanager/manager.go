@@ -193,9 +193,9 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 		return nil, err
 	}
 
-	compatStore, err := buildCompatibilityStore(store)
+	providerRef, err := buildProviderReference(store, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build compatibility store for %s %q: %w", store.GetKind(), store.GetName(), err)
+		return nil, err
 	}
 
 	tlsSecretNamespace := grpc.ResolveTLSSecretNamespace(runtimeDetails.address, "", "", "")
@@ -210,17 +210,17 @@ func (m *Manager) getRuntimeRefClient(ctx context.Context, store esv1.GenericSto
 		return nil, fmt.Errorf("failed to get gRPC client from pool for %s %q: %w", runtimeDetails.kind, runtimeRef.Name, err)
 	}
 
-	compatibilityClient := adapterstore.NewCompatibilityClientWithCloser(grpcClient, compatStore, namespace, func(context.Context) error {
+	providerClient := adapterstore.NewClientWithCloser(grpcClient, providerRef, namespace, func(context.Context) error {
 		pool.Release(runtimeDetails.address, tlsConfig)
 		return nil
 	})
 
 	m.clientMap[cacheKey] = &clientVal{
-		client: compatibilityClient,
+		client: providerClient,
 		store:  store,
 	}
 
-	return compatibilityClient, nil
+	return providerClient, nil
 }
 
 type runtimeRefDetails struct {

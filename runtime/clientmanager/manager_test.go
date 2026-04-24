@@ -425,36 +425,67 @@ func TestShouldProcessSecret(t *testing.T) {
 	}
 }
 
-func TestBuildCompatibilityStoreSerializesStore(t *testing.T) {
+func TestBuildProviderReferenceUsesStoreNamespaceForSecretStore(t *testing.T) {
 	store := &esv1.SecretStore{
 		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       "aws-prod",
-			Namespace:  "team-a",
-			UID:        types.UID("uid-1"),
-			Generation: 7,
+			Name:      "fake-store",
+			Namespace: "team-a",
 		},
 		Spec: esv1.SecretStoreSpec{
-			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
+			RuntimeRef: &esv1.StoreRuntimeRef{Name: "fake-runtime"},
+			ProviderRef: &esv1.StoreProviderRef{
+				APIVersion: "provider.external-secrets.io/v2alpha1",
+				Kind:       "Fake",
+				Name:       "fake-config",
 			},
 		},
 	}
 
-	out, err := buildCompatibilityStore(store)
-	if err != nil {
-		t.Fatalf("buildCompatibilityStore() error = %v", err)
+	ref, err := buildProviderReference(store, "ignored")
+	require.NoError(t, err)
+	require.Equal(t, "team-a", ref.Namespace)
+	require.Equal(t, esv1.SecretStoreKind, ref.StoreRefKind)
+	require.Equal(t, "provider.external-secrets.io/v2alpha1", ref.ApiVersion)
+	require.Equal(t, "Fake", ref.Kind)
+	require.Equal(t, "fake-config", ref.Name)
+}
+
+func TestBuildProviderReferenceUsesSourceNamespaceForClusterSecretStore(t *testing.T) {
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{Name: "fake-store"},
+		Spec: esv1.SecretStoreSpec{
+			RuntimeRef: &esv1.StoreRuntimeRef{Name: "fake-runtime"},
+			ProviderRef: &esv1.StoreProviderRef{
+				APIVersion: "provider.external-secrets.io/v2alpha1",
+				Kind:       "Fake",
+				Name:       "fake-config",
+			},
+		},
 	}
-	if out.StoreName != "aws-prod" || out.StoreNamespace != "team-a" || out.StoreKind != esv1.SecretStoreKind {
-		t.Fatalf("unexpected compatibility store metadata: %#v", out)
+
+	ref, err := buildProviderReference(store, "workload-a")
+	require.NoError(t, err)
+	require.Equal(t, "workload-a", ref.Namespace)
+	require.Equal(t, esv1.ClusterSecretStoreKind, ref.StoreRefKind)
+}
+
+func TestBuildProviderReferenceRejectsClusterStoreWithoutCallerNamespace(t *testing.T) {
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		Spec: esv1.SecretStoreSpec{
+			RuntimeRef: &esv1.StoreRuntimeRef{Name: "fake-runtime"},
+			ProviderRef: &esv1.StoreProviderRef{
+				APIVersion: "provider.external-secrets.io/v2alpha1",
+				Kind:       "Fake",
+				Name:       "fake-config",
+			},
+		},
 	}
-	if out.StoreGeneration != 7 || out.StoreUid != "uid-1" {
-		t.Fatalf("unexpected compatibility store identity: %#v", out)
-	}
-	if !strings.Contains(string(out.StoreSpecJson), "\"runtimeRef\"") || !strings.Contains(string(out.StoreSpecJson), "\"fake\"") {
-		t.Fatalf("expected serialized store spec, got %s", string(out.StoreSpecJson))
-	}
+
+	_, err := buildProviderReference(store, "")
+	require.EqualError(t, err, "ClusterSecretStore spec.providerRef.namespace requires a caller namespace")
 }
 
 func TestGetFromStoreReturnsErrorWhenRuntimeClassMissing(t *testing.T) {
@@ -473,9 +504,7 @@ func TestGetFromStoreReturnsErrorWhenRuntimeClassMissing(t *testing.T) {
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -506,9 +535,7 @@ func TestGetFromStoreRuntimeRefCacheHitSkipsRuntimeLookup(t *testing.T) {
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -547,6 +574,15 @@ func TestGetStoreDefaultsToSecretStoreForUnknownKind(t *testing.T) {
 	assert.Equal(t, esv1.SecretStoreKind, got.GetKind())
 }
 
+func fakeRuntimeProviderRef(namespace string) *esv1.StoreProviderRef {
+	return &esv1.StoreProviderRef{
+		APIVersion: "provider.external-secrets.io/v2alpha1",
+		Kind:       "Fake",
+		Name:       "fake-config",
+		Namespace:  namespace,
+	}
+}
+
 func TestGetFromStoreDefaultsRuntimeRefKindToProviderClass(t *testing.T) {
 	resetGlobalV2ConnectionPoolForTest(t)
 
@@ -568,9 +604,7 @@ func TestGetFromStoreDefaultsRuntimeRefKindToProviderClass(t *testing.T) {
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Name: "aws-runtime"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -628,9 +662,7 @@ func TestGetFromStoreDefaultsRuntimeRefKindToClusterProviderClass(t *testing.T) 
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Name: "aws-runtime"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -686,9 +718,7 @@ func TestGetFromStoreRuntimeRefProviderClassUsesStoreNamespace(t *testing.T) {
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -743,9 +773,7 @@ func TestGetFromStoreRuntimeRefProviderClassMissingReturnsKindedError(t *testing
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -776,9 +804,7 @@ func TestGetFromStoreRuntimeRefClusterStoreRejectsProviderClass(t *testing.T) {
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Kind: esv1.StoreRuntimeRefKindProviderClass, Name: "aws-runtime"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -816,9 +842,7 @@ func TestGetFromStoreWithRuntimeRefReturnsClientThatValidates(t *testing.T) {
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -879,9 +903,7 @@ func TestGetFromStoreWithRuntimeRefReusesCachedClient(t *testing.T) {
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
@@ -942,9 +964,7 @@ func TestGetFromStoreWithRuntimeRefDoesNotReuseClientAcrossSourceNamespaces(t *t
 		},
 		Spec: esv1.SecretStoreSpec{
 			RuntimeRef: &esv1.StoreRuntimeRef{Kind: "ClusterProviderClass", Name: "aws-runtime"},
-			Provider: &esv1.SecretStoreProvider{
-				Fake: &esv1.FakeProvider{Data: []esv1.FakeProviderData{{Key: "db", Value: "s3cr3t"}}},
-			},
+			ProviderRef: fakeRuntimeProviderRef(""),
 		},
 	}
 
