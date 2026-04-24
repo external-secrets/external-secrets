@@ -181,7 +181,9 @@ func TestValidateSecretStore(t *testing.T) {
 			obj: &SecretStore{
 				Spec: SecretStoreSpec{
 					ProviderRef: &StoreProviderRef{
-						Name: "aws",
+						APIVersion: "external-secrets.io/v1beta1",
+						Kind:       "Provider",
+						Name:       "aws",
 					},
 				},
 			},
@@ -198,8 +200,10 @@ func TestValidateSecretStore(t *testing.T) {
 				},
 				Spec: SecretStoreSpec{
 					ProviderRef: &StoreProviderRef{
-						Name:      "aws",
-						Namespace: "other",
+						APIVersion: "external-secrets.io/v1beta1",
+						Kind:       "Provider",
+						Name:       "aws",
+						Namespace:  "other",
 					},
 					RuntimeRef: &StoreRuntimeRef{
 						Kind: "ProviderClass",
@@ -220,7 +224,9 @@ func TestValidateSecretStore(t *testing.T) {
 				},
 				Spec: SecretStoreSpec{
 					ProviderRef: &StoreProviderRef{
-						Name: "aws",
+						APIVersion: "external-secrets.io/v1beta1",
+						Kind:       "Provider",
+						Name:       "aws",
 					},
 					RuntimeRef: &StoreRuntimeRef{
 						Kind: "ProviderClass",
@@ -230,6 +236,21 @@ func TestValidateSecretStore(t *testing.T) {
 			},
 			assertErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
+			},
+		},
+		{
+			name: "rejects empty providerRef",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					ProviderRef: &StoreProviderRef{},
+					RuntimeRef: &StoreRuntimeRef{
+						Kind: "ProviderClass",
+						Name: "aws",
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.EqualError(t, err, "spec.providerRef.apiVersion is required")
 			},
 		},
 	}
@@ -249,7 +270,9 @@ func TestValidateStoreRejectsProviderClassForClusterSecretStore(t *testing.T) {
 	store := &ClusterSecretStore{
 		Spec: SecretStoreSpec{
 			ProviderRef: &StoreProviderRef{
-				Name: "aws",
+				APIVersion: "external-secrets.io/v1beta1",
+				Kind:       "Provider",
+				Name:       "aws",
 			},
 			RuntimeRef: &StoreRuntimeRef{
 				Kind: "ProviderClass",
@@ -267,7 +290,9 @@ func TestValidateClusterSecretStoreAllowsProviderRefRuntimeRef(t *testing.T) {
 	store := &ClusterSecretStore{
 		Spec: SecretStoreSpec{
 			ProviderRef: &StoreProviderRef{
-				Name: "aws",
+				APIVersion: "external-secrets.io/v1beta1",
+				Kind:       "Provider",
+				Name:       "aws",
 			},
 			RuntimeRef: &StoreRuntimeRef{
 				Kind: "ClusterProviderClass",

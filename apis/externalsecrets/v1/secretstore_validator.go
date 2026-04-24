@@ -134,6 +134,15 @@ func validateProviderMode(store GenericStore) error {
 		}
 		return nil
 	}
+	if spec.ProviderRef.APIVersion == "" {
+		return fmt.Errorf("spec.providerRef.apiVersion is required")
+	}
+	if spec.ProviderRef.Kind == "" {
+		return fmt.Errorf("spec.providerRef.kind is required")
+	}
+	if spec.ProviderRef.Name == "" {
+		return fmt.Errorf("spec.providerRef.name is required")
+	}
 	if spec.RuntimeRef == nil {
 		return fmt.Errorf("spec.runtimeRef is required when spec.providerRef is set")
 	}

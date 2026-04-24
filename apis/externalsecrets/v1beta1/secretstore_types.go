@@ -43,23 +43,34 @@ type StoreRuntimeRef struct {
 // StoreProviderRef identifies the provider configuration used by a store.
 type StoreProviderRef struct {
 	// APIVersion identifies the API schema version for the provider resource.
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	APIVersion string `json:"apiVersion"`
 
 	// Kind identifies the provider resource type referenced by this store.
-	// +optional
-	Kind string `json:"kind,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	Kind string `json:"kind"`
 
 	// Name is the provider resource name referenced by this store.
-	// +optional
-	Name string `json:"name,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	Name string `json:"name"`
 
 	// Namespace is the provider resource namespace referenced by this store.
 	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespace string `json:"namespace,omitempty"`
 }
 
 // SecretStoreSpec defines the desired state of SecretStore.
+// +kubebuilder:validation:XValidation:rule="(has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))",message="exactly one of spec.provider or spec.providerRef must be set"
+// +kubebuilder:validation:XValidation:rule="!(has(self.provider) && has(self.runtimeRef))",message="spec.runtimeRef must be empty when spec.provider is set"
+// +kubebuilder:validation:XValidation:rule="!has(self.providerRef) || has(self.runtimeRef)",message="spec.runtimeRef is required when spec.providerRef is set"
 type SecretStoreSpec struct {
 	// Used to select the correct ESO controller (think: ingress.ingressClassName)
 	// The ESO controller is instantiated with a specific controller name and filters ES based on this property
