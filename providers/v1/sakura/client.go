@@ -100,7 +100,7 @@ func (c *Client) secretExists(ctx context.Context, key, property string) (bool, 
 
 	exists := false
 	for _, secret := range secrets {
-		if secret.Name == esv1.ClusterExtSecretGroupVersionKind.Kind {
+		if secret.Name == key {
 			exists = true
 			break
 		}
