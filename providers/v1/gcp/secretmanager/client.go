@@ -201,15 +201,8 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
 			}
 			if meta != nil {
-				replicas := buildUserManagedReplicas(meta.Spec)
-				if len(replicas) > 0 {
-					replication = &secretmanagerpb.Replication{
-						Replication: &secretmanagerpb.Replication_UserManaged_{
-							UserManaged: &secretmanagerpb.Replication_UserManaged{
-								Replicas: replicas,
-							},
-						},
-					}
+				if r := buildReplication(meta.Spec); r != nil {
+					replication = r
 				}
 			}
 		}
