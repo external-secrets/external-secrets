@@ -450,6 +450,7 @@ github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3
 github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b/go.mod h1:1KcenG0jGWcpt8ov532z81sp/kMMUG485J2InIOyADM=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5 h1:ly0WKARATneFzwBlTZ2lUyjtLqoOEYqt1vOlf89za/4=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5/go.mod h1:W6DMNwPyIE3jpXDaJOvCKUT/kHPZrpl/BGiIVUILbMk=
+github.com/akeylesslabs/akeyless-go-cloud-id v0.3.7 h1:HkMojFFM41tExZDQr17ihsx2nqmb+sJhs5INDwwOuw4=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.7/go.mod h1:+zzk0ACEbQCkoNyZJWqzB2z//zyVGDReAKM76VsVBMo=
 github.com/akeylesslabs/akeyless-go/v4 v4.3.0 h1:i1tGIFzlfswKMdcnAcTMNebtr+W4zYFz3mtgUZddAW0=
 github.com/akeylesslabs/akeyless-go/v4 v4.3.0/go.mod h1:WBMaWCcgX5LWbRaAAY0+uSLc7mjNC/dxuS5+RX+EhJI=
