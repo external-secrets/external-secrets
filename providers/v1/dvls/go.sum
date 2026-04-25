@@ -1,7 +1,5 @@
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
 dario.cat/mergo v1.0.2/go.mod h1:E/hbnu0NxMFBjpMIE34DRGLWqDy0g5FuKDhCb31ngxA=
-github.com/Devolutions/go-dvls v0.15.0 h1:T/uUK0sKli7i9yxcZb9/Lia/uUwmLi1phryNkYEp5t4=
-github.com/Devolutions/go-dvls v0.15.0/go.mod h1:4O3lb/RK1P1cDwU5auVi7CM4gRER7EuwyLwMVuEZjgg=
 github.com/Devolutions/go-dvls v0.19.1 h1:7EEHGr7qRJ4kYeFmBVf6PP7oSDDtw0EUdMi7UB3awns=
 github.com/Devolutions/go-dvls v0.19.1/go.mod h1:I0YI4GujLbbUojNnKLGVguiWUvnE2J9ltgwxTmtTRyo=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
