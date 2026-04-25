@@ -3,7 +3,7 @@ module github.com/external-secrets/external-secrets/providers/v1/webhook
 go 1.26.2
 
 require (
-	github.com/Azure/go-ntlmssp v0.1.0
+	github.com/Azure/go-ntlmssp v0.1.1
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
