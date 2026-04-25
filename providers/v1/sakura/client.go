@@ -136,7 +136,7 @@ func (c *Client) secretExists(ctx context.Context, key, property string) (bool, 
 //	If property is specified, it tries to merge the new value with the existing secret as JSON using the provided mergeFunc.
 func (c *Client) upsertSecret(
 	ctx context.Context, key, property string, value []byte,
-	mergeFunc func(property string, value []byte, kv map[string]json.RawMessage),
+	mergeFunc func(property string, value json.RawMessage, kv map[string]json.RawMessage),
 ) error {
 	// If property is specified, try to get existing secret value and merge with new value
 	if property != "" {
@@ -159,7 +159,12 @@ func (c *Client) upsertSecret(
 			}
 		}
 
-		mergeFunc(property, value, kv)
+		if !json.Valid(value) {
+			// suppress error since we always expect that we can marshal string as JSON
+			value, _ = json.Marshal(string(value))
+		}
+
+		mergeFunc(property, json.RawMessage(value), kv)
 		// suppress error since we always expect that we can marshal kv as JSON
 		value, _ = json.Marshal(kv)
 	}
@@ -197,8 +202,8 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 
 	if err = c.upsertSecret(
 		ctx, data.GetRemoteKey(), data.GetProperty(), value,
-		func(property string, value []byte, kv map[string]json.RawMessage) {
-			kv[property] = json.RawMessage(value)
+		func(property string, value json.RawMessage, kv map[string]json.RawMessage) {
+			kv[property] = value
 		}); err != nil {
 		return fmt.Errorf("failed to upsert secret: %w", err)
 	}
@@ -220,7 +225,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 	if err := c.upsertSecret(
 		ctx, remoteRef.GetRemoteKey(), remoteRef.GetProperty(), nil,
-		func(property string, _ []byte, kv map[string]json.RawMessage) {
+		func(property string, _ json.RawMessage, kv map[string]json.RawMessage) {
 			delete(kv, property)
 		}); err != nil {
 		return fmt.Errorf("failed to upsert secret with property: %w", err)
