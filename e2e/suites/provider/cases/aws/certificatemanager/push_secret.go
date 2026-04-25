@@ -60,14 +60,14 @@ func PushSecretImport(prov *Provider, keyAlgorithm acmtypes.KeyAlgorithm) func(f
 					Namespace: f.Namespace.Name,
 				},
 				Type: v1.SecretTypeTLS,
-			Data: map[string][]byte{
-				tlsCrtKey: certPEM,
-				tlsKeyKey: keyPEM,
-			},
-		}
-		tc.PushSecret = &esv1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("e2e-ps-acm-%s", sanitizedKeyAlgorithm),
+				Data: map[string][]byte{
+					tlsCrtKey: certPEM,
+					tlsKeyKey: keyPEM,
+				},
+			}
+			tc.PushSecret = &esv1alpha1.PushSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("e2e-ps-acm-%s", sanitizedKeyAlgorithm),
 					Namespace: f.Namespace.Name,
 				},
 				Spec: esv1alpha1.PushSecretSpec{
@@ -136,14 +136,14 @@ func PushSecretWithTags(prov *Provider) func(f *framework.Framework) (string, fu
 					Namespace: f.Namespace.Name,
 				},
 				Type: v1.SecretTypeTLS,
-			Data: map[string][]byte{
-				tlsCrtKey: certPEM,
-				tlsKeyKey: keyPEM,
-			},
-		}
-		tc.PushSecret = &esv1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "e2e-ps-acm-tags",
+				Data: map[string][]byte{
+					tlsCrtKey: certPEM,
+					tlsKeyKey: keyPEM,
+				},
+			}
+			tc.PushSecret = &esv1alpha1.PushSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "e2e-ps-acm-tags",
 					Namespace: f.Namespace.Name,
 				},
 				Spec: esv1alpha1.PushSecretSpec{
@@ -206,14 +206,14 @@ func PushSecretDelete(prov *Provider) func(f *framework.Framework) (string, func
 					Namespace: f.Namespace.Name,
 				},
 				Type: v1.SecretTypeTLS,
-			Data: map[string][]byte{
-				tlsCrtKey: certPEM,
-				tlsKeyKey: keyPEM,
-			},
-		}
-		tc.PushSecret = &esv1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "e2e-ps-acm-del",
+				Data: map[string][]byte{
+					tlsCrtKey: certPEM,
+					tlsKeyKey: keyPEM,
+				},
+			}
+			tc.PushSecret = &esv1alpha1.PushSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "e2e-ps-acm-del",
 					Namespace: f.Namespace.Name,
 				},
 				Spec: esv1alpha1.PushSecretSpec{

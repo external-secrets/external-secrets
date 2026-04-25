@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/providers/v1/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/providers/v1/aws/secretsmanager"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
@@ -45,7 +46,9 @@ import (
 var _ esv1.Provider = &Provider{}
 
 // Provider satisfies the provider interface.
-type Provider struct{}
+type Provider struct {
+	acmClientCache *cache.Cache[*certificatemanager.CertificateManager]
+}
 
 const (
 	errUnableCreateSession    = "unable to create session: %w"
@@ -53,6 +56,7 @@ const (
 	errRegionNotFound         = "region not found: %s"
 	errInitAWSProvider        = "unable to initialize aws provider: %s"
 	errInvalidSecretsManager  = "invalid SecretsManager settings: %s"
+	acmClientCacheSize        = 100
 )
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -62,7 +66,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 
 // NewClient constructs a new secrets client based on the provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
-	return newClient(ctx, store, kube, namespace, awsauth.DefaultSTSProvider)
+	return p.newClient(ctx, store, kube, namespace, awsauth.DefaultSTSProvider)
 }
 
 // ValidateStore validates the configuration of the AWS SecretStore.
@@ -148,7 +152,7 @@ func validateSecretsManagerConfig(prov *esv1.AWSProvider) error {
 	})
 }
 
-func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1.SecretsClient, error) {
+func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1.SecretsClient, error) {
 	prov, err := awsutil.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
@@ -173,7 +177,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		case esv1.AWSServiceParameterStore:
 			return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		case esv1.AWSServiceCertificateManager:
-			return certificatemanager.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
+			return p.newACMClient(ctx, store, namespace, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}
@@ -230,9 +234,34 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	case esv1.AWSServiceParameterStore:
 		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	case esv1.AWSServiceCertificateManager:
-		return certificatemanager.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
+		return p.newACMClient(ctx, store, namespace, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
+}
+
+func (p *Provider) newACMClient(ctx context.Context, store esv1.GenericStore, namespace string, cfg *aws.Config, prefix string, referentAuth bool) (*certificatemanager.CertificateManager, error) {
+	if p.acmClientCache == nil {
+		return certificatemanager.New(ctx, cfg, prefix, referentAuth)
+	}
+
+	key := cache.Key{
+		Name:      store.GetObjectMeta().Name,
+		Namespace: namespace,
+		Kind:      store.GetTypeMeta().Kind,
+	}
+
+	if cachedClient, ok := p.acmClientCache.Get(store.GetObjectMeta().ResourceVersion, key); ok {
+		return cachedClient, nil
+	}
+
+	client, err := certificatemanager.New(ctx, cfg, prefix, referentAuth)
+	if err != nil {
+		return nil, err
+	}
+
+	p.acmClientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+
+	return client, nil
 }
 
 // Add this type at package level.
@@ -246,7 +275,9 @@ func (f fixedDelayer) BackoffDelay(int, error) (time.Duration, error) {
 
 // NewProvider creates a new AWS Provider instance.
 func NewProvider() esv1.Provider {
-	return &Provider{}
+	return &Provider{
+		acmClientCache: cache.Must[*certificatemanager.CertificateManager](acmClientCacheSize, nil),
+	}
 }
 
 // ProviderSpec returns the provider specification for registration.

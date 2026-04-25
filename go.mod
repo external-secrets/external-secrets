@@ -217,6 +217,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.38.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.13 // indirect
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.30.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.67.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.2 // indirect

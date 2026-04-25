@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.31.19
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.23
 	github.com/aws/aws-sdk-go-v2/service/acm v1.37.13
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.30.13
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.12
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.67.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.40.1
@@ -15,6 +16,7 @@ require (
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
@@ -64,6 +66,7 @@ require (
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect

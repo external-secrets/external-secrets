@@ -72,6 +72,7 @@ my-app/config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"}
 |---|---|---|---|
 | AWS Secrets Manager | Named secret (JSON) | **Yes** | `remoteKey` = secret name; store `prefix` is prepended |
 | AWS Parameter Store | Named parameter | **Yes** | `remoteKey` = parameter path |
+| AWS Certificate Manager | Named cert | **Yes** | `remoteKey` = `external-secrets-remote-key` tag value |
 | Azure Key Vault | Named secret/key/cert | **Yes** | `remoteKey` = object name |
 | GCP Secret Manager | Named secret | **Yes** | `remoteKey` = secret ID |
 | HashiCorp Vault | Named path (JSON) | **Yes** | `remoteKey` = Vault path |
@@ -154,6 +155,58 @@ my-app/db-config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"
 # SecretStore has prefix: myapp/
 # dataTo remoteKey: db-config
 # → AWS secret name: myapp/db-config
+```
+
+### AWS Certificate Manager
+
+ACM imports a TLS certificate as a single resource. The source Kubernetes Secret must be of type `kubernetes.io/tls` and contain both `tls.crt` (PEM-encoded leaf, optionally followed by intermediates) and `tls.key` (PEM-encoded private key). `remoteKey` becomes the value of the `external-secrets-remote-key` tag that ESO uses to locate the certificate on subsequent reconciles.
+
+!!! warning "Do not filter out `tls.crt` or `tls.key`"
+    The ACM provider always reads `tls.crt` and `tls.key` from the source secret. If `match.regexp` excludes either, the push fails with `key "tls.crt" not found or empty`. Either omit `match` entirely, or write a pattern that includes both keys (e.g. `^tls\.`).
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: aws-acm-store
+spec:
+  provider:
+    aws:
+      service: CertificateManager
+      region: us-east-1
+---
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-tls-to-acm
+spec:
+  secretStoreRefs:
+    - name: aws-acm-store
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-tls-cert    # kubernetes.io/tls Secret with tls.crt and tls.key
+  dataTo:
+    - storeRef:
+        name: aws-acm-store
+      remoteKey: my-app-cert    # → external-secrets-remote-key tag
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          tags:                 # optional: extra AWS resource tags on the imported cert
+            environment: prod
+            team: platform
+```
+
+Result in ACM: a certificate tagged with `managed-by=external-secrets`, `external-secrets-remote-key=my-app-cert`, plus any custom tags from `metadata.spec.tags`. The reserved tags `managed-by`, `external-secrets-remote-key`, and `external-secrets-content-hash` cannot be overridden via `metadata`.
+
+**With a store prefix:**
+
+```yaml
+# SecretStore has prefix: certs/
+# dataTo remoteKey: my-app-cert
+# → external-secrets-remote-key tag value: certs/my-app-cert
 ```
 
 ### Azure Key Vault

@@ -49,16 +49,18 @@ The required IAM permissions depend on whether you use `ExternalSecret` (export)
       "Action": [
         "acm:ImportCertificate",
         "acm:DeleteCertificate",
-        "acm:ListCertificates",
         "acm:AddTagsToCertificate",
         "acm:ListTagsForCertificate",
-        "acm:RemoveTagsFromCertificate"
+        "acm:RemoveTagsFromCertificate",
+        "tag:GetResources"
       ],
       "Resource": "*"
     }
   ]
 }
 ```
+
+The `tag:GetResources` permission (Resource Groups Tagging API) is used to locate certificates by their ESO management tags with server-side filtering. `tag:GetResources` does not support resource-level ARNs and must be granted on `"Resource": "*"`.
 
 #### Both export and import
 
@@ -73,10 +75,10 @@ The required IAM permissions depend on whether you use `ExternalSecret` (export)
         "acm:DeleteCertificate",
         "acm:DescribeCertificate",
         "acm:ExportCertificate",
-        "acm:ListCertificates",
         "acm:AddTagsToCertificate",
         "acm:ListTagsForCertificate",
-        "acm:RemoveTagsFromCertificate"
+        "acm:RemoveTagsFromCertificate",
+        "tag:GetResources"
       ],
       "Resource": "*"
     }
@@ -84,7 +86,7 @@ The required IAM permissions depend on whether you use `ExternalSecret` (export)
 }
 ```
 
-You can scope the `Resource` to specific certificate ARNs or use conditions to restrict access to certain regions or accounts.
+You can scope the `acm:*` actions to specific certificate ARNs or use conditions to restrict access to certain regions or accounts. `tag:GetResources` must remain on `"Resource": "*"`.
 
 ### ExternalSecret
 
@@ -96,7 +98,7 @@ Requesting a public certificate with the export option enabled is a **paid** fea
 
 #### Export Caching
 
-To minimize `ExportCertificate` API costs, the provider caches the exported PEM bundle in memory. On each reconciliation, it calls `DescribeCertificate` (a free API call) and compares the certificate serial number against the cached value. `ExportCertificate` is only called on the first access or when the serial number changes (i.e., the certificate was renewed or re-imported). The cache is not persisted and resets when the operator pod restarts.
+To minimize calls to the paid `ExportCertificate` API, the provider caches exported PEM bundles in memory, keyed by certificate ARN. On each access the provider calls the free `DescribeCertificate` and compares the certificate's serial number against the cached entry, which prevents serving stale data; `ExportCertificate` is only called on the first access, when the serial changes (certificate renewal), or when the cached entry has been evicted. The cache is bounded to 128 entries with a 24-hour TTL per entry (LRU eviction above that). It is held on the long-lived AWS provider instance and survives across reconciles, but is in-memory only and is reset when the operator pod restarts or when the underlying `SecretStore` is updated.
 
 #### Usage
 

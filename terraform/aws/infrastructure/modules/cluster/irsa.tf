@@ -42,10 +42,10 @@ data "aws_iam_policy_document" "acm" {
       "acm:ImportCertificate",
       "acm:DeleteCertificate",
       "acm:DescribeCertificate",
-      "acm:ListCertificates",
       "acm:ListTagsForCertificate",
       "acm:AddTagsToCertificate",
-      "acm:RemoveTagsFromCertificate"
+      "acm:RemoveTagsFromCertificate",
+      "tag:GetResources"
     ]
     effect    = "Allow"
     resources = ["*"]

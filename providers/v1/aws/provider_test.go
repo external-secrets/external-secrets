@@ -37,7 +37,7 @@ import (
 
 func TestProvider(t *testing.T) {
 	cl := clientfake.NewClientBuilder().Build()
-	p := Provider{}
+	p := NewProvider().(*Provider)
 
 	// inject fake static credentials because we test
 	// if we are able to get credentials when constructing the client
@@ -539,7 +539,8 @@ func TestValidRetryInput(t *testing.T) {
 	}).Build()
 	provider := func(*aws.Config) awsauth.STSprovider { return nil }
 
-	_, err := newClient(ctx, spec, kube, "default", provider)
+	p := NewProvider().(*Provider)
+	_, err := p.newClient(ctx, spec, kube, "default", provider)
 
 	if !ErrorContains(err, expected) {
 		t.Errorf("CheckValidRetryInput unexpected error: %s, expected: '%s'", err.Error(), expected)

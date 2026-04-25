@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/service/acm"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 )
 
 // ImportCertificateFn defines a function type for mocking ImportCertificate API.
@@ -34,9 +35,6 @@ type DescribeCertificateFn func(context.Context, *acm.DescribeCertificateInput, 
 
 // ExportCertificateFn defines a function type for mocking ExportCertificate API.
 type ExportCertificateFn func(context.Context, *acm.ExportCertificateInput, ...func(*acm.Options)) (*acm.ExportCertificateOutput, error)
-
-// ListCertificatesFn defines a function type for mocking ListCertificates API.
-type ListCertificatesFn func(context.Context, *acm.ListCertificatesInput, ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
 
 // AddTagsToCertificateFn defines a function type for mocking AddTagsToCertificate API.
 type AddTagsToCertificateFn func(context.Context, *acm.AddTagsToCertificateInput, ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error)
@@ -53,7 +51,6 @@ type Client struct {
 	DeleteCertificateFn         DeleteCertificateFn
 	DescribeCertificateFn       DescribeCertificateFn
 	ExportCertificateFn         ExportCertificateFn
-	ListCertificatesFn          ListCertificatesFn
 	AddTagsToCertificateFn      AddTagsToCertificateFn
 	ListTagsForCertificateFn    ListTagsForCertificateFn
 	RemoveTagsFromCertificateFn RemoveTagsFromCertificateFn
@@ -75,10 +72,6 @@ func (c *Client) ExportCertificate(ctx context.Context, input *acm.ExportCertifi
 	return c.ExportCertificateFn(ctx, input, opts...)
 }
 
-func (c *Client) ListCertificates(ctx context.Context, input *acm.ListCertificatesInput, opts ...func(*acm.Options)) (*acm.ListCertificatesOutput, error) {
-	return c.ListCertificatesFn(ctx, input, opts...)
-}
-
 func (c *Client) AddTagsToCertificate(ctx context.Context, input *acm.AddTagsToCertificateInput, opts ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
 	return c.AddTagsToCertificateFn(ctx, input, opts...)
 }
@@ -89,4 +82,20 @@ func (c *Client) ListTagsForCertificate(ctx context.Context, input *acm.ListTags
 
 func (c *Client) RemoveTagsFromCertificate(ctx context.Context, input *acm.RemoveTagsFromCertificateInput, opts ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error) {
 	return c.RemoveTagsFromCertificateFn(ctx, input, opts...)
+}
+
+// GetResourcesFn defines a function type for mocking GetResources API.
+type GetResourcesFn func(context.Context, *resourcegroupstaggingapi.GetResourcesInput, ...func(*resourcegroupstaggingapi.Options)) (*resourcegroupstaggingapi.GetResourcesOutput, error)
+
+// RgtClient implements the ResourceGroupsTaggingInterface for testing.
+type RgtClient struct {
+	GetResourcesFn GetResourcesFn
+}
+
+func (c *RgtClient) GetResources(
+	ctx context.Context,
+	input *resourcegroupstaggingapi.GetResourcesInput,
+	opts ...func(*resourcegroupstaggingapi.Options),
+) (*resourcegroupstaggingapi.GetResourcesOutput, error) {
+	return c.GetResourcesFn(ctx, input, opts...)
 }

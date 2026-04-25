@@ -24,11 +24,16 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/acm"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
 )
 
-// ACMEndpointEnv is the environment variable for specifying a custom ACM endpoint.
-const ACMEndpointEnv = "AWS_ACM_ENDPOINT"
+const (
+	// ACMEndpointEnv is the environment variable for specifying a custom ACM endpoint.
+	ACMEndpointEnv = "AWS_ACM_ENDPOINT"
+	// ResourceGroupsTaggingAPIEndpointEnv is the environment variable for specifying a custom Resource Groups Tagging API endpoint.
+	ResourceGroupsTaggingAPIEndpointEnv = "AWS_RESOURCE_GROUPS_TAGGING_API_ENDPOINT"
+)
 
 // customEndpointResolver is a custom resolver for AWS Certificate Manager endpoint.
 type customEndpointResolver struct{}
@@ -45,5 +50,23 @@ func (c customEndpointResolver) ResolveEndpoint(ctx context.Context, params acm.
 		return endpoint, nil
 	}
 	defaultResolver := acm.NewDefaultEndpointResolverV2()
+	return defaultResolver.ResolveEndpoint(ctx, params)
+}
+
+// customTaggingEndpointResolver is a custom resolver for the AWS Resource Groups Tagging API endpoint.
+type customTaggingEndpointResolver struct{}
+
+// ResolveEndpoint resolves the endpoint for the Resource Groups Tagging API.
+func (c customTaggingEndpointResolver) ResolveEndpoint(ctx context.Context, params resourcegroupstaggingapi.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	endpoint := smithyendpoints.Endpoint{}
+	if v := os.Getenv(ResourceGroupsTaggingAPIEndpointEnv); v != "" {
+		url, err := url.Parse(v)
+		if err != nil {
+			return endpoint, fmt.Errorf("failed to parse resource groups tagging api endpoint %s: %w", v, err)
+		}
+		endpoint.URI = *url
+		return endpoint, nil
+	}
+	defaultResolver := resourcegroupstaggingapi.NewDefaultEndpointResolverV2()
 	return defaultResolver.ResolveEndpoint(ctx, params)
 }

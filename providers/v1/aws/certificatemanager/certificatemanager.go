@@ -26,13 +26,17 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	rgtTypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/aws/smithy-go"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/youmark/pkcs8"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -55,6 +59,7 @@ const (
 	externalSecrets      = "external-secrets"
 	remoteKeyTag         = "external-secrets-remote-key"
 	contentHashTag       = "external-secrets-content-hash"
+	acmResourceType      = "acm:certificate"
 	tlsCertKey           = "tls.crt"
 	tlsPrivateKeyKey     = "tls.key"
 	errNotImplemented    = "operation not supported by AWS Certificate Manager provider"
@@ -64,6 +69,12 @@ const (
 		"the whole kubernetes.io/tls secret is required (tls.crt and tls.key)"
 	errSyncTags      = "failed to sync certificate tags: %w"
 	passphraseLength = 32
+	// TTLs can be long because cached entries are always validated against
+	// AWS API, which prevents serving stale data.
+	arnCacheTTL     = 24 * time.Hour
+	arnCacheSize    = 512
+	exportCacheTTL  = 24 * time.Hour
+	exportCacheSize = 128
 )
 
 type exportCacheEntry struct {
@@ -79,14 +90,6 @@ type certBundle struct {
 
 var (
 	errCertificateNotFound = errors.New("certificate not found")
-
-	// arnCache mitigates eventual consistency of ListCertificates by caching
-	// remoteKey → ARN after a successful import.
-	arnCache sync.Map
-
-	// exportCache caches ExportCertificate results keyed by ARN to avoid
-	// repeated paid API calls when the certificate has not changed.
-	exportCache sync.Map
 
 	passphraseChars = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
@@ -111,18 +114,31 @@ type ACMInterface interface {
 	DeleteCertificate(ctx context.Context, input *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
 	DescribeCertificate(ctx context.Context, input *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
 	ExportCertificate(ctx context.Context, input *acm.ExportCertificateInput, optFns ...func(*acm.Options)) (*acm.ExportCertificateOutput, error)
-	ListCertificates(ctx context.Context, input *acm.ListCertificatesInput, optFns ...func(*acm.Options)) (*acm.ListCertificatesOutput, error)
 	AddTagsToCertificate(ctx context.Context, input *acm.AddTagsToCertificateInput, optFns ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error)
 	ListTagsForCertificate(ctx context.Context, input *acm.ListTagsForCertificateInput, optFns ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error)
 	RemoveTagsFromCertificate(ctx context.Context, input *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
+}
+
+// ResourceGroupsTaggingInterface is a subset of the Resource Groups Tagging API used to
+// locate certificates by tag with server-side filtering.
+// see: https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi
+type ResourceGroupsTaggingInterface interface {
+	GetResources(ctx context.Context, input *resourcegroupstaggingapi.GetResourcesInput, optFns ...func(*resourcegroupstaggingapi.Options)) (*resourcegroupstaggingapi.GetResourcesOutput, error)
 }
 
 // CertificateManager is a provider for AWS ACM.
 type CertificateManager struct {
 	cfg          *aws.Config
 	client       ACMInterface
+	rgtClient    ResourceGroupsTaggingInterface
 	referentAuth bool
 	prefix       string
+	// arnCache mitigates eventual consistency of ListCertificates by caching
+	// remoteKey → ARN after a successful import.
+	arnCache *expirable.LRU[string, string]
+	// exportCache caches ExportCertificate results keyed by ARN to avoid
+	// repeated paid API calls.
+	exportCache *expirable.LRU[string, exportCacheEntry]
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -138,7 +154,12 @@ func New(_ context.Context, cfg *aws.Config, prefix string, referentAuth bool) (
 		client: acm.NewFromConfig(*cfg, func(o *acm.Options) {
 			o.EndpointResolverV2 = customEndpointResolver{}
 		}),
-		prefix: prefix,
+		rgtClient: resourcegroupstaggingapi.NewFromConfig(*cfg, func(o *resourcegroupstaggingapi.Options) {
+			o.EndpointResolverV2 = customTaggingEndpointResolver{}
+		}),
+		prefix:      prefix,
+		arnCache:    expirable.NewLRU[string, string](arnCacheSize, nil, arnCacheTTL),
+		exportCache: expirable.NewLRU[string, exportCacheEntry](exportCacheSize, nil, exportCacheTTL),
 	}, nil
 }
 
@@ -168,7 +189,7 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	}
 
 	bundle := certBundle{leaf: leaf, chain: chain, privKey: privKeyPEM}
-	remoteKey := psd.GetRemoteKey()
+	remoteKey := cm.prefix + psd.GetRemoteKey()
 	contentHash := computeContentHash(certPEM, privKeyPEM)
 
 	existingARN, err := cm.findCertificateARN(ctx, remoteKey)
@@ -184,6 +205,10 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 
 func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn string, b certBundle, contentHash, remoteKey string, tags map[string]string) error {
 	currentTags, err := cm.listTags(ctx, arn)
+	if errors.Is(err, errCertificateNotFound) {
+		cm.arnCache.Remove(remoteKey)
+		return cm.importNewCertificate(ctx, b, contentHash, remoteKey, tags)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to list tags for %s: %w", arn, err)
 	}
@@ -240,7 +265,7 @@ func (cm *CertificateManager) importNewCertificate(ctx context.Context, b certBu
 	}
 
 	certARN := aws.ToString(out.CertificateArn)
-	arnCache.Store(remoteKey, certARN)
+	cm.arnCache.Add(remoteKey, certARN)
 
 	if err := cm.syncTags(ctx, certARN, tags); err != nil {
 		return fmt.Errorf(errSyncTags, err)
@@ -250,16 +275,28 @@ func (cm *CertificateManager) importNewCertificate(ctx context.Context, b certBu
 
 // SecretExists checks if a certificate with the given remoteKey exists in ACM.
 func (cm *CertificateManager) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
-	arn, err := cm.findCertificateARN(ctx, remoteRef.GetRemoteKey())
+	remoteKey := cm.prefix + remoteRef.GetRemoteKey()
+	arn, err := cm.findCertificateARN(ctx, remoteKey)
 	if err != nil {
 		return false, err
 	}
-	return arn != "", nil
+	if arn == "" {
+		return false, nil
+	}
+	if _, err := cm.listTags(ctx, arn); err != nil {
+		if errors.Is(err, errCertificateNotFound) {
+			cm.arnCache.Remove(remoteKey)
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // DeleteSecret deletes the ACM certificate identified by remoteKey.
 func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
-	arn, err := cm.findCertificateARN(ctx, remoteRef.GetRemoteKey())
+	remoteKey := cm.prefix + remoteRef.GetRemoteKey()
+	arn, err := cm.findCertificateARN(ctx, remoteKey)
 	if err != nil {
 		return fmt.Errorf("failed to search for certificate to delete: %w", err)
 	}
@@ -269,6 +306,7 @@ func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.P
 
 	tags, err := cm.listTags(ctx, arn)
 	if errors.Is(err, errCertificateNotFound) {
+		cm.arnCache.Remove(remoteKey)
 		return nil
 	}
 	if err != nil {
@@ -285,8 +323,8 @@ func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.P
 	if err != nil {
 		return fmt.Errorf("failed to delete certificate %s: %w", arn, awsutil.SanitizeErr(err))
 	}
-	arnCache.Delete(remoteRef.GetRemoteKey())
-	log.Info("deleted ACM certificate", "arn", arn, "remoteKey", remoteRef.GetRemoteKey())
+	cm.arnCache.Remove(remoteKey)
+	log.Info("deleted ACM certificate", "arn", arn, "remoteKey", remoteKey)
 	return nil
 }
 
@@ -314,8 +352,7 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 	// Use the serial number to detect certificate changes and avoid
 	// redundant ExportCertificate calls (which are paid after 10k/month).
 	serial := aws.ToString(detail.Serial)
-	if cached, ok := exportCache.Load(certARN); ok {
-		entry := cached.(exportCacheEntry)
+	if entry, ok := cm.exportCache.Get(certARN); ok {
 		if entry.serial == serial {
 			return entry.pem, nil
 		}
@@ -354,7 +391,7 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 	}
 	result := strings.Join(parts, "\n") + "\n"
 
-	exportCache.Store(certARN, exportCacheEntry{serial: serial, pem: []byte(result)})
+	cm.exportCache.Add(certARN, exportCacheEntry{serial: serial, pem: []byte(result)})
 	return []byte(result), nil
 }
 
@@ -387,89 +424,45 @@ func (cm *CertificateManager) Validate() (esv1.ValidationResult, error) {
 }
 
 func (cm *CertificateManager) findCertificateARN(ctx context.Context, remoteKey string) (string, error) {
-	arn, err := cm.findCachedARN(ctx, remoteKey)
-	if err != nil {
-		return "", err
-	}
-	if arn != "" {
-		return arn, nil
+	if cached, ok := cm.arnCache.Get(remoteKey); ok {
+		return cached, nil
 	}
 	return cm.searchCertificatesByTag(ctx, remoteKey)
 }
 
-func (cm *CertificateManager) findCachedARN(ctx context.Context, remoteKey string) (string, error) {
-	cached, ok := arnCache.Load(remoteKey)
-	if !ok {
-		return "", nil
-	}
-	arn := cached.(string)
-	tags, err := cm.listTags(ctx, arn)
-	if err == nil && matchesTags(tags, remoteKey) {
-		return arn, nil
-	}
-	if err != nil && !errors.Is(err, errCertificateNotFound) {
-		return "", fmt.Errorf("failed to verify cached certificate %s: %w", arn, err)
-	}
-	arnCache.Delete(remoteKey)
-	return "", nil
-}
-
 func (cm *CertificateManager) searchCertificatesByTag(ctx context.Context, remoteKey string) (string, error) {
-	var nextToken *string
-	for {
-		out, err := cm.client.ListCertificates(ctx, &acm.ListCertificatesInput{
-			NextToken: nextToken,
-			Includes: &types.Filters{
-				KeyTypes: []types.KeyAlgorithm{
-					types.KeyAlgorithmRsa1024,
-					types.KeyAlgorithmRsa2048,
-					types.KeyAlgorithmRsa3072,
-					types.KeyAlgorithmRsa4096,
-					types.KeyAlgorithmEcPrime256v1,
-					types.KeyAlgorithmEcSecp384r1,
-					types.KeyAlgorithmEcSecp521r1,
-				},
-			},
-		})
-		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMListCertificates, err)
+	paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(cm.rgtClient, &resourcegroupstaggingapi.GetResourcesInput{
+		ResourceTypeFilters: []string{acmResourceType},
+		TagFilters: []rgtTypes.TagFilter{
+			{Key: aws.String(managedBy), Values: []string{externalSecrets}},
+			{Key: aws.String(remoteKeyTag), Values: []string{remoteKey}},
+		},
+	})
+
+	var arns []string
+	for paginator.HasMorePages() {
+		out, err := paginator.NextPage(ctx)
+		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMGetResources, err)
 		if err != nil {
 			return "", awsutil.SanitizeErr(err)
 		}
-
-		arn, err := cm.findMatchInPage(ctx, out.CertificateSummaryList, remoteKey)
-		if err != nil {
-			return "", err
-		}
-		if arn != "" {
-			return arn, nil
-		}
-
-		if out.NextToken == nil {
-			return "", nil
-		}
-		nextToken = out.NextToken
-	}
-}
-
-func (cm *CertificateManager) findMatchInPage(ctx context.Context, certs []types.CertificateSummary, remoteKey string) (string, error) {
-	for _, cert := range certs {
-		if cert.CertificateArn == nil {
-			continue
-		}
-		certARN := aws.ToString(cert.CertificateArn)
-		tags, err := cm.listTags(ctx, certARN)
-		if errors.Is(err, errCertificateNotFound) {
-			continue
-		}
-		if err != nil {
-			return "", fmt.Errorf("failed to list tags for %s: %w", certARN, err)
-		}
-		if matchesTags(tags, remoteKey) {
-			arnCache.Store(remoteKey, certARN)
-			return certARN, nil
+		for _, mapping := range out.ResourceTagMappingList {
+			if certARN := aws.ToString(mapping.ResourceARN); certARN != "" {
+				arns = append(arns, certARN)
+			}
 		}
 	}
-	return "", nil
+
+	if len(arns) == 0 {
+		return "", nil
+	}
+	sort.Strings(arns)
+	if len(arns) > 1 {
+		log.Error(nil, "multiple certificates match the same remoteKey tag, using the lexically smallest",
+			"remoteKey", remoteKey, "selected", arns[0], "matches", arns)
+	}
+	cm.arnCache.Add(remoteKey, arns[0])
+	return arns[0], nil
 }
 
 func (cm *CertificateManager) listTags(ctx context.Context, arn string) ([]types.Tag, error) {
@@ -560,23 +553,6 @@ func isManagedByESO(tags []types.Tag) bool {
 		}
 	}
 	return false
-}
-
-func matchesTags(tags []types.Tag, remoteKey string) bool {
-	var hasManagedBy, hasRemoteKey bool
-	for _, t := range tags {
-		switch aws.ToString(t.Key) {
-		case managedBy:
-			if aws.ToString(t.Value) == externalSecrets {
-				hasManagedBy = true
-			}
-		case remoteKeyTag:
-			if aws.ToString(t.Value) == remoteKey {
-				hasRemoteKey = true
-			}
-		}
-	}
-	return hasManagedBy && hasRemoteKey
 }
 
 func isReservedTag(key string) bool {

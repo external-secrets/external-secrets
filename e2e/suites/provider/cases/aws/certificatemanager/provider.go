@@ -35,6 +35,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/acm/types"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	rgtTypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -57,6 +59,7 @@ type Provider struct {
 
 	region    string
 	client    *acm.Client
+	rgtClient *resourcegroupstaggingapi.Client
 	framework *framework.Framework
 }
 
@@ -72,6 +75,7 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 		cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
 		Expect(err).ToNot(HaveOccurred())
 		prov.client = acm.NewFromConfig(cfg)
+		prov.rgtClient = resourcegroupstaggingapi.NewFromConfig(cfg)
 	})
 
 	BeforeEach(func() {
@@ -128,19 +132,14 @@ func (s *Provider) DeleteSecret(key string) {
 	Expect(err).ToNot(HaveOccurred(), "failed to delete certificate %s", aws.ToString(arn))
 }
 
-// FindCertificateByRemoteKey searches for a certificate in ACM with the matching remote-key tag.
+// FindCertificateByRemoteKey searches for a certificate in ACM with the matching
+// remote-key tag using the Resource Groups Tagging API (server-side filtering).
 func (s *Provider) FindCertificateByRemoteKey(remoteKey string) (*string, error) {
-	paginator := acm.NewListCertificatesPaginator(s.client, &acm.ListCertificatesInput{
-		Includes: &types.Filters{
-			KeyTypes: []types.KeyAlgorithm{
-				types.KeyAlgorithmRsa1024,
-				types.KeyAlgorithmRsa2048,
-				types.KeyAlgorithmRsa3072,
-				types.KeyAlgorithmRsa4096,
-				types.KeyAlgorithmEcPrime256v1,
-				types.KeyAlgorithmEcSecp384r1,
-				types.KeyAlgorithmEcSecp521r1,
-			},
+	paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(s.rgtClient, &resourcegroupstaggingapi.GetResourcesInput{
+		ResourceTypeFilters: []string{"acm:certificate"},
+		TagFilters: []rgtTypes.TagFilter{
+			{Key: aws.String("managed-by"), Values: []string{"external-secrets"}},
+			{Key: aws.String("external-secrets-remote-key"), Values: []string{remoteKey}},
 		},
 	})
 	for paginator.HasMorePages() {
@@ -148,18 +147,9 @@ func (s *Provider) FindCertificateByRemoteKey(remoteKey string) (*string, error)
 		if err != nil {
 			return nil, err
 		}
-		for _, cert := range page.CertificateSummaryList {
-			if cert.CertificateArn == nil {
-				continue
-			}
-			tags, err := s.client.ListTagsForCertificate(GinkgoT().Context(), &acm.ListTagsForCertificateInput{
-				CertificateArn: cert.CertificateArn,
-			})
-			if err != nil {
-				return nil, err
-			}
-			if hasTagValue(tags.Tags, "external-secrets-remote-key", remoteKey) {
-				return cert.CertificateArn, nil
+		for _, mapping := range page.ResourceTagMappingList {
+			if mapping.ResourceARN != nil && *mapping.ResourceARN != "" {
+				return mapping.ResourceARN, nil
 			}
 		}
 	}
