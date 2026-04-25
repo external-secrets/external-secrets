@@ -119,10 +119,10 @@ type ACMInterface interface {
 	RemoveTagsFromCertificate(ctx context.Context, input *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
 }
 
-// ResourceGroupsTaggingInterface is a subset of the Resource Groups Tagging API used to
+// ResourceGetter is the subset of the Resource Groups Tagging API used to
 // locate certificates by tag with server-side filtering.
 // see: https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi
-type ResourceGroupsTaggingInterface interface {
+type ResourceGetter interface {
 	GetResources(ctx context.Context, input *resourcegroupstaggingapi.GetResourcesInput, optFns ...func(*resourcegroupstaggingapi.Options)) (*resourcegroupstaggingapi.GetResourcesOutput, error)
 }
 
@@ -130,7 +130,7 @@ type ResourceGroupsTaggingInterface interface {
 type CertificateManager struct {
 	cfg          *aws.Config
 	client       ACMInterface
-	rgtClient    ResourceGroupsTaggingInterface
+	rgtClient    ResourceGetter
 	referentAuth bool
 	prefix       string
 	// arnCache mitigates eventual consistency of ListCertificates by caching

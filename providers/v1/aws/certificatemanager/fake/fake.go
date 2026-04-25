@@ -87,7 +87,7 @@ func (c *Client) RemoveTagsFromCertificate(ctx context.Context, input *acm.Remov
 // GetResourcesFn defines a function type for mocking GetResources API.
 type GetResourcesFn func(context.Context, *resourcegroupstaggingapi.GetResourcesInput, ...func(*resourcegroupstaggingapi.Options)) (*resourcegroupstaggingapi.GetResourcesOutput, error)
 
-// RgtClient implements the ResourceGroupsTaggingInterface for testing.
+// RgtClient implements the ResourceGetter interface for testing.
 type RgtClient struct {
 	GetResourcesFn GetResourcesFn
 }

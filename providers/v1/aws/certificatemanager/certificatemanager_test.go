@@ -461,21 +461,18 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/cached"
 
 	var currentHash string
+	captureHash := func(tags []types.Tag) {
+		if h := getTagValue(tags, contentHashTag); h != "" {
+			currentHash = h
+		}
+	}
 	fake := &fakeacm.Client{
 		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
-			for _, tag := range p.Tags {
-				if aws.ToString(tag.Key) == contentHashTag {
-					currentHash = aws.ToString(tag.Value)
-				}
-			}
+			captureHash(p.Tags)
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
 		},
 		AddTagsToCertificateFn: func(_ context.Context, p *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
-			for _, tag := range p.Tags {
-				if aws.ToString(tag.Key) == contentHashTag {
-					currentHash = aws.ToString(tag.Value)
-				}
-			}
+			captureHash(p.Tags)
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, p *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
