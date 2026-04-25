@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -534,5 +535,89 @@ func TestGetCloudConfiguration(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestShouldDisableChallengeResourceVerification(t *testing.T) {
+	testCases := []struct {
+		name     string
+		provider *esv1.AzureKVProvider
+		expect   bool
+	}{
+		{
+			name: "public_cloud_without_custom_config",
+			provider: &esv1.AzureKVProvider{
+				EnvironmentType: esv1.AzureEnvironmentPublicCloud,
+			},
+			expect: false,
+		},
+		{
+			name: "azure_stack_cloud",
+			provider: &esv1.AzureKVProvider{
+				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
+			},
+			expect: true,
+		},
+		{
+			name: "custom_cloud_config_present",
+			provider: &esv1.AzureKVProvider{
+				EnvironmentType: esv1.AzureEnvironmentChinaCloud,
+				CustomCloudConfig: &esv1.AzureCustomCloudConfig{
+					ActiveDirectoryEndpoint: "https://login.partner.microsoftonline.cn/",
+				},
+			},
+			expect: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := shouldDisableChallengeResourceVerification(tc.provider)
+			if got != tc.expect {
+				t.Errorf("expected %v, got %v", tc.expect, got)
+			}
+		})
+	}
+}
+
+func TestGetKeyVaultClientOptionsUsesCustomAPIVersion(t *testing.T) {
+	version := "7.0"
+	provider := &esv1.AzureKVProvider{
+		CustomCloudConfig: &esv1.AzureCustomCloudConfig{
+			ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
+			KeyVaultAPIVersion:      &version,
+		},
+	}
+
+	opts := getKeyVaultClientOptions(provider, cloud.AzurePublic)
+	if opts.APIVersion != version {
+		t.Fatalf("expected APIVersion to be %q, got %q", version, opts.APIVersion)
+	}
+}
+
+func TestGetKeyVaultClientOptionsUsesDefaultAPIVersionWhenUnset(t *testing.T) {
+	provider := &esv1.AzureKVProvider{
+		CustomCloudConfig: &esv1.AzureCustomCloudConfig{
+			ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
+		},
+	}
+
+	opts := getKeyVaultClientOptions(provider, cloud.AzurePublic)
+	if opts.APIVersion != "" {
+		t.Fatalf("expected default APIVersion when keyVaultAPIVersion is unset, got %q", opts.APIVersion)
+	}
+}
+
+func TestGetKeyVaultClientOptionsTrimsKeyVaultAPIVersion(t *testing.T) {
+	version := " 7.2-preview "
+	provider := &esv1.AzureKVProvider{
+		CustomCloudConfig: &esv1.AzureCustomCloudConfig{
+			ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
+			KeyVaultAPIVersion:      &version,
+		},
+	}
+
+	opts := getKeyVaultClientOptions(provider, cloud.AzurePublic)
+	if opts.APIVersion != "7.2-preview" {
+		t.Fatalf("expected trimmed API version, got %q", opts.APIVersion)
 	}
 }

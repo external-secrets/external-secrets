@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"maps"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -376,6 +377,30 @@ func getCloudConfiguration(provider *esv1.AzureKVProvider) (cloud.Configuration,
 	default:
 		return cloud.AzurePublic, nil
 	}
+}
+
+// shouldDisableChallengeResourceVerification returns true for Azure Stack and custom cloud configurations,
+// where the challenge resource can legitimately differ from the vault host.
+func shouldDisableChallengeResourceVerification(provider *esv1.AzureKVProvider) bool {
+	if provider == nil {
+		return false
+	}
+	return provider.EnvironmentType == esv1.AzureEnvironmentAzureStackCloud || provider.CustomCloudConfig != nil
+}
+
+// getKeyVaultClientOptions returns shared Azure SDK client options for Key Vault clients.
+func getKeyVaultClientOptions(provider *esv1.AzureKVProvider, cloudConfig cloud.Configuration) azcore.ClientOptions {
+	clientOptions := azcore.ClientOptions{
+		Cloud: cloudConfig,
+	}
+
+	if provider != nil && provider.CustomCloudConfig != nil && provider.CustomCloudConfig.KeyVaultAPIVersion != nil {
+		if apiVersion := strings.TrimSpace(*provider.CustomCloudConfig.KeyVaultAPIVersion); apiVersion != "" {
+			clientOptions.APIVersion = apiVersion
+		}
+	}
+
+	return clientOptions
 }
 
 // buildCustomCloudConfiguration creates a custom cloud.Configuration by merging custom config with base config.

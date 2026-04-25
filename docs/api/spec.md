@@ -836,6 +836,19 @@ string
 <p>ResourceManagerEndpoint is the Azure Resource Manager endpoint</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>keyVaultApiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeyVaultAPIVersion overrides the Key Vault data-plane api-version used by the new Azure SDK.
+This is useful for Azure Stack and custom clouds that expose a different Key Vault API version.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.AzureEnvironmentType">AzureEnvironmentType

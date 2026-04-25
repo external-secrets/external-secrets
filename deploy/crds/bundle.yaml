@@ -2949,6 +2949,11 @@ spec:
                                 ActiveDirectoryEndpoint is the AAD endpoint for authentication
                                 Required when using custom cloud configuration
                               type: string
+                            keyVaultApiVersion:
+                              description: |-
+                                KeyVaultAPIVersion overrides the Key Vault data-plane api-version used by the new Azure SDK.
+                                This is useful for Azure Stack and custom clouds that expose a different Key Vault API version.
+                              type: string
                             keyVaultDNSSuffix:
                               description: KeyVaultDNSSuffix is the DNS suffix for Key Vault URLs
                               type: string
@@ -15059,6 +15064,11 @@ spec:
                               description: |-
                                 ActiveDirectoryEndpoint is the AAD endpoint for authentication
                                 Required when using custom cloud configuration
+                              type: string
+                            keyVaultApiVersion:
+                              description: |-
+                                KeyVaultAPIVersion overrides the Key Vault data-plane api-version used by the new Azure SDK.
+                                This is useful for Azure Stack and custom clouds that expose a different Key Vault API version.
                               type: string
                             keyVaultDNSSuffix:
                               description: KeyVaultDNSSuffix is the DNS suffix for Key Vault URLs
