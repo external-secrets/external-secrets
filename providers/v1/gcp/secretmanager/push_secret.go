@@ -89,24 +89,7 @@ func buildReplication(spec PushSecretMetadataSpec) *secretmanagerpb.Replication 
 		}
 	}
 
-	if len(locations) > 0 {
-		replicas := make([]*secretmanagerpb.Replication_UserManaged_Replica, 0, len(locations))
-		for _, loc := range locations {
-			replicas = append(replicas, &secretmanagerpb.Replication_UserManaged_Replica{
-				Location:                  loc,
-				CustomerManagedEncryption: cmek,
-			})
-		}
-		return &secretmanagerpb.Replication{
-			Replication: &secretmanagerpb.Replication_UserManaged_{
-				UserManaged: &secretmanagerpb.Replication_UserManaged{
-					Replicas: replicas,
-				},
-			},
-		}
-	}
-
-	if cmek != nil {
+	if cmek != nil && len(locations) == 0 {
 		return &secretmanagerpb.Replication{
 			Replication: &secretmanagerpb.Replication_Automatic_{
 				Automatic: &secretmanagerpb.Replication_Automatic{
@@ -116,7 +99,24 @@ func buildReplication(spec PushSecretMetadataSpec) *secretmanagerpb.Replication 
 		}
 	}
 
-	return nil
+	if len(locations) == 0 {
+		return nil
+	}
+
+	replicas := make([]*secretmanagerpb.Replication_UserManaged_Replica, 0, len(locations))
+	for _, loc := range locations {
+		replicas = append(replicas, &secretmanagerpb.Replication_UserManaged_Replica{
+			Location:                  loc,
+			CustomerManagedEncryption: cmek,
+		})
+	}
+	return &secretmanagerpb.Replication{
+		Replication: &secretmanagerpb.Replication_UserManaged_{
+			UserManaged: &secretmanagerpb.Replication_UserManaged{
+				Replicas: replicas,
+			},
+		},
+	}
 }
 
 func newPushSecretBuilder(payload []byte, data esv1.PushSecretData) (pushSecretBuilder, error) {
