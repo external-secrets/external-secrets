@@ -129,7 +129,7 @@ require (
 	github.com/1password/onepassword-sdk-go v0.3.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0 // indirect
-	github.com/Azure/go-ntlmssp v0.1.0 // indirect
+	github.com/Azure/go-ntlmssp v0.1.1 // indirect
 	github.com/BeyondTrust/go-client-library-passwordsafe v1.0.0 // indirect
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 // indirect
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d // indirect
