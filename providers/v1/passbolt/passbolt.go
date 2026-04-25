@@ -49,6 +49,7 @@ const (
 	errPassboltStoreHostSchemeNotHTTPS             = "host Url has to be https scheme"
 	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password or description"
 	errPassboltCAInvalid                           = "failed to parse CA certificate for Passbolt provider"
+	errPassboltUnexpectedTransport                 = "unexpected default http transport type"
 	errNotImplemented                              = "not implemented"
 )
 
@@ -321,7 +322,7 @@ func buildHTTPClient(ctx context.Context, config *esv1.PassboltProvider, kube kc
 	// connection settings and only override the TLS configuration.
 	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
-		return nil, errors.New("unexpected default http transport type")
+		return nil, errors.New(errPassboltUnexpectedTransport)
 	}
 	transport := defaultTransport.Clone()
 	if transport.TLSClientConfig == nil {

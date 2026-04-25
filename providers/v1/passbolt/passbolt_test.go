@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -241,8 +242,14 @@ func TestBuildHTTPClient(t *testing.T) {
 			transport, ok := client.Transport.(*http.Transport)
 			g.Expect(ok).To(g.BeTrue())
 			g.Expect(transport.TLSClientConfig).ToNot(g.BeNil())
+			g.Expect(transport.TLSClientConfig.MinVersion).To(g.Equal(uint16(tls.VersionTLS12)))
+
+			// Verify the configured pool actually contains *our* CA, not just any
+			// non-nil pool — guards against silently loading a different bundle.
+			expectedPool := x509.NewCertPool()
+			g.Expect(expectedPool.AppendCertsFromPEM(caPEM)).To(g.BeTrue())
 			g.Expect(transport.TLSClientConfig.RootCAs).ToNot(g.BeNil())
-			g.Expect(transport.TLSClientConfig.MinVersion).To(g.BeEquivalentTo(uint16(0x0303))) // TLS 1.2
+			g.Expect(transport.TLSClientConfig.RootCAs.Equal(expectedPool)).To(g.BeTrue())
 
 			// Confirm we cloned the default transport and didn't end up with a
 			// bare http.Transport{} (which would drop proxy/dialer defaults).

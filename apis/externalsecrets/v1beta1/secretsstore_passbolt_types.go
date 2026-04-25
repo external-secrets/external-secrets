@@ -34,12 +34,4 @@ type PassboltProvider struct {
 	Auth *PassboltAuth `json:"auth"`
 	// Host defines the Passbolt Server to connect to
 	Host string `json:"host"`
-	// PEM encoded CA bundle used to validate Passbolt server certificate. Only used
-	// if the Host URL is using HTTPS protocol. If not set the system root certificates
-	// are used to validate the TLS connection.
-	// +optional
-	CABundle []byte `json:"caBundle,omitempty"`
-	// The provider for the CA bundle to use to validate Passbolt server certificate.
-	// +optional
-	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
