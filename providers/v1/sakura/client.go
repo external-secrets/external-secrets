@@ -160,13 +160,17 @@ func (c *Client) upsertSecret(
 		}
 
 		if !json.Valid(value) {
-			// suppress error since we always expect that we can marshal string as JSON
-			value, _ = json.Marshal(string(value))
+			value, err = json.Marshal(string(value))
+			if err != nil {
+				return fmt.Errorf("failed to marshal value as JSON string: %w", err)
+			}
 		}
 
 		mergeFunc(property, json.RawMessage(value), kv)
-		// suppress error since we always expect that we can marshal kv as JSON
-		value, _ = json.Marshal(kv)
+		value, err = json.Marshal(kv)
+		if err != nil {
+			return fmt.Errorf("failed to marshal merged secret as JSON: %w", err)
+		}
 	}
 
 	// Since Create and Update methods are not distinguished in SecretAPI, simply call Create here

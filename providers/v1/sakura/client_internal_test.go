@@ -413,6 +413,27 @@ func TestUpsertSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			// TODO: This test case will fail when encoding/json is updated to encoding/json/v2
+			name:       "create new secret with property, invalid UTF-8 value",
+			secretName: "test-secret-1",
+			property:   "property-1",
+			value:      []byte("value-\xff"),
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{}, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					require.JSONEq(t, `{"property-1":"value-\ufffd"}`, params.Value)
+					return &v1.Secret{Name: "test-secret-1"}, nil
+				})
+			},
+			mergeFunc: func(property string, value json.RawMessage, kv map[string]json.RawMessage) {
+				kv[property] = value
+			},
+			wantErr: false,
+		},
+		{
 			name:       "merge property into existing secret",
 			secretName: "test-secret-1",
 			property:   "property-1",
