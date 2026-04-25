@@ -25,16 +25,41 @@ import (
 	"time"
 )
 
-func TestWebhookServiceNameUsesReleaseName(t *testing.T) {
-	eso := NewESO()
-	serviceName := webhookServiceName(eso.ReleaseName)
-	if serviceName != "eso-webhook" {
-		t.Fatalf("expected classic ESO release to use eso-webhook, got %q", serviceName)
+func TestWebhookServiceNameUsesChartFullName(t *testing.T) {
+	tests := []struct {
+		name        string
+		releaseName string
+		want        string
+	}{
+		{
+			name:        "classic release prefixes chart name",
+			releaseName: "eso",
+			want:        "eso-external-secrets-webhook",
+		},
+		{
+			name:        "release already containing chart name is preserved",
+			releaseName: "external-secrets",
+			want:        "external-secrets-webhook",
+		},
 	}
 
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			serviceName := webhookServiceName(tc.releaseName)
+			if serviceName != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, serviceName)
+			}
+		})
+	}
+}
+
+func TestExternalSecretWebhookURLUsesChartFullNameForClassicRelease(t *testing.T) {
+	eso := NewESO()
+	serviceName := webhookServiceName(eso.ReleaseName)
+
 	url := externalSecretWebhookURL(serviceName, eso.Namespace)
-	if !strings.Contains(url, "https://eso-webhook.default.") {
-		t.Fatalf("expected classic webhook readiness URL to target eso-webhook.default, got %q", url)
+	if !strings.Contains(url, "https://eso-external-secrets-webhook.default.") {
+		t.Fatalf("expected classic webhook readiness URL to target eso-external-secrets-webhook.default, got %q", url)
 	}
 }
 

@@ -22,6 +22,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -30,6 +31,7 @@ import (
 )
 
 const externalSecretValidationReview = `{"apiVersion":"admission.k8s.io/v1","kind":"AdmissionReview","request":{"uid":"test","kind":{"group":"external-secrets.io","version":"v1","kind":"ExternalSecret"},"resource":{"group":"external-secrets.io","version":"v1","resource":"externalsecrets"},"dryRun":true,"operation":"CREATE","userInfo":{"username":"test","uid":"test","groups":[],"extra":{}}}}`
+const externalSecretsChartName = "external-secrets"
 
 var (
 	externalSecretWebhookURL = func(serviceName, namespace string) string {
@@ -41,7 +43,11 @@ var (
 )
 
 func webhookServiceName(releaseName string) string {
-	return fmt.Sprintf("%s-webhook", releaseName)
+	fullName := releaseName
+	if !strings.Contains(releaseName, externalSecretsChartName) {
+		fullName = fmt.Sprintf("%s-%s", releaseName, externalSecretsChartName)
+	}
+	return fmt.Sprintf("%s-webhook", fullName)
 }
 
 func waitForExternalSecretWebhookReady(serviceName, namespace string) error {
