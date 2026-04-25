@@ -33,8 +33,14 @@ type VaultDynamicSecretSpec struct {
 	// Vault API method to use (GET/POST/other)
 	Method string `json:"method,omitempty"`
 
-	// Parameters to pass to Vault for write and Get calls. GET calls only support string value types.
+	// Parameters to pass to Vault write (for non-GET methods)
 	Parameters *apiextensions.JSON `json:"parameters,omitempty"`
+
+	// GetParameters are query-string parameters passed to Vault on GET calls.
+	// Each key may map to multiple values, matching HTTP query-string semantics.
+	// Ignored for non-GET methods; use Parameters for write bodies.
+	// +optional
+	GetParameters map[string][]string `json:"getParameters,omitempty"`
 
 	// Result type defines which data is returned from the generator.
 	// By default, it is the "data" section of the Vault API response.

@@ -418,8 +418,61 @@ func TestVaultDynamicSecretGetParameters(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "testing", Namespace: "testing"},
 		Secrets:    []corev1.ObjectReference{{Name: "test"}},
 	}
-	spec := func(params string) *apiextensions.JSON {
-		return &apiextensions.JSON{Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+
+	t.Run("ForwardsGetParameters", func(t *testing.T) {
+		var got map[string][]string
+		clientFn := fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+			cl.MockLogical.ReadWithDataWithContextFn = func(_ context.Context, _ string, data map[string][]string) (*vaultapi.Secret, error) {
+				got = data
+				return &vaultapi.Secret{Data: map[string]any{"key": "value"}}, nil
+			}
+		})
+		c := &provider.Provider{NewVaultClient: clientFn}
+		spec := &apiextensions.JSON{Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
+spec:
+  provider:
+    auth:
+      kubernetes:
+        role: test
+        serviceAccountRef:
+          name: "testing"
+  method: GET
+  getParameters:
+    scope:
+      - "applied-permissions/user"
+    tag:
+      - "prod"
+      - "blue"
+  path: "github/token/example"`)}
+		_, _, err := (&Generator{}).generate(context.Background(),
+			c, spec,
+			clientfake.NewClientBuilder().WithObjects(sa).Build(),
+			utilfake.NewCreateTokenMock().WithToken("ok"), "testing")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := map[string][]string{
+			"scope": {"applied-permissions/user"},
+			"tag":   {"prod", "blue"},
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("forwarded params mismatch:\n%s", diff)
+		}
+	})
+
+	t.Run("IgnoresParametersOnGET", func(t *testing.T) {
+		var got map[string][]string
+		called := false
+		clientFn := fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+			cl.MockLogical.ReadWithDataWithContextFn = func(_ context.Context, _ string, data map[string][]string) (*vaultapi.Secret, error) {
+				called = true
+				got = data
+				return &vaultapi.Secret{Data: map[string]any{"key": "value"}}, nil
+			}
+		})
+		c := &provider.Provider{NewVaultClient: clientFn}
+		spec := &apiextensions.JSON{Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
 kind: VaultDynamicSecret
 spec:
   provider:
@@ -430,39 +483,22 @@ spec:
           name: "testing"
   method: GET
   parameters:
-    ` + params + `
+    ttl: 60
+    nested:
+      key: "value"
   path: "github/token/example"`)}
-	}
-
-	t.Run("ForwardsStringParams", func(t *testing.T) {
-		var got map[string][]string
-		clientFn := fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
-			cl.MockLogical.ReadWithDataWithContextFn = func(_ context.Context, _ string, data map[string][]string) (*vaultapi.Secret, error) {
-				got = data
-				return &vaultapi.Secret{Data: map[string]any{"key": "value"}}, nil
-			}
-		})
-		c := &provider.Provider{NewVaultClient: clientFn}
 		_, _, err := (&Generator{}).generate(context.Background(),
-			c, spec(`scope: "applied-permissions/user"`),
+			c, spec,
 			clientfake.NewClientBuilder().WithObjects(sa).Build(),
 			utilfake.NewCreateTokenMock().WithToken("ok"), "testing")
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("Parameters on GET should be ignored, got error: %v", err)
 		}
-		if diff := cmp.Diff(map[string][]string{"scope": {"applied-permissions/user"}}, got); diff != "" {
-			t.Errorf("forwarded params mismatch:\n%s", diff)
+		if !called {
+			t.Fatal("expected ReadWithDataWithContext to be called")
 		}
-	})
-
-	t.Run("RejectsNonStringParams", func(t *testing.T) {
-		c := &provider.Provider{NewVaultClient: fake.ClientWithLoginMock}
-		_, _, err := (&Generator{}).generate(context.Background(),
-			c, spec(`ttl: 60`),
-			clientfake.NewClientBuilder().WithObjects(sa).Build(),
-			utilfake.NewCreateTokenMock().WithToken("ok"), "testing")
-		if err == nil || err.Error() != `unsupported type for GET parameter "ttl": float64` {
-			t.Errorf("want unsupported-type error, got: %v", err)
+		if got != nil {
+			t.Errorf("expected nil params on GET when only Parameters is set, got: %v", got)
 		}
 	})
 }
