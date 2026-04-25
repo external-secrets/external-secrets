@@ -18,6 +18,8 @@ package fake
 
 import (
 	"context"
+	"errors"
+	"testing"
 
 	"github.com/sacloud/secretmanager-api-go"
 	v1 "github.com/sacloud/secretmanager-api-go/apis/v1"
@@ -95,23 +97,30 @@ func (mc *MockSecretAPIClient) WithDeleteFunc(fn func(ctx context.Context, param
 	}
 }
 
-// NewMockSecretAPIClient creates a new mock SecretAPI client with default no-op implementations.
-func NewMockSecretAPIClient() *MockSecretAPIClient {
+// NewMockSecretAPIClient creates a new mock SecretAPI client.
+//
+//	Default implementations of all methods will fail the test to ensure that only expected calls are made.
+func NewMockSecretAPIClient(t *testing.T) *MockSecretAPIClient {
 	return &MockSecretAPIClient{
 		unveilFn: func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
-			return &v1.Unveil{}, nil
+			t.Error("unexpected Unveil call")
+			return nil, errors.New("unexpected unveil call")
 		},
 		listFn: func(_ context.Context) ([]v1.Secret, error) {
-			return []v1.Secret{}, nil
+			t.Error("unexpected List call")
+			return nil, errors.New("unexpected list call")
 		},
 		createFn: func(_ context.Context, _ v1.CreateSecret) (*v1.Secret, error) {
-			return &v1.Secret{}, nil
+			t.Error("unexpected Create call")
+			return nil, errors.New("unexpected create call")
 		},
 		updateFn: func(_ context.Context, _ v1.CreateSecret) (*v1.Secret, error) {
-			return &v1.Secret{}, nil
+			t.Error("unexpected Update call")
+			return nil, errors.New("unexpected update call")
 		},
 		deleteFn: func(_ context.Context, _ v1.DeleteSecret) error {
-			return nil
+			t.Error("unexpected Delete call")
+			return errors.New("unexpected delete call")
 		},
 	}
 }
