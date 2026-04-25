@@ -225,10 +225,6 @@ func TestBuildReplication(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := buildReplication(tt.spec)
-			if tt.want == nil {
-				assert.Nil(t, got)
-				return
-			}
 			assert.True(t, proto.Equal(tt.want, got), "want %v, got %v", tt.want, got)
 		})
 	}
