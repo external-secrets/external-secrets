@@ -81,13 +81,13 @@ func newKubernetesClusterProviderPushHarness(f *framework.Framework) common.Clus
 					updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
 						Kind: esv1.ClusterSecretStoreKind,
-					}, "", "missing-service-account")
+					}, s.providerConfigNamespace(), "missing-service-account")
 				},
 				RepairAuth: func() {
 					updateKubernetesStoreServiceAccount(f, esv1.SecretStoreRef{
 						Name: clusterProviderName,
 						Kind: esv1.ClusterSecretStoreKind,
-					}, "", s.serviceAccount)
+					}, s.providerConfigNamespace(), s.serviceAccount)
 				},
 				WaitForRemoteSecretValue: func(namespace, name, key, expectedValue string) {
 					waitForSecretValueInNamespace(f, namespace, name, key, expectedValue)

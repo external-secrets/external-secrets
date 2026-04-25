@@ -76,29 +76,29 @@ var _ = Describe("[kubernetes] v2 metrics", Label("kubernetes", "v2", "metrics")
 		frameworkv2.WaitForClusterSecretStoreReady(f, referentStoreName(f), defaultV2WaitTimeout)
 	})
 
-	It("exposes Provider and ClusterProvider controller metrics", func() {
+	It("exposes SecretStore and ClusterSecretStore controller metrics", func() {
 		metrics, err := frameworkv2.ScrapeControllerMetrics(context.Background(), f.KubeConfig, f.KubeClientSet, frameworkv2.ProviderNamespace)
 		Expect(err).ToNot(HaveOccurred())
 
-		frameworkv2.ExpectMetricExists(metrics, "provider_status_condition")
-		frameworkv2.ExpectMetricValue(metrics, "provider_status_condition", map[string]string{
+		frameworkv2.ExpectMetricExists(metrics, "secretstore_status_condition")
+		frameworkv2.ExpectMetricValue(metrics, "secretstore_status_condition", map[string]string{
 			"name":      f.Namespace.Name,
 			"namespace": f.Namespace.Name,
 			"condition": "Ready",
 			"status":    "True",
 		}, 1.0)
-		frameworkv2.ExpectMetricGreaterThan(metrics, "provider_reconcile_duration", map[string]string{
+		frameworkv2.ExpectMetricGreaterThan(metrics, "secretstore_reconcile_duration", map[string]string{
 			"name":      f.Namespace.Name,
 			"namespace": f.Namespace.Name,
 		}, 0.0)
 
-		frameworkv2.ExpectMetricExists(metrics, "clusterprovider_status_condition")
-		frameworkv2.ExpectMetricValue(metrics, "clusterprovider_status_condition", map[string]string{
+		frameworkv2.ExpectMetricExists(metrics, "clustersecretstore_status_condition")
+		frameworkv2.ExpectMetricValue(metrics, "clustersecretstore_status_condition", map[string]string{
 			"name":      referentStoreName(f),
 			"condition": "Ready",
 			"status":    "True",
 		}, 1.0)
-		frameworkv2.ExpectMetricGreaterThan(metrics, "clusterprovider_reconcile_duration", map[string]string{
+		frameworkv2.ExpectMetricGreaterThan(metrics, "clustersecretstore_reconcile_duration", map[string]string{
 			"name": referentStoreName(f),
 		}, 0.0)
 	})
