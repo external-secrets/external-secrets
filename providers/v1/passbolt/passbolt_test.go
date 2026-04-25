@@ -231,7 +231,7 @@ func TestBuildHTTPClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := buildHTTPClient(context.Background(), tt.provider, kube, string(esv1.SecretStoreKind), "ns")
+			client, err := buildHTTPClient(t.Context(), tt.provider, kube, esv1.SecretStoreKind, "ns")
 			g.Expect(err).ToNot(g.HaveOccurred())
 			if tt.wantNil {
 				g.Expect(client).To(g.BeNil())
