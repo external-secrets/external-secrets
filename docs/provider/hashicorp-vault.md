@@ -378,7 +378,15 @@ set of AWS Programmatic access credentials stored in a `Kind=Secret` and referen
 
 #### TLS certificates authentication
 
-[TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert)  allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
+[TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert) allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
+
+To use TLS certificate authentication, create a `kubernetes.io/tls` Secret containing the client certificate and private key, then reference it in the SecretStore. The Secret keys must be `tls.crt` and `tls.key`. If your Vault server uses a custom or private CA, also configure `caProvider` or `caBundle` so that ESO can verify the server certificate.
+
+```yaml
+{% include 'vault-cert-store.yaml' %}
+```
+
+**NOTE:** For a `ClusterSecretStore`, you must specify `namespace` in both `clientCert` and `secretRef` to indicate where the TLS Secret resides.
 
 ### Mutual authentication (mTLS)
 
