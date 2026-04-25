@@ -3,7 +3,7 @@ module github.com/external-secrets/external-secrets/providers/v1/dvls
 go 1.26.2
 
 require (
-	github.com/Devolutions/go-dvls v0.15.0
+	github.com/Devolutions/go-dvls v0.19.1
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/stretchr/testify v1.11.1
