@@ -28,8 +28,9 @@ import (
 // OperationConfig overrides the top-level URL and/or body template for a
 // specific operation.  Fields mirror WebhookOperationConfig in the API types.
 type OperationConfig struct {
-	URL  string `json:"url,omitempty"`
-	Body string `json:"body,omitempty"`
+	URL             string `json:"url,omitempty"`
+	Body            string `json:"body,omitempty"`
+	InheritDefaults bool   `json:"inheritDefaults,omitempty"`
 }
 
 // OperationsConfig holds per-operation overrides.

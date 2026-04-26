@@ -438,22 +438,40 @@ func (w *Webhook) GetCACertPool(ctx context.Context, provider *Spec) (*x509.Cert
 	return caCertPool, nil
 }
 
-// EffectiveURL returns the per-operation URL if one is configured, otherwise
-// falls back to the top-level provider URL.
+// EffectiveURL resolves the URL for a specific operation.
+// When op is nil the top-level providerURL is used (no operation config defined).
+// When op is set, op.URL takes priority; if op.URL is empty and op.InheritDefaults
+// is true, the top-level providerURL is used as fallback; otherwise an empty
+// string is returned so the operation uses only its own configuration.
 func EffectiveURL(providerURL string, op *OperationConfig) string {
-	if op != nil && op.URL != "" {
+	if op == nil {
+		return providerURL
+	}
+	if op.URL != "" {
 		return op.URL
 	}
-	return providerURL
+	if op.InheritDefaults {
+		return providerURL
+	}
+	return ""
 }
 
-// EffectiveBody returns the per-operation body template if one is configured,
-// otherwise falls back to the top-level provider body.
+// EffectiveBody resolves the body template for a specific operation.
+// When op is nil the top-level providerBody is used (no operation config defined).
+// When op is set, op.Body takes priority; if op.Body is empty and op.InheritDefaults
+// is true, the top-level providerBody is used as fallback; otherwise an empty
+// string is returned so the operation uses only its own configuration.
 func EffectiveBody(providerBody string, op *OperationConfig) string {
-	if op != nil && op.Body != "" {
+	if op == nil {
+		return providerBody
+	}
+	if op.Body != "" {
 		return op.Body
 	}
-	return providerBody
+	if op.InheritDefaults {
+		return providerBody
+	}
+	return ""
 }
 
 // effectiveURL is an unexported alias kept for internal use within this package.

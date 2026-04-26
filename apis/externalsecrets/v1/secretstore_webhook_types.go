@@ -33,6 +33,12 @@ type WebhookOperationConfig struct {
 	// Body overrides the top-level webhook body template for this operation.
 	// +optional
 	Body string `json:"body,omitempty"`
+
+	// InheritDefaults controls whether this operation falls back to the
+	// top-level URL and body when its own fields are empty.
+	// Defaults to false: each operation is self-contained unless opted in.
+	// +optional
+	InheritDefaults bool `json:"inheritDefaults,omitempty"`
 }
 
 // WebhookOperationsConfig allows per-operation URL and body template overrides.

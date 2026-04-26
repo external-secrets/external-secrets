@@ -854,23 +854,28 @@ func makeWebhookStore(serverURL, topURL, topBody string, ops *esv1.WebhookOperat
 }
 
 func opConfig(serverURL, path, body string) *esv1.WebhookOperationConfig {
+	return opConfigInherit(serverURL, path, body, false)
+}
+
+func opConfigInherit(serverURL, path, body string, inheritDefaults bool) *esv1.WebhookOperationConfig {
 	url := ""
 	if path != "" {
 		url = serverURL + path
 	}
-	return &esv1.WebhookOperationConfig{URL: url, Body: body}
+	return &esv1.WebhookOperationConfig{URL: url, Body: body, InheritDefaults: inheritDefaults}
 }
 
 // TestWebhookGetSecretOperationOverride verifies per-operation overrides for GetSecret.
 func TestWebhookGetSecretOperationOverride(t *testing.T) {
 	tests := []struct {
-		name     string
-		topURL   string
-		topBody  string
-		opPath   string
-		opBody   string
-		wantPath string
-		wantBody *string
+		name      string
+		topURL    string
+		topBody   string
+		opPath    string
+		opBody    string
+		opInherit bool
+		wantPath  string
+		wantBody  *string
 	}{
 		{
 			name:     "per-op URL overrides top-level URL",
@@ -884,12 +889,19 @@ func TestWebhookGetSecretOperationOverride(t *testing.T) {
 			wantPath: "/top/secret?id=mykey",
 		},
 		{
-			name:     "per-op body overrides top-level body",
-			topURL:   "/top/secret?id={{ .remoteRef.key }}",
-			topBody:  `{"source":"top"}`,
-			opBody:   `{"source":"op"}`,
-			wantPath: "/top/secret?id=mykey",
-			wantBody: strPtr(`{"source":"op"}`),
+			name:      "per-op body overrides top-level body when inheritDefaults=true",
+			topURL:    "/top/secret?id={{ .remoteRef.key }}",
+			topBody:   `{"source":"top"}`,
+			opBody:    `{"source":"op"}`,
+			opInherit: true,
+			wantPath:  "/top/secret?id=mykey",
+			wantBody:  strPtr(`{"source":"op"}`),
+		},
+		{
+			name:            "inheritDefaults=true falls back to top-level URL when per-op URL empty",
+			topURL:          "/top/secret?id={{ .remoteRef.key }}",
+			opInherit:       true,
+			wantPath:        "/top/secret?id=mykey",
 		},
 	}
 
@@ -906,9 +918,9 @@ func TestWebhookGetSecretOperationOverride(t *testing.T) {
 			defer ts.Close()
 
 			var ops *esv1.WebhookOperationsConfig
-			if tt.opPath != "" || tt.opBody != "" {
+			if tt.opPath != "" || tt.opBody != "" || tt.opInherit {
 				ops = &esv1.WebhookOperationsConfig{
-					GetSecret: opConfig(ts.URL, tt.opPath, tt.opBody),
+					GetSecret: opConfigInherit(ts.URL, tt.opPath, tt.opBody, tt.opInherit),
 				}
 			}
 
@@ -932,10 +944,11 @@ func TestWebhookGetSecretOperationOverride(t *testing.T) {
 // TestWebhookPushSecretOperationOverride verifies per-operation overrides for PushSecret.
 func TestWebhookPushSecretOperationOverride(t *testing.T) {
 	tests := []struct {
-		name     string
-		topURL   string
-		opPath   string
-		wantPath string
+		name      string
+		topURL    string
+		opPath    string
+		opInherit bool
+		wantPath  string
 	}{
 		{
 			name:     "per-op URL overrides top-level URL",
@@ -947,6 +960,12 @@ func TestWebhookPushSecretOperationOverride(t *testing.T) {
 			name:     "falls back to top-level URL when no per-op URL set",
 			topURL:   "/top/push?key={{ .remoteRef.remoteKey }}",
 			wantPath: "/top/push?key=mykey",
+		},
+		{
+			name:      "inheritDefaults=true falls back to top-level URL when per-op URL empty",
+			topURL:    "/top/push?key={{ .remoteRef.remoteKey }}",
+			opInherit: true,
+			wantPath:  "/top/push?key=mykey",
 		},
 	}
 
@@ -960,9 +979,9 @@ func TestWebhookPushSecretOperationOverride(t *testing.T) {
 			defer ts.Close()
 
 			var ops *esv1.WebhookOperationsConfig
-			if tt.opPath != "" {
+			if tt.opPath != "" || tt.opInherit {
 				ops = &esv1.WebhookOperationsConfig{
-					PushSecret: opConfig(ts.URL, tt.opPath, ""),
+					PushSecret: opConfigInherit(ts.URL, tt.opPath, "", tt.opInherit),
 				}
 			}
 
@@ -984,12 +1003,13 @@ func TestWebhookPushSecretOperationOverride(t *testing.T) {
 // TestWebhookDeleteSecretOperationOverride verifies per-operation overrides for DeleteSecret.
 func TestWebhookDeleteSecretOperationOverride(t *testing.T) {
 	tests := []struct {
-		name     string
-		topURL   string
-		opPath   string
-		opBody   string
-		wantPath string
-		wantBody *string
+		name      string
+		topURL    string
+		opPath    string
+		opBody    string
+		opInherit bool
+		wantPath  string
+		wantBody  *string
 	}{
 		{
 			name:     "per-op URL overrides top-level URL",
@@ -1010,6 +1030,12 @@ func TestWebhookDeleteSecretOperationOverride(t *testing.T) {
 			wantPath: "/op/delete",
 			wantBody: strPtr(`{"key":"mykey"}`),
 		},
+		{
+			name:      "inheritDefaults=true falls back to top-level URL when per-op URL empty",
+			topURL:    "/top/delete?key={{ .remoteRef.remoteKey }}",
+			opInherit: true,
+			wantPath:  "/top/delete?key=mykey",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1024,9 +1050,9 @@ func TestWebhookDeleteSecretOperationOverride(t *testing.T) {
 			defer ts.Close()
 
 			var ops *esv1.WebhookOperationsConfig
-			if tt.opPath != "" || tt.opBody != "" {
+			if tt.opPath != "" || tt.opBody != "" || tt.opInherit {
 				ops = &esv1.WebhookOperationsConfig{
-					DeleteSecret: opConfig(ts.URL, tt.opPath, tt.opBody),
+					DeleteSecret: opConfigInherit(ts.URL, tt.opPath, tt.opBody, tt.opInherit),
 				}
 			}
 
