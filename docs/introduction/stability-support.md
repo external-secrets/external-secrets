@@ -62,6 +62,7 @@ The following table describes the stability level of each provider and who's res
 | -------- |----------:| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [AWS Certificate Manager](https://external-secrets.io/latest/provider/aws-certificate-manager/)            |    alpha | [external-secrets](https://github.com/external-secrets)                                             |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                  |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                             |    stable | [external-secrets](https://github.com/external-secrets)                                             |
@@ -102,6 +103,7 @@ The following table show the support for features across different providers.
 | ------------------------- |:------------:|:------------:| :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| AWS Certificate Manager   |              |              |                      |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | GCP Secret Manager        |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |

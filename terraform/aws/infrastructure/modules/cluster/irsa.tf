@@ -35,6 +35,23 @@ data "aws_iam_policy_document" "ssm_parameterstore" {
   }
 }
 
+# Create the IAM policy document for ACM access
+data "aws_iam_policy_document" "acm" {
+  statement {
+    actions = [
+      "acm:ImportCertificate",
+      "acm:DeleteCertificate",
+      "acm:DescribeCertificate",
+      "acm:ListTagsForCertificate",
+      "acm:AddTagsToCertificate",
+      "acm:RemoveTagsFromCertificate",
+      "tag:GetResources"
+    ]
+    effect    = "Allow"
+    resources = ["*"]
+  }
+}
+
 resource "aws_iam_role" "eso-e2e-irsa" {
   name               = "eso-e2e-irsa"
   path               = "/"
@@ -52,4 +69,11 @@ resource "aws_iam_role_policy" "ssm_parameterstore" {
   name   = "aws_ssm_parameterstore"
   role   = aws_iam_role.eso-e2e-irsa.id
   policy = data.aws_iam_policy_document.ssm_parameterstore.json
+}
+
+# Create and attach the inline policy for ACM
+resource "aws_iam_role_policy" "acm" {
+  name   = "aws_acm"
+  role   = aws_iam_role.eso-e2e-irsa.id
+  policy = data.aws_iam_policy_document.acm.json
 }
