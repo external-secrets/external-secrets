@@ -96,6 +96,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.conversion.enabled | bool | `false` | Conversion is disabled by default as we stopped supporting v1alpha1. |
 | crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false. |
 | crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false. |
+| crds.createClusterProviderClass | bool | `true` | If true, create CRDs for Cluster Provider Class. |
 | crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false. |
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false. |
 | crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false. |
@@ -181,6 +182,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
 | processPushSecret | bool | `true` | if true, the operator will process push secret. Else, it will ignore them. |
 | processSecretStore | bool | `true` | if true, the operator will process secret store. Else, it will ignore them. |
+| providerDefaults | object | `{"affinity":{},"autoscaling":{"enabled":false,"maxReplicas":10,"minReplicas":2,"targetCPUUtilizationPercentage":80,"targetMemoryUtilizationPercentage":80},"health":{"livenessProbe":{"enabled":false,"failureThreshold":3,"initialDelaySeconds":10,"periodSeconds":20,"timeoutSeconds":5},"port":8082,"readinessProbe":{"enabled":false,"failureThreshold":3,"initialDelaySeconds":5,"periodSeconds":10,"timeoutSeconds":5}},"metrics":{"enabled":true,"port":8081,"serviceMonitor":{"enabled":false,"interval":"30s","labels":{},"namespace":"","scrapeTimeout":"10s"}},"nodeSelector":{},"podAnnotations":{},"podDisruptionBudget":{"enabled":true,"minAvailable":1},"podLabels":{},"podSecurityContext":{"enabled":true,"fsGroup":65532,"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}},"priorityClassName":"","replicaCount":2,"resources":{"limits":{"cpu":"200m","memory":"256Mi"},"requests":{"cpu":"50m","memory":"64Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"enabled":true,"readOnlyRootFilesystem":true,"runAsNonRoot":true,"runAsUser":65532},"service":{"annotations":{},"port":8080,"type":"ClusterIP"},"serviceAccount":{"annotations":{},"automount":true,"create":true,"name":""},"tls":{"caSecretName":"external-secrets-v2-ca","certPath":"/etc/provider/certs","enabled":true,"mountCA":true},"tolerations":[],"topologySpreadConstraints":[]}` | Provider defaults configuration Common configuration that is automatically merged with each provider's configuration Individual providers can override any of these defaults by specifying the same keys |
+| providers | object | `{"enabled":false,"list":[]}` | Provider deployment configuration Deploy one or more external secret providers alongside the controller Each provider runs as a separate deployment with its own configuration |
+| providers.enabled | bool | `false` | Enable provider deployments |
+| providers.list | list | `[]` | List of providers to deploy Each provider automatically inherits defaults from providerDefaults above You only need to specify what you want to override |
 | rbac.aggregateToEdit | bool | `true` | Specifies whether permissions are aggregated to the edit ClusterRole |
 | rbac.aggregateToView | bool | `true` | Specifies whether permissions are aggregated to the view ClusterRole |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
@@ -227,6 +232,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | systemAuthDelegator | bool | `false` | If true the system:auth-delegator ClusterRole will be added to RBAC |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` |  |
+| v2 | object | `{"enabled":true}` | Experimental v2 out-of-process provider runtime support. Enables SecretStore runtimeRef compatibility flows. |
 | vault | object | `{"enableTokenCache":false,"tokenCacheSize":262144}` | Vault token cache configuration |
 | vault.enableTokenCache | bool | `false` | Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request. |
 | vault.tokenCacheSize | int | `262144` | Maximum size of Vault token cache. Only used if enableTokenCache is true. |

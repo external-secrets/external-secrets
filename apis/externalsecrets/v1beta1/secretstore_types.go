@@ -21,7 +21,57 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// StoreRuntimeRefKind constants define the supported runtime reference kinds.
+const (
+	StoreRuntimeRefKindProviderClass        = "ProviderClass"
+	StoreRuntimeRefKindClusterProviderClass = "ClusterProviderClass"
+)
+
+// StoreRuntimeRef identifies the runtime configuration used by a store.
+type StoreRuntimeRef struct {
+	// Kind identifies the runtime resource type referenced by this store.
+	// +kubebuilder:validation:Enum=ProviderClass;ClusterProviderClass
+	// +optional
+	Kind string `json:"kind,omitempty"`
+
+	// Name is the runtime resource name referenced by this store.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	Name string `json:"name"`
+}
+
+// StoreProviderRef identifies the provider configuration used by a store.
+type StoreProviderRef struct {
+	// APIVersion identifies the API schema version for the provider resource.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	APIVersion string `json:"apiVersion"`
+
+	// Kind identifies the provider resource type referenced by this store.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	Kind string `json:"kind"`
+
+	// Name is the provider resource name referenced by this store.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	Name string `json:"name"`
+
+	// Namespace is the provider resource namespace referenced by this store.
+	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	Namespace string `json:"namespace,omitempty"`
+}
+
 // SecretStoreSpec defines the desired state of SecretStore.
+// +kubebuilder:validation:XValidation:rule="(has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))",message="exactly one of spec.provider or spec.providerRef must be set"
+// +kubebuilder:validation:XValidation:rule="!(has(self.provider) && has(self.runtimeRef))",message="spec.runtimeRef must be empty when spec.provider is set"
+// +kubebuilder:validation:XValidation:rule="!has(self.providerRef) || has(self.runtimeRef)",message="spec.runtimeRef is required when spec.providerRef is set"
 type SecretStoreSpec struct {
 	// Used to select the correct ESO controller (think: ingress.ingressClassName)
 	// The ESO controller is instantiated with a specific controller name and filters ES based on this property
@@ -29,7 +79,11 @@ type SecretStoreSpec struct {
 	Controller string `json:"controller,omitempty"`
 
 	// Used to configure the provider. Only one provider may be set
-	Provider *SecretStoreProvider `json:"provider"`
+	Provider *SecretStoreProvider `json:"provider,omitempty"`
+
+	// ProviderRef references a provider configuration managed externally.
+	// +optional
+	ProviderRef *StoreProviderRef `json:"providerRef,omitempty"`
 
 	// Used to configure HTTP retries on failures.
 	// +optional
@@ -42,6 +96,10 @@ type SecretStoreSpec struct {
 	// Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
 	// +optional
 	Conditions []ClusterSecretStoreCondition `json:"conditions,omitempty"`
+
+	// RuntimeRef points to runtime configuration for this store.
+	// +optional
+	RuntimeRef *StoreRuntimeRef `json:"runtimeRef,omitempty"`
 }
 
 // ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in

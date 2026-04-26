@@ -17,16 +17,15 @@ limitations under the License.
 package template
 
 import (
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
-	// nolint
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	// nolint
+	. "github.com/onsi/gomega"
 )
 
 type templateProvider struct {

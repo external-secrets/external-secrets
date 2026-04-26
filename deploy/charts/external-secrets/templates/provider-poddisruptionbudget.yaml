@@ -1,0 +1,28 @@
+{{- if .Values.providers.enabled }}
+{{- range .Values.providers.list }}
+{{- if .enabled }}
+{{- $root := $ }}
+{{- $provider := include "external-secrets.provider.mergeDefaults" (dict "provider" . "root" $root) | fromYaml }}
+{{- if and $provider.podDisruptionBudget $provider.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "external-secrets.provider.fullname" (dict "provider" $provider "root" $root) }}
+  namespace: {{ include "external-secrets.namespace" $root }}
+  labels:
+    {{- include "external-secrets.provider.labels" (dict "provider" $provider "root" $root) | nindent 4 }}
+spec:
+  {{- if $provider.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ $provider.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if $provider.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ $provider.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "external-secrets.provider.selectorLabels" (dict "provider" $provider "root" $root) | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

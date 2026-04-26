@@ -30,15 +30,21 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	awsv2 "github.com/external-secrets/external-secrets/apis/provider/aws/v2alpha1"
+	fakev2alpha1 "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
+	k8sv2alpha1 "github.com/external-secrets/external-secrets/apis/provider/kubernetes/v2alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterproviderclass"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
@@ -46,11 +52,14 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/generatorstate"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/providerclass"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
+	grpccommon "github.com/external-secrets/external-secrets/providers/v2/common/grpc"
+	"github.com/external-secrets/external-secrets/runtime/clientmanager"
 	"github.com/external-secrets/external-secrets/runtime/feature"
 
 	// To allow using gcp auth.
@@ -103,6 +112,8 @@ var (
 	tlsMinVersion                         string
 	enableHTTP2                           bool
 	allowGenericTargets                   bool
+	providerNamespace                     string
+	providerServiceNames                  []string
 )
 
 const (
@@ -118,6 +129,11 @@ func init() {
 	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(genv1alpha1.AddToScheme(scheme))
+
+	// v2 provider schemes
+	utilruntime.Must(awsv2.AddToScheme(scheme))
+	utilruntime.Must(fakev2alpha1.AddToScheme(scheme))
+	utilruntime.Must(k8sv2alpha1.AddToScheme(scheme))
 }
 
 var rootCmd = &cobra.Command{
@@ -129,6 +145,14 @@ var rootCmd = &cobra.Command{
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
+		if err := clientmanager.RegisterMetrics(); err != nil {
+			setupLog.Error(err, "unable to register clientmanager metrics")
+			os.Exit(1)
+		}
+		if err := grpccommon.RegisterMetrics(crmetrics.Registry); err != nil {
+			setupLog.Error(err, "unable to register grpc metrics")
+			os.Exit(1)
+		}
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
@@ -228,6 +252,33 @@ var rootCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+
+		if err = (&clusterproviderclass.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("ClusterProviderClass"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: storeRequeueInterval,
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "ClusterProviderClass")
+			os.Exit(1)
+		}
+
+		if err = (&providerclass.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("ProviderClass"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: storeRequeueInterval,
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "ProviderClass")
+			os.Exit(1)
+		}
+
 		if err = (&generatorstate.Reconciler{
 			Client:     mgr.GetClient(),
 			Log:        ctrl.Log.WithName("controllers").WithName("GeneratorState"),
@@ -360,7 +411,7 @@ func init() {
 		true,
 		"Enable a direct API read when the partial Secret cache and managed Secret cache disagree. Disable to rely on cache retry only.",
 	)
-	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
+	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", 30*time.Second, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableGeneratorState, "enable-generator-state", true, "Whether the Controller should manage GeneratorState")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")

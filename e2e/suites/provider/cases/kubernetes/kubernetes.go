@@ -19,18 +19,27 @@ package kubernetes
 import (
 	"fmt"
 
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
 )
 
 const referentAuth = "with referent auth"
 
-var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
+func describeLabels() []any {
+	labels := []any{Label("kubernetes")}
+	if framework.IsV2ProviderMode() {
+		labels = append(labels, Label("v2"))
+	}
+	return labels
+}
+
+var _ = Describe("[kubernetes] ", append(describeLabels(), func() {
 	f := framework.New("eso-kubernetes")
 	prov := NewProvider(f)
 
@@ -50,7 +59,7 @@ var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
 		framework.Compose(referentAuth, f, common.JSONDataWithProperty, withReferentStore),
 		framework.Compose(referentAuth, f, common.JSONDataWithoutTargetName, withReferentStore),
 	)
-})
+})...)
 
 func withReferentStore(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentStoreName(tc.Framework)

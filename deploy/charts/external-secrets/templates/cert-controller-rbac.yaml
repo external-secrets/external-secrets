@@ -66,6 +66,7 @@ rules:
     - "list"
     - "watch"
     - "update"
+    - "create"
     - "patch"
   - apiGroups:
     - "coordination.k8s.io"

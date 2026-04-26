@@ -23,12 +23,6 @@ import (
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
-
-	//nolint
-	. "github.com/onsi/ginkgo/v2"
-
-	//nolint
-	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -36,6 +30,11 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+
+	//nolint
+	. "github.com/onsi/ginkgo/v2"
+	//nolint
+	. "github.com/onsi/gomega"
 )
 
 type vaultProvider struct {

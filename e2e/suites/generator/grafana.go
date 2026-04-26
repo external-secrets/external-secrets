@@ -21,23 +21,22 @@ import (
 	"strings"
 	"time"
 
-	//nolint
-	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
+	grafanaclient "github.com/grafana/grafana-openapi-client-go/client"
+	grafanasearch "github.com/grafana/grafana-openapi-client-go/client/search"
+	grafanasa "github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	grafanaclient "github.com/grafana/grafana-openapi-client-go/client"
-	grafanasearch "github.com/grafana/grafana-openapi-client-go/client/search"
-	grafanasa "github.com/grafana/grafana-openapi-client-go/client/service_accounts"
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	//nolint
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("grafana generator", Label("grafana"), func() {
