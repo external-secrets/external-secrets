@@ -20,6 +20,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	acr "github.com/external-secrets/external-secrets/generators/v1/acr"
 	cloudsmith "github.com/external-secrets/external-secrets/generators/v1/cloudsmith"
+	codeartifact "github.com/external-secrets/external-secrets/generators/v1/codeartifact"
 	ecr "github.com/external-secrets/external-secrets/generators/v1/ecr"
 	fakegen "github.com/external-secrets/external-secrets/generators/v1/fake"
 	gcr "github.com/external-secrets/external-secrets/generators/v1/gcr"
@@ -39,6 +40,7 @@ func init() {
 	// Register all generators
 	genv1alpha1.Register(acr.Kind(), acr.NewGenerator())
 	genv1alpha1.Register(cloudsmith.Kind(), cloudsmith.NewGenerator())
+	genv1alpha1.Register(codeartifact.Kind(), codeartifact.NewGenerator())
 	genv1alpha1.Register(ecr.Kind(), ecr.NewGenerator())
 	genv1alpha1.Register(fakegen.Kind(), fakegen.NewGenerator())
 	genv1alpha1.Register(gcr.Kind(), gcr.NewGenerator())
