@@ -1550,6 +1550,226 @@ int
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.BeyondtrustWorkloadCredentialsAuth">BeyondtrustWorkloadCredentialsAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">BeyondtrustWorkloadCredentialsProvider</a>)
+</p>
+<p>
+<p>BeyondtrustWorkloadCredentialsAuth defines the authentication method for the BeyondTrust Workload Credentials provider.
+Currently supports API key authentication via Kubernetes secret reference.
+For authentication documentation, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apikey</code></br>
+<em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsAuthSecretRef">
+BeyondtrustWorkloadCredentialsAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>APIKey configures API token authentication for BeyondTrust Workload Credentials.
+The token is retrieved from a Kubernetes secret and used as a Bearer token for API requests.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BeyondtrustWorkloadCredentialsAuthSecretRef">BeyondtrustWorkloadCredentialsAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsAuth">BeyondtrustWorkloadCredentialsAuth</a>)
+</p>
+<p>
+<p>BeyondtrustWorkloadCredentialsAuthSecretRef defines a reference to a secret containing credentials for the BeyondTrust Workload Credentials provider.
+The nested structure supports multiple authentication methods (currently only API token is supported).
+For more information on authentication, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>Token references the Kubernetes secret containing the BeyondTrust Workload Credentials API token.
+The secret should contain the API key used to authenticate with BeyondTrust Workload Credentials.
+Create an API token in your BeyondTrust Workload Credentials console and store it in a Kubernetes secret.
+For details on creating API tokens, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">BeyondtrustWorkloadCredentialsProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretSpec">BeyondtrustWorkloadCredentialsDynamicSecretSpec</a>)
+</p>
+<p>
+<p>BeyondtrustWorkloadCredentialsProvider configures a store to sync secrets using the BeyondTrust Workload Credentials provider.
+BeyondTrust Workload Credentials provides secure storage for static secrets and dynamic credential generation.
+This provider supports reading secrets and generating dynamic credentials (e.g., temporary AWS credentials).
+For complete documentation, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsAuth">
+BeyondtrustWorkloadCredentialsAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
+Currently supports API key authentication via Kubernetes secret reference.
+For authentication setup, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsServer">
+BeyondtrustWorkloadCredentialsServer
+</a>
+</em>
+</td>
+<td>
+<p>Server configures the BeyondTrust Workload Credentials server connection details.
+Includes the API URL and Site ID for your BeyondTrust instance.
+For API reference, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>folderPath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FolderPath specifies the default folder path for secret retrieval.
+Secrets will be fetched from this folder unless overridden in the ExternalSecret spec.
+Example: &ldquo;production/database&rdquo; or &ldquo;dev/api-keys&rdquo;
+Leave empty to retrieve secrets from the root folder.
+For folder organization, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#folders">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#folders</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CABundle is a base64-encoded CA certificate used to validate the BeyondTrust Workload Credentials API TLS certificate.
+Use this when your BeyondTrust instance uses a self-signed certificate or internal CA.
+If not set, the system&rsquo;s trusted root certificates are used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CAProvider points to a Secret or ConfigMap containing a PEM-encoded CA certificate.
+This is used to validate the BeyondTrust Workload Credentials API TLS certificate.
+Use this as an alternative to CABundle when you want to reference an existing Kubernetes resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BeyondtrustWorkloadCredentialsServer">BeyondtrustWorkloadCredentialsServer
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">BeyondtrustWorkloadCredentialsProvider</a>)
+</p>
+<p>
+<p>BeyondtrustWorkloadCredentialsServer defines connection configuration for BeyondTrust Workload Credentials.
+For API reference documentation, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIURL is the base URL of your BeyondTrust Workload Credentials API server.
+This should be the full URL to your BeyondTrust instance.
+Example: <a href="https://example.secretsmanager.cyberark.cloud">https://example.secretsmanager.cyberark.cloud</a>
+For more information, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#base-url">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#base-url</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>siteId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>SiteID is your BeyondTrust Workload Credentials site identifier (UUID format).
+This identifier is unique to your BeyondTrust Workload Credentials instance.
+You can find your Site ID in the BeyondTrust Workload Credentials admin console.
+Example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+For more information, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.BitwardenSecretsManagerAuth">BitwardenSecretsManagerAuth
 </h3>
 <p>
@@ -1769,6 +1989,7 @@ string
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.AkeylessProvider">AkeylessProvider</a>, 
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">BeyondtrustWorkloadCredentialsProvider</a>, 
 <a href="#external-secrets.io/v1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
 <a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>, 
 <a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
@@ -9947,6 +10168,20 @@ BeyondtrustProvider
 </tr>
 <tr>
 <td>
+<code>beyondtrustworkloadcredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">
+BeyondtrustWorkloadCredentialsProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BeyondtrustWorkloadCredentials configures this store to sync secrets using the BeyondTrust Workload Credentials provider.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>cloudrusm</code></br>
 <em>
 <a href="#external-secrets.io/v1.CloudruSMProvider">
@@ -10067,6 +10302,7 @@ Defaults to <code>SecretStore</code></p>
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretSpec">BeyondtrustWorkloadCredentialsDynamicSecretSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecretSpec">VaultDynamicSecretSpec</a>)
 </p>
 <p>
@@ -25358,6 +25594,167 @@ that should be used when authenticating with WorkloadIdentity.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret">BeyondtrustWorkloadCredentialsDynamicSecret
+</h3>
+<p>
+<p>BeyondtrustWorkloadCredentialsDynamicSecret represents a generator that requests dynamic credentials from BeyondTrust Workload Credentials.
+This generator calls the BeyondTrust Workload Credentials API to generate fresh, temporary credentials
+(such as AWS STS credentials) each time an ExternalSecret is refreshed.
+Dynamic secret definitions must be created in BeyondTrust Workload Credentials before they can be referenced.
+For complete documentation, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretSpec">
+BeyondtrustWorkloadCredentialsDynamicSecretSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>controller</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controller selects the controller that should handle this generator.
+Leave empty to use the default controller.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>provider</code></br>
+<em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">
+BeyondtrustWorkloadCredentialsProvider
+</a>
+</em>
+</td>
+<td>
+<p>Provider contains the BeyondtrustWorkloadCredentials provider configuration including authentication,
+server connection details, and the folder path to the dynamic secret definition.
+The folderPath should point to a dynamic secret definition that has been created in
+BeyondTrust Workload Credentials (e.g., &ldquo;production/aws-temp&rdquo;).
+For setup details, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrySettings</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretStoreRetrySettings">
+SecretStoreRetrySettings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RetrySettings configures exponential backoff for failed API requests.
+If not specified, uses the default retry settings.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretSpec">BeyondtrustWorkloadCredentialsDynamicSecretSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret">BeyondtrustWorkloadCredentialsDynamicSecret</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
+</p>
+<p>
+<p>BeyondtrustWorkloadCredentialsDynamicSecretSpec defines the desired spec for BeyondtrustWorkloadCredentials dynamic generator.
+This generator enables obtaining temporary, short-lived credentials from BeyondTrust Workload Credentials.
+For more information, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>controller</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controller selects the controller that should handle this generator.
+Leave empty to use the default controller.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>provider</code></br>
+<em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">
+BeyondtrustWorkloadCredentialsProvider
+</a>
+</em>
+</td>
+<td>
+<p>Provider contains the BeyondtrustWorkloadCredentials provider configuration including authentication,
+server connection details, and the folder path to the dynamic secret definition.
+The folderPath should point to a dynamic secret definition that has been created in
+BeyondTrust Workload Credentials (e.g., &ldquo;production/aws-temp&rdquo;).
+For setup details, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrySettings</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretStoreRetrySettings">
+SecretStoreRetrySettings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RetrySettings configures exponential backoff for failed API requests.
+If not specified, uses the default retry settings.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="generators.external-secrets.io/v1alpha1.CloudsmithAccessToken">CloudsmithAccessToken
 </h3>
 <p>
@@ -26247,6 +26644,9 @@ string
 <tbody><tr><td><p>&#34;ACRAccessToken&#34;</p></td>
 <td><p>GeneratorKindACRAccessToken represents an Azure Container Registry access token generator.</p>
 </td>
+</tr><tr><td><p>&#34;BeyondtrustWorkloadCredentialsDynamicSecret&#34;</p></td>
+<td><p>GeneratorKindBeyondtrustWorkloadCredentialsDynamicSecret represents a BeyondTrust Workload Credentials dynamic secret generator.</p>
+</td>
 </tr><tr><td><p>&#34;CloudsmithAccessToken&#34;</p></td>
 <td><p>GeneratorKindCloudsmithAccessToken represents a Cloudsmith access token generator.</p>
 </td>
@@ -26327,6 +26727,18 @@ ACRAccessTokenSpec
 </tr>
 <tr>
 <td>
+<code>beyondtrustWorkloadCredentialsDynamicSecretSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretSpec">
+BeyondtrustWorkloadCredentialsDynamicSecretSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>cloudsmithAccessTokenSpec</code></br>
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.CloudsmithAccessTokenSpec">
@@ -26387,10 +26799,22 @@ GithubAccessTokenSpec
 </tr>
 <tr>
 <td>
-<code>quayAccessTokenSpec</code></br>
+<code>grafanaSpec</code></br>
 <em>
-<a href="#generators.external-secrets.io/v1alpha1.QuayAccessTokenSpec">
-QuayAccessTokenSpec
+<a href="#generators.external-secrets.io/v1alpha1.GrafanaSpec">
+GrafanaSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>mfaSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.MFASpec">
+MFASpec
 </a>
 </em>
 </td>
@@ -26403,6 +26827,18 @@ QuayAccessTokenSpec
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.PasswordSpec">
 PasswordSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>quayAccessTokenSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.QuayAccessTokenSpec">
+QuayAccessTokenSpec
 </a>
 </em>
 </td>
@@ -26463,30 +26899,6 @@ VaultDynamicSecretSpec
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.WebhookSpec">
 WebhookSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>grafanaSpec</code></br>
-<em>
-<a href="#generators.external-secrets.io/v1alpha1.GrafanaSpec">
-GrafanaSpec
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>mfaSpec</code></br>
-<em>
-<a href="#generators.external-secrets.io/v1alpha1.MFASpec">
-MFASpec
 </a>
 </em>
 </td>
