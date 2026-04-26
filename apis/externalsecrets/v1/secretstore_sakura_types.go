@@ -35,6 +35,7 @@ type SakuraProvider struct {
 
 // SakuraAuth defines the information necessary to authenticate against Sakura Cloud.
 type SakuraAuth struct {
+	// SecretRef contains selectors for the access token and access token secret.
 	// +required
 	SecretRef SakuraSecretRef `json:"secretRef"`
 }
