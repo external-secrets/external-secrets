@@ -5750,7 +5750,34 @@
 <h3 id="creating-a-pushsecret">Creating a PushSecret</h3>
 <p>You can push secrets from Kubernetes into Azure Key Vault as secrets, keys or certificates by using a <code>PushSecret</code>. A <code>PushSecret</code> references a Kubernetes Secret as the source of the data. The operator can create, update or delete the corresponding secret in Azure Key Vault to match the desired state defined in the <code>PushSecret</code>.</p>
 <h4 id="pushing-to-a-secret">Pushing to a Secret</h4>
-<p>Pushing to a Secret requires no previous setup. Provided you have a Kubernetes Secret available, you can create a <code>PushSecret</code> which references it to have it created on Azure Key Vault. You can optionally set metadata such as content type or tags. The operator will read the data from the Kubernetes Secret and push it to Azure Key Vault as a secret.</p>
+<p>Pushing to a Secret requires no previous setup. Provided you have a Kubernetes Secret available, you can create a <code>PushSecret</code> which references it to have it created on Azure Key Vault. The operator will read the data from the Kubernetes Secret and push it to Azure Key Vault as a secret.</p>
+<p>You can optionally attach metadata to the secret via the <code>spec.data[].metadata</code> field. The following fields are supported:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>expirationDate</code></td>
+<td>string</td>
+<td>Expiration date for the secret in RFC3339 format (e.g. <code>2099-12-31T23:59:59Z</code>).</td>
+</tr>
+<tr>
+<td><code>contentType</code></td>
+<td>string</td>
+<td>Content type of the secret value (e.g. <code>application/json</code>, <code>text/plain</code>).</td>
+</tr>
+<tr>
+<td><code>tags</code></td>
+<td>map[string]string</td>
+<td>Arbitrary key-value tags attached to the secret in Azure Key Vault.</td>
+</tr>
+</tbody>
+</table>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5782,12 +5809,17 @@
 <span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
 <span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">expirationDate</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2024-12-31T23:59:59Z&quot;</span><span class="w"> </span><span class="c1"># Expiration date for the secret in Azure Key Vault</span>
+<span class="w">          </span><span class="nt">contentType</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;application/json&quot;</span><span class="w"> </span><span class="c1"># Content type of the secret value in Azure Key Vault</span>
 <span class="w">          </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="c1"># Tags to be added to the secret in Azure Key Vault</span>
-<span class="w">            </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
+<span class="w">            </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In order to create a PushSecret targeting Secrets, the <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-officer">Key Vault Secrets Officer</a> role, alternatively Access Policy permissions <code>Set</code> and <code>Delete</code> for Secrets must be granted to the identity configured on the SecretStore.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Omitting <code>contentType</code> (or setting it to an empty string) is interpreted as "don't change" rather than "clear": if the secret in Azure Key Vault already has a <code>ContentType</code> set, it will be preserved on update. There is currently no way to clear an existing <code>ContentType</code> via PushSecret — if you need to remove it, delete the secret from Azure Key Vault directly and let PushSecret recreate it.</p>
 </div>
 <h4 id="pushing-to-a-key">Pushing to a Key</h4>
 <p>The first step is to generate a valid private key. Supported formats include <code>PRIVATE KEY</code>, <code>RSA PRIVATE KEY</code> AND <code>EC PRIVATE KEY</code> (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:</p>

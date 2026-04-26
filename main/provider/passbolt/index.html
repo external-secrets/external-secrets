@@ -3815,6 +3815,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Creating a Passbolt secret store">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-ca-certificate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom CA certificate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4926,6 +4943,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Creating a Passbolt secret store">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-ca-certificate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom CA certificate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4992,6 +5026,36 @@ The API requires a password and private key provided in a secret.</p>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">passbolt-credentials</span>
 </code></pre></div>
+<h4 id="custom-ca-certificate">Custom CA certificate</h4>
+<p>If your Passbolt instance uses a certificate signed by a private or custom
+Certificate Authority, you can configure the CA bundle that ESO uses to
+validate the Passbolt server certificate. Either supply the PEM-encoded
+bundle inline via <code>caBundle</code>, or reference a Secret/ConfigMap via
+<code>caProvider</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">passbolt-with-custom-ca</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">passbolt</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://passbolt.example.com</span>
+<span class="w">      </span><span class="c1"># Reference a ConfigMap or Secret containing the CA bundle that signed</span>
+<span class="w">      </span><span class="c1"># the Passbolt server certificate.</span>
+<span class="w">      </span><span class="nt">caProvider</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">passbolt-ca-bundle</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">passwordSecretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">passbolt-credentials</span>
+<span class="w">        </span><span class="nt">privateKeySecretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">passbolt-credentials</span>
+</code></pre></div>
+<p>If neither <code>caBundle</code> nor <code>caProvider</code> is set, ESO uses the system root
+certificates to validate the TLS connection.</p>
 <h3 id="creating-an-external-secret">Creating an external secret</h3>
 <p>To sync a Passbolt secret to a Kubernetes secret, a <code>Kind=ExternalSecret</code> is needed.
 By default the secret contains name, username, uri, password and description.</p>
