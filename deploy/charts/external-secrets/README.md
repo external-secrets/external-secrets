@@ -57,7 +57,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.livenessProbe.failureThreshold | int | `5` |  |
 | certController.livenessProbe.initialDelaySeconds | int | `10` |  |
 | certController.livenessProbe.periodSeconds | int | `10` |  |
-| certController.livenessProbe.port | int | `8081` | Set this value to 'ready' (for named port) or an integer for liveness probes. @schema type: [string, integer] |
+| certController.livenessProbe.port | int | `8081` | Set this value to 'live' (for named port) or an integer for liveness probes. @schema type: [string, integer] |
 | certController.livenessProbe.successThreshold | int | `1` |  |
 | certController.livenessProbe.timeoutSeconds | int | `5` |  |
 | certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Certificate Controller |
@@ -276,7 +276,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.livenessProbe.failureThreshold | int | `5` |  |
 | webhook.livenessProbe.initialDelaySeconds | int | `10` |  |
 | webhook.livenessProbe.periodSeconds | int | `10` |  |
-| webhook.livenessProbe.port | int | `8081` | Set this value to 'ready' (for named port) or an integer for liveness probes. @schema type: [string, integer] |
+| webhook.livenessProbe.port | int | `8081` | Set this value to 'live' (for named port) or an integer for liveness probes. @schema type: [string, integer] |
 | webhook.livenessProbe.successThreshold | int | `1` |  |
 | webhook.livenessProbe.timeoutSeconds | int | `5` |  |
 | webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Webhook |

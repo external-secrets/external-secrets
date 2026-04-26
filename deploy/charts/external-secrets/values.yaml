@@ -559,7 +559,7 @@ webhook:
 
   livenessProbe:
     enabled: false
-    # -- Set this value to 'ready' (for named port) or an integer for liveness probes.
+    # -- Set this value to 'live' (for named port) or an integer for liveness probes.
     # @schema type: [string, integer]
     port: 8081
     timeoutSeconds: 5
@@ -722,7 +722,7 @@ certController:
 
   livenessProbe:
     enabled: false
-    # -- Set this value to 'ready' (for named port) or an integer for liveness probes.
+    # -- Set this value to 'live' (for named port) or an integer for liveness probes.
     # @schema type: [string, integer]
     port: 8081
     timeoutSeconds: 5
