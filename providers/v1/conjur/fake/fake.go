@@ -19,15 +19,64 @@ package fake
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 )
 
+type AddSecretCall struct {
+	Variable string
+	Value    string
+}
+
+type LoadPolicyCall struct {
+	PolicyID string
+	Policy   string
+}
+
 type ConjurMockClient struct {
+	AddSecretCalls  []AddSecretCall
+	LoadPolicyCalls []LoadPolicyCall
+	SecretDetails   map[string]*conjurapi.StaticSecretResponse
+	SecretValues    map[string][]byte
+}
+
+func (mc *ConjurMockClient) AddSecret(variable, secret string) error {
+	mc.AddSecretCalls = append(mc.AddSecretCalls, AddSecretCall{
+		Variable: variable,
+		Value:    secret,
+	})
+	return nil
+}
+
+func (mc *ConjurMockClient) GetStaticSecretDetails(id string) (*conjurapi.StaticSecretResponse, error) {
+	if mc.SecretDetails == nil || mc.SecretDetails[id] == nil {
+		return &conjurapi.StaticSecretResponse{
+			StaticSecret: conjurapi.StaticSecret{
+				Annotations: map[string]string{
+					"managed-by": "external-secrets",
+				},
+			},
+			Permissions: conjurapi.Permission{},
+		}, nil
+	}
+	return mc.SecretDetails[id], nil
+}
+
+func (mc *ConjurMockClient) LoadPolicy(policyMode conjurapi.PolicyMode, policyID string, policy io.Reader) (*conjurapi.PolicyResponse, error) {
+	body, _ := io.ReadAll(policy)
+	mc.LoadPolicyCalls = append(mc.LoadPolicyCalls, LoadPolicyCall{
+		PolicyID: policyID,
+		Policy:   string(body),
+	})
+	return &conjurapi.PolicyResponse{}, nil
 }
 
 func (mc *ConjurMockClient) RetrieveSecret(secret string) (result []byte, err error) {
+	if value, ok := mc.SecretValues[secret]; ok {
+		return value, nil
+	}
 	if secret == "error" {
 		err = errors.New("error")
 		return nil, err
