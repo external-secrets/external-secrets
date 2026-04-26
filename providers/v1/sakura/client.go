@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/sacloud/secretmanager-api-go"
 	v1 "github.com/sacloud/secretmanager-api-go/apis/v1"
@@ -283,9 +284,14 @@ func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return ok, nil
 }
 
+const validationTimeout = 5 * time.Second
+
 // Validate checks if the client is configured correctly and is able to retrieve secrets from the provider.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
-	if _, err := c.api.List(context.Background()); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), validationTimeout)
+	defer cancel()
+
+	if _, err := c.api.List(ctx); err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("failed to validate client: %w", err)
 	}
 
