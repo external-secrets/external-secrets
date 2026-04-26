@@ -38,7 +38,7 @@ func TestGetSecret(t *testing.T) {
 	tests := []struct {
 		name      string
 		ref       esv1.ExternalSecretDataRemoteRef
-		mockSetup func(*fake.MockSecretAPIClient)
+		mockSetup func(t *testing.T, mc *fake.MockSecretAPIClient)
 		wantData  []byte
 		wantErr   bool
 	}{
@@ -47,7 +47,7 @@ func TestGetSecret(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return &v1.Unveil{Value: "data-1"}, nil
@@ -61,7 +61,7 @@ func TestGetSecret(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return nil, errors.New("API error")
@@ -77,7 +77,7 @@ func TestGetSecret(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := sakura.NewClient(mockClient)
 
 			data, err := client.GetSecret(context.Background(), tt.ref)
@@ -98,7 +98,7 @@ func TestPushSecret(t *testing.T) {
 		name      string
 		secret    *corev1.Secret
 		data      esv1.PushSecretData
-		mockSetup func(*fake.MockSecretAPIClient)
+		mockSetup func(t *testing.T, mc *fake.MockSecretAPIClient)
 		wantErr   bool
 	}{
 		{
@@ -112,7 +112,7 @@ func TestPushSecret(t *testing.T) {
 				SecretKey: "k8s-secret-key-2",
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {},
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {},
 			wantErr:   true,
 		},
 		{
@@ -125,7 +125,7 @@ func TestPushSecret(t *testing.T) {
 			data: esfake.PushSecretData{
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.Equal(t, `{"k8s-secret-key-1":"data-1"}`, params.Value)
@@ -145,7 +145,7 @@ func TestPushSecret(t *testing.T) {
 				SecretKey: "k8s-secret-key-1",
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.Equal(t, "data-1", params.Value)
@@ -166,7 +166,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -194,7 +194,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{}, nil
 				})
@@ -218,7 +218,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{}, nil
 				})
@@ -242,7 +242,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{}, nil
 				})
@@ -267,7 +267,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{}, nil
 				})
@@ -291,7 +291,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -319,7 +319,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -342,7 +342,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return nil, errors.New("API error")
 				})
@@ -361,7 +361,7 @@ func TestPushSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -382,7 +382,7 @@ func TestPushSecret(t *testing.T) {
 			data: esfake.PushSecretData{
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.Equal(t, `{"k8s-secret-key-1":"data-1"}`, params.Value)
@@ -398,7 +398,7 @@ func TestPushSecret(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := sakura.NewClient(mockClient)
 
 			err := client.PushSecret(context.Background(), tt.secret, tt.data)
@@ -417,7 +417,7 @@ func TestDeleteSecret(t *testing.T) {
 	tests := []struct {
 		name      string
 		remoteRef esv1.PushSecretRemoteRef
-		mockSetup func(*fake.MockSecretAPIClient)
+		mockSetup func(t *testing.T, mc *fake.MockSecretAPIClient)
 		wantErr   bool
 	}{
 		{
@@ -425,7 +425,7 @@ func TestDeleteSecret(t *testing.T) {
 			remoteRef: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -441,7 +441,7 @@ func TestDeleteSecret(t *testing.T) {
 			remoteRef: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{}, nil
 				})
@@ -454,7 +454,7 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -476,7 +476,7 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -497,7 +497,7 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -514,7 +514,7 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -531,7 +531,7 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return nil, errors.New("API error")
 				})
@@ -544,7 +544,7 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -560,7 +560,7 @@ func TestDeleteSecret(t *testing.T) {
 			remoteRef: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -577,7 +577,7 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -599,7 +599,7 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -621,7 +621,7 @@ func TestDeleteSecret(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := sakura.NewClient(mockClient)
 
 			err := client.DeleteSecret(context.Background(), tt.remoteRef)
@@ -640,7 +640,7 @@ func TestSecretExists(t *testing.T) {
 	tests := []struct {
 		name       string
 		remoteRef  esv1.PushSecretRemoteRef
-		mockSetup  func(*fake.MockSecretAPIClient)
+		mockSetup  func(*testing.T, *fake.MockSecretAPIClient)
 		wantExists bool
 		wantErr    bool
 	}{
@@ -649,7 +649,7 @@ func TestSecretExists(t *testing.T) {
 			remoteRef: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "test-secret-4",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-4"}}, nil
 				})
@@ -663,7 +663,7 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -681,7 +681,7 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -699,7 +699,7 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -717,7 +717,7 @@ func TestSecretExists(t *testing.T) {
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -734,7 +734,7 @@ func TestSecretExists(t *testing.T) {
 			remoteRef: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{}, nil
 				})
@@ -747,7 +747,7 @@ func TestSecretExists(t *testing.T) {
 			remoteRef: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return nil, errors.New("API error")
 				})
@@ -762,7 +762,7 @@ func TestSecretExists(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := sakura.NewClient(mockClient)
 
 			exists, err := client.SecretExists(context.Background(), tt.remoteRef)
@@ -781,13 +781,13 @@ func TestValidate(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		mockSetup  func(*fake.MockSecretAPIClient)
+		mockSetup  func(*testing.T, *fake.MockSecretAPIClient)
 		wantResult esv1.ValidationResult
 		wantErr    bool
 	}{
 		{
 			name: "validation success",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{}, nil
 				})
@@ -797,7 +797,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "validation failure",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return nil, errors.New("API error")
 				})
@@ -812,7 +812,7 @@ func TestValidate(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := sakura.NewClient(mockClient)
 
 			result, err := client.Validate()
@@ -832,7 +832,7 @@ func TestGetSecretMap(t *testing.T) {
 	tests := []struct {
 		name      string
 		ref       esv1.ExternalSecretDataRemoteRef
-		mockSetup func(*fake.MockSecretAPIClient)
+		mockSetup func(t *testing.T, mc *fake.MockSecretAPIClient)
 		wantMap   map[string][]byte
 		wantErr   bool
 	}{
@@ -841,7 +841,7 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return &v1.Unveil{Value: `{"property-1":"value-1","property-2":"value-2"}`}, nil
@@ -858,7 +858,7 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return &v1.Unveil{Value: `{"property-1":"value-1","property-2":42,"property-3":true}`}, nil
@@ -877,7 +877,7 @@ func TestGetSecretMap(t *testing.T) {
 				Key:      "test-secret-1",
 				Property: "property-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return &v1.Unveil{Value: `{"property-1":{"property-2":"value-2","property-3":"value-3"}}`}, nil
@@ -894,7 +894,7 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return &v1.Unveil{Value: "data-1"}, nil
@@ -908,7 +908,7 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "test-secret-1",
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return nil, errors.New("API error")
@@ -924,7 +924,7 @@ func TestGetSecretMap(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := sakura.NewClient(mockClient)
 
 			secretMap, err := client.GetSecretMap(context.Background(), tt.ref)
@@ -944,14 +944,14 @@ func TestGetAllSecrets(t *testing.T) {
 	tests := []struct {
 		name      string
 		ref       esv1.ExternalSecretFind
-		mockSetup func(*fake.MockSecretAPIClient)
+		mockSetup func(t *testing.T, mc *fake.MockSecretAPIClient)
 		wantMap   map[string][]byte
 		wantErr   bool
 	}{
 		{
 			name: "get all secrets without filter",
 			ref:  esv1.ExternalSecretFind{},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}, {Name: "test-secret-2"}}, nil
 				})
@@ -979,7 +979,7 @@ func TestGetAllSecrets(t *testing.T) {
 					RegExp: "^(test-secret-[12])$",
 				},
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}, {Name: "test-secret-2"}, {Name: "test-secret-3"}}, nil
 				})
@@ -1005,7 +1005,7 @@ func TestGetAllSecrets(t *testing.T) {
 			ref: esv1.ExternalSecretFind{
 				Path: new("some/path"),
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {},
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {},
 			wantMap:   nil,
 			wantErr:   true,
 		},
@@ -1016,14 +1016,14 @@ func TestGetAllSecrets(t *testing.T) {
 					"env": "prod",
 				},
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {},
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {},
 			wantMap:   nil,
 			wantErr:   true,
 		},
 		{
 			name: "list API error",
 			ref:  esv1.ExternalSecretFind{},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return nil, errors.New("API error")
 				})
@@ -1034,7 +1034,7 @@ func TestGetAllSecrets(t *testing.T) {
 		{
 			name: "unveil API error",
 			ref:  esv1.ExternalSecretFind{},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -1053,7 +1053,7 @@ func TestGetAllSecrets(t *testing.T) {
 					RegExp: "[invalid",
 				},
 			},
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -1068,7 +1068,7 @@ func TestGetAllSecrets(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := sakura.NewClient(mockClient)
 
 			secretMap, err := client.GetAllSecrets(context.Background(), tt.ref)

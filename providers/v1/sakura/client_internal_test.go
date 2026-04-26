@@ -35,7 +35,7 @@ func TestUnveilSecret(t *testing.T) {
 		secretName string
 		version    string
 		property   string
-		mockSetup  func(*fake.MockSecretAPIClient)
+		mockSetup  func(*testing.T, *fake.MockSecretAPIClient)
 		wantData   []byte
 		wantErr    bool
 	}{
@@ -44,7 +44,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "",
 			property:   "",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.Equal(t, v1.OptNilInt{}, params.Version)
@@ -59,7 +59,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "2",
 			property:   "",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.Equal(t, v1.NewOptNilInt(2), params.Version)
@@ -74,7 +74,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "",
 			property:   "property-1",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.Equal(t, v1.OptNilInt{}, params.Version)
@@ -89,7 +89,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "",
 			property:   "property-1",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.Equal(t, v1.OptNilInt{}, params.Version)
@@ -104,7 +104,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "2",
 			property:   "property-1",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.Equal(t, v1.NewOptNilInt(2), params.Version)
@@ -119,7 +119,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "invalid",
 			property:   "",
-			mockSetup:  func(mc *fake.MockSecretAPIClient) {},
+			mockSetup:  func(t *testing.T, mc *fake.MockSecretAPIClient) {},
 			wantData:   nil,
 			wantErr:    true,
 		},
@@ -128,7 +128,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "",
 			property:   "property-1",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return &v1.Unveil{Value: "data-1"}, nil
@@ -142,7 +142,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "",
 			property:   "property-1",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return &v1.Unveil{Value: `{"property-2":"value-2ß"}`}, nil
@@ -156,7 +156,7 @@ func TestUnveilSecret(t *testing.T) {
 			secretName: "test-secret-1",
 			version:    "",
 			property:   "",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
 					require.Equal(t, "test-secret-1", params.Name)
 					return nil, errors.New("API error")
@@ -172,7 +172,7 @@ func TestUnveilSecret(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := NewClient(mockClient)
 
 			data, err := client.unveilSecret(context.Background(), tt.secretName, tt.version, tt.property)
@@ -192,14 +192,14 @@ func TestSecretKeyExists(t *testing.T) {
 	tests := []struct {
 		name       string
 		key        string
-		mockSetup  func(*fake.MockSecretAPIClient)
+		mockSetup  func(*testing.T, *fake.MockSecretAPIClient)
 		wantExists bool
 		wantErr    bool
 	}{
 		{
 			name: "secret exists",
 			key:  "test-secret-1",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-1"}}, nil
 				})
@@ -210,7 +210,7 @@ func TestSecretKeyExists(t *testing.T) {
 		{
 			name: "secret does not exist",
 			key:  "test-secret-1",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return []v1.Secret{{Name: "test-secret-2"}}, nil
 				})
@@ -221,7 +221,7 @@ func TestSecretKeyExists(t *testing.T) {
 		{
 			name: "list API error",
 			key:  "test-secret-1",
-			mockSetup: func(mc *fake.MockSecretAPIClient) {
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
 				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
 					return nil, errors.New("API error")
 				})
@@ -236,7 +236,7 @@ func TestSecretKeyExists(t *testing.T) {
 			t.Parallel()
 
 			mockClient := fake.NewMockSecretAPIClient(t)
-			tt.mockSetup(mockClient)
+			tt.mockSetup(t, mockClient)
 			client := NewClient(mockClient)
 
 			exists, err := client.secretKeyExists(context.Background(), tt.key)
