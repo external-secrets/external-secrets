@@ -6545,9 +6545,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against Sakura Cloud.
                           properties:
                             secretRef:
-                              description: |-
-                                SakuraSecretRef holds secret references for Sakura Cloud credentials
-                                both AccessToken and AccessTokenSecret must be defined in order to properly authenticate.
+                              description: SecretRef contains selectors for the access token and access token secret.
                               properties:
                                 accessToken:
                                   description: The AccessToken is used for authentication
@@ -18777,9 +18775,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against Sakura Cloud.
                           properties:
                             secretRef:
-                              description: |-
-                                SakuraSecretRef holds secret references for Sakura Cloud credentials
-                                both AccessToken and AccessTokenSecret must be defined in order to properly authenticate.
+                              description: SecretRef contains selectors for the access token and access token secret.
                               properties:
                                 accessToken:
                                   description: The AccessToken is used for authentication

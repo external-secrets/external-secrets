@@ -8984,6 +8984,7 @@ SakuraSecretRef
 </em>
 </td>
 <td>
+<p>SecretRef contains selectors for the access token and access token secret.</p>
 </td>
 </tr>
 </tbody>
