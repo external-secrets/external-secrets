@@ -1775,6 +1775,7 @@ string
 <a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>, 
+<a href="#external-secrets.io/v1.PassboltProvider">PassboltProvider</a>, 
 <a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
@@ -3239,6 +3240,19 @@ string
 </td>
 <td>
 <p>ServerURL is the DVLS instance URL (e.g., <a href="https://dvls.example.com">https://dvls.example.com</a>).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vault</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Vault is the name or UUID of the vault to fetch secrets from.
+When omitted, the vault must be specified in the secret key using the legacy format &ldquo;<vault-id>/<entry-id>&rdquo;.</p>
 </td>
 </tr>
 <tr>
@@ -6778,6 +6792,16 @@ string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>getByTitleFallback</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.KubernetesAuth">KubernetesAuth
@@ -8550,6 +8574,34 @@ string
 </td>
 <td>
 <p>Host defines the Passbolt Server to connect to</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM encoded CA bundle used to validate Passbolt server certificate. Only used
+if the Host URL is using HTTPS protocol. If not set the system root certificates
+are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Passbolt server certificate.</p>
 </td>
 </tr>
 </tbody>
@@ -28530,6 +28582,20 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </tr>
 <tr>
 <td>
+<code>getParameters</code></br>
+<em>
+map[string][]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GetParameters are query-string parameters passed to Vault on GET calls.
+Each key may map to multiple values, matching HTTP query-string semantics.
+Ignored for non-GET methods; use Parameters for write bodies.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>resultType</code></br>
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecretResultType">
@@ -28679,6 +28745,20 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </td>
 <td>
 <p>Parameters to pass to Vault write (for non-GET methods)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>getParameters</code></br>
+<em>
+map[string][]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GetParameters are query-string parameters passed to Vault on GET calls.
+Each key may map to multiple values, matching HTTP query-string semantics.
+Ignored for non-GET methods; use Parameters for write bodies.</p>
 </td>
 </tr>
 <tr>

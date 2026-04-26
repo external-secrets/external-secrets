@@ -154,9 +154,10 @@ type Azure struct {
 }
 
 // PushSecretMetadataSpec defines metadata for pushing secrets to Azure Key Vault,
-// including expiration date and tags.
+// including expiration date, content type, and tags.
 type PushSecretMetadataSpec struct {
 	ExpirationDate string            `json:"expirationDate,omitempty"`
+	ContentType    string            `json:"contentType,omitempty"`
 	Tags           map[string]string `json:"tags,omitempty"`
 }
 
@@ -549,7 +550,31 @@ func canCreate(tags map[string]*string, err error) (bool, error) {
 	return true, nil
 }
 
-func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, tags map[string]string) error {
+func comp[T comparable](a, b *T) bool {
+	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
+}
+
+func legacySecretUnchanged(secret keyvault.SecretBundle, value []byte, expires *date.UnixTime, contentType *string) bool {
+	if secret.Value == nil || string(value) != *secret.Value {
+		return false
+	}
+	var existingExpires *date.UnixTime
+	if secret.Attributes != nil {
+		existingExpires = secret.Attributes.Expires
+	}
+	if !comp(existingExpires, expires) {
+		return false
+	}
+	// contentType == nil means the caller did not request any specific
+	// contentType; treat it as "don't care" so we don't reconcile solely
+	// because the existing secret has a contentType set.
+	if contentType == nil {
+		return true
+	}
+	return comp(secret.ContentType, contentType)
+}
+
+func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, contentType *string, tags map[string]string) error {
 	secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
 	ok, err := canCreate(secret.Tags, err)
@@ -559,16 +584,16 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	if !ok {
 		return nil
 	}
-	val := string(value)
-	if secret.Value != nil && val == *secret.Value {
-		if secret.Attributes != nil {
-			if (secret.Attributes.Expires == nil && expires == nil) ||
-				(secret.Attributes.Expires != nil && expires != nil && *secret.Attributes.Expires == *expires) {
-				return nil
-			}
-		}
+	if legacySecretUnchanged(secret, value, expires, contentType) {
+		return nil
 	}
 
+	effectiveContentType := contentType
+	if effectiveContentType == nil {
+		effectiveContentType = secret.ContentType
+	}
+
+	val := string(value)
 	secretParams := keyvault.SecretSetParameters{
 		Value: &val,
 		Tags: map[string]*string{
@@ -577,6 +602,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 		SecretAttributes: &keyvault.SecretAttributes{
 			Enabled: new(true),
 		},
+		ContentType: effectiveContentType,
 	}
 
 	for k, v := range tags {
@@ -588,7 +614,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	}
 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
 	}
@@ -737,6 +763,12 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		expires = &unixTime
 	}
 
+	var contentType *string
+	if metadata != nil && metadata.Spec.ContentType != "" {
+		ct := metadata.Spec.ContentType
+		contentType = &ct
+	}
+
 	if metadata != nil && metadata.Spec.Tags != nil {
 		if _, exists := metadata.Spec.Tags[managedBy]; exists {
 			return fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
@@ -748,9 +780,9 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 	switch objectType {
 	case defaultObjType:
 		if a.useNewSDK() {
-			return a.setKeyVaultSecretWithNewSDK(ctx, secretName, value, nil, tags)
+			return a.setKeyVaultSecretWithNewSDK(ctx, secretName, value, contentType, tags)
 		}
-		return a.setKeyVaultSecret(ctx, secretName, value, expires, tags)
+		return a.setKeyVaultSecret(ctx, secretName, value, expires, contentType, tags)
 	case objectTypeCert:
 		if a.useNewSDK() {
 			return a.setKeyVaultCertificateWithNewSDK(ctx, secretName, value, tags)

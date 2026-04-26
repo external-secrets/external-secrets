@@ -33,6 +33,10 @@ type AzureMockClient struct {
 	deleteCertificate  func(ctx context.Context, vaultBaseURL string, certificateName string) (result keyvault.DeletedCertificateBundle, err error)
 	deleteKey          func(ctx context.Context, vaultBaseURL string, keyName string) (result keyvault.DeletedKeyBundle, err error)
 	deleteSecret       func(ctx context.Context, vaultBaseURL string, secretName string) (result keyvault.DeletedSecretBundle, err error)
+
+	// LastSetSecretParams captures the parameters passed to the most recent
+	// SetSecret call. Nil if SetSecret was never invoked.
+	LastSetSecretParams *keyvault.SecretSetParameters
 }
 
 func (mc *AzureMockClient) GetSecret(ctx context.Context, vaultBaseURL, secretName, secretVersion string) (result keyvault.SecretBundle, err error) {
@@ -121,7 +125,8 @@ func (mc *AzureMockClient) WithImportKey(output keyvault.KeyBundle, err error) {
 
 func (mc *AzureMockClient) WithSetSecret(output keyvault.SecretBundle, err error) {
 	if mc != nil {
-		mc.setSecret = func(_ context.Context, _, _ string, _ keyvault.SecretSetParameters) (keyvault.SecretBundle, error) {
+		mc.setSecret = func(_ context.Context, _, _ string, params keyvault.SecretSetParameters) (keyvault.SecretBundle, error) {
+			mc.LastSetSecretParams = &params
 			return output, err
 		}
 	}

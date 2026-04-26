@@ -196,28 +196,14 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		}
 
 		if pushSecretData.GetMetadata() != nil {
-			replica := &secretmanagerpb.Replication_UserManaged_Replica{}
-			var err error
 			meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
 			if err != nil {
 				return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
 			}
-			if meta != nil && meta.Spec.ReplicationLocation != "" {
-				replica.Location = meta.Spec.ReplicationLocation
-			}
-			if meta != nil && meta.Spec.CMEKKeyName != "" {
-				replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
-					KmsKeyName: meta.Spec.CMEKKeyName,
+			if meta != nil {
+				if r := buildReplication(meta.Spec); r != nil {
+					replication = r
 				}
-			}
-			replication = &secretmanagerpb.Replication{
-				Replication: &secretmanagerpb.Replication_UserManaged_{
-					UserManaged: &secretmanagerpb.Replication_UserManaged{
-						Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
-							replica,
-						},
-					},
-				},
 			}
 		}
 		parent := getParentName(c.store.ProjectID, c.store.Location)
