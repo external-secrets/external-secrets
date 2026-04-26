@@ -129,40 +129,51 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	key := data.GetRemoteKey()
 	property := data.GetProperty()
 
-	// If property is specified, try to get existing secret value and merge with new value
-	if property != "" {
-		kv := make(map[string]json.RawMessage)
+	if property == "" {
+		// Since Create and Update methods are not distinguished in SecretAPI, simply call Create here
+		// 	ref: https://github.com/sacloud/secretmanager-api-go/blob/main/secrets.go#L65-L68
+		if _, err := c.api.Create(ctx, v1.CreateSecret{
+			Name:  key,
+			Value: string(value),
+		}); err != nil {
+			return fmt.Errorf("failed to create/update secret: %w", err)
+		}
+		return nil
+	}
 
-		// Since unveilSecret returns an error if the secret does not exist, we need to check existence first
-		exists, err := c.secretKeyExists(ctx, key)
+	// If property is specified, try to get existing secret value and merge with new value
+
+	kv := make(map[string]json.RawMessage)
+
+	// Since unveilSecret returns an error if the secret does not exist, we need to check existence first
+	exists, err := c.secretKeyExists(ctx, key)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		existingData, err := c.unveilSecret(ctx, key, "", "")
 		if err != nil {
 			return err
 		}
 
-		if exists {
-			existingData, err := c.unveilSecret(ctx, key, "", "")
-			if err != nil {
-				return err
-			}
-
-			if err := json.Unmarshal(existingData, &kv); err != nil {
-				return fmt.Errorf("failed to unmarshal existing secret as JSON: %w", err)
-			}
+		if err := json.Unmarshal(existingData, &kv); err != nil {
+			return fmt.Errorf("failed to unmarshal existing secret as JSON: %w", err)
 		}
+	}
 
-		if !json.Valid(value) {
-			value, err = json.Marshal(string(value))
-			if err != nil {
-				return fmt.Errorf("failed to marshal value as JSON string: %w", err)
-			}
-		}
-
-		kv[property] = value
-
-		value, err = json.Marshal(kv)
+	if !json.Valid(value) {
+		value, err = json.Marshal(string(value))
 		if err != nil {
-			return fmt.Errorf("failed to marshal merged secret as JSON: %w", err)
+			return fmt.Errorf("failed to marshal value as JSON string: %w", err)
 		}
+	}
+
+	kv[property] = value
+
+	value, err = json.Marshal(kv)
+	if err != nil {
+		return fmt.Errorf("failed to marshal merged secret as JSON: %w", err)
 	}
 
 	// Since Create and Update methods are not distinguished in SecretAPI, simply call Create here
@@ -180,6 +191,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 // DeleteSecret will delete the secret from a provider.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	key := remoteRef.GetRemoteKey()
+	property := remoteRef.GetProperty()
 
 	exists, err := c.secretKeyExists(ctx, key)
 	if err != nil {
@@ -190,13 +202,14 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		return nil
 	}
 
-	property := remoteRef.GetProperty()
 	if property == "" {
 		if err := c.api.Delete(ctx, v1.DeleteSecret{Name: key}); err != nil {
 			return fmt.Errorf("failed to delete secret: %w", err)
 		}
 		return nil
 	}
+
+	// If property is specified, try to get existing secret value and delete the property from it
 
 	existingData, err := c.unveilSecret(ctx, key, "", "")
 	if err != nil {
@@ -212,6 +225,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		// If the property does not exist, nothing to delete
 		return nil
 	}
+
 	delete(kv, property)
 
 	if len(kv) == 0 {
