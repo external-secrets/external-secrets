@@ -18,7 +18,6 @@ package fake
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/sacloud/secretmanager-api-go"
@@ -105,23 +104,23 @@ func NewMockSecretAPIClient(t *testing.T) *MockSecretAPIClient {
 	return &MockSecretAPIClient{
 		unveilFn: func(_ context.Context, _ v1.Unveil) (*v1.Unveil, error) {
 			require.Fail(t, "unexpected Unveil call")
-			return nil, errors.New("unexpected unveil call")
+			return nil, nil
 		},
 		listFn: func(_ context.Context) ([]v1.Secret, error) {
 			require.Fail(t, "unexpected List call")
-			return nil, errors.New("unexpected list call")
+			return nil, nil
 		},
 		createFn: func(_ context.Context, _ v1.CreateSecret) (*v1.Secret, error) {
 			require.Fail(t, "unexpected Create call")
-			return nil, errors.New("unexpected create call")
+			return nil, nil
 		},
 		updateFn: func(_ context.Context, _ v1.CreateSecret) (*v1.Secret, error) {
 			require.Fail(t, "unexpected Update call")
-			return nil, errors.New("unexpected update call")
+			return nil, nil
 		},
 		deleteFn: func(_ context.Context, _ v1.DeleteSecret) error {
 			require.Fail(t, "unexpected Delete call")
-			return errors.New("unexpected delete call")
+			return nil
 		},
 	}
 }
