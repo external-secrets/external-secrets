@@ -136,13 +136,13 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		// Since unveilSecret returns an error if the secret does not exist, we need to check existence first
 		exists, err := c.secretKeyExists(ctx, key)
 		if err != nil {
-			return fmt.Errorf("failed to check if secret exists: %w", err)
+			return err
 		}
 
 		if exists {
 			existingData, err := c.unveilSecret(ctx, key, "", "")
 			if err != nil {
-				return fmt.Errorf("failed to get existing secret: %w", err)
+				return err
 			}
 
 			if err := json.Unmarshal(existingData, &kv); err != nil {
@@ -183,7 +183,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 	exists, err := c.secretKeyExists(ctx, key)
 	if err != nil {
-		return fmt.Errorf("failed to check if secret exists: %w", err)
+		return err
 	}
 	if !exists {
 		// If the secret does not exist, nothing to delete
@@ -200,7 +200,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 	existingData, err := c.unveilSecret(ctx, key, "", "")
 	if err != nil {
-		return fmt.Errorf("failed to get existing secret: %w", err)
+		return err
 	}
 
 	kv := make(map[string]json.RawMessage)
@@ -245,7 +245,7 @@ func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 	exists, err := c.secretKeyExists(ctx, key)
 	if err != nil {
-		return false, fmt.Errorf("failed to check if secret exists: %w", err)
+		return false, err
 	}
 	if !exists {
 		return false, nil
@@ -282,7 +282,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.unveilSecret(ctx, ref.Key, ref.Version, ref.Property)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get secret: %w", err)
+		return nil, err
 	}
 
 	// Unmarshal the secret value as JSON
@@ -343,7 +343,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 
 		res, err := c.unveilSecret(ctx, s.Name, "", "")
 		if err != nil {
-			return nil, fmt.Errorf("failed to unveil secret %s: %w", s.Name, err)
+			return nil, err
 		}
 
 		secretMap[s.Name] = res
