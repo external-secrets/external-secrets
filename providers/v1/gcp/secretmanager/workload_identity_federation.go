@@ -106,6 +106,8 @@ type serviceAccountImpersonationInfo struct {
 }
 
 var (
+	gcpSTSTokenURLRegex                 = regexp.MustCompile(`^https://sts\.(?:[a-z0-9.-]+\.)?googleapis\.com/v1/token$`)
+	gcpSTSTokenInfoURLRegex             = regexp.MustCompile(`^https://sts\.(?:[a-z0-9.-]+\.)?googleapis\.com/v1/introspect$`)
 	awsSTSTokenURLRegex                 = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/meta-data/iam/security-credentials$`)
 	awsRegionURLRegex                   = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/meta-data/placement/availability-zone$`)
 	awsSessionTokenURLRegex             = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/api/token$`)
@@ -172,13 +174,20 @@ func (w *workloadIdentityFederation) TokenSource(ctx context.Context) (oauth2.To
 	return externalaccount.NewTokenSource(ctx, *config)
 }
 
-func (w *workloadIdentityFederation) getGCPServiceAccountFromAnnotation(ctx context.Context, cfg *externalaccount.Config) error {
+// updateServiceAccountImpersonationURL sets cfg.ServiceAccountImpersonationURL for GCP service account
+// impersonation after the external account config is merged. When GCPServiceAccountEmail is set on the
+// spec, it wins over service_account_impersonation_url from credConfig and over the "iam.gke.io/gcp-service-account"
+// annotation on the referenced Kubernetes ServiceAccount. Otherwise, if serviceAccountRef is set, the
+// ServiceAccount is loaded and the gcp-service-account annotation is applied when present.
+func (w *workloadIdentityFederation) updateServiceAccountImpersonationURL(ctx context.Context, cfg *externalaccount.Config) error {
+	if w.config.GCPServiceAccountEmail != "" {
+		cfg.ServiceAccountImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, w.config.GCPServiceAccountEmail)
+		return nil
+	}
+
 	if w.config.ServiceAccountRef == nil {
 		return nil
 	}
-	// look up the service account and check if it has a well-known GCP WI annotation.
-	// If so, use that GCP service account for impersonation.
-	// Required if you grant secret access to a GCP service account instead of direct resource access.
 	ns := w.namespace
 	if w.isClusterKind && w.config.ServiceAccountRef.Namespace != nil {
 		ns = *w.config.ServiceAccountRef.Namespace
@@ -244,7 +253,7 @@ func (w *workloadIdentityFederation) generateExternalAccountConfig(ctx context.C
 	if err := w.updateExternalAccountConfigWithAWSCredentialsSupplier(ctx, config); err != nil {
 		return nil, err
 	}
-	if err := w.getGCPServiceAccountFromAnnotation(ctx, config); err != nil {
+	if err := w.updateServiceAccountImpersonationURL(ctx, config); err != nil {
 		return nil, err
 	}
 	w.updateExternalAccountConfigWithDefaultValues(config)
@@ -294,14 +303,14 @@ func (w *workloadIdentityFederation) updateExternalAccountConfigWithDefaultValue
 	if config.SubjectTokenType == "" {
 		config.SubjectTokenType = workloadIdentitySubjectTokenType
 	}
-	if config.TokenURL == "" {
-		config.TokenURL = workloadIdentityTokenURL
-	}
-	if config.TokenInfoURL == "" {
-		config.TokenInfoURL = workloadIdentityTokenInfoURL
-	}
 	if config.UniverseDomain == "" {
 		config.UniverseDomain = defaultUniverseDomain
+	}
+	if config.TokenURL == "" {
+		config.TokenURL = fmt.Sprintf(workloadIdentityTokenURLFormat, config.UniverseDomain)
+	}
+	if config.TokenInfoURL == "" {
+		config.TokenInfoURL = fmt.Sprintf(workloadIdentityTokenInfoURLFormat, config.UniverseDomain)
 	}
 }
 
@@ -384,10 +393,13 @@ func validateExternalAccountConfig(config *externalaccount.Config, wif *esv1.GCP
 	}
 	if config.ServiceAccountImpersonationURL != "" &&
 		!serviceAccountImpersonationURLRegex.MatchString(config.ServiceAccountImpersonationURL) {
-		errs = append(errs, fmt.Errorf("service_account_impersonation_url \"%s\" does not have expected value", config.ServiceAccountImpersonationURL))
+		errs = append(errs, fmt.Errorf("service_account_impersonation_url \"%s\" must match \"%s\"", config.ServiceAccountImpersonationURL, serviceAccountImpersonationURLRegex.String()))
 	}
-	if config.TokenURL != workloadIdentityTokenURL {
-		errs = append(errs, fmt.Errorf("token_url \"%s\" must match %s", config.TokenURL, workloadIdentityTokenURL))
+	if !gcpSTSTokenURLRegex.MatchString(config.TokenURL) {
+		errs = append(errs, fmt.Errorf("token_url \"%s\" must match \"%s\"", config.TokenURL, gcpSTSTokenURLRegex.String()))
+	}
+	if !gcpSTSTokenInfoURLRegex.MatchString(config.TokenInfoURL) {
+		errs = append(errs, fmt.Errorf("token_info_url \"%s\" must match \"%s\"", config.TokenInfoURL, gcpSTSTokenInfoURLRegex.String()))
 	}
 	if config.CredentialSource != nil {
 		errs = append(errs, validateCredConfigCredentialSource(config.CredentialSource, wif)...)
@@ -423,13 +435,13 @@ func validateCredConfigAWSCredentialSource(credSource *externalaccount.Credentia
 			errs = append(errs, fmt.Errorf("credential_source.environment_id \"%s\" must start with %s", credSource.EnvironmentID, awsEnvironmentIDPrefix))
 		}
 		if !awsSTSTokenURLRegex.MatchString(credSource.URL) {
-			errs = append(errs, fmt.Errorf("credential_source.aws.url \"%s\" does not have expected value", credSource.URL))
+			errs = append(errs, fmt.Errorf("credential_source.aws.url \"%s\" must match \"%s\"", credSource.URL, awsSTSTokenURLRegex.String()))
 		}
 		if !awsRegionURLRegex.MatchString(credSource.RegionURL) {
-			errs = append(errs, fmt.Errorf("credential_source.aws.region_url \"%s\" does not have expected value", credSource.RegionURL))
+			errs = append(errs, fmt.Errorf("credential_source.aws.region_url \"%s\" must match \"%s\"", credSource.RegionURL, awsRegionURLRegex.String()))
 		}
 		if credSource.IMDSv2SessionTokenURL != "" && !awsSessionTokenURLRegex.MatchString(credSource.IMDSv2SessionTokenURL) {
-			errs = append(errs, fmt.Errorf("credential_source.aws.imdsv2_session_token_url \"%s\" does not have expected value", credSource.IMDSv2SessionTokenURL))
+			errs = append(errs, fmt.Errorf("credential_source.aws.imdsv2_session_token_url \"%s\" must match \"%s\"", credSource.IMDSv2SessionTokenURL, awsSessionTokenURLRegex.String()))
 		}
 	}
 	return errs
