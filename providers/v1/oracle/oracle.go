@@ -70,8 +70,10 @@ const (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.SecretsClient = &VaultManagementService{}
-var _ esv1.Provider = &VaultManagementService{}
+var (
+	_ esv1.SecretsClient = &VaultManagementService{}
+	_ esv1.Provider      = &VaultManagementService{}
+)
 
 // VaultManagementService implements the External Secrets provider interface for Oracle Cloud Infrastructure Vault.
 type VaultManagementService struct {
@@ -609,23 +611,34 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 	if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, region); err != nil {
 		return nil, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalRegionEnvVar, err)
 	}
+
+	var providerWithClaim auth.ConfigurationProviderWithClaimAccess
+
 	// If no service account is specified, use the pod service account to create the Workload Identity provider.
 	if serviceAcccountRef == nil {
-		return auth.OkeWorkloadIdentityConfigurationProvider()
+		providerWithClaim, err = auth.OkeWorkloadIdentityConfigurationProvider()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Ensure the service account ref is being used appropriately, so arbitrary tokens are not minted by the provider.
+		if err = esutils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
+			return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
+		}
+		cfg, err := ctrlcfg.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+		clientset, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			return nil, err
+		}
+		tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
+		providerWithClaim, err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+		if err != nil {
+			return nil, err
+		}
 	}
-	// Ensure the service account ref is being used appropriately, so arbitrary tokens are not minted by the provider.
-	if err = esutils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
-		return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
-	}
-	cfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
 
 	// Cache OKE token providers per SecretStore to avoid creating multiple providers for the same store.
 	// We also reset the cache if it exceeds a certain size to avoid unbounded memory growth.
@@ -636,10 +649,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 	// Caching by resource version to ensure that updates to the SecretStore are reflected in the cached provider.
 	_, ok := vms.authConfigurationsCache[store.GetResourceVersion()]
 	if !ok {
-		vms.authConfigurationsCache[store.GetResourceVersion()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
-		if err != nil {
-			return nil, err
-		}
+		vms.authConfigurationsCache[store.GetResourceVersion()] = providerWithClaim
 	}
 
 	return vms.authConfigurationsCache[store.GetResourceVersion()], nil
