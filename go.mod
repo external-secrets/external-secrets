@@ -55,6 +55,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/secretserver => ./providers/v1/secretserver
 	github.com/external-secrets/external-secrets/providers/v1/senhasegura => ./providers/v1/senhasegura
 	github.com/external-secrets/external-secrets/providers/v1/vault => ./providers/v1/vault
+	github.com/external-secrets/external-secrets/providers/v1/vaultwarden => ./providers/v1/vaultwarden
 	github.com/external-secrets/external-secrets/providers/v1/volcengine => ./providers/v1/volcengine
 	github.com/external-secrets/external-secrets/providers/v1/webhook => ./providers/v1/webhook
 	github.com/external-secrets/external-secrets/providers/v1/yandex => ./providers/v1/yandex
@@ -168,6 +169,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/secretserver v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/senhasegura v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/vault v0.0.0-20251103080423-08fa383f42e5
+	github.com/external-secrets/external-secrets/providers/v1/vaultwarden v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/volcengine v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/webhook v0.0.0-20251103080423-08fa383f42e5
 	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-00010101000000-000000000000
