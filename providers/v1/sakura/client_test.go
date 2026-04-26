@@ -391,6 +391,34 @@ func TestPushSecret(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "create API error when updating existing secret",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte(`"value-1"`),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(t *testing.T, mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: `{"property-2":"value-2"}`}, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					require.JSONEq(t, `{"property-1":"value-1","property-2":"value-2"}`, params.Value)
+					return nil, errors.New("API error")
+				})
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
