@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sakura
+package client
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 	v1 "github.com/sacloud/secretmanager-api-go/apis/v1"
 	"github.com/stretchr/testify/require"
 
-	"github.com/external-secrets/external-secrets/providers/v1/sakura/fake"
+	"github.com/external-secrets/external-secrets/providers/v1/sakura/client/fake"
 )
 
 func TestUnveilSecret(t *testing.T) {

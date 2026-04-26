@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package sakura implements the esv1.SecretsClient interface for Sakura Cloud Secret Manager.
+// Package sakura implements the esv1.Provider interface for Sakura Cloud Secret Manager.
 package sakura
 
 import (
@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	sakuraclient "github.com/external-secrets/external-secrets/providers/v1/sakura/client"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -75,7 +76,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, fmt.Errorf("failed to create Sakura Cloud client: %w", err)
 	}
 
-	return NewClient(secretmanager.NewSecretOp(smClient, provider.VaultResourceID)), nil
+	return sakuraclient.NewClient(secretmanager.NewSecretOp(smClient, provider.VaultResourceID)), nil
 }
 
 // ValidateStore validates the store's configuration.
