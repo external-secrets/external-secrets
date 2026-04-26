@@ -132,6 +132,7 @@ nav:
       - Google Cloud Secret Manager: provider/google-secrets-manager.md
       - HashiCorp Vault: provider/hashicorp-vault.md
       - Kubernetes: provider/kubernetes.md
+      - Kubernetes CRD: provider/crd.md
       - IBM Secrets Manager: provider/ibm-secrets-manager.md
       - Akeyless: provider/akeyless.md
       - Yandex Certificate Manager: provider/yandex-certificate-manager.md
