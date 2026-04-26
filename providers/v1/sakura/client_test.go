@@ -135,7 +135,7 @@ func TestPushSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "push secret with SecretKey",
+			name: "push secret in a common way",
 			secret: &corev1.Secret{
 				Data: map[string][]byte{
 					"k8s-secret-key-1": []byte("data-1"),
@@ -181,6 +181,196 @@ func TestPushSecret(t *testing.T) {
 				})
 			},
 			wantErr: false,
+		},
+		{
+			name: "push secret with property to new secret",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte(`"value-1"`),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{}, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					require.JSONEq(t, `{"property-1":"value-1"}`, params.Value)
+					return &v1.Secret{Name: "test-secret-1"}, nil
+				})
+			},
+			wantErr: false,
+		},
+		{
+			name: "push secret with property and JSON object value",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte(`{"property-2":"value-2"}`),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{}, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					require.JSONEq(t, `{"property-1":{"property-2":"value-2"}}`, params.Value)
+					return &v1.Secret{Name: "test-secret-1"}, nil
+				})
+			},
+			wantErr: false,
+		},
+		{
+			name: "push secret with property and empty value",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte(""),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{}, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					require.JSONEq(t, `{"property-1":""}`, params.Value)
+					return &v1.Secret{Name: "test-secret-1"}, nil
+				})
+			},
+			wantErr: false,
+		},
+		{
+			// Note: This case will fail when we upgrade encoding/json to v2
+			name: "push secret with property and invalid UTF-8 value",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte("value-\xff"),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{}, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					require.JSONEq(t, `{"property-1":"value-\ufffd"}`, params.Value)
+					return &v1.Secret{Name: "test-secret-1"}, nil
+				})
+			},
+			wantErr: false,
+		},
+		{
+			name: "push secret with property and overwrite existing property",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte(`"new-value-1"`),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: `{"property-1":"value-1","property-2":"value-2"}`}, nil
+				})
+				mc.WithCreateFunc(func(_ context.Context, params v1.CreateSecret) (*v1.Secret, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					require.JSONEq(t, `{"property-1":"new-value-1","property-2":"value-2"}`, params.Value)
+					return &v1.Secret{Name: "test-secret-1"}, nil
+				})
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid existing secret JSON",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte(`"value-1"`),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: "data-1"}, nil
+				})
+			},
+			wantErr: true,
+		},
+		{
+			name: "secret exists check error",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte(`"value-1"`),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return nil, errors.New("API error")
+				})
+			},
+			wantErr: true,
+		},
+		{
+			name: "unveil API error",
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"k8s-secret-key-1": []byte(`"value-1"`),
+				},
+			},
+			data: esfake.PushSecretData{
+				SecretKey: "k8s-secret-key-1",
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return nil, errors.New("API error")
+				})
+			},
+			wantErr: true,
 		},
 		{
 			name: "create API error",
@@ -236,9 +426,24 @@ func TestDeleteSecret(t *testing.T) {
 				RemoteKey: "test-secret-1",
 			},
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
 				mc.WithDeleteFunc(func(_ context.Context, params v1.DeleteSecret) error {
 					require.Equal(t, "test-secret-1", params.Name)
 					return nil
+				})
+			},
+			wantErr: false,
+		},
+		{
+			name: "secret does not exist",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{}, nil
 				})
 			},
 			wantErr: false,
@@ -266,11 +471,99 @@ func TestDeleteSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "delete the only property from secret",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: `{"property-1":"value-1"}`}, nil
+				})
+				mc.WithDeleteFunc(func(_ context.Context, params v1.DeleteSecret) error {
+					require.Equal(t, "test-secret-1", params.Name)
+					return nil
+				})
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid existing secret JSON",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: "data-1"}, nil
+				})
+			},
+			wantErr: true,
+		},
+		{
+			name: "property doesn't exist in existing secret",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: `{"property-2":"value-2"}`}, nil
+				})
+			},
+			wantErr: false,
+		},
+		{
+			name: "secret exists check error",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return nil, errors.New("API error")
+				})
+			},
+			wantErr: true,
+		},
+		{
+			name: "unveil API error",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return nil, errors.New("API error")
+				})
+			},
+			wantErr: true,
+		},
+		{
 			name: "delete API error",
 			remoteRef: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "test-secret-1",
 			},
 			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
 				mc.WithDeleteFunc(func(_ context.Context, params v1.DeleteSecret) error {
 					require.Equal(t, "test-secret-1", params.Name)
 					return errors.New("API error")
@@ -279,7 +572,7 @@ func TestDeleteSecret(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "delete property upsert error",
+			name: "delete property upsert API error",
 			remoteRef: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "test-secret-1",
 				Property:  "property-1",
@@ -296,6 +589,27 @@ func TestDeleteSecret(t *testing.T) {
 					require.Equal(t, "test-secret-1", params.Name)
 					require.JSONEq(t, `{"property-2":"value-2"}`, params.Value)
 					return nil, errors.New("API error")
+				})
+			},
+			wantErr: true,
+		},
+		{
+			name: "delete property delete API error",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: `{"property-1":"value-1"}`}, nil
+				})
+				mc.WithDeleteFunc(func(_ context.Context, params v1.DeleteSecret) error {
+					require.Equal(t, "test-secret-1", params.Name)
+					return errors.New("API error")
 				})
 			},
 			wantErr: true,
@@ -342,6 +656,78 @@ func TestSecretExists(t *testing.T) {
 			},
 			wantExists: true,
 			wantErr:    false,
+		},
+		{
+			name: "secret exists with property",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: `{"property-1":"value-1"}`}, nil
+				})
+			},
+			wantExists: true,
+			wantErr:    false,
+		},
+		{
+			name: "property not found",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: `{"property-2":"value-2"}`}, nil
+				})
+			},
+			wantExists: false,
+			wantErr:    false,
+		},
+		{
+			name: "invalid JSON value",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return &v1.Unveil{Value: "data-1"}, nil
+				})
+			},
+			wantExists: false,
+			wantErr:    true,
+		},
+		{
+			name: "unveil API error",
+			remoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "test-secret-1",
+				Property:  "property-1",
+			},
+			mockSetup: func(mc *fake.MockSecretAPIClient) {
+				mc.WithListFunc(func(_ context.Context) ([]v1.Secret, error) {
+					return []v1.Secret{{Name: "test-secret-1"}}, nil
+				})
+				mc.WithUnveilFunc(func(_ context.Context, params v1.Unveil) (*v1.Unveil, error) {
+					require.Equal(t, "test-secret-1", params.Name)
+					return nil, errors.New("API error")
+				})
+			},
+			wantExists: false,
+			wantErr:    true,
 		},
 		{
 			name: "secret does not exist",

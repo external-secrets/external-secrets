@@ -91,59 +91,50 @@ func (c *Client) unveilSecret(ctx context.Context, key, version, property string
 	return value, nil
 }
 
-// secretExists checks if a secret with the given key and property exists.
-func (c *Client) secretExists(ctx context.Context, key, property string) (bool, error) {
+// secretKeyExists checks if a secret with the given key exists.
+func (c *Client) secretKeyExists(ctx context.Context, key string) (bool, error) {
 	secrets, err := c.api.List(ctx)
 	if err != nil {
 		return false, fmt.Errorf("failed to list secrets: %w", err)
 	}
 
-	exists := false
-	for _, secret := range secrets {
-		if secret.Name == key {
-			exists = true
-			break
+	for _, s := range secrets {
+		if s.Name == key {
+			return true, nil
 		}
 	}
-	if !exists {
-		return false, nil
-	}
 
-	if property == "" {
-		return true, nil
-	}
-
-	data, err := c.unveilSecret(ctx, key, "", "")
-	if err != nil {
-		return false, err
-	}
-
-	kv := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(data, &kv); err != nil {
-		return false, fmt.Errorf("failed to unmarshal secret as JSON: %w", err)
-	}
-
-	_, ok := kv[property]
-	if !ok {
-		return false, nil
-	}
-
-	return true, nil
+	return false, nil
 }
 
-// upsertSecret creates or updates a secret with the given name and value.
-//
-//	If property is specified, it tries to merge the new value with the existing secret as JSON using the provided mergeFunc.
-func (c *Client) upsertSecret(
-	ctx context.Context, key, property string, value []byte,
-	mergeFunc func(property string, value json.RawMessage, kv map[string]json.RawMessage),
-) error {
+// ----------------- Interface implementation -----------------
+
+// GetSecret returns a single secret from the provider.
+func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	data, err := c.unveilSecret(ctx, ref.Key, ref.Version, ref.Property)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// PushSecret will write a single secret into the provider.
+func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	value, err := esutils.ExtractSecretData(data, secret)
+	if err != nil {
+		return fmt.Errorf("failed to extract secret data: %w", err)
+	}
+
+	key := data.GetRemoteKey()
+	property := data.GetProperty()
+
 	// If property is specified, try to get existing secret value and merge with new value
 	if property != "" {
 		kv := make(map[string]json.RawMessage)
 
 		// Since unveilSecret returns an error if the secret does not exist, we need to check existence first
-		exists, err := c.secretExists(ctx, key, "")
+		exists, err := c.secretKeyExists(ctx, key)
 		if err != nil {
 			return fmt.Errorf("failed to check if secret exists: %w", err)
 		}
@@ -166,7 +157,8 @@ func (c *Client) upsertSecret(
 			}
 		}
 
-		mergeFunc(property, json.RawMessage(value), kv)
+		kv[property] = value
+
 		value, err = json.Marshal(kv)
 		if err != nil {
 			return fmt.Errorf("failed to marshal merged secret as JSON: %w", err)
@@ -185,54 +177,62 @@ func (c *Client) upsertSecret(
 	return nil
 }
 
-// ----------------- Interface implementation -----------------
-
-// GetSecret returns a single secret from the provider.
-func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, err := c.unveilSecret(ctx, ref.Key, ref.Version, ref.Property)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-// PushSecret will write a single secret into the provider.
-func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	value, err := esutils.ExtractSecretData(data, secret)
-	if err != nil {
-		return fmt.Errorf("failed to extract secret data: %w", err)
-	}
-
-	if err = c.upsertSecret(
-		ctx, data.GetRemoteKey(), data.GetProperty(), value,
-		func(property string, value json.RawMessage, kv map[string]json.RawMessage) {
-			kv[property] = value
-		}); err != nil {
-		return fmt.Errorf("failed to upsert secret: %w", err)
-	}
-
-	return nil
-}
-
 // DeleteSecret will delete the secret from a provider.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
-	if remoteRef.GetProperty() == "" {
-		if err := c.api.Delete(ctx, v1.DeleteSecret{
-			Name: remoteRef.GetRemoteKey(),
-		}); err != nil {
-			return fmt.Errorf("failed to delete secret: %w", err)
-		}
+	key := remoteRef.GetRemoteKey()
 
+	exists, err := c.secretKeyExists(ctx, key)
+	if err != nil {
+		return fmt.Errorf("failed to check if secret exists: %w", err)
+	}
+	if !exists {
+		// If the secret does not exist, nothing to delete
 		return nil
 	}
 
-	if err := c.upsertSecret(
-		ctx, remoteRef.GetRemoteKey(), remoteRef.GetProperty(), nil,
-		func(property string, _ json.RawMessage, kv map[string]json.RawMessage) {
-			delete(kv, property)
-		}); err != nil {
-		return fmt.Errorf("failed to upsert secret with property: %w", err)
+	property := remoteRef.GetProperty()
+	if property == "" {
+		if err := c.api.Delete(ctx, v1.DeleteSecret{Name: key}); err != nil {
+			return fmt.Errorf("failed to delete secret: %w", err)
+		}
+		return nil
+	}
+
+	existingData, err := c.unveilSecret(ctx, key, "", "")
+	if err != nil {
+		return fmt.Errorf("failed to get existing secret: %w", err)
+	}
+
+	kv := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(existingData, &kv); err != nil {
+		return fmt.Errorf("failed to unmarshal existing secret as JSON: %w", err)
+	}
+
+	if _, ok := kv[property]; !ok {
+		// If the property does not exist, nothing to delete
+		return nil
+	}
+	delete(kv, property)
+
+	if len(kv) == 0 {
+		if err := c.api.Delete(ctx, v1.DeleteSecret{Name: key}); err != nil {
+			return fmt.Errorf("failed to delete secret: %w", err)
+		}
+		return nil
+	}
+
+	value, err := json.Marshal(kv)
+	if err != nil {
+		return fmt.Errorf("failed to marshal merged secret as JSON: %w", err)
+	}
+
+	// Since Create and Update methods are not distinguished in SecretAPI, simply call Create here
+	// 	ref: https://github.com/sacloud/secretmanager-api-go/blob/main/secrets.go#L65-L68
+	if _, err := c.api.Create(ctx, v1.CreateSecret{
+		Name:  key,
+		Value: string(value),
+	}); err != nil {
+		return fmt.Errorf("failed to create/update secret: %w", err)
 	}
 
 	return nil
@@ -240,12 +240,33 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 // SecretExists checks if a secret is already present in the provider at the given location.
 func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
-	exists, err := c.secretExists(ctx, remoteRef.GetRemoteKey(), remoteRef.GetProperty())
+	key := remoteRef.GetRemoteKey()
+	property := remoteRef.GetProperty()
+
+	exists, err := c.secretKeyExists(ctx, key)
 	if err != nil {
 		return false, fmt.Errorf("failed to check if secret exists: %w", err)
 	}
+	if !exists {
+		return false, nil
+	}
 
-	return exists, nil
+	if property == "" {
+		return true, nil
+	}
+
+	data, err := c.unveilSecret(ctx, key, "", "")
+	if err != nil {
+		return false, err
+	}
+
+	kv := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &kv); err != nil {
+		return false, fmt.Errorf("failed to unmarshal secret as JSON: %w", err)
+	}
+
+	_, ok := kv[property]
+	return ok, nil
 }
 
 // Validate checks if the client is configured correctly and is able to retrieve secrets from the provider.
