@@ -559,6 +559,8 @@ webhook:
 
   livenessProbe:
     enabled: false
+    # -- Set this value to 'ready' (for named port) or an integer for liveness probes.
+    # @schema type: [string, integer]
     port: 8081
     timeoutSeconds: 5
     failureThreshold: 5
@@ -569,6 +571,8 @@ webhook:
   readinessProbe:
     enabled: true
     address: ""
+    # -- Set this value to 'ready' (for named port) or an integer for readiness probes.
+    # @schema type: [string, integer]
     port: 8081
     timeoutSeconds: 5
     failureThreshold: 3
@@ -718,6 +722,8 @@ certController:
 
   livenessProbe:
     enabled: false
+    # -- Set this value to 'ready' (for named port) or an integer for liveness probes.
+    # @schema type: [string, integer]
     port: 8081
     timeoutSeconds: 5
     failureThreshold: 5
@@ -728,6 +734,8 @@ certController:
   readinessProbe:
     enabled: true
     address: ""
+    # -- Set this value to 'ready' (for named port) or an integer for readiness probes.
+    # @schema type: [string, integer]
     port: 8081
     timeoutSeconds: 5
     failureThreshold: 3

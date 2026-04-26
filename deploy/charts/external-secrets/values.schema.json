@@ -91,7 +91,10 @@
                             "type": "integer"
                         },
                         "port": {
-                            "type": "integer"
+                            "type": [
+                                "string",
+                                "integer"
+                            ]
                         },
                         "successThreshold": {
                             "type": "integer"
@@ -203,7 +206,10 @@
                             "type": "integer"
                         },
                         "port": {
-                            "type": "integer"
+                            "type": [
+                                "string",
+                                "integer"
+                            ]
                         },
                         "successThreshold": {
                             "type": "integer"
@@ -1028,7 +1034,10 @@
                             "type": "integer"
                         },
                         "port": {
-                            "type": "integer"
+                            "type": [
+                                "string",
+                                "integer"
+                            ]
                         },
                         "successThreshold": {
                             "type": "integer"
@@ -1138,7 +1147,10 @@
                             "type": "integer"
                         },
                         "port": {
-                            "type": "integer"
+                            "type": [
+                                "string",
+                                "integer"
+                            ]
                         },
                         "successThreshold": {
                             "type": "integer"

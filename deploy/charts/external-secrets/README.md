@@ -57,7 +57,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.livenessProbe.failureThreshold | int | `5` |  |
 | certController.livenessProbe.initialDelaySeconds | int | `10` |  |
 | certController.livenessProbe.periodSeconds | int | `10` |  |
-| certController.livenessProbe.port | int | `8081` |  |
+| certController.livenessProbe.port | int | `8081` | Set this value to 'ready' (for named port) or an integer for liveness probes. @schema type: [string, integer] |
 | certController.livenessProbe.successThreshold | int | `1` |  |
 | certController.livenessProbe.timeoutSeconds | int | `5` |  |
 | certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Certificate Controller |
@@ -77,7 +77,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.readinessProbe.failureThreshold | int | `3` |  |
 | certController.readinessProbe.initialDelaySeconds | int | `20` |  |
 | certController.readinessProbe.periodSeconds | int | `5` |  |
-| certController.readinessProbe.port | int | `8081` |  |
+| certController.readinessProbe.port | int | `8081` | Set this value to 'ready' (for named port) or an integer for readiness probes. @schema type: [string, integer] |
 | certController.readinessProbe.successThreshold | int | `1` |  |
 | certController.readinessProbe.timeoutSeconds | int | `5` |  |
 | certController.replicaCount | int | `1` |  |
@@ -276,7 +276,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.livenessProbe.failureThreshold | int | `5` |  |
 | webhook.livenessProbe.initialDelaySeconds | int | `10` |  |
 | webhook.livenessProbe.periodSeconds | int | `10` |  |
-| webhook.livenessProbe.port | int | `8081` |  |
+| webhook.livenessProbe.port | int | `8081` | Set this value to 'ready' (for named port) or an integer for liveness probes. @schema type: [string, integer] |
 | webhook.livenessProbe.successThreshold | int | `1` |  |
 | webhook.livenessProbe.timeoutSeconds | int | `5` |  |
 | webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Webhook |
@@ -297,7 +297,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.readinessProbe.failureThreshold | int | `3` |  |
 | webhook.readinessProbe.initialDelaySeconds | int | `20` |  |
 | webhook.readinessProbe.periodSeconds | int | `5` |  |
-| webhook.readinessProbe.port | int | `8081` |  |
+| webhook.readinessProbe.port | int | `8081` | Set this value to 'ready' (for named port) or an integer for readiness probes. @schema type: [string, integer] |
 | webhook.readinessProbe.successThreshold | int | `1` |  |
 | webhook.readinessProbe.timeoutSeconds | int | `5` |  |
 | webhook.replicaCount | int | `1` |  |
