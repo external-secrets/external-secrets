@@ -7,12 +7,32 @@ changelog:
       - skip-changelog
 
   categories:
+    - title: "⚠️ Breaking Changes / Urgent Upgrade Notes"
+      labels:
+        - breaking-change
+    - title: "🚀 New Features"
+      labels:
+        - kind/feature
+    - title: "🐛 Bug Fixes"
+      labels:
+        - kind/bug
+    - title: "📖 Documentation"
+      labels:
+        - kind/documentation
+    - title: "🔒 Security"
+      labels:
+        - security
     - title: General
       labels:
         - "*"
       exclude:
         labels:
           - dependencies
+          - breaking-change
+          - kind/feature
+          - kind/bug
+          - kind/documentation
+          - security
     - title: Dependencies
       labels:
         - dependencies

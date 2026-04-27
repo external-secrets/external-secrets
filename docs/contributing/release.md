@@ -24,6 +24,21 @@ require (
 
 **Important:** When updating dependencies that consume ESO modules, ensure all module references use the same version to maintain compatibility.
 
+## CHANGELOG and Breaking Changes
+
+The project maintains a `CHANGELOG.md` at the repository root. It is **automatically updated** during each release by the `Create Release` workflow, which fetches the generated release notes from GitHub and prepends them to the file.
+
+### How to mark breaking changes
+
+If your PR introduces a breaking change or requires special upgrade steps:
+
+1. Add the `breaking-change` label to your PR.
+2. Fill in the **"Breaking Changes / Upgrade Notes"** section in the PR template describing what changed and how to upgrade.
+
+PRs with the `breaking-change` label will appear in a dedicated **⚠️ Breaking Changes / Urgent Upgrade Notes** section at the top of the release notes and CHANGELOG entry, making them easy to spot for anyone performing an upgrade.
+
+> **Note:** The labeler automatically suggests `breaking-change` for PRs that modify files under `apis/`. Always review whether the changes truly break backwards compatibility before keeping or removing the label.
+
 ## Release ESO
 
 When doing a release it's best to start with  with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.

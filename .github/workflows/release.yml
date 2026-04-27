@@ -90,6 +90,20 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: make docs.publish DOCS_ALIAS=latest
 
+      - name: Update CHANGELOG
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          RELEASE_BODY=$(gh api repos/${GH_REPO}/releases/tags/${VERSION} --jq '.body')
+          DATE=$(date +%Y-%m-%d)
+          NEW_ENTRY="## [${VERSION}] - ${DATE}\n\n${RELEASE_BODY}\n\n---\n\n"
+          echo -e "${NEW_ENTRY}$(cat CHANGELOG.md)" > CHANGELOG.md
+          git add CHANGELOG.md
+          git diff --cached --quiet || git commit -m "chore(release): update CHANGELOG for ${VERSION} [skip ci]"
+          git push origin HEAD:main
+
   promote:
     name: Promote Container Image
     runs-on: ubuntu-latest
