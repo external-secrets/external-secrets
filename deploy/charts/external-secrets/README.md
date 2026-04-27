@@ -236,6 +236,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceMonitor.relabelings | list | `[]` | Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) |
 | serviceMonitor.renderMode | string | `"skipIfMissing"` | How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`"  Possible values: - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing. - `failIfMissing`: Fail Helm install if CRD is not present. - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD. @schema enum: - skipIfMissing - failIfMissing - alwaysRender @schema |
 | serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
+| storeRequeueInterval | string | `"5m"` | Default time duration between reconciling (Cluster)SecretStores |
 | strategy | object | `{}` | Set deployment strategy |
 | systemAuthDelegator | bool | `false` | If true the system:auth-delegator ClusterRole will be added to RBAC |
 | tolerations | list | `[]` |  |
