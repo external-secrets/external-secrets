@@ -61,6 +61,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.livenessProbe.successThreshold | int | `1` |  |
 | certController.livenessProbe.timeoutSeconds | int | `5` |  |
 | certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Certificate Controller |
+| certController.metrics.listen.auth.enabled | bool | `false` | Enable Kubernetes RBAC-based authentication for certController's metrics endpoint. |
 | certController.metrics.listen.port | int | `8080` |  |
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
@@ -170,6 +171,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | livenessProbe.spec.successThreshold | int | `1` | Number of successful probes to mark probe successful. |
 | livenessProbe.spec.timeoutSeconds | int | `5` | Specify the maximum amount of time to wait for a probe to respond before considering it fails. |
 | log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the External Secrets Operator |
+| metrics.listen.auth.enabled | bool | `false` | Enable Kubernetes RBAC-based authentication for metrics endpoint. |
 | metrics.listen.port | int | `8080` |  |
 | metrics.listen.secure.certDir | string | `"/etc/tls"` | TLS cert directory path |
 | metrics.listen.secure.certFile | string | `"/etc/tls/tls.crt"` | TLS cert file path |
@@ -282,6 +284,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.livenessProbe.timeoutSeconds | int | `5` |  |
 | webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Webhook |
 | webhook.lookaheadInterval | string | `""` | Specifies the lookaheadInterval for certificate validity |
+| webhook.metrics.listen.auth.enabled | bool | `false` | Enable Kubernetes RBAC-based authentication for webhook's metrics endpoint. |
 | webhook.metrics.listen.port | int | `8080` |  |
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |

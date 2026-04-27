@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -65,6 +66,7 @@ var (
 	liveAddr                              string
 	metricsAddr                           string
 	metricsSecure                         bool
+	metricsAuth                           bool
 	metricsCertDir                        string
 	metricsCertName                       string
 	metricsKeyName                        string
@@ -154,6 +156,9 @@ var rootCmd = &cobra.Command{
 			metricsOpts.CertDir = metricsCertDir
 			metricsOpts.CertName = metricsCertName
 			metricsOpts.KeyName = metricsKeyName
+		}
+		if metricsAuth {
+			metricsOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
 		}
 
 		// Disable HTTP/2 if not explicitly enabled
@@ -328,6 +333,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	rootCmd.Flags().BoolVar(&metricsAuth, "metrics-auth", false, "Enable Kubernetes RBAC-based authentication and authorization for the metrics endpoint.")
 	rootCmd.Flags().BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")
 	rootCmd.Flags().StringVar(&metricsCertDir, "metrics-cert-dir", "", "Directory containing TLS certificate and key for metrics endpoint.")
 	rootCmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "TLS certificate filename for metrics endpoint.")
