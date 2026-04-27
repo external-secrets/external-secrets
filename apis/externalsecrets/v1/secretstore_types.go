@@ -227,6 +227,10 @@ type SecretStoreProvider struct {
 	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
 	// +optional
 	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
+
+	// Sakura configures this store to sync secrets using the Sakura Cloud Secret Manager provider
+	// +optional
+	Sakura *SakuraProvider `json:"sakura,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

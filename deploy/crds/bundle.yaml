@@ -6538,6 +6538,85 @@ spec:
                         - organization
                         - project
                       type: object
+                    sakura:
+                      description: Sakura configures this store to sync secrets using the Sakura Cloud Secret Manager provider
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Sakura Cloud.
+                          properties:
+                            secretRef:
+                              description: SecretRef contains selectors for the access token and access token secret.
+                              properties:
+                                accessToken:
+                                  description: The AccessToken is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                accessTokenSecret:
+                                  description: The AccessTokenSecret is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - accessToken
+                                - accessTokenSecret
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        vaultResourceID:
+                          description: VaultResourceID is the resource ID of the target vault.
+                          example: "123456789012"
+                          maxLength: 12
+                          minLength: 12
+                          pattern: ^[0-9]+$
+                          type: string
+                      required:
+                        - auth
+                        - vaultResourceID
+                      type: object
                     scaleway:
                       description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:
@@ -18688,6 +18767,85 @@ spec:
                         - environment
                         - organization
                         - project
+                      type: object
+                    sakura:
+                      description: Sakura configures this store to sync secrets using the Sakura Cloud Secret Manager provider
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Sakura Cloud.
+                          properties:
+                            secretRef:
+                              description: SecretRef contains selectors for the access token and access token secret.
+                              properties:
+                                accessToken:
+                                  description: The AccessToken is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                accessTokenSecret:
+                                  description: The AccessTokenSecret is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - accessToken
+                                - accessTokenSecret
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        vaultResourceID:
+                          description: VaultResourceID is the resource ID of the target vault.
+                          example: "123456789012"
+                          maxLength: 12
+                          minLength: 12
+                          pattern: ^[0-9]+$
+                          type: string
+                      required:
+                        - auth
+                        - vaultResourceID
                       type: object
                     scaleway:
                       description: Scaleway configures this store to sync secrets using the Scaleway provider.
