@@ -130,9 +130,9 @@ If the secret already exists and you specify `property`, the Sakura provider pre
 - `ExternalSecret` read operations
 - `PushSecret` write operations
 - JSON secret values via `property`
-- `dataFrom` / `find` using a name filter only
+- `dataFrom.[*].find` using a name filter only
 
 ### Limitations
 
-- Sakura provider does not support filtering by `path` in `ExternalSecretDataFind`.
-- Sakura provider does not support filtering by `tags` in `ExternalSecretDataFind`.
+- Sakura provider does not support filtering by `path` in `dataFrom.[*].find`.
+- Sakura provider does not support filtering by `tags` in `dataFrom.[*].find`.
