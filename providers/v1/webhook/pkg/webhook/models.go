@@ -25,6 +25,21 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// OperationConfig overrides the top-level URL and/or body template for a
+// specific operation.  Fields mirror WebhookOperationConfig in the API types.
+type OperationConfig struct {
+	URL             string `json:"url,omitempty"`
+	Body            string `json:"body,omitempty"`
+	InheritDefaults bool   `json:"inheritDefaults,omitempty"`
+}
+
+// OperationsConfig holds per-operation overrides.
+type OperationsConfig struct {
+	GetSecret    *OperationConfig `json:"getSecret,omitempty"`
+	PushSecret   *OperationConfig `json:"pushSecret,omitempty"`
+	DeleteSecret *OperationConfig `json:"deleteSecret,omitempty"`
+}
+
 // Spec defines the configuration for a webhook provider.
 type Spec struct {
 	// Webhook Method
@@ -68,6 +83,10 @@ type Spec struct {
 	// The provider for the CA bundle to use to validate webhook server certificate.
 	// +optional
 	CAProvider *esv1.CAProvider `json:"caProvider,omitempty"`
+
+	// Operations allows per-operation URL and body template overrides.
+	// +optional
+	Operations *OperationsConfig `json:"operations,omitempty"`
 }
 
 // AuthorizationProtocol contains the protocol-specific configuration

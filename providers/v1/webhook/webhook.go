@@ -21,8 +21,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -121,13 +123,27 @@ func (w *WebHook) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRem
 		},
 	}
 
-	url, err := webhook.ExecuteTemplateString(provider.URL, escapedData)
+	var deleteOp *webhook.OperationConfig
+	if provider.Operations != nil {
+		deleteOp = provider.Operations.DeleteSecret
+	}
+
+	url, err := webhook.ExecuteTemplateString(webhook.EffectiveURL(provider.URL, deleteOp), escapedData)
 	if err != nil {
 		return fmt.Errorf("failed to parse url: %w", err)
 	}
 
+	bodyStr, err := webhook.ExecuteTemplateString(webhook.EffectiveBody(provider.Body, deleteOp), escapedData)
+	if err != nil {
+		return fmt.Errorf("failed to parse body: %w", err)
+	}
+	var reqBody io.Reader = http.NoBody
+	if bodyStr != "" {
+		reqBody = strings.NewReader(bodyStr)
+	}
+
 	method := http.MethodDelete
-	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
 	if err != nil {
 		return fmt.Errorf("failed to create delete request: %w", err)
 	}

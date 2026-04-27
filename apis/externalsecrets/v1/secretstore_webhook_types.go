@@ -22,6 +22,41 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// WebhookOperationConfig overrides the top-level URL and/or body template
+// for a specific operation (e.g. GetSecret, PushSecret).
+type WebhookOperationConfig struct {
+	// URL overrides the top-level webhook URL for this operation.
+	// Supports the same template syntax as the top-level URL field.
+	// +optional
+	URL string `json:"url,omitempty"`
+
+	// Body overrides the top-level webhook body template for this operation.
+	// +optional
+	Body string `json:"body,omitempty"`
+
+	// InheritDefaults controls whether this operation falls back to the
+	// top-level URL and body when its own fields are empty.
+	// Defaults to false: each operation is self-contained unless opted in.
+	// +optional
+	InheritDefaults bool `json:"inheritDefaults,omitempty"`
+}
+
+// WebhookOperationsConfig allows per-operation URL and body template overrides.
+// Each field is optional; when absent the top-level URL/body is used instead.
+type WebhookOperationsConfig struct {
+	// GetSecret overrides used when fetching a single secret.
+	// +optional
+	GetSecret *WebhookOperationConfig `json:"getSecret,omitempty"`
+
+	// PushSecret overrides used when pushing a secret.
+	// +optional
+	PushSecret *WebhookOperationConfig `json:"pushSecret,omitempty"`
+
+	// DeleteSecret overrides used when deleting a secret.
+	// +optional
+	DeleteSecret *WebhookOperationConfig `json:"deleteSecret,omitempty"`
+}
+
 // WebhookProvider configures a store to sync secrets from simple web APIs.
 type WebhookProvider struct {
 	// Webhook Method
@@ -66,6 +101,12 @@ type WebhookProvider struct {
 	// The provider for the CA bundle to use to validate webhook server certificate.
 	// +optional
 	CAProvider *WebhookCAProvider `json:"caProvider,omitempty"`
+
+	// Operations allows per-operation URL and body template overrides.
+	// When set, the relevant operation's URL/body takes precedence over the
+	// top-level URL/body fields.
+	// +optional
+	Operations *WebhookOperationsConfig `json:"operations,omitempty"`
 }
 
 // AuthorizationProtocol contains the protocol-specific configuration
