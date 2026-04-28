@@ -7,8 +7,8 @@ should configure custom lease name when leaderElectionID is set:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets
-        app.kubernetes.io/version: v2.4.0
-        helm.sh/chart: external-secrets-2.4.0
+        app.kubernetes.io/version: v2.4.1
+        helm.sh/chart: external-secrets-2.4.1
       name: RELEASE-NAME-external-secrets-controller
     rules:
       - apiGroups:
@@ -158,8 +158,8 @@ should configure custom lease name when leaderElectionID is set:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets
-        app.kubernetes.io/version: v2.4.0
-        helm.sh/chart: external-secrets-2.4.0
+        app.kubernetes.io/version: v2.4.1
+        helm.sh/chart: external-secrets-2.4.1
         rbac.authorization.k8s.io/aggregate-to-admin: "true"
         rbac.authorization.k8s.io/aggregate-to-edit: "true"
         rbac.authorization.k8s.io/aggregate-to-view: "true"
@@ -208,8 +208,8 @@ should configure custom lease name when leaderElectionID is set:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets
-        app.kubernetes.io/version: v2.4.0
-        helm.sh/chart: external-secrets-2.4.0
+        app.kubernetes.io/version: v2.4.1
+        helm.sh/chart: external-secrets-2.4.1
         rbac.authorization.k8s.io/aggregate-to-admin: "true"
         rbac.authorization.k8s.io/aggregate-to-edit: "true"
       name: RELEASE-NAME-external-secrets-edit
@@ -261,8 +261,8 @@ should configure custom lease name when leaderElectionID is set:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets
-        app.kubernetes.io/version: v2.4.0
-        helm.sh/chart: external-secrets-2.4.0
+        app.kubernetes.io/version: v2.4.1
+        helm.sh/chart: external-secrets-2.4.1
       name: RELEASE-NAME-external-secrets-controller
     roleRef:
       apiGroup: rbac.authorization.k8s.io
@@ -280,8 +280,8 @@ should configure custom lease name when leaderElectionID is set:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets
-        app.kubernetes.io/version: v2.4.0
-        helm.sh/chart: external-secrets-2.4.0
+        app.kubernetes.io/version: v2.4.1
+        helm.sh/chart: external-secrets-2.4.1
       name: RELEASE-NAME-external-secrets-leaderelection
       namespace: NAMESPACE
     rules:
@@ -318,8 +318,8 @@ should configure custom lease name when leaderElectionID is set:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets
-        app.kubernetes.io/version: v2.4.0
-        helm.sh/chart: external-secrets-2.4.0
+        app.kubernetes.io/version: v2.4.1
+        helm.sh/chart: external-secrets-2.4.1
       name: RELEASE-NAME-external-secrets-leaderelection
       namespace: NAMESPACE
     roleRef:
@@ -338,8 +338,8 @@ should configure custom lease name when leaderElectionID is set:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets
-        app.kubernetes.io/version: v2.4.0
-        helm.sh/chart: external-secrets-2.4.0
+        app.kubernetes.io/version: v2.4.1
+        helm.sh/chart: external-secrets-2.4.1
         servicebinding.io/controller: "true"
       name: RELEASE-NAME-external-secrets-servicebindings
     rules:

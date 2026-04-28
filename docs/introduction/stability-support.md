@@ -18,6 +18,7 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 | ESO Version | Kubernetes Version | Release Date | End of Life           |
 |-------------|--------------------|--------------|-----------------------|
+| 2.4.1       | 1.34-1.35          | Apr 28, 2026 | Release of 2.5        |
 | 2.4         | 1.34-1.35          | Apr 24, 2026 | Release of 2.5        |
 | 2.3         | 1.34-1.35          | Apr 10, 2026 | April 24, 2026        |
 | 2.2         | 1.34-1.35          | Mar 20, 2026 | April 10, 2026        |
