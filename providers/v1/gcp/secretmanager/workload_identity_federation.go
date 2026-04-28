@@ -106,12 +106,16 @@ type serviceAccountImpersonationInfo struct {
 }
 
 var (
-	gcpSTSTokenURLRegex                 = regexp.MustCompile(`^https://sts\.(?:[a-z0-9.-]+\.)?googleapis\.com/v1/token$`)
-	gcpSTSTokenInfoURLRegex             = regexp.MustCompile(`^https://sts\.(?:[a-z0-9.-]+\.)?googleapis\.com/v1/introspect$`)
+	gcpSTSTokenURLRegex                 = regexp.MustCompile(`^https://sts\.[^/\s]+/v1/token$`)
+	gcpSTSTokenInfoURLRegex             = regexp.MustCompile(`^https://sts\.[^/\s]+/v1/introspect$`)
 	awsSTSTokenURLRegex                 = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/meta-data/iam/security-credentials$`)
 	awsRegionURLRegex                   = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/meta-data/placement/availability-zone$`)
 	awsSessionTokenURLRegex             = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/api/token$`)
-	serviceAccountImpersonationURLRegex = regexp.MustCompile(`^https://iamcredentials\.googleapis\.com/v1/projects/-/serviceAccounts/(\S+):generateAccessToken$`)
+	serviceAccountImpersonationURLRegex = regexp.MustCompile(
+		`^https://iamcredentials\.(?:[a-z0-9-]+\.)*googleapis\.com` +
+			`/v1/projects/[^/]+/serviceAccounts/` +
+			`[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com:generateAccessToken$`,
+	)
 )
 
 const (
@@ -174,13 +178,20 @@ func (w *workloadIdentityFederation) TokenSource(ctx context.Context) (oauth2.To
 	return externalaccount.NewTokenSource(ctx, *config)
 }
 
-func (w *workloadIdentityFederation) getGCPServiceAccountFromAnnotation(ctx context.Context, cfg *externalaccount.Config) error {
+// updateServiceAccountImpersonationURL sets cfg.ServiceAccountImpersonationURL for GCP service account
+// impersonation after the external account config is merged. When GCPServiceAccountEmail is set on the
+// spec, it wins over service_account_impersonation_url from credConfig and over the "iam.gke.io/gcp-service-account"
+// annotation on the referenced Kubernetes ServiceAccount. Otherwise, if serviceAccountRef is set, the
+// ServiceAccount is loaded and the gcp-service-account annotation is applied when present.
+func (w *workloadIdentityFederation) updateServiceAccountImpersonationURL(ctx context.Context, cfg *externalaccount.Config) error {
+	if w.config.GCPServiceAccountEmail != "" {
+		cfg.ServiceAccountImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, w.config.GCPServiceAccountEmail)
+		return nil
+	}
+
 	if w.config.ServiceAccountRef == nil {
 		return nil
 	}
-	// look up the service account and check if it has a well-known GCP WI annotation.
-	// If so, use that GCP service account for impersonation.
-	// Required if you grant secret access to a GCP service account instead of direct resource access.
 	ns := w.namespace
 	if w.isClusterKind && w.config.ServiceAccountRef.Namespace != nil {
 		ns = *w.config.ServiceAccountRef.Namespace
@@ -246,7 +257,7 @@ func (w *workloadIdentityFederation) generateExternalAccountConfig(ctx context.C
 	if err := w.updateExternalAccountConfigWithAWSCredentialsSupplier(ctx, config); err != nil {
 		return nil, err
 	}
-	if err := w.getGCPServiceAccountFromAnnotation(ctx, config); err != nil {
+	if err := w.updateServiceAccountImpersonationURL(ctx, config); err != nil {
 		return nil, err
 	}
 	w.updateExternalAccountConfigWithDefaultValues(config)
