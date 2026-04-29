@@ -95,7 +95,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
 			return nil, esv1.NoSecretError{}
 		}
-		return nil, fmt.Errorf("failed to get secret %w", err)
+		return nil, fmt.Errorf("failed to get secret: %w", err)
 	}
 
 	// Extract value from map
@@ -202,12 +202,22 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 			}
 		}
 
-		// Marshal the entire secret as the value for this secret name
-		secretBytes, err := json.Marshal(fullSecret.Secret)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal secret %q: %w", itemName, err)
+		// Add each property in the secret as a separate entry
+		for k, v := range fullSecret.Secret {
+			switch val := v.(type) {
+			case string:
+				result[k] = []byte(val)
+			case []byte:
+				result[k] = val
+			default:
+				// non-string: marshal to JSON to preserve structure
+				b, err := json.Marshal(val)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal secret value for key %q: %w", k, err)
+				}
+				result[k] = b
+			}
 		}
-		result[itemName] = secretBytes
 	}
 
 	// If no secrets matched the criteria, return NoSecretError
@@ -230,7 +240,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
 			return nil, esv1.NoSecretError{}
 		}
-		return nil, fmt.Errorf("failed to get secret %w", err)
+		return nil, fmt.Errorf("failed to get secret: %w", err)
 	}
 
 	if secret == nil || secret.Secret == nil {

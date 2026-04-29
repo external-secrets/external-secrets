@@ -76,7 +76,11 @@ func (c *BeyondtrustWorkloadCredentialsClient) WithValues(ctx context.Context, n
 	}
 
 	c.getSecret = func(ctxIn context.Context, nameIn string, folderPathIn *string) (*btwcutil.KV, error) {
-		if ctxIn != ctx || (name != nil && nameIn != *name) || (folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
+		// Check for nil/non-nil mismatches and value mismatches
+		if ctxIn != ctx ||
+			(name != nil && nameIn != *name) ||
+			(folderPathIn == nil) != (folderPath == nil) ||
+			(folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
 			return nil, errors.New("unexpected test argument getSecret")
 		}
 
@@ -88,7 +92,10 @@ func (c *BeyondtrustWorkloadCredentialsClient) WithValues(ctx context.Context, n
 	}
 
 	c.getSecrets = func(ctxIn context.Context, folderPathIn *string, recursive bool) ([]btwcutil.KVListItem, error) {
-		if ctxIn != ctx || (folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
+		// Check for nil/non-nil mismatches and value mismatches
+		if ctxIn != ctx ||
+			(folderPathIn == nil) != (folderPath == nil) ||
+			(folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
 			return nil, errors.New("unexpected test argument getSecrets")
 		}
 
@@ -119,7 +126,11 @@ func (c *BeyondtrustWorkloadCredentialsClient) WithMultiValues(
 			return nil, errors.New("getSecret called more times than configured responses")
 		}
 
-		if ctxIn != ctx || (len(names) > 0 && names[c.getCalls] != nameIn) || (folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
+		// Check for nil/non-nil mismatches and value mismatches
+		if ctxIn != ctx ||
+			(len(names) > 0 && names[c.getCalls] != nameIn) ||
+			(folderPathIn == nil) != (folderPath == nil) ||
+			(folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
 			return nil, errors.New("unexpected test argument in getSecret")
 		}
 
@@ -136,7 +147,10 @@ func (c *BeyondtrustWorkloadCredentialsClient) WithMultiValues(
 	}
 
 	c.getSecrets = func(ctxIn context.Context, folderPathIn *string, recursive bool) ([]btwcutil.KVListItem, error) {
-		if ctxIn != ctx || (folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
+		// Check for nil/non-nil mismatches and value mismatches
+		if ctxIn != ctx ||
+			(folderPathIn == nil) != (folderPath == nil) ||
+			(folderPathIn != nil && folderPath != nil && *folderPathIn != *folderPath) {
 			return nil, errors.New("unexpected test argument in getSecrets")
 		}
 

@@ -18,7 +18,7 @@ package httpclient
 
 import "fmt"
 
-// APIError represents an error response from the BeyondTrust Secrets Manager API.
+// APIError represents an error response from the BeyondTrust Workload Credentials API.
 type APIError struct {
 	StatusCode int
 	Message    string

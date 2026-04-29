@@ -1,4 +1,4 @@
-The `BeyondtrustSecretsDynamicSecret` Generator provides an interface to BeyondTrust Workload Credentials's
+The `BeyondtrustWorkloadCredentialsDynamicSecret` Generator provides an interface to BeyondTrust Workload Credentials's
 dynamic secret generation capabilities. This enables obtaining temporary, short-lived credentials.
 
 Dynamic secret definitions must be created in BeyondTrust Workload Credentials before they can be
@@ -68,7 +68,7 @@ spec:
     - sourceRef:
         generatorRef:
           apiVersion: generators.external-secrets.io/v1alpha1
-          kind: BeyondtrustSecretsDynamicSecret
+          kind: BeyondtrustWorkloadCredentialsDynamicSecret
           name: beyondtrustworkloadcredentials-ds
 ```
 
@@ -109,7 +109,7 @@ spec:
   dataFrom:
     - sourceRef:
         generatorRef:
-          kind: BeyondtrustSecretsDynamicSecret
+          kind: BeyondtrustWorkloadCredentialsDynamicSecret
           name: beyondtrustworkloadcredentials-ds
 ---
 apiVersion: external-secrets.io/v1
@@ -123,7 +123,7 @@ spec:
   dataFrom:
     - sourceRef:
         generatorRef:
-          kind: BeyondtrustSecretsDynamicSecret
+          kind: BeyondtrustWorkloadCredentialsDynamicSecret
           name: beyondtrustworkloadcredentials-ds
 ```
 
@@ -135,7 +135,7 @@ The generator uses the same authentication mechanism as the BeyondTrust Workload
 
 ```yaml
 apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondtrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 metadata:
   name: beyondtrustworkloadcredentials-ds
   namespace: external-secrets
@@ -208,7 +208,7 @@ kubectl create secret generic my-ca-bundle \
 2. Create the generator:
 ```yaml
 apiVersion: generators.external-secrets.io/v1alpha1
-kind: BeyondtrustSecretsDynamicSecret
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
 metadata:
   name: aws-dynamic-generator
   namespace: external-secrets
@@ -241,7 +241,7 @@ spec:
     - sourceRef:
         generatorRef:
           apiVersion: generators.external-secrets.io/v1alpha1
-          kind: BeyondtrustSecretsDynamicSecret
+          kind: BeyondtrustWorkloadCredentialsDynamicSecret
           name: aws-dynamic-generator
 ```
 
@@ -251,7 +251,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: aws-temp-credentials
-  namespace: production
+  namespace: external-secrets
 data:
   accessKeyId: QVNJ...R04=
   secretAccessKey: Z3dk...WFk=

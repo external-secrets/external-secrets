@@ -45,7 +45,7 @@ type BeyondtrustWorkloadCredentialsAuth struct {
 type BeyondtrustWorkloadCredentialsServer struct {
 	// APIURL is the base URL of your BeyondTrust Workload Credentials API server.
 	// This should be the full URL to your BeyondTrust instance.
-	// Example: https://example.secretsmanager.cyberark.cloud
+	// Example: https://api.beyondtrust.io/siie
 	// For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#base-url
 	// +required
 	APIURL string `json:"apiUrl"`

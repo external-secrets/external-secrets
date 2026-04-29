@@ -39,6 +39,9 @@ const (
 
 	// Default timeout for HTTP requests.
 	defaultTimeout = 30 * time.Second
+
+	// Maximum response body size to prevent unbounded memory allocation.
+	maxResponseBytes = 10 << 20 // 10 MiB
 )
 
 // Client represents a client for interacting with BeyondTrust Workload Credentials API.
@@ -88,12 +91,13 @@ func NewClientWithCustomCA(serverURL, token string, caBundlePEM []byte) (*Client
 		if !roots.AppendCertsFromPEM(caBundlePEM) {
 			return nil, fmt.Errorf("failed to parse CA bundle PEM")
 		}
-		httpClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:    roots,
-				MinVersion: tls.VersionTLS12,
-			},
+		// Clone the default transport to preserve default settings like ProxyFromEnvironment
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    roots,
+			MinVersion: tls.VersionTLS12,
 		}
+		httpClient.Transport = transport
 	}
 
 	return &Client{
@@ -144,7 +148,7 @@ func (c *Client) CheckSession(ctx context.Context) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
 		return fmt.Errorf("failed to read session check response: %w", err)
 	}
@@ -191,7 +195,7 @@ func (c *Client) GetSecret(ctx context.Context, name string, folderPath *string)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -240,7 +244,7 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive b
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -294,7 +298,7 @@ func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, f
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strings"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -254,6 +255,8 @@ func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondtrustWorklo
 		return "", "", fmt.Errorf("failed to load server URL configuration: %w", err)
 	}
 
+	// Normalize baseURL by removing trailing slash to prevent double slashes
+	baseURL = strings.TrimRight(baseURL, "/")
 	serverURL := fmt.Sprintf("%s/%s/secrets", baseURL, siteID)
 
 	return serverURL, apiKey, nil
