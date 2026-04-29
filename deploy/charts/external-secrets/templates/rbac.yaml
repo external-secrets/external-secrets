@@ -113,6 +113,7 @@ rules:
     - "webhooks"
     - "grafanas"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     verbs:
     - "get"
     - "list"
@@ -289,6 +290,7 @@ rules:
     - "grafanas"
     - "generatorstates"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "uuids"
     verbs:
       - "get"
@@ -353,6 +355,7 @@ rules:
     - "grafanas"
     - "generatorstates"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "uuids"
     verbs:
       - "create"
