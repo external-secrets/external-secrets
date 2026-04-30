@@ -325,9 +325,7 @@ func initCache(size int) {
 
 func init() {
 	var (
-		vaultTokenCacheSize     int
-		experimentalEnableCache bool
-		experimentalCacheSize   int
+		vaultTokenCacheSize int
 	)
 
 	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
@@ -344,31 +342,9 @@ func init() {
 		defaultCacheSize,
 		"Maximum size of Vault token cache. Only used if --enable-vault-token-cache is set.",
 	)
-	fs.BoolVar(
-		&experimentalEnableCache,
-		"experimental-enable-vault-token-cache",
-		false,
-		"Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.",
-	)
-	// max. 265k vault leases with 30bytes each ~= 7MB
-	fs.IntVar(
-		&experimentalCacheSize,
-		"experimental-vault-token-cache-size",
-		defaultCacheSize,
-		"Maximum size of Vault token cache. Only used if --experimental-enable-vault-token-cache is set.",
-	)
 	feature.Register(feature.Feature{
 		Flags: fs,
 		Initialize: func() {
-			// Check for deprecated experimental flags and warn users
-			if experimentalEnableCache {
-				logger.Info("DEPRECATION WARNING: --experimental-enable-vault-token-cache is deprecated. Please use --enable-vault-token-cache instead. This flag will be removed in a future release.")
-				enableCache = true
-			}
-			if experimentalCacheSize > 0 {
-				logger.Info("DEPRECATION WARNING: --experimental-vault-token-cache-size is deprecated. Please use --vault-token-cache-size instead. This flag will be removed in a future release.")
-				vaultTokenCacheSize = experimentalCacheSize
-			}
 			initCache(vaultTokenCacheSize)
 		},
 	})
