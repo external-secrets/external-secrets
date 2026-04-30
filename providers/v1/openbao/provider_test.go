@@ -349,7 +349,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 		},
 		"GetKubeServiceAccountError": {
-			reason: "Should return error if fetching kubernetes secret fails.",
+			reason: "Should return error if fetching kubernetes token fails.",
 			args: args{
 				newClientFunc: fake.ClientWithLoginMock,
 				ns:            "default",
@@ -358,7 +358,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				corev1:        utilfake.NewCreateTokenMock().WithError(errBoom),
 			},
 			want: want{
-				err: fmt.Errorf(errGetKubeSATokenRequest, "example-sa", fmt.Errorf(errGetKubeSA, "example-sa", fmt.Errorf(errServiceAccountNotFound, "example-sa"))),
+				err: fmt.Errorf(errGetKubeSATokenRequest, "example-sa", errBoom),
 			},
 		},
 		"GetKubeSecretError": {
