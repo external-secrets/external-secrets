@@ -2628,6 +2628,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Role-Based Access Control (RBAC)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scoping-serviceaccount-token-creation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoping ServiceAccount Token Creation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5287,6 +5304,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Role-Based Access Control (RBAC)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scoping-serviceaccount-token-creation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoping ServiceAccount Token Creation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5569,7 +5603,7 @@ The core controller will issue error logs if the CRD is not installed but the re
 <p>Here are some examples of how you can harden the Helm chart:</p>
 <ul>
 <li>
-<p><strong>Scope RBAC Permissions</strong>: The default chart grants permissions to create service account tokens for any service account. You can restrict this by modifying the <code>ClusterRole</code> to only allow token creation for specific, known service accounts. This limits the operator's ability to impersonate other service accounts.</p>
+<p><strong>Scope RBAC Permissions</strong>: The default chart grants permissions to create service account tokens for any service account. You can disable this by setting <code>rbac.serviceAccountTokenCreate: false</code>. When disabled, you must grant ESO token creation for specific ServiceAccounts via dedicated Role/RoleBinding with a <code>resourceNames</code> constraint. This limits the operator's ability to impersonate other service accounts.</p>
 </li>
 <li>
 <p><strong>Use Tightly Scoped Deployments</strong>: If you don't need certain features, disable them. For example, you can prevent the injection of sidecar containers by using a custom appArmor profile, or an admission controller like Kyverno to enforce restrictions on your deployment.</p>
@@ -5592,6 +5626,37 @@ The core controller will issue error logs if the CRD is not installed but the re
 <li>If necessary, deploy ESO with scoped RBAC or within a specific namespace.</li>
 </ul>
 <p>By carefully managing RBAC permissions and scoping the External Secrets Operator appropriately, you can enhance the security of your Kubernetes cluster.</p>
+<h3 id="scoping-serviceaccount-token-creation">Scoping ServiceAccount Token Creation</h3>
+<p>By default, the ESO controller Role/ClusterRole includes a blanket <code>serviceaccounts/token: create</code> permission. This permission is necessary for authentication methods that rely on <code>serviceAccountRef</code> — such as Vault Kubernetes auth or Conjur JWT auth — where ESO creates a short-lived token for the referenced ServiceAccount and uses it to authenticate with the external secret provider.</p>
+<p>However, this means ESO can create tokens for <em>any</em> ServiceAccount within its scope. If the ESO service account is compromised, an attacker could leverage this permission to create tokens for other ServiceAccounts in the cluster (or in the namespace, when using scoped RBAC), effectively impersonating them and escalating privileges beyond ESO's intended scope.</p>
+<p>To mitigate this risk, you can set <code>rbac.serviceAccountTokenCreate: false</code> in the Helm chart values. This removes the blanket permission from ESO's Role/ClusterRole entirely.</p>
+<p>When this permission is disabled, you must explicitly delegate token creation to ESO on a per-ServiceAccount basis. For each ServiceAccount referenced in a SecretStore's <code>serviceAccountRef</code>, create a Role and RoleBinding that grants ESO token creation scoped to that specific ServiceAccount using the <code>resourceNames</code> constraint:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Role</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-token-&lt;sa-name&gt;</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span>
+<span class="nt">rules</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;&#39;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;serviceaccounts/token&#39;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">resourceNames</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;&lt;sa-name&gt;&#39;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">verbs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;create&#39;</span><span class="p p-Indicator">]</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RoleBinding</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-token-&lt;sa-name&gt;</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span>
+<span class="nt">subjects</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;eso-service-account&gt;</span>
+<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;eso-namespace&gt;</span>
+<span class="nt">roleRef</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">apiGroup</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io</span>
+<span class="w">  </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Role</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-token-&lt;sa-name&gt;</span>
+</code></pre></div>
+<p>With this configuration, ESO can only create tokens for ServiceAccounts that have been explicitly granted by the cluster administrator. This follows the principle of least privilege and ensures that a compromised ESO instance cannot be used to impersonate arbitrary ServiceAccounts.</p>
 <h2 id="network-traffic-and-security">Network Traffic and Security</h2>
 <p>To ensure a secure network environment, it is recommended to restrict network traffic to and from the External Secrets Operator using <code>NetworkPolicies</code> or similar mechanisms. By default, the External Secrets Operator does not include pre-defined Network Policies.</p>
 <p>To implement network restrictions effectively, consider the following steps:</p>
