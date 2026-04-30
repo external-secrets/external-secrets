@@ -50,24 +50,8 @@ func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1.Vaul
 	var err error
 	if jwtAuth.SecretRef != nil {
 		jwt, err = resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, jwtAuth.SecretRef)
-	} else if k8sServiceAccountToken := jwtAuth.KubernetesServiceAccountToken; k8sServiceAccountToken != nil {
-		audiences := k8sServiceAccountToken.Audiences
-		if audiences == nil {
-			audiences = &[]string{"vault"}
-		}
-		expirationSeconds := k8sServiceAccountToken.ExpirationSeconds
-		if expirationSeconds == nil {
-			tmp := int64(600)
-			expirationSeconds = &tmp
-		}
-		jwt, err = createServiceAccountToken(
-			ctx,
-			c.corev1,
-			c.storeKind,
-			c.namespace,
-			k8sServiceAccountToken.ServiceAccountRef,
-			*audiences,
-			*expirationSeconds)
+	} else if jwtAuth.ServiceAccountRef != nil {
+		jwt, err = createServiceAccountToken(ctx, c.corev1, c.storeKind, c.namespace, *jwtAuth.ServiceAccountRef)
 	} else {
 		err = errors.New(errJwtNoTokenSource)
 	}

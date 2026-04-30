@@ -137,19 +137,14 @@ func createServiceAccountToken(
 	corev1Client typedcorev1.CoreV1Interface,
 	storeKind string,
 	namespace string,
-	serviceAccountRef esmeta.ServiceAccountSelector,
-	additionalAud []string,
-	expirationSeconds int64) (string, error) {
-	audiences := serviceAccountRef.Audiences
-	if len(additionalAud) > 0 {
-		audiences = append(audiences, additionalAud...)
-	}
+	serviceAccountRef esmeta.ServiceAccountSelector) (string, error) {
+	var expirationSeconds int64 = 600
 	tokenRequest := &authv1.TokenRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
 		Spec: authv1.TokenRequestSpec{
-			Audiences:         audiences,
+			Audiences:         serviceAccountRef.Audiences,
 			ExpirationSeconds: &expirationSeconds,
 		},
 	}

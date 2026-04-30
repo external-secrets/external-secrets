@@ -295,7 +295,7 @@ func isReferentSpec(prov *esv1.VaultProvider) bool {
 	if prov.Auth.Jwt != nil && prov.Auth.Jwt.SecretRef != nil && prov.Auth.Jwt.SecretRef.Namespace == nil {
 		return true
 	}
-	if prov.Auth.Jwt != nil && prov.Auth.Jwt.KubernetesServiceAccountToken != nil && prov.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef.Namespace == nil {
+	if prov.Auth.Jwt != nil && prov.Auth.Jwt.ServiceAccountRef != nil && prov.Auth.Jwt.ServiceAccountRef.Namespace == nil {
 		return true
 	}
 	if prov.Auth.Cert != nil && prov.Auth.Cert.SecretRef.Namespace == nil {

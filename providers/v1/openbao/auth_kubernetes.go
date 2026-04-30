@@ -69,14 +69,7 @@ func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 
 func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
-		return createServiceAccountToken(
-			ctx,
-			v.corev1,
-			v.storeKind,
-			v.namespace,
-			*kubernetesAuth.ServiceAccountRef,
-			nil,
-			600)
+		return createServiceAccountToken(ctx, v.corev1, v.storeKind, v.namespace, *kubernetesAuth.ServiceAccountRef)
 	} else if kubernetesAuth.SecretRef != nil {
 		tokenRef := kubernetesAuth.SecretRef
 		if tokenRef.Key == "" {

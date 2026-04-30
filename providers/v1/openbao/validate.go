@@ -39,7 +39,7 @@ const (
 	errInvalidClientCert      = "invalid Auth.Cert.ClientCert: %w"
 	errInvalidCertSec         = "invalid Auth.Cert.SecretRef: %w"
 	errInvalidJwtSec          = "invalid Auth.Jwt.SecretRef: %w"
-	errInvalidJwtK8sSA        = "invalid Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef: %w"
+	errInvalidJwtK8sSA        = "invalid Auth.Jwt.ServiceAccountRef: %w"
 	errInvalidKubeSA          = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
 	errInvalidKubeSec         = "invalid Auth.Kubernetes.SecretRef: %w"
 	errInvalidLdapSec         = "invalid Auth.Ldap.SecretRef: %w"
@@ -98,8 +98,8 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 				if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Jwt.SecretRef); err != nil {
 					return nil, fmt.Errorf(errInvalidJwtSec, err)
 				}
-			} else if vaultProvider.Auth.Jwt.KubernetesServiceAccountToken != nil {
-				if err := esutils.ValidateReferentServiceAccountSelector(store, vaultProvider.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef); err != nil {
+			} else if vaultProvider.Auth.Jwt.ServiceAccountRef != nil {
+				if err := esutils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Jwt.ServiceAccountRef); err != nil {
 					return nil, fmt.Errorf(errInvalidJwtK8sSA, err)
 				}
 			} else {

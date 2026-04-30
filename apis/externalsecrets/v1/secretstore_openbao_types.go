@@ -280,31 +280,7 @@ type VaultAwsJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
-// VaultKubernetesServiceAccountTokenAuth authenticates with Vault using a temporary
-// Kubernetes service account token retrieved by the `TokenRequest` API.
-type VaultKubernetesServiceAccountTokenAuth struct {
-	// Service account field containing the name of a kubernetes ServiceAccount.
-	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
-
-	// Optional audiences field that will be used to request a temporary Kubernetes service
-	// account token for the service account referenced by `serviceAccountRef`.
-	// Defaults to a single audience `vault` it not specified.
-	//
-	// Deprecated: use serviceAccountRef.Audiences instead
-	// +optional
-	Audiences *[]string `json:"audiences,omitempty"`
-
-	// Optional expiration time in seconds that will be used to request a temporary
-	// Kubernetes service account token for the service account referenced by
-	// `serviceAccountRef`.
-	//
-	// Deprecated: this will be removed in the future.
-	// Defaults to 10 minutes.
-	// +optional
-	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
-}
-
-// VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
+// VaultJwtAuth authenticates with OpenBao using the JWT/OIDC authentication
 // method, with the role name and a token stored in a Kubernetes Secret resource or
 // a Kubernetes service account token retrieved via `TokenRequest`.
 type VaultJwtAuth struct {
@@ -323,10 +299,10 @@ type VaultJwtAuth struct {
 	// +optional
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 
-	// Optional ServiceAccountToken specifies the Kubernetes service account for which to request
+	// Optional ServiceAccountRef specifies the Kubernetes service account for which to request
 	// a token for with the `TokenRequest` API.
 	// +optional
-	KubernetesServiceAccountToken *VaultKubernetesServiceAccountTokenAuth `json:"kubernetesServiceAccountToken,omitempty"`
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 // VaultCertAuth authenticates with Vault using the JWT/OIDC authentication
