@@ -1774,6 +1774,7 @@ string
 <a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
 <a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>, 
 <a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>, 
 <a href="#external-secrets.io/v1.PassboltProvider">PassboltProvider</a>, 
 <a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
@@ -5512,6 +5513,7 @@ GCPWorkloadIdentityFederation
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
+<a href="#external-secrets.io/v1.OpenBaoGCPAuth">OpenBaoGCPAuth</a>, 
 <a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
@@ -5619,6 +5621,7 @@ Possible values are:
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
+<a href="#external-secrets.io/v1.OpenBaoGCPAuth">OpenBaoGCPAuth</a>, 
 <a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
@@ -8030,6 +8033,1241 @@ cache: {} is a valid option to set.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.OpenBaoAppRole">OpenBaoAppRole
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoAppRole authenticates with OpenBao using the App Role auth mechanism,
+with the role and secret stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the App Role authentication backend is mounted
+in OpenBao, e.g: &ldquo;approle&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleID configured in the App Role authentication backend when setting
+up the authentication backend in OpenBao.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Reference to a key in a Secret that contains the App Role ID used
+to authenticate with OpenBao.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role id.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>Reference to a key in a Secret that contains the App Role secret used
+to authenticate with OpenBao.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>)
+</p>
+<p>
+<p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code>, <code>cert</code>, <code>iam</code> or <code>gcp</code>
+can be specified. A namespace to authenticate against can optionally be specified.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the OpenBao namespace to authenticate to. This can be different than the namespace your secret is in.
+Namespaces is a set of features within OpenBao that allows
+OpenBao environments to support Secure Multi-tenancy. e.g: &ldquo;ns1&rdquo;.
+More about namespaces can be found here <a href="https://openbao.org/docs/concepts/namespaces/">https://openbao.org/docs/concepts/namespaces/</a>
+This will default to OpenBao.Namespace field if set, or empty otherwise</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TokenSecretRef authenticates with OpenBao by presenting a token.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appRole</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAppRole">
+OpenBaoAppRole
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppRole authenticates with OpenBao using the App Role auth mechanism,
+with the role and secret stored in a Kubernetes Secret resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetes</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoKubernetesAuth">
+OpenBaoKubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubernetes authenticates with OpenBao by passing the ServiceAccount
+token stored in the named Secret resource to the OpenBao server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ldap</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoLdapAuth">
+OpenBaoLdapAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ldap authenticates with OpenBao by passing username/password pair using
+the LDAP authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoJwtAuth">
+OpenBaoJwtAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Jwt authenticates with OpenBao by passing role and JWT token using the
+JWT/OIDC authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cert</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoCertAuth">
+OpenBaoCertAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cert authenticates with TLS Certificates by passing client certificate, private key and ca certificate
+Cert authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iam</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoIamAuth">
+OpenBaoIamAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Iam authenticates with OpenBao by passing a special AWS request signed with AWS IAM credentials
+AWS IAM authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>userPass</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoUserPassAuth">
+OpenBaoUserPassAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UserPass authenticates with OpenBao by passing username/password pair</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gcp</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoGCPAuth">
+OpenBaoGCPAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Gcp authenticates with OpenBao using Google Cloud Platform authentication method
+GCP authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoAwsAuth">OpenBaoAwsAuth
+</h3>
+<p>
+<p>OpenBaoAwsAuth tells the controller how to do authentication with aws.
+Only one of secretRef or jwt can be specified.
+if none is specified the controller will try to load credentials from its own service account assuming it is IRSA enabled.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAwsAuthSecretRef">
+OpenBaoAwsAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAwsJWTAuth">
+OpenBaoAwsJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoAwsAuthSecretRef">OpenBaoAwsAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAwsAuth">OpenBaoAwsAuth</a>, 
+<a href="#external-secrets.io/v1.OpenBaoIamAuth">OpenBaoIamAuth</a>)
+</p>
+<p>
+<p>OpenBaoAwsAuthSecretRef holds secret references for AWS credentials
+both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessKeyIDSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The AccessKeyID is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretAccessKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The SecretAccessKey is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The SessionToken used for authentication
+This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoAwsJWTAuth">OpenBaoAwsJWTAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAwsAuth">OpenBaoAwsAuth</a>, 
+<a href="#external-secrets.io/v1.OpenBaoIamAuth">OpenBaoIamAuth</a>)
+</p>
+<p>
+<p>OpenBaoAwsJWTAuth Authenticate against AWS using service account tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoCertAuth">OpenBaoCertAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoCertAuth authenticates with OpenBao using the JWT/OIDC authentication
+method, with the role name and token stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path where the Certificate authentication backend is mounted
+in OpenBao, e.g: &ldquo;cert&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>openBaoRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OpenBaoRole specifies the OpenBao role to use for TLS certificate authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientCert</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ClientCert is a certificate to authenticate using the Cert OpenBao
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef to a key in a Secret resource containing client private key to
+authenticate with OpenBao using the Cert authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoCheckAndSet">OpenBaoCheckAndSet
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>)
+</p>
+<p>
+<p>OpenBaoCheckAndSet defines the Check-And-Set (CAS) settings for OpenBao KV v2 PushSecret operations.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>required</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Required when true, all write operations must include a check-and-set parameter.
+This helps prevent unintentional overwrites of secrets.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoClientTLS">OpenBaoClientTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>)
+</p>
+<p>
+<p>OpenBaoClientTLS is the configuration used for client side related TLS communication,
+when the OpenBao server requires mutual authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CertSecretRef is a certificate added to the transport layer
+when communicating with the OpenBao server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.crt&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeySecretRef to a key in a Secret resource containing client private key
+added to the transport layer when communicating with the OpenBao server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoGCPAuth">OpenBaoGCPAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoGCPAuth authenticates with OpenBao using Google Cloud Platform authentication method.
+Refer: <a href="https://github.com/openbao/openbao-plugins/blob/main/auth/gcp/docs/index.md">https://github.com/openbao/openbao-plugins/blob/main/auth/gcp/docs/index.md</a></p>
+<p>When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod&rsquo;s
+identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path where the GCP auth method is enabled in OpenBao, e.g: &ldquo;gcp&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OpenBao Role. In OpenBao, a role describes an identity with a set of permissions, groups, or policies you want to attach to a user of the secrets engine.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Project ID of the Google Cloud Platform project</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>location</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Location optionally defines a location/region for the secret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.GCPSMAuthSecretRef">
+GCPSMAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify credentials in a Secret object</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#external-secrets.io/v1.GCPWorkloadIdentity">
+GCPWorkloadIdentity
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify a service account with Workload Identity</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef to a service account for impersonation</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoIamAuth">OpenBaoIamAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoIamAuth authenticates with OpenBao using the OpenBao&rsquo;s AWS IAM authentication method.</p>
+<p>When JWTAuth and SecretRef are not specified, the provider will use the controller pod&rsquo;s
+identity to authenticate with AWS. This supports both IRSA and EKS Pod Identity.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path where the AWS auth method is enabled in OpenBao, e.g: &ldquo;aws&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS region</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>This is the AWS role to be assumed before talking to OpenBao</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>openBaoRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OpenBao Role. In OpenBao, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultAwsIamServerID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>X-Vault-AWS-IAM-Server-ID is an additional header used by OpenBao IAM auth method to mitigate against different types of replay attacks.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAwsAuthSecretRef">
+OpenBaoAwsAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify credentials in a Secret object</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAwsJWTAuth">
+OpenBaoAwsJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify a service account with IRSA enabled</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoJwtAuth">OpenBaoJwtAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoJwtAuth authenticates with OpenBao using the JWT/OIDC authentication
+method, with the role name and a token stored in a Kubernetes Secret resource or
+a Kubernetes service account token retrieved via <code>TokenRequest</code>.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the JWT authentication backend is mounted
+in OpenBao, e.g: &ldquo;jwt&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is a JWT role to authenticate using the JWT/OIDC OpenBao
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional SecretRef that refers to a key in a Secret resource containing JWT token to
+authenticate with OpenBao using the JWT/OIDC authentication method.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional ServiceAccountRef specifies the Kubernetes service account for which to request
+a token for with the <code>TokenRequest</code> API.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoKVStoreVersion">OpenBaoKVStoreVersion
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>)
+</p>
+<p>
+<p>OpenBaoKVStoreVersion represents the version of the OpenBao KV secret engine.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;v1&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;v2&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoKubernetesAuth">OpenBaoKubernetesAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoKubernetesAuth authenticates against OpenBao using a Kubernetes ServiceAccount token stored in
+a Secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mountPath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
+&ldquo;kubernetes&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional service account field containing the name of a kubernetes ServiceAccount.
+If the service account is specified, the service account secret token JWT will be used
+for authenticating with OpenBao. If the service account selector is not supplied,
+the secretRef will be used instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional secret field containing a Kubernetes ServiceAccount JWT used
+for authenticating with OpenBao. If a name is specified without a key,
+<code>token</code> is the default. If one is not specified, the one bound to
+the controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>A required field containing the OpenBao Role to assume. A Role binds a
+Kubernetes ServiceAccount with a set of OpenBao policies.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoLdapAuth">OpenBaoLdapAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoLdapAuth authenticates with OpenBao using the LDAP authentication method,
+with the username and password stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the LDAP authentication backend is mounted
+in OpenBao, e.g: &ldquo;ldap&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is an LDAP username used to authenticate using the LDAP OpenBao
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef to a key in a Secret resource containing password for the LDAP
+user used to authenticate with OpenBao using the LDAP authentication
+method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OpenBaoProvider configures a store to sync secrets using an OpenBao KV backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">
+OpenBaoAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the OpenBao server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Server is the connection address for the OpenBao server, e.g: &ldquo;<a href="https://openbao.example.com:8200&quot;">https://openbao.example.com:8200&rdquo;</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path is the mount path of the OpenBao KV backend endpoint, e.g:
+&ldquo;secret&rdquo;. The v2 KV secret engine version specific &ldquo;/data&rdquo; path suffix
+for fetching secrets from OpenBao is optional and will be appended
+if not present in specified path.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoKVStoreVersion">
+OpenBaoKVStoreVersion
+</a>
+</em>
+</td>
+<td>
+<p>Version is the OpenBao KV secret engine version. This can be either &ldquo;v1&rdquo; or
+&ldquo;v2&rdquo;. Version defaults to &ldquo;v2&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the OpenBao namespace. Namespaces is a set of features within OpenBao that allows
+OpenBao environments to support Secure Multi-tenancy. e.g: &ldquo;ns1&rdquo;.
+More about namespaces can be found here <a href="https://openbao.org/docs/concepts/namespaces/">https://openbao.org/docs/concepts/namespaces/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM encoded CA bundle used to validate OpenBao server certificate. Only used
+if the Server URL is using HTTPS protocol. This parameter is ignored for
+plain HTTP protocol connection. If not set the system root certificates
+are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tls</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoClientTLS">
+OpenBaoClientTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The configuration used for client side related TLS communication, when the OpenBao server
+requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+This parameter is ignored for plain HTTP protocol connection.
+It&rsquo;s worth noting this configuration is different from the &ldquo;TLS certificates auth method&rdquo;,
+which is available under the <code>auth.cert</code> section.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate OpenBao server certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>headers</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Headers to be added in OpenBao request</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>checkAndSet</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoCheckAndSet">
+OpenBaoCheckAndSet
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+Only applies to OpenBao KV v2 stores. When enabled, write operations must include
+the current version of the secret to prevent unintentional overwrites.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoUserPassAuth">OpenBaoUserPassAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoUserPassAuth authenticates with OpenBao using UserPass authentication method,
+with the username and password stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the UserPassword authentication backend is mounted
+in OpenBao, e.g: &ldquo;userpass&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is a username used to authenticate using the UserPass OpenBao
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef to a key in a Secret resource containing password for the
+user used to authenticate with OpenBao using the UserPass authentication
+method</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.OracleAuth">OracleAuth
 </h3>
 <p>
@@ -10013,6 +11251,20 @@ NebiusMysteryboxProvider
 <td>
 <em>(Optional)</em>
 <p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>openBao</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">
+OpenBaoProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OpenBao configures this store to sync secrets using the OpenBao provider.</p>
 </td>
 </tr>
 </tbody>
