@@ -702,6 +702,9 @@
                 "create": {
                     "type": "boolean"
                 },
+                "serviceAccountTokenCreate": {
+                    "type": "boolean"
+                },
                 "servicebindings": {
                     "type": "object",
                     "properties": {

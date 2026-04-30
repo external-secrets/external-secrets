@@ -180,12 +180,14 @@ rules:
     {{- end }}
   {{- end }}
   {{- end }}
+  {{- if .Values.rbac.serviceAccountTokenCreate }}
   - apiGroups:
     - ""
     resources:
     - "serviceaccounts/token"
     verbs:
     - "create"
+  {{- end }}
   - apiGroups:
     - ""
     resources:
