@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ limitations under the License.
 package metrics
 
 import (
+	"maps"
+
 	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 
@@ -36,9 +38,7 @@ func UpdateStatusCondition(ss esapi.GenericStore, condition esapi.SecretStoreSta
 	ssInfo := make(map[string]string)
 	ssInfo["name"] = ss.GetName()
 	ssInfo["namespace"] = ss.GetNamespace()
-	for k, v := range ss.GetLabels() {
-		ssInfo[k] = v
-	}
+	maps.Copy(ssInfo, ss.GetLabels())
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(ssInfo)
 	secretStoreCondition := gaugeVecGetter(StatusConditionKey)
 

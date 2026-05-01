@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ limitations under the License.
 package metrics
 
 import (
+	"maps"
 	"regexp"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -85,9 +86,7 @@ func SetUpLabelNames(addKubeStandardLabels bool) {
 func RefineLabels(promLabels prometheus.Labels, newLabels map[string]string) prometheus.Labels {
 	var refinement = prometheus.Labels{}
 
-	for k, v := range promLabels {
-		refinement[k] = v
-	}
+	maps.Copy(refinement, promLabels)
 
 	for k, v := range newLabels {
 		cleanKey := nonAlphanumericRegex.ReplaceAllString(k, "_")

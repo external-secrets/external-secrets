@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -72,8 +72,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 	ksmClient := ksm.NewSecretsManager(ksmClientOptions)
 	client := &Client{
-		folderID:  keeperStore.FolderID,
-		ksmClient: ksmClient,
+		folderID:           keeperStore.FolderID,
+		ksmClient:          ksmClient,
+		getByTitleFallback: keeperStore.GetByTitleFallback,
 	}
 
 	return client, nil

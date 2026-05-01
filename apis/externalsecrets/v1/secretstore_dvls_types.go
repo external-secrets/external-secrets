@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,11 @@ type DVLSProvider struct {
 	// ServerURL is the DVLS instance URL (e.g., https://dvls.example.com).
 	// +kubebuilder:validation:Required
 	ServerURL string `json:"serverUrl"`
+
+	// Vault is the name or UUID of the vault to fetch secrets from.
+	// When omitted, the vault must be specified in the secret key using the legacy format "<vault-id>/<entry-id>".
+	// +optional
+	Vault string `json:"vault,omitempty"`
 
 	// Insecure allows connecting to DVLS over plain HTTP.
 	// This is NOT RECOMMENDED for production use.

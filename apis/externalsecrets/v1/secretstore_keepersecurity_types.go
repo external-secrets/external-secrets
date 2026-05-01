@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 // KeeperSecurityProvider Configures a store to sync secrets using Keeper Security.
 type KeeperSecurityProvider struct {
-	Auth     smmeta.SecretKeySelector `json:"authRef"`
-	FolderID string                   `json:"folderID"`
+	Auth               smmeta.SecretKeySelector `json:"authRef"`
+	FolderID           string                   `json:"folderID"`
+	GetByTitleFallback bool                     `json:"getByTitleFallback,omitempty"`
 }

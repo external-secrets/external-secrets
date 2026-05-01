@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -64,7 +63,7 @@ func TestResolveSecretKeyRef(t *testing.T) {
 			storeKind: "SecretStore",
 			selector: &esmeta.SecretKeySelector{
 				Name:      testSecret,
-				Namespace: ptr.To(testNamespace),
+				Namespace: new(testNamespace),
 				Key:       testKey,
 			},
 			expected: testValue,
@@ -87,7 +86,7 @@ func TestResolveSecretKeyRef(t *testing.T) {
 			storeKind: "SecretStore",
 			selector: &esmeta.SecretKeySelector{
 				Name:      testSecret,
-				Namespace: ptr.To(testNamespace),
+				Namespace: new(testNamespace),
 				Key:       testKey,
 			},
 			err: errors.New(`cannot get Kubernetes secret "test-secret" from namespace "other-namespace": secrets "test-secret" not found`),
@@ -97,7 +96,7 @@ func TestResolveSecretKeyRef(t *testing.T) {
 			storeKind: "ClusterSecretStore",
 			selector: &esmeta.SecretKeySelector{
 				Name:      testSecret,
-				Namespace: ptr.To(testNamespace),
+				Namespace: new(testNamespace),
 				Key:       testKey,
 			},
 			expected: testValue,
@@ -109,7 +108,7 @@ func TestResolveSecretKeyRef(t *testing.T) {
 			storeKind: "SecretStore",
 			selector: &esmeta.SecretKeySelector{
 				Name:      testSecret,
-				Namespace: ptr.To(testNamespace),
+				Namespace: new(testNamespace),
 				Key:       "xxxxxxxx",
 			},
 			expected: "",

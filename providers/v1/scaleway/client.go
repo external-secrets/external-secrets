@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -377,7 +377,7 @@ func (c *client) safeConvertInt32(page *int32) uint64 {
 		return 0
 	}
 
-	return uint64(*page - 1) //nolint:gosec // already checked above
+	return uint64(*page - 1)
 }
 
 func (c *client) Close(context.Context) error {

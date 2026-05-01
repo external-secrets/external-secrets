@@ -142,6 +142,9 @@ To control this behavior set the following provider metadata:
 - `kmsKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/secretsmanager` is the _default_.
 - `description` Description of the secret.
 - `tags` Key-value map of user-defined tags that are attached to the secret.
+
+**Note:** ESO treats the PushSecret as the **source of truth** for tags. Tags specified in `metadata.tags` will be added or updated, and tags NOT specified will be removed from AWS. This synchronization happens on every reconciliation, even when the secret value hasn't changed.
+
 - `resourcePolicy` Attach a resource-based policy to the secret for cross-account access or advanced access control.
   - `blockPublicPolicy` (optional) - Set to `true` to validate that the policy doesn't grant public access before applying. Defaults to AWS behavior.
   - `policySourceRef` (required) - Reference to a ConfigMap or Secret containing the policy JSON.
@@ -173,18 +176,18 @@ spec:
         remoteRef:
           remoteKey: my-remote-secret
           property: password
-  metadata:
-    resourcePolicy:
-      blockPublicPolicy: true
-      policySourceRef:
-        kind: ConfigMap
-        name: my-secret-resource-policy
-        key: policy.json
-    kmsKeyID: bb123123-b2b0-4f60-ac3a-44a13f0e6b6c
-    secretPushFormat: string
-    description: "Cross-account accessible secret"
-    tags:
-      team: platform-engineering
+      metadata:
+        resourcePolicy:
+          blockPublicPolicy: true
+          policySourceRef:
+            kind: ConfigMap
+            name: my-secret-resource-policy
+            key: policy.json
+        kmsKeyID: bb123123-b2b0-4f60-ac3a-44a13f0e6b6c
+        secretPushFormat: string
+        description: "Cross-account accessible secret"
+        tags:
+          team: platform-engineering
 ```
 
 The ConfigMap should contain the policy JSON:
@@ -212,7 +215,7 @@ data:
     }
 ```
 
-**Note:** The resource policy is applied after the secret is created or updated. If the `resourcePolicy` field is removed from metadata, the existing policy will be deleted from the secret.
+**Note:** The resource policy is synchronized on every reconciliation, even when the secret value hasn't changed. If the `resourcePolicy` field is removed from metadata, the existing policy will be deleted from the secret.
 
 ### JSON Secret Values
 

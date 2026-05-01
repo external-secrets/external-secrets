@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/senhasegura
 
-go 1.25.7
+go 1.26.2
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0

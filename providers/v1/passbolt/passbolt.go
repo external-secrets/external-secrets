@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,13 +20,16 @@ package passbolt
 
 import (
 	"context"
-	"encoding/json"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 
 	"github.com/passbolt/go-passbolt/api"
+	"github.com/passbolt/go-passbolt/helper"
 	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -45,29 +48,19 @@ const (
 	errPassboltExternalSecretMissingFindNameRegExp = "missing: find.name.regexp"
 	errPassboltStoreHostSchemeNotHTTPS             = "host Url has to be https scheme"
 	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password or description"
+	errPassboltCAInvalid                           = "failed to parse CA certificate for Passbolt provider"
+	errPassboltUnexpectedTransport                 = "unexpected default http transport type"
 	errNotImplemented                              = "not implemented"
 )
 
 // ProviderPassbolt implements the External Secrets provider interface for Passbolt.
 type ProviderPassbolt struct {
-	client Client
+	client *api.Client
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (provider *ProviderPassbolt) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
-}
-
-// Client defines the interface for interacting with the Passbolt API.
-type Client interface {
-	CheckSession(ctx context.Context) bool
-	Login(ctx context.Context) error
-	Logout(ctx context.Context) error
-	GetResource(ctx context.Context, resourceID string) (*api.Resource, error)
-	GetResources(ctx context.Context, opts *api.GetResourcesOptions) ([]api.Resource, error)
-	GetResourceType(ctx context.Context, typeID string) (*api.ResourceType, error)
-	DecryptMessage(message string) (string, error)
-	GetSecret(ctx context.Context, resourceID string) (*api.Secret, error)
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -96,9 +89,25 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1.Gene
 		return nil, err
 	}
 
-	client, err := api.NewClient(nil, "", config.Host, privateKey, password)
+	httpClient, err := buildHTTPClient(ctx, config, kube, store.GetKind(), namespace)
 	if err != nil {
 		return nil, err
+	}
+
+	client, err := api.NewClient(httpClient, "", config.Host, privateKey, password)
+	if err != nil {
+		return nil, err
+	}
+
+	// Login immediately (like CLI does)
+	if err := client.Login(ctx); err != nil {
+		return nil, err
+	}
+
+	// Prefetch caches for V5 metadata decryption performance (CLI pattern)
+	// This caches session keys and metadata keys for fast V5 decryption
+	if _, _, err := client.PreFetchCaches(ctx); err != nil {
+		fmt.Printf("passbolt: prefetch caches failed (non-fatal): %v\n", err)
 	}
 
 	provider.client = client
@@ -170,15 +179,21 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 		return nil, err
 	}
 
+	// NOTE: For V5 resources, metadata (including name) is encrypted, so we must
+	// decrypt each resource before filtering. This means all secrets are decrypted
+	// even if they don't match the filter, which may impact performance with large
+	// secret stores.
 	for _, resource := range resources {
-		if !nameRegexp.MatchString(resource.Name) {
-			continue
-		}
-
 		secret, err := provider.getPassboltSecret(ctx, resource.ID)
 		if err != nil {
 			return nil, err
 		}
+
+		// Filter by decrypted name (works for both V4 and V5)
+		if !nameRegexp.MatchString(secret.Name) {
+			continue
+		}
+
 		marshaled, err := esutils.JSONMarshal(secret)
 		if err != nil {
 			return nil, err
@@ -191,6 +206,9 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 
 // Close implements cleanup operations for the Passbolt provider.
 func (provider *ProviderPassbolt) Close(ctx context.Context) error {
+	// Save any pending session keys discovered during decryption (CLI pattern)
+	// This improves performance for future connections
+	_, _ = provider.client.SavePendingSessionKeys(ctx) // Best effort
 	return provider.client.Logout(ctx)
 }
 
@@ -256,56 +274,68 @@ func (ps Secret) GetProp(key string) ([]byte, error) {
 }
 
 func (provider *ProviderPassbolt) getPassboltSecret(ctx context.Context, id string) (*Secret, error) {
-	resource, err := provider.client.GetResource(ctx, id)
+	_, name, username, uri, password, description, err := helper.GetResource(ctx, provider.client, id)
 	if err != nil {
 		return nil, err
 	}
-
-	secret, err := provider.client.GetSecret(ctx, resource.ID)
-	if err != nil {
-		return nil, err
-	}
-	res := Secret{
-		Name:        resource.Name,
-		Username:    resource.Username,
-		URI:         resource.URI,
-		Description: resource.Description,
-	}
-
-	raw, err := provider.client.DecryptMessage(secret.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceType, err := provider.client.GetResourceType(ctx, resource.ResourceTypeID)
-	if err != nil {
-		return nil, err
-	}
-
-	switch resourceType.Slug {
-	case "password-string":
-		res.Password = raw
-	case "password-and-description", "password-description-totp":
-		var pwAndDesc api.SecretDataTypePasswordAndDescription
-		if err := json.Unmarshal([]byte(raw), &pwAndDesc); err != nil {
-			return nil, err
-		}
-		res.Password = pwAndDesc.Password
-		res.Description = pwAndDesc.Description
-	case "totp":
-	default:
-		return nil, fmt.Errorf("UnknownPassboltResourceType: %q", resourceType)
-	}
-
-	return &res, nil
+	return &Secret{
+		Name:        name,
+		Username:    username,
+		URI:         uri,
+		Password:    password,
+		Description: description,
+	}, nil
 }
 
-func assureLoggedIn(ctx context.Context, client Client) error {
+func assureLoggedIn(ctx context.Context, client *api.Client) error {
 	if client.CheckSession(ctx) {
 		return nil
 	}
-
 	return client.Login(ctx)
+}
+
+// buildHTTPClient returns an *http.Client configured with the provider's CA bundle
+// or CA provider, if either is set. When neither is set it returns nil so that the
+// underlying SDK uses its default HTTP client (and the system root CAs).
+func buildHTTPClient(ctx context.Context, config *esv1.PassboltProvider, kube kclient.Client, storeKind, namespace string) (*http.Client, error) {
+	if len(config.CABundle) == 0 && config.CAProvider == nil {
+		return nil, nil
+	}
+
+	caCert, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+		CABundle:   config.CABundle,
+		CAProvider: config.CAProvider,
+		StoreKind:  storeKind,
+		Namespace:  namespace,
+		Client:     kube,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return nil, errors.New(errPassboltCAInvalid)
+	}
+
+	// Clone the default transport so we keep its proxy/dialer/HTTP2/idle
+	// connection settings and only override the TLS configuration.
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, errors.New(errPassboltUnexpectedTransport)
+	}
+	transport := defaultTransport.Clone()
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{}
+	} else {
+		transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	}
+	transport.TLSClientConfig.RootCAs = caCertPool
+	transport.TLSClientConfig.MinVersion = tls.VersionTLS12
+
+	return &http.Client{
+		Transport: transport,
+	}, nil
 }
 
 // NewProvider creates a new Provider instance.

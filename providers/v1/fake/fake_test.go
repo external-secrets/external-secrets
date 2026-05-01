@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import (
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -191,7 +190,7 @@ func TestGetAllSecrets(t *testing.T) {
 			desc: "unsupported operator",
 			data: []esv1.FakeProviderData{},
 			ref: esv1.ExternalSecretFind{
-				Path: ptr.To("some-path"),
+				Path: new("some-path"),
 			},
 			expectedErr: "unsupported find operator",
 		},

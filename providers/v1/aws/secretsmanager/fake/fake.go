@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import (
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"k8s.io/utils/ptr"
 )
 
 // Client implements the aws secretsmanager interface.
@@ -89,7 +88,7 @@ func (sm *Client) DeleteSecret(ctx context.Context, input *awssm.DeleteSecretInp
 func NewDeleteSecretFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretFn {
 	return func(_ context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
 		if input.ForceDeleteWithoutRecovery != nil && *input.ForceDeleteWithoutRecovery {
-			output.DeletionDate = ptr.To(time.Now())
+			output.DeletionDate = new(time.Now())
 		}
 		return output, err
 	}

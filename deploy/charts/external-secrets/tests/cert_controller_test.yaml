@@ -373,3 +373,19 @@ tests:
             - ip: "192.168.1.100"
               hostnames:
                 - "cert.example.com"
+  - it: should not have enable-leader-election flag by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-leader-election=true"
+  - it: should have enable-leader-election flag when leaderElect is true
+    set:
+      leaderElect: true
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-leader-election=true"

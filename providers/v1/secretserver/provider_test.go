@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestDoesConfigDependOnNamespace(t *testing.T) {
@@ -168,7 +167,7 @@ func TestValidateStore(t *testing.T) {
 func TestNewClient(t *testing.T) {
 	userNameKey := "username"
 	userNameValue := "foo"
-	passwordKey := "password"
+	passwordKey := passwordSlug
 	passwordValue := generateRandomString()
 	domain := "domain1"
 
@@ -475,7 +474,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 								Type:      esv1.CAProviderTypeSecret,
 								Name:      caSecretName,
 								Key:       caSecretKey,
-								Namespace: esutils.Ptr("default"),
+								Namespace: new("default"),
 							},
 						},
 					},
@@ -523,7 +522,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 
 func makeSecretRefUsingNamespacedRef(namespace, name, key string) *esv1.SecretServerProviderRef {
 	return &esv1.SecretServerProviderRef{
-		SecretRef: &v1.SecretKeySelector{Namespace: esutils.Ptr(namespace), Name: name, Key: key},
+		SecretRef: &v1.SecretKeySelector{Namespace: new(namespace), Name: name, Key: key},
 	}
 }
 
@@ -634,8 +633,8 @@ func TestCapabilities(t *testing.T) {
 	tests := map[string]struct {
 		want esv1.SecretStoreCapabilities
 	}{
-		"returns ReadOnly capability": {
-			want: esv1.SecretStoreReadOnly,
+		"returns ReadWrite capability": {
+			want: esv1.SecretStoreReadWrite,
 		},
 	}
 
@@ -647,9 +646,7 @@ func TestCapabilities(t *testing.T) {
 
 			// Edge: call Capabilities on nil Provider
 			var nilP *Provider
-			if nilP != nil {
-				assert.Equal(t, esv1.SecretStoreReadOnly, nilP.Capabilities())
-			}
+			assert.Equal(t, esv1.SecretStoreReadWrite, nilP.Capabilities())
 		})
 	}
 }

@@ -90,6 +90,12 @@ commonLabels: {}
 # than one instance of external-secrets operates at a time.
 leaderElect: false
 
+# -- ID of the lease object used for leader election.
+# Leave empty to use the default ('external-secrets-controller').
+# Set to a unique value when running multiple independent ESO deployments in the same namespace.
+# @default -- "external-secrets-controller"
+leaderElectionID: ""
+
 # -- If set external secrets will filter matching
 # Secret Stores with the appropriate controller values.
 controllerClass: ""
@@ -154,6 +160,13 @@ createOperator: true
 # -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook.
 enableHTTP2: false
 
+# -- Vault token cache configuration
+vault:
+  # -- Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.
+  enableTokenCache: false
+  # -- Maximum size of Vault token cache. Only used if enableTokenCache is true.
+  tokenCacheSize: 262144
+
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
@@ -183,6 +196,11 @@ serviceAccount:
 rbac:
   # -- Specifies whether role and rolebinding resources should be created.
   create: true
+
+  # -- Specifies whether the serviceaccounts/token create permission is included in the controller RBAC.
+  # When set to false, users must create per-ServiceAccount Role/RoleBinding with resourceNames constraint
+  # to grant ESO token creation for specific ServiceAccounts referenced in SecretStore specs.
+  serviceAccountTokenCreate: true
 
   servicebindings:
     # -- Specifies whether a clusterrole to give servicebindings read access should be created.
@@ -346,9 +364,9 @@ livenessProbe:
   enabled: false
   # -- The body of the liveness probe settings.
   spec:
-    # -- Address for liveness probe.
+    # -- Bind address for the health server used by both liveness and readiness probes (--live-addr flag).
     address: ""
-    # -- Named port for liveness probe.
+    # -- Port for the health server used by both liveness and readiness probes (--live-addr flag).
     port: 8082
     # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
     timeoutSeconds: 5
@@ -367,6 +385,29 @@ livenessProbe:
       port: live
       # -- Path for liveness probe.
       path: /healthz
+
+readinessProbe:
+  # -- Determines whether the readiness probe is enabled. Disabled by default. Enabling this will auto-start the health server (--live-addr) even if livenessProbe is disabled. Health server address/port are configured via livenessProbe.spec.address and livenessProbe.spec.port.
+  enabled: false
+  # -- The body of the readiness probe settings (standard Kubernetes probe spec).
+  spec:
+    # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
+    timeoutSeconds: 5
+    # -- Number of consecutive probe failures that should occur before considering the probe as failed.
+    failureThreshold: 3
+    # -- Period in seconds for K8s to start performing probes.
+    periodSeconds: 10
+    # -- Number of successful probes to mark probe successful.
+    successThreshold: 1
+    # -- Delay in seconds for the container to start before performing the initial probe.
+    initialDelaySeconds: 10
+    # -- Handler for readiness probe.
+    httpGet:
+      # -- Set this value to 'live' (for named port) or an integer for readiness probes.
+      # @schema type: [string, integer]
+      port: live
+      # -- Path for readiness probe.
+      path: /readyz
 
 nodeSelector: {}
 
@@ -527,11 +568,28 @@ webhook:
       annotations: {}
 
 
-  readinessProbe:
-    # -- Address for readiness probe
-    address: ""
-    # -- ReadinessProbe port for kubelet
+  livenessProbe:
+    enabled: false
+    # -- Set this value to 'live' (for named port) or an integer for liveness probes.
+    # @schema type: [string, integer]
     port: 8081
+    timeoutSeconds: 5
+    failureThreshold: 5
+    periodSeconds: 10
+    successThreshold: 1
+    initialDelaySeconds: 10
+
+  readinessProbe:
+    enabled: true
+    address: ""
+    # -- Set this value to 'ready' (for named port) or an integer for readiness probes.
+    # @schema type: [string, integer]
+    port: 8081
+    timeoutSeconds: 5
+    failureThreshold: 3
+    periodSeconds: 5
+    successThreshold: 1
+    initialDelaySeconds: 20
 
 
     ## -- Extra environment variables to add to container.
@@ -673,11 +731,28 @@ certController:
       # -- Additional service annotations
       annotations: {}
 
-  readinessProbe:
-    # -- Address for readiness probe
-    address: ""
-    # -- ReadinessProbe port for kubelet
+  livenessProbe:
+    enabled: false
+    # -- Set this value to 'live' (for named port) or an integer for liveness probes.
+    # @schema type: [string, integer]
     port: 8081
+    timeoutSeconds: 5
+    failureThreshold: 5
+    periodSeconds: 10
+    successThreshold: 1
+    initialDelaySeconds: 10
+
+  readinessProbe:
+    enabled: true
+    address: ""
+    # -- Set this value to 'ready' (for named port) or an integer for readiness probes.
+    # @schema type: [string, integer]
+    port: 8081
+    timeoutSeconds: 5
+    failureThreshold: 3
+    periodSeconds: 5
+    successThreshold: 1
+    initialDelaySeconds: 20
 
   startupProbe:
     # -- Enabled determines if the startup probe should be used or not. By default it's enabled

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,12 +23,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"regexp"
-	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
@@ -44,48 +43,70 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
+func isNotFoundErr(err error) bool {
+	var respErr *azcore.ResponseError
+	return errors.As(err, &respErr) && respErr.StatusCode == 404
+}
+
+func isManagedByESONewSDK(tags map[string]*string) bool {
+	if tags == nil {
+		return false
+	}
+	managedByTag, exists := tags[managedBy]
+	return exists && managedByTag != nil && *managedByTag == managerLabel
+}
+
+func newSDKSecretUnchanged(existingValue, existingContentType *string, value []byte, contentType *string) bool {
+	if existingValue == nil || string(value) != *existingValue {
+		return false
+	}
+	// contentType == nil means the caller did not request any specific
+	// contentType; treat it as "don't care" so we don't reconcile solely
+	// because the existing secret has a contentType set.
+	if contentType == nil {
+		return true
+	}
+	return comp(existingContentType, contentType)
+}
+
 // New SDK implementations for setter methods.
-func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName string, value []byte, _ *time.Time, tags map[string]string) error {
-	// Check if secret exists and if we can create/update it
+func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName string, value []byte, contentType *string, tags map[string]string) error {
 	existingSecret, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
 
-	if err != nil {
-		var respErr *azcore.ResponseError
-		if !errors.As(err, &respErr) || respErr.StatusCode != 404 {
-			return fmt.Errorf("cannot get secret %v: %w", secretName, parseNewSDKError(err))
+	if err != nil && !isNotFoundErr(err) {
+		return fmt.Errorf("cannot get secret %v: %w", secretName, parseNewSDKError(err))
+	}
+	if err == nil {
+		if !isManagedByESONewSDK(existingSecret.Tags) {
+			return fmt.Errorf("secret %v not managed by external-secrets", secretName)
 		}
-	} else {
-		// Check if managed by external-secrets using new SDK tags
-		if existingSecret.Tags != nil {
-			if managedByTag, exists := existingSecret.Tags[managedBy]; !exists || managedByTag == nil || *managedByTag != managerLabel {
-				return fmt.Errorf("secret %v not managed by external-secrets", secretName)
-			}
-		}
-
-		// Check if secret content is the same
-		val := string(value)
-		if existingSecret.Value != nil && val == *existingSecret.Value {
-			// Note: We're not checking expiration here since the new SDK doesn't support setting it
-			// This means the new SDK implementation will always update the secret if the content is the same
-			// but different expiration is requested
+		// Note: the new SDK doesn't set expiration in SetSecretParameters, so
+		// changes to expiration alone won't trigger an update on this path.
+		if newSDKSecretUnchanged(existingSecret.Value, existingSecret.ContentType, value, contentType) {
 			return nil
 		}
 	}
 
 	// Prepare tags for new SDK
 	secretTags := map[string]*string{
-		managedBy: to.Ptr(managerLabel),
+		managedBy: new(managerLabel),
 	}
 	for k, v := range tags {
 		secretTags[k] = &v
 	}
 
+	effectiveContentType := contentType
+	if effectiveContentType == nil {
+		effectiveContentType = existingSecret.ContentType
+	}
+
 	// Set the secret
 	val := string(value)
 	params := azsecrets.SetSecretParameters{
-		Value: &val,
-		Tags:  secretTags,
+		Value:       &val,
+		Tags:        secretTags,
+		ContentType: effectiveContentType,
 	}
 
 	// Note: The new SDK doesn't support setting expiration in SetSecretParameters
@@ -132,7 +153,7 @@ func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName
 
 	// Prepare tags for new SDK
 	certTags := map[string]*string{
-		managedBy: to.Ptr(managerLabel),
+		managedBy: new(managerLabel),
 	}
 	for k, v := range tags {
 		certTags[k] = &v
@@ -192,7 +213,7 @@ func (a *Azure) setKeyVaultKeyWithNewSDK(ctx context.Context, secretName string,
 
 	// Prepare tags for new SDK
 	keyTags := map[string]*string{
-		managedBy: to.Ptr(managerLabel),
+		managedBy: new(managerLabel),
 	}
 	for k, v := range tags {
 		keyTags[k] = &v
@@ -201,7 +222,7 @@ func (a *Azure) setKeyVaultKeyWithNewSDK(ctx context.Context, secretName string,
 	params := azkeys.ImportKeyParameters{
 		Key: &azkey,
 		KeyAttributes: &azkeys.KeyAttributes{
-			Enabled: to.Ptr(true),
+			Enabled: new(true),
 		},
 		Tags: keyTags,
 	}
@@ -385,9 +406,7 @@ func buildCustomCloudConfiguration(config *esv1.AzureCustomCloudConfig, baseConf
 		Services:                     map[cloud.ServiceName]cloud.ServiceConfiguration{},
 	}
 
-	for k, v := range baseConfig.Services {
-		cloudConfig.Services[k] = v
-	}
+	maps.Copy(cloudConfig.Services, baseConfig.Services)
 
 	// Set Active Directory endpoint with custom value (required)
 	cloudConfig.ActiveDirectoryAuthorityHost = config.ActiveDirectoryEndpoint

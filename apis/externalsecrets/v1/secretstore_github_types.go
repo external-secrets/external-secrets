@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,6 +47,14 @@ type GithubProvider struct {
 	// environment will be used to fetch secrets from a particular environment within a github repository
 	//+optional
 	Environment string `json:"environment,omitempty"`
+
+	// orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+	// Valid values are "all" or "private".
+	// When unset, new secrets are created with visibility "all" and existing secrets preserve
+	// whatever visibility they already have in GitHub.
+	//+optional
+	//+kubebuilder:validation:Enum=all;private
+	OrgSecretVisibility string `json:"orgSecretVisibility,omitempty"`
 }
 
 // GithubAppAuth defines authentication configuration using a GitHub App for accessing GitHub API.

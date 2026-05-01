@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 package esutils
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"reflect"
@@ -29,6 +30,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -779,7 +781,7 @@ func TestRewriteMerge(t *testing.T) {
 				"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
 				"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
 				"credentials": func() []byte {
-					expected := map[string]interface{}{
+					expected := map[string]any{
 						"username": "foz",
 						"password": "baz",
 						"host":     "redis.example.com",
@@ -1144,7 +1146,7 @@ func TestValidateSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1169,7 +1171,7 @@ func TestValidateSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1194,7 +1196,7 @@ func TestValidateSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("different"),
+				Namespace: new("different"),
 			},
 			expected: errNamespaceNotAllowed,
 		},
@@ -1226,7 +1228,7 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1251,7 +1253,7 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1266,7 +1268,7 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("different"),
+				Namespace: new("different"),
 			},
 			expected: errNamespaceNotAllowed,
 		},
@@ -1298,7 +1300,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1323,7 +1325,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1348,7 +1350,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("different"),
+				Namespace: new("different"),
 			},
 			expected: errNamespaceNotAllowed,
 		},
@@ -1380,7 +1382,7 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1405,7 +1407,7 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1420,7 +1422,7 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("different"),
+				Namespace: new("different"),
 			},
 			expected: errNamespaceNotAllowed,
 		},
@@ -1435,6 +1437,82 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderConfigMapForSecretStore(t *testing.T) {
+	fakeClient := clientfake.NewClientBuilder().WithObjects(
+		&v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-cm",
+				Namespace: "default",
+			},
+			Data: map[string]string{
+				"ca.crt": "local-cert",
+			},
+		},
+		&v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-cm",
+				Namespace: "other",
+			},
+			Data: map[string]string{
+				"ca.crt": "other-cert",
+			},
+		},
+	).Build()
+
+	cert, err := FetchCACertFromSource(context.Background(), CreateCertOpts{
+		CAProvider: &esv1.CAProvider{
+			Type:      esv1.CAProviderTypeConfigMap,
+			Name:      "ca-cm",
+			Key:       "ca.crt",
+			Namespace: Ptr("other"),
+		},
+		StoreKind: esv1.SecretStoreKind,
+		Namespace: "default",
+		Client:    fakeClient,
+	})
+
+	assert.ErrorIs(t, err, errNamespaceNotAllowed)
+	assert.Nil(t, cert)
+}
+
+func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderSecretForSecretStore(t *testing.T) {
+	fakeClient := clientfake.NewClientBuilder().WithObjects(
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-secret",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"tls.crt": []byte("local-cert"),
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-secret",
+				Namespace: "other",
+			},
+			Data: map[string][]byte{
+				"tls.crt": []byte("other-cert"),
+			},
+		},
+	).Build()
+
+	cert, err := FetchCACertFromSource(context.Background(), CreateCertOpts{
+		CAProvider: &esv1.CAProvider{
+			Type:      esv1.CAProviderTypeSecret,
+			Name:      "ca-secret",
+			Key:       "tls.crt",
+			Namespace: Ptr("other"),
+		},
+		StoreKind: esv1.SecretStoreKind,
+		Namespace: "default",
+		Client:    fakeClient,
+	})
+
+	assert.ErrorIs(t, err, errNamespaceNotAllowed)
+	assert.Nil(t, cert)
 }
 
 const mockJWTToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoxNzAwMDAwMDAwfQ.signature"

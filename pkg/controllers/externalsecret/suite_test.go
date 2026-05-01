@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -110,13 +110,14 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&Reconciler{
-		Client:                    k8sManager.GetClient(),
-		SecretClient:              secretClient,
-		RestConfig:                cfg,
-		Scheme:                    k8sManager.GetScheme(),
-		Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
-		RequeueInterval:           time.Second,
-		ClusterSecretStoreEnabled: true,
+		Client:                             k8sManager.GetClient(),
+		SecretClient:                       secretClient,
+		EnableSecretAPIReadOnCacheMismatch: true,
+		RestConfig:                         cfg,
+		Scheme:                             k8sManager.GetScheme(),
+		Log:                                ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
+		RequeueInterval:                    time.Second,
+		ClusterSecretStoreEnabled:          true,
 	}).SetupWithManager(ctx, k8sManager, controller.Options{
 		MaxConcurrentReconciles: 1,
 		RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -136,7 +137,7 @@ var _ = AfterSuite(func() {
 		// Need to sleep if the first stop fails due to a bug:
 		// https://github.com/kubernetes-sigs/controller-runtime/issues/1571
 		sleepTime := 1 * time.Millisecond
-		for i := 0; i < 12; i++ { // Exponentially sleep up to ~4s
+		for range 12 { // Exponentially sleep up to ~4s
 			if err = testEnv.Stop(); err == nil {
 				return
 			}

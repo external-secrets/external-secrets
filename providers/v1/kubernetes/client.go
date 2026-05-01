@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -105,9 +106,20 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 }
 
 // SecretExists checks if a secret exists in Kubernetes.
-// This method is not implemented and always returns an error.
-func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	secret, err := c.userSecretClient.Get(ctx, ref.GetRemoteKey(), metav1.GetOptions{})
+	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if ref.GetProperty() != "" {
+		_, ok := secret.Data[ref.GetProperty()]
+		return ok, nil
+	}
+	return true, nil
 }
 
 // PushSecret creates or updates a secret in Kubernetes.
@@ -115,37 +127,43 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.Pu
 	if data.GetProperty() == "" && data.GetSecretKey() != "" {
 		return errors.New("requires property in RemoteRef to push secret value if secret key is defined")
 	}
+
+	targetNamespace := c.store.RemoteNamespace
+	pushMeta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("unable to parse metadata parameters: %w", err)
+	}
+	if pushMeta != nil && pushMeta.Spec.RemoteNamespace != "" {
+		if c.storeKind != esv1.ClusterSecretStoreKind {
+			return fmt.Errorf("remoteNamespace override is only supported with ClusterSecretStore")
+		}
+		targetNamespace = pushMeta.Spec.RemoteNamespace
+	}
+
+	secretClient := c.secretsClientFor(targetNamespace)
 	remoteSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: c.store.RemoteNamespace,
+			Namespace: targetNamespace,
 			Name:      data.GetRemoteKey(),
 		},
 	}
 
-	return c.createOrUpdate(ctx, remoteSecret, func() error {
-		return c.mergePushSecretData(data, remoteSecret, secret)
+	return c.createOrUpdate(ctx, secretClient, remoteSecret, func() error {
+		return c.mergePushSecretData(data, pushMeta, remoteSecret, secret)
 	})
 }
 
-func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, remoteSecret, localSecret *v1.Secret) error {
-	// apply secret type
+func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, pushMeta *metadata.PushSecretMetadata[PushSecretMetadataSpec], remoteSecret, localSecret *v1.Secret) error {
 	secretType := v1.SecretTypeOpaque
 	if localSecret.Type != "" {
 		secretType = localSecret.Type
 	}
 	remoteSecret.Type = secretType
 
-	// merge secret data with existing secret data
 	if remoteSecret.Data == nil {
 		remoteSecret.Data = make(map[string][]byte)
 	}
 
-	pushMeta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](remoteRef.GetMetadata())
-	if err != nil {
-		return fmt.Errorf("unable to parse metadata parameters: %w", err)
-	}
-
-	// merge metadata based on the policy
 	var targetLabels, targetAnnotations map[string]string
 	sourceLabels, sourceAnnotations, err := mergeSourceMetadata(localSecret, pushMeta)
 	if err != nil {
@@ -157,15 +175,10 @@ func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, remoteSecret
 	}
 	remoteSecret.ObjectMeta.Labels = targetLabels
 	remoteSecret.ObjectMeta.Annotations = targetAnnotations
-	if pushMeta != nil && pushMeta.Spec.RemoteNamespace != "" {
-		remoteSecret.ObjectMeta.Namespace = pushMeta.Spec.RemoteNamespace
-	}
 
 	// case 1: push the whole secret
 	if remoteRef.GetProperty() == "" {
-		for k, v := range localSecret.Data {
-			remoteSecret.Data[k] = v
-		}
+		maps.Copy(remoteSecret.Data, localSecret.Data)
 		return nil
 	}
 
@@ -185,8 +198,8 @@ func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, remoteSecret
 	return nil
 }
 
-func (c *Client) createOrUpdate(ctx context.Context, targetSecret *v1.Secret, f func() error) error {
-	target, err := c.userSecretClient.Get(ctx, targetSecret.Name, metav1.GetOptions{})
+func (c *Client) createOrUpdate(ctx context.Context, secretClient KClient, targetSecret *v1.Secret, f func() error) error {
+	target, err := secretClient.Get(ctx, targetSecret.Name, metav1.GetOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -195,7 +208,7 @@ func (c *Client) createOrUpdate(ctx context.Context, targetSecret *v1.Secret, f 
 		if err := f(); err != nil {
 			return err
 		}
-		_, err := c.userSecretClient.Create(ctx, targetSecret, metav1.CreateOptions{})
+		_, err := secretClient.Create(ctx, targetSecret, metav1.CreateOptions{})
 		metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesCreateSecret, err)
 		if err != nil {
 			return err
@@ -213,7 +226,7 @@ func (c *Client) createOrUpdate(ctx context.Context, targetSecret *v1.Secret, f 
 		return nil
 	}
 
-	_, err = c.userSecretClient.Update(ctx, targetSecret, metav1.UpdateOptions{})
+	_, err = secretClient.Update(ctx, targetSecret, metav1.UpdateOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesUpdateSecret, err)
 	if err != nil {
 		return err
@@ -276,8 +289,8 @@ func getPropertyMap(key, property string, tmpMap map[string][]byte) (map[string]
 	var retMap map[string][]byte
 	jsonStr := string(byteArr)
 	// We need to search if a given key with a . exists before using gjson operations.
-	idx := strings.Index(property, ".")
-	if idx > -1 {
+	found := strings.Contains(property, ".")
+	if found {
 		refProperty := strings.ReplaceAll(property, ".", "\\.")
 		retMap, err = getMapFromValues(refProperty, jsonStr)
 		if err != nil {

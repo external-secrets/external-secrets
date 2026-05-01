@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -76,6 +76,18 @@ const (
 	// If a provider secret does not exist the ExternalSecret gets into the
 	// SecretSyncedError status.
 	DeletionPolicyRetain ExternalSecretDeletionPolicy = "Retain"
+)
+
+// ExternalSecretNullBytePolicy defines how fetched secret data containing NUL bytes should be handled.
+// +kubebuilder:validation:Enum=Ignore;Fail
+type ExternalSecretNullBytePolicy string
+
+const (
+	// ExternalSecretNullBytePolicyIgnore allows fetched secret data to contain NUL bytes.
+	ExternalSecretNullBytePolicyIgnore ExternalSecretNullBytePolicy = "Ignore"
+
+	// ExternalSecretNullBytePolicyFail fails reconciliation if fetched secret data contains NUL bytes.
+	ExternalSecretNullBytePolicyFail ExternalSecretNullBytePolicy = "Fail"
 )
 
 // ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -292,6 +304,11 @@ type ExternalSecretDataRemoteRef struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
+	// +kubebuilder:default="Ignore"
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
 // ExternalSecretMetadataPolicy defines policies for fetching metadata from provider secrets.
@@ -477,6 +494,11 @@ type ExternalSecretFind struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+	// +kubebuilder:default="Ignore"
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
 // FindName defines criteria for finding secrets by name patterns.
@@ -669,6 +691,7 @@ type ExternalSecretStatus struct {
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshInterval`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Last Sync",type=date,JSONPath=`.status.refreshTime`
 // +kubebuilder:selectablefield:JSONPath=`.spec.secretStoreRef.name`
 // +kubebuilder:selectablefield:JSONPath=`.spec.secretStoreRef.kind`
 // +kubebuilder:selectablefield:JSONPath=`.spec.target.name`

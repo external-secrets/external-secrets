@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -263,7 +263,7 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 					Service: &admissionregistration.ServiceReference{
 						Name:      "noop",
 						Namespace: "noop",
-						Path:      pointer.To("/validate-secretstore"),
+						Path:      new("/validate-secretstore"),
 					},
 				},
 			},
@@ -276,7 +276,7 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 					Service: &admissionregistration.ServiceReference{
 						Name:      "noop",
 						Namespace: "noop",
-						Path:      pointer.To("/validate-clustersecretstore"),
+						Path:      new("/validate-clustersecretstore"),
 					},
 				},
 			},
@@ -326,7 +326,7 @@ func makeEndpointSlice() *discoveryv1.EndpointSlice {
 		Endpoints: []discoveryv1.Endpoint{
 			{
 				Addresses:  []string{"1.2.3.4"},
-				Conditions: discoveryv1.EndpointConditions{Ready: pointer.To(true)},
+				Conditions: discoveryv1.EndpointConditions{Ready: new(true)},
 			},
 		},
 	}

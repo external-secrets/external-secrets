@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ limitations under the License.
 package cesmetrics
 
 import (
+	"maps"
+
 	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -73,9 +75,7 @@ func UpdateClusterExternalSecretCondition(ces *esv1.ClusterExternalSecret, condi
 
 	cesInfo := make(map[string]string)
 	cesInfo["name"] = ces.Name
-	for k, v := range ces.Labels {
-		cesInfo[k] = v
-	}
+	maps.Copy(cesInfo, ces.Labels)
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(cesInfo)
 	clusterExternalSecretCondition := GetGaugeVec(ClusterExternalSecretStatusConditionKey)
 

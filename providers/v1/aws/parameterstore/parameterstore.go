@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -219,18 +218,18 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 	for k, v := range meta.Spec.Tags {
 		tags = append(tags, ssmTypes.Tag{
-			Key:   ptr.To(k),
-			Value: ptr.To(v),
+			Key:   new(k),
+			Value: new(v),
 		})
 	}
 
 	secretName := pm.prefix + data.GetRemoteKey()
 	secretRequest := ssm.PutParameterInput{
-		Name:        ptr.To(pm.prefix + data.GetRemoteKey()),
-		Value:       ptr.To(string(value)),
+		Name:        new(pm.prefix + data.GetRemoteKey()),
+		Value:       new(string(value)),
 		Type:        meta.Spec.SecretType,
-		Overwrite:   ptr.To(true),
-		Description: ptr.To(meta.Spec.Description),
+		Overwrite:   new(true),
+		Description: new(meta.Spec.Description),
 	}
 
 	if meta.Spec.SecretType == "SecureString" {
@@ -240,7 +239,7 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	if meta.Spec.Tier.Type == ssmTypes.ParameterTierAdvanced {
 		secretRequest.Tier = meta.Spec.Tier.Type
 		if meta.Spec.Tier.Policies != nil {
-			secretRequest.Policies = ptr.To(string(meta.Spec.Tier.Policies.Raw))
+			secretRequest.Policies = new(string(meta.Spec.Tier.Policies.Raw))
 		}
 	}
 
@@ -467,9 +466,9 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1.ExternalSecre
 	filters := make([]ssmTypes.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, ssmTypes.ParameterStringFilter{
-			Key:    ptr.To(fmt.Sprintf("tag:%s", k)),
+			Key:    new(fmt.Sprintf("tag:%s", k)),
 			Values: []string{v},
-			Option: ptr.To("Equals"),
+			Option: new("Equals"),
 		})
 	}
 
@@ -511,7 +510,7 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1.ExternalSecre
 
 func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
 	out, err := pm.client.GetParameter(ctx, &ssm.GetParameterInput{
-		Name:           ptr.To(name),
+		Name:           new(name),
 		WithDecryption: aws.Bool(true),
 	})
 	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
@@ -703,8 +702,8 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]ssmTypes.Tag, bool
 			}
 		}
 		result = append(result, ssmTypes.Tag{
-			Key:   ptr.To(k),
-			Value: ptr.To(v),
+			Key:   new(k),
+			Value: new(v),
 		})
 	}
 	return result, modified
