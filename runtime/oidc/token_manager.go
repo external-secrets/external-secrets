@@ -154,17 +154,14 @@ func (m *BaseTokenManager) CreateServiceAccountToken(ctx context.Context) (strin
 }
 
 // BuildAudiences builds the audiences list for the ServiceAccount token.
-// It starts with baseURL and adds custom audiences, deduplicating against baseURL.
+// If the user has explicitly configured audiences on the ServiceAccountRef,
+// those are used as-is. Otherwise it falls back to BaseURL so OIDC providers
+// that validate the audience continue to work without explicit user config.
 func (m *BaseTokenManager) BuildAudiences() []string {
-	audiences := []string{m.BaseURL}
-
-	for _, aud := range m.SaRef.Audiences {
-		if aud != m.BaseURL {
-			audiences = append(audiences, aud)
-		}
+	if len(m.SaRef.Audiences) > 0 {
+		return m.SaRef.Audiences
 	}
-
-	return audiences
+	return []string{m.BaseURL}
 }
 
 // TokenCache provides thread-safe caching for OIDC tokens.
