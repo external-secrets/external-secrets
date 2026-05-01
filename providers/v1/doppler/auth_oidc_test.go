@@ -36,17 +36,17 @@ func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 
 	// Test with nil store
-	manager := NewOIDCTokenManager(fakeClient.CoreV1(), nil, "default", esv1.SecretStoreKind)
+	manager := NewOIDCTokenManager(fakeClient.CoreV1(), nil, "default", esv1.SecretStoreKind, "test-store")
 	assert.Nil(t, manager)
 
 	// Test with nil Auth
 	store := &esv1.DopplerProvider{}
-	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
 	assert.Nil(t, manager)
 
 	// Test with nil OIDCConfig
 	store.Auth = &esv1.DopplerAuth{}
-	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
+	manager = NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
 	assert.Nil(t, manager)
 }
 
@@ -121,7 +121,7 @@ func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 				},
 			}
 
-			manager := NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind)
+			manager := NewOIDCTokenManager(fakeClient.CoreV1(), store, "default", esv1.SecretStoreKind, "test-store")
 			require.NotNil(t, manager)
 
 			token, _, err := manager.ExchangeToken(context.Background(), "k8s-token")
@@ -159,6 +159,7 @@ func TestNewOIDCTokenManager_ValidConfig(t *testing.T) {
 		store,
 		"default",
 		esv1.SecretStoreKind,
+		"test-store",
 	)
 
 	assert.NotNil(t, manager)

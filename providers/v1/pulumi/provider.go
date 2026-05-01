@@ -215,17 +215,14 @@ func loadAccessTokenSecret(ctx context.Context, ref *esv1.PulumiProviderSecretRe
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.PulumiProvider) bool {
-	// Check new auth structure
+	// OIDC ServiceAccountRef.Namespace is enforced for ClusterSecretStore by
+	// validateOIDCConfig with a more specific error message, so it is not
+	// re-checked here.
 	if cfg.Auth != nil {
 		if cfg.Auth.AccessToken != nil && cfg.Auth.AccessToken.SecretRef != nil && cfg.Auth.AccessToken.SecretRef.Namespace == nil {
 			return true
 		}
-		// Check OIDC config
-		if cfg.Auth.OIDCConfig != nil && cfg.Auth.OIDCConfig.ServiceAccountRef.Namespace == nil {
-			return true
-		}
 	}
-	// Check deprecated AccessToken field
 	if cfg.AccessToken != nil && cfg.AccessToken.SecretRef != nil && cfg.AccessToken.SecretRef.Namespace == nil {
 		return true
 	}

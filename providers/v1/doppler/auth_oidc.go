@@ -44,6 +44,7 @@ func NewOIDCTokenManager(
 	store *esv1.DopplerProvider,
 	namespace string,
 	storeKind string,
+	storeName string,
 ) *OIDCTokenManager {
 	if store == nil || store.Auth == nil || store.Auth.OIDCConfig == nil {
 		return nil
@@ -56,9 +57,22 @@ func NewOIDCTokenManager(
 		baseURL = customURL
 	}
 
+	// Resource-specific audience binds the SA token to a specific
+	// SecretStore/ClusterSecretStore, preventing token reuse across stores.
+	var resourceAudience string
+	if storeKind == esv1.ClusterSecretStoreKind {
+		resourceAudience = fmt.Sprintf("clusterSecretStore:%s", storeName)
+	} else {
+		resourceAudience = fmt.Sprintf("secretStore:%s:%s", namespace, storeName)
+	}
+
+	btm := oidc.NewBaseTokenManager(corev1, namespace, storeKind, baseURL, oidcAuth.ServiceAccountRef)
+	btm.ExtraAudiences = []string{resourceAudience}
+	btm.ExpirationSeconds = oidcAuth.ExpirationSeconds
+
 	manager := &OIDCTokenManager{
 		identity:         oidcAuth.Identity,
-		BaseTokenManager: oidc.NewBaseTokenManager(corev1, namespace, storeKind, baseURL, oidcAuth.ServiceAccountRef),
+		BaseTokenManager: btm,
 	}
 	manager.Exchanger = manager
 

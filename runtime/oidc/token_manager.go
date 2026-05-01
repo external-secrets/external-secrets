@@ -68,6 +68,16 @@ type BaseTokenManager struct {
 	SaRef     esmeta.ServiceAccountSelector
 	Cache     *TokenCache
 	Exchanger TokenExchanger
+	// ExpirationSeconds is the requested ServiceAccount token TTL in seconds.
+	// When nil or non-positive, DefaultTokenTTL is used.
+	ExpirationSeconds *int64
+	// ExtraAudiences are appended to the audience list after the user-provided or
+	// default audience. Providers populate this for resource-specific bindings.
+	ExtraAudiences []string
+
+	// refreshMu serialises the slow path so concurrent callers do not all
+	// trigger a token exchange when the cache is cold.
+	refreshMu sync.Mutex
 }
 
 // NewBaseTokenManager creates a new BaseTokenManager with the given parameters.
@@ -89,6 +99,10 @@ func NewBaseTokenManager(
 
 // GetToken returns a valid access token, refreshing it if necessary.
 // This is the common implementation used by all OIDC providers.
+//
+// Uses double-checked locking: a fast read-locked cache check, then if the
+// cache is cold a full lock with a re-check so concurrent callers wait on a
+// single token exchange instead of each performing their own.
 func (m *BaseTokenManager) GetToken(ctx context.Context) (string, error) {
 	if m == nil {
 		return "", fmt.Errorf("OIDC token manager is not initialized")
@@ -97,24 +111,29 @@ func (m *BaseTokenManager) GetToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("OIDC token exchanger is not configured")
 	}
 
-	// Check cache first
 	if token, ok := m.Cache.Get(); ok {
 		return token, nil
 	}
 
-	// Create ServiceAccount token
+	m.refreshMu.Lock()
+	defer m.refreshMu.Unlock()
+
+	// Re-check after acquiring the refresh lock — another goroutine may have
+	// populated the cache while we were waiting.
+	if token, ok := m.Cache.Get(); ok {
+		return token, nil
+	}
+
 	saToken, err := m.CreateServiceAccountToken(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to create service account token: %w", err)
 	}
 
-	// Exchange for provider-specific token
 	token, expiry, err := m.Exchanger.ExchangeToken(ctx, saToken)
 	if err != nil {
 		return "", err
 	}
 
-	// Cache the token
 	m.Cache.Set(token, expiry)
 
 	return token, nil
@@ -126,6 +145,9 @@ func (m *BaseTokenManager) CreateServiceAccountToken(ctx context.Context) (strin
 	audiences := m.BuildAudiences()
 
 	expirationSeconds := int64(DefaultTokenTTL)
+	if m.ExpirationSeconds != nil && *m.ExpirationSeconds > 0 {
+		expirationSeconds = *m.ExpirationSeconds
+	}
 
 	tokenRequest := &authv1.TokenRequest{
 		ObjectMeta: metav1.ObjectMeta{
@@ -157,11 +179,16 @@ func (m *BaseTokenManager) CreateServiceAccountToken(ctx context.Context) (strin
 // If the user has explicitly configured audiences on the ServiceAccountRef,
 // those are used as-is. Otherwise it falls back to BaseURL so OIDC providers
 // that validate the audience continue to work without explicit user config.
+// Provider-specific resource bindings (set via ExtraAudiences) are appended.
 func (m *BaseTokenManager) BuildAudiences() []string {
+	var audiences []string
 	if len(m.SaRef.Audiences) > 0 {
-		return m.SaRef.Audiences
+		audiences = append(audiences, m.SaRef.Audiences...)
+	} else {
+		audiences = append(audiences, m.BaseURL)
 	}
-	return []string{m.BaseURL}
+	audiences = append(audiences, m.ExtraAudiences...)
+	return audiences
 }
 
 // TokenCache provides thread-safe caching for OIDC tokens.
@@ -254,8 +281,7 @@ func postJSONRequestInternal(ctx context.Context, url string, requestBody interf
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s OIDC auth failed with status %d: %s",
-			providerName, resp.StatusCode, string(body))
+		return nil, fmt.Errorf("%s OIDC auth failed with status %d", providerName, resp.StatusCode)
 	}
 
 	return body, nil

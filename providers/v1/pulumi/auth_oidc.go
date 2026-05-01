@@ -73,10 +73,13 @@ func NewOIDCTokenManager(
 		expiration = *oidcAuth.ExpirationSeconds
 	}
 
+	btm := oidc.NewBaseTokenManager(corev1, namespace, storeKind, baseURL, oidcAuth.ServiceAccountRef)
+	btm.ExpirationSeconds = oidcAuth.ExpirationSeconds
+
 	manager := &OIDCTokenManager{
 		organization:     oidcAuth.Organization,
 		expiration:       expiration,
-		BaseTokenManager: oidc.NewBaseTokenManager(corev1, namespace, storeKind, baseURL, oidcAuth.ServiceAccountRef),
+		BaseTokenManager: btm,
 	}
 	manager.Exchanger = manager
 
