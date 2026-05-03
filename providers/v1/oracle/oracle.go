@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -289,7 +289,7 @@ func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1.Ex
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (vms *VaultManagementService) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient constructs a new secrets client based on the provided store.

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -91,8 +90,8 @@ func makeValidRef() *esv1.ExternalSecretDataRemoteRef {
 
 func makeValidAPIInput() *secrets.GetSecretBundleByNameRequest {
 	return &secrets.GetSecretBundleByNameRequest{
-		SecretName: ptr.To("test-secret"),
-		VaultId:    ptr.To("test-vault"),
+		SecretName: new("test-secret"),
+		VaultId:    new("test-vault"),
 	}
 }
 
@@ -130,10 +129,10 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	setSecretString := func(smtc *vaultTestCase) {
 		smtc.apiOutput = &secrets.GetSecretBundleByNameResponse{
 			SecretBundle: secrets.SecretBundle{
-				SecretId:      ptr.To("test-id"),
-				VersionNumber: ptr.To(int64(1)),
+				SecretId:      new("test-id"),
+				VersionNumber: new(int64(1)),
 				SecretBundleContent: secrets.Base64SecretBundleContentDetails{
-					Content: ptr.To(base64.StdEncoding.EncodeToString([]byte(secretValue))),
+					Content: new(base64.StdEncoding.EncodeToString([]byte(secretValue))),
 				},
 			},
 		}
@@ -163,7 +162,7 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: ptr.To(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
+			Content: new(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
 		}
 		smtc.expectedData["foo"] = []byte("bar")
 	}
@@ -171,7 +170,7 @@ func TestGetSecretMap(t *testing.T) {
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: ptr.To(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
+			Content: new(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
 		}
 		smtc.expectError = "unable to unmarshal secret"
 	}
@@ -373,8 +372,8 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1.SecretStoreRetrySettings{
-						RetryInterval: ptr.To("1s"),
-						MaxRetries:    ptr.To(int32(5)),
+						RetryInterval: new("1s"),
+						MaxRetries:    new(int32(5)),
 					},
 				},
 			},
@@ -391,7 +390,7 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1.SecretStoreRetrySettings{
-						RetryInterval: ptr.To("1s"),
+						RetryInterval: new("1s"),
 					},
 				},
 			},
@@ -408,7 +407,7 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1.SecretStoreRetrySettings{
-						MaxRetries: ptr.To(int32(5)),
+						MaxRetries: new(int32(5)),
 					},
 				},
 			},
@@ -438,7 +437,7 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1.SecretStoreRetrySettings{
-						RetryInterval: ptr.To("invalid"),
+						RetryInterval: new("invalid"),
 					},
 				},
 			},
@@ -456,7 +455,7 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1.SecretStoreRetrySettings{
-						RetryInterval: ptr.To("invalid"),
+						RetryInterval: new("invalid"),
 					},
 				},
 			},
@@ -812,7 +811,7 @@ func makeSecretBundle(id string, deleting bool) secrets.SecretBundle {
 	return secrets.SecretBundle{
 		SecretId: &id,
 		SecretBundleContent: secrets.Base64SecretBundleContentDetails{
-			Content: ptr.To(base64.StdEncoding.EncodeToString([]byte(id))),
+			Content: new(base64.StdEncoding.EncodeToString([]byte(id))),
 		},
 		TimeOfDeletion: deletionTime,
 	}

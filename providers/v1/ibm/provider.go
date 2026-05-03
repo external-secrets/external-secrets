@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -345,7 +345,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1.Ex
 }
 
 // Returns a secret of type kv or custom credentials and supports json path.
-func getKVOrCustomCredentialsSecret(ref esv1.ExternalSecretDataRemoteRef, credentialsData map[string]interface{}) ([]byte, error) {
+func getKVOrCustomCredentialsSecret(ref esv1.ExternalSecretDataRemoteRef, credentialsData map[string]any) ([]byte, error) {
 	payloadJSONByte, err := json.Marshal(credentialsData)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload from secret failed. %w", err)
@@ -751,7 +751,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 // populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider.
 func populateSecretMap(secretMap map[string][]byte, secretDataMap map[string]any) map[string][]byte {
 	for key, value := range secretDataMap {
-		secretMap[key] = []byte(fmt.Sprintf("%v", value))
+		secretMap[key] = fmt.Appendf(nil, "%v", value)
 	}
 	return secretMap
 }

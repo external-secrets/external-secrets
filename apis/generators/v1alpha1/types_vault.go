@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +35,12 @@ type VaultDynamicSecretSpec struct {
 
 	// Parameters to pass to Vault write (for non-GET methods)
 	Parameters *apiextensions.JSON `json:"parameters,omitempty"`
+
+	// GetParameters are query-string parameters passed to Vault on GET calls.
+	// Each key may map to multiple values, matching HTTP query-string semantics.
+	// Ignored for non-GET methods; use Parameters for write bodies.
+	// +optional
+	GetParameters map[string][]string `json:"getParameters,omitempty"`
 
 	// Result type defines which data is returned from the generator.
 	// By default, it is the "data" section of the Vault API response.

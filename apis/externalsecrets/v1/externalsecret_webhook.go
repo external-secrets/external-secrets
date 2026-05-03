@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,8 +22,7 @@ import (
 
 // SetupWebhookWithManager sets up the webhook for ExternalSecret.
 func (es *ExternalSecret) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(es).
+	return ctrl.NewWebhookManagedBy(mgr, es).
 		WithValidator(&ExternalSecretValidator{}).
 		Complete()
 }

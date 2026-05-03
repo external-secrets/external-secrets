@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -45,7 +45,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -152,8 +151,8 @@ func TestPushSecret(t *testing.T) {
 				Name: "foo",
 			}, nil, nil),
 			getPublicKeyFn: withGetPublicKeyFn(&github.PublicKey{
-				Key:   ptr.To("broken"),
-				KeyID: ptr.To("123"),
+				Key:   new("broken"),
+				KeyID: new("123"),
 			}, nil, nil),
 			wantErr: errors.New("unable to decode public key"),
 		},
@@ -163,8 +162,8 @@ func TestPushSecret(t *testing.T) {
 				Name: "foo",
 			}, nil, nil),
 			getPublicKeyFn: withGetPublicKeyFn(&github.PublicKey{
-				Key:   ptr.To("Cg=="),
-				KeyID: ptr.To("123"),
+				Key:   new("Cg=="),
+				KeyID: new("123"),
 			}, nil, nil),
 			secret: &corev1.Secret{
 				Data: map[string][]byte{
@@ -184,8 +183,8 @@ func TestPushSecret(t *testing.T) {
 				Name: "foo",
 			}, nil, nil),
 			getPublicKeyFn: withGetPublicKeyFn(&github.PublicKey{
-				Key:   ptr.To("Zm9vYmFyCg=="),
-				KeyID: ptr.To("123"),
+				Key:   new("Zm9vYmFyCg=="),
+				KeyID: new("123"),
 			}, nil, nil),
 			secret: &corev1.Secret{
 				Data: map[string][]byte{
@@ -206,8 +205,8 @@ func TestPushSecret(t *testing.T) {
 				Name: "foo",
 			}, nil, nil),
 			getPublicKeyFn: withGetPublicKeyFn(&github.PublicKey{
-				Key:   ptr.To("Zm9vYmFyCg=="),
-				KeyID: ptr.To("123"),
+				Key:   new("Zm9vYmFyCg=="),
+				KeyID: new("123"),
 			}, nil, nil),
 			secret: &corev1.Secret{
 				Data: map[string][]byte{
@@ -237,6 +236,78 @@ func TestPushSecret(t *testing.T) {
 			} else {
 				assert.ErrorContains(t, err, test.wantErr.Error())
 			}
+		})
+	}
+}
+
+func TestResolveOrgSecretVisibility(t *testing.T) {
+	ptr := func(s string) *string { return &s }
+	tests := []struct {
+		name        string
+		nilProvider bool
+		providerViz string
+		existing    *github.Secret
+		want        string
+	}{
+		{
+			name:        "nil provider, no existing secret — defaults to all",
+			nilProvider: true,
+			existing:    nil,
+			want:        "all",
+		},
+		{
+			name:        "nil provider, existing secret has private — preserves private",
+			nilProvider: true,
+			existing:    &github.Secret{Visibility: *ptr("private")},
+			want:        "private",
+		},
+		{
+			name:        "provider unset, no existing secret — defaults to all",
+			providerViz: "",
+			existing:    nil,
+			want:        "all",
+		},
+		{
+			name:        "provider unset, existing secret has all — preserves all",
+			providerViz: "",
+			existing:    &github.Secret{Visibility: *ptr("all")},
+			want:        "all",
+		},
+		{
+			name:        "provider unset, existing secret has private — preserves private",
+			providerViz: "",
+			existing:    &github.Secret{Visibility: *ptr("private")},
+			want:        "private",
+		},
+		{
+			name:        "provider set to private, no existing secret",
+			providerViz: "private",
+			existing:    nil,
+			want:        "private",
+		},
+		{
+			name:        "provider set to private, existing secret has all — provider wins",
+			providerViz: "private",
+			existing:    &github.Secret{Visibility: *ptr("all")},
+			want:        "private",
+		},
+		{
+			name:        "provider set to all, existing secret has private — provider wins",
+			providerViz: "all",
+			existing:    &github.Secret{Visibility: *ptr("private")},
+			want:        "all",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &Client{}
+			if !tt.nilProvider {
+				g.provider = &esv1.GithubProvider{
+					OrgSecretVisibility: tt.providerViz,
+				}
+			}
+			got := g.resolveOrgSecretVisibility(tt.existing)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ func (v *PreviderVaultFakeClient) DecryptSecret(id string) (*model.SecretDecrypt
 }
 
 func (v *PreviderVaultFakeClient) GetSecrets() ([]model.Secret, error) {
-	secretList := make([]model.Secret, 0)
+	secretList := make([]model.Secret, 0, len(secrets))
 	for k := range secrets {
 		secretList = append(secretList, model.Secret{Description: k})
 	}

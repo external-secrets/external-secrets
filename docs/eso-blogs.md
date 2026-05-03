@@ -2,6 +2,10 @@
 
 A list of blogs written by people all over the community. Feel free to let us know if you are writing about ESO at some place! We would be happy to mention you here!
 
+## [Manage your secrets using OVHcloud Secret Manager with External Secrets Operator (ESO) on OVHcloud Managed Kubernetes Service (MKS)](https://blog.ovhcloud.com/manage-your-secrets-through-ovhcloud-secret-manager-thanks-to-external-secrets-operator-eso-on-ovhcloud-managed-kubernetes-service-mks/)
+
+[@Aurélie Vache](https://www.linkedin.com/in/aurelie-vache/) walks you through how to discover ESO and integrate it with the new OVHcloud Secret Manager using the HashiCorp Vault provider. The blog post provides a step-by-step guide covering the setup of OVHcloud prerequisites, the creation of a secret in Secret Manager, the deployment of ESO in a Kubernetes cluster, and the configuration of both ClusterSecretStore and ExternalSecret resources.
+
 ## [Secrets Replication in Kubernetes with ESO](https://externalsecrets.com/blog/secrets-replication/)
 
 [@Gustavo Carvalho](https://www.linkedin.com/in/gustavo-carvalho-51427444/) describes how to use ESO to synchronize in-cluster secrets across multiple namespaces using only two manifests: `ClusterSecretStore` and `ClusterExternalSecret`.

@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -177,25 +177,25 @@ func (r *retryClient) DownloadFile(file *onepassword.File, targetDirectory strin
 	})
 }
 
-func (r *retryClient) LoadStructFromItemByUUID(config interface{}, itemUUID, vaultQuery string) error {
+func (r *retryClient) LoadStructFromItemByUUID(config any, itemUUID, vaultQuery string) error {
 	return retryOn403(func() error {
 		return r.client.LoadStructFromItemByUUID(config, itemUUID, vaultQuery)
 	})
 }
 
-func (r *retryClient) LoadStructFromItemByTitle(config interface{}, itemTitle, vaultQuery string) error {
+func (r *retryClient) LoadStructFromItemByTitle(config any, itemTitle, vaultQuery string) error {
 	return retryOn403(func() error {
 		return r.client.LoadStructFromItemByTitle(config, itemTitle, vaultQuery)
 	})
 }
 
-func (r *retryClient) LoadStructFromItem(config interface{}, itemQuery, vaultQuery string) error {
+func (r *retryClient) LoadStructFromItem(config any, itemQuery, vaultQuery string) error {
 	return retryOn403(func() error {
 		return r.client.LoadStructFromItem(config, itemQuery, vaultQuery)
 	})
 }
 
-func (r *retryClient) LoadStruct(config interface{}) error {
+func (r *retryClient) LoadStruct(config any) error {
 	return retryOn403(func() error {
 		return r.client.LoadStruct(config)
 	})

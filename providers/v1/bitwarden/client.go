@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -283,7 +283,7 @@ func (p *Provider) parseYamlSecretData(data []byte) (map[string][]byte, error) {
 			}
 			secretData[k] = bytes.TrimSpace(d)
 		default:
-			secretData[k] = []byte(fmt.Sprintf("%v", t)) // Convert to string and then []byte
+			secretData[k] = fmt.Appendf(nil, "%v", t) // Convert to string and then []byte
 		}
 	}
 

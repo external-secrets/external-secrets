@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -201,7 +201,7 @@ func (r *Reconciler) gatherProvisionedNamespaces(
 	esName string,
 	failedNamespaces map[string]error,
 ) []string {
-	var provisionedNamespaces []string //nolint:prealloc // we don't know the size
+	var provisionedNamespaces []string
 	for _, namespace := range namespaces {
 		// If namespace is being deleted, remove our finalizer to allow deletion to proceed
 		if namespace.DeletionTimestamp != nil {

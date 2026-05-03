@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import (
 
 	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -60,13 +59,14 @@ func TestValidateStore(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		fields  fields
-		store   esv1.GenericStore
-		wantErr bool
+		name        string
+		fields      fields
+		store       esv1.GenericStore
+		wantErr     bool
+		wantWarning bool
 	}{
 		{
-			name: "empty ca",
+			name: "empty ca returns warning for system roots",
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
@@ -74,7 +74,66 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr:     false,
+			wantWarning: true,
+		},
+		{
+			name: "authRef suppresses no-ca warning",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							AuthRef: &v1.SecretKeySelector{
+								Name: "my-kubeconfig",
+								Key:  "config",
+							},
+						},
+					},
+				},
+			},
+			wantErr:     false,
+			wantWarning: false,
+		},
+		{
+			name: "token auth without ca returns warning only",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Auth: &esv1.KubernetesAuth{
+								Token: &esv1.TokenAuth{
+									BearerToken: v1.SecretKeySelector{
+										Name: "my-token",
+										Key:  "token",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr:     false,
+			wantWarning: true,
+		},
+		{
+			name: "no ca with other validation error still returns warning",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Auth: &esv1.KubernetesAuth{
+								Cert: &esv1.CertAuth{
+									ClientCert: v1.SecretKeySelector{
+										Name: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr:     true,
+			wantWarning: true,
 		},
 		{
 			name: "invalid client cert name",
@@ -130,7 +189,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CAProvider: &esv1.CAProvider{
 									Name:      "foobar",
-									Namespace: pointer.To("noop"),
+									Namespace: new("noop"),
 								},
 							},
 						},
@@ -176,7 +235,7 @@ func TestValidateStore(t *testing.T) {
 									ClientCert: v1.SecretKeySelector{
 										Name:      "foobar",
 										Key:       "foobar",
-										Namespace: pointer.To("noop"),
+										Namespace: new("noop"),
 									},
 								},
 							},
@@ -245,7 +304,7 @@ func TestValidateStore(t *testing.T) {
 									BearerToken: v1.SecretKeySelector{
 										Name:      "foobar",
 										Key:       "foobar",
-										Namespace: pointer.To("nop"),
+										Namespace: new("nop"),
 									},
 								},
 							},
@@ -267,7 +326,7 @@ func TestValidateStore(t *testing.T) {
 							Auth: &esv1.KubernetesAuth{
 								ServiceAccount: &v1.ServiceAccountSelector{
 									Name:      "foobar",
-									Namespace: pointer.To("foobar"),
+									Namespace: new("foobar"),
 								},
 							},
 						},
@@ -300,8 +359,19 @@ func TestValidateStore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k := &Provider{}
-			if _, err := k.ValidateStore(tt.store); (err != nil) != tt.wantErr {
+			warnings, err := k.ValidateStore(tt.store)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantWarning {
+				if len(warnings) != 1 {
+					t.Fatalf("ProviderKubernetes.ValidateStore() expected exactly 1 warning, got %d: %v", len(warnings), warnings)
+				}
+				if warnings[0] != warnNoCAConfigured {
+					t.Errorf("ProviderKubernetes.ValidateStore() warning = %q, want %q", warnings[0], warnNoCAConfigured)
+				}
+			} else if len(warnings) > 0 {
+				t.Errorf("ProviderKubernetes.ValidateStore() unexpected warnings: %v", warnings)
 			}
 		})
 	}

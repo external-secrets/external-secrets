@@ -35,18 +35,22 @@ spec:
 
 ### Referencing Secrets
 
-Secrets may be referenced by:
->Secret ID<br />
-Secret Name<br />
-Secret Path (/FolderName/SecretName)<br />
+Secrets can be referenced using four different key formats in the `remoteRef.key` field:
 
-Please note if using the secret name or path,
-the name field must not contain spaces or control characters.<br />
-If multiple secrets are found, *`only the first found secret will be returned`*.
+| Format | Example | Description |
+|--------|---------|-------------|
+| Secret ID | `52622` | Numeric ID of the secret. Always unambiguous. |
+| Secret Name | `my-secret` | Name of the secret. If multiple secrets share the same name across different folders, the first match is returned. |
+| Secret Path | `/FolderName/SecretName` | Full folder path including the secret name. Uniquely identifies a secret across folders. |
+| Folder-scoped Name | `folderId:73/my-secret` | Name-based lookup scoped to a specific folder ID. Use this when multiple secrets share the same name in different folders and you need to target a specific one. |
 
-Please note: `Retrieving a specific version of a secret is not yet supported.`
+**Notes:**
 
-Note that because all Secret-Server/Platform secrets are JSON objects, you must specify the `remoteRef.property`
+- If using the secret name or path, the name must not contain spaces or control characters.
+- Retrieving a specific version of a secret is not yet supported.
+- The **folder-scoped name** format (`folderId:<id>/<name>`) is particularly important when using `PushSecret` with `deletionPolicy: Delete`, because the deletion and existence-check operations need to identify the correct secret without access to metadata. See [Pushing Secrets](#pushing-secrets) for details.
+
+Because all Secret-Server/Platform secrets are JSON objects, you must specify the `remoteRef.property`
 in your ExternalSecret configuration.<br />
 You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
@@ -118,18 +122,18 @@ spec:
     - secretKey: SecretServerValue  # Key in the Kubernetes Secret
       remoteRef:
         key: "/secretFolder/secretname"  # Path format: /<Folder>/<SecretName>
-        property: ""                    # Optional: use gjson syntax to extract a specific field
+        property: ""                    # Optional: matched against field Slug/FieldName first, then gjson on Items.0.ItemValue as fallback
 ```
 
 #### Notes:
 
 The path must exactly match the folder and secret name in Secret-Server/Platform.
 If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
-You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret.
+You can still use property to match fields by Slug/FieldName, extract values from JSON-formatted secrets via gjson, or omit it to retrieve the entire secret.
 
 ### Preparing your secret
-You can either retrieve your entire secret or you can use a JSON formatted string
-stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
+You can either retrieve your entire secret, match a field by its Slug or FieldName, or use a JSON formatted string
+stored in your secret located at Items[0].ItemValue to retrieve a specific value using gjson syntax.<br />
 See example JSON secret below.
 
 #### Examples
@@ -195,9 +199,9 @@ returns: The entire secret in JSON format as displayed below
 }
 ```
 
-### Referencing Secrets in multiple Items secrets
+### Referencing Secrets by Field Name or Slug
 
-If there is more then one Item in the secret, it supports to retrieve them (all Item.\*.ItemValue) looking up by Item.\*.FieldName or Item.\*.Slug, instead of the above behaviour to use gjson only on the first item Items.0.ItemValue only.
+When `property` is set, the provider first tries to match it against each field's `Slug` or `FieldName` and returns the corresponding `ItemValue`. This works for secrets with any number of fields. If no field matches, it falls back to treating the first field's `ItemValue` as JSON and extracting the property using gjson syntax (supporting nested paths like `"books.1"`).
 
 #### Examples
 
@@ -271,4 +275,138 @@ returns: The entire secret in JSON format as displayed below
     }
   ]
 }
+```
+
+### Pushing Secrets
+
+The Delinea Secret-Server/Platform provider supports pushing secrets from Kubernetes back to your Secret Server instance using the `PushSecret` resource. You can both create new secrets and update existing ones.
+
+#### Remote Key Formats for PushSecret
+
+When using `PushSecret`, the `remoteRef.remoteKey` field determines how the provider identifies
+the target secret in Secret Server. The same key formats described in [Referencing Secrets](#referencing-secrets) apply here:
+
+| Format | Example | When to Use |
+|--------|---------|-------------|
+| Secret ID | `52622` | Updating an existing secret by its numeric ID. |
+| Secret Name | `my-secret` | Simple environments where secret names are unique across all folders. |
+| Secret Path | `/FolderName/SecretName` | When you know the full folder path of the secret. |
+| Folder-scoped Name | `folderId:73/my-secret` | **Recommended for new secrets.** Ensures all operations (push, delete, existence check) target the correct folder. |
+
+**Why the folder-scoped name format matters:**
+
+The `PushSecret` controller performs three distinct operations on secrets: **push** (create/update),
+**delete**, and **existence check**. While the push operation has access to the `metadata` field
+(which can carry a `folderId`), the delete and existence-check operations only receive the
+`remoteKey` and `property` — they do **not** have access to metadata.
+
+This means that if you use a plain secret name like `my-secret` and multiple secrets with that name
+exist in different folders, the delete and existence-check operations cannot distinguish between them
+and will act on the **first match** returned by the API.
+
+By using the `folderId:<id>/<name>` format (e.g., `folderId:73/my-secret`), the folder ID is
+encoded directly in the key and is available to **all** operations, ensuring consistent behavior.
+
+**Precedence rule:** If both a `folderId` in the `remoteKey` and a `folderId` in the metadata are
+specified, the value from the `remoteKey` takes precedence for lookups. The metadata `folderId` and
+`secretTemplateId` are still required when **creating** a new secret (they tell the API which folder
+and template to use for the new secret).
+
+#### Requirements for Creating New Secrets
+
+When creating a **new** secret in Secret Server, you must provide a `folderId` and a `secretTemplateId`. These are passed as `metadata` in the `PushSecret` spec:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: secret-server-store
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-k8s-secret
+  data:
+    - match:
+        secretKey: username
+        remoteRef:
+          remoteKey: "folderId:73/my-new-secret" # Folder-scoped name ensures correct matching for all operations
+          property: username # Maps to the 'Username' field/slug in Secret Server
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73 # Required for new secrets: folder to create the secret in
+          secretTemplateId: 6098 # Required for new secrets: template to use
+    - match:
+        secretKey: password
+        remoteRef:
+          remoteKey: "folderId:73/my-new-secret"
+          property: password # Maps to the 'Password' field/slug in Secret Server
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73
+          secretTemplateId: 6098
+```
+
+> **Note:** The `folderId` in the `remoteKey` (`folderId:73/...`) is used when **looking up** the
+> secret (for push, delete, and existence checks). The `folderId` and `secretTemplateId` in
+> `metadata` are used when **creating** a new secret via the Secret Server API.
+
+#### Updating Existing Secrets
+
+When updating an existing secret, you do not strictly need the `folderId` or `secretTemplateId` metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.
+
+However, if multiple secrets share the same name across different folders, you should use either the
+`folderId:<id>/<name>` format, a path-based key, or a numeric ID to ensure the correct secret is
+updated. Using a plain name will update the **first match** returned by the API.
+
+#### Deletion Behavior
+
+The `PushSecret` resource allows you to configure what happens to the remote secret in Secret Server when the `PushSecret` itself is deleted, via the `PushSecret.spec.deletionPolicy` field. Supported values are:
+- `Retain`: (Default) The remote secret is left intact in Secret Server when the `PushSecret` is deleted.
+- `Delete`: The provider will attempt to delete the remote secret from Secret Server when the `PushSecret` is removed.
+
+When `Delete` is specified, the deletion operation is idempotent; if the secret has already been removed or cannot be found, the provider will safely ignore the error and proceed.
+
+**Important:** The deletion operation does **not** have access to `metadata`. If your Secret Server
+has multiple secrets with the same name in different folders and you use `deletionPolicy: Delete`,
+you **must** use a key format that uniquely identifies the secret — either `folderId:<id>/<name>`,
+a full path (`/Folder/SecretName`), or a numeric ID. Using a plain name risks deleting the wrong
+secret.
+
+#### Pushing Without a Property
+
+If you omit `property` from the `remoteRef`, the provider writes the value selected by `data.match.secretKey` (e.g., the content stored under the `config` key in your Kubernetes Secret) into the **first** field of the Secret Server secret. This is useful when your secret value is a single JSON payload that you want to store in a text field like `Data` or `Notes`.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-json-example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: secret-server-store
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-k8s-json-secret
+  data:
+    - match:
+        secretKey: config # The key in your k8s secret whose value will be pushed
+        remoteRef:
+          remoteKey: "folderId:73/my-new-json-secret"
+          # property is omitted: the value is stored in the first template field
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          folderId: 73
+          secretTemplateId: 6098
 ```

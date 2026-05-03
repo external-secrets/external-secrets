@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -122,8 +122,8 @@ func (p MockPagination) LastMarker() (string, error) {
 	return "", nil
 }
 
-func (p MockPagination) GetBody() interface{} {
-	return map[string]interface{}{
+func (p MockPagination) GetBody() any {
+	return map[string]any{
 		"secrets": p.secrets,
 	}
 }

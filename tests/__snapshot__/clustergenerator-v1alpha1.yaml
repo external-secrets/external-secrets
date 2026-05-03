@@ -177,6 +177,7 @@ spec:
     vaultDynamicSecretSpec:
       allowEmptyResponse: false
       controller: string
+      getParameters: {}
       method: string
       parameters: 
       path: string
@@ -203,6 +204,7 @@ spec:
               key: string
               name: string
               namespace: string
+            vaultRole: string
           gcp:
             location: string
             path: "gcp"

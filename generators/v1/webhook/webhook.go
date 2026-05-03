@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,10 +37,10 @@ type Webhook struct {
 
 // Generate creates secrets by making webhook calls to external services.
 func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	w.wh = webhook.Webhook{}
 	w.wh.EnforceLabels = true
 	w.wh.ClusterScoped = false
 	provider, err := parseSpec(jsonSpec.Raw)
-	w.wh = webhook.Webhook{}
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse provider spec: %w", err)
 	}

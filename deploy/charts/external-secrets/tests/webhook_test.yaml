@@ -93,6 +93,38 @@ tests:
       - equal:
           path: spec.renewBefore
           value: "5d"
+      - notExists:
+          path: spec.privateKey
+      - notExists:
+          path: spec.signatureAlgorithm
+      - hasDocuments:
+          count: 1
+    templates:
+      - webhook-certificate.yaml
+  - it: should create a certificate CRD with privateKey and signatureAlgorithm
+    set:
+      webhook:
+        certManager:
+          enabled: true
+          cert:
+            privateKey:
+              algorithm: RSA
+              rotationPolicy: Always
+              size: 2048
+            signatureAlgorithm: SHA256WithRSA
+    asserts:
+      - equal:
+          path: spec.privateKey.algorithm
+          value: "RSA"
+      - equal:
+          path: spec.privateKey.rotationPolicy
+          value: "Always"
+      - equal:
+          path: spec.privateKey.size
+          value: 2048
+      - equal:
+          path: spec.signatureAlgorithm
+          value: "SHA256WithRSA"
       - hasDocuments:
           count: 1
     templates:
@@ -469,3 +501,62 @@ tests:
     asserts:
       - notExists:
           path: spec.template.spec.hostUsers
+  - it: should not have hostAliases by default
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostAliases
+  - it: should add hostAliases when configured
+    set:
+      webhook.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "webhook.example.local"
+            - "webhook"
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "webhook.example.local"
+                - "webhook"
+  - it: should use global hostAliases when webhook level not set
+    set:
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.200"
+              hostnames:
+                - "global.example.com"
+  - it: should prefer webhook hostAliases over global
+    set:
+      webhook.hostAliases:
+        - ip: "192.168.1.100"
+          hostnames:
+            - "webhook.example.com"
+      global:
+        hostAliases:
+          - ip: "192.168.1.200"
+            hostnames:
+              - "global.example.com"
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.hostAliases
+          value:
+            - ip: "192.168.1.100"
+              hostnames:
+                - "webhook.example.com"

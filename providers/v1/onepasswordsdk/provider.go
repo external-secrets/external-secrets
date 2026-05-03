@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -46,16 +47,31 @@ const (
 	errNotImplemented                                   = "not implemented"
 )
 
-// Provider implements the External Secrets provider interface for 1Password SDK.
+// Provider contains the main cache for onepasswordsdk provider.
 type Provider struct {
+	clientCache *cache.Cache[esv1.SecretsClient]
+}
+
+// SecretsClient wraps a 1Password SDK client for a specific vault.
+type SecretsClient struct {
 	client      *onepassword.Client
 	vaultPrefix string
 	vaultID     string
-	cache       *expirable.LRU[string, []byte] // nil if caching is disabled
+	cache       *expirable.LRU[string, []byte]
 }
 
-// NewClient constructs a new secrets client based on the provided store.
+// NewClient will create a new client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+	key := cache.Key{
+		Name:      store.GetObjectMeta().Name,
+		Namespace: namespace,
+		Kind:      store.GetTypeMeta().Kind,
+	}
+
+	if cachedClient, ok := p.clientCache.Get(store.GetObjectMeta().ResourceVersion, key); ok {
+		return cachedClient, nil
+	}
+
 	config := store.GetSpec().Provider.OnePasswordSDK
 	serviceAccountToken, err := resolvers.SecretKeyRef(
 		ctx,
@@ -84,14 +100,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	p.client = c
-	p.vaultPrefix = "op://" + config.Vault + "/"
+	sc := &SecretsClient{
+		client:      c,
+		vaultPrefix: "op://" + config.Vault + "/",
+	}
 
-	vaultID, err := p.GetVault(ctx, config.Vault)
+	vaultID, err := sc.GetVault(ctx, config.Vault)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store ID: %w", err)
 	}
-	p.vaultID = vaultID
+	sc.vaultID = vaultID
 
 	if config.Cache != nil {
 		ttl := 5 * time.Minute
@@ -104,10 +122,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			maxSize = config.Cache.MaxSize
 		}
 
-		p.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
+		sc.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
 	}
 
-	return p, nil
+	p.clientCache.Add(store.GetObjectMeta().ResourceVersion, key, sc)
+
+	return sc, nil
 }
 
 // ValidateStore validates the 1Password SDK SecretStore resource configuration.
@@ -150,7 +170,9 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
-	return &Provider{}
+	return &Provider{
+		clientCache: cache.Must[esv1.SecretsClient](100, nil),
+	}
 }
 
 // ProviderSpec returns the provider specification for registration.

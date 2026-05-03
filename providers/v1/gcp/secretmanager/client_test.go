@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -1591,7 +1590,7 @@ func TestValidateStore(t *testing.T) {
 					SecretRef: &esv1.GCPSMAuthSecretRef{
 						SecretAccessKey: v1.SecretKeySelector{
 							Name:      "foo",
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -1605,7 +1604,7 @@ func TestValidateStore(t *testing.T) {
 					WorkloadIdentity: &esv1.GCPWorkloadIdentity{
 						ServiceAccountRef: v1.ServiceAccountSelector{
 							Name:      "foo",
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},

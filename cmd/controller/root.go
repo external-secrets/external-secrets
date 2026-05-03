@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -72,9 +71,11 @@ var (
 	healthzAddr                           string
 	controllerClass                       string
 	enableLeaderElection                  bool
+	leaderElectionID                      string
 	enableSecretsCache                    bool
 	enableConfigMapsCache                 bool
 	enableManagedSecretsCache             bool
+	enableSecretAPIReadOnCacheMismatch    bool
 	enablePartialCache                    bool
 	concurrent                            int
 	port                                  int
@@ -172,7 +173,7 @@ var rootCmd = &cobra.Command{
 				},
 			},
 			LeaderElection:   enableLeaderElection,
-			LeaderElectionID: "external-secrets-controller",
+			LeaderElectionID: leaderElectionID,
 		}
 		if namespace != "" {
 			mgrOpts.Cache.DefaultNamespaces = map[string]cache.Config{
@@ -207,10 +208,7 @@ var rootCmd = &cobra.Command{
 				ControllerClass:   controllerClass,
 				RequeueInterval:   storeRequeueInterval,
 				PushSecretEnabled: enablePushSecretReconciler,
-			}).SetupWithManager(mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-				RateLimiter:             ctrlcommon.BuildRateLimiter(),
-			}); err != nil {
+			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "SecretStore")
 				os.Exit(1)
 			}
@@ -225,10 +223,7 @@ var rootCmd = &cobra.Command{
 				ControllerClass:   controllerClass,
 				RequeueInterval:   storeRequeueInterval,
 				PushSecretEnabled: enablePushSecretReconciler,
-			}).SetupWithManager(mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-				RateLimiter:             ctrlcommon.BuildRateLimiter(),
-			}); err != nil {
+			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
 				os.Exit(1)
 			}
@@ -238,29 +233,24 @@ var rootCmd = &cobra.Command{
 			Log:        ctrl.Log.WithName("controllers").WithName("GeneratorState"),
 			Scheme:     mgr.GetScheme(),
 			RestConfig: mgr.GetConfig(),
-		}).SetupWithManager(mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-			RateLimiter:             ctrlcommon.BuildRateLimiter(),
-		}); err != nil {
+		}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "GeneratorState")
 			os.Exit(1)
 		}
 		if err = (&externalsecret.Reconciler{
-			Client:                    mgr.GetClient(),
-			SecretClient:              secretClient,
-			Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
-			Scheme:                    mgr.GetScheme(),
-			RestConfig:                mgr.GetConfig(),
-			ControllerClass:           controllerClass,
-			RequeueInterval:           time.Hour,
-			ClusterSecretStoreEnabled: enableClusterStoreReconciler,
-			EnableFloodGate:           enableFloodGate,
-			EnableGeneratorState:      enableGeneratorState,
-			AllowGenericTargets:       allowGenericTargets,
-		}).SetupWithManager(cmd.Context(), mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-			RateLimiter:             ctrlcommon.BuildRateLimiter(),
-		}); err != nil {
+			Client:                             mgr.GetClient(),
+			SecretClient:                       secretClient,
+			EnableSecretAPIReadOnCacheMismatch: enableSecretAPIReadOnCacheMismatch,
+			Log:                                ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
+			Scheme:                             mgr.GetScheme(),
+			RestConfig:                         mgr.GetConfig(),
+			ControllerClass:                    controllerClass,
+			RequeueInterval:                    time.Hour,
+			ClusterSecretStoreEnabled:          enableClusterStoreReconciler,
+			EnableFloodGate:                    enableFloodGate,
+			EnableGeneratorState:               enableGeneratorState,
+			AllowGenericTargets:                allowGenericTargets,
+		}).SetupWithManager(cmd.Context(), mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 			os.Exit(1)
 		}
@@ -273,10 +263,7 @@ var rootCmd = &cobra.Command{
 				ControllerClass: controllerClass,
 				RestConfig:      mgr.GetConfig(),
 				RequeueInterval: time.Hour,
-			}).SetupWithManager(cmd.Context(), mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-				RateLimiter:             ctrlcommon.BuildRateLimiter(),
-			}); err != nil {
+			}).SetupWithManager(cmd.Context(), mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "PushSecret")
 				os.Exit(1)
 			}
@@ -289,10 +276,7 @@ var rootCmd = &cobra.Command{
 				Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecret"),
 				Scheme:          mgr.GetScheme(),
 				RequeueInterval: time.Hour,
-			}).SetupWithManager(mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-				RateLimiter:             ctrlcommon.BuildRateLimiter(),
-			}); err != nil {
+			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterExternalSecret")
 				os.Exit(1)
 			}
@@ -307,9 +291,7 @@ var rootCmd = &cobra.Command{
 				Scheme:          mgr.GetScheme(),
 				RequeueInterval: time.Hour,
 				Recorder:        mgr.GetEventRecorderFor("external-secrets-controller"),
-			}).SetupWithManager(mgr, controller.Options{
-				MaxConcurrentReconciles: concurrent,
-			}); err != nil {
+			}).SetupWithManager(mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterPushSecret")
 				os.Exit(1)
 			}
@@ -317,6 +299,10 @@ var rootCmd = &cobra.Command{
 
 		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 			setupLog.Error(err, "unable to add controller healthz check")
+			os.Exit(1)
+		}
+		if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+			setupLog.Error(err, "unable to add controller readyz check")
 			os.Exit(1)
 		}
 
@@ -350,6 +336,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	rootCmd.Flags().StringVar(&leaderElectionID, "leader-election-id", "external-secrets-controller",
+		"The ID of the lease object used for leader election. Set this to a unique value when running multiple deployments in the same namespace.")
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")
@@ -366,6 +354,12 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enable secrets caching for ALL secrets in the cluster (WARNING: can increase memory usage).")
 	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable configmaps caching for ALL configmaps in the cluster (WARNING: can increase memory usage).")
 	rootCmd.Flags().BoolVar(&enableManagedSecretsCache, "enable-managed-secrets-caching", true, "Enable secrets caching for secrets managed by an ExternalSecret")
+	rootCmd.Flags().BoolVar(
+		&enableSecretAPIReadOnCacheMismatch,
+		"enable-secret-api-read-on-cache-mismatch",
+		true,
+		"Enable a direct API read when the partial Secret cache and managed Secret cache disagree. Disable to rely on cache retry only.",
+	)
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableGeneratorState, "enable-generator-state", true, "Whether the Controller should manage GeneratorState")

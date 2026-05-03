@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 ESO Maintainer Team
+Copyright © The ESO Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,32 +21,34 @@ import (
 	"errors"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// ExternalSecretValidator implements webhook validation for ExternalSecret resources.
+// Ensures ExternalSecretValidator implements the admission.CustomValidator interface correctly.
+var _ admission.Validator[*ExternalSecret] = &ExternalSecretValidator{}
+
+// ExternalSecretValidator implements a validating webhook for ExternalSecrets.
 type ExternalSecretValidator struct{}
 
-// ValidateCreate validates an ExternalSecret during creation.
-func (esv *ExternalSecretValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+// ValidateCreate validates the creation of an external secret object.
+func (in *ExternalSecretValidator) ValidateCreate(_ context.Context, obj *ExternalSecret) (warnings admission.Warnings, err error) {
 	return validateExternalSecret(obj)
 }
 
-// ValidateUpdate validates an ExternalSecret during update.
-func (esv *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+// ValidateUpdate validates the update of an external secret object.
+func (in *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj *ExternalSecret) (warnings admission.Warnings, err error) {
 	return validateExternalSecret(newObj)
 }
 
-// ValidateDelete validates an ExternalSecret during deletion.
-func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+// ValidateDelete validates the deletion of an external secret object.
+func (in *ExternalSecretValidator) ValidateDelete(_ context.Context, _ *ExternalSecret) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
-func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
-	es, ok := obj.(*ExternalSecret)
-	if !ok {
-		return nil, errors.New("unexpected type")
+func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
+	if es == nil {
+		return nil, errors.New("external secret cannot be nil during validation")
 	}
 
 	var errs error
@@ -56,6 +58,10 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 
 	if len(es.Spec.Data) == 0 && len(es.Spec.DataFrom) == 0 {
 		errs = errors.Join(errs, errors.New("either data or dataFrom should be specified"))
+	}
+
+	if err := validatePrivilegedTemplate(es); err != nil {
+		errs = errors.Join(errs, err)
 	}
 
 	for _, ref := range es.Spec.DataFrom {
@@ -113,6 +119,30 @@ func validatePolicies(es *ExternalSecret) error {
 	}
 
 	return errs
+}
+
+// validatePrivilegedTemplate rejects templates with specific types and annotations combinations
+// to prevent users from creating long-lived tokens beyond the scope of the defined RBAC.
+func validatePrivilegedTemplate(es *ExternalSecret) error {
+	tpl := es.Spec.Target.Template
+	if tpl == nil {
+		return nil
+	}
+	//nolint:exhaustive // don't need exhaustive
+	switch tpl.Type {
+	case corev1.SecretTypeServiceAccountToken:
+		if _, ok := tpl.Metadata.Annotations[corev1.ServiceAccountNameKey]; ok {
+			return fmt.Errorf("template.type=%q with annotation %q is not allowed", corev1.SecretTypeServiceAccountToken, corev1.ServiceAccountNameKey)
+		}
+		for _, tf := range tpl.TemplateFrom {
+			if tf.Target == TemplateTargetAnnotations {
+				return fmt.Errorf("template.type=%q with templateFrom target=%q is not allowed", corev1.SecretTypeServiceAccountToken, TemplateTargetAnnotations)
+			}
+		}
+	case corev1.SecretTypeBootstrapToken:
+		return fmt.Errorf("template.type=%q is not allowed", corev1.SecretTypeBootstrapToken)
+	}
+	return nil
 }
 
 func validateDuplicateKeys(es *ExternalSecret, errs error) error {
