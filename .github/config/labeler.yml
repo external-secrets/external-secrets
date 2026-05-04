@@ -9,7 +9,7 @@ component/github-actions:
 - any:
   - changed-files:
     - any-glob-to-any-file: ['.github/**']
-kind/documentation:
+area/documentation:
 - any:
   - changed-files:
     - any-glob-to-any-file: ['docs/**', 'examples/**']
