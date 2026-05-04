@@ -197,6 +197,11 @@ rbac:
   # -- Specifies whether role and rolebinding resources should be created.
   create: true
 
+  # -- Specifies whether the serviceaccounts/token create permission is included in the controller RBAC.
+  # When set to false, users must create per-ServiceAccount Role/RoleBinding with resourceNames constraint
+  # to grant ESO token creation for specific ServiceAccounts referenced in SecretStore specs.
+  serviceAccountTokenCreate: true
+
   servicebindings:
     # -- Specifies whether a clusterrole to give servicebindings read access should be created.
     create: true

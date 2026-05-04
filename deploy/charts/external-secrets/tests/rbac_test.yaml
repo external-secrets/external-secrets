@@ -87,3 +87,41 @@ tests:
           path: metadata.name
           value: RELEASE-NAME-external-secrets-leaderelection
 
+  - it: should include serviceaccounts/token create by default
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+            - ""
+            resources:
+            - "serviceaccounts/token"
+            verbs:
+            - "create"
+
+  - it: should not include serviceaccounts/token create when serviceAccountTokenCreate is false
+    set:
+      rbac:
+        serviceAccountTokenCreate: false
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - notContains:
+          path: rules
+          content:
+            apiGroups:
+            - ""
+            resources:
+            - "serviceaccounts/token"
+            verbs:
+            - "create"
