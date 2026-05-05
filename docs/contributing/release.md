@@ -24,20 +24,60 @@ require (
 
 **Important:** When updating dependencies that consume ESO modules, ensure all module references use the same version to maintain compatibility.
 
-## CHANGELOG and Breaking Changes
+## CHANGELOG and Release Notes
+
+### Why automated changelog
 
 The project maintains a `CHANGELOG.md` at the repository root. It is **automatically updated** during each release by the `Create Release` workflow, which fetches the generated release notes from GitHub and prepends them to the file.
 
-### How to mark breaking changes
+We chose automation over manual changelog management for three reasons:
 
-If your PR introduces a breaking change or requires special upgrade steps:
+1. **Less maintenance burden** — contributors should not have to update two places (PR description and CHANGELOG). The release workflow already gathers PRs into categories, so the changelog is a natural by-product.
+2. **GitHub is the source of truth** — the `CHANGELOG.md` mirrors what GitHub generates in the release page. Keeping a single source avoids drift.
+3. **Labels already exist** — the project already uses `breaking-change`, `kind/feature`, `kind/bug`, etc. The `.github/release.yml` file groups PRs into release note categories. Automation leverages existing conventions.
 
-1. Add the `breaking-change` label to your PR.
-2. Fill in the **"Breaking Changes / Upgrade Notes"** section in the PR template describing what changed and how to upgrade.
+> **Note:** Breaking changes require manual writing. While we automate the gathering and categorization, the content of each release note comes from the PR body. Contributors must write clear upgrade notes for any breaking change.
 
-PRs with the `breaking-change` label will appear in a dedicated **⚠️ Breaking Changes / Urgent Upgrade Notes** section at the top of the release notes and CHANGELOG entry, making them easy to spot for anyone performing an upgrade.
+### How to contribute a good changelog entry
 
-> **Note:** The labeler automatically suggests `breaking-change` for PRs that modify files under `apis/`. Always review whether the changes truly break backwards compatibility before keeping or removing the label.
+Every PR becomes a changelog entry. The automation handles the grouping; you handle the content.
+
+#### Labels determine the category
+
+The `.github/release.yml` file defines the mapping. Use these labels to categorize your PR:
+
+| Label | Category in release notes | When to use |
+|-------|---------------------------|-----|
+| `breaking-change` | **⚠️ Breaking Changes** | API changes, removed fields, changed upgrade behavior. The labeler auto-suggests this for PRs touching `apis/` — always review. |
+| `kind/feature` | 🚀 New Features | New functionality from the user's perspective. |
+| `kind/bug` | 🐛 Bug Fixes | Bug fixes, not just code bugs but also docs, configs, or infrastructure that were wrong. |
+| `kind/documentation` | 📖 Documentation | Docs-only changes. |
+| `security` | 🔒 Security | Security-related fixes or advisories. |
+| `dependencies` | Dependencies | Dependency updates (not merged into General). |
+
+If your PR touches multiple areas, add multiple labels. A PR can be both `kind/feature` and `security`, for example.
+
+#### Writing a good changelog entry
+
+Each PR title becomes the changelog entry. Follow these guidelines:
+
+- **Write the PR title as a changelog entry** — it should make sense to end users without reading the full PR body.
+- **Use the conventional commit format** in the PR title: `feat(scope): description` or `fix(scope): description`. The scope is optional (e.g., `charts`, `release`, `testing`).
+- **Describe the impact, not the implementation** — "Add AWS Secrets Manager integration" not "Add AWS SDK call to provider".
+- **Reference the issue** — use `Fixes #...` in the PR body.
+
+#### Breaking changes
+
+If your PR introduces a breaking change:
+
+1. Add the `breaking-change` label.
+2. Fill in the **"Breaking Changes / Upgrade Notes"** section in the PR template with:
+   - What changed and why.
+   - What users need to do to upgrade.
+   - Any migration steps or deprecation timeline.
+3. Write the PR title so the breaking change is visible in the changelog.
+
+PRs with the `breaking-change` label appear in a dedicated **⚠️ Breaking Changes / Urgent Upgrade Notes** section at the top of the release notes and CHANGELOG entry, making them easy to spot for anyone performing an upgrade.
 
 ## Release ESO
 

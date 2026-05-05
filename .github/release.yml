@@ -10,29 +10,41 @@ changelog:
     - title: "⚠️ Breaking Changes / Urgent Upgrade Notes"
       labels:
         - breaking-change
-    - title: "🚀 New Features"
+    - title: "🚀 Features & Improvements"
       labels:
         - kind/feature
+        - kind/improvement
     - title: "🐛 Bug Fixes"
       labels:
         - kind/bug
     - title: "📖 Documentation"
       labels:
-        - kind/documentation
+        - area/documentation
     - title: "🔒 Security"
       labels:
         - security
+    - title: "🧹 Maintenance & Refactoring"
+      labels:
+        - kind/chore
+        - kind/refactor
+        - kind/maintenance
+    - title: Dependencies
+      labels:
+        - area/dependencies
+        - dependencies
     - title: General
       labels:
         - "*"
       exclude:
         labels:
-          - dependencies
           - breaking-change
           - kind/feature
+          - kind/improvement
           - kind/bug
-          - kind/documentation
+          - area/documentation
           - security
-    - title: Dependencies
-      labels:
-        - dependencies
+          - kind/chore
+          - kind/refactor
+          - kind/maintenance
+          - area/dependencies
+          - dependencies
