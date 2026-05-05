@@ -45,6 +45,7 @@ type PulumiProvider struct {
 	Environment string `json:"environment"`
 
 	// AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+	//
 	// Deprecated: Use auth.accessToken instead.
 	// +optional
 	AccessToken *PulumiProviderSecretRef `json:"accessToken,omitempty"`
