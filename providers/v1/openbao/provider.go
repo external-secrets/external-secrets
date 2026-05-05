@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -31,7 +31,7 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	baoutil "github.com/external-secrets/external-secrets/providers/v1/openbao/util"
 	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
@@ -40,14 +40,14 @@ import (
 var (
 	_           esv1.Provider = &Provider{}
 	enableCache bool
-	logger      = ctrl.Log.WithName("provider").WithName("vault")
-	clientCache *cache.Cache[vaultutil.Client]
+	logger      = ctrl.Log.WithName("provider").WithName("openbao")
+	clientCache *cache.Cache[baoutil.Client]
 )
 
 const (
-	errVaultStore    = "received invalid Vault SecretStore resource: %w"
-	errVaultClient   = "cannot setup new vault client: %w"
-	errVaultCert     = "cannot set Vault CA certificate: %w"
+	errOpenBaoStore  = "received invalid OpenBao SecretStore resource: %w"
+	errOpenBaoClient = "cannot setup new OpenBao client: %w"
+	errOpenBaoCert   = "cannot set OpenBao CA certificate: %w"
 	errClientTLSAuth = "error from Client TLS Auth: %q"
 	errCANamespace   = "missing namespace on caProvider secret"
 )
@@ -56,29 +56,29 @@ const (
 	defaultCacheSize = 2 << 17
 )
 
-// Provider implements the ESO Provider interface for Hashicorp Vault.
+// Provider implements the ESO Provider interface for OpenBao.
 type Provider struct {
-	// NewVaultClient is a function that returns a new Vault client.
+	// NewOpenBaoClient is a function that returns a new OpenBao client.
 	// This is used for testing to inject a fake client.
-	NewVaultClient func(config *vault.Config) (vaultutil.Client, error)
+	NewOpenBaoClient func(config *bao.Config) (baoutil.Client, error)
 }
 
-// NewVaultClient returns a new Vault client.
-func NewVaultClient(config *vault.Config) (vaultutil.Client, error) {
-	vaultClient, err := vault.NewClient(config)
+// NewOpenBaoClient returns a new OpenBao client.
+func NewOpenBaoClient(config *bao.Config) (baoutil.Client, error) {
+	baoClient, err := bao.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
-	return &vaultutil.VaultClient{
-		SetTokenFunc:     vaultClient.SetToken,
-		TokenFunc:        vaultClient.Token,
-		ClearTokenFunc:   vaultClient.ClearToken,
-		AuthField:        vaultClient.Auth(),
-		AuthTokenField:   vaultClient.Auth().Token(),
-		LogicalField:     vaultClient.Logical(),
-		NamespaceFunc:    vaultClient.Namespace,
-		SetNamespaceFunc: vaultClient.SetNamespace,
-		AddHeaderFunc:    vaultClient.AddHeader,
+	return &baoutil.OpenBaoClient{
+		SetTokenFunc:     baoClient.SetToken,
+		TokenFunc:        baoClient.Token,
+		ClearTokenFunc:   baoClient.ClearToken,
+		AuthField:        baoClient.Auth(),
+		AuthTokenField:   baoClient.Auth().Token(),
+		LogicalField:     baoClient.Logical(),
+		NamespaceFunc:    baoClient.Namespace,
+		SetNamespaceFunc: baoClient.SetNamespace,
+		AddHeaderFunc:    baoClient.AddHeader,
 	}, nil
 }
 
@@ -103,26 +103,26 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return p.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
-// NewGeneratorClient creates a new Vault client for the generator controller.
+// NewGeneratorClient creates a new OpenBao client for the generator controller.
 func (p *Provider) NewGeneratorClient(
 	ctx context.Context,
 	kube kclient.Client,
 	corev1 typedcorev1.CoreV1Interface,
-	vaultSpec *esv1.VaultProvider,
+	baoSpec *esv1.OpenBaoProvider,
 	namespace string,
 	retrySettings *esv1.SecretStoreRetrySettings,
-) (vaultutil.Client, error) {
-	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
+) (baoutil.Client, error) {
+	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, baoSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := p.NewVaultClient(cfg)
+	client, err := p.NewOpenBaoClient(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = p.initClient(ctx, vStore, client, cfg, vaultSpec)
+	_, err = p.initClient(ctx, vStore, client, cfg, baoSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -132,16 +132,16 @@ func (p *Provider) NewGeneratorClient(
 
 func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
-	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {
-		return nil, errors.New(errVaultStore)
+	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.OpenBao == nil {
+		return nil, errors.New(errOpenBaoStore)
 	}
-	vaultSpec := storeSpec.Provider.Vault
+	baoSpec := storeSpec.Provider.OpenBao
 
 	vStore, cfg, err := p.prepareConfig(
 		ctx,
 		kube,
 		corev1,
-		vaultSpec,
+		baoSpec,
 		storeSpec.RetrySettings,
 		namespace,
 		store.GetObjectKind().GroupVersionKind().Kind)
@@ -149,21 +149,21 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	client, err := getVaultClient(p, store, cfg, namespace)
+	client, err := getOpenBaoClient(p, store, cfg, namespace)
 	if err != nil {
-		return nil, fmt.Errorf(errVaultClient, err)
+		return nil, fmt.Errorf(errOpenBaoClient, err)
 	}
 
-	return p.initClient(ctx, vStore, client, cfg, vaultSpec)
+	return p.initClient(ctx, vStore, client, cfg, baoSpec)
 }
 
-func (p *Provider) initClient(ctx context.Context, c *client, client vaultutil.Client, cfg *vault.Config, vaultSpec *esv1.VaultProvider) (esv1.SecretsClient, error) {
-	if vaultSpec.Namespace != nil {
-		client.SetNamespace(*vaultSpec.Namespace)
+func (p *Provider) initClient(ctx context.Context, c *client, client baoutil.Client, cfg *bao.Config, baoSpec *esv1.OpenBaoProvider) (esv1.SecretsClient, error) {
+	if baoSpec.Namespace != nil {
+		client.SetNamespace(*baoSpec.Namespace)
 	}
 
-	if vaultSpec.Headers != nil {
-		for hKey, hValue := range vaultSpec.Headers {
+	if baoSpec.Headers != nil {
+		for hKey, hValue := range baoSpec.Headers {
 			client.AddHeader(hKey, hValue)
 		}
 	}
@@ -175,7 +175,7 @@ func (p *Provider) initClient(ctx context.Context, c *client, client vaultutil.C
 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
-	if c.storeKind == esv1.ClusterSecretStoreKind && c.namespace == "" && isReferentSpec(vaultSpec) {
+	if c.storeKind == esv1.ClusterSecretStoreKind && c.namespace == "" && isReferentSpec(baoSpec) {
 		return c, nil
 	}
 	// set auth also sets the token expiry value
@@ -190,14 +190,14 @@ func (p *Provider) prepareConfig(
 	ctx context.Context,
 	kube kclient.Client,
 	corev1 typedcorev1.CoreV1Interface,
-	vaultSpec *esv1.VaultProvider,
+	baoSpec *esv1.OpenBaoProvider,
 	retrySettings *esv1.SecretStoreRetrySettings,
 	namespace, storeKind string,
-) (*client, *vault.Config, error) {
+) (*client, *bao.Config, error) {
 	c := &client{
 		kube:      kube,
 		corev1:    corev1,
-		store:     vaultSpec,
+		store:     baoSpec,
 		log:       logger,
 		namespace: namespace,
 		storeKind: storeKind,
@@ -230,15 +230,15 @@ func (p *Provider) prepareConfig(
 	return c, cfg, nil
 }
 
-func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (vaultutil.Client, error) {
-	vaultProvider := store.GetSpec().Provider.Vault
-	auth := vaultProvider.Auth
+func getOpenBaoClient(p *Provider, store esv1.GenericStore, cfg *bao.Config, namespace string) (baoutil.Client, error) {
+	baoProvider := store.GetSpec().Provider.OpenBao
+	auth := baoProvider.Auth
 	isStaticToken := auth != nil && auth.TokenSecretRef != nil
 	useCache := enableCache && !isStaticToken
 
 	keyNamespace := store.GetObjectMeta().Namespace
-	// A single ClusterSecretStore may need to spawn separate vault clients for each namespace.
-	if store.GetTypeMeta().Kind == esv1.ClusterSecretStoreKind && namespace != "" && isReferentSpec(vaultProvider) {
+	// A single ClusterSecretStore may need to spawn separate OpenBao clients for each namespace.
+	if store.GetTypeMeta().Kind == esv1.ClusterSecretStoreKind && namespace != "" && isReferentSpec(baoProvider) {
 		keyNamespace = namespace
 	}
 
@@ -254,9 +254,9 @@ func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, nam
 		}
 	}
 
-	client, err := p.NewVaultClient(cfg)
+	client, err := p.NewOpenBaoClient(cfg)
 	if err != nil {
-		return nil, fmt.Errorf(errVaultClient, err)
+		return nil, fmt.Errorf(errOpenBaoClient, err)
 	}
 
 	if useCache && !clientCache.Contains(key) {
@@ -265,7 +265,7 @@ func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, nam
 	return client, nil
 }
 
-func isReferentSpec(prov *esv1.VaultProvider) bool {
+func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
 	if prov.Auth == nil {
 		return false
 	}
@@ -310,8 +310,8 @@ func isReferentSpec(prov *esv1.VaultProvider) bool {
 }
 
 func initCache(size int) {
-	logger.Info("initializing vault cache", "size", size)
-	clientCache = cache.Must(size, func(client vaultutil.Client) {
+	logger.Info("initializing OpenBao cache", "size", size)
+	clientCache = cache.Must(size, func(client baoutil.Client) {
 		err := revokeTokenIfValid(context.Background(), client)
 		if err != nil {
 			logger.Error(err, "unable to revoke cached token on eviction")
@@ -321,27 +321,27 @@ func initCache(size int) {
 
 func init() {
 	var (
-		vaultTokenCacheSize int
+		baoTokenCacheSize int
 	)
 
-	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
+	fs := pflag.NewFlagSet("openbao", pflag.ExitOnError)
 	fs.BoolVar(
 		&enableCache,
-		"enable-vault-token-cache",
+		"enable-openbao-token-cache",
 		false,
-		"Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.",
+		"Enable OpenBao token cache. External secrets will reuse the OpenBao token without creating a new one on each request.",
 	)
-	// max. 265k vault leases with 30bytes each ~= 7MB
+	// max. 265k OpenBao leases with 30bytes each ~= 7MB
 	fs.IntVar(
-		&vaultTokenCacheSize,
-		"vault-token-cache-size",
+		&baoTokenCacheSize,
+		"openbao-token-cache-size",
 		defaultCacheSize,
-		"Maximum size of Vault token cache. Only used if --enable-vault-token-cache is set.",
+		"Maximum size of OpenBao token cache. Only used if --enable-openbao-token-cache is set.",
 	)
 	feature.Register(feature.Feature{
 		Flags: fs,
 		Initialize: func() {
-			initCache(vaultTokenCacheSize)
+			initCache(baoTokenCacheSize)
 		},
 	})
 }
@@ -349,14 +349,14 @@ func init() {
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
 	return &Provider{
-		NewVaultClient: NewVaultClient,
+		NewOpenBaoClient: NewOpenBaoClient,
 	}
 }
 
 // ProviderSpec returns the provider specification for registration.
 func ProviderSpec() *esv1.SecretStoreProvider {
 	return &esv1.SecretStoreProvider{
-		Vault: &esv1.VaultProvider{},
+		OpenBao: &esv1.OpenBaoProvider{},
 	}
 }
 

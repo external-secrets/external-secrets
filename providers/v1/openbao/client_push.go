@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"bytes"
@@ -39,7 +39,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	)
 	key := data.GetSecretKey()
 	if key == "" {
-		// Must convert secret values to string, otherwise data will be sent as base64 to Vault
+		// Must convert secret values to string, otherwise data will be sent as base64 to OpenBao
 		secretStringVal := make(map[string]string)
 		for k, v := range secret.Data {
 			secretStringVal[k] = string(v)
@@ -63,8 +63,8 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return err
 	}
 
-	// Retrieve the secret map from vault and convert the secret value in string form.
-	vaultSecret, err := c.readSecret(ctx, path, "")
+	// Retrieve the secret map from OpenBao and convert the secret value in string form.
+	baoSecret, err := c.readSecret(ctx, path, "")
 	// If error is not of type secret not found, we should error
 	if err != nil && !errors.Is(err, esv1.NoSecretError{}) {
 		return err
@@ -82,8 +82,8 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			return errors.New("secret not managed by external-secrets")
 		}
 		// Remove the metadata map to check the reconcile difference
-		if c.store.Version == esv1.VaultKVStoreV1 {
-			delete(vaultSecret, "custom_metadata")
+		if c.store.Version == esv1.OpenBaoKVStoreV1 {
+			delete(baoSecret, "custom_metadata")
 		}
 		// Only compare the entire secret if we're pushing the whole secret (not a single property)
 		if data.GetProperty() == "" {
@@ -96,15 +96,15 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 				return errors.New("error unmarshalling incoming secret value: invalid JSON format")
 			}
 			// Compare maps instead of raw bytes to handle JSON field ordering and formatting
-			if maps.Equal(vaultSecret, incomingSecretMap) {
+			if maps.Equal(baoSecret, incomingSecretMap) {
 				return nil
 			}
 		}
 	}
 	// If a Push of a property only, we should merge and add/update the property
 	if data.GetProperty() != "" {
-		if _, ok := vaultSecret[data.GetProperty()]; ok {
-			d, ok := vaultSecret[data.GetProperty()].(string)
+		if _, ok := baoSecret[data.GetProperty()]; ok {
+			d, ok := baoSecret[data.GetProperty()].(string)
 			if !ok {
 				return fmt.Errorf("error converting %s to string", data.GetProperty())
 			}
@@ -113,23 +113,23 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 				return nil
 			}
 		}
-		maps.Insert(secretVal, maps.All(vaultSecret))
-		// Secret got from vault is already on map[string]string format
+		maps.Insert(secretVal, maps.All(baoSecret))
+		// Secret got from OpenBao is already on map[string]string format
 		secretVal[data.GetProperty()] = string(value)
 	} else {
 		err = json.Unmarshal(value, &secretVal)
 		if err != nil {
 			// Do not wrap the original error with %w as json.Unmarshal errors
 			// may contain sensitive secret data in the error message
-			return errors.New("error unmarshalling vault secret: invalid JSON format")
+			return errors.New("error unmarshalling OpenBao secret: invalid JSON format")
 		}
 	}
 	secretToPush := secretVal
 	// Adding custom_metadata to the secret for KV v1
-	if c.store.Version == esv1.VaultKVStoreV1 {
+	if c.store.Version == esv1.OpenBaoKVStoreV1 {
 		secretToPush["custom_metadata"] = label["custom_metadata"]
 	}
-	if c.store.Version == esv1.VaultKVStoreV2 {
+	if c.store.Version == esv1.OpenBaoKVStoreV2 {
 		secretToPush = map[string]any{
 			"data": secretVal,
 		}
@@ -147,16 +147,16 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		}
 	}
 	// Secret metadata should be pushed separately only for KV2
-	if c.store.Version == esv1.VaultKVStoreV2 {
+	if c.store.Version == esv1.OpenBaoKVStoreV2 {
 		_, err = c.logical.WriteWithContext(ctx, metaPath, label)
-		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+		metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoWriteSecretData, err)
 		if err != nil {
 			return err
 		}
 	}
 	// Otherwise, create or update the version.
 	_, err = c.logical.WriteWithContext(ctx, path, secretToPush)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoWriteSecretData, err)
 	return err
 }
 
@@ -166,7 +166,7 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	if err != nil {
 		return err
 	}
-	// Retrieve the secret map from vault and convert the secret value in string form.
+	// Retrieve the secret map from OpenBao and convert the secret value in string form.
 	secretVal, err := c.readSecret(ctx, path, "")
 	// If error is not of type secret not found, we should error
 	if err != nil && errors.Is(err, esv1.NoSecretError{}) {
@@ -187,29 +187,29 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	if remoteRef.GetProperty() != "" {
 		delete(secretVal, remoteRef.GetProperty())
 		// If the only key left in the remote secret is the reference of the metadata.
-		if c.store.Version == esv1.VaultKVStoreV1 && len(secretVal) == 1 {
+		if c.store.Version == esv1.OpenBaoKVStoreV1 && len(secretVal) == 1 {
 			delete(secretVal, "custom_metadata")
 		}
 		if len(secretVal) > 0 {
 			secretToPush := secretVal
-			if c.store.Version == esv1.VaultKVStoreV2 {
+			if c.store.Version == esv1.OpenBaoKVStoreV2 {
 				secretToPush = map[string]any{
 					"data": secretVal,
 				}
 			}
 			_, err = c.logical.WriteWithContext(ctx, path, secretToPush)
-			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+			metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoDeleteSecret, err)
 			return err
 		}
 	}
 	_, err = c.logical.DeleteWithContext(ctx, path)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
 	}
-	if c.store.Version == esv1.VaultKVStoreV2 {
+	if c.store.Version == esv1.OpenBaoKVStoreV2 {
 		_, err = c.logical.DeleteWithContext(ctx, metaPath)
-		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+		metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoDeleteSecret, err)
 		if err != nil {
 			return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
 		}
@@ -241,7 +241,7 @@ func (c *client) getCASVersion(ctx context.Context, remoteKey string, secretExis
 	if secret == nil || secret.Data == nil {
 		// If no metadata found for an existing secret, assume this is version 1.
 		// This can happen with older secrets that were created before version tracking.
-		// Vault KV v2 secrets start at version 1 (not 0) when first created.
+		// OpenBao KV v2 secrets start at version 1 (not 0) when first created.
 		return 1, nil
 	}
 
@@ -268,6 +268,6 @@ func getCurrentVersionFromMetadata(data map[string]any) (int, error) {
 
 	// If metadata exists but no current_version found, assume this is version 1.
 	// This handles edge cases with legacy secrets or incomplete metadata.
-	// Vault KV v2 secrets start at version 1, so this is the safest assumption.
+	// OpenBao KV v2 secrets start at version 1, so this is the safest assumption.
 	return 1, nil
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func setJwtAuthToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1.VaultJwtAuth) error {
+func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1.OpenBaoJwtAuth) error {
 	role := strings.TrimSpace(jwtAuth.Role)
 	var jwt string
 	var err error
@@ -64,15 +64,15 @@ func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1.Vaul
 		"jwt":  jwt,
 	}
 	url := strings.Join([]string{"auth", jwtAuth.Path, "login"}, "/")
-	vaultResult, err := c.logical.WriteWithContext(ctx, url, parameters)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+	baoResult, err := c.logical.WriteWithContext(ctx, url, parameters)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoWriteSecretData, err)
 	if err != nil {
 		return err
 	}
 
-	token, err := vaultResult.TokenID()
+	token, err := baoResult.TokenID()
 	if err != nil {
-		return fmt.Errorf(errVaultToken, err)
+		return fmt.Errorf(errOpenBaoToken, err)
 	}
 	c.client.SetToken(token)
 	return nil

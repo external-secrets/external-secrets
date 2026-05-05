@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -23,29 +23,29 @@ import (
 	"fmt"
 	"time"
 
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 	authv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
-	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	baoiamauth "github.com/external-secrets/external-secrets/providers/v1/openbao/iamauth"
+	baoutil "github.com/external-secrets/external-secrets/providers/v1/openbao/util"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
 const (
-	errAuthFormat            = "cannot initialize Vault client: no valid auth method specified"
-	errVaultToken            = "cannot parse Vault authentication token: %w"
+	errAuthFormat            = "cannot initialize OpenBao client: no valid auth method specified"
+	errOpenBaoToken          = "cannot parse OpenBao authentication token: %w"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
-	errVaultRevokeToken      = "error while revoking token: %w"
+	errOpenBaoRevokeToken    = "error while revoking token: %w"
 )
 
 // setAuth gets a new token using the configured mechanism.
 // If there's already a valid token, does nothing.
-func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
+func (c *client) setAuth(ctx context.Context, cfg *bao.Config) error {
 	if c.store.Auth == nil {
 		return nil
 	}
@@ -117,7 +117,7 @@ func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 		return err
 	}
 
-	tokenExists, err = setIamAuthToken(ctx, c, vaultiamauth.DefaultJWTProvider, vaultiamauth.DefaultSTSProvider)
+	tokenExists, err = setIamAuthToken(ctx, c, baoiamauth.DefaultJWTProvider, baoiamauth.DefaultSTSProvider)
 	if tokenExists {
 		c.log.V(1).Info("Retrieved new token using IAM auth")
 		return err
@@ -161,10 +161,10 @@ func createServiceAccountToken(
 }
 
 // checkToken does a lookup and checks if the provided token exists.
-func checkToken(ctx context.Context, token vaultutil.Token) (bool, *time.Time, error) {
-	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
+func checkToken(ctx context.Context, token baoutil.Token) (bool, *time.Time, error) {
+	// https://openbao.org/api-docs/auth/token/#lookup-a-token-self
 	resp, err := token.LookupSelfWithContext(ctx)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLookupSelf, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoLookupSelf, err)
 	if err != nil {
 		return false, nil, err
 	}
@@ -217,16 +217,16 @@ func checkToken(ctx context.Context, token vaultutil.Token) (bool, *time.Time, e
 	return true, &parsedExpiry, nil
 }
 
-func revokeTokenIfValid(ctx context.Context, client vaultutil.Client) error {
+func revokeTokenIfValid(ctx context.Context, client baoutil.Client) error {
 	valid, _, err := checkToken(ctx, client.AuthToken())
 	if err != nil {
-		return fmt.Errorf(errVaultRevokeToken, err)
+		return fmt.Errorf(errOpenBaoRevokeToken, err)
 	}
 	if valid {
 		err = client.AuthToken().RevokeSelfWithContext(ctx, client.Token())
-		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultRevokeSelf, err)
+		metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoRevokeSelf, err)
 		if err != nil {
-			return fmt.Errorf(errVaultRevokeToken, err)
+			return fmt.Errorf(errOpenBaoRevokeToken, err)
 		}
 		client.ClearToken()
 	}
@@ -240,10 +240,10 @@ func (c *client) useAuthNamespace(_ context.Context) func() {
 	}
 
 	if c.store.Auth != nil && c.store.Auth.Namespace != nil {
-		// Different Auth Vault Namespace than Secret Vault Namespace
+		// Different Auth OpenBao Namespace than Secret OpenBao Namespace
 		// Switch namespaces then switch back at the end
 		if c.store.Auth.Namespace != nil && *c.store.Auth.Namespace != ns {
-			c.log.V(1).Info("Using namespace=%s for the vault login", *c.store.Auth.Namespace)
+			c.log.V(1).Info("Using namespace=%s for the OpenBao login", *c.store.Auth.Namespace)
 			c.client.SetNamespace(*c.store.Auth.Namespace)
 			// use this as a defer to reset the namespace
 			return func() {

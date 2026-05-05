@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	errReadSecret                   = "cannot read secret data from Vault: %w"
+	errReadSecret                   = "cannot read secret data from OpenBao: %w"
 	errDataField                    = "failed to find data field"
 	errJSONUnmarshall               = "failed to unmarshall JSON"
 	errPathInvalid                  = "provided Path isn't a valid kv v2 path"
@@ -50,7 +50,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	var data map[string]any
 	var err error
 	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-		if c.store.Version == esv1.VaultKVStoreV1 {
+		if c.store.Version == esv1.OpenBaoKVStoreV1 {
 			return nil, errors.New(errUnsupportedMetadataKvVersion)
 		}
 
@@ -76,7 +76,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 }
 
 // GetSecretMap supports two modes of operation:
-// 1. get the full secret from the vault data payload (by leaving .property empty).
+// 1. get the full secret from the OpenBao data payload (by leaving .property empty).
 // 2. extract key/value pairs from a (nested) object.
 func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.GetSecret(ctx, ref)
@@ -122,27 +122,27 @@ func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 func (c *client) readSecret(ctx context.Context, path, version string) (map[string]any, error) {
 	dataPath := c.buildPath(path)
 
-	// path formated according to vault docs for v1 and v2 API
-	// v1: https://www.vaultproject.io/api-docs/secret/kv/kv-v1#read-secret
-	// v2: https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
+	// path formated according to OpenBao docs for v1 and v2 API
+	// v1: https://openbao.org/api-docs/secret/kv/kv-v1/#read-secret
+	// v2: https://openbao.org/api-docs/secret/kv/kv-v2/#read-secret-version
 	var params map[string][]string
 	if version != "" {
 		params = make(map[string][]string)
 		params["version"] = []string{version}
 	}
-	vaultSecret, err := c.logical.ReadWithDataWithContext(ctx, dataPath, params)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultReadSecretData, err)
+	baoSecret, err := c.logical.ReadWithDataWithContext(ctx, dataPath, params)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoReadSecretData, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
-	if vaultSecret == nil {
+	if baoSecret == nil {
 		return nil, esv1.NoSecretError{}
 	}
-	secretData := vaultSecret.Data
-	if c.store.Version == esv1.VaultKVStoreV2 {
-		// Vault KV2 has data embedded within sub-field
-		// reference - https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
-		dataInt, ok := vaultSecret.Data["data"]
+	secretData := baoSecret.Data
+	if c.store.Version == esv1.OpenBaoKVStoreV2 {
+		// OpenBao KV2 has data embedded within sub-field
+		// reference - https://openbao.org/api-docs/secret/kv/kv-v2/#read-secret-version
+		dataInt, ok := baoSecret.Data["data"]
 		if !ok {
 			return nil, errors.New(errDataField)
 		}
@@ -193,7 +193,7 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		return nil, err
 	}
 	secret, err := c.logical.ReadWithDataWithContext(ctx, url, nil)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultReadSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoReadSecretData, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
@@ -216,7 +216,7 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 
 func (c *client) buildMetadataPath(path string) (string, error) {
 	var url string
-	if c.store.Version == esv1.VaultKVStoreV1 {
+	if c.store.Version == esv1.OpenBaoKVStoreV1 {
 		url = fmt.Sprintf("%s/%s", *c.store.Path, path)
 	} else { // KV v2 is used
 		if c.store.Path == nil && !strings.Contains(path, "data") {
@@ -233,7 +233,7 @@ func (c *client) buildMetadataPath(path string) (string, error) {
 }
 
 /*
-	 buildPath is a helper method to build the vault equivalent path
+	 buildPath is a helper method to build the OpenBao equivalent path
 		 from ExternalSecrets and SecretStore manifests. the path build logic
 		 varies depending on the SecretStore KV version:
 		 Example inputs/outputs:
@@ -283,20 +283,20 @@ func (c *client) buildPath(path string) string {
 			// This current logic induces a bug when the actual secret resides on same path names as the mount path.
 			_, out, _ = strings.Cut(out, cut)
 			// if data succeeds optionalMount on v2 store, we should remove it as well
-			if strings.HasPrefix(out, "data/") && c.store.Version == esv1.VaultKVStoreV2 {
+			if strings.HasPrefix(out, "data/") && c.store.Version == esv1.OpenBaoKVStoreV2 {
 				_, out, _ = strings.Cut(out, "data/")
 			}
 		}
 		buildPath := strings.Split(out, "/")
 		buildMount := strings.Split(*optionalMount, "/")
-		if c.store.Version == esv1.VaultKVStoreV2 {
+		if c.store.Version == esv1.OpenBaoKVStoreV2 {
 			buildMount = append(buildMount, "data")
 		}
 		buildMount = append(buildMount, buildPath...)
 		out = strings.Join(buildMount, "/")
 		return out
 	}
-	if !strings.Contains(out, "/data/") && c.store.Version == esv1.VaultKVStoreV2 {
+	if !strings.Contains(out, "/data/") && c.store.Version == esv1.OpenBaoKVStoreV2 {
 		buildPath := strings.Split(out, "/")
 		buildMount := make([]string, 0, 1+len(buildPath))
 		buildMount = append(buildMount, buildPath[0], "data")

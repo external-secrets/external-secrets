@@ -1,41 +1,40 @@
-![HCP Vault](../pictures/diagrams-provider-vault.png)
+![OpenBao](../pictures/diagrams-provider-openbao.png)
 
-## Hashicorp Vault
+## OpenBao
 
-External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret management.
+External Secrets Operator integrates with [OpenBao](https://openbao.org/) for secret management.
 
-The [KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv) is the only
-one supported by this provider. For other secrets engines, please refer to the
-[Vault Generator](../api/generator/vault.md).
+So far the [KV Secrets Engine](https://openbao.org/docs/secrets/kv/) is the only
+one supported by this provider.
 
 ### Example
 
-First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token `root`:
+First, create a SecretStore with an OpenBao backend. For the sake of simplicity we'll use a static token `root`:
 
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
-  name: vault-backend
+  name: openbao-backend
 spec:
   provider:
-    vault:
-      server: "http://my.vault.server:8200"
+    openbao:
+      server: "http://my.openbao.server:8200"
       path: "secret"
-      # Version is the Vault KV secret engine version.
+      # Version is the OpenBao KV secret engine version.
       # This can be either "v1" or "v2", defaults to "v2"
       version: "v2"
       auth:
-        # points to a secret that contains a vault token
-        # https://www.vaultproject.io/docs/auth/token
+        # points to a secret that contains an OpenBao token
+        # https://openbao.org/docs/auth/token/
         tokenSecretRef:
-          name: "vault-token"
+          name: "openbao-token"
           key: "token"
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: vault-token
+  name: openbao-token
 data:
   token: cm9vdA== # "root"
 ```
@@ -44,13 +43,13 @@ data:
 Then create a simple k/v pair at path `secret/foo`:
 
 ```
-vault kv put secret/foo my-value=s3cr3t
+bao kv put secret/foo my-value=s3cr3t
 ```
 
 Can check kv version using following and check for `Options` column, it should indicate [version:2]:
 
 ```
-vault secrets list -detailed
+bao secrets list -detailed
 ```
 
 If you are using version: 1, just remember to update your SecretStore manifest appropriately
@@ -61,11 +60,11 @@ Now create a ExternalSecret that uses the above SecretStore:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: vault-example
+  name: openbao-example
 spec:
   refreshInterval: "15s"
   secretStoreRef:
-    name: vault-backend
+    name: openbao-backend
     kind: SecretStore
   target:
     name: example-sync
@@ -108,7 +107,7 @@ You can fetch all key/value pairs for a given path If you leave the `remoteRef.p
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: vault-example
+  name: openbao-example
 spec:
   # ...
   data:
@@ -119,7 +118,7 @@ spec:
 
 #### Nested Values
 
-Vault supports nested key/value pairs. You can specify a [gjson](https://github.com/tidwall/gjson) expression at `remoteRef.property` to get a nested value.
+OpenBao supports nested key/value pairs. You can specify a [gjson](https://github.com/tidwall/gjson) expression at `remoteRef.property` to get a nested value.
 
 Given the following secret - assume its path is `/dev/config`:
 ```json
@@ -137,7 +136,7 @@ You can set the `remoteRef.property` to point to the nested key using a [gjson](
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: vault-example
+  name: openbao-example
 spec:
   # ...
   data:
@@ -173,7 +172,7 @@ You can set the `remoteRef.property` to point to the nested key using a [gjson](
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: vault-example
+  name: openbao-example
 spec:
   # ...
   dataFrom:
@@ -190,13 +189,13 @@ baz=bang
 
 #### Getting multiple secrets
 
-You can extract multiple secrets from Hashicorp vault by using `dataFrom.Find`
+You can extract multiple secrets from OpenBao by using `dataFrom.Find`
 
 Currently, `dataFrom.Find` allows users to fetch secret names that match a given regexp pattern, or fetch secrets whose `custom_metadata` tags match a predefined set.
 
 
 !!! warning
-    The way hashicorp Vault currently allows LIST operations is through the existence of a secret metadata. If you delete the secret, you will also need to delete the secret's metadata or this will currently make Find operations fail.
+    The way OpenBao currently allows LIST operations is through the existence of a secret metadata. If you delete the secret, you will also need to delete the secret's metadata or this will currently make Find operations fail.
 
 Given the following secret - assume its path is `/dev/config`:
 ```json
@@ -223,7 +222,7 @@ It is possible to find this secret by all the following possibilities:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: vault-example
+  name: openbao-example
 spec:
   # ...
   dataFrom:
@@ -241,12 +240,12 @@ will generate a secret with:
 }
 ```
 
-Currently, `Find` operations are recursive throughout a given vault folder, starting on `provider.Path` definition. It is recommended to narrow down the scope of search by setting a `find.path` variable. This is also useful to automatically reduce the resulting secret key names:
+Currently, `Find` operations are recursive throughout a given OpenBao folder, starting on `provider.Path` definition. It is recommended to narrow down the scope of search by setting a `find.path` variable. This is also useful to automatically reduce the resulting secret key names:
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: vault-example
+  name: openbao-example
 spec:
   # ...
   dataFrom:
@@ -268,57 +267,55 @@ Will generate a secret with:
 ```
 ### Authentication
 
-We support five different modes for authentication:
-[token-based](https://www.vaultproject.io/docs/auth/token),
-[appRole](https://www.vaultproject.io/docs/auth/approle),
-[kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
-[ldap](https://www.vaultproject.io/docs/auth/ldap),
-[userPass](https://www.vaultproject.io/docs/auth/userpass),
-[jwt/oidc](https://www.vaultproject.io/docs/auth/jwt),
-[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws) and
-[tlsCert](https://developer.hashicorp.com/vault/docs/auth/cert), each one comes with it's own
+We support different modes for authentication:
+[Token](https://openbao.org/docs/auth/token/),
+[AppRole](https://openbao.org/docs/auth/approle/),
+[Kubernetes](https://openbao.org/docs/auth/kubernetes/),
+[LDAP](https://openbao.org/docs/auth/ldap/),
+[userpass](https://openbao.org/docs/auth/userpass/),
+[JWT/OIDC](https://openbao.org/docs/auth/jwt/),
+[TLS Client Cert](https://openbao.org/docs/auth/cert/),
+[AWS IAM](https://github.com/openbao/openbao-plugins/tree/main/auth/aws) and
+[GCP](https://github.com/openbao/openbao-plugins/blob/main/auth/gcp/docs/index.md), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
-If you're using Vault namespaces, you can authenticate into one namespace and use the vault token against a different namespace, if desired.
+If you're using OpenBao namespaces, you can authenticate into one namespace and use the OpenBao token against a different namespace, if desired.
 
 #### Token-based authentication
 
-A static token is stored in a `Kind=Secret` and is used to authenticate with vault.
+A static token is stored in a `Kind=Secret` and is used to authenticate with OpenBao.
 
 ```yaml
-{% include 'vault-token-store.yaml' %}
+{% include 'openbao-token-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `tokenSecretRef` with the namespace where the secret resides.
 
 #### AppRole authentication example
 
-[AppRole authentication](https://www.vaultproject.io/docs/auth/approle) reads the secret id from a
+[AppRole authentication](https://openbao.org/docs/auth/approle/) reads the secret id from a
 `Kind=Secret` and uses the specified `roleId` to acquire a temporary token to fetch secrets.
 
 ```yaml
-{% include 'vault-approle-store.yaml' %}
+{% include 'openbao-approle-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### Kubernetes authentication
 
-[Kubernetes-native authentication](https://www.vaultproject.io/docs/auth/kubernetes) has three
-options of obtaining credentials for vault:
+[Kubernetes-native authentication](https://openbao.org/docs/auth/kubernetes/) has three
+options of obtaining credentials for OpenBao:
 
 1.  by using a service account jwt referenced in `serviceAccountRef`
 2.  by using the jwt from a `Kind=Secret` referenced by the `secretRef`
 3.  by using transient credentials from the mounted service account token within the
     external-secrets operator
 
-Vault validates the service account token by using the TokenReview API. ⚠️ You have to bind the `system:auth-delegator` ClusterRole to the service account that is used for authentication. Please follow the [Vault documentation](https://developer.hashicorp.com/vault/docs/auth/kubernetes#configuring-kubernetes).
+OpenBao validates the service account token by using the TokenReview API. ⚠️ You have to bind the `system:auth-delegator` ClusterRole to the service account that is used for authentication. Please follow the [OpenBao documentation](https://openbao.org/docs/auth/kubernetes/#configuring-kubernetes).
 
 ```yaml
-{% include 'vault-kubernetes-store.yaml' %}
+{% include 'openbao-kubernetes-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `serviceAccountRef` or in `secretRef`, if used.
-
-**NOTE:** Starting with Vault 1.20, roles without an audience will trigger warnings during authentication.
-In Vault 1.21 and later, roles must include an audience or authentication will fail.
 
 Update your role definitions to include an audience, for example:
 ```yaml
@@ -329,78 +326,77 @@ auth:
     serviceAccountRef:
       name: my-service-account
       audiences:
-        - vault # Required for Vault 1.21+
+        - openbao
 ```
 
 
 
 #### LDAP authentication
 
-[LDAP authentication](https://www.vaultproject.io/docs/auth/ldap) uses
+[LDAP authentication](https://openbao.org/docs/auth/ldap/) uses
 username/password pair to get an access token. Username is stored directly in
 a `Kind=SecretStore` or `Kind=ClusterSecretStore` resource, password is stored
 in a `Kind=Secret` referenced by the `secretRef`.
 
 ```yaml
-{% include 'vault-ldap-store.yaml' %}
+{% include 'openbao-ldap-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### UserPass authentication
 
-[UserPass authentication](https://www.vaultproject.io/docs/auth/userpass) uses
+[UserPass authentication](https://openbao.org/docs/auth/userpass/) uses
 username/password pair to get an access token. Username is stored directly in
 a `Kind=SecretStore` or `Kind=ClusterSecretStore` resource, password is stored
 in a `Kind=Secret` referenced by the `secretRef`.
 
 ```yaml
-{% include 'vault-userpass-store.yaml' %}
+{% include 'openbao-userpass-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### JWT/OIDC authentication
 
-[JWT/OIDC](https://www.vaultproject.io/docs/auth/jwt) uses either a
+[JWT/OIDC](https://openbao.org/docs/auth/jwt/) uses either a
 [JWT](https://jwt.io/) token stored in a `Kind=Secret` and referenced by the
 `secretRef` or a temporary Kubernetes service account token retrieved via the `TokenRequest` API. Optionally a `role` field can be defined in a `Kind=SecretStore`
 or `Kind=ClusterSecretStore` resource.
 
 ```yaml
-{% include 'vault-jwt-store.yaml' %}
+{% include 'openbao-jwt-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### AWS IAM authentication
 
-[AWS IAM](https://developer.hashicorp.com/vault/docs/auth/aws) uses either a
-set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
+AWS IAM uses either a set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
 `secretRef` or by getting the authentication token from an [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) enabled service account
 
 #### TLS certificates authentication
 
-[TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert) allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
+[TLS certificates auth method](https://openbao.org/docs/auth/cert/) allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
 
-To use TLS certificate authentication, create a `kubernetes.io/tls` Secret containing the client certificate and private key, then reference it in the SecretStore. The Secret keys must be `tls.crt` and `tls.key`. If your Vault server uses a custom or private CA, also configure `caProvider` or `caBundle` so that ESO can verify the server certificate.
+To use TLS certificate authentication, create a `kubernetes.io/tls` Secret containing the client certificate and private key, then reference it in the SecretStore. The Secret keys must be `tls.crt` and `tls.key`. If your OpenBao server uses a custom or private CA, also configure `caProvider` or `caBundle` so that ESO can verify the server certificate.
 
 ```yaml
-{% include 'vault-cert-store.yaml' %}
+{% include 'openbao-cert-store.yaml' %}
 ```
 
 **NOTE:** For a `ClusterSecretStore`, you must specify `namespace` in both `clientCert` and `secretRef` to indicate where the TLS Secret resides.
 
 ### Mutual authentication (mTLS)
 
-Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with `tls_require_and_verify_client_cert = true`. This configuration differs fundamentally from the [TLS certificates auth method](#tls-certificates-authentication). While the TLS certificates auth method allows the issuance of a Vault token through the `/v1/auth/cert/login` API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.
+Under specific compliance requirements, OpenBao can be set up to enforce mutual authentication from clients across all APIs by configuring the server with `tls_require_and_verify_client_cert = true`. This configuration differs fundamentally from the [TLS certificates auth method](#tls-certificates-authentication). While the TLS certificates auth method allows the issuance of an OpenBao token through the `/v1/auth/cert/login` API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the OpenBao token must still be included in the request, following any of the supported authentication methods mentioned earlier.
 
 ```yaml
-{% include 'vault-mtls-store.yaml' %}
+{% include 'openbao-mtls-store.yaml' %}
 ```
 
 ### Access Key ID & Secret Access Key
 You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
 
 ```yaml
-{% include 'vault-iam-store-static-creds.yaml' %}
+{% include 'openbao-iam-store-static-creds.yaml' %}
 ```
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef`, `secretAccessKeySecretRef` with the namespaces where the secrets reside.
@@ -413,13 +409,13 @@ You must have [Service Account Volume Projection](https://kubernetes.io/docs/tas
 The big advantage of this approach is that ESO runs without any credentials.
 
 ```yaml
-{% include 'vault-iam-store-sa.yaml' %}
+{% include 'openbao-iam-store-sa.yaml' %}
 ```
 
 Reference the service account from above in the Secret Store:
 
 ```yaml
-{% include 'vault-iam-store.yaml' %}
+{% include 'openbao-iam-store.yaml' %}
 ```
 ### Controller's Pod Identity
 
@@ -433,48 +429,48 @@ This approach supports both [IRSA (IAM Roles for Service Accounts)](https://docs
 The provider automatically detects which authentication method is available and uses the appropriate one.
 
 ```yaml
-{% include 'vault-iam-store-controller-pod-identity.yaml' %}
+{% include 'openbao-iam-store-controller-pod-identity.yaml' %}
 ```
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
 
 ```yaml
-{% include 'vault-jwt-store.yaml' %}
+{% include 'openbao-jwt-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 ### PushSecret
 
-Vault supports PushSecret features which allow you to sync a given Kubernetes secret key into a Hashicorp vault secret. To do so, it is expected that the secret key is a valid JSON object or that the `property` attribute has been specified under the `remoteRef`.
+OpenBao supports PushSecret features which allow you to sync a given Kubernetes secret key into an OpenBao secret. To do so, it is expected that the secret key is a valid JSON object or that the `property` attribute has been specified under the `remoteRef`.
 To use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets for both `data` and `metadata` of the secret. Use it with care!
 
 !!! note
-     Since Vault KV v1 API is not supported with storing secrets metadata, PushSecret will add a `custom_metadata` map to each secret in Vault that he will manage. It means pushing secret keys named `custom_metadata` is not supported with Vault KV v1.
+     Since the OpenBao KV v1 API does not support storing secrets metadata, PushSecret will add a `custom_metadata` map to each secret in OpenBao that it manages. It means pushing secret keys named `custom_metadata` is not supported with OpenBao KV v1.
 
 
 Here is an example of how to set up `PushSecret`:
 
 ```yaml
-{% include 'vault-pushsecret.yaml' %}
+{% include 'openbao-pushsecret.yaml' %}
 ```
 
-Note that in this example, we are generating two secrets in the target vault with the same structure but using different input formats.
+Note that in this example, we are generating two secrets in the target OpenBao with the same structure but using different input formats.
 
 #### Check-And-Set (CAS) for PushSecret
 
-Vault KV v2 supports Check-And-Set operations to prevent unintentional overwrites when multiple clients modify the same secret. When CAS is enabled in your Vault configuration, External Secrets Operator can be configured to include the required version parameter in write operations.
+OpenBao KV v2 supports Check-And-Set operations to prevent unintentional overwrites when multiple clients modify the same secret. When CAS is enabled in your OpenBao configuration, External Secrets Operator can be configured to include the required version parameter in write operations.
 
-To enable CAS support, add the `checkAndSet` configuration to your Vault provider:
+To enable CAS support, add the `checkAndSet` configuration to your OpenBao provider:
 
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
-  name: vault-backend
+  name: openbao-backend
 spec:
   provider:
-    vault:
-      server: "http://my.vault.server:8200"
+    openbao:
+      server: "http://my.openbao.server:8200"
       path: "secret"
       version: "v2"  # CAS only works with KV v2
       checkAndSet:
@@ -484,15 +480,13 @@ spec:
 ```
 
 !!! note "CAS Requirements"
-    - CAS is only supported with Vault KV v2 stores
+    - CAS is only supported with OpenBao KV v2 stores
     - When `checkAndSet.required` is true, all PushSecret operations will include version information
     - For new secrets, External Secrets Operator uses CAS version 0
     - For existing secrets, it automatically retrieves the current version before updating
     - CAS helps prevent conflicts when multiple External Secrets instances manage the same secrets
 
-### Vault Enterprise
-
-#### Eventual Consistency and Read-Only Standby Nodes
+### Eventual Consistency and Read-Only Standby Nodes
 
 When using OpenBao with "Horizontal Read Scalability" enabled (the default),
 any follower can handle read requests immediately after the provider has
@@ -507,20 +501,20 @@ Read Scalability" in your OpenBao cluster by [setting `disable_standby_reads =
 true`](https://openbao.org/docs/configuration/#parameters) in your OpenBao
 configuration.
 
-#### Vault Namespaces
+### OpenBao Namespaces
 
-[Vault namespaces](https://www.vaultproject.io/docs/enterprise/namespaces) are an enterprise feature that support multi-tenancy. You can specify a vault namespace using the `namespace` property when you define a SecretStore:
+[OpenBao namespaces](https://openbao.org/docs/concepts/namespaces/) are a feature that support multi-tenancy. You can specify an OpenBao namespace using the `namespace` property when you define a SecretStore:
 
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
-  name: vault-backend
+  name: openbao-backend
 spec:
   provider:
-    vault:
-      server: "http://my.vault.server:8200"
-      # See https://www.vaultproject.io/docs/enterprise/namespaces
+    openbao:
+      server: "http://my.openbao.server:8200"
+      # See https://openbao.org/docs/concepts/namespaces/
       namespace: "ns1"
       path: "secret"
       version: "v2"
@@ -528,20 +522,20 @@ spec:
         # ...
 ```
 
-##### Authenticating into a different namespace
+#### Authenticating into a different namespace
 
-In some situations your authentication backend may be in one namespace, and your secrets in another. You can authenticate into one namespace, and use that token against another, by setting `provider.vault.namespace` and `provider.vault.auth.namespace` to different values. If `provider.vault.auth.namespace` is unset but `provider.vault.namespace` is, it will default to the `provider.vault.namespace` value.
+In some situations your authentication backend may be in one namespace, and your secrets in another. You can authenticate into one namespace, and use that token against another, by setting `provider.openbao.namespace` and `provider.openbao.auth.namespace` to different values. If `provider.openbao.auth.namespace` is unset but `provider.openbao.namespace` is, it will default to the `provider.openbao.namespace` value.
 
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
-  name: vault-backend
+  name: openbao-backend
 spec:
   provider:
-    vault:
-      server: "http://my.vault.server:8200"
-      # See https://www.vaultproject.io/docs/enterprise/namespaces
+    openbao:
+      server: "http://my.openbao.server:8200"
+      # See https://openbao.org/docs/concepts/namespaces/
       namespace: "app-team"
       path: "secret"
       version: "v2"
@@ -552,21 +546,21 @@ spec:
 
 ### Token Cache Configuration
 
-The Vault provider supports token caching to improve performance by reusing Vault tokens across multiple requests instead of creating new ones each time. This is particularly useful when using authentication methods that generate short-lived tokens.
+The OpenBao provider supports token caching to improve performance by reusing OpenBao tokens across multiple requests instead of creating new ones each time. This is particularly useful when using authentication methods that generate short-lived tokens.
 
 #### Configuration Flags
 
-The following command-line flags control the Vault token cache behavior:
+The following command-line flags control the OpenBao token cache behavior:
 
-- `--enable-vault-token-cache`: Enable Vault token cache (default: `false`)
-- `--vault-token-cache-size`: Maximum size of the Vault token cache (default: `262144`)
+- `--enable-openbao-token-cache`: Enable OpenBao token cache (default: `false`)
+- `--openbao-token-cache-size`: Maximum size of the OpenBao token cache (default: `262144`)
 
 #### Usage
 
-To enable token caching, set the `--enable-vault-token-cache` flag to `true`:
+To enable token caching, set the `--enable-openbao-token-cache` flag to `true`:
 
 ```bash
-external-secrets --enable-vault-token-cache --vault-token-cache-size=262144
+external-secrets --enable-openbao-token-cache --openbao-token-cache-size=262144
 ```
 
 #### Cache Behavior
@@ -574,7 +568,7 @@ external-secrets --enable-vault-token-cache --vault-token-cache-size=262144
 - **Cache Key**: The cache uses a combination of the SecretStore name, namespace, and kind as the cache key
 - **Token Validation**: Before using a cached token, the provider validates its TTL to ensure it hasn't expired
 - **Cache Eviction**: When the cache reaches its maximum size, the least recently used tokens are evicted
-- **Token Revocation**: When tokens are evicted from the cache, they are properly revoked from Vault
+- **Token Revocation**: When tokens are evicted from the cache, they are properly revoked from OpenBao
 
 #### When to Use Token Caching
 

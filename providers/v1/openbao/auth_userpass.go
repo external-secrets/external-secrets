@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -40,7 +40,7 @@ func setUserPassAuthToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func (c *client) requestTokenWithUserPassAuth(ctx context.Context, userPassAuth *esv1.VaultUserPassAuth) error {
+func (c *client) requestTokenWithUserPassAuth(ctx context.Context, userPassAuth *esv1.OpenBaoUserPassAuth) error {
 	username := strings.TrimSpace(userPassAuth.Username)
 	password, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &userPassAuth.SecretRef)
 	if err != nil {
@@ -52,7 +52,7 @@ func (c *client) requestTokenWithUserPassAuth(ctx context.Context, userPassAuth 
 		return err
 	}
 	_, err = c.auth.Login(ctx, l)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoLogin, err)
 	if err != nil {
 		return err
 	}

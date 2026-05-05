@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -36,7 +36,7 @@ const (
 // First load all secrets from secretStore path configuration
 // Then, gets secrets from a matching name or matching custom_metadata.
 func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if c.store.Version == esv1.VaultKVStoreV1 && ref.Tags != nil {
+	if c.store.Version == esv1.OpenBaoKVStoreV1 && ref.Tags != nil {
 		return nil, errors.New(errUnsupportedKvVersion)
 	}
 	searchPath := ""
@@ -115,7 +115,7 @@ func (c *client) listSecrets(ctx context.Context, path string) ([]string, error)
 		return nil, err
 	}
 	secret, err := c.logical.ListWithContext(ctx, url)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultListSecrets, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoListSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}

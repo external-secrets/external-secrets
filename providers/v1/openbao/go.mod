@@ -1,4 +1,4 @@
-module github.com/external-secrets/external-secrets/providers/v1/vault
+module github.com/external-secrets/external-secrets/providers/v1/openbao
 
 go 1.26.2
 

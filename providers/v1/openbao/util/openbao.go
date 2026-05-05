@@ -14,39 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package vaultutil provides utility types and functions for interacting with HashiCorp Vault.
-package vaultutil
+// Package baoutil provides utility types and functions for interacting with OpenBao.
+package baoutil
 
 import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 )
 
 // JwtProviderFactory is a function type that creates a JWT credentials provider.
 type JwtProviderFactory func(ctx context.Context, name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error)
 
-// Auth defines the interface for Vault authentication.
+// Auth defines the interface for OpenBao authentication.
 type Auth interface {
-	Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
+	Login(ctx context.Context, authMethod bao.AuthMethod) (*bao.Secret, error)
 }
 
-// Token defines the interface for Vault token operations.
+// Token defines the interface for OpenBao token operations.
 type Token interface {
 	RevokeSelfWithContext(ctx context.Context, token string) error
-	LookupSelfWithContext(ctx context.Context) (*vault.Secret, error)
+	LookupSelfWithContext(ctx context.Context) (*bao.Secret, error)
 }
 
-// Logical defines the interface for Vault's logical operations.
+// Logical defines the interface for OpenBao's logical operations.
 type Logical interface {
-	ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
-	ListWithContext(ctx context.Context, path string) (*vault.Secret, error)
-	WriteWithContext(ctx context.Context, path string, data map[string]any) (*vault.Secret, error)
-	DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error)
+	ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*bao.Secret, error)
+	ListWithContext(ctx context.Context, path string) (*bao.Secret, error)
+	WriteWithContext(ctx context.Context, path string, data map[string]any) (*bao.Secret, error)
+	DeleteWithContext(ctx context.Context, path string) (*bao.Secret, error)
 }
 
-// Client defines the interface for a Vault client with methods for token management,
+// Client defines the interface for an OpenBao client with methods for token management,
 // authentication, and secret operations.
 type Client interface {
 	SetToken(v string)
@@ -60,9 +60,9 @@ type Client interface {
 	AddHeader(key, value string)
 }
 
-// VaultClient is a wrapper around the HashiCorp Vault API client that provides
+// OpenBaoClient is a wrapper around the OpenBao API client that provides
 // methods for authentication, token management, and secret operations.
-type VaultClient struct {
+type OpenBaoClient struct {
 	SetTokenFunc     func(v string)
 	TokenFunc        func() string
 	ClearTokenFunc   func()
@@ -75,46 +75,46 @@ type VaultClient struct {
 }
 
 // AddHeader adds a header to all requests using the provided key, value pair.
-func (v VaultClient) AddHeader(key, value string) {
+func (v OpenBaoClient) AddHeader(key, value string) {
 	v.AddHeaderFunc(key, value)
 }
 
-// Namespace returns the current Vault namespace.
-func (v VaultClient) Namespace() string {
+// Namespace returns the current OpenBao namespace.
+func (v OpenBaoClient) Namespace() string {
 	return v.NamespaceFunc()
 }
 
-// SetNamespace sets the Vault namespace to use for requests.
-func (v VaultClient) SetNamespace(namespace string) {
+// SetNamespace sets the OpenBao namespace to use for requests.
+func (v OpenBaoClient) SetNamespace(namespace string) {
 	v.SetNamespaceFunc(namespace)
 }
 
-// ClearToken clears the Vault token.
-func (v VaultClient) ClearToken() {
+// ClearToken clears the OpenBao token.
+func (v OpenBaoClient) ClearToken() {
 	v.ClearTokenFunc()
 }
 
-// Token returns the current Vault token.
-func (v VaultClient) Token() string {
+// Token returns the current OpenBao token.
+func (v OpenBaoClient) Token() string {
 	return v.TokenFunc()
 }
 
-// SetToken sets the Vault token to use for requests.
-func (v VaultClient) SetToken(token string) {
+// SetToken sets the OpenBao token to use for requests.
+func (v OpenBaoClient) SetToken(token string) {
 	v.SetTokenFunc(token)
 }
 
 // Auth returns the Auth interface for authentication operations.
-func (v VaultClient) Auth() Auth {
+func (v OpenBaoClient) Auth() Auth {
 	return v.AuthField
 }
 
 // AuthToken returns the Token interface for token operations.
-func (v VaultClient) AuthToken() Token {
+func (v OpenBaoClient) AuthToken() Token {
 	return v.AuthTokenField
 }
 
 // Logical returns the Logical interface for secret operations.
-func (v VaultClient) Logical() Logical {
+func (v OpenBaoClient) Logical() Logical {
 	return v.LogicalField
 }

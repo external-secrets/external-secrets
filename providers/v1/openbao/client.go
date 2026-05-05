@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -26,13 +26,13 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	baoutil "github.com/external-secrets/external-secrets/providers/v1/openbao/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -41,20 +41,20 @@ var _ esv1.SecretsClient = &client{}
 
 type client struct {
 	kube            kclient.Client
-	store           *esv1.VaultProvider
+	store           *esv1.OpenBaoProvider
 	log             logr.Logger
 	corev1          typedcorev1.CoreV1Interface
-	client          vaultutil.Client
-	auth            vaultutil.Auth
-	logical         vaultutil.Logical
-	token           vaultutil.Token
+	client          baoutil.Client
+	auth            baoutil.Auth
+	logical         baoutil.Logical
+	token           baoutil.Token
 	tokenExpiryTime *time.Time
 	namespace       string
 	storeKind       string
 }
 
-func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {
-	cfg := vault.DefaultConfig()
+func (c *client) newConfig(ctx context.Context) (*bao.Config, error) {
+	cfg := bao.DefaultConfig()
 	cfg.Address = c.store.Server
 
 	if len(c.store.CABundle) != 0 || c.store.CAProvider != nil {
@@ -71,7 +71,7 @@ func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {
 		}
 		ok := caCertPool.AppendCertsFromPEM(ca)
 		if !ok {
-			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
+			return nil, fmt.Errorf(errOpenBaoCert, errors.New("failed to parse certificates from CertPool"))
 		}
 
 		if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
@@ -87,7 +87,7 @@ func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {
 	return cfg, nil
 }
 
-func (c *client) configureClientTLS(ctx context.Context, cfg *vault.Config) error {
+func (c *client) configureClientTLS(ctx context.Context, cfg *bao.Config) error {
 	clientTLS := c.store.ClientTLS
 	if clientTLS.CertSecretRef != nil && clientTLS.KeySecretRef != nil {
 		if clientTLS.KeySecretRef.Key == "" {

@@ -76,6 +76,15 @@ const (
 	CallHCVaultDeleteSecret    = "DeleteSecret"
 	CallHCVaultListSecrets     = "ListSecrets"
 
+	ProviderOpenBao            = "OpenBao"
+	CallOpenBaoLogin           = "Login"
+	CallOpenBaoRevokeSelf      = "RevokeSelf"
+	CallOpenBaoLookupSelf      = "LookupSelf"
+	CallOpenBaoReadSecretData  = "ReadSecretData"
+	CallOpenBaoWriteSecretData = "WriteSecretData"
+	CallOpenBaoDeleteSecret    = "DeleteSecret"
+	CallOpenBaoListSecrets     = "ListSecrets"
+
 	ProviderKubernetes                         = "Kubernetes"
 	CallKubernetesGetSecret                    = "GetSecret"
 	CallKubernetesListSecrets                  = "ListSecrets"

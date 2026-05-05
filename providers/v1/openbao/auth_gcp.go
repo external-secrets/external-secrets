@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func setGcpAuthToken(ctx context.Context, v *client) (bool, error) {
 
 	// Only proceed with actual authentication if the auth client is available
 	if v.auth == nil {
-		return true, errors.New("vault auth client not initialized")
+		return true, errors.New("openbao auth client not initialized")
 	}
 
 	err := v.requestTokenWithGcpAuth(ctx, gcpAuth)
@@ -54,7 +54,7 @@ func setGcpAuthToken(ctx context.Context, v *client) (bool, error) {
 	return true, nil
 }
 
-func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
+func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.OpenBaoGCPAuth) error {
 	authMountPath := c.getGCPAuthMountPathOrDefault(gcpAuth.Path)
 	role := gcpAuth.Role
 
@@ -84,9 +84,9 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 		return err
 	}
 
-	// Authenticate with Vault using GCP auth
+	// Authenticate with OpenBao using GCP auth
 	_, err = c.auth.Login(ctx, gcpAuthClient)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoLogin, err)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 	return nil
 }
 
-func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
+func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.OpenBaoGCPAuth) error {
 	// Priority order for GCP authentication methods:
 	// 1. SecretRef: Service account key from Kubernetes secret (uses IAM auth method)
 	// 2. WorkloadIdentity: GKE Workload Identity (uses IAM auth method)
@@ -120,7 +120,7 @@ func (c *client) setupGCPAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) e
 	return c.setupDefaultGCPAuth()
 }
 
-func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
+func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.OpenBaoGCPAuth) error {
 	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
 		SecretRef: gcpAuth.SecretRef,
 	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
@@ -137,7 +137,7 @@ func (c *client) setupServiceAccountKeyAuth(ctx context.Context, gcpAuth *esv1.V
 	return c.setGCPEnvironment(token.AccessToken)
 }
 
-func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.VaultGCPAuth) error {
+func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.OpenBaoGCPAuth) error {
 	tokenSource, err := gcpsm.NewTokenSource(ctx, esv1.GCPSMAuth{
 		WorkloadIdentity: gcpAuth.WorkloadIdentity,
 	}, gcpAuth.ProjectID, c.storeKind, c.kube, c.namespace)
@@ -154,7 +154,7 @@ func (c *client) setupWorkloadIdentityAuth(ctx context.Context, gcpAuth *esv1.Va
 	return c.setGCPEnvironment(token.AccessToken)
 }
 
-func (c *client) setupServiceAccountRefAuth(_ context.Context, _ *esv1.VaultGCPAuth) error {
+func (c *client) setupServiceAccountRefAuth(_ context.Context, _ *esv1.OpenBaoGCPAuth) error {
 	// When ServiceAccountRef is specified, we use the Kubernetes service account
 	// The GCE auth method will automatically use the service account attached to the pod
 	// This leverages GKE Workload Identity or service account key mounted in the pod
@@ -177,12 +177,12 @@ func (c *client) setupDefaultGCPAuth() error {
 
 	c.log.V(1).Info("ADC validation successful", "project_id", creds.ProjectID)
 
-	// No explicit token setup needed - the Vault GCP auth method will use ADC automatically
+	// No explicit token setup needed - the OpenBao GCP auth method will use ADC automatically
 	return nil
 }
 
 func (c *client) setGCPEnvironment(accessToken string) error {
-	// The Vault GCP auth method will use this environment variable if set
+	// The OpenBao GCP auth method will use this environment variable if set
 	if err := c.setEnvVar(googleOAuthAccessTokenKey, accessToken); err != nil {
 		return fmt.Errorf("failed to set GCP environment variable: %w", err)
 	}

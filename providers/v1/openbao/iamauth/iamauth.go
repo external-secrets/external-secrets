@@ -42,12 +42,12 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
-	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	baoutil "github.com/external-secrets/external-secrets/providers/v1/openbao/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 var (
-	logger = ctrl.Log.WithName("provider").WithName("vault")
+	logger = ctrl.Log.WithName("provider").WithName("openbao")
 )
 
 const (
@@ -105,7 +105,7 @@ func DefaultJWTProvider(ctx context.Context, name, namespace, roleArn string, au
 
 	return stscreds.NewWebIdentityRoleProvider(
 		stsClient, roleArn, tokenFetcher, func(opts *stscreds.WebIdentityRoleOptions) {
-			opts.RoleSessionName = "external-secrets-provider-vault"
+			opts.RoleSessionName = "external-secrets-provider-openbao"
 		}), nil
 }
 
@@ -163,12 +163,12 @@ func (p *authTokenFetcher) GetIdentityToken() ([]byte, error) {
 // If the ClusterSecretStore defines the namespace it will take precedence.
 func CredsFromServiceAccount(
 	ctx context.Context,
-	auth esv1.VaultIamAuth,
+	auth esv1.OpenBaoIamAuth,
 	region string,
 	isClusterKind bool,
 	kube kclient.Client,
 	namespace string,
-	jwtProvider vaultutil.JwtProviderFactory,
+	jwtProvider baoutil.JwtProviderFactory,
 ) (aws.CredentialsProvider, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
@@ -211,7 +211,7 @@ func CredsFromServiceAccount(
 // credentials using aws.AssumeRoleWithWebIdentity. It will assume the role defined
 // in the ServiceAccount annotation.
 // The namespace of the controller service account is used.
-func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region string, kube kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
+func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region string, kube kclient.Client, jwtProvider baoutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
 	sa := v1.ServiceAccount{}
 	err := kube.Get(ctx, types.NamespacedName{
 		Name:      saName,
@@ -246,7 +246,7 @@ func CredsFromControllerServiceAccount(ctx context.Context, saName, ns, region s
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func CredsFromSecretRef(ctx context.Context, auth esv1.VaultIamAuth, storeKind string, kube kclient.Client, namespace string) (aws.CredentialsProvider, error) {
+func CredsFromSecretRef(ctx context.Context, auth esv1.OpenBaoIamAuth, storeKind string, kube kclient.Client, namespace string) (aws.CredentialsProvider, error) {
 	akid, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,

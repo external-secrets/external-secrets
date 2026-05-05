@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package vault
+package openbao
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -32,8 +32,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
-	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	"github.com/external-secrets/external-secrets/providers/v1/openbao/fake"
+	baoutil "github.com/external-secrets/external-secrets/providers/v1/openbao/util"
 	utilfake "github.com/external-secrets/external-secrets/runtime/util/fake"
 )
 
@@ -43,27 +43,27 @@ const (
 	tlsAuthCerts     = "tls-auth-certs"
 	tlsKey           = "tls.key"
 	tlsCrt           = "tls.crt"
-	vaultCert        = "vault-cert"
+	baoCert          = "openbao-cert"
 )
 
 var (
 	secretStorePath = "secret"
 )
 
-func makeValidSecretStoreWithVersion(v esv1.VaultKVStoreVersion) *esv1.SecretStore {
+func makeValidSecretStoreWithVersion(v esv1.OpenBaoKVStoreVersion) *esv1.SecretStore {
 	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
+			Name:      "openbao-store",
 			Namespace: "default",
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				Vault: &esv1.VaultProvider{
-					Server:  "vault.example.com",
+				OpenBao: &esv1.OpenBaoProvider{
+					Server:  "openbao.example.com",
 					Path:    &secretStorePath,
 					Version: v,
-					Auth: &esv1.VaultAuth{
-						Kubernetes: &esv1.VaultKubernetesAuth{
+					Auth: &esv1.OpenBaoAuth{
+						Kubernetes: &esv1.OpenBaoKubernetesAuth{
 							Path: "kubernetes",
 							Role: "kubernetes-auth-role",
 							ServiceAccountRef: &esmeta.ServiceAccountSelector{
@@ -78,23 +78,23 @@ func makeValidSecretStoreWithVersion(v esv1.VaultKVStoreVersion) *esv1.SecretSto
 }
 
 func makeValidSecretStore() *esv1.SecretStore {
-	return makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2)
+	return makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
 }
 
 func makeValidSecretStoreWithCerts() *esv1.SecretStore {
 	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
+			Name:      "openbao-store",
 			Namespace: "default",
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				Vault: &esv1.VaultProvider{
-					Server:  "vault.example.com",
+				OpenBao: &esv1.OpenBaoProvider{
+					Server:  "openbao.example.com",
 					Path:    &secretStorePath,
-					Version: esv1.VaultKVStoreV2,
-					Auth: &esv1.VaultAuth{
-						Cert: &esv1.VaultCertAuth{
+					Version: esv1.OpenBaoKVStoreV2,
+					Auth: &esv1.OpenBaoAuth{
+						Cert: &esv1.OpenBaoCertAuth{
 							ClientCert: esmeta.SecretKeySelector{
 								Name: tlsAuthCerts,
 								Key:  tlsCrt,
@@ -114,7 +114,7 @@ func makeValidSecretStoreWithCerts() *esv1.SecretStore {
 func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1.SecretStore {
 	store := makeSecretStore()
 	caProvider := &esv1.CAProvider{
-		Name: vaultCert,
+		Name: baoCert,
 		Key:  "cert",
 	}
 
@@ -124,7 +124,7 @@ func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1.SecretStore {
 		caProvider.Type = "ConfigMap"
 	}
 
-	store.Spec.Provider.Vault.CAProvider = caProvider
+	store.Spec.Provider.OpenBao.CAProvider = caProvider
 	return store
 }
 
@@ -134,17 +134,17 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1.ClusterSecretStore {
 			Kind: "ClusterSecretStore",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
+			Name:      "openbao-store",
 			Namespace: "default",
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				Vault: &esv1.VaultProvider{
-					Server:  "vault.example.com",
+				OpenBao: &esv1.OpenBaoProvider{
+					Server:  "openbao.example.com",
 					Path:    &secretStorePath,
 					Version: "v2",
-					Auth: &esv1.VaultAuth{
-						Kubernetes: &esv1.VaultKubernetesAuth{
+					Auth: &esv1.OpenBaoAuth{
+						Kubernetes: &esv1.OpenBaoKubernetesAuth{
 							Path: "kubernetes",
 							Role: "kubernetes-auth-role",
 							ServiceAccountRef: &esmeta.ServiceAccountSelector{
@@ -153,7 +153,7 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1.ClusterSecretStore {
 						},
 					},
 					CAProvider: &esv1.CAProvider{
-						Name: vaultCert,
+						Name: baoCert,
 						Key:  "cert",
 						Type: "Secret",
 					},
@@ -166,31 +166,31 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1.ClusterSecretStore {
 func makeValidSecretStoreWithIamAuthSecret() *esv1.SecretStore {
 	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
+			Name:      "openbao-store",
 			Namespace: "default",
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				Vault: &esv1.VaultProvider{
-					Server:  "https://vault.example.com:8200",
+				OpenBao: &esv1.OpenBaoProvider{
+					Server:  "https://openbao.example.com:8200",
 					Path:    &secretStorePath,
-					Version: esv1.VaultKVStoreV2,
-					Auth: &esv1.VaultAuth{
-						Iam: &esv1.VaultIamAuth{
+					Version: esv1.OpenBaoKVStoreV2,
+					Auth: &esv1.OpenBaoAuth{
+						Iam: &esv1.OpenBaoIamAuth{
 							Path:   "aws",
 							Region: "us-east-1",
-							Role:   "vault-role",
-							SecretRef: &esv1.VaultAwsAuthSecretRef{
+							Role:   "openbao-role",
+							SecretRef: &esv1.OpenBaoAwsAuthSecretRef{
 								AccessKeyID: esmeta.SecretKeySelector{
-									Name: "vault-iam-creds-secret",
+									Name: "openbao-iam-creds-secret",
 									Key:  "access-key",
 								},
 								SecretAccessKey: esmeta.SecretKeySelector{
-									Name: "vault-iam-creds-secret",
+									Name: "openbao-iam-creds-secret",
 									Key:  "secret-access-key",
 								},
 								SessionToken: &esmeta.SecretKeySelector{
-									Name: "vault-iam-creds-secret",
+									Name: "openbao-iam-creds-secret",
 									Key:  "secret-session-token",
 								},
 							},
@@ -205,20 +205,20 @@ func makeValidSecretStoreWithIamAuthSecret() *esv1.SecretStore {
 func makeValidSecretStoreWithIamAuthControllerPod() *esv1.SecretStore {
 	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
+			Name:      "openbao-store",
 			Namespace: "default",
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				Vault: &esv1.VaultProvider{
-					Server:  "https://vault.example.com:8200",
+				OpenBao: &esv1.OpenBaoProvider{
+					Server:  "https://openbao.example.com:8200",
 					Path:    &secretStorePath,
-					Version: esv1.VaultKVStoreV2,
-					Auth: &esv1.VaultAuth{
-						Iam: &esv1.VaultIamAuth{
+					Version: esv1.OpenBaoKVStoreV2,
+					Auth: &esv1.OpenBaoAuth{
+						Iam: &esv1.OpenBaoIamAuth{
 							Path:   "aws",
 							Region: "us-east-1",
-							Role:   "vault-role",
+							Role:   "openbao-role",
 							// No JWTAuth or SecretRef - will use controller pod identity
 						},
 					},
@@ -257,7 +257,7 @@ func makeClusterSecretStore(tweaks ...secretStoreTweakFn) *esv1.ClusterSecretSto
 }
 
 type args struct {
-	newClientFunc func(c *vault.Config) (vaultutil.Client, error)
+	newClientFunc func(c *bao.Config) (baoutil.Client, error)
 	store         esv1.GenericStore
 	kube          kclient.Client
 	corev1        typedcorev1.CoreV1Interface
@@ -274,7 +274,7 @@ type testCase struct {
 	want   want
 }
 
-func TestNewVault(t *testing.T) {
+func TestNewOpenBao(t *testing.T) {
 	errBoom := errors.New("boom")
 	secretClientKey := []byte(`-----BEGIN PRIVATE KEY-----
 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
@@ -285,13 +285,13 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 	secretData := []byte(secretDataString)
 
 	cases := map[string]testCase{
-		"InvalidVaultStore": {
-			reason: "Should return error if given an invalid vault store.",
+		"InvalidOpenBaoStore": {
+			reason: "Should return error if given an invalid OpenBao store.",
 			args: args{
 				store: &esv1.SecretStore{},
 			},
 			want: want{
-				err: errors.New(errVaultStore),
+				err: errors.New(errOpenBaoStore),
 			},
 		},
 		"InvalidRetrySettings": {
@@ -309,7 +309,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 		},
 		"ValidRetrySettings": {
-			reason: "Should return a Vault provider with custom retry settings",
+			reason: "Should return an OpenBao provider with custom retry settings",
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
@@ -326,22 +326,22 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: nil,
 			},
 		},
-		"AddVaultStoreCertsError": {
+		"AddOpenBaoStoreCertsError": {
 			reason: "Should return error if given an invalid CA certificate.",
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.CABundle = []byte("badcertdata")
+					s.Spec.Provider.OpenBao.CABundle = []byte("badcertdata")
 				}),
 			},
 			want: want{
 				err: fmt.Errorf("failed to decode ca bundle: %w", errors.New("failed to parse the new certificate, not valid pem data")),
 			},
 		},
-		"VaultAuthFormatError": {
+		"OpenBaoAuthFormatError": {
 			reason: "Should return error if no valid authentication method is given.",
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.Auth = &esv1.VaultAuth{}
+					s.Spec.Provider.OpenBao.Auth = &esv1.OpenBaoAuth{}
 				}),
 			},
 			want: want{
@@ -366,20 +366,20 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			args: args{
 				ns: "default",
 				store: makeSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = nil
-					s.Spec.Provider.Vault.Auth.Kubernetes.SecretRef = &esmeta.SecretKeySelector{
-						Name: "vault-secret",
+					s.Spec.Provider.OpenBao.Auth.Kubernetes.ServiceAccountRef = nil
+					s.Spec.Provider.OpenBao.Auth.Kubernetes.SecretRef = &esmeta.SecretKeySelector{
+						Name: "openbao-secret",
 						Key:  "key",
 					}
 				}),
 				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: fmt.Errorf(`cannot get Kubernetes secret "vault-secret" from namespace "default": %w`, errors.New(`secrets "vault-secret" not found`)),
+				err: fmt.Errorf(`cannot get Kubernetes secret "openbao-secret" from namespace "default": %w`, errors.New(`secrets "openbao-secret" not found`)),
 			},
 		},
-		"SuccessfulVaultStoreWithCertAuth": {
-			reason: "Should return a Vault provider successfully",
+		"SuccessfulOpenBaoStoreWithCertAuth": {
+			reason: "Should return an OpenBao provider successfully",
 			args: args{
 				store: makeValidSecretStoreWithCerts(),
 				ns:    "default",
@@ -399,14 +399,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: nil,
 			},
 		},
-		"SuccessfulVaultStoreWithK8sCertSecret": {
-			reason: "Should return a Vault provider with the cert from k8s",
+		"SuccessfulOpenBaoStoreWithK8sCertSecret": {
+			reason: "Should return an OpenBao provider with the cert from k8s",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(true),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      vaultCert,
+						Name:      baoCert,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
@@ -439,7 +439,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      vaultCert,
+						Name:      baoCert,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{},
@@ -450,14 +450,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: fmt.Errorf("failed to get cert from secret: %w", fmt.Errorf("failed to resolve secret key ref: %w", errors.New("cannot find secret data for key: \"cert\""))),
 			},
 		},
-		"SuccessfulVaultStoreWithIamAuthSecret": {
-			reason: "Should return a Vault provider successfully",
+		"SuccessfulOpenBaoStoreWithIamAuthSecret": {
+			reason: "Should return an OpenBao provider successfully",
 			args: args{
 				store: makeValidSecretStoreWithIamAuthSecret(),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-iam-creds-secret",
+						Name:      "openbao-iam-creds-secret",
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
@@ -473,14 +473,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: nil,
 			},
 		},
-		"SuccessfulVaultStoreWithK8sCertConfigMap": {
-			reason: "Should return a Vault prodvider with the cert from k8s",
+		"SuccessfulOpenBaoStoreWithK8sCertConfigMap": {
+			reason: "Should return an OpenBao provider with the cert from k8s",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(false),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      vaultCert,
+						Name:      baoCert,
 						Namespace: "default",
 					},
 					Data: map[string]string{
@@ -511,7 +511,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					},
 				}, &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      vaultCert,
+						Name:      baoCert,
 						Namespace: "default",
 					},
 					Data: map[string]string{},
@@ -519,7 +519,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
-				err: fmt.Errorf("failed to get cert from configmap: %w", errors.New("failed to get caProvider configMap vault-cert -> cert")),
+				err: fmt.Errorf("failed to get cert from configmap: %w", errors.New("failed to get caProvider configMap openbao-cert -> cert")),
 			},
 		},
 		"GetCertificateFormatError": {
@@ -568,7 +568,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return error if client key is in wrong format.",
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.ClientTLS = esv1.VaultClientTLS{
+					s.Spec.Provider.OpenBao.ClientTLS = esv1.OpenBaoClientTLS{
 						CertSecretRef: &esmeta.SecretKeySelector{
 							Name: tlsAuthCerts,
 						},
@@ -595,11 +595,11 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: fmt.Errorf(errClientTLSAuth, "tls: failed to find any PEM data in key input"),
 			},
 		},
-		"SuccessfulVaultStoreValidClientTls": {
-			reason: "Should return a Vault provider with the cert from k8s",
+		"SuccessfulOpenBaoStoreValidClientTls": {
+			reason: "Should return an OpenBao provider with the cert from k8s",
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.ClientTLS = esv1.VaultClientTLS{
+					s.Spec.Provider.OpenBao.ClientTLS = esv1.OpenBaoClientTLS{
 						CertSecretRef: &esmeta.SecretKeySelector{
 							Name: tlsAuthCerts,
 						},
@@ -626,20 +626,20 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: nil,
 			},
 		},
-		"SuccessfulVaultStoreWithSecretRef": {
-			reason: "Should return a Vault provider with secret ref auth",
+		"SuccessfulOpenBaoStoreWithSecretRef": {
+			reason: "Should return an OpenBao provider with secret ref auth",
 			args: args{
 				store: makeClusterSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.Auth.Kubernetes = nil
-					s.Spec.Provider.Vault.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
-						Name:      "vault-token",
+					s.Spec.Provider.OpenBao.Auth.Kubernetes = nil
+					s.Spec.Provider.OpenBao.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
+						Name:      "openbao-token",
 						Namespace: new("default"),
 						Key:       "token",
 					}
 				}),
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-token",
+						Name:      "openbao-token",
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
@@ -651,18 +651,18 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 			want: want{},
 		},
-		"SuccessfulVaultStoreWithApproleRef": {
-			reason: "Should return a Vault provider with approle auth",
+		"SuccessfulOpenBaoStoreWithApproleRef": {
+			reason: "Should return an OpenBao provider with approle auth",
 			args: args{
 				store: makeSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.Auth.Kubernetes = nil
-					s.Spec.Provider.Vault.Auth.AppRole = &esv1.VaultAppRole{
+					s.Spec.Provider.OpenBao.Auth.Kubernetes = nil
+					s.Spec.Provider.OpenBao.Auth.AppRole = &esv1.OpenBaoAppRole{
 						SecretRef: esmeta.SecretKeySelector{
-							Name: "vault-secret-id",
+							Name: "openbao-secret-id",
 							Key:  "secret-id",
 						},
 						RoleRef: &esmeta.SecretKeySelector{
-							Name: "vault-secret-id",
+							Name: "openbao-secret-id",
 							Key:  "approle",
 						},
 					}
@@ -670,7 +670,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns: "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-secret-id",
+						Name:      "openbao-secret-id",
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
@@ -683,12 +683,12 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 			want: want{},
 		},
-		"SuccessfulVaultStoreWithSecretRefAndReferentSpec": {
-			reason: "Should return a Vault provider with secret ref auth",
+		"SuccessfulOpenBaoStoreWithSecretRefAndReferentSpec": {
+			reason: "Should return an OpenBao provider with secret ref auth",
 			args: args{
 				store: makeClusterSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
-						Name: "vault-token",
+					s.Spec.Provider.OpenBao.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
+						Name: "openbao-token",
 						Key:  "token",
 					}
 				}),
@@ -697,15 +697,15 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 			want: want{},
 		},
-		"SuccessfulVaultStoreWithJwtAuthAndReferentSpec": {
-			reason: "Should return a Vault provider with jwt auth",
+		"SuccessfulOpenBaoStoreWithJwtAuthAndReferentSpec": {
+			reason: "Should return an OpenBao provider with jwt auth",
 			args: args{
 				store: makeClusterSecretStore(func(s *esv1.SecretStore) {
-					s.Spec.Provider.Vault.Auth.Kubernetes = nil
-					s.Spec.Provider.Vault.Auth.Jwt = &esv1.VaultJwtAuth{
+					s.Spec.Provider.OpenBao.Auth.Kubernetes = nil
+					s.Spec.Provider.OpenBao.Auth.Jwt = &esv1.OpenBaoJwtAuth{
 						Role: "test-role",
 						SecretRef: &esmeta.SecretKeySelector{
-							Name: "vault-token",
+							Name: "openbao-token",
 						},
 					}
 				}),
@@ -731,17 +731,17 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			vaultTest(t, name, tc)
+			baoTest(t, name, tc)
 		})
 	}
 }
 
-func vaultTest(t *testing.T, _ string, tc testCase) {
+func baoTest(t *testing.T, _ string, tc testCase) {
 	prov := &Provider{
-		NewVaultClient: tc.args.newClientFunc,
+		NewOpenBaoClient: tc.args.newClientFunc,
 	}
 	if tc.args.newClientFunc == nil {
-		prov.NewVaultClient = NewVaultClient
+		prov.NewOpenBaoClient = NewOpenBaoClient
 	}
 	_, err := prov.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
 
@@ -797,26 +797,26 @@ func TestCache(t *testing.T) {
 	initCache(defaultCacheSize)
 
 	prov := &Provider{
-		NewVaultClient: fake.ClientWithLoginMock,
+		NewOpenBaoClient: fake.ClientWithLoginMock,
 	}
 
 	namespace := "default"
 
 	store := makeClusterSecretStore(func(s *esv1.SecretStore) {
-		s.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = &esmeta.ServiceAccountSelector{
-			Name:      "vault-sa",
+		s.Spec.Provider.OpenBao.Auth.Kubernetes.ServiceAccountRef = &esmeta.ServiceAccountSelector{
+			Name:      "openbao-sa",
 			Namespace: &namespace, // fixed namespace!
 		}
 	})
 
 	// first request creates a new client:
-	c1, err := getVaultClient(prov, store, nil, namespace)
+	c1, err := getOpenBaoClient(prov, store, nil, namespace)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// seconds request should retrieve cached client instance:
-	c2, err := getVaultClient(prov, store, nil, namespace)
+	c2, err := getOpenBaoClient(prov, store, nil, namespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -827,7 +827,7 @@ func TestCache(t *testing.T) {
 
 	// third request should retrieve cached client instance even when using a different namespace,
 	// because the ClusterSecretStore references a ServiceAccount of a specific namespace:
-	c3, err := getVaultClient(prov, store, nil, "another-namespace")
+	c3, err := getOpenBaoClient(prov, store, nil, "another-namespace")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -842,24 +842,24 @@ func TestCacheWithReferentSpec(t *testing.T) {
 	initCache(defaultCacheSize)
 
 	prov := &Provider{
-		NewVaultClient: fake.ClientWithLoginMock,
+		NewOpenBaoClient: fake.ClientWithLoginMock,
 	}
 
 	store := makeClusterSecretStore(func(s *esv1.SecretStore) {
-		s.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = &esmeta.ServiceAccountSelector{
-			Name: "vault-sa",
+		s.Spec.Provider.OpenBao.Auth.Kubernetes.ServiceAccountRef = &esmeta.ServiceAccountSelector{
+			Name: "openbao-sa",
 			// No fixed namespace!
 		}
 	})
 
 	// first request creates a new client:
-	c1, err := getVaultClient(prov, store, nil, "default")
+	c1, err := getOpenBaoClient(prov, store, nil, "default")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// seconds request should retrieve cached client instance:
-	c2, err := getVaultClient(prov, store, nil, "default")
+	c2, err := getOpenBaoClient(prov, store, nil, "default")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -870,7 +870,7 @@ func TestCacheWithReferentSpec(t *testing.T) {
 
 	// third request should retrieve a new client instance,
 	// because the ServiceAccount namespace depends on the namespace of the referent:
-	c3, err := getVaultClient(prov, store, nil, "another-namespace")
+	c3, err := getOpenBaoClient(prov, store, nil, "another-namespace")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -888,7 +888,7 @@ func TestValidateTokenExpiry(t *testing.T) {
 	t.Run("skip checkToken when token expiry is in the future", func(t *testing.T) {
 		futureExpiry := time.Now().Add(1 * time.Hour)
 		c := &client{
-			store:           makeValidSecretStore().Spec.Provider.Vault,
+			store:           makeValidSecretStore().Spec.Provider.OpenBao,
 			storeKind:       esv1.SecretStoreKind,
 			tokenExpiryTime: &futureExpiry,
 		}
@@ -904,11 +904,11 @@ func TestValidateTokenExpiry(t *testing.T) {
 	t.Run("call checkToken when token expiry is in the past", func(t *testing.T) {
 		pastExpiry := time.Now().Add(-1 * time.Hour)
 		c := &client{
-			store:           makeValidSecretStore().Spec.Provider.Vault,
+			store:           makeValidSecretStore().Spec.Provider.OpenBao,
 			storeKind:       esv1.SecretStoreKind,
 			tokenExpiryTime: &pastExpiry,
 			token: fake.Token{
-				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+				LookupSelfWithContextFn: func(ctx context.Context) (*bao.Secret, error) {
 					return nil, errors.New("token expired")
 				},
 			},
@@ -924,11 +924,11 @@ func TestValidateTokenExpiry(t *testing.T) {
 
 	t.Run("call checkToken when token expiry is nil", func(t *testing.T) {
 		c := &client{
-			store:           makeValidSecretStore().Spec.Provider.Vault,
+			store:           makeValidSecretStore().Spec.Provider.OpenBao,
 			storeKind:       esv1.SecretStoreKind,
 			tokenExpiryTime: nil,
 			token: fake.Token{
-				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+				LookupSelfWithContextFn: func(ctx context.Context) (*bao.Secret, error) {
 					return nil, errors.New("lookup failed")
 				},
 			},

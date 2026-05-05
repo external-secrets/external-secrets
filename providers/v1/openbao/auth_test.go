@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -24,23 +24,23 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
+	"github.com/external-secrets/external-secrets/providers/v1/openbao/fake"
 )
 
-// Test Vault Namespace logic.
+// Test OpenBao Namespace logic.
 func TestSetAuthNamespace(t *testing.T) {
 	store := makeValidSecretStore()
 
 	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-secret",
+			Name:      "openbao-secret",
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
@@ -48,9 +48,9 @@ func TestSetAuthNamespace(t *testing.T) {
 		},
 	}).Build()
 
-	store.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = nil
-	store.Spec.Provider.Vault.Auth.Kubernetes.SecretRef = &esmeta.SecretKeySelector{
-		Name:      "vault-secret",
+	store.Spec.Provider.OpenBao.Auth.Kubernetes.ServiceAccountRef = nil
+	store.Spec.Provider.OpenBao.Auth.Kubernetes.SecretRef = &esmeta.SecretKeySelector{
+		Name:      "openbao-secret",
 		Namespace: new("default"),
 		Key:       "key",
 	}
@@ -84,7 +84,7 @@ func TestSetAuthNamespace(t *testing.T) {
 			args: args{
 				store: func(store *esv1.SecretStore) *esv1.SecretStore {
 					s := store.DeepCopy()
-					s.Spec.Provider.Vault.Namespace = new(teamNS)
+					s.Spec.Provider.OpenBao.Namespace = new(teamNS)
 					return s
 				}(store),
 				expected: result{Before: teamNS, During: teamNS, After: teamNS},
@@ -95,7 +95,7 @@ func TestSetAuthNamespace(t *testing.T) {
 			args: args{
 				store: func(store *esv1.SecretStore) *esv1.SecretStore {
 					s := store.DeepCopy()
-					s.Spec.Provider.Vault.Auth.Namespace = new(adminNS)
+					s.Spec.Provider.OpenBao.Auth.Namespace = new(adminNS)
 					return s
 				}(store),
 				expected: result{Before: "", During: adminNS, After: ""},
@@ -106,8 +106,8 @@ func TestSetAuthNamespace(t *testing.T) {
 			args: args{
 				store: func(store *esv1.SecretStore) *esv1.SecretStore {
 					s := store.DeepCopy()
-					s.Spec.Provider.Vault.Namespace = new(adminNS)
-					s.Spec.Provider.Vault.Auth.Namespace = new(adminNS)
+					s.Spec.Provider.OpenBao.Namespace = new(adminNS)
+					s.Spec.Provider.OpenBao.Auth.Namespace = new(adminNS)
 					return s
 				}(store),
 				expected: result{Before: adminNS, During: adminNS, After: adminNS},
@@ -118,8 +118,8 @@ func TestSetAuthNamespace(t *testing.T) {
 			args: args{
 				store: func(store *esv1.SecretStore) *esv1.SecretStore {
 					s := store.DeepCopy()
-					s.Spec.Provider.Vault.Namespace = new(teamNS)
-					s.Spec.Provider.Vault.Auth.Namespace = new(adminNS)
+					s.Spec.Provider.OpenBao.Namespace = new(teamNS)
+					s.Spec.Provider.OpenBao.Auth.Namespace = new(adminNS)
 					return s
 				}(store),
 				expected: result{Before: teamNS, During: adminNS, After: teamNS},
@@ -130,22 +130,22 @@ func TestSetAuthNamespace(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			prov := &Provider{
-				NewVaultClient: fake.ClientWithLoginMock,
+				NewOpenBaoClient: fake.ClientWithLoginMock,
 			}
 
-			c, cfg, err := prov.prepareConfig(context.Background(), kube, nil, tc.args.store.Spec.Provider.Vault, nil, "default", store.GetObjectKind().GroupVersionKind().Kind)
+			c, cfg, err := prov.prepareConfig(context.Background(), kube, nil, tc.args.store.Spec.Provider.OpenBao, nil, "default", store.GetObjectKind().GroupVersionKind().Kind)
 			if err != nil {
 				t.Error(err.Error())
 			}
 
-			client, err := getVaultClient(prov, tc.args.store, cfg, "default")
+			client, err := getOpenBaoClient(prov, tc.args.store, cfg, "default")
 			if err != nil {
-				t.Errorf("vault.useAuthNamespace: failed to create client: %s", err.Error())
+				t.Errorf("openbao.useAuthNamespace: failed to create client: %s", err.Error())
 			}
 
-			_, err = prov.initClient(context.Background(), c, client, cfg, tc.args.store.Spec.Provider.Vault)
+			_, err = prov.initClient(context.Background(), c, client, cfg, tc.args.store.Spec.Provider.OpenBao)
 			if err != nil {
-				t.Errorf("vault.useAuthNamespace: failed to init client: %s", err.Error())
+				t.Errorf("openbao.useAuthNamespace: failed to init client: %s", err.Error())
 			}
 
 			c.client = client
@@ -164,7 +164,7 @@ func TestSetAuthNamespace(t *testing.T) {
 			actual.After = c.client.Namespace()
 
 			if diff := cmp.Diff(tc.args.expected, actual, cmpopts.EquateComparable()); diff != "" {
-				t.Errorf("\n%s\nvault.useAuthNamepsace(...): -want namespace, +got namespace:\n%s", tc.reason, diff)
+				t.Errorf("\n%s\nopenbao.useAuthNamepsace(...): -want namespace, +got namespace:\n%s", tc.reason, diff)
 			}
 		})
 	}
@@ -173,12 +173,12 @@ func TestSetAuthNamespace(t *testing.T) {
 func TestCheckTokenErrors(t *testing.T) {
 	cases := map[string]struct {
 		message string
-		secret  *vault.Secret
+		secret  *bao.Secret
 		err     error
 	}{
 		"SuccessWithNoData": {
 			message: "should not cache if token lookup returned no data",
-			secret:  &vault.Secret{},
+			secret:  &bao.Secret{},
 			err:     nil,
 		},
 		"Error": {
@@ -186,7 +186,7 @@ func TestCheckTokenErrors(t *testing.T) {
 			secret:  nil,
 			err:     errors.New(""),
 		},
-		// This happens when a token is expired and the Vault server returns:
+		// This happens when a token is expired and the OpenBao server returns:
 		// {"errors":["permission denied"]}
 		"NoDataNorError": {
 			message: "should not cache if token lookup returned no data nor error",
@@ -198,7 +198,7 @@ func TestCheckTokenErrors(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			token := fake.Token{
-				LookupSelfWithContextFn: func(_ context.Context) (*vault.Secret, error) {
+				LookupSelfWithContextFn: func(_ context.Context) (*bao.Secret, error) {
 					return tc.secret, tc.err
 				},
 			}
@@ -214,12 +214,12 @@ func TestCheckTokenErrors(t *testing.T) {
 func TestCheckTokenTtl(t *testing.T) {
 	cases := map[string]struct {
 		message string
-		secret  *vault.Secret
+		secret  *bao.Secret
 		cache   bool
 	}{
 		"LongTTLExpirable": {
 			message: "should cache if expirable token expires far into the future",
-			secret: &vault.Secret{
+			secret: &bao.Secret{
 				Data: map[string]any{
 					"expire_time": "2024-01-01T00:00:00.000000000Z",
 					"ttl":         json.Number("3600"),
@@ -230,7 +230,7 @@ func TestCheckTokenTtl(t *testing.T) {
 		},
 		"ShortTTLExpirable": {
 			message: "should not cache if expirable token is about to expire",
-			secret: &vault.Secret{
+			secret: &bao.Secret{
 				Data: map[string]any{
 					"expire_time": "2024-01-01T00:00:00.000000000Z",
 					"ttl":         json.Number("5"),
@@ -241,7 +241,7 @@ func TestCheckTokenTtl(t *testing.T) {
 		},
 		"ZeroTTLExpirable": {
 			message: "should not cache if expirable token has TTL of 0",
-			secret: &vault.Secret{
+			secret: &bao.Secret{
 				Data: map[string]any{
 					"expire_time": "2024-01-01T00:00:00.000000000Z",
 					"ttl":         json.Number("0"),
@@ -252,7 +252,7 @@ func TestCheckTokenTtl(t *testing.T) {
 		},
 		"NonExpirable": {
 			message: "should cache if token is non-expirable",
-			secret: &vault.Secret{
+			secret: &bao.Secret{
 				Data: map[string]any{
 					"expire_time": nil,
 					"ttl":         json.Number("0"),
@@ -266,7 +266,7 @@ func TestCheckTokenTtl(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			token := fake.Token{
-				LookupSelfWithContextFn: func(_ context.Context) (*vault.Secret, error) {
+				LookupSelfWithContextFn: func(_ context.Context) (*bao.Secret, error) {
 					return tc.secret, nil
 				},
 			}
@@ -283,13 +283,13 @@ func TestCheckTokenTtl(t *testing.T) {
 func TestGCPAuthDetection(t *testing.T) {
 	tests := []struct {
 		name            string
-		gcpAuth         *esv1.VaultGCPAuth
+		gcpAuth         *esv1.OpenBaoGCPAuth
 		expectedHasAuth bool
 		expectError     bool
 	}{
 		{
 			name: "GCP auth configured",
-			gcpAuth: &esv1.VaultGCPAuth{
+			gcpAuth: &esv1.OpenBaoGCPAuth{
 				Role: "test-role",
 				Path: "gcp",
 			},
@@ -308,8 +308,8 @@ func TestGCPAuthDetection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a mock client
 			c := &client{
-				store: &esv1.VaultProvider{
-					Auth: &esv1.VaultAuth{
+				store: &esv1.OpenBaoProvider{
+					Auth: &esv1.OpenBaoAuth{
 						GCP: tt.gcpAuth,
 					},
 				},

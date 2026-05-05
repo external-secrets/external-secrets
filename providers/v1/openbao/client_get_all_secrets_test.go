@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package vault
+package openbao
 
 import (
 	"context"
@@ -22,12 +22,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
-	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	"github.com/external-secrets/external-secrets/providers/v1/openbao/fake"
+	baoutil "github.com/external-secrets/external-secrets/providers/v1/openbao/util"
 )
 
 func TestGetAllSecrets(t *testing.T) {
@@ -141,9 +141,9 @@ func TestGetAllSecrets(t *testing.T) {
 		},
 	}
 	type args struct {
-		store    *esv1.VaultProvider
+		store    *esv1.OpenBaoProvider
 		kube     kclient.Client
-		vLogical vaultutil.Logical
+		vLogical baoutil.Logical
 		ns       string
 		data     esv1.ExternalSecretFind
 	}
@@ -161,7 +161,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByNameKv2": {
 			reason: "should map multiple secrets matching name for kv2",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(kv2secret),
@@ -183,7 +183,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByNameKv1": {
 			reason: "should map multiple secrets matching name for kv1",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV1).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextKvv1Fn(kv1secret),
 					ReadWithDataWithContextFn: newReadtWithContextKvv1Fn(kv1secret),
@@ -205,7 +205,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByTagKv2": {
 			reason: "should map multiple secrets matching tags",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(kv2secret),
@@ -227,7 +227,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByTagKv1": {
 			reason: "find by tag should not work if using kv1 store",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV1).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextKvv1Fn(kv1secret),
 					ReadWithDataWithContextFn: newReadtWithContextKvv1Fn(kv1secret),
@@ -245,7 +245,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPathKv2WithTags": {
 			reason: "should filter secrets based on path for kv2 with tags",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(kv2secret),
@@ -268,7 +268,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPathKv2WithoutTags": {
 			reason: "should filter secrets based on path for kv2 without tags",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(kv2secret),
@@ -288,9 +288,9 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPathReturnsNotFound": {
 			reason: "should return a not found error if there are no more secrets on the path",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
-					ListWithContextFn: func(_ context.Context, _ string) (*vault.Secret, error) {
+					ListWithContextFn: func(_ context.Context, _ string) (*bao.Secret, error) {
 						return nil, nil
 					},
 					ReadWithDataWithContextFn: newReadtWithContextFn(map[string]any{}),
@@ -306,7 +306,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPathKv1": {
 			reason: "should filter secrets based on path for kv1",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV1).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextKvv1Fn(kv1secret),
 					ReadWithDataWithContextFn: newReadtWithContextKvv1Fn(kv1secret),
@@ -326,10 +326,10 @@ func TestGetAllSecrets(t *testing.T) {
 		"MetadataNotFound": {
 			reason: "metadata secret not found",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2).Spec.Provider.OpenBao,
 				vLogical: &fake.Logical{
 					ListWithContextFn: newListWithContextFn(kv2secret),
-					ReadWithDataWithContextFn: func(_ context.Context, _ string, _ map[string][]string) (*vault.Secret, error) {
+					ReadWithDataWithContextFn: func(_ context.Context, _ string, _ map[string][]string) (*bao.Secret, error) {
 						return nil, nil
 					},
 				},
@@ -355,17 +355,17 @@ func TestGetAllSecrets(t *testing.T) {
 			}
 			val, err := vStore.GetAllSecrets(context.Background(), tc.args.data)
 			if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
-				t.Errorf("\n%s\nvault.GetAllSecrets(...): -want error, +got error:\n%s", tc.reason, diff)
+				t.Errorf("\n%s\nopenbao.GetAllSecrets(...): -want error, +got error:\n%s", tc.reason, diff)
 			}
 			if diff := cmp.Diff(tc.want.val, val); diff != "" {
-				t.Errorf("\n%s\nvault.GetAllSecrets(...): -want val, +got val:\n%s", tc.reason, diff)
+				t.Errorf("\n%s\nopenbao.GetAllSecrets(...): -want val, +got val:\n%s", tc.reason, diff)
 			}
 		})
 	}
 }
 
-func newListWithContextFn(secrets map[string]any) func(ctx context.Context, path string) (*vault.Secret, error) {
-	return func(_ context.Context, path string) (*vault.Secret, error) {
+func newListWithContextFn(secrets map[string]any) func(ctx context.Context, path string) (*bao.Secret, error) {
+	return func(_ context.Context, path string) (*bao.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/metadata/") // kvv2
 		if path == "" {
 			path = "default"
@@ -377,7 +377,7 @@ func newListWithContextFn(secrets map[string]any) func(ctx context.Context, path
 		}
 		meta := data.(map[string]any)
 		ans := meta["metadata"].(map[string]any)
-		secret := &vault.Secret{
+		secret := &bao.Secret{
 			Data: map[string]any{
 				"keys": ans["keys"],
 			},
@@ -386,8 +386,8 @@ func newListWithContextFn(secrets map[string]any) func(ctx context.Context, path
 	}
 }
 
-func newListWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, path string) (*vault.Secret, error) {
-	return func(_ context.Context, path string) (*vault.Secret, error) {
+func newListWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, path string) (*bao.Secret, error) {
+	return func(_ context.Context, path string) (*bao.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/")
 
 		keys := make([]any, 0, len(secrets))
@@ -401,7 +401,7 @@ func newListWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, 
 			return nil, errors.New("secret not found")
 		}
 
-		secret := &vault.Secret{
+		secret := &bao.Secret{
 			Data: map[string]any{
 				"keys": keys,
 			},
@@ -410,8 +410,8 @@ func newListWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, 
 	}
 }
 
-func newReadtWithContextFn(secrets map[string]any) func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
-	return func(_ context.Context, path string, _ map[string][]string) (*vault.Secret, error) {
+func newReadtWithContextFn(secrets map[string]any) func(ctx context.Context, path string, data map[string][]string) (*bao.Secret, error) {
+	return func(_ context.Context, path string, _ map[string][]string) (*bao.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/data/")
 		path = strings.TrimPrefix(path, "secret/metadata/")
 
@@ -425,15 +425,15 @@ func newReadtWithContextFn(secrets map[string]any) func(ctx context.Context, pat
 			"data":            meta["data"],
 			"custom_metadata": metadata["custom_metadata"],
 		}
-		secret := &vault.Secret{
+		secret := &bao.Secret{
 			Data: content,
 		}
 		return secret, nil
 	}
 }
 
-func newReadtWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
-	return func(_ context.Context, path string, _ map[string][]string) (*vault.Secret, error) {
+func newReadtWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context, path string, data map[string][]string) (*bao.Secret, error) {
+	return func(_ context.Context, path string, _ map[string][]string) (*bao.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/")
 
 		data, ok := secrets[path]
@@ -442,7 +442,7 @@ func newReadtWithContextKvv1Fn(secrets map[string]any) func(ctx context.Context,
 		}
 
 		dataAsMap := data.(map[string]any)
-		secret := &vault.Secret{
+		secret := &bao.Secret{
 			Data: dataAsMap,
 		}
 		return secret, nil

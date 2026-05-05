@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"strings"
 
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
@@ -32,11 +32,11 @@ import (
 )
 
 const (
-	errVaultRequest          = "error from Vault request: %w"
+	errOpenBaoRequest        = "error from OpenBao request: %w"
 	errUnusupportedTransport = "unsupported http client transport: %T"
 )
 
-func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, error) {
+func setCertAuthToken(ctx context.Context, v *client, cfg *bao.Config) (bool, error) {
 	certAuth := v.store.Auth.Cert
 	if certAuth != nil {
 		err := v.requestTokenWithCertAuth(ctx, certAuth, cfg)
@@ -48,7 +48,7 @@ func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, 
 	return false, nil
 }
 
-func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.VaultCertAuth, cfg *vault.Config) error {
+func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.OpenBaoCertAuth, cfg *bao.Config) error {
 	clientKey, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &certAuth.SecretRef)
 	if err != nil {
 		return err
@@ -79,21 +79,21 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 	}
 
 	var loginData map[string]any
-	if certAuth.VaultRole != "" {
+	if certAuth.OpenBaoRole != "" {
 		loginData = map[string]any{
-			"name": certAuth.VaultRole,
+			"name": certAuth.OpenBaoRole,
 		}
 	}
 
 	url := strings.Join([]string{"auth", path, "login"}, "/")
-	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	baoResult, err := c.logical.WriteWithContext(ctx, url, loginData)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoLogin, err)
 	if err != nil {
-		return fmt.Errorf(errVaultRequest, err)
+		return fmt.Errorf(errOpenBaoRequest, err)
 	}
-	token, err := vaultResult.TokenID()
+	token, err := baoResult.TokenID()
 	if err != nil {
-		return fmt.Errorf(errVaultToken, err)
+		return fmt.Errorf(errOpenBaoToken, err)
 	}
 	c.client.SetToken(token)
 	return nil

@@ -24,28 +24,28 @@ import (
 	"strings"
 	"sync"
 
-	vault "github.com/hashicorp/vault/api"
+	bao "github.com/hashicorp/vault/api"
 
-	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+	baoutil "github.com/external-secrets/external-secrets/providers/v1/openbao/util"
 )
 
-// LoginFn is a function type that represents logging in to Vault using a specific authentication method.
-type LoginFn func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
+// LoginFn is a function type that represents logging in to OpenBao using a specific authentication method.
+type LoginFn func(ctx context.Context, authMethod bao.AuthMethod) (*bao.Secret, error)
 
-// Auth is a mock implementation of the Vault authentication interface for testing purposes.
+// Auth is a mock implementation of the OpenBao authentication interface for testing purposes.
 type Auth struct {
 	LoginFn LoginFn
 }
 
-// Login logs in to Vault using the specified authentication method.
-func (f Auth) Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error) {
+// Login logs in to OpenBao using the specified authentication method.
+func (f Auth) Login(ctx context.Context, authMethod bao.AuthMethod) (*bao.Secret, error) {
 	return f.LoginFn(ctx, authMethod)
 }
 
-type ReadWithDataWithContextFn func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
-type ListWithContextFn func(ctx context.Context, path string) (*vault.Secret, error)
-type WriteWithContextFn func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error)
-type DeleteWithContextFn func(ctx context.Context, path string) (*vault.Secret, error)
+type ReadWithDataWithContextFn func(ctx context.Context, path string, data map[string][]string) (*bao.Secret, error)
+type ListWithContextFn func(ctx context.Context, path string) (*bao.Secret, error)
+type WriteWithContextFn func(ctx context.Context, path string, data map[string]any) (*bao.Secret, error)
+type DeleteWithContextFn func(ctx context.Context, path string) (*bao.Secret, error)
 type Logical struct {
 	ReadWithDataWithContextFn ReadWithDataWithContextFn
 	ListWithContextFn         ListWithContextFn
@@ -53,53 +53,53 @@ type Logical struct {
 	DeleteWithContextFn       DeleteWithContextFn
 }
 
-func (f Logical) DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error) {
+func (f Logical) DeleteWithContext(ctx context.Context, path string) (*bao.Secret, error) {
 	return f.DeleteWithContextFn(ctx, path)
 }
 func NewDeleteWithContextFn(secret map[string]any, err error) DeleteWithContextFn {
-	return func(ctx context.Context, path string) (*vault.Secret, error) {
-		vault := &vault.Secret{
+	return func(ctx context.Context, path string) (*bao.Secret, error) {
+		bao := &bao.Secret{
 			Data: secret,
 		}
-		return vault, err
+		return bao, err
 	}
 }
 
-func buildDataResponse(secret map[string]any, err error) (*vault.Secret, error) {
+func buildDataResponse(secret map[string]any, err error) (*bao.Secret, error) {
 	if secret == nil {
 		return nil, err
 	}
-	return &vault.Secret{Data: secret}, err
+	return &bao.Secret{Data: secret}, err
 }
 
-func buildMetadataResponse(secret map[string]any, err error) (*vault.Secret, error) {
+func buildMetadataResponse(secret map[string]any, err error) (*bao.Secret, error) {
 	if secret == nil {
 		return nil, err
 	}
 	// If the secret already has the expected metadata structure, return as-is
 	if _, hasCustomMetadata := secret["custom_metadata"]; hasCustomMetadata {
-		return &vault.Secret{Data: secret}, err
+		return &bao.Secret{Data: secret}, err
 	}
 	// Otherwise, wrap in custom_metadata for backwards compatibility
 	metadata := make(map[string]any)
 	metadata["custom_metadata"] = secret
-	return &vault.Secret{Data: metadata}, err
+	return &bao.Secret{Data: metadata}, err
 }
 
 func NewReadWithContextFn(secret map[string]any, err error) ReadWithDataWithContextFn {
-	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+	return func(ctx context.Context, path string, data map[string][]string) (*bao.Secret, error) {
 		return buildDataResponse(secret, err)
 	}
 }
 
 func NewReadMetadataWithContextFn(secret map[string]any, err error) ReadWithDataWithContextFn {
-	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+	return func(ctx context.Context, path string, data map[string][]string) (*bao.Secret, error) {
 		return buildMetadataResponse(secret, err)
 	}
 }
 
 func NewReadWithDataAndMetadataFn(dataSecret, metadataSecret map[string]any, dataErr, metadataErr error) ReadWithDataWithContextFn {
-	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+	return func(ctx context.Context, path string, data map[string][]string) (*bao.Secret, error) {
 		// Check if this is a metadata path request
 		if strings.Contains(path, "/metadata/") {
 			return buildMetadataResponse(metadataSecret, metadataErr)
@@ -111,57 +111,57 @@ func NewReadWithDataAndMetadataFn(dataSecret, metadataSecret map[string]any, dat
 }
 
 func NewWriteWithContextFn(secret map[string]any, err error) WriteWithContextFn {
-	return func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
-		return &vault.Secret{Data: secret}, err
+	return func(ctx context.Context, path string, data map[string]any) (*bao.Secret, error) {
+		return &bao.Secret{Data: secret}, err
 	}
 }
 
 func ExpectWriteWithContextValue(expected map[string]any) WriteWithContextFn {
-	return func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
+	return func(ctx context.Context, path string, data map[string]any) (*bao.Secret, error) {
 		if strings.Contains(path, "metadata") {
-			return &vault.Secret{Data: data}, nil
+			return &bao.Secret{Data: data}, nil
 		}
 		if !reflect.DeepEqual(expected, data) {
 			return nil, fmt.Errorf("expected: %v, got: %v", expected, data)
 		}
-		return &vault.Secret{Data: data}, nil
+		return &bao.Secret{Data: data}, nil
 	}
 }
 
 func ExpectWriteWithContextNoCall() WriteWithContextFn {
-	return func(_ context.Context, path string, data map[string]any) (*vault.Secret, error) {
+	return func(_ context.Context, path string, data map[string]any) (*bao.Secret, error) {
 		return nil, errors.New("fail")
 	}
 }
 
 func ExpectDeleteWithContextNoCall() DeleteWithContextFn {
-	return func(ctx context.Context, path string) (*vault.Secret, error) {
+	return func(ctx context.Context, path string) (*bao.Secret, error) {
 		return nil, errors.New("fail")
 	}
 }
 
-// ReadWithDataWithContext reads the secret at the specified path in Vault with additional data.
-func (f Logical) ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+// ReadWithDataWithContext reads the secret at the specified path in OpenBao with additional data.
+func (f Logical) ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*bao.Secret, error) {
 	return f.ReadWithDataWithContextFn(ctx, path, data)
 }
 
-// ListWithContext lists the secrets at the specified path in Vault.
-func (f Logical) ListWithContext(ctx context.Context, path string) (*vault.Secret, error) {
+// ListWithContext lists the secrets at the specified path in OpenBao.
+func (f Logical) ListWithContext(ctx context.Context, path string) (*bao.Secret, error) {
 	return f.ListWithContextFn(ctx, path)
 }
 
-// WriteWithContext writes data to the specified path in Vault.
-func (f Logical) WriteWithContext(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
+// WriteWithContext writes data to the specified path in OpenBao.
+func (f Logical) WriteWithContext(ctx context.Context, path string, data map[string]any) (*bao.Secret, error) {
 	return f.WriteWithContextFn(ctx, path, data)
 }
 
-// RevokeSelfWithContextFn is a function type that represents revoking the Vault token associated with the current client.
+// RevokeSelfWithContextFn is a function type that represents revoking the OpenBao token associated with the current client.
 type RevokeSelfWithContextFn func(ctx context.Context, token string) error
 
-// LookupSelfWithContextFn is a function type that represents looking up the Vault token associated with the current client.
-type LookupSelfWithContextFn func(ctx context.Context) (*vault.Secret, error)
+// LookupSelfWithContextFn is a function type that represents looking up the OpenBao token associated with the current client.
+type LookupSelfWithContextFn func(ctx context.Context) (*bao.Secret, error)
 
-// Token is a mock implementation of the Vault token interface for testing purposes.
+// Token is a mock implementation of the OpenBao token interface for testing purposes.
 type Token struct {
 	RevokeSelfWithContextFn RevokeSelfWithContextFn
 	LookupSelfWithContextFn LookupSelfWithContextFn
@@ -173,38 +173,38 @@ func (f Token) RevokeSelfWithContext(ctx context.Context, token string) error {
 }
 
 // LookupSelfWithContext looks up the token associated with the current client.
-func (f Token) LookupSelfWithContext(ctx context.Context) (*vault.Secret, error) {
+func (f Token) LookupSelfWithContext(ctx context.Context) (*bao.Secret, error) {
 	return f.LookupSelfWithContextFn(ctx)
 }
 
-// MockSetTokenFn is a function type that represents setting the Vault token.
+// MockSetTokenFn is a function type that represents setting the OpenBao token.
 type MockSetTokenFn func(v string)
 
-// MockTokenFn is a function type that represents getting the Vault token.
+// MockTokenFn is a function type that represents getting the OpenBao token.
 type MockTokenFn func() string
 
-// MockClearTokenFn is a function type that represents clearing the Vault token.
+// MockClearTokenFn is a function type that represents clearing the OpenBao token.
 type MockClearTokenFn func()
 
-// MockNamespaceFn is a function type that represents getting the Vault namespace.
+// MockNamespaceFn is a function type that represents getting the OpenBao namespace.
 type MockNamespaceFn func() string
 
-// MockSetNamespaceFn is a function type that represents setting the Vault namespace.
+// MockSetNamespaceFn is a function type that represents setting the OpenBao namespace.
 type MockSetNamespaceFn func(namespace string)
 
-// MockAddHeaderFn is a function type that represents adding a header to the Vault client requests.
+// MockAddHeaderFn is a function type that represents adding a header to the OpenBao client requests.
 type MockAddHeaderFn func(key, value string)
 
-// VaultListResponse is a struct to represent the response from a Vault list operation.
-type VaultListResponse struct {
-	Metadata *vault.Response
-	Data     *vault.Response
+// OpenBaoListResponse is a struct to represent the response from an OpenBao list operation.
+type OpenBaoListResponse struct {
+	Metadata *bao.Response
+	Data     *bao.Response
 }
 
 // NewAuthTokenFn returns a MockAuthToken that always returns a nil secret and nil error.
 func NewAuthTokenFn() Token {
-	return Token{nil, func(context.Context) (*vault.Secret, error) {
-		return &(vault.Secret{}), nil
+	return Token{nil, func(context.Context) (*bao.Secret, error) {
+		return &(bao.Secret{}), nil
 	}}
 }
 
@@ -224,8 +224,8 @@ func NewTokenFn(v string) MockTokenFn {
 	}
 }
 
-// VaultClient is a mock implementation of the Vault client interface for testing purposes.
-type VaultClient struct {
+// OpenBaoClient is a mock implementation of the OpenBao client interface for testing purposes.
+type OpenBaoClient struct {
 	MockLogical      Logical
 	MockAuth         Auth
 	MockAuthToken    Token
@@ -241,20 +241,20 @@ type VaultClient struct {
 }
 
 // Logical returns the mock Logical.
-func (c *VaultClient) Logical() Logical {
+func (c *OpenBaoClient) Logical() Logical {
 	return c.MockLogical
 }
 
-// NewVaultLogical returns a new vault Logical instance.
-func NewVaultLogical() Logical {
+// newOpenBaoLogical returns a new OpenBao Logical instance.
+func newOpenBaoLogical() Logical {
 	logical := Logical{
-		ReadWithDataWithContextFn: func(context.Context, string, map[string][]string) (*vault.Secret, error) {
+		ReadWithDataWithContextFn: func(context.Context, string, map[string][]string) (*bao.Secret, error) {
 			return nil, nil
 		},
-		ListWithContextFn: func(context.Context, string) (*vault.Secret, error) {
+		ListWithContextFn: func(context.Context, string) (*bao.Secret, error) {
 			return nil, nil
 		},
-		WriteWithContextFn: func(context.Context, string, map[string]any) (*vault.Secret, error) {
+		WriteWithContextFn: func(context.Context, string, map[string]any) (*bao.Secret, error) {
 			return nil, nil
 		},
 	}
@@ -262,14 +262,14 @@ func NewVaultLogical() Logical {
 }
 
 // Auth returns the mock authentication.
-func (c *VaultClient) Auth() Auth {
+func (c *OpenBaoClient) Auth() Auth {
 	return c.MockAuth
 }
 
-// NewVaultAuth returns a mock authentication Auth.
-func NewVaultAuth() Auth {
+// newOpenBaoAuth returns a mock authentication Auth.
+func newOpenBaoAuth() Auth {
 	auth := Auth{
-		LoginFn: func(context.Context, vault.AuthMethod) (*vault.Secret, error) {
+		LoginFn: func(context.Context, bao.AuthMethod) (*bao.Secret, error) {
 			return nil, nil
 		},
 	}
@@ -277,71 +277,71 @@ func NewVaultAuth() Auth {
 }
 
 // AuthToken returns the mock authentication token interface.
-func (c *VaultClient) AuthToken() Token {
+func (c *OpenBaoClient) AuthToken() Token {
 	return c.MockAuthToken
 }
 
 // SetToken sets the authentication token.
-func (c *VaultClient) SetToken(v string) {
+func (c *OpenBaoClient) SetToken(v string) {
 	c.MockSetToken(v)
 }
 
 // Token returns the current authentication token.
-func (c *VaultClient) Token() string {
+func (c *OpenBaoClient) Token() string {
 	return c.MockToken()
 }
 
 // ClearToken clears the current authentication token.
-func (c *VaultClient) ClearToken() {
+func (c *OpenBaoClient) ClearToken() {
 	c.MockClearToken()
 }
 
-// Namespace returns the current Vault namespace.
-func (c *VaultClient) Namespace() string {
+// Namespace returns the current OpenBao namespace.
+func (c *OpenBaoClient) Namespace() string {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	ns := c.namespace
 	return ns
 }
 
-// SetNamespace sets the Vault namespace.
-func (c *VaultClient) SetNamespace(namespace string) {
+// SetNamespace sets the OpenBao namespace.
+func (c *OpenBaoClient) SetNamespace(namespace string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.namespace = namespace
 }
 
-// AddHeader adds a header to the Vault client requests.
-func (c *VaultClient) AddHeader(key, value string) {
+// AddHeader adds a header to the OpenBao client requests.
+func (c *OpenBaoClient) AddHeader(key, value string) {
 	c.MockAddHeader(key, value)
 }
 
 // ClientWithLoginMock returns a client with mocked login functionality.
-func ClientWithLoginMock(config *vault.Config) (vaultutil.Client, error) {
+func ClientWithLoginMock(config *bao.Config) (baoutil.Client, error) {
 	return clientWithLoginMockOptions(config)
 }
 
 // ModifiableClientWithLoginMock returns a factory function that creates clients with customizable mock behavior.
-func ModifiableClientWithLoginMock(opts ...func(cl *VaultClient)) func(config *vault.Config) (vaultutil.Client, error) {
-	return func(config *vault.Config) (vaultutil.Client, error) {
+func ModifiableClientWithLoginMock(opts ...func(cl *OpenBaoClient)) func(config *bao.Config) (baoutil.Client, error) {
+	return func(config *bao.Config) (baoutil.Client, error) {
 		return clientWithLoginMockOptions(config, opts...)
 	}
 }
 
-func clientWithLoginMockOptions(_ *vault.Config, opts ...func(cl *VaultClient)) (vaultutil.Client, error) {
-	cl := &VaultClient{
+func clientWithLoginMockOptions(_ *bao.Config, opts ...func(cl *OpenBaoClient)) (baoutil.Client, error) {
+	cl := &OpenBaoClient{
 		MockAuthToken: NewAuthTokenFn(),
 		MockSetToken:  NewSetTokenFn(),
 		MockToken:     NewTokenFn(""),
-		MockAuth:      NewVaultAuth(),
-		MockLogical:   NewVaultLogical(),
+		MockAuth:      newOpenBaoAuth(),
+		MockLogical:   newOpenBaoLogical(),
 	}
 
 	for _, opt := range opts {
 		opt(cl)
 	}
 
-	return &vaultutil.VaultClient{
+	return &baoutil.OpenBaoClient{
 		SetTokenFunc:     cl.SetToken,
 		TokenFunc:        cl.Token,
 		ClearTokenFunc:   cl.ClearToken,

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -29,11 +29,11 @@ import (
 )
 
 const (
-	errInvalidCredentials     = "invalid vault credentials: %w"
+	errInvalidCredentials     = "invalid OpenBao credentials: %w"
 	errInvalidStore           = "invalid store"
 	errInvalidStoreSpec       = "invalid store spec"
 	errInvalidStoreProv       = "invalid store provider"
-	errInvalidVaultProv       = "invalid vault provider"
+	errInvalidOpenBaoProv     = "invalid OpenBao provider"
 	errInvalidAppRoleRef      = "invalid Auth.AppRole.RoleRef: %w"
 	errInvalidAppRoleSec      = "invalid Auth.AppRole.SecretRef: %w"
 	errInvalidClientCert      = "invalid Auth.Cert.ClientCert: %w"
@@ -48,10 +48,10 @@ const (
 	errInvalidClientTLSCert   = "invalid ClientTLS.ClientCert: %w"
 	errInvalidClientTLSSecret = "invalid ClientTLS.SecretRef: %w"
 	errInvalidClientTLS       = "when provided, both ClientTLS.ClientCert and ClientTLS.SecretRef should be provided"
-	errCASNotSupportedInKVv1  = "checkAndSet is not supported with Vault KV version v1"
+	errCASNotSupportedInKVv1  = "checkAndSet is not supported with OpenBao KV version v1"
 )
 
-// ValidateStore validates the Vault provider configuration in the SecretStore.
+// ValidateStore validates the OpenBao provider configuration in the SecretStore.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errInvalidStore)
@@ -63,21 +63,21 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if spc.Provider == nil {
 		return nil, errors.New(errInvalidStoreProv)
 	}
-	vaultProvider := spc.Provider.Vault
-	if vaultProvider == nil {
-		return nil, errors.New(errInvalidVaultProv)
+	baoProvider := spc.Provider.OpenBao
+	if baoProvider == nil {
+		return nil, errors.New(errInvalidOpenBaoProv)
 	}
-	if vaultProvider.Auth != nil {
-		if vaultProvider.Auth.AppRole != nil {
+	if baoProvider.Auth != nil {
+		if baoProvider.Auth.AppRole != nil {
 			// check SecretRef for valid configuration
-			if err := esutils.ValidateReferentSecretSelector(store, vaultProvider.Auth.AppRole.SecretRef); err != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, baoProvider.Auth.AppRole.SecretRef); err != nil {
 				return nil, fmt.Errorf(errInvalidAppRoleSec, err)
 			}
 
 			// prefer .auth.appRole.roleId, fallback to .auth.appRole.roleRef, give up after that.
-			if vaultProvider.Auth.AppRole.RoleID == "" { // prevents further RoleID tests if .auth.appRole.roleId is given
-				if vaultProvider.Auth.AppRole.RoleRef != nil { // check RoleRef for valid configuration
-					if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.AppRole.RoleRef); err != nil {
+			if baoProvider.Auth.AppRole.RoleID == "" { // prevents further RoleID tests if .auth.appRole.roleId is given
+				if baoProvider.Auth.AppRole.RoleRef != nil { // check RoleRef for valid configuration
+					if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.Auth.AppRole.RoleRef); err != nil {
 						return nil, fmt.Errorf(errInvalidAppRoleRef, err)
 					}
 				} else { // we ran out of ways to get RoleID. return an appropriate error
@@ -85,92 +85,92 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 				}
 			}
 		}
-		if vaultProvider.Auth.Cert != nil {
-			if err := esutils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Cert.ClientCert); err != nil {
+		if baoProvider.Auth.Cert != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, baoProvider.Auth.Cert.ClientCert); err != nil {
 				return nil, fmt.Errorf(errInvalidClientCert, err)
 			}
-			if err := esutils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Cert.SecretRef); err != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, baoProvider.Auth.Cert.SecretRef); err != nil {
 				return nil, fmt.Errorf(errInvalidCertSec, err)
 			}
 		}
-		if vaultProvider.Auth.Jwt != nil {
-			if vaultProvider.Auth.Jwt.SecretRef != nil {
-				if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Jwt.SecretRef); err != nil {
+		if baoProvider.Auth.Jwt != nil {
+			if baoProvider.Auth.Jwt.SecretRef != nil {
+				if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.Auth.Jwt.SecretRef); err != nil {
 					return nil, fmt.Errorf(errInvalidJwtSec, err)
 				}
-			} else if vaultProvider.Auth.Jwt.ServiceAccountRef != nil {
-				if err := esutils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Jwt.ServiceAccountRef); err != nil {
+			} else if baoProvider.Auth.Jwt.ServiceAccountRef != nil {
+				if err := esutils.ValidateReferentServiceAccountSelector(store, *baoProvider.Auth.Jwt.ServiceAccountRef); err != nil {
 					return nil, fmt.Errorf(errInvalidJwtK8sSA, err)
 				}
 			} else {
 				return nil, errors.New(errJwtNoTokenSource)
 			}
 		}
-		if vaultProvider.Auth.Kubernetes != nil {
-			if vaultProvider.Auth.Kubernetes.ServiceAccountRef != nil {
-				if err := esutils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Kubernetes.ServiceAccountRef); err != nil {
+		if baoProvider.Auth.Kubernetes != nil {
+			if baoProvider.Auth.Kubernetes.ServiceAccountRef != nil {
+				if err := esutils.ValidateReferentServiceAccountSelector(store, *baoProvider.Auth.Kubernetes.ServiceAccountRef); err != nil {
 					return nil, fmt.Errorf(errInvalidKubeSA, err)
 				}
 			}
-			if vaultProvider.Auth.Kubernetes.SecretRef != nil {
-				if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Kubernetes.SecretRef); err != nil {
+			if baoProvider.Auth.Kubernetes.SecretRef != nil {
+				if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.Auth.Kubernetes.SecretRef); err != nil {
 					return nil, fmt.Errorf(errInvalidKubeSec, err)
 				}
 			}
 		}
-		if vaultProvider.Auth.Ldap != nil {
-			if err := esutils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Ldap.SecretRef); err != nil {
+		if baoProvider.Auth.Ldap != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, baoProvider.Auth.Ldap.SecretRef); err != nil {
 				return nil, fmt.Errorf(errInvalidLdapSec, err)
 			}
 		}
-		if vaultProvider.Auth.UserPass != nil {
-			if err := esutils.ValidateReferentSecretSelector(store, vaultProvider.Auth.UserPass.SecretRef); err != nil {
+		if baoProvider.Auth.UserPass != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, baoProvider.Auth.UserPass.SecretRef); err != nil {
 				return nil, fmt.Errorf(errInvalidUserPassSec, err)
 			}
 		}
-		if vaultProvider.Auth.TokenSecretRef != nil {
-			if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.TokenSecretRef); err != nil {
+		if baoProvider.Auth.TokenSecretRef != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.Auth.TokenSecretRef); err != nil {
 				return nil, fmt.Errorf(errInvalidTokenRef, err)
 			}
 		}
-		if vaultProvider.Auth.Iam != nil {
-			if vaultProvider.Auth.Iam.JWTAuth != nil {
-				if vaultProvider.Auth.Iam.JWTAuth.ServiceAccountRef != nil {
-					if err := esutils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Iam.JWTAuth.ServiceAccountRef); err != nil {
+		if baoProvider.Auth.Iam != nil {
+			if baoProvider.Auth.Iam.JWTAuth != nil {
+				if baoProvider.Auth.Iam.JWTAuth.ServiceAccountRef != nil {
+					if err := esutils.ValidateReferentServiceAccountSelector(store, *baoProvider.Auth.Iam.JWTAuth.ServiceAccountRef); err != nil {
 						return nil, fmt.Errorf(errInvalidTokenRef, err)
 					}
 				}
 			}
 
-			if vaultProvider.Auth.Iam.SecretRef != nil {
-				if err := esutils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Iam.SecretRef.AccessKeyID); err != nil {
+			if baoProvider.Auth.Iam.SecretRef != nil {
+				if err := esutils.ValidateReferentSecretSelector(store, baoProvider.Auth.Iam.SecretRef.AccessKeyID); err != nil {
 					return nil, fmt.Errorf(errInvalidTokenRef, err)
 				}
-				if err := esutils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Iam.SecretRef.SecretAccessKey); err != nil {
+				if err := esutils.ValidateReferentSecretSelector(store, baoProvider.Auth.Iam.SecretRef.SecretAccessKey); err != nil {
 					return nil, fmt.Errorf(errInvalidTokenRef, err)
 				}
-				if vaultProvider.Auth.Iam.SecretRef.SessionToken != nil {
-					if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Iam.SecretRef.SessionToken); err != nil {
+				if baoProvider.Auth.Iam.SecretRef.SessionToken != nil {
+					if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.Auth.Iam.SecretRef.SessionToken); err != nil {
 						return nil, fmt.Errorf(errInvalidTokenRef, err)
 					}
 				}
 			}
 		}
 	}
-	if vaultProvider.ClientTLS.CertSecretRef != nil && vaultProvider.ClientTLS.KeySecretRef != nil {
-		if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.ClientTLS.CertSecretRef); err != nil {
+	if baoProvider.ClientTLS.CertSecretRef != nil && baoProvider.ClientTLS.KeySecretRef != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.ClientTLS.CertSecretRef); err != nil {
 			return nil, fmt.Errorf(errInvalidClientTLSCert, err)
 		}
-		if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.ClientTLS.KeySecretRef); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.ClientTLS.KeySecretRef); err != nil {
 			return nil, fmt.Errorf(errInvalidClientTLSSecret, err)
 		}
-	} else if vaultProvider.ClientTLS.CertSecretRef != nil || vaultProvider.ClientTLS.KeySecretRef != nil {
+	} else if baoProvider.ClientTLS.CertSecretRef != nil || baoProvider.ClientTLS.KeySecretRef != nil {
 		return nil, errors.New(errInvalidClientTLS)
 	}
 
 	// Validate CAS configuration
-	if vaultProvider.CheckAndSet != nil && vaultProvider.CheckAndSet.Required {
-		if vaultProvider.Version == esv1.VaultKVStoreV1 {
+	if baoProvider.CheckAndSet != nil && baoProvider.CheckAndSet.Required {
+		if baoProvider.Version == esv1.OpenBaoKVStoreV1 {
 			return nil, errors.New(errCASNotSupportedInKVv1)
 		}
 	}

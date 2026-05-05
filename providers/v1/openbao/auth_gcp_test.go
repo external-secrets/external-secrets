@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -163,13 +163,13 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		gcpAuth     *esv1.VaultGCPAuth
+		gcpAuth     *esv1.OpenBaoGCPAuth
 		expectError bool
 		description string
 	}{
 		{
 			name: "SecretRef has priority",
-			gcpAuth: &esv1.VaultGCPAuth{
+			gcpAuth: &esv1.OpenBaoGCPAuth{
 				Role:      "test-role",
 				ProjectID: "test-project",
 				SecretRef: &esv1.GCPSMAuthSecretRef{
@@ -189,7 +189,7 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 		},
 		{
 			name: "WorkloadIdentity second priority",
-			gcpAuth: &esv1.VaultGCPAuth{
+			gcpAuth: &esv1.OpenBaoGCPAuth{
 				Role:      "test-role",
 				ProjectID: "test-project",
 				WorkloadIdentity: &esv1.GCPWorkloadIdentity{
@@ -206,7 +206,7 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 		},
 		{
 			name: "ServiceAccountRef third priority",
-			gcpAuth: &esv1.VaultGCPAuth{
+			gcpAuth: &esv1.OpenBaoGCPAuth{
 				Role: "test-role",
 				ServiceAccountRef: &esmeta.ServiceAccountSelector{
 					Name: "test-sa",
@@ -217,7 +217,7 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 		},
 		{
 			name: "Default auth last resort",
-			gcpAuth: &esv1.VaultGCPAuth{
+			gcpAuth: &esv1.OpenBaoGCPAuth{
 				Role: "test-role",
 			},
 			expectError: false, // Test handles both ADC available and unavailable scenarios
@@ -255,7 +255,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupClient func() *client
-		gcpAuth     *esv1.VaultGCPAuth
+		gcpAuth     *esv1.OpenBaoGCPAuth
 		expectError bool
 		description string
 	}{
@@ -280,7 +280,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 					storeKind: "SecretStore",
 				}
 			},
-			gcpAuth: &esv1.VaultGCPAuth{
+			gcpAuth: &esv1.OpenBaoGCPAuth{
 				Role:      "test-role",
 				ProjectID: "test-project",
 				SecretRef: &esv1.GCPSMAuthSecretRef{
@@ -303,7 +303,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 					storeKind: "SecretStore",
 				}
 			},
-			gcpAuth: &esv1.VaultGCPAuth{
+			gcpAuth: &esv1.OpenBaoGCPAuth{
 				Role:      "test-role",
 				ProjectID: "test-project",
 				WorkloadIdentity: &esv1.GCPWorkloadIdentity{
@@ -325,7 +325,7 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 					storeKind: "SecretStore",
 				}
 			},
-			gcpAuth: &esv1.VaultGCPAuth{
+			gcpAuth: &esv1.OpenBaoGCPAuth{
 				Role: "test-role",
 			},
 			expectError: false, // Test handles both ADC available and unavailable scenarios

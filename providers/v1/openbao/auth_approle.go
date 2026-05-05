@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -45,9 +45,9 @@ func setAppRoleToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func (c *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1.VaultAppRole) error {
+func (c *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1.OpenBaoAppRole) error {
 	var err error
-	var roleID string // becomes the RoleID used to authenticate with HashiCorp Vault
+	var roleID string // becomes the RoleID used to authenticate with OpenBao
 
 	// prefer .auth.appRole.roleId, fallback to .auth.appRole.roleRef, give up after that.
 	if appRole.RoleID != "" { // use roleId from CRD, if configured
@@ -71,7 +71,7 @@ func (c *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1.V
 		return err
 	}
 	_, err = c.auth.Login(ctx, appRoleClient)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoLogin, err)
 	if err != nil {
 		return err
 	}

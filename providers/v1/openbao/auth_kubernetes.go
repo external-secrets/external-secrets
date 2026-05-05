@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vault
+package openbao
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func setKubernetesAuthToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesAuth *esv1.VaultKubernetesAuth) error {
+func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesAuth *esv1.OpenBaoKubernetesAuth) error {
 	jwtString, err := getJwtString(ctx, c, kubernetesAuth)
 	if err != nil {
 		return err
@@ -60,14 +60,14 @@ func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 		return err
 	}
 	_, err = c.auth.Login(ctx, k)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(constants.ProviderOpenBao, constants.CallOpenBaoLogin, err)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1.VaultKubernetesAuth) (string, error) {
+func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1.OpenBaoKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
 		return createServiceAccountToken(ctx, v.corev1, v.storeKind, v.namespace, *kubernetesAuth.ServiceAccountRef)
 	} else if kubernetesAuth.SecretRef != nil {
@@ -85,7 +85,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1.VaultKube
 
 	// Kubernetes authentication is specified, but without a referenced
 	// Kubernetes secret. We check if the file path for in-cluster service account
-	// exists and attempt to use the token for Vault Kubernetes auth.
+	// exists and attempt to use the token for OpenBao Kubernetes auth.
 	if _, err := os.Stat(serviceAccTokenPath); err != nil {
 		return "", fmt.Errorf(errServiceAccount, err)
 	}
