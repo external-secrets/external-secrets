@@ -78,6 +78,9 @@ type AuthorizationProtocol struct {
 	// +optional
 	NTLM *NTLMProtocol `json:"ntlm,omitempty"`
 
+	// KerberosProtocol configures the store to use Kerberos for auth
+	// +optional
+	Kerberos *KerberosProtocol `json:"kerberos,omitempty"`
 	// Define other protocols here
 }
 
@@ -85,6 +88,14 @@ type AuthorizationProtocol struct {
 type NTLMProtocol struct {
 	UserName esmeta.SecretKeySelector `json:"usernameSecret"`
 	Password esmeta.SecretKeySelector `json:"passwordSecret"`
+}
+
+// KerberosProtocol contains the Kerberos-specific configuration.
+type KerberosProtocol struct {
+	UserName esmeta.SecretKeySelector `json:"usernameSecret"`
+	Password esmeta.SecretKeySelector `json:"passwordSecret"`
+	// +optional
+	Krb5Conf string `json:"krb5Conf,omitempty"`
 }
 
 // Result defines how to process and extract data from webhook responses.
