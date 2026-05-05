@@ -76,6 +76,10 @@ type AuthorizationProtocol struct {
 	// +optional
 	NTLM *NTLMProtocol `json:"ntlm"`
 
+	// KerberosProtocol configures the store to use Kerberos for auth
+	// +optional
+	Kerberos *KerberosProtocol `json:"kerberos,omitempty"`
+
 	// Define other protocols here
 }
 
@@ -83,6 +87,14 @@ type AuthorizationProtocol struct {
 type NTLMProtocol struct {
 	UserName esmeta.SecretKeySelector `json:"usernameSecret"`
 	Password esmeta.SecretKeySelector `json:"passwordSecret"`
+}
+
+// KerberosProtocol contains the Kerberos-specific configuration.
+type KerberosProtocol struct {
+	UserName esmeta.SecretKeySelector `json:"usernameSecret"`
+	Password esmeta.SecretKeySelector `json:"passwordSecret"`
+	// +optional
+	Krb5Conf string `json:"krb5Conf,omitempty"`
 }
 
 // WebhookCAProviderType defines the type of provider for certificate authority in webhook connections.
