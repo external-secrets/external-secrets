@@ -9030,8 +9030,8 @@ PulumiProviderSecretRef
 </td>
 <td>
 <em>(Optional)</em>
-<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
-Deprecated: Use auth.accessToken instead.</p>
+<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.</p>
+<p>Deprecated: Use auth.accessToken instead.</p>
 </td>
 </tr>
 </tbody>

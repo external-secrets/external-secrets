@@ -93,7 +93,7 @@ func (m *OIDCTokenManager) ExchangeToken(ctx context.Context, saToken string) (s
 	url := m.BaseURL + pulumiOAuthPath
 
 	// Build the OAuth 2.0 Token Exchange request per Pulumi's API specification
-	requestBody := map[string]interface{}{
+	requestBody := map[string]any{
 		"audience":             fmt.Sprintf("urn:pulumi:org:%s", m.organization),
 		"grant_type":           pulumiGrantType,
 		"subject_token_type":   pulumiSubjectTokenType,

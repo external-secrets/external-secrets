@@ -53,14 +53,14 @@ func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
 func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 	tests := []struct {
 		name           string
-		responseBody   map[string]interface{}
+		responseBody   map[string]any
 		responseStatus int
 		wantError      bool
 		errorContains  string
 	}{
 		{
 			name: "successful exchange",
-			responseBody: map[string]interface{}{
+			responseBody: map[string]any{
 				"success":    true,
 				"token":      "doppler_token_123",
 				"expires_at": time.Now().Add(time.Hour).Format(time.RFC3339),
@@ -70,7 +70,7 @@ func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 		},
 		{
 			name: "failed exchange - success false",
-			responseBody: map[string]interface{}{
+			responseBody: map[string]any{
 				"success": false,
 				"error":   "invalid identity",
 			},
@@ -80,7 +80,7 @@ func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 		},
 		{
 			name: "unauthorized",
-			responseBody: map[string]interface{}{
+			responseBody: map[string]any{
 				"error": "invalid_token",
 			},
 			responseStatus: http.StatusUnauthorized,

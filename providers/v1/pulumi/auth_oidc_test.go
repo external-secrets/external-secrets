@@ -55,14 +55,14 @@ func TestNewOIDCTokenManager_NilConfig(t *testing.T) {
 func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 	tests := []struct {
 		name           string
-		responseBody   map[string]interface{}
+		responseBody   map[string]any
 		responseStatus int
 		wantError      bool
 		errorContains  string
 	}{
 		{
 			name: "successful exchange",
-			responseBody: map[string]interface{}{
+			responseBody: map[string]any{
 				"access_token": "pul-test-token",
 				"expires_in":   3600,
 			},
@@ -71,7 +71,7 @@ func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 		},
 		{
 			name: "missing access_token",
-			responseBody: map[string]interface{}{
+			responseBody: map[string]any{
 				"expires_in": 3600,
 			},
 			responseStatus: http.StatusOK,
@@ -80,7 +80,7 @@ func TestOIDCTokenManager_ExchangeToken(t *testing.T) {
 		},
 		{
 			name: "unauthorized",
-			responseBody: map[string]interface{}{
+			responseBody: map[string]any{
 				"error": "invalid_token",
 			},
 			responseStatus: http.StatusUnauthorized,
@@ -180,7 +180,7 @@ func TestNewOIDCTokenManager_BaseURLParsing(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calledURL = r.URL.Path
 				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				_ = json.NewEncoder(w).Encode(map[string]any{
 					"access_token": "test-token",
 					"expires_in":   3600,
 				})

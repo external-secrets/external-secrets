@@ -75,7 +75,7 @@ type BaseTokenManager struct {
 	// default audience. Providers populate this for resource-specific bindings.
 	ExtraAudiences []string
 
-	// refreshMu serialises the slow path so concurrent callers do not all
+	// refreshMu serializes the slow path so concurrent callers do not all
 	// trigger a token exchange when the cache is cold.
 	refreshMu sync.Mutex
 }
@@ -231,13 +231,13 @@ func PostJSONRequest(ctx context.Context, url string, requestBody map[string]str
 	return postJSONRequestInternal(ctx, url, requestBody, providerName)
 }
 
-// PostJSONRequestInterface sends a POST request with JSON body (supporting interface{} values) and returns the response body.
+// PostJSONRequestInterface sends a POST request with JSON body (supporting any values) and returns the response body.
 // This is a shared utility for OIDC token exchange implementations that need non-string values in the request body.
-func PostJSONRequestInterface(ctx context.Context, url string, requestBody map[string]interface{}, providerName string) ([]byte, error) {
+func PostJSONRequestInterface(ctx context.Context, url string, requestBody map[string]any, providerName string) ([]byte, error) {
 	return postJSONRequestInternal(ctx, url, requestBody, providerName)
 }
 
-func postJSONRequestInternal(ctx context.Context, url string, requestBody interface{}, providerName string) ([]byte, error) {
+func postJSONRequestInternal(ctx context.Context, url string, requestBody any, providerName string) ([]byte, error) {
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
