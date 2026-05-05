@@ -31,15 +31,15 @@ import (
 
 	"github.com/Azure/go-ntlmssp"
 	"github.com/PaesslerAG/jsonpath"
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/template/v2"
+	"github.com/jcmturner/gokrb5/v8/config"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Webhook implements functionality to interact with webhook endpoints
@@ -359,20 +359,42 @@ func (w *Webhook) ReqAddAuth(ctx context.Context, r *http.Request, provider *Spe
 
 		// This overwrites auth headers set by providers.headers
 		reqWithAuth.SetBasicAuth(username, password)
+
+	case provider.Auth.Kerberos != nil:
+		userSecretRef := provider.Auth.Kerberos.UserName
+		userSecret, err := w.getStoreSecret(ctx, userSecretRef)
+		if err != nil {
+			return nil, err
+		}
+		username := string(userSecret.Data[userSecretRef.Key])
+
+		PasswordSecretRef := provider.Auth.Kerberos.Password
+		PasswordSecret, err := w.getStoreSecret(ctx, PasswordSecretRef)
+		if err != nil {
+			return nil, err
+		}
+		password := string(PasswordSecret.Data[PasswordSecretRef.Key])
+
+		// This overwrites auth headers set by providers.headers
+		reqWithAuth.SetBasicAuth(username, password)
 	}
 	return reqWithAuth, nil
 }
 
 // GetHTTPClient returns an HTTP client configured according to the provider specification.
 func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Client, error) {
+
+	// Initialize a client and baseTransport that we can pass various addons to (auth, CA).
 	c := &http.Client{}
+	baseTransport := &http.Transport{}
+	c.Transport = baseTransport
 
 	// add timeout to client if it is there
 	if provider.Timeout != nil {
 		c.Timeout = provider.Timeout.Duration
 	}
 
-	// add CA to client if it is there
+	// add CA to baseTransport if it is there
 	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
 		caCertPool, err := w.GetCACertPool(ctx, provider)
 		if err != nil {
@@ -384,21 +406,38 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 			MinVersion:    tls.VersionTLS12,
 			Renegotiation: tls.RenegotiateOnceAsClient,
 		}
-
-		c.Transport = &http.Transport{TLSClientConfig: tlsConf}
+		
+		baseTransport.TLSClientConfig = tlsConf
 	}
-	// add authentication method if it s there
+
+	// Add authentication methods last, as they are usually implemented using the wrapper/decoration pattern.
 	if provider.Auth != nil {
 		if provider.Auth.NTLM != nil {
-			c.Transport =
-				&ntlmssp.Negotiator{
-					RoundTripper: &http.Transport{
-						TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{}, // Needed to disable HTTP/2
-
-					},
-				}
+			baseTransport.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{} // Needed to disable HTTP/2 with NTLM
+			ntlmTransport := &ntlmssp.Negotiator{ 
+				RoundTripper: baseTransport,
+			}
+			c.Transport = ntlmTransport
 		}
-		// add additional auth methods here
+
+		if provider.Auth.Kerberos != nil {
+			krbTransport := &KrbTransport{
+				Transport: baseTransport,
+				krbConfig: nil,
+			}
+
+			// Add Krb5Conf from provider if it exists
+			if provider.Auth.Kerberos.Krb5Conf != "" {
+				krbConfig, err := config.NewFromString(provider.Auth.Kerberos.Krb5Conf)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse kerberos config: %w", err)
+				}
+
+				krbTransport.krbConfig = krbConfig
+			}
+
+			c.Transport = krbTransport
+		}
 	}
 
 	// return client with all add-ons
