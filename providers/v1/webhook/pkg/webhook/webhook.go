@@ -31,15 +31,15 @@ import (
 
 	"github.com/Azure/go-ntlmssp"
 	"github.com/PaesslerAG/jsonpath"
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/template/v2"
+	"github.com/jcmturner/gokrb5/v8/config"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Webhook implements functionality to interact with webhook endpoints
@@ -359,6 +359,24 @@ func (w *Webhook) ReqAddAuth(ctx context.Context, r *http.Request, provider *Spe
 
 		// This overwrites auth headers set by providers.headers
 		reqWithAuth.SetBasicAuth(username, password)
+
+	case provider.Auth.Kerberos != nil:
+		userSecretRef := provider.Auth.Kerberos.UserName
+		userSecret, err := w.getStoreSecret(ctx, userSecretRef)
+		if err != nil {
+			return nil, err
+		}
+		username := string(userSecret.Data[userSecretRef.Key])
+
+		PasswordSecretRef := provider.Auth.Kerberos.Password
+		PasswordSecret, err := w.getStoreSecret(ctx, PasswordSecretRef)
+		if err != nil {
+			return nil, err
+		}
+		password := string(PasswordSecret.Data[PasswordSecretRef.Key])
+
+		// This overwrites auth headers set by providers.headers
+		reqWithAuth.SetBasicAuth(username, password)
 	}
 	return reqWithAuth, nil
 }
@@ -398,7 +416,20 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 					},
 				}
 		}
-		// add additional auth methods here
+		if provider.Auth.Kerberos != nil {
+			krbTransport := &KrbTransport{}
+
+			if provider.Auth.Kerberos.Krb5Conf != "" {
+				krbConfig, err := config.NewFromString(provider.Auth.Kerberos.Krb5Conf)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse kerberos config: %w", err)
+				}
+
+				krbTransport.krbconfig = krbConfig
+			}
+
+			c.Transport = krbTransport
+		}
 	}
 
 	// return client with all add-ons
