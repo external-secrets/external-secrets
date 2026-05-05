@@ -84,9 +84,6 @@ func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {
 		return nil, err
 	}
 
-	// If either read-after-write consistency feature is enabled, enable ReadYourWrites
-	cfg.ReadYourWrites = c.store.ReadYourWrites || c.store.ForwardInconsistent
-
 	return cfg, nil
 }
 

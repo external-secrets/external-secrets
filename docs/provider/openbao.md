@@ -492,16 +492,20 @@ spec:
 
 ### Vault Enterprise
 
-#### Eventual Consistency and Performance Standby Nodes
+#### Eventual Consistency and Read-Only Standby Nodes
 
-When using Vault Enterprise with [performance standby nodes](https://www.vaultproject.io/docs/enterprise/consistency#performance-standby-nodes),
+When using OpenBao with "Horizontal Read Scalability" enabled (the default),
 any follower can handle read requests immediately after the provider has
-authenticated. Since Vault becomes eventually consistent in this mode, these
+authenticated. Since OpenBao becomes eventually consistent in this mode, these
 requests can fail if the login has not yet propagated to each server's local
 state.
 
-Below are two different solutions to this scenario. You'll need to review them
-and pick the best fit for your environment and Vault configuration.
+Usually this should not cause any problems, because the latency between the
+OpenBao nodes should be lower than the latency between the External Secrets
+Operator and OpenBao. If it causes problems for you, you can disable "Horizontal
+Read Scalability" in your OpenBao cluster by [setting `disable_standby_reads =
+true`](https://openbao.org/docs/configuration/#parameters) in your OpenBao
+configuration.
 
 #### Vault Namespaces
 
@@ -583,28 +587,3 @@ Token caching should **not** be used when:
 - Using static tokens (no performance benefit)
 - Security requirements mandate fresh tokens for each request
 - Memory usage is a concern
-
-#### Read Your Writes
-
-Vault 1.10.0 and later encodes information in the token to detect the case
-when a server is behind. If a Vault server does not have information about
-the provided token, [Vault returns a 412 error](https://www.vaultproject.io/docs/faq/ssct#q-is-there-anything-else-i-need-to-consider-to-achieve-consistency-besides-upgrading-to-vault-1-10)
-so clients know to retry.
-
-A method supported in versions Vault 1.7 and later is to utilize the
-`X-Vault-Index` header returned on all write requests (including logins).
-Passing this header back on subsequent requests instructs the Vault client
-to retry the request until the server has an index greater than or equal
-to that returned with the last write. Obviously though, this has a performance
-hit because the read is blocked until the follower's local state has caught up.
-
-#### Forward Inconsistent
-
-Vault also supports proxying inconsistent requests to the current cluster leader
-for immediate read-after-write consistency.
-
-Vault 1.10.0 and later [support a replication configuration](https://www.vaultproject.io/docs/faq/ssct#q-is-there-a-new-configuration-that-this-feature-introduces) that detects when forwarding should occur and does it transparently to the client.
-
-In Vault 1.7 forwarding can be achieved by setting the `X-Vault-Inconsistent`
-header to `forward-active-node`. By default, this behavior is disabled and must
-be explicitly enabled in the server's [replication configuration](https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header).
