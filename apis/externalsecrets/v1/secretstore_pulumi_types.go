@@ -78,7 +78,7 @@ type PulumiOIDCAuth struct {
 	// ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.
 	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
 
-	// ExpirationSeconds sets the ServiceAccount token validity duration.
+	// ExpirationSeconds sets the token validity duration for service account and OIDC token.
 	// Defaults to 10 minutes.
 	// +kubebuilder:default=600
 	// +kubebuilder:validation:Minimum=600

@@ -6561,7 +6561,7 @@ spec:
                                 expirationSeconds:
                                   default: 600
                                   description: |-
-                                    ExpirationSeconds sets the ServiceAccount token validity duration.
+                                    ExpirationSeconds sets the token validity duration for service account and OIDC token.
                                     Defaults to 10 minutes.
                                   format: int64
                                   minimum: 600
@@ -18802,7 +18802,7 @@ spec:
                                 expirationSeconds:
                                   default: 600
                                   description: |-
-                                    ExpirationSeconds sets the ServiceAccount token validity duration.
+                                    ExpirationSeconds sets the token validity duration for service account and OIDC token.
                                     Defaults to 10 minutes.
                                   format: int64
                                   minimum: 600
