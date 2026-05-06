@@ -148,6 +148,15 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	storeSpec := store.GetSpec()
 	var cfg *aws.Config
 
+	switch prov.SessionTagsPolicy {
+	case esv1.SessionTagsPolicyNone:
+		// no op
+	case esv1.SessionTagsPolicySimple:
+		prov.SessionTags = buildSessionTags(nil, namespace, store.GetName())
+	case esv1.SessionTagsPolicyCustom:
+		prov.SessionTags = buildSessionTags(prov.CustomSessionTags, namespace, store.GetName())
+	}
+
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
 	if awsutil.IsReferentSpec(prov.Auth) && namespace == "" &&
@@ -218,6 +227,31 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
+}
+
+// buildSessionTags constructs a list of session tags for the AWS STS session.
+// It always includes the esoNamespace and esoStoreName tags.
+// When customTags is provided (Custom mode), those are merged in as well.
+func buildSessionTags(customTags map[string]string, namespace, storeName string) []*esv1.Tag {
+	m := make(map[string]string)
+
+	for k, v := range customTags {
+		if k != "" && v != "" {
+			m[k] = v
+		}
+	}
+	m["esoNamespace"] = namespace
+	m["esoStoreName"] = storeName
+
+	newTags := make([]*esv1.Tag, 0, len(m))
+	for k, v := range m {
+		newTags = append(newTags, &esv1.Tag{
+			Key:   k,
+			Value: v,
+		})
+	}
+
+	return newTags
 }
 
 // Add this type at package level.
