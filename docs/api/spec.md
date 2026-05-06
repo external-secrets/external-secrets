@@ -8933,7 +8933,7 @@ int64
 </td>
 <td>
 <em>(Optional)</em>
-<p>ExpirationSeconds sets the ServiceAccount token validity duration.
+<p>ExpirationSeconds sets the token validity duration for service account and OIDC token.
 Defaults to 10 minutes.</p>
 </td>
 </tr>
