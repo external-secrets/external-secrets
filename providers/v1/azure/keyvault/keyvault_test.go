@@ -73,6 +73,9 @@ type secretManagerTestCase struct {
 	secret *corev1.Secret
 	// for testing changes in expiration date for akv secrets
 	newExpiry *date.UnixTime
+	// optional hook; called with the SetSecret params captured by the fake.
+	// params is nil if SetSecret was not invoked during the test.
+	verifySetSecret func(t *testing.T, key int, params *keyvault.SecretSetParameters)
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
@@ -130,6 +133,7 @@ const (
 	errNotManaged        = "not managed by external-secrets"
 	errNoPermission      = "No Permissions"
 	errAPI               = "unexpected api error"
+	contentTypeJSON      = "application/json"
 	something            = "something"
 	tagname              = "tagname"
 	tagname2             = "tagname2"
@@ -404,6 +408,28 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	secretKey := "fakeSecretKey"
 	tagKey := "fakeTagKey"
 	tagValue := "fakeTagValue"
+	expectSetSecretContentType := func(expected *string) func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+		return func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+			if params == nil {
+				t.Errorf("[%d] expected SetSecret to be called, but it was not", key)
+				return
+			}
+			got := params.ContentType
+			switch {
+			case expected == nil && got != nil:
+				t.Errorf("[%d] expected ContentType=nil, got %q", key, *got)
+			case expected != nil && got == nil:
+				t.Errorf("[%d] expected ContentType=%q, got nil", key, *expected)
+			case expected != nil && got != nil && *got != *expected:
+				t.Errorf("[%d] ContentType mismatch: got=%q expected=%q", key, *got, *expected)
+			}
+		}
+	}
+	expectSetSecretNotCalled := func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+		if params != nil {
+			t.Errorf("[%d] expected SetSecret to NOT be called, but it was (ContentType=%v)", key, params.ContentType)
+		}
+	}
 	mdataWithTag := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
 		APIVersion: metadata.APIVersion,
 		Kind:       metadata.Kind,
@@ -516,6 +542,174 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			},
 			Value: &goodSecret,
 		}
+	}
+	secretWithContentType := func(smtc *secretManagerTestCase) {
+		contentType := contentTypeJSON
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType: contentType,
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte("newSecret")
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &contentType,
+		}
+		smtc.verifySetSecret = expectSetSecretContentType(&contentType)
+	}
+	secretNoChangeWithContentType := func(smtc *secretManagerTestCase) {
+		contentType := contentTypeJSON
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType: contentType,
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &contentType,
+			Attributes:  &keyvault.SecretAttributes{},
+		}
+		smtc.setErr = errors.New("SetSecret should not be called when nothing changed")
+		smtc.verifySetSecret = expectSetSecretNotCalled
+	}
+	secretContentTypeChange := func(smtc *secretManagerTestCase) {
+		newContentType := contentTypeJSON
+		oldContentType := "text/plain"
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType: newContentType,
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &oldContentType,
+			Attributes:  &keyvault.SecretAttributes{},
+		}
+		smtc.setErr = errors.New("content type changed, SetSecret called")
+		smtc.expectError = "content type changed, SetSecret called"
+		smtc.verifySetSecret = expectSetSecretContentType(&newContentType)
+	}
+	secretContentTypeAddedToExisting := func(smtc *secretManagerTestCase) {
+		newContentType := contentTypeJSON
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType: newContentType,
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:      &goodSecret,
+			Attributes: &keyvault.SecretAttributes{},
+		}
+		smtc.setErr = errors.New("contentType added, SetSecret called")
+		smtc.expectError = "contentType added, SetSecret called"
+		smtc.verifySetSecret = expectSetSecretContentType(&newContentType)
+	}
+	secretContentTypeOmittedFromRequest := func(smtc *secretManagerTestCase) {
+		existingContentType := contentTypeJSON
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &existingContentType,
+			Attributes:  &keyvault.SecretAttributes{},
+		}
+		smtc.setErr = errors.New("SetSecret should not be called when contentType is unset")
+		smtc.verifySetSecret = expectSetSecretNotCalled
+	}
+	secretContentTypeWithExpiration := func(smtc *secretManagerTestCase) {
+		contentType := contentTypeJSON
+		expiryTime, _ := time.Parse(time.RFC3339, "2099-12-31T23:59:59Z")
+		expiry := date.UnixTime(expiryTime)
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType:    contentType,
+				ExpirationDate: "2099-12-31T23:59:59Z",
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &contentType,
+			Attributes: &keyvault.SecretAttributes{
+				Expires: &expiry,
+			},
+		}
+		smtc.setErr = errors.New("SetSecret should not be called when nothing changed")
+		smtc.verifySetSecret = expectSetSecretNotCalled
 	}
 	wholeSecretNoKey := func(smtc *secretManagerTestCase) {
 		wholeSecretMap := map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}
@@ -960,6 +1154,12 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(typeNotSupported),
 		makeValidSecretManagerTestCaseCustom(wholeSecretNoKey),
 		makeValidSecretManagerTestCaseCustom(secretWithTags),
+		makeValidSecretManagerTestCaseCustom(secretWithContentType),
+		makeValidSecretManagerTestCaseCustom(secretNoChangeWithContentType),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeChange),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeAddedToExisting),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeOmittedFromRequest),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeWithExpiration),
 		makeValidSecretManagerTestCaseCustom(certWithTags),
 		makeValidSecretManagerTestCaseCustom(keyWithTags),
 	}
@@ -983,6 +1183,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			} else {
 				t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 			}
+		}
+		if v.verifySetSecret != nil {
+			v.verifySetSecret(t, k, v.mockClient.LastSetSecretParams)
 		}
 		if len(v.expectedData) > 0 {
 			sm.baseClient = v.mockClient

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -57,6 +58,10 @@ func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 
 	if len(es.Spec.Data) == 0 && len(es.Spec.DataFrom) == 0 {
 		errs = errors.Join(errs, errors.New("either data or dataFrom should be specified"))
+	}
+
+	if err := validatePrivilegedTemplate(es); err != nil {
+		errs = errors.Join(errs, err)
 	}
 
 	for _, ref := range es.Spec.DataFrom {
@@ -114,6 +119,30 @@ func validatePolicies(es *ExternalSecret) error {
 	}
 
 	return errs
+}
+
+// validatePrivilegedTemplate rejects templates with specific types and annotations combinations
+// to prevent users from creating long-lived tokens beyond the scope of the defined RBAC.
+func validatePrivilegedTemplate(es *ExternalSecret) error {
+	tpl := es.Spec.Target.Template
+	if tpl == nil {
+		return nil
+	}
+	//nolint:exhaustive // don't need exhaustive
+	switch tpl.Type {
+	case corev1.SecretTypeServiceAccountToken:
+		if _, ok := tpl.Metadata.Annotations[corev1.ServiceAccountNameKey]; ok {
+			return fmt.Errorf("template.type=%q with annotation %q is not allowed", corev1.SecretTypeServiceAccountToken, corev1.ServiceAccountNameKey)
+		}
+		for _, tf := range tpl.TemplateFrom {
+			if tf.Target == TemplateTargetAnnotations {
+				return fmt.Errorf("template.type=%q with templateFrom target=%q is not allowed", corev1.SecretTypeServiceAccountToken, TemplateTargetAnnotations)
+			}
+		}
+	case corev1.SecretTypeBootstrapToken:
+		return fmt.Errorf("template.type=%q is not allowed", corev1.SecretTypeBootstrapToken)
+	}
+	return nil
 }
 
 func validateDuplicateKeys(es *ExternalSecret, errs error) error {

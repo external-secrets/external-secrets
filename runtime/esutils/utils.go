@@ -683,6 +683,13 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 	}
 
 	if opts.CAProvider != nil &&
+		opts.StoreKind != esv1.ClusterSecretStoreKind &&
+		opts.CAProvider.Namespace != nil &&
+		*opts.CAProvider.Namespace != opts.Namespace {
+		return nil, errNamespaceNotAllowed
+	}
+
+	if opts.CAProvider != nil &&
 		opts.StoreKind == esv1.ClusterSecretStoreKind &&
 		opts.CAProvider.Namespace == nil {
 		return nil, errors.New("missing namespace on caProvider secret")
@@ -697,7 +704,7 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 
 		return cert, nil
 	case esv1.CAProviderTypeConfigMap:
-		cert, err := getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider)
+		cert, err := getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider, opts.StoreKind)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get cert from configmap: %w", err)
 		}
@@ -810,13 +817,13 @@ func getCertFromSecret(ctx context.Context, c client.Client, provider *esv1.CAPr
 	return []byte(cert), nil
 }
 
-func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client, provider *esv1.CAProvider) ([]byte, error) {
+func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client, provider *esv1.CAProvider, storeKind string) ([]byte, error) {
 	objKey := client.ObjectKey{
 		Name:      provider.Name,
 		Namespace: namespace,
 	}
 
-	if provider.Namespace != nil {
+	if provider.Namespace != nil && storeKind == esv1.ClusterSecretStoreKind {
 		objKey.Namespace = *provider.Namespace
 	}
 

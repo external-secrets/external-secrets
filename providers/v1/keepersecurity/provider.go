@@ -72,8 +72,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 	ksmClient := ksm.NewSecretsManager(ksmClientOptions)
 	client := &Client{
-		folderID:  keeperStore.FolderID,
-		ksmClient: ksmClient,
+		folderID:           keeperStore.FolderID,
+		ksmClient:          ksmClient,
+		getByTitleFallback: keeperStore.GetByTitleFallback,
 	}
 
 	return client, nil

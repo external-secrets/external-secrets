@@ -74,6 +74,9 @@ spec:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
           {{- end }}
+          {{- if .Values.leaderElectionID }}
+          - --leader-election-id={{ .Values.leaderElectionID }}
+          {{- end }}
           {{- if .Values.scopedNamespace }}
           - --namespace={{ .Values.scopedNamespace }}
           {{- end }}
