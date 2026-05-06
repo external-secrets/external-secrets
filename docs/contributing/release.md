@@ -26,43 +26,44 @@ require (
 
 ## CHANGELOG and Release Notes
 
-### Why automated changelog
+### The Policy: Why we automate (with a human touch)
 
-The project maintains a `CHANGELOG.md` at the repository root. It is **automatically updated** during each release by the `Create Release` workflow, which fetches the generated release notes from GitHub and prepends them to the file.
+To reduce toil and ensure consistency across releases, the External Secrets project utilizes GitHub's automated release notes feature to generate our changelog.
 
-We chose automation over manual changelog management for three reasons:
+We chose this hybrid approach of automation plus a "human touch" for three main reasons:
 
-1. **Less maintenance burden** — contributors should not have to update two places (PR description and CHANGELOG). The release workflow already gathers PRs into categories, so the changelog is a natural by-product.
-2. **GitHub is the source of truth** — the `CHANGELOG.md` mirrors what GitHub generates in the release page. Keeping a single source avoids drift.
-3. **Labels already exist** — the project already uses `breaking-change`, `kind/feature`, `kind/bug`, etc. The `.github/release.yml` file groups PRs into release note categories. Automation leverages existing conventions.
+1. **Less maintenance burden** — Contributors should not have to update multiple places (PR description and a CHANGELOG file). The release workflow gathers PRs into categories automatically, making the changelog a natural by-product.
+2. **GitHub is the source of truth** — Our `CHANGELOG.md` mirrors what GitHub generates. Keeping a single source of truth avoids drift.
+3. **Human Quality Control** — The automation generates a *baseline draft* based on PR labels and titles. Before any release is finalized, maintainers review this draft to rewrite confusing titles, highlight `⚠️ Breaking Changes`, and ensure the overall quality and readability of the release notes.
 
-> **Note:** Breaking changes require manual writing. While we automate the gathering and categorization, the content of each release note comes from the PR body. Contributors must write clear upgrade notes for any breaking change.
+> **Note:** Breaking changes require manual writing. While we automate the gathering and categorization, the context of each release note comes from the PR body. Contributors must write clear upgrade notes for any breaking change.
 
-### How to contribute a good changelog entry
+### The Practice: How to ensure great release notes
 
-Every PR becomes a changelog entry. The automation handles the grouping; you handle the content.
+For the automation to work effectively, it relies on two main components: clear Pull Request titles and accurate labeling. Every PR becomes a changelog entry. The automation handles the grouping; you handle the content.
 
-#### Labels determine the category
+#### 1. For Maintainers: Labels determine the category
 
-The `.github/release.yml` file defines the mapping. Use these labels to categorize your PR:
+The `.github/release.yml` file defines the mapping. The category a PR falls into during the release draft generation is entirely dictated by its labels. When reviewing and merging a PR, ensure the correct `kind/*` or `area/*` labels are applied:
 
-| Label | Category in release notes | When to use |
-|-------|---------------------------|-----|
-| `breaking-change` | **⚠️ Breaking Changes** | API changes, removed fields, changed upgrade behavior. The labeler auto-suggests this for PRs touching `apis/` — always review. |
-| `kind/feature` | 🚀 New Features | New functionality from the user's perspective. |
-| `kind/bug` | 🐛 Bug Fixes | Bug fixes, not just code bugs but also docs, configs, or infrastructure that were wrong. |
-| `kind/documentation` | 📖 Documentation | Docs-only changes. |
+| Label(s) | Category in release notes | When to use |
+|----------|---------------------------|-----|
+| `breaking-change` | **⚠️ Breaking Changes / Urgent Upgrade Notes** | API changes, removed fields, changed upgrade behavior. The labeler auto-suggests this for PRs touching `apis/` — always review. |
+| `kind/feature`, `kind/improvement` | 🚀 Features & Improvements | New functionality or improvements from the user's perspective. |
+| `kind/bug` | 🐛 Bug Fixes | Bug fixes, not just code bugs but also configs or infrastructure that were wrong. |
+| `area/documentation` | 📖 Documentation | Docs-only changes. |
 | `security` | 🔒 Security | Security-related fixes or advisories. |
-| `dependencies` | Dependencies | Dependency updates (not merged into General). |
+| `kind/chore`, `kind/refactor`, `kind/maintenance` | 🧹 Maintenance & Refactoring | Internal cleanup, refactoring, or maintenance tasks. |
+| `area/dependencies`, `dependencies` | Dependencies | Dependency updates. |
 
-If your PR touches multiple areas, add multiple labels. A PR can be both `kind/feature` and `security`, for example.
+*Note: If a PR should not be included in the public changelog (e.g., a minor CI tweak), apply the `skip-changelog` label.*
 
-#### Writing a good changelog entry
+#### 2. For Contributors: Writing a good changelog entry
 
 Each PR title becomes the changelog entry. Follow these guidelines:
 
 - **Write the PR title as a changelog entry** — it should make sense to end users without reading the full PR body.
-- **Use the conventional commit format** in the PR title: `feat(scope): description` or `fix(scope): description`. The scope is optional (e.g., `charts`, `release`, `testing`).
+- **Use the conventional commit format** in the PR title: `feat(scope): description` or `fix(scope): description`. The scope is optional.
 - **Describe the impact, not the implementation** — "Add AWS Secrets Manager integration" not "Add AWS SDK call to provider".
 - **Reference the issue** — use `Fixes #...` in the PR body.
 
@@ -75,13 +76,13 @@ If your PR introduces a breaking change:
    - What changed and why.
    - What users need to do to upgrade.
    - Any migration steps or deprecation timeline.
-3. Write the PR title so the breaking change is visible in the changelog.
+3. Write the PR title so the breaking change is clearly visible.
 
-PRs with the `breaking-change` label appear in a dedicated **⚠️ Breaking Changes / Urgent Upgrade Notes** section at the top of the release notes and CHANGELOG entry, making them easy to spot for anyone performing an upgrade.
+PRs with the `breaking-change` label appear in a dedicated section at the very top of the release notes, making them easy to spot for anyone performing an upgrade.
 
 ## Release ESO
 
-When doing a release it's best to start with  with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.
+When doing a release it's best to start with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.
 
 ⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
 Otherwise the `latest` documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).
