@@ -18,6 +18,9 @@ package beyondtrust
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -403,6 +406,9 @@ func TestPushSecret(t *testing.T) {
 		serverHandler http.HandlerFunc
 		metadata      apiextensionsv1.JSON
 		expectedError bool
+		// apiVersion lets a case target a specific Password Safe API version.
+		// Empty string keeps the historical default of 3.1.
+		apiVersion string
 	}
 
 	tests := []testCase{
@@ -525,6 +531,127 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		{
+			name: "successfully pushes credential secret v3.2",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case authSignAppInPath:
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case secretsSafeFoldersPath:
+					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					if err != nil {
+						t.Error(err)
+					}
+				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets":
+					_, err := w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedError: false,
+			apiVersion:    "3.2",
+			metadata: apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"title": "Test Credential v3.2",
+					"username": "admin",
+					"description": "Test Credential Secret description",
+					"secret_type": "CREDENTIAL",
+					"folder_name": "folder1"
+				}`),
+			},
+		},
+		{
+			name: "successfully pushes file secret v3.2",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case authSignAppInPath:
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case secretsSafeFoldersPath:
+					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					if err != nil {
+						t.Error(err)
+					}
+				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets/file":
+					_, err := w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedError: false,
+			apiVersion:    "3.2",
+			metadata: apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"title": "Test File Secret v3.2",
+					"username": "admin",
+					"description": "Test File Secret description",
+					"secret_type": "FILE",
+					"folder_name": "folder1",
+					"file_name": "credentials.txt"
+				}`),
+			},
+		},
+		{
+			name: "successfully pushes text secret v3.2",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case authSignAppInPath:
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case secretsSafeFoldersPath:
+					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					if err != nil {
+						t.Error(err)
+					}
+				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets/text":
+					_, err := w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			expectedError: false,
+			apiVersion:    "3.2",
+			metadata: apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"title": "Test Text Secret v3.2",
+					"username": "admin",
+					"description": "Test Text Secret description",
+					"secret_type": "TEXT",
+					"folder_name": "folder1"
+				}`),
+			},
+		},
+		{
 			name: "successfully pushes text secret - 404 error",
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
@@ -595,11 +722,16 @@ func TestPushSecret(t *testing.T) {
 				t.Error(err)
 			}
 
+			apiVersion := tt.apiVersion
+			if apiVersion == "" {
+				apiVersion = "3.1"
+			}
+
 			params := authentication.AuthenticationParametersObj{
 				HTTPClient:                 *httpClientObj,
 				BackoffDefinition:          backoffDefinition,
 				EndpointURL:                fakeServer.URL,
-				APIVersion:                 "3.1",
+				APIVersion:                 apiVersion,
 				ClientID:                   "fake_clinet_id",
 				ClientSecret:               "fake_client_secret",
 				Logger:                     zapLogger,
@@ -754,6 +886,149 @@ func TestSecretExists(t *testing.T) {
 			} else {
 				assert.False(t, exists)
 			}
+		})
+	}
+}
+
+// TestPushSecret_OwnerFieldsArePropagated guards the dual-field migration in CreateSecret
+// where every secret-type input carries both OwnersByOwnerId and OwnersByGroupId. The SDK
+// then narrows down to one shape based on API version: v3.0 → OwnerDetailsOwnerId,
+// v3.1/v3.2 → OwnerDetailsGroupId. We assert the request body the SDK actually emitted.
+func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
+	type testCase struct {
+		name        string
+		apiVersion  string
+		secretType  string
+		secretsPath string
+		assertBody  func(t *testing.T, body map[string]any)
+	}
+
+	tests := []testCase{
+		{
+			name:        "v3.0 propagates OwnersByOwnerId and top-level OwnerId/OwnerType for CREDENTIAL",
+			apiVersion:  "3.0",
+			secretType:  "CREDENTIAL",
+			secretsPath: "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets",
+			assertBody: func(t *testing.T, body map[string]any) {
+				assert.Equal(t, float64(7), body["OwnerId"], "top-level OwnerId should come from metadata.owner_id")
+				assert.Equal(t, "User", body["OwnerType"], "top-level OwnerType should come from metadata.owner_type")
+
+				owners, ok := body["Owners"].([]any)
+				require.True(t, ok, "Owners array missing or wrong type")
+				require.NotEmpty(t, owners, "Owners array empty")
+				first := owners[0].(map[string]any)
+				assert.Equal(t, float64(1), first["OwnerId"], "main owner OwnerId should be UserId=1 from sign-in")
+				assert.Equal(t, "test@beyondtrust.com", first["Email"])
+			},
+		},
+		{
+			name:        "v3.2 propagates OwnersByGroupId for CREDENTIAL",
+			apiVersion:  "3.2",
+			secretType:  "CREDENTIAL",
+			secretsPath: "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets",
+			assertBody: func(t *testing.T, body map[string]any) {
+				_, hasOwnerId := body["OwnerId"]
+				_, hasOwnerType := body["OwnerType"]
+				assert.False(t, hasOwnerId, "v3.2 Config32 should not emit top-level OwnerId")
+				assert.False(t, hasOwnerType, "v3.2 Config32 should not emit top-level OwnerType")
+
+				owners, ok := body["Owners"].([]any)
+				require.True(t, ok, "Owners array missing or wrong type")
+				require.NotEmpty(t, owners, "Owners array empty")
+				first := owners[0].(map[string]any)
+				assert.Equal(t, float64(42), first["GroupId"], "main owner GroupId should come from metadata.group_id")
+				assert.Equal(t, float64(1), first["UserId"], "main owner UserId should be UserId=1 from sign-in")
+				assert.Equal(t, "test@beyondtrust.com", first["Email"])
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedBody map[string]any
+			fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case authSignAppInPath:
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case secretsSafeFoldersPath:
+					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
+					if err != nil {
+						t.Error(err)
+					}
+				case tt.secretsPath:
+					bodyBytes, err := io.ReadAll(r.Body)
+					require.NoError(t, err)
+					require.NoError(t, json.Unmarshal(bodyBytes, &capturedBody))
+					_, err = w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			}))
+			defer fakeServer.Close()
+
+			logger, err := zap.NewDevelopment()
+			require.NoError(t, err)
+			zapLogger := logging.NewZapLogger(logger)
+
+			backoffDefinition := backoff.NewExponentialBackOff()
+			backoffDefinition.InitialInterval = 1 * time.Second
+			backoffDefinition.MaxElapsedTime = 2 * time.Second
+			backoffDefinition.RandomizationFactor = 0.5
+
+			httpClientObj, err := utils.GetHttpClient(30, true, "", "", zapLogger)
+			require.NoError(t, err)
+
+			params := authentication.AuthenticationParametersObj{
+				HTTPClient:                 *httpClientObj,
+				BackoffDefinition:          backoffDefinition,
+				EndpointURL:                fakeServer.URL,
+				APIVersion:                 tt.apiVersion,
+				ClientID:                   "fake_client_id",
+				ClientSecret:               "fake_client_secret",
+				Logger:                     zapLogger,
+				RetryMaxElapsedTimeSeconds: 30,
+			}
+
+			authObj, err := authentication.Authenticate(params)
+			require.NoError(t, err)
+
+			p := &Provider{authenticate: *authObj}
+
+			metadata := apiextensionsv1.JSON{
+				Raw: []byte(fmt.Sprintf(`{
+					"title": "Owner Fields Test",
+					"username": "admin",
+					"secret_type": %q,
+					"folder_name": "folder1",
+					"owner_type": "User",
+					"owner_id": 7,
+					"group_id": 42
+				}`, tt.secretType)),
+			}
+
+			psd := v1alpha1.PushSecretData{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "password",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "test-credential"},
+				},
+				Metadata: &metadata,
+			}
+			secret := &v1.Secret{Data: map[string][]byte{"password": []byte("supersecret")}}
+
+			require.NoError(t, p.PushSecret(context.Background(), secret, psd))
+			require.NotNil(t, capturedBody, "create-secret endpoint was never hit")
+			tt.assertBody(t, capturedBody)
 		})
 	}
 }
