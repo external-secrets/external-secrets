@@ -890,6 +890,86 @@ func TestSecretExists(t *testing.T) {
 	}
 }
 
+// writeBody is a small helper for the mock servers below. It fails the test
+// if the response cannot be written, instead of nesting an err-check inside
+// every switch case in the handler.
+func writeBody(t *testing.T, w http.ResponseWriter, body string) {
+	t.Helper()
+	if _, err := w.Write([]byte(body)); err != nil {
+		t.Error(err)
+	}
+}
+
+// newOwnerFieldsMockServer returns an httptest.Server that satisfies the
+// auth + folder lookup + create-secret request flow. The body of the
+// create-secret POST is captured into *captured for assertion.
+func newOwnerFieldsMockServer(t *testing.T, secretsPath string, captured *map[string]any) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case authConnectTokenPath:
+			writeBody(t, w, `{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`)
+		case authSignAppInPath:
+			writeBody(t, w, `{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`)
+		case secretsSafeFoldersPath:
+			writeBody(t, w, `[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`)
+		case secretsPath:
+			bodyBytes, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			require.NoError(t, json.Unmarshal(bodyBytes, captured))
+			writeBody(t, w, `{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`)
+		default:
+			http.Error(w, "not found", http.StatusNotFound)
+		}
+	}))
+}
+
+// newAuthenticatedProvider builds a Provider authenticated against serverURL
+// with the requested API version. Used by tests that need a ready-to-call
+// Provider without inlining the full auth/HTTP-client wiring.
+func newAuthenticatedProvider(t *testing.T, serverURL, apiVersion string) *Provider {
+	t.Helper()
+	logger, err := zap.NewDevelopment()
+	require.NoError(t, err)
+	zapLogger := logging.NewZapLogger(logger)
+
+	backoffDefinition := backoff.NewExponentialBackOff()
+	backoffDefinition.InitialInterval = 1 * time.Second
+	backoffDefinition.MaxElapsedTime = 2 * time.Second
+	backoffDefinition.RandomizationFactor = 0.5
+
+	httpClientObj, err := utils.GetHttpClient(30, true, "", "", zapLogger)
+	require.NoError(t, err)
+
+	authObj, err := authentication.Authenticate(authentication.AuthenticationParametersObj{
+		HTTPClient:                 *httpClientObj,
+		BackoffDefinition:          backoffDefinition,
+		EndpointURL:                serverURL,
+		APIVersion:                 apiVersion,
+		ClientID:                   "fake_client_id",
+		ClientSecret:               "fake_client_secret",
+		Logger:                     zapLogger,
+		RetryMaxElapsedTimeSeconds: 30,
+	})
+	require.NoError(t, err)
+
+	return &Provider{authenticate: *authObj}
+}
+
+func ownerFieldsMetadata(secretType string) apiextensionsv1.JSON {
+	return apiextensionsv1.JSON{
+		Raw: []byte(fmt.Sprintf(`{
+			"title": "Owner Fields Test",
+			"username": "admin",
+			"secret_type": %q,
+			"folder_name": "folder1",
+			"owner_type": "User",
+			"owner_id": 7,
+			"group_id": 42
+		}`, secretType)),
+	}
+}
+
 // TestPushSecret_OwnerFieldsArePropagated guards the dual-field migration in CreateSecret
 // where every secret-type input carries both OwnersByOwnerId and OwnersByGroupId. The SDK
 // then narrows down to one shape based on API version: v3.0 → OwnerDetailsOwnerId,
@@ -946,76 +1026,11 @@ func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedBody map[string]any
-			fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				switch r.URL.Path {
-				case authConnectTokenPath:
-					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
-					if err != nil {
-						t.Error(err)
-					}
-				case authSignAppInPath:
-					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
-					if err != nil {
-						t.Error(err)
-					}
-				case secretsSafeFoldersPath:
-					_, err := w.Write([]byte(`[{"Id": "cb871861-8b40-4556-820c-1ca6d522adfa","Name": "folder1"}]`))
-					if err != nil {
-						t.Error(err)
-					}
-				case tt.secretsPath:
-					bodyBytes, err := io.ReadAll(r.Body)
-					require.NoError(t, err)
-					require.NoError(t, json.Unmarshal(bodyBytes, &capturedBody))
-					_, err = w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
-					if err != nil {
-						t.Error(err)
-					}
-				default:
-					http.Error(w, "not found", http.StatusNotFound)
-				}
-			}))
+			fakeServer := newOwnerFieldsMockServer(t, tt.secretsPath, &capturedBody)
 			defer fakeServer.Close()
 
-			logger, err := zap.NewDevelopment()
-			require.NoError(t, err)
-			zapLogger := logging.NewZapLogger(logger)
-
-			backoffDefinition := backoff.NewExponentialBackOff()
-			backoffDefinition.InitialInterval = 1 * time.Second
-			backoffDefinition.MaxElapsedTime = 2 * time.Second
-			backoffDefinition.RandomizationFactor = 0.5
-
-			httpClientObj, err := utils.GetHttpClient(30, true, "", "", zapLogger)
-			require.NoError(t, err)
-
-			params := authentication.AuthenticationParametersObj{
-				HTTPClient:                 *httpClientObj,
-				BackoffDefinition:          backoffDefinition,
-				EndpointURL:                fakeServer.URL,
-				APIVersion:                 tt.apiVersion,
-				ClientID:                   "fake_client_id",
-				ClientSecret:               "fake_client_secret",
-				Logger:                     zapLogger,
-				RetryMaxElapsedTimeSeconds: 30,
-			}
-
-			authObj, err := authentication.Authenticate(params)
-			require.NoError(t, err)
-
-			p := &Provider{authenticate: *authObj}
-
-			metadata := apiextensionsv1.JSON{
-				Raw: []byte(fmt.Sprintf(`{
-					"title": "Owner Fields Test",
-					"username": "admin",
-					"secret_type": %q,
-					"folder_name": "folder1",
-					"owner_type": "User",
-					"owner_id": 7,
-					"group_id": 42
-				}`, tt.secretType)),
-			}
+			p := newAuthenticatedProvider(t, fakeServer.URL, tt.apiVersion)
+			metadata := ownerFieldsMetadata(tt.secretType)
 
 			psd := v1alpha1.PushSecretData{
 				Match: v1alpha1.PushSecretMatch{
