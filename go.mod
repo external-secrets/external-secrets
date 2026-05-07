@@ -45,6 +45,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase => ./providers/v1/onboardbase
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk => ./providers/v1/onepasswordsdk
+	github.com/external-secrets/external-secrets/providers/v1/openbao => ./providers/v1/openbao
 	github.com/external-secrets/external-secrets/providers/v1/oracle => ./providers/v1/oracle
 	github.com/external-secrets/external-secrets/providers/v1/ovh => ./providers/v1/ovh
 	github.com/external-secrets/external-secrets/providers/v1/passbolt => ./providers/v1/passbolt
@@ -158,6 +159,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/openbao v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/ovh v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-00010101000000-000000000000
