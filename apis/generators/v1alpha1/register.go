@@ -65,6 +65,8 @@ var (
 	GitlabDeployTokenKind = reflect.TypeFor[GitlabDeployToken]().Name()
 	// QuayAccessTokenKind is the kind name for QuayAccessToken resource.
 	QuayAccessTokenKind = reflect.TypeFor[QuayAccessToken]().Name()
+	// RDSIAMAuthTokenKind is the kind name for RDSIAMAuthToken resource.
+	RDSIAMAuthTokenKind = reflect.TypeFor[RDSIAMAuthToken]().Name()
 	// UUIDKind is the kind name for UUID resource.
 	UUIDKind = reflect.TypeFor[UUID]().Name()
 	// GrafanaKind is the kind name for Grafana resource.
@@ -108,6 +110,7 @@ func init() {
 	SchemeBuilder.Register(&GitlabDeployToken{}, &GitlabDeployTokenList{})
 	SchemeBuilder.Register(&QuayAccessToken{}, &QuayAccessTokenList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
+	SchemeBuilder.Register(&RDSIAMAuthToken{}, &RDSIAMAuthTokenList{})
 	SchemeBuilder.Register(&SSHKey{}, &SSHKeyList{})
 	SchemeBuilder.Register(&STSSessionToken{}, &STSSessionTokenList{})
 	SchemeBuilder.Register(&UUID{}, &UUIDList{})

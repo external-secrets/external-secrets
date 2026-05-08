@@ -1,0 +1,10 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: RDSIAMAuthToken
+metadata:
+  name: example-rds-iam-token
+spec:
+  controller: rds-iam
+  region: ap-southeast-2
+  hostname: example.cluster-abcdefghijkl.ap-southeast-2.rds.amazonaws.com
+  port: 5432
+  username: app_iam_user

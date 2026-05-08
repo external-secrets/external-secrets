@@ -16,6 +16,7 @@ replace (
 	github.com/external-secrets/external-secrets/generators/v1/mfa => ./generators/v1/mfa
 	github.com/external-secrets/external-secrets/generators/v1/password => ./generators/v1/password
 	github.com/external-secrets/external-secrets/generators/v1/quay => ./generators/v1/quay
+	github.com/external-secrets/external-secrets/generators/v1/rdsiam => ./generators/v1/rdsiam
 	github.com/external-secrets/external-secrets/generators/v1/sshkey => ./generators/v1/sshkey
 	github.com/external-secrets/external-secrets/generators/v1/sts => ./generators/v1/sts
 	github.com/external-secrets/external-secrets/generators/v1/uuid => ./generators/v1/uuid
@@ -132,6 +133,7 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/mfa v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/rdsiam v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-00010101000000-000000000000
@@ -214,6 +216,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.31.19 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.23 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.13 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/rds/auth v1.6.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.31 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.31 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect

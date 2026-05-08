@@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;RDSIAMAuthToken;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 type GeneratorKind string
 
 const (
@@ -50,6 +50,8 @@ const (
 	GeneratorKindQuayAccessToken GeneratorKind = "QuayAccessToken"
 	// GeneratorKindPassword represents a password generator.
 	GeneratorKindPassword GeneratorKind = "Password"
+	// GeneratorKindRDSIAMAuthToken represents an AWS RDS IAM auth token generator.
+	GeneratorKindRDSIAMAuthToken GeneratorKind = "RDSIAMAuthToken"
 	// GeneratorKindSSHKey represents an SSH key generator.
 	GeneratorKindSSHKey GeneratorKind = "SSHKey"
 	// GeneratorKindSTSSessionToken represents an AWS STS session token generator.
@@ -84,6 +86,7 @@ type GeneratorSpec struct {
 	GitlabDeployTokenSpec                           *GitlabDeployTokenSpec                           `json:"gitlabDeployTokenSpec,omitempty"`
 	QuayAccessTokenSpec                             *QuayAccessTokenSpec                             `json:"quayAccessTokenSpec,omitempty"`
 	PasswordSpec                                    *PasswordSpec                                    `json:"passwordSpec,omitempty"`
+	RDSIAMAuthTokenSpec                             *RDSIAMAuthTokenSpec                             `json:"rdsIAMAuthTokenSpec,omitempty"`
 	SSHKeySpec                                      *SSHKeySpec                                      `json:"sshKeySpec,omitempty"`
 	STSSessionTokenSpec                             *STSSessionTokenSpec                             `json:"stsSessionTokenSpec,omitempty"`
 	UUIDSpec                                        *UUIDSpec                                        `json:"uuidSpec,omitempty"`
