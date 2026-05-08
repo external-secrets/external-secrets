@@ -28,6 +28,7 @@ import (
 	mfa "github.com/external-secrets/external-secrets/generators/v1/mfa"
 	password "github.com/external-secrets/external-secrets/generators/v1/password"
 	quay "github.com/external-secrets/external-secrets/generators/v1/quay"
+	rdsiam "github.com/external-secrets/external-secrets/generators/v1/rdsiam"
 	sshkey "github.com/external-secrets/external-secrets/generators/v1/sshkey"
 	sts "github.com/external-secrets/external-secrets/generators/v1/sts"
 	uuid "github.com/external-secrets/external-secrets/generators/v1/uuid"
@@ -47,6 +48,7 @@ func init() {
 	genv1alpha1.Register(mfa.Kind(), mfa.NewGenerator())
 	genv1alpha1.Register(password.Kind(), password.NewGenerator())
 	genv1alpha1.Register(quay.Kind(), quay.NewGenerator())
+	genv1alpha1.Register(rdsiam.Kind(), rdsiam.NewGenerator())
 	genv1alpha1.Register(sshkey.Kind(), sshkey.NewGenerator())
 	genv1alpha1.Register(sts.Kind(), sts.NewGenerator())
 	genv1alpha1.Register(uuid.Kind(), uuid.NewGenerator())

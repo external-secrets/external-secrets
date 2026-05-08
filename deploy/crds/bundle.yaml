@@ -165,6 +165,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - RDSIAMAuthToken
                                       - SSHKey
                                       - STSSessionToken
                                       - UUID
@@ -414,6 +415,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - RDSIAMAuthToken
                                       - SSHKey
                                       - STSSessionToken
                                       - UUID
@@ -984,6 +986,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - RDSIAMAuthToken
                                       - SSHKey
                                       - STSSessionToken
                                       - UUID
@@ -1177,6 +1180,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - RDSIAMAuthToken
                                       - SSHKey
                                       - STSSessionToken
                                       - UUID
@@ -1984,6 +1988,7 @@ spec:
                                 - GithubAccessToken
                                 - QuayAccessToken
                                 - Password
+                                - RDSIAMAuthToken
                                 - SSHKey
                                 - STSSessionToken
                                 - UUID
@@ -12665,6 +12670,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - RDSIAMAuthToken
                                   - SSHKey
                                   - STSSessionToken
                                   - UUID
@@ -12914,6 +12920,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - RDSIAMAuthToken
                                   - SSHKey
                                   - STSSessionToken
                                   - UUID
@@ -13370,6 +13377,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - RDSIAMAuthToken
                                   - SSHKey
                                   - STSSessionToken
                                   - UUID
@@ -13563,6 +13571,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - RDSIAMAuthToken
                                   - SSHKey
                                   - STSSessionToken
                                   - UUID
@@ -14197,6 +14206,7 @@ spec:
                             - GithubAccessToken
                             - QuayAccessToken
                             - Password
+                            - RDSIAMAuthToken
                             - SSHKey
                             - STSSessionToken
                             - UUID
@@ -25958,6 +25968,158 @@ spec:
                         - robotAccount
                         - serviceAccountRef
                       type: object
+                    rdsIAMAuthTokenSpec:
+                      description: RDSIAMAuthTokenSpec defines the desired state to generate an AWS RDS IAM authentication token.
+                      properties:
+                        auth:
+                          description: Auth defines how to authenticate with AWS.
+                          properties:
+                            jwt:
+                              description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
+                              properties:
+                                serviceAccountRef:
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              type: object
+                            secretRef:
+                              description: |-
+                                AWSAuthSecretRef holds secret references for AWS credentials
+                                both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+                              properties:
+                                accessKeyIDSecretRef:
+                                  description: The AccessKeyID is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretAccessKeySecretRef:
+                                  description: The SecretAccessKey is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                sessionTokenSecretRef:
+                                  description: |-
+                                    The SessionToken used for authentication
+                                    This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+                                    see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                        controller:
+                          description: 'Used to select the correct ESO controller (think: ingress.ingressClassName).'
+                          type: string
+                        hostname:
+                          description: Hostname is the RDS endpoint hostname.
+                          type: string
+                        port:
+                          description: Port is the RDS endpoint port.
+                          maximum: 65535
+                          minimum: 1
+                          type: integer
+                        region:
+                          description: Region specifies the AWS region where the database is hosted.
+                          type: string
+                        role:
+                          description: You can assume a role before building the RDS IAM auth token.
+                          type: string
+                        username:
+                          description: Username is the database user to authenticate as.
+                          type: string
+                      required:
+                        - hostname
+                        - port
+                        - region
+                        - username
+                      type: object
                     sshKeySpec:
                       description: SSHKeySpec controls the behavior of the ssh key generator.
                       properties:
@@ -27290,6 +27452,7 @@ spec:
                     - GithubAccessToken
                     - QuayAccessToken
                     - Password
+                    - RDSIAMAuthToken
                     - SSHKey
                     - STSSessionToken
                     - UUID
@@ -28461,6 +28624,208 @@ spec:
               required:
                 - robotAccount
                 - serviceAccountRef
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    external-secrets.io/component: controller
+  name: rdsiamauthtokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: RDSIAMAuthToken
+    listKind: RDSIAMAuthTokenList
+    plural: rdsiamauthtokens
+    singular: rdsiamauthtoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            RDSIAMAuthToken uses AWS credentials to build an IAM authentication token for RDS.
+            The token can be used as the database password for IAM database authentication.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: RDSIAMAuthTokenSpec defines the desired state to generate an AWS RDS IAM authentication token.
+              properties:
+                auth:
+                  description: Auth defines how to authenticate with AWS.
+                  properties:
+                    jwt:
+                      description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
+                      properties:
+                        serviceAccountRef:
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      type: object
+                    secretRef:
+                      description: |-
+                        AWSAuthSecretRef holds secret references for AWS credentials
+                        both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+                      properties:
+                        accessKeyIDSecretRef:
+                          description: The AccessKeyID is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        secretAccessKeySecretRef:
+                          description: The SecretAccessKey is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        sessionTokenSecretRef:
+                          description: |-
+                            The SessionToken used for authentication
+                            This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+                            see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                      type: object
+                  type: object
+                controller:
+                  description: 'Used to select the correct ESO controller (think: ingress.ingressClassName).'
+                  type: string
+                hostname:
+                  description: Hostname is the RDS endpoint hostname.
+                  type: string
+                port:
+                  description: Port is the RDS endpoint port.
+                  maximum: 65535
+                  minimum: 1
+                  type: integer
+                region:
+                  description: Region specifies the AWS region where the database is hosted.
+                  type: string
+                role:
+                  description: You can assume a role before building the RDS IAM auth token.
+                  type: string
+                username:
+                  description: Username is the database user to authenticate as.
+                  type: string
+              required:
+                - hostname
+                - port
+                - region
+                - username
               type: object
           type: object
       served: true

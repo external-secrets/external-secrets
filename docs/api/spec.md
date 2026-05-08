@@ -25171,6 +25171,7 @@ AzureACRWorkloadIdentityAuth
 <p>
 (<em>Appears on:</em>
 <a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationTokenSpec">ECRAuthorizationTokenSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.RDSIAMAuthTokenSpec">RDSIAMAuthTokenSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.STSSessionTokenSpec">STSSessionTokenSpec</a>)
 </p>
 <p>
@@ -26396,6 +26397,9 @@ string
 </tr><tr><td><p>&#34;QuayAccessToken&#34;</p></td>
 <td><p>GeneratorKindQuayAccessToken represents a Quay access token generator.</p>
 </td>
+</tr><tr><td><p>&#34;RDSIAMAuthToken&#34;</p></td>
+<td><p>GeneratorKindRDSIAMAuthToken represents an AWS RDS IAM auth token generator.</p>
+</td>
 </tr><tr><td><p>&#34;SSHKey&#34;</p></td>
 <td><p>GeneratorKindSSHKey represents an SSH key generator.</p>
 </td>
@@ -26525,6 +26529,18 @@ QuayAccessTokenSpec
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.PasswordSpec">
 PasswordSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>rdsIAMAuthTokenSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.RDSIAMAuthTokenSpec">
+RDSIAMAuthTokenSpec
 </a>
 </em>
 </td>
@@ -28154,6 +28170,236 @@ External Secrets meta/v1.ServiceAccountSelector
 </td>
 <td>
 <p>Name of the service account you are federating with</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.RDSIAMAuthToken">RDSIAMAuthToken
+</h3>
+<p>
+<p>RDSIAMAuthToken uses AWS credentials to build an IAM authentication token for RDS.
+The token can be used as the database password for IAM database authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.RDSIAMAuthTokenSpec">
+RDSIAMAuthTokenSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>controller</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region specifies the AWS region where the database is hosted.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostname</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Hostname is the RDS endpoint hostname.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>port</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>Port is the RDS endpoint port.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is the database user to authenticate as.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines how to authenticate with AWS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>You can assume a role before building the RDS IAM auth token.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.RDSIAMAuthTokenSpec">RDSIAMAuthTokenSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.RDSIAMAuthToken">RDSIAMAuthToken</a>)
+</p>
+<p>
+<p>RDSIAMAuthTokenSpec defines the desired state to generate an AWS RDS IAM authentication token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>controller</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region specifies the AWS region where the database is hosted.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostname</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Hostname is the RDS endpoint hostname.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>port</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>Port is the RDS endpoint port.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is the database user to authenticate as.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines how to authenticate with AWS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>You can assume a role before building the RDS IAM auth token.</p>
 </td>
 </tr>
 </tbody>

@@ -1,0 +1,36 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: rds-iam
+spec:
+  controller: rds-iam
+  provider:
+    aws:
+      service: SecretsManager
+      region: ap-southeast-2
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example-rds-iam-token
+spec:
+  refreshInterval: "10m"
+  secretStoreRef:
+    name: rds-iam
+    kind: SecretStore
+  target:
+    name: example-rds-iam-token
+    template:
+      data:
+        DATABASE_PASSWORD: "{{ .password }}"
+        DATABASE_USER: "{{ .username }}"
+        DATABASE_HOST: "{{ .hostname }}"
+        DATABASE_PORT: "{{ .port }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: RDSIAMAuthToken
+          name: example-rds-iam-token
+{% endraw %}
