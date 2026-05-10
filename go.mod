@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.26.1
+go 1.26.2
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
@@ -46,6 +46,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk => ./providers/v1/onepasswordsdk
 	github.com/external-secrets/external-secrets/providers/v1/oracle => ./providers/v1/oracle
+	github.com/external-secrets/external-secrets/providers/v1/ovh => ./providers/v1/ovh
 	github.com/external-secrets/external-secrets/providers/v1/passbolt => ./providers/v1/passbolt
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot => ./providers/v1/passworddepot
 	github.com/external-secrets/external-secrets/providers/v1/previder => ./providers/v1/previder
@@ -71,10 +72,9 @@ require (
 	github.com/IBM/go-sdk-core/v5 v5.21.0 // indirect
 	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.16 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.1-0.20241028115027-8cb06fe3c8b0 // indirect
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5 // indirect
+	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.7 // indirect
 	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
@@ -159,6 +159,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/ovh v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-00010101000000-000000000000
@@ -193,14 +194,15 @@ require (
 	github.com/BeyondTrust/go-client-library-passwordsafe v1.0.0 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 // indirect
-	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1 // indirect
-	github.com/Devolutions/go-dvls v0.15.0 // indirect
+	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.2 // indirect
+	github.com/Devolutions/go-dvls v0.19.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d // indirect
 	github.com/ProtonMail/go-crypto v1.4.0 // indirect
 	github.com/ProtonMail/gopenpgp/v3 v3.3.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/akeylesslabs/akeyless-go/v4 v4.3.0 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.39.6 // indirect
@@ -251,9 +253,9 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.11 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
-	github.com/go-git/go-billy/v5 v5.6.2 // indirect
-	github.com/go-git/go-git/v5 v5.16.5 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-git/go-billy/v5 v5.8.0 // indirect
+	github.com/go-git/go-git/v5 v5.18.0 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.24.0 // indirect
 	github.com/go-openapi/loads v0.23.1 // indirect
@@ -317,7 +319,9 @@ require (
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 // indirect
 	github.com/ngrok/ngrok-api-go/v7 v7.6.0 // indirect
+	github.com/oapi-codegen/runtime v1.1.2 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
+	github.com/ovh/okms-sdk-go v0.5.1 // indirect
 	github.com/passbolt/go-passbolt v0.8.0-beta.1 // indirect
 	github.com/pgavlin/fx v0.1.6 // indirect
 	github.com/pgavlin/fx/v2 v2.0.12 // indirect
@@ -353,9 +357,9 @@ require (
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.63.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
-	go.opentelemetry.io/otel v1.39.0 // indirect
-	go.opentelemetry.io/otel/metric v1.39.0 // indirect
-	go.opentelemetry.io/otel/trace v1.39.0 // indirect
+	go.opentelemetry.io/otel v1.43.0 // indirect
+	go.opentelemetry.io/otel/metric v1.43.0 // indirect
+	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.8.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect

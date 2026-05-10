@@ -83,7 +83,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 						{
 							SecretKey: "test-secret-key",
 							RemoteRef: esv1.ExternalSecretDataRemoteRef{
-								Key: "test-remote-key",
+								Key:            "test-remote-key",
+								NullBytePolicy: esv1.ExternalSecretNullBytePolicyIgnore,
 							},
 						},
 					},

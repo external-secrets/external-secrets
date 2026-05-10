@@ -240,6 +240,78 @@ func TestPushSecret(t *testing.T) {
 	}
 }
 
+func TestResolveOrgSecretVisibility(t *testing.T) {
+	ptr := func(s string) *string { return &s }
+	tests := []struct {
+		name        string
+		nilProvider bool
+		providerViz string
+		existing    *github.Secret
+		want        string
+	}{
+		{
+			name:        "nil provider, no existing secret — defaults to all",
+			nilProvider: true,
+			existing:    nil,
+			want:        "all",
+		},
+		{
+			name:        "nil provider, existing secret has private — preserves private",
+			nilProvider: true,
+			existing:    &github.Secret{Visibility: *ptr("private")},
+			want:        "private",
+		},
+		{
+			name:        "provider unset, no existing secret — defaults to all",
+			providerViz: "",
+			existing:    nil,
+			want:        "all",
+		},
+		{
+			name:        "provider unset, existing secret has all — preserves all",
+			providerViz: "",
+			existing:    &github.Secret{Visibility: *ptr("all")},
+			want:        "all",
+		},
+		{
+			name:        "provider unset, existing secret has private — preserves private",
+			providerViz: "",
+			existing:    &github.Secret{Visibility: *ptr("private")},
+			want:        "private",
+		},
+		{
+			name:        "provider set to private, no existing secret",
+			providerViz: "private",
+			existing:    nil,
+			want:        "private",
+		},
+		{
+			name:        "provider set to private, existing secret has all — provider wins",
+			providerViz: "private",
+			existing:    &github.Secret{Visibility: *ptr("all")},
+			want:        "private",
+		},
+		{
+			name:        "provider set to all, existing secret has private — provider wins",
+			providerViz: "all",
+			existing:    &github.Secret{Visibility: *ptr("private")},
+			want:        "all",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &Client{}
+			if !tt.nilProvider {
+				g.provider = &esv1.GithubProvider{
+					OrgSecretVisibility: tt.providerViz,
+				}
+			}
+			got := g.resolveOrgSecretVisibility(tt.existing)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // generateTestPrivateKey generates a PEM-encoded RSA private key for testing.
 func generateTestPrivateKey() (string, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)

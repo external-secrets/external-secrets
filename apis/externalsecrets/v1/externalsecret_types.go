@@ -78,6 +78,18 @@ const (
 	DeletionPolicyRetain ExternalSecretDeletionPolicy = "Retain"
 )
 
+// ExternalSecretNullBytePolicy defines how fetched secret data containing NUL bytes should be handled.
+// +kubebuilder:validation:Enum=Ignore;Fail
+type ExternalSecretNullBytePolicy string
+
+const (
+	// ExternalSecretNullBytePolicyIgnore allows fetched secret data to contain NUL bytes.
+	ExternalSecretNullBytePolicyIgnore ExternalSecretNullBytePolicy = "Ignore"
+
+	// ExternalSecretNullBytePolicyFail fails reconciliation if fetched secret data contains NUL bytes.
+	ExternalSecretNullBytePolicyFail ExternalSecretNullBytePolicy = "Fail"
+)
+
 // ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
 type ExternalSecretTemplateMetadata struct {
 	// +optional
@@ -292,6 +304,11 @@ type ExternalSecretDataRemoteRef struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
+	// +kubebuilder:default="Ignore"
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
 // ExternalSecretMetadataPolicy defines policies for fetching metadata from provider secrets.
@@ -477,6 +494,11 @@ type ExternalSecretFind struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+	// +kubebuilder:default="Ignore"
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
 // FindName defines criteria for finding secrets by name patterns.

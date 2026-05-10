@@ -1774,6 +1774,8 @@ string
 <a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
 <a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>, 
+<a href="#external-secrets.io/v1.PassboltProvider">PassboltProvider</a>, 
 <a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
@@ -3242,6 +3244,19 @@ string
 </tr>
 <tr>
 <td>
+<code>vault</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Vault is the name or UUID of the vault to fetch secrets from.
+When omitted, the vault must be specified in the secret key using the legacy format &ldquo;<vault-id>/<entry-id>&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>insecure</code></br>
 <em>
 bool
@@ -4080,6 +4095,20 @@ ExternalSecretDecodingStrategy
 <p>Used to define a decoding Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nullBytePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretNullBytePolicy">
+ExternalSecretNullBytePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controls how ESO handles fetched secret data containing NUL bytes for this source.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretDecodingStrategy">ExternalSecretDecodingStrategy
@@ -4231,6 +4260,20 @@ ExternalSecretDecodingStrategy
 <p>Used to define a decoding Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nullBytePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretNullBytePolicy">
+ExternalSecretNullBytePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controls how ESO handles fetched secret data containing NUL bytes for this find source.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretMetadata">ExternalSecretMetadata
@@ -4295,6 +4338,31 @@ map[string]string
 </td>
 </tr><tr><td><p>&#34;None&#34;</p></td>
 <td><p>ExternalSecretMetadataPolicyNone specifies that no metadata should be fetched from the provider.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretNullBytePolicy">ExternalSecretNullBytePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
+</p>
+<p>
+<p>ExternalSecretNullBytePolicy defines how fetched secret data containing NUL bytes should be handled.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Fail&#34;</p></td>
+<td><p>ExternalSecretNullBytePolicyFail fails reconciliation if fetched secret data contains NUL bytes.</p>
+</td>
+</tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td><p>ExternalSecretNullBytePolicyIgnore allows fetched secret data to contain NUL bytes.</p>
 </td>
 </tr></tbody>
 </table>
@@ -4550,7 +4618,8 @@ list during merge operations.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
 <p>ExternalSecretRewriteRegexp defines configuration for rewriting secrets using regular expressions.</p>
@@ -4591,7 +4660,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
 <p>ExternalSecretRewriteTransform defines configuration for transforming secrets using templates.</p>
@@ -5989,6 +6059,21 @@ string
 <p>environment will be used to fetch secrets from a particular environment within a github repository</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>orgSecretVisibility</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>orgSecretVisibility controls the visibility of organization secrets pushed via PushSecret.
+Valid values are &ldquo;all&rdquo; or &ldquo;private&rdquo;.
+When unset, new secrets are created with visibility &ldquo;all&rdquo; and existing secrets preserve
+whatever visibility they already have in GitHub.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GitlabAuth">GitlabAuth
@@ -6702,6 +6787,16 @@ External Secrets meta/v1.SecretKeySelector
 <code>folderID</code></br>
 <em>
 string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>getByTitleFallback</code></br>
+<em>
+bool
 </em>
 </td>
 <td>
@@ -8175,6 +8270,227 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.OvhAuth">OvhAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhProvider">OvhProvider</a>)
+</p>
+<p>
+<p>OvhAuth tells the controller how to authenticate to OVHcloud&rsquo;s Secret Manager, either using mTLS or a token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mtls</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientMTLS">
+OvhClientMTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientToken">
+OvhClientToken
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientMTLS defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager using mTLS.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientToken">OvhClientToken
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientToken defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager using a token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhProvider">OvhProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OvhProvider holds the configuration to synchronize secrets with OVHcloud&rsquo;s Secret Manager.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>specifies the OKMS server endpoint.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>okmsid</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>specifies the OKMS ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>casRequired</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Enables or disables check-and-set (CAS) (default: false).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>okmsTimeout</code></br>
+<em>
+uint32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Setup a timeout in seconds when requests to the KMS are made (default: 30).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhAuth">
+OvhAuth
+</a>
+</em>
+</td>
+<td>
+<p>Authentication method (mtls or token).</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.PassboltAuth">PassboltAuth
 </h3>
 <p>
@@ -8258,6 +8574,34 @@ string
 </td>
 <td>
 <p>Host defines the Passbolt Server to connect to</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM encoded CA bundle used to validate Passbolt server certificate. Only used
+if the Host URL is using HTTPS protocol. If not set the system root certificates
+are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Passbolt server certificate.</p>
 </td>
 </tr>
 </tbody>
@@ -8491,6 +8835,110 @@ string
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
+<h3 id="external-secrets.io/v1.PulumiAuth">PulumiAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiProvider">PulumiProvider</a>)
+</p>
+<p>
+<p>PulumiAuth configures authentication with the Pulumi API.
+Exactly one of accessToken or oidcConfig must be specified.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
+PulumiProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessToken authenticates using a Pulumi access token stored in a Kubernetes Secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiOIDCAuth">
+PulumiOIDCAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.PulumiOIDCAuth">PulumiOIDCAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiAuth">PulumiAuth</a>)
+</p>
+<p>
+<p>PulumiOIDCAuth configures OIDC authentication with Pulumi using Kubernetes ServiceAccount tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>organization</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Organization is the name of the Pulumi organization configured for OIDC authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpirationSeconds sets the token validity duration for service account and OIDC token.
+Defaults to 10 minutes.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.PulumiProvider">PulumiProvider
 </h3>
 <p>
@@ -8521,15 +8969,17 @@ string
 </tr>
 <tr>
 <td>
-<code>accessToken</code></br>
+<code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
-PulumiProviderSecretRef
+<a href="#external-secrets.io/v1.PulumiAuth">
+PulumiAuth
 </a>
 </em>
 </td>
 <td>
-<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.</p>
+<em>(Optional)</em>
+<p>Auth configures how the Operator authenticates with the Pulumi API.
+Either auth or the deprecated accessToken field must be specified.</p>
 </td>
 </tr>
 <tr>
@@ -8569,12 +9019,28 @@ and other Pulumi ESC environments.
 To create a new environment, visit <a href="https://www.pulumi.com/docs/esc/environments/">https://www.pulumi.com/docs/esc/environments/</a> for more information.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
+PulumiProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.</p>
+<p>Deprecated: Use auth.accessToken instead.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.PulumiProviderSecretRef">PulumiProviderSecretRef
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiAuth">PulumiAuth</a>, 
 <a href="#external-secrets.io/v1.PulumiProvider">PulumiProvider</a>)
 </p>
 <p>
@@ -9178,6 +9644,20 @@ VaultProvider
 <td>
 <em>(Optional)</em>
 <p>Vault configures this store to sync secrets using the HashiCorp Vault provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ovh</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhProvider">
+OvhProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OVHcloud configures this store to sync secrets using the OVHcloud provider.</p>
 </td>
 </tr>
 <tr>
@@ -11074,6 +11554,18 @@ string
 <em>(Optional)</em>
 <p>Path where the Certificate authentication backend is mounted
 in Vault, e.g: &ldquo;cert&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VaultRole specifies the Vault role to use for TLS certificate authentication.</p>
 </td>
 </tr>
 <tr>
@@ -13122,7 +13614,22 @@ PushSecretSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Secret Data that should be pushed to providers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataTo</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">
+[]PushSecretDataTo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DataTo defines bulk push rules that expand source Secret keys into provider entries.</p>
 </td>
 </tr>
 <tr>
@@ -13181,7 +13688,8 @@ PushSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>)
+<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>, 
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
 </p>
 <p>
 <p>PushSecretConversionStrategy defines how secret values are converted when pushed to providers.</p>
@@ -13256,6 +13764,143 @@ PushSecretConversionStrategy
 <td>
 <em>(Optional)</em>
 <p>Used to define a conversion Strategy for the secret keys</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
+</p>
+<p>
+<p>PushSecretDataTo defines how to bulk-push secrets to providers without explicit per-key mappings.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretStoreRef">
+PushSecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<p>StoreRef specifies which SecretStore to push to. Required.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>remoteKey</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RemoteKey is the name of the single provider secret that will receive ALL
+matched keys bundled as a JSON object (e.g. {&ldquo;DB_HOST&rdquo;:&ldquo;&hellip;&rdquo;,&ldquo;DB_USER&rdquo;:&ldquo;&hellip;&rdquo;}).
+When set, per-key expansion is skipped and a single push is performed.
+The provider&rsquo;s store prefix (if any) is still prepended to this value.
+When not set, each matched key is pushed as its own individual provider secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>match</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataToMatch">
+PushSecretDataToMatch
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Match pattern for selecting keys from the source Secret.
+If not specified, all keys are selected.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rewrite</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretRewrite">
+[]PushSecretRewrite
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Rewrite operations to transform keys before pushing to the provider.
+Operations are applied sequentially.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Metadata is metadata attached to the secret.
+The structure of metadata is provider specific, please look it up in the provider documentation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conversionStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretConversionStrategy">
+PushSecretConversionStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a conversion Strategy for the secret keys</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretDataToMatch">PushSecretDataToMatch
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
+</p>
+<p>
+<p>PushSecretDataToMatch defines pattern matching for key selection.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Regexp matches keys by regular expression.
+If not specified, all keys are matched.</p>
 </td>
 </tr>
 </tbody>
@@ -13407,6 +14052,53 @@ string
 <td>
 <em>(Optional)</em>
 <p>Name of the property in the resulting secret</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
+</p>
+<p>
+<p>PushSecretRewrite defines how to transform secret keys before pushing.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteRegexp">
+ExternalSecretRewriteRegexp
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to rewrite with regular expressions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transform</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteTransform">
+ExternalSecretRewriteTransform
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to apply string transformation on the secrets.</p>
 </td>
 </tr>
 </tbody>
@@ -13598,7 +14290,22 @@ PushSecretSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Secret Data that should be pushed to providers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataTo</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">
+[]PushSecretDataTo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DataTo defines bulk push rules that expand source Secret keys into provider entries.</p>
 </td>
 </tr>
 <tr>
@@ -13772,6 +14479,7 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
 </p>
 <p>
@@ -27996,6 +28704,20 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </tr>
 <tr>
 <td>
+<code>getParameters</code></br>
+<em>
+map[string][]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GetParameters are query-string parameters passed to Vault on GET calls.
+Each key may map to multiple values, matching HTTP query-string semantics.
+Ignored for non-GET methods; use Parameters for write bodies.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>resultType</code></br>
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecretResultType">
@@ -28145,6 +28867,20 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </td>
 <td>
 <p>Parameters to pass to Vault write (for non-GET methods)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>getParameters</code></br>
+<em>
+map[string][]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GetParameters are query-string parameters passed to Vault on GET calls.
+Each key may map to multiple values, matching HTTP query-string semantics.
+Ignored for non-GET methods; use Parameters for write bodies.</p>
 </td>
 </tr>
 <tr>

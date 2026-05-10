@@ -97,14 +97,12 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 
 // PushSecret will write a single secret into the provider.
 func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
-	// NOT IMPLEMENTED
-	return nil
+	return errors.New("pushing secrets is not implemented for the Conjur provider")
 }
 
 // DeleteSecret removes a secret from the provider.
 func (c *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	// NOT IMPLEMENTED
-	return nil
+	return errors.New("deleting secrets is not implemented for the Conjur provider")
 }
 
 // SecretExists checks if a secret exists in the provider.

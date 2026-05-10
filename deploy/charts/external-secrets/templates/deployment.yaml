@@ -74,6 +74,9 @@ spec:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
           {{- end }}
+          {{- if .Values.leaderElectionID }}
+          - --leader-election-id={{ .Values.leaderElectionID }}
+          {{- end }}
           {{- if .Values.scopedNamespace }}
           - --namespace={{ .Values.scopedNamespace }}
           {{- end }}
@@ -106,6 +109,12 @@ spec:
           {{- end }}
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
+          {{- end }}
+          {{- if .Values.vault.enableTokenCache }}
+          - --enable-vault-token-cache=true
+          {{- end }}
+          {{- if and .Values.vault.enableTokenCache .Values.vault.tokenCacheSize }}
+          - --vault-token-cache-size={{ .Values.vault.tokenCacheSize }}
           {{- end }}
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}

@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets-e2e
 
-go 1.26.1
+go 1.26.2
 
 replace github.com/external-secrets/external-secrets => ../
 
@@ -42,8 +42,8 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.30
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0
-	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1
-	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5
+	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.2
+	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.7
 	github.com/akeylesslabs/akeyless-go/v4 v4.3.0
 	github.com/aws/aws-sdk-go-v2 v1.39.5
 	github.com/aws/aws-sdk-go-v2/config v1.31.16
@@ -102,7 +102,6 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.1-0.20241028115027-8cb06fe3c8b0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.12 // indirect
@@ -131,7 +130,7 @@ require (
 	github.com/fluxcd/pkg/apis/kustomize v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect

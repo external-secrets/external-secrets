@@ -199,10 +199,13 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		annotations = make(map[string]string)
 	}
 
+	srcLabels, srcAnnotations := es.ObjectMeta.Labels, es.ObjectMeta.Annotations
 	if es.Spec.Target.Template != nil {
-		maps.Copy(labels, es.Spec.Target.Template.Metadata.Labels)
-		maps.Copy(annotations, es.Spec.Target.Template.Metadata.Annotations)
+		srcLabels = es.Spec.Target.Template.Metadata.Labels
+		srcAnnotations = es.Spec.Target.Template.Metadata.Annotations
 	}
+	maps.Copy(labels, srcLabels)
+	maps.Copy(annotations, srcAnnotations)
 
 	labels[esv1.LabelManaged] = esv1.LabelManagedValue
 
@@ -232,6 +235,10 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 
 	ann[esv1.AnnotationDataHash] = hash
 	result.SetAnnotations(ann)
+
+	if err := r.applyOwnership(es, result); err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }

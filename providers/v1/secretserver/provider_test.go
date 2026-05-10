@@ -167,7 +167,7 @@ func TestValidateStore(t *testing.T) {
 func TestNewClient(t *testing.T) {
 	userNameKey := "username"
 	userNameValue := "foo"
-	passwordKey := "password"
+	passwordKey := passwordSlug
 	passwordValue := generateRandomString()
 	domain := "domain1"
 
@@ -633,8 +633,8 @@ func TestCapabilities(t *testing.T) {
 	tests := map[string]struct {
 		want esv1.SecretStoreCapabilities
 	}{
-		"returns ReadOnly capability": {
-			want: esv1.SecretStoreReadOnly,
+		"returns ReadWrite capability": {
+			want: esv1.SecretStoreReadWrite,
 		},
 	}
 
@@ -646,9 +646,7 @@ func TestCapabilities(t *testing.T) {
 
 			// Edge: call Capabilities on nil Provider
 			var nilP *Provider
-			if nilP != nil {
-				assert.Equal(t, esv1.SecretStoreReadOnly, nilP.Capabilities())
-			}
+			assert.Equal(t, esv1.SecretStoreReadWrite, nilP.Capabilities())
 		})
 	}
 }

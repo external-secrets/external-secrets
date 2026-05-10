@@ -10,21 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     # Checking the actor will prevent your Action run failing on non-Dependabot
     # PRs but also ensures that it only does work for Dependabot PRs.
-    if: ${{ github.actor == 'dependabot[bot]' }}
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
-      - uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      - uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
         with:
           egress-policy: audit
-      - uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+      - uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
         id: app-token
+        env:
+          APP_ID: ${{ secrets.APP_ID }}
         with:
-          app-id: ${{ secrets.APP_ID }}
+          app-id: ${{ env.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
       # This first step will fail if there's no metadata and so the approval
       # will not occur.
       - name: Dependabot metadata
         id: dependabot-metadata
-        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: "${{ steps.app-token.outputs.token }}"
       # Here the PR gets approved.

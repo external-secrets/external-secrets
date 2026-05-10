@@ -222,6 +222,12 @@ func rsaEncryptOAEP(t testing.TB, publicKeyPEM []byte, hash, plaintext string) [
 	return ciphertext
 }
 
+func TestFuncMapDoesNotExposeGetHostByName(t *testing.T) {
+	if _, ok := FuncMap()["getHostByName"]; ok {
+		t.Fatalf("getHostByName should not be exposed in the template function map")
+	}
+}
+
 func TestExecute(t *testing.T) {
 	tbl := []struct {
 		name                string
@@ -829,6 +835,19 @@ func TestExecuteInvalidTemplateScope(t *testing.T) {
 	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "expected 'Values' or 'KeysAndValues'")
+}
+
+// Target dispatch is case-insensitive; validators rely on this.
+func TestExecuteTargetCaseInsensitive(t *testing.T) {
+	for _, target := range []string{"Annotations", "annotations", "ANNOTATIONS", "AnNoTaTiOnS"} {
+		t.Run(target, func(t *testing.T) {
+			sec := &corev1.Secret{}
+			require.NoError(t, Execute(map[string][]byte{"foo": []byte("bar")}, nil, esapi.TemplateScopeValues, target, sec))
+			assert.Equal(t, "bar", sec.Annotations["foo"])
+			assert.Empty(t, sec.Labels)
+			assert.Empty(t, sec.Data)
+		})
+	}
 }
 
 func TestScopeKeysAndValues(t *testing.T) {

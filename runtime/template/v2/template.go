@@ -23,7 +23,6 @@ import (
 	"strings"
 	tpl "text/template"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +31,7 @@ import (
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/feature"
+	"github.com/external-secrets/external-secrets/runtime/template/v2/sprig"
 )
 
 var tplFuncs = tpl.FuncMap{
@@ -84,11 +84,7 @@ const (
 )
 
 func init() {
-	sprigFuncs := sprig.TxtFuncMap()
-	delete(sprigFuncs, "env")
-	delete(sprigFuncs, "expandenv")
-
-	maps.Copy(tplFuncs, sprigFuncs)
+	maps.Copy(tplFuncs, sprig.TxtFuncMap())
 	fs := pflag.NewFlagSet("template", pflag.ExitOnError)
 	fs.StringVar(&leftDelim, "template-left-delimiter", "{{", "templating left delimiter")
 	fs.StringVar(&rightDelim, "template-right-delimiter", "}}", "templating right delimiter")

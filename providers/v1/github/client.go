@@ -123,10 +123,9 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 		return fmt.Errorf("box.SealAnonymous failed with error %w", err)
 	}
 	name := remoteRef.GetRemoteKey()
-	visibility := "all"
+	visibility := g.resolveOrgSecretVisibility(githubSecret)
 	if githubSecret != nil {
 		name = githubSecret.Name
-		visibility = githubSecret.Visibility
 	}
 	encryptedString := base64.StdEncoding.EncodeToString(encryptedBytes)
 	keyID := publicKey.GetKeyID()
@@ -142,6 +141,22 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 	}
 
 	return nil
+}
+
+// resolveOrgSecretVisibility returns the visibility to use when creating or updating an org secret.
+//
+// Rules:
+//   - If OrgSecretVisibility is set on the provider, that value is always used.
+//   - Otherwise, if the secret already exists in GitHub, its current visibility is preserved.
+//   - Otherwise (new secret, no provider override), visibility defaults to "all".
+func (g *Client) resolveOrgSecretVisibility(existing *github.Secret) string {
+	if g.provider != nil && g.provider.OrgSecretVisibility != "" {
+		return g.provider.OrgSecretVisibility
+	}
+	if existing != nil && existing.Visibility != "" {
+		return existing.Visibility
+	}
+	return "all"
 }
 
 // GetAllSecrets is not implemented as this provider is write-only.

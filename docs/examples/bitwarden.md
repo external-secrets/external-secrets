@@ -22,18 +22,24 @@ When you create a new external-secret object, the External Secrets webhook provi
 
 * Bitwarden account (it also works with Vaultwarden!)
 * A Kubernetes secret which contains your Bitwarden credentials
-* A Docker image running the Bitwarden CLI. You could use `ghcr.io/charlesthomas/bitwarden-cli:2023.12.1` or build your own.
+* A Docker image running the Bitwarden CLI. You could use `ghcr.io/charlesthomas/bitwarden-cli:2026.3.0` or build your own.
 
 Here is an example of a Dockerfile used to build the image:
 ```dockerfile
 FROM debian:sid
 
-ENV BW_CLI_VERSION=2023.12.1
+ARG BW_CLI_VERSION=2025.12.1
+ARG TARGETARCH
 
 RUN apt update && \
     apt install -y wget unzip && \
-    wget https://github.com/bitwarden/clients/releases/download/cli-v${BW_CLI_VERSION}/bw-linux-${BW_CLI_VERSION}.zip && \
-    unzip bw-linux-${BW_CLI_VERSION}.zip && \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+      BW_ARCH="-arm64"; \
+    else \
+      BW_ARCH=""; \
+    fi && \
+    wget https://github.com/bitwarden/clients/releases/download/cli-v${BW_CLI_VERSION}/bw-oss-linux${BW_ARCH}-${BW_CLI_VERSION}.zip && \
+    unzip bw-oss-linux${BW_ARCH}-${BW_CLI_VERSION}.zip && \
     chmod +x bw && \
     mv bw /usr/local/bin/bw && \
     rm -rfv *.zip

@@ -38,20 +38,10 @@ func NewExternalSecretCondition(condType esv1.ExternalSecretConditionType, statu
 	}
 }
 
-// GetExternalSecretCondition returns the condition with the provided type.
-func GetExternalSecretCondition(status esv1.ExternalSecretStatus, condType esv1.ExternalSecretConditionType) *esv1.ExternalSecretStatusCondition {
-	for _, c := range status.Conditions {
-		if c.Type == condType {
-			return &c
-		}
-	}
-	return nil
-}
-
 // SetExternalSecretCondition updates the external secret to include the provided
 // condition.
 func SetExternalSecretCondition(es *esv1.ExternalSecret, condition esv1.ExternalSecretStatusCondition) {
-	currentCond := GetExternalSecretCondition(es.Status, condition.Type)
+	currentCond := esv1.GetExternalSecretCondition(es.Status, condition.Type)
 
 	if currentCond != nil && currentCond.Status == condition.Status &&
 		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
