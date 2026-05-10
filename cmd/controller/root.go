@@ -160,7 +160,10 @@ var rootCmd = &cobra.Command{
 		if metricsAuth {
 			metricsOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
 		}
-
+		if metricsAuth && !metricsSecure {
+			setupLog.Error(nil, "--metrics-auth requires --metrics-secure; bearer tokens over plaintext HTTP is not allowed")
+			os.Exit(1)
+		}
 		// Disable HTTP/2 if not explicitly enabled
 		if !enableHTTP2 {
 			metricsOpts.TLSOpts = []func(*tls.Config){disableHTTP2}

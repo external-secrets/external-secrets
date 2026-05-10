@@ -131,6 +131,23 @@
                                 },
                                 "port": {
                                     "type": "integer"
+                                },
+                                "secure": {
+                                    "type": "object",
+                                    "properties": {
+                                        "certDir": {
+                                            "type": "string"
+                                        },
+                                        "certFile": {
+                                            "type": "string"
+                                        },
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "keyFile": {
+                                            "type": "string"
+                                        }
+                                    }
                                 }
                             }
                         },
@@ -1099,6 +1116,23 @@
                                 },
                                 "port": {
                                     "type": "integer"
+                                },
+                                "secure": {
+                                    "type": "object",
+                                    "properties": {
+                                        "certDir": {
+                                            "type": "string"
+                                        },
+                                        "certFile": {
+                                            "type": "string"
+                                        },
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "keyFile": {
+                                            "type": "string"
+                                        }
+                                    }
                                 }
                             }
                         },
