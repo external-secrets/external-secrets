@@ -94,6 +94,9 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 // GetSecret reads a Gitea Actions Variable by name.
 // If ref.Property is set, the variable value must be a JSON object and the specified property is extracted.
 func (g *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+		return nil, fmt.Errorf("gitea provider does not support metadataPolicy=Fetch")
+	}
 	value, err := g.getVariableFn(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -113,6 +116,9 @@ func (g *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 
 // GetSecretMap reads a Gitea Actions Variable and returns its value parsed as a JSON object.
 func (g *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+		return nil, fmt.Errorf("gitea provider does not support metadataPolicy=Fetch")
+	}
 	value, err := g.getVariableFn(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -129,7 +135,11 @@ func (g *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 }
 
 // GetAllSecrets lists all Gitea Actions Variables, optionally filtered by ref.Name regexp.
+// Tag-based and metadata-policy-based filtering are not supported by this provider.
 func (g *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if len(ref.Tags) > 0 {
+		return nil, fmt.Errorf("gitea provider does not support findByTags")
+	}
 	all, err := g.listVariablesFn(ctx)
 	if err != nil {
 		return nil, err
