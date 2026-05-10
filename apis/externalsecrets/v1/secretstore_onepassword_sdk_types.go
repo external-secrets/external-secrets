@@ -55,9 +55,17 @@ type CacheConfig struct {
 }
 
 // OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.
+// Exactly one of Vault or Environment must be set.
 type OnePasswordSDKProvider struct {
 	// Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
-	Vault string `json:"vault"`
+	// Mutually exclusive with Environment.
+	// +optional
+	Vault string `json:"vault,omitempty"`
+	// Environment defines the 1Password Environment ID to read variables from.
+	// Environments are read-only: PushSecret, DeleteSecret, and SecretExists return an error when set.
+	// Mutually exclusive with Vault.
+	// +optional
+	Environment string `json:"environment,omitempty"`
 	// IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
 	// If you don't know which name and version to use, use `DefaultIntegrationName` and `DefaultIntegrationVersion`, respectively.
 	// +optional
