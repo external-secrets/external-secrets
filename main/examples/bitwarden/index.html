@@ -5062,17 +5062,23 @@ To integrate with Bitwarden <strong>Secrets Manager</strong>, reference the <a h
 <ul>
 <li>Bitwarden account (it also works with Vaultwarden!)</li>
 <li>A Kubernetes secret which contains your Bitwarden credentials</li>
-<li>A Docker image running the Bitwarden CLI. You could use <code>ghcr.io/charlesthomas/bitwarden-cli:2023.12.1</code> or build your own.</li>
+<li>A Docker image running the Bitwarden CLI. You could use <code>ghcr.io/charlesthomas/bitwarden-cli:2026.3.0</code> or build your own.</li>
 </ul>
 <p>Here is an example of a Dockerfile used to build the image:
 <div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">debian:sid</span>
 
-<span class="k">ENV</span><span class="w"> </span><span class="nv">BW_CLI_VERSION</span><span class="o">=</span><span class="m">2023</span>.12.1
+<span class="k">ARG</span><span class="w"> </span><span class="nv">BW_CLI_VERSION</span><span class="o">=</span><span class="m">2025</span>.12.1
+<span class="k">ARG</span><span class="w"> </span>TARGETARCH
 
 <span class="k">RUN</span><span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>wget<span class="w"> </span>unzip<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>wget<span class="w"> </span>https://github.com/bitwarden/clients/releases/download/cli-v<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>/bw-linux-<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>.zip<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>unzip<span class="w"> </span>bw-linux-<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>.zip<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGETARCH</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;arm64&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="se">\</span>
+<span class="w">      </span><span class="nv">BW_ARCH</span><span class="o">=</span><span class="s2">&quot;-arm64&quot;</span><span class="p">;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="se">\</span>
+<span class="w">      </span><span class="nv">BW_ARCH</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="k">fi</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>wget<span class="w"> </span>https://github.com/bitwarden/clients/releases/download/cli-v<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>/bw-oss-linux<span class="si">${</span><span class="nv">BW_ARCH</span><span class="si">}</span>-<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>.zip<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>unzip<span class="w"> </span>bw-oss-linux<span class="si">${</span><span class="nv">BW_ARCH</span><span class="si">}</span>-<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>.zip<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>chmod<span class="w"> </span>+x<span class="w"> </span>bw<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>mv<span class="w"> </span>bw<span class="w"> </span>/usr/local/bin/bw<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>rm<span class="w"> </span>-rfv<span class="w"> </span>*.zip
