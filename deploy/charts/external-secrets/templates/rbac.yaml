@@ -195,6 +195,7 @@ rules:
     verbs:
     - "create"
     - "patch"
+  {{- if .Values.processClusterExternalSecret }}
   - apiGroups:
     - "external-secrets.io"
     resources:
@@ -203,6 +204,7 @@ rules:
     - "create"
     - "update"
     - "delete"
+  {{- end }}
   {{- if .Values.processPushSecret }}
   - apiGroups:
     - "external-secrets.io"
