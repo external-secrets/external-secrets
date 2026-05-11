@@ -548,6 +548,7 @@ func TestBuildSessionTags(t *testing.T) {
 		customTags map[string]string
 		namespace  string
 		storeName  string
+		storeKind  string
 		expected   []*esv1.Tag
 	}{
 		{
@@ -555,9 +556,11 @@ func TestBuildSessionTags(t *testing.T) {
 			customTags: nil,
 			namespace:  "test-namespace",
 			storeName:  "test-store",
+			storeKind:  "TestSecretStore",
 			expected: []*esv1.Tag{
 				{Key: "esoNamespace", Value: "test-namespace"},
 				{Key: "esoStoreName", Value: "test-store"},
+				{Key: "esoStoreKind", Value: "TestSecretStore"},
 			},
 		},
 		{
@@ -568,10 +571,12 @@ func TestBuildSessionTags(t *testing.T) {
 			},
 			namespace: "test-namespace",
 			storeName: "test-store",
+			storeKind: "TestSecretStore",
 			expected: []*esv1.Tag{
 				{Key: "env", Value: "prod"},
 				{Key: "esoNamespace", Value: "test-namespace"},
 				{Key: "esoStoreName", Value: "test-store"},
+				{Key: "esoStoreKind", Value: "TestSecretStore"},
 				{Key: "team", Value: "platform"},
 			},
 		},
@@ -584,9 +589,11 @@ func TestBuildSessionTags(t *testing.T) {
 			},
 			namespace: "test-namespace",
 			storeName: "test-store",
+			storeKind: "TestSecretStore",
 			expected: []*esv1.Tag{
 				{Key: "esoNamespace", Value: "test-namespace"},
 				{Key: "esoStoreName", Value: "test-store"},
+				{Key: "esoStoreKind", Value: "TestSecretStore"},
 				{Key: "valid", Value: "tag"},
 			},
 		},
@@ -598,16 +605,18 @@ func TestBuildSessionTags(t *testing.T) {
 			},
 			namespace: "real-namespace",
 			storeName: "real-store",
+			storeKind: "TestSecretStore",
 			expected: []*esv1.Tag{
 				{Key: "esoNamespace", Value: "real-namespace"},
 				{Key: "esoStoreName", Value: "real-store"},
+				{Key: "esoStoreKind", Value: "TestSecretStore"},
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := buildSessionTags(tt.customTags, tt.namespace, tt.storeName)
+			result := buildSessionTags(tt.customTags, tt.namespace, tt.storeName, tt.storeKind)
 
 			sortTags(result)
 			sortTags(tt.expected)

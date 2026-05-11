@@ -152,9 +152,9 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	case esv1.SessionTagsPolicyNone:
 		// no op
 	case esv1.SessionTagsPolicySimple:
-		prov.SessionTags = buildSessionTags(nil, namespace, store.GetName())
+		prov.SessionTags = buildSessionTags(nil, namespace, store.GetName(), store.GetKind())
 	case esv1.SessionTagsPolicyCustom:
-		prov.SessionTags = buildSessionTags(prov.CustomSessionTags, namespace, store.GetName())
+		prov.SessionTags = buildSessionTags(prov.CustomSessionTags, namespace, store.GetName(), store.GetKind())
 	}
 
 	// allow SecretStore controller validation to pass
@@ -232,7 +232,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 // buildSessionTags constructs a list of session tags for the AWS STS session.
 // It always includes the esoNamespace and esoStoreName tags.
 // When customTags is provided (Custom mode), those are merged in as well.
-func buildSessionTags(customTags map[string]string, namespace, storeName string) []*esv1.Tag {
+func buildSessionTags(customTags map[string]string, namespace, storeName, storeKind string) []*esv1.Tag {
 	m := make(map[string]string)
 
 	for k, v := range customTags {
@@ -242,6 +242,7 @@ func buildSessionTags(customTags map[string]string, namespace, storeName string)
 	}
 	m["esoNamespace"] = namespace
 	m["esoStoreName"] = storeName
+	m["esoStoreKind"] = storeKind
 
 	newTags := make([]*esv1.Tag, 0, len(m))
 	for k, v := range m {
