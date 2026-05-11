@@ -194,11 +194,10 @@ func stubRgt(certARN string) *fakeacm.RgtClient {
 	}
 }
 
-func exportableDescribe(serial string) fakeacm.DescribeCertificateFn {
+func exportableDescribe() fakeacm.DescribeCertificateFn {
 	return func(_ context.Context, _ *acm.DescribeCertificateInput, _ ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
 		return &acm.DescribeCertificateOutput{
 			Certificate: &types.CertificateDetail{
-				Serial: aws.String(serial),
 				Options: &types.CertificateOptions{
 					Export: types.CertificateExportEnabled,
 				},
@@ -293,8 +292,8 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	if !bytes.Equal(gotChain, certs.IntermediatePEM) {
 		t.Error("CertificateChain field should be the intermediate certificate")
 	}
-	if len(gotTags) != 3 {
-		t.Fatalf("expected 3 management tags on new import, got %d", len(gotTags))
+	if len(gotTags) != 2 {
+		t.Fatalf("expected 2 management tags on new import, got %d", len(gotTags))
 	}
 	tagMap := make(map[string]string, len(gotTags))
 	for _, tag := range gotTags {
@@ -305,10 +304,6 @@ func TestPushSecret_NewCertificate(t *testing.T) {
 	}
 	if tagMap[remoteKeyTag] != testRemoteKey {
 		t.Errorf(errExpectedTag, remoteKeyTag, testRemoteKey, tagMap[remoteKeyTag])
-	}
-	expectedHash := computeContentHash(certs.TLSCrt, certs.PrivateKeyPEM)
-	if tagMap[contentHashTag] != expectedHash {
-		t.Errorf(errExpectedTag, contentHashTag, expectedHash, tagMap[contentHashTag])
 	}
 }
 
@@ -350,10 +345,11 @@ func TestPushSecret_ReimportExisting(t *testing.T) {
 	var importedARN string
 
 	fake := &fakeacm.Client{
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{Certificate: aws.String(string(certs.RootPEM))}, nil
+		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			tags := append(managedTags(testRemoteKey),
-				types.Tag{Key: aws.String(contentHashTag), Value: aws.String("stale-hash")})
-			return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
+			return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 		},
 		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importedARN = aws.ToString(p.CertificateArn)
@@ -387,14 +383,17 @@ func TestPushSecret_SkipsReimportWhenUnchanged(t *testing.T) {
 	certs := generateTestCerts(t)
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/unchanged"
 
-	currentHash := computeContentHash(certs.TLSCrt, certs.PrivateKeyPEM)
 	importCalled := false
 
 	fake := &fakeacm.Client{
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{
+				Certificate:      aws.String(string(certs.LeafPEM)),
+				CertificateChain: aws.String(string(certs.IntermediatePEM)),
+			}, nil
+		},
 		ListTagsForCertificateFn: func(_ context.Context, _ *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
-			tags := append(managedTags(testRemoteKey),
-				types.Tag{Key: aws.String(contentHashTag), Value: aws.String(currentHash)})
-			return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
+			return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 		},
 		ImportCertificateFn: func(_ context.Context, _ *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importCalled = true
@@ -460,26 +459,22 @@ func TestPushSecret_CachePreventsDoubleImport(t *testing.T) {
 	certs := generateTestCerts(t)
 	const arn = "arn:aws:acm:us-east-1:123456789012:certificate/cached"
 
-	var currentHash string
-	captureHash := func(tags []types.Tag) {
-		if h := getTagValue(tags, contentHashTag); h != "" {
-			currentHash = h
-		}
-	}
 	fake := &fakeacm.Client{
-		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
-			captureHash(p.Tags)
+		ImportCertificateFn: func(_ context.Context, _ *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
 		},
-		AddTagsToCertificateFn: func(_ context.Context, p *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
-			captureHash(p.Tags)
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{
+				Certificate:      aws.String(string(certs.LeafPEM)),
+				CertificateChain: aws.String(string(certs.IntermediatePEM)),
+			}, nil
+		},
+		AddTagsToCertificateFn: func(_ context.Context, _ *acm.AddTagsToCertificateInput, _ ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {
 			return &acm.AddTagsToCertificateOutput{}, nil
 		},
 		ListTagsForCertificateFn: func(_ context.Context, p *acm.ListTagsForCertificateInput, _ ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error) {
 			if aws.ToString(p.CertificateArn) == arn {
-				tags := append(managedTags(testRemoteKey),
-					types.Tag{Key: aws.String(contentHashTag), Value: aws.String(currentHash)})
-				return &acm.ListTagsForCertificateOutput{Tags: tags}, nil
+				return &acm.ListTagsForCertificateOutput{Tags: managedTags(testRemoteKey)}, nil
 			}
 			return &acm.ListTagsForCertificateOutput{}, nil
 		},
@@ -523,6 +518,9 @@ func TestPushSecret_CacheClearedOnDelete(t *testing.T) {
 
 	importCount := 0
 	fake := &fakeacm.Client{
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{Certificate: aws.String(string(certs.RootPEM))}, nil
+		},
 		ImportCertificateFn: func(_ context.Context, p *acm.ImportCertificateInput, _ ...func(*acm.Options)) (*acm.ImportCertificateOutput, error) {
 			importCount++
 			return &acm.ImportCertificateOutput{CertificateArn: aws.String(arn)}, nil
@@ -779,7 +777,13 @@ func TestGetSecret_ReturnsConcatenatedBundle(t *testing.T) {
 	}())
 
 	fake := &fakeacm.Client{
-		DescribeCertificateFn: exportableDescribe("AA:BB:CC"),
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{
+				Certificate:      aws.String(string(certs.LeafPEM)),
+				CertificateChain: aws.String(string(certs.IntermediatePEM)),
+			}, nil
+		},
+		DescribeCertificateFn: exportableDescribe(),
 		ExportCertificateFn: func(_ context.Context, p *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
 			encPEM := encryptPKCS8ForTest(t, pkcs8DER, p.Passphrase)
 			return &acm.ExportCertificateOutput{
@@ -811,7 +815,10 @@ func TestGetSecret_CertOnly(t *testing.T) {
 	certs := generateTestCerts(t)
 
 	fake := &fakeacm.Client{
-		DescribeCertificateFn: exportableDescribe("DD:EE:FF"),
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{Certificate: aws.String(string(certs.LeafPEM))}, nil
+		},
+		DescribeCertificateFn: exportableDescribe(),
 		ExportCertificateFn: func(_ context.Context, _ *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
 			return &acm.ExportCertificateOutput{
 				Certificate: aws.String(string(certs.LeafPEM)),
@@ -838,12 +845,15 @@ func TestGetSecret_EmptyARN(t *testing.T) {
 }
 
 func TestGetSecret_NotExportable(t *testing.T) {
+	certs := generateTestCerts(t)
 	exportCalled := false
 	fake := &fakeacm.Client{
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{Certificate: aws.String(string(certs.LeafPEM))}, nil
+		},
 		DescribeCertificateFn: func(_ context.Context, _ *acm.DescribeCertificateInput, _ ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
 			return &acm.DescribeCertificateOutput{
 				Certificate: &types.CertificateDetail{
-					Serial: aws.String("11:22:33"),
 					Options: &types.CertificateOptions{
 						Export: types.CertificateExportDisabled,
 					},
@@ -871,12 +881,14 @@ func TestGetSecret_NotExportable(t *testing.T) {
 }
 
 func TestGetSecret_NotExportable_NilOptions(t *testing.T) {
+	certs := generateTestCerts(t)
 	fake := &fakeacm.Client{
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{Certificate: aws.String(string(certs.LeafPEM))}, nil
+		},
 		DescribeCertificateFn: func(_ context.Context, _ *acm.DescribeCertificateInput, _ ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error) {
 			return &acm.DescribeCertificateOutput{
-				Certificate: &types.CertificateDetail{
-					Serial: aws.String("44:55:66"),
-				},
+				Certificate: &types.CertificateDetail{},
 			}, nil
 		},
 	}
@@ -893,12 +905,20 @@ func TestGetSecret_NotExportable_NilOptions(t *testing.T) {
 }
 
 func TestGetSecret_CacheHit(t *testing.T) {
+	certs := generateTestCerts(t)
 	const certARN = "arn:aws:acm:us-east-1:123456789012:certificate/cached"
 	cachedPEM := []byte("cached-pem-bundle")
 
+	fingerprint := computeCertFingerprint(string(certs.LeafPEM), string(certs.IntermediatePEM))
+
 	exportCalled := false
 	fake := &fakeacm.Client{
-		DescribeCertificateFn: exportableDescribe("AA:BB"),
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{
+				Certificate:      aws.String(string(certs.LeafPEM)),
+				CertificateChain: aws.String(string(certs.IntermediatePEM)),
+			}, nil
+		},
 		ExportCertificateFn: func(_ context.Context, _ *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
 			exportCalled = true
 			return nil, fmt.Errorf("should not be called")
@@ -906,7 +926,7 @@ func TestGetSecret_CacheHit(t *testing.T) {
 	}
 
 	provider := newProvider(fake)
-	provider.exportCache.Add(certARN, exportCacheEntry{serial: "AA:BB", pem: cachedPEM})
+	provider.exportCache.Add(certARN, exportCacheEntry{fingerprint: fingerprint, pem: cachedPEM})
 
 	result, err := provider.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
 		Key: certARN,
@@ -922,12 +942,15 @@ func TestGetSecret_CacheHit(t *testing.T) {
 	}
 }
 
-func TestGetSecret_CacheMissOnSerialChange(t *testing.T) {
+func TestGetSecret_CacheMissOnFingerprintChange(t *testing.T) {
 	certs := generateTestCerts(t)
 	const certARN = "arn:aws:acm:us-east-1:123456789012:certificate/renewed"
 
 	fake := &fakeacm.Client{
-		DescribeCertificateFn: exportableDescribe("NEW:SERIAL"),
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return &acm.GetCertificateOutput{Certificate: aws.String(string(certs.LeafPEM))}, nil
+		},
+		DescribeCertificateFn: exportableDescribe(),
 		ExportCertificateFn: func(_ context.Context, _ *acm.ExportCertificateInput, _ ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
 			return &acm.ExportCertificateOutput{
 				Certificate: aws.String(string(certs.LeafPEM)),
@@ -936,7 +959,7 @@ func TestGetSecret_CacheMissOnSerialChange(t *testing.T) {
 	}
 
 	provider := newProvider(fake)
-	provider.exportCache.Add(certARN, exportCacheEntry{serial: "OLD:SERIAL", pem: []byte("old-pem")})
+	provider.exportCache.Add(certARN, exportCacheEntry{fingerprint: "old-fingerprint", pem: []byte("old-pem")})
 
 	result, err := provider.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
 		Key: certARN,
@@ -945,15 +968,16 @@ func TestGetSecret_CacheMissOnSerialChange(t *testing.T) {
 		t.Fatalf(errGetSecret, err)
 	}
 	if !bytes.Equal(result, certs.LeafPEM) {
-		t.Error("expected fresh export after serial change")
+		t.Error("expected fresh export after fingerprint change")
 	}
 
 	cached, ok := provider.exportCache.Get(certARN)
 	if !ok {
 		t.Fatal("expected cache to be updated after export")
 	}
-	if cached.serial != "NEW:SERIAL" {
-		t.Error("cached serial should be updated")
+	expectedFingerprint := computeCertFingerprint(string(certs.LeafPEM), "")
+	if cached.fingerprint != expectedFingerprint {
+		t.Error("cached fingerprint should be updated")
 	}
 }
 

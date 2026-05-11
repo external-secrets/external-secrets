@@ -30,7 +30,8 @@ The required IAM permissions depend on whether you use `ExternalSecret` (export)
       "Effect": "Allow",
       "Action": [
         "acm:DescribeCertificate",
-        "acm:ExportCertificate"
+        "acm:ExportCertificate",
+        "acm:GetCertificate"
       ],
       "Resource": "*"
     }
@@ -47,6 +48,7 @@ The required IAM permissions depend on whether you use `ExternalSecret` (export)
     {
       "Effect": "Allow",
       "Action": [
+        "acm:GetCertificate",
         "acm:ImportCertificate",
         "acm:DeleteCertificate",
         "acm:AddTagsToCertificate",
@@ -71,6 +73,7 @@ The `tag:GetResources` permission (Resource Groups Tagging API) is used to locat
     {
       "Effect": "Allow",
       "Action": [
+        "acm:GetCertificate",
         "acm:ImportCertificate",
         "acm:DeleteCertificate",
         "acm:DescribeCertificate",

@@ -58,7 +58,6 @@ const (
 	managedBy            = "managed-by"
 	externalSecrets      = "external-secrets"
 	remoteKeyTag         = "external-secrets-remote-key"
-	contentHashTag       = "external-secrets-content-hash"
 	acmResourceType      = "acm:certificate"
 	tlsCertKey           = "tls.crt"
 	tlsPrivateKeyKey     = "tls.key"
@@ -78,8 +77,8 @@ const (
 )
 
 type exportCacheEntry struct {
-	serial string
-	pem    []byte
+	fingerprint string
+	pem         []byte
 }
 
 type certBundle struct {
@@ -114,6 +113,7 @@ type ACMInterface interface {
 	DeleteCertificate(ctx context.Context, input *acm.DeleteCertificateInput, optFns ...func(*acm.Options)) (*acm.DeleteCertificateOutput, error)
 	DescribeCertificate(ctx context.Context, input *acm.DescribeCertificateInput, optFns ...func(*acm.Options)) (*acm.DescribeCertificateOutput, error)
 	ExportCertificate(ctx context.Context, input *acm.ExportCertificateInput, optFns ...func(*acm.Options)) (*acm.ExportCertificateOutput, error)
+	GetCertificate(ctx context.Context, input *acm.GetCertificateInput, optFns ...func(*acm.Options)) (*acm.GetCertificateOutput, error)
 	AddTagsToCertificate(ctx context.Context, input *acm.AddTagsToCertificateInput, optFns ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error)
 	ListTagsForCertificate(ctx context.Context, input *acm.ListTagsForCertificateInput, optFns ...func(*acm.Options)) (*acm.ListTagsForCertificateOutput, error)
 	RemoveTagsFromCertificate(ctx context.Context, input *acm.RemoveTagsFromCertificateInput, optFns ...func(*acm.Options)) (*acm.RemoveTagsFromCertificateOutput, error)
@@ -190,7 +190,6 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 
 	bundle := certBundle{leaf: leaf, chain: chain, privKey: privKeyPEM}
 	remoteKey := cm.prefix + psd.GetRemoteKey()
-	contentHash := computeContentHash(certPEM, privKeyPEM)
 
 	existingARN, err := cm.findCertificateARN(ctx, remoteKey)
 	if err != nil {
@@ -198,22 +197,32 @@ func (cm *CertificateManager) PushSecret(ctx context.Context, secret *corev1.Sec
 	}
 
 	if existingARN != "" {
-		return cm.reimportCertificate(ctx, existingARN, bundle, contentHash, remoteKey, meta.Spec.Tags)
+		return cm.reimportCertificate(ctx, existingARN, bundle, remoteKey, meta.Spec.Tags)
 	}
-	return cm.importNewCertificate(ctx, bundle, contentHash, remoteKey, meta.Spec.Tags)
+	return cm.importNewCertificate(ctx, bundle, remoteKey, meta.Spec.Tags)
 }
 
-func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn string, b certBundle, contentHash, remoteKey string, tags map[string]string) error {
-	currentTags, err := cm.listTags(ctx, arn)
+func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn string, b certBundle, remoteKey string, tags map[string]string) error {
+	getCertOut, err := cm.getCertificate(ctx, arn)
 	if errors.Is(err, errCertificateNotFound) {
 		cm.arnCache.Remove(remoteKey)
-		return cm.importNewCertificate(ctx, b, contentHash, remoteKey, tags)
+		return cm.importNewCertificate(ctx, b, remoteKey, tags)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to list tags for %s: %w", arn, err)
+		return fmt.Errorf("failed to get certificate %s: %w", arn, err)
 	}
 
-	if getTagValue(currentTags, contentHashTag) == contentHash {
+	bundleLeaf := string(b.leaf)
+	bundleChain := string(b.chain)
+	if len(b.chain) == 0 {
+		// if the certificate was imported without a chain, AWS still
+		// returns CertificateChain with the same value as Certificate.
+		bundleChain = bundleLeaf
+	}
+
+	acmFingerprint := computeCertFingerprint(aws.ToString(getCertOut.Certificate), aws.ToString(getCertOut.CertificateChain))
+	k8sFingerprint := computeCertFingerprint(bundleLeaf, bundleChain)
+	if acmFingerprint == k8sFingerprint {
 		log.Info("certificate unchanged, skipping re-import", "arn", arn, "remoteKey", remoteKey)
 		if err := cm.syncTags(ctx, arn, tags); err != nil {
 			return fmt.Errorf(errSyncTags, err)
@@ -240,17 +249,16 @@ func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn strin
 	if err := cm.syncTags(ctx, arn, tags); err != nil {
 		return fmt.Errorf(errSyncTags, err)
 	}
-	return cm.updateContentHash(ctx, arn, contentHash)
+	return nil
 }
 
-func (cm *CertificateManager) importNewCertificate(ctx context.Context, b certBundle, contentHash, remoteKey string, tags map[string]string) error {
+func (cm *CertificateManager) importNewCertificate(ctx context.Context, b certBundle, remoteKey string, tags map[string]string) error {
 	input := &acm.ImportCertificateInput{
 		Certificate: b.leaf,
 		PrivateKey:  b.privKey,
 		Tags: []types.Tag{
 			{Key: aws.String(managedBy), Value: aws.String(externalSecrets)},
 			{Key: aws.String(remoteKeyTag), Value: aws.String(remoteKey)},
-			{Key: aws.String(contentHashTag), Value: aws.String(contentHash)},
 		},
 	}
 	if len(b.chain) > 0 {
@@ -336,7 +344,17 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 		return nil, fmt.Errorf("certificate ARN must be specified in remoteRef.key")
 	}
 
-	descOut, err := cm.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
+	getCertOut, err := cm.getCertificate(ctx, certARN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get certificate %s: %w", certARN, err)
+	}
+
+	fingerprint := computeCertFingerprint(aws.ToString(getCertOut.Certificate), aws.ToString(getCertOut.CertificateChain))
+	if entry, ok := cm.exportCache.Get(certARN); ok && entry.fingerprint == fingerprint {
+		return entry.pem, nil
+	}
+
+	descCertOut, err := cm.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
 		CertificateArn: aws.String(certARN),
 	})
 	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMDescribeCertificate, err)
@@ -344,18 +362,9 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 		return nil, fmt.Errorf("failed to describe certificate %s: %w", certARN, awsutil.SanitizeErr(err))
 	}
 
-	detail := descOut.Certificate
+	detail := descCertOut.Certificate
 	if detail.Options == nil || detail.Options.Export != types.CertificateExportEnabled {
 		return nil, fmt.Errorf("certificate %s is not exportable (Options.Export is not ENABLED)", certARN)
-	}
-
-	// Use the serial number to detect certificate changes and avoid
-	// redundant ExportCertificate calls (which are paid after 10k/month).
-	serial := aws.ToString(detail.Serial)
-	if entry, ok := cm.exportCache.Get(certARN); ok {
-		if entry.serial == serial {
-			return entry.pem, nil
-		}
 	}
 
 	passphrase, err := generatePassphrase()
@@ -391,7 +400,7 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 	}
 	result := strings.Join(parts, "\n") + "\n"
 
-	cm.exportCache.Add(certARN, exportCacheEntry{serial: serial, pem: []byte(result)})
+	cm.exportCache.Add(certARN, exportCacheEntry{fingerprint: fingerprint, pem: []byte(result)})
 	return []byte(result), nil
 }
 
@@ -463,6 +472,21 @@ func (cm *CertificateManager) searchCertificatesByTag(ctx context.Context, remot
 	}
 	cm.arnCache.Add(remoteKey, arns[0])
 	return arns[0], nil
+}
+
+func (cm *CertificateManager) getCertificate(ctx context.Context, arn string) (*acm.GetCertificateOutput, error) {
+	out, err := cm.client.GetCertificate(ctx, &acm.GetCertificateInput{
+		CertificateArn: aws.String(arn),
+	})
+	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMGetCertificate, err)
+	if err != nil {
+		var aerr smithy.APIError
+		if errors.As(err, &aerr) && aerr.ErrorCode() == errResourceNotFound {
+			return nil, errCertificateNotFound
+		}
+		return nil, awsutil.SanitizeErr(err)
+	}
+	return out, nil
 }
 
 func (cm *CertificateManager) listTags(ctx context.Context, arn string) ([]types.Tag, error) {
@@ -556,39 +580,19 @@ func isManagedByESO(tags []types.Tag) bool {
 }
 
 func isReservedTag(key string) bool {
-	return key == managedBy || key == remoteKeyTag || key == contentHashTag
+	return key == managedBy || key == remoteKeyTag
 }
 
-// computeContentHash returns a hex-encoded SHA-256 digest of the certificate
-// and private key PEM. This is a content fingerprint used to detect changes
-// and avoid redundant ImportCertificate API calls (1 rps rate limit). It is
-// NOT used for any security or cryptographic purpose.
-func computeContentHash(certPEM, keyPEM []byte) string {
+// computeCertFingerprint returns a hex-encoded SHA-256 digest of the certificate
+// and, if present, chain PEM, with trailing CR/LF stripped. This is a content
+// fingerprint used to detect changes and avoid redundant API calls.
+func computeCertFingerprint(cert, chain string) string {
 	h := sha256.New()
-	h.Write(certPEM)
-	h.Write(keyPEM)
+	h.Write([]byte(strings.TrimRight(cert, "\r\n")))
+	if trimmedChain := strings.TrimRight(chain, "\r\n"); trimmedChain != "" {
+		h.Write([]byte(trimmedChain))
+	}
 	return hex.EncodeToString(h.Sum(nil))
-}
-
-func getTagValue(tags []types.Tag, key string) string {
-	for _, t := range tags {
-		if aws.ToString(t.Key) == key {
-			return aws.ToString(t.Value)
-		}
-	}
-	return ""
-}
-
-func (cm *CertificateManager) updateContentHash(ctx context.Context, arn, hash string) error {
-	_, err := cm.client.AddTagsToCertificate(ctx, &acm.AddTagsToCertificateInput{
-		CertificateArn: aws.String(arn),
-		Tags:           []types.Tag{{Key: aws.String(contentHashTag), Value: aws.String(hash)}},
-	})
-	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMAddTagsToCertificate, err)
-	if err != nil {
-		return awsutil.SanitizeErr(err)
-	}
-	return nil
 }
 
 // splitCertificatePEM splits a PEM bundle into the leaf certificate and the remaining chain.

@@ -36,6 +36,9 @@ type DescribeCertificateFn func(context.Context, *acm.DescribeCertificateInput, 
 // ExportCertificateFn defines a function type for mocking ExportCertificate API.
 type ExportCertificateFn func(context.Context, *acm.ExportCertificateInput, ...func(*acm.Options)) (*acm.ExportCertificateOutput, error)
 
+// GetCertificateFn defines a function type for mocking GetCertificate API.
+type GetCertificateFn func(context.Context, *acm.GetCertificateInput, ...func(*acm.Options)) (*acm.GetCertificateOutput, error)
+
 // AddTagsToCertificateFn defines a function type for mocking AddTagsToCertificate API.
 type AddTagsToCertificateFn func(context.Context, *acm.AddTagsToCertificateInput, ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error)
 
@@ -51,6 +54,7 @@ type Client struct {
 	DeleteCertificateFn         DeleteCertificateFn
 	DescribeCertificateFn       DescribeCertificateFn
 	ExportCertificateFn         ExportCertificateFn
+	GetCertificateFn            GetCertificateFn
 	AddTagsToCertificateFn      AddTagsToCertificateFn
 	ListTagsForCertificateFn    ListTagsForCertificateFn
 	RemoveTagsFromCertificateFn RemoveTagsFromCertificateFn
@@ -70,6 +74,10 @@ func (c *Client) DescribeCertificate(ctx context.Context, input *acm.DescribeCer
 
 func (c *Client) ExportCertificate(ctx context.Context, input *acm.ExportCertificateInput, opts ...func(*acm.Options)) (*acm.ExportCertificateOutput, error) {
 	return c.ExportCertificateFn(ctx, input, opts...)
+}
+
+func (c *Client) GetCertificate(ctx context.Context, input *acm.GetCertificateInput, opts ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+	return c.GetCertificateFn(ctx, input, opts...)
 }
 
 func (c *Client) AddTagsToCertificate(ctx context.Context, input *acm.AddTagsToCertificateInput, opts ...func(*acm.Options)) (*acm.AddTagsToCertificateOutput, error) {

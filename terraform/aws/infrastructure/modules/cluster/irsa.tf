@@ -39,6 +39,7 @@ data "aws_iam_policy_document" "ssm_parameterstore" {
 data "aws_iam_policy_document" "acm" {
   statement {
     actions = [
+      "acm:GetCertificate",
       "acm:ImportCertificate",
       "acm:DeleteCertificate",
       "acm:DescribeCertificate",
