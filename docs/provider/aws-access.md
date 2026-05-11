@@ -198,7 +198,7 @@ Use the following environment variables to point the controller to your custom e
 
 You can have ESO automatically include Kubernetes context data into [STS session tags](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_session-tags.html) when assuming an IAM role. These tags can be used in IAM policy conditions to implement attribute-based access control (ABAC).
 
-The behaviour is controlled by `spec.provider.aws.sessionTagsPolicy`, which can optionally be set to one of the following values:
+The behavior is controlled by setting the optional `spec.provider.aws.sessionTagsPolicy` field on a SecretStore, which can be set to one of the following values:
 
 | Policy   | Description |
 | -------- | ----------- |
@@ -213,6 +213,8 @@ The automatically added tags map to the `SecretStore` (or `ClusterSecretStore`) 
 | `esoNamespace` | The namespace of the SecretStore. |
 | `esoStoreName` | The name of the SecretStore. |
 | `esoStoreKind` | The kind of the store (e.g., `SecretStore` or `ClusterSecretStore`). |
+
+Session tags are configured per secret store and are not shared or propagated. This means, in the case of using `spec.dataFrom[].sourceRef.storeRef` to reference secrets from multiple different stores, each store would need to be configured with the desired `sessionTagsPolicy` independently.
 
 ### Simple Policy
 
@@ -273,7 +275,3 @@ When session tags are enabled, the role trust policy must allow `sts:TagSession`
   ]
 }
 ```
-
-### Limitation: `dataFrom` with Cross-Store References
-
-If an `ExternalSecret` uses `spec.dataFrom[].sourceRef.storeRef` to access secrets from multiple different secret stores, the session tags may not be populated correctly, because the STS session and tags are created once during authentication for the whole manifest.
