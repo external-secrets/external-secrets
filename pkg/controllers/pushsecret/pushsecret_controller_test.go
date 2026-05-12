@@ -239,9 +239,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncSuccessfully := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			Eventually(func() bool {
 				By("checking if Provider value got updated")
@@ -259,14 +256,11 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	updateIfNotExists := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.SecretExistsFn = func(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+		fakeProvider.WithSecretExistsFn(func(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 			setSecretArgs := fakeProvider.GetPushSecretData()
 			_, ok := setSecretArgs[ref.GetRemoteKey()]
 			return ok, nil
-		}
+		})
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
 
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
@@ -289,14 +283,11 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	updateIfNotExistsPartialSecrets := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.SecretExistsFn = func(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+		fakeProvider.WithSecretExistsFn(func(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 			setSecretArgs := fakeProvider.GetPushSecretData()
 			_, ok := setSecretArgs[ref.GetRemoteKey()]
 			return ok, nil
-		}
+		})
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
 		tc.pushsecret.Spec.Data = append(tc.pushsecret.Spec.Data, v1alpha1.PushSecretData{
 			Match: v1alpha1.PushSecretMatch{
@@ -332,14 +323,11 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	updateIfNotExistsSyncStatus := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.SecretExistsFn = func(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+		fakeProvider.WithSecretExistsFn(func(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 			setSecretArgs := fakeProvider.GetPushSecretData()
 			_, ok := setSecretArgs[ref.GetRemoteKey()]
 			return ok, nil
-		}
+		})
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
 		tc.pushsecret.Spec.Data = append(tc.pushsecret.Spec.Data, v1alpha1.PushSecretData{
 			Match: v1alpha1.PushSecretMatch{
@@ -383,12 +371,9 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	updateIfNotExistsSyncFailed := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.SecretExistsFn = func(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
+		fakeProvider.WithSecretExistsFn(func(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 			return false, errors.New("don't know")
-		}
+		})
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
 
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
@@ -406,9 +391,6 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 	syncSuccessfullyReusingKeys := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -471,9 +453,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncSuccessfullyWithTemplate := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -536,9 +515,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncAndDeleteSuccessfully := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -592,12 +568,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// if PushSecret deletes a secret with properties, the status map should be cleaned up correctly
 	syncAndDeleteWithProperties := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.DeleteSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -687,9 +657,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// if PushSecret's DeletionPolicy is cleared, it should delete successfully
 	syncChangePolicyAndDeleteSuccessfully := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -741,13 +708,10 @@ var _ = Describe("PushSecret controller", func() {
 	// When source Secret is deleted and DeletionPolicy=Delete, provider secrets should be cleaned up
 	deleteProviderSecretsOnSourceSecretDeleted := func(tc *testCase) {
 		var deleteCallCount int32
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.DeleteSecretFn = func() error {
+		fakeProvider.WithDeleteSecretFn(func() error {
 			atomic.AddInt32(&deleteCallCount, 1)
 			return nil
-		}
+		})
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -823,12 +787,9 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	failDelete := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.DeleteSecretFn = func() error {
+		fakeProvider.WithDeleteSecretFn(func() error {
 			return errors.New("Nope")
-		}
+		})
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -881,12 +842,9 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 	failDeleteStore := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.DeleteSecretFn = func() error {
+		fakeProvider.WithDeleteSecretFn(func() error {
 			return errors.New("boom")
-		}
+		})
 		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			secondStore := &esv1.SecretStore{
@@ -923,12 +881,6 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 	deleteWholeStore := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.DeleteSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			secondStore := &esv1.SecretStore{
@@ -973,9 +925,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if conversion strategy is defined, revert the keys based on the strategy.
 	syncSuccessfullyWithConversionStrategy := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -1032,12 +981,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncMatchingLabels := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-		fakeProvider.DeleteSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -1105,9 +1048,6 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 	syncWithClusterStore := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.store = &esv1.ClusterSecretStore{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "ClusterSecretStore",
@@ -1139,9 +1079,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithGenerator := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret.Spec.Selector.Secret = nil
 		tc.pushsecret.Spec.Selector.GeneratorRef = &esv1.GeneratorRef{
 			APIVersion: "generators.external-secrets.io/v1alpha1",
@@ -1162,9 +1099,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncWithClusterStoreMatchingLabels := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretName,
@@ -1229,9 +1163,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	failNoSecret := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.secret = nil
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			expected := v1alpha1.PushSecretStatusCondition{
@@ -1245,9 +1176,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	failNoSecretKey := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.pushsecret.Spec.Data[0].Match.SecretKey = "unexisting"
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			expected := v1alpha1.PushSecretStatusCondition{
@@ -1261,9 +1189,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	failNoSecretStore := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.store = nil
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			expected := v1alpha1.PushSecretStatusCondition{
@@ -1277,9 +1202,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	failNoClusterStore := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.store = nil
 		tc.pushsecret.Spec.SecretStoreRefs[0].Kind = "ClusterSecretStore"
 		tc.pushsecret.Spec.SecretStoreRefs[0].Name = "unexisting"
@@ -1295,9 +1217,9 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	setSecretFail := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
+		fakeProvider.WithSetSecretFn(func() error {
 			return errors.New("boom")
-		}
+		})
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			expected := v1alpha1.PushSecretStatusCondition{
 				Type:    v1alpha1.PushSecretReady,
@@ -1310,9 +1232,9 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	newClientFail := func(tc *testCase) {
-		fakeProvider.NewFn = func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
+		fakeProvider.WithNew(func(_ context.Context, _ esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 			return nil, errors.New("boom")
-		}
+		})
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			expected := v1alpha1.PushSecretStatusCondition{
 				Type:    v1alpha1.PushSecretReady,
@@ -1325,9 +1247,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// SecretStores in different namespace than PushSecret should not be selected.
 	secretStoreDifferentNamespace := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Create the SecretStore in a different namespace
 		tc.store = &esv1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1376,9 +1295,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// Secrets in different namespace than PushSecret should not be selected.
 	secretDifferentNamespace := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Create the Secret in a different namespace
 		tc.secret = &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1414,9 +1330,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// dataTo tests
 	syncWithDataToMatchAll := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
 			testDBHost:    []byte(testLocalhost),
@@ -1459,9 +1372,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToRegex := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
 			testDBHost:    []byte(testLocalhost),
@@ -1503,9 +1413,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToRegexpRewrite := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Set up secret with multiple keys
 		tc.secret.Data = map[string][]byte{
 			testDBHost: []byte(testLocalhost),
@@ -1549,9 +1456,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToTransformRewrite := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.secret.Data = map[string][]byte{
 			"username": []byte(testAdminUser),
 		}
@@ -1591,9 +1495,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncDataToWithDataOverride := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.secret.Data = map[string][]byte{
 			"key1": []byte("value1"),
 			"key2": []byte("value2"),
@@ -1669,9 +1570,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToConversionStrategy := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Set up secret with unicode data
 		tc.secret.Data = map[string][]byte{
 			"unicode-key": []byte("unicode-value-αβγ"),
@@ -1709,9 +1607,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// Test dataTo with storeRef targeting specific store
 	syncWithDataToStoreRef := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Create a second store
 		secondStoreName := "second-store"
 		secondStore := &esv1.SecretStore{
@@ -1828,9 +1723,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// Test: Template creates new keys, dataTo matches them
 	templateCreatesKeysThenDataToMatches := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Source secret has individual components
 		tc.secret.Data = map[string][]byte{
 			"db_host": []byte(testLocalhost),
@@ -1873,9 +1765,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// Test: Template + dataTo + explicit data combined
 	templateWithDataToAndExplicitData := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.secret.Data = map[string][]byte{
 			"token":          []byte("abc123"),
 			"config-timeout": []byte("30s"),
@@ -2156,9 +2045,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToLabelSelector := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Add labels to the store
 		tc.store = &esv1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -2217,9 +2103,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToDuplicateValues := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		// Keys with same value - tests deterministic key mapping
 		tc.secret.Data = map[string][]byte{
 			testDBHost:   []byte("same-value"),
@@ -2258,9 +2141,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToMultipleRewrites := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.secret.Data = map[string][]byte{
 			"db-username": []byte(testAdminUser),
 		}
@@ -2307,9 +2187,6 @@ var _ = Describe("PushSecret controller", func() {
 
 	// dataTo bundle mode tests (remoteKey set → all matched keys bundled as JSON)
 	syncWithDataToBundleAllKeys := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.secret.Data = map[string][]byte{
 			"DB_HOST": []byte(testLocalhost),
 			"DB_USER": []byte(testAdminUser),
@@ -2347,9 +2224,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToBundleWithRegexFilter := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.secret.Data = map[string][]byte{
 			"DB_HOST":  []byte(testLocalhost),
 			"DB_USER":  []byte(testAdminUser),
@@ -2393,9 +2267,6 @@ var _ = Describe("PushSecret controller", func() {
 	}
 
 	syncWithDataToBundleAndPerKeyMixed := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
 		tc.secret.Data = map[string][]byte{
 			"DB_HOST": []byte(testLocalhost),
 			"DB_USER": []byte(testAdminUser),
@@ -2751,10 +2622,6 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 	}
 
 	multipleManagedStoresSyncsSuccessfully := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-
 		tc.pushsecret.Spec.SecretStoreRefs = append(tc.pushsecret.Spec.SecretStoreRefs,
 			v1alpha1.PushSecretStoreRef{
 				Name: ManagedPushSecretStore2,
@@ -2796,10 +2663,6 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 	}
 
 	warnUnmanagedStoresAndSyncManagedStores := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-
 		tc.pushsecret.Spec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 			{
 				Name: ManagedPushSecretStore1,
