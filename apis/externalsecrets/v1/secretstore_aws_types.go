@@ -99,10 +99,11 @@ type SessionTagsPolicy string
 const (
 	// SessionTagsPolicyNone is the default behavior - no session tags are added.
 	SessionTagsPolicyNone SessionTagsPolicy = "None"
-	// SessionTagsPolicySimple automatically adds esoNamespace and esoStoreName session tags.
+	// SessionTagsPolicySimple automatically adds esoNamespace, esoStoreName, and esoStoreKind
+	// session tags.
 	SessionTagsPolicySimple SessionTagsPolicy = "Simple"
 	// SessionTagsPolicyCustom adds the tags defined in CustomSessionTags in addition to
-	// the esoNamespace and esoStoreName tags.
+	// the esoNamespace, esoStoreName, and esoStoreKind tags.
 	SessionTagsPolicyCustom SessionTagsPolicy = "Custom"
 )
 
@@ -145,15 +146,15 @@ type AWSProvider struct {
 
 	// SessionTagsPolicy controls whether and how STS session tags are added when assuming roles.
 	// None (default): no tags are added.
-	// Simple: automatically adds esoNamespace (from the ExternalSecret) and esoStoreName tags.
-	// Custom: adds esoNamespace and esoStoreName plus any tags defined in CustomSessionTags.
+	// Simple: automatically adds esoNamespace (from the ExternalSecret), esoStoreName, and esoStoreKind tags.
+	// Custom: adds esoNamespace, esoStoreName, and esoStoreKind plus any tags defined in CustomSessionTags.
 	// Note: the IAM role must have sts:TagSession permission when using Simple or Custom.
 	// +optional
 	// +kubebuilder:default=None
 	SessionTagsPolicy SessionTagsPolicy `json:"sessionTagsPolicy,omitempty"`
 
 	// CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
-	// These are merged with the automatically injected esoNamespace and esoStoreName tags.
+	// These are merged with the automatically injected esoNamespace, esoStoreName, and esoStoreKind tags.
 	// +optional
 	CustomSessionTags map[string]string `json:"customSessionTags,omitempty"`
 

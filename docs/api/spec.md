@@ -303,8 +303,8 @@ SessionTagsPolicy
 <em>(Optional)</em>
 <p>SessionTagsPolicy controls whether and how STS session tags are added when assuming roles.
 None (default): no tags are added.
-Simple: automatically adds esoNamespace (from the ExternalSecret) and esoStoreName tags.
-Custom: adds esoNamespace and esoStoreName plus any tags defined in CustomSessionTags.
+Simple: automatically adds esoNamespace (from the ExternalSecret), esoStoreName, and esoStoreKind tags.
+Custom: adds esoNamespace, esoStoreName, and esoStoreKind plus any tags defined in CustomSessionTags.
 Note: the IAM role must have sts:TagSession permission when using Simple or Custom.</p>
 </td>
 </tr>
@@ -318,7 +318,7 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
-These are merged with the automatically injected esoNamespace and esoStoreName tags.</p>
+These are merged with the automatically injected esoNamespace, esoStoreName, and esoStoreKind tags.</p>
 </td>
 </tr>
 <tr>
@@ -10575,13 +10575,14 @@ bool
 </thead>
 <tbody><tr><td><p>&#34;Custom&#34;</p></td>
 <td><p>SessionTagsPolicyCustom adds the tags defined in CustomSessionTags in addition to
-the esoNamespace and esoStoreName tags.</p>
+the esoNamespace, esoStoreName, and esoStoreKind tags.</p>
 </td>
 </tr><tr><td><p>&#34;None&#34;</p></td>
 <td><p>SessionTagsPolicyNone is the default behavior - no session tags are added.</p>
 </td>
 </tr><tr><td><p>&#34;Simple&#34;</p></td>
-<td><p>SessionTagsPolicySimple automatically adds esoNamespace and esoStoreName session tags.</p>
+<td><p>SessionTagsPolicySimple automatically adds esoNamespace, esoStoreName, and esoStoreKind
+session tags.</p>
 </td>
 </tr></tbody>
 </table>
@@ -14780,37 +14781,6 @@ SecretsManager
 <td>
 <em>(Optional)</em>
 <p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>sessionTagsPolicy</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SessionTagsPolicy">
-SessionTagsPolicy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SessionTagsPolicy controls whether and how STS session tags are added when assuming roles.
-None (default): no tags are added.
-Simple: automatically adds esoNamespace (from the ExternalSecret) and esoStoreName tags.
-Custom: adds esoNamespace and esoStoreName plus any tags defined in CustomSessionTags.
-Note: the IAM role must have sts:TagSession permission when using Simple or Custom.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>customSessionTags</code></br>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
-These are merged with the automatically injected esoNamespace and esoStoreName tags.</p>
 </td>
 </tr>
 <tr>
@@ -22690,34 +22660,6 @@ bool
 </td>
 </tr>
 </tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.SessionTagsPolicy">SessionTagsPolicy
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.AWSProvider">AWSProvider</a>)
-</p>
-<p>
-<p>SessionTagsPolicy defines how STS session tags are handled.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr><td><p>&#34;Custom&#34;</p></td>
-<td><p>SessionTagsPolicyCustom adds the tags defined in CustomSessionTags in addition to
-the esoNamespace and esoStoreName tags.</p>
-</td>
-</tr><tr><td><p>&#34;None&#34;</p></td>
-<td><p>SessionTagsPolicyNone is the default behavior - no session tags are added.</p>
-</td>
-</tr><tr><td><p>&#34;Simple&#34;</p></td>
-<td><p>SessionTagsPolicySimple automatically adds esoNamespace and esoStoreName session tags.</p>
-</td>
-</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef
 </h3>
