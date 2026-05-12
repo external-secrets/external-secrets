@@ -32,7 +32,26 @@ The token needs the `write:organization` or `write:repository` scope depending o
 
 Set `organization` for org-scoped secrets. Add `repository` to scope down to a specific repo within the org. At least `organization` is required.
 
-**NOTE:** For `ClusterSecretStore`, add `namespace` to the `auth.secretRef` pointing to the namespace where the token secret lives.
+**NOTE:** For `ClusterSecretStore`, add `namespace` to the `auth.secretRef` pointing to the namespace where the token secret lives. Leaving `namespace` blank will make ESO search for a Secret within the same namespace as the `ExternalSecret` object.
+
+The Gitea provider supports [Referent Authentication](https://external-secrets.io/latest/guides/referent-authentication/). When using a `ClusterSecretStore` without a `namespace` on `auth.secretRef`, ESO resolves the token Secret from the calling `ExternalSecret` or `PushSecret`'s namespace:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: gitea-secret-store
+spec:
+  provider:
+    gitea:
+      url: https://gitea.example.com
+      organization: my-org
+      # repository: my-repo  # Optional: scope to a specific repository
+      auth:
+        secretRef:
+          name: gitea-token
+          key: token
+```
 
 ### Reading a secret (ExternalSecret)
 
