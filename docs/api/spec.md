@@ -7961,7 +7961,8 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.</p>
+<p>OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.
+Exactly one of Vault or Environment must be set.</p>
 </p>
 <table>
 <thead>
@@ -7979,7 +7980,23 @@ string
 </em>
 </td>
 <td>
-<p>Vault defines the vault&rsquo;s name or uuid to access. Do NOT add op:// prefix. This will be done automatically.</p>
+<em>(Optional)</em>
+<p>Vault defines the vault&rsquo;s name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+Mutually exclusive with Environment.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Environment defines the 1Password Environment ID to read variables from.
+Environments are read-only: PushSecret, DeleteSecret, and SecretExists return an error when set.
+Mutually exclusive with Vault.</p>
 </td>
 </tr>
 <tr>
