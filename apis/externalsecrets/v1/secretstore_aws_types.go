@@ -156,6 +156,7 @@ type AWSProvider struct {
 	// CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
 	// These are merged with the automatically injected esoNamespace, esoStoreName, and esoStoreKind tags.
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="!('esoNamespace' in self) && !('esoStoreName' in self) && !('esoStoreKind' in self)",message="customSessionTags cannot contain automatically injected reserved keys: esoNamespace, esoStoreName, esoStoreKind"
 	CustomSessionTags map[string]string `json:"customSessionTags,omitempty"`
 
 	// Prefix adds a prefix to all retrieved values.

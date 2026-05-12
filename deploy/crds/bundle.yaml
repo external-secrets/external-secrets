@@ -2754,6 +2754,9 @@ spec:
                             CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
                             These are merged with the automatically injected esoNamespace, esoStoreName, and esoStoreKind tags.
                           type: object
+                          x-kubernetes-validations:
+                            - message: 'customSessionTags cannot contain automatically injected reserved keys: esoNamespace, esoStoreName, esoStoreKind'
+                              rule: '!(''esoNamespace'' in self) && !(''esoStoreName'' in self) && !(''esoStoreKind'' in self)'
                         externalID:
                           description: AWS External ID set on assumed IAM roles
                           type: string
@@ -14925,6 +14928,9 @@ spec:
                             CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
                             These are merged with the automatically injected esoNamespace, esoStoreName, and esoStoreKind tags.
                           type: object
+                          x-kubernetes-validations:
+                            - message: 'customSessionTags cannot contain automatically injected reserved keys: esoNamespace, esoStoreName, esoStoreKind'
+                              rule: '!(''esoNamespace'' in self) && !(''esoStoreName'' in self) && !(''esoStoreKind'' in self)'
                         externalID:
                           description: AWS External ID set on assumed IAM roles
                           type: string
