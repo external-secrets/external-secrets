@@ -31,6 +31,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -161,6 +162,10 @@ var webhookCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+			setupLog.Error(err, "unable to add webhook healthz check")
+			os.Exit(1)
+		}
 		err = mgr.AddReadyzCheck("certs", func(_ *http.Request) error {
 			return crds.CheckCerts(c, dnsName, time.Now().Add(time.Hour))
 		})
