@@ -56,6 +56,12 @@ const (
 	authSignAppInPath      = "/Auth/SignAppIn"
 	secretsSafeFoldersPath = "/secrets-safe/folders/"
 	secretsSafeSecretsPath = "/secrets-safe/secrets"
+	folderSecretsPath      = "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets"
+	apiVersion32           = "3.2"
+	fakeClientSecret       = "fake_client_secret"
+	passwordKey            = "password"
+	testCredentialKey      = "test-credential"
+	testName               = "test"
 )
 
 func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
@@ -93,22 +99,22 @@ func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 
 	clientConfig := clientcmd.NewDefaultClientConfig(clientcmdapi.Config{
 		Clusters: map[string]*clientcmdapi.Cluster{
-			"test": {
+			testName: {
 				Server: server.URL,
 			},
 		},
 		AuthInfos: map[string]*clientcmdapi.AuthInfo{
-			"test": {
+			testName: {
 				Token: "token",
 			},
 		},
 		Contexts: map[string]*clientcmdapi.Context{
-			"test": {
-				Cluster:  "test",
-				AuthInfo: "test",
+			testName: {
+				Cluster:  testName,
+				AuthInfo: testName,
 			},
 		},
-		CurrentContext: "test",
+		CurrentContext: testName,
 	}, &clientcmd.ConfigOverrides{})
 
 	restConfig, err := clientConfig.ClientConfig()
@@ -135,7 +141,7 @@ func TestNewClient(t *testing.T) {
 	}{
 		{
 			name:      "Client ok",
-			nameSpace: "test",
+			nameSpace: testName,
 			args: args{
 				store: esv1.SecretStore{
 					Spec: esv1.SecretStoreSpec{
@@ -143,7 +149,7 @@ func TestNewClient(t *testing.T) {
 							Beyondtrust: &esv1.BeyondtrustProvider{
 								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
-									RetrievalType: "SECRET",
+									RetrievalType: secretTypeSecret,
 								},
 
 								Auth: &esv1.BeyondtrustAuth{
@@ -166,7 +172,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:      "Bad Client Id",
-			nameSpace: "test",
+			nameSpace: testName,
 			args: args{
 				store: esv1.SecretStore{
 					Spec: esv1.SecretStoreSpec{
@@ -174,7 +180,7 @@ func TestNewClient(t *testing.T) {
 							Beyondtrust: &esv1.BeyondtrustProvider{
 								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
-									RetrievalType: "SECRET",
+									RetrievalType: secretTypeSecret,
 								},
 
 								Auth: &esv1.BeyondtrustAuth{
@@ -198,7 +204,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:      "Bad Client Secret",
-			nameSpace: "test",
+			nameSpace: testName,
 			args: args{
 				store: esv1.SecretStore{
 					Spec: esv1.SecretStoreSpec{
@@ -206,7 +212,7 @@ func TestNewClient(t *testing.T) {
 							Beyondtrust: &esv1.BeyondtrustProvider{
 								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
-									RetrievalType: "SECRET",
+									RetrievalType: secretTypeSecret,
 								},
 
 								Auth: &esv1.BeyondtrustAuth{
@@ -230,7 +236,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:      "Bad Separator",
-			nameSpace: "test",
+			nameSpace: testName,
 			args: args{
 				store: esv1.SecretStore{
 					Spec: esv1.SecretStoreSpec{
@@ -239,7 +245,7 @@ func TestNewClient(t *testing.T) {
 								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									Separator:     "//",
-									RetrievalType: "SECRET",
+									RetrievalType: secretTypeSecret,
 								},
 								Auth: &esv1.BeyondtrustAuth{
 									ClientID: &esv1.BeyondTrustProviderSecretRef{
@@ -262,7 +268,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:      "Time Out",
-			nameSpace: "test",
+			nameSpace: testName,
 			args: args{
 				store: esv1.SecretStore{
 					Spec: esv1.SecretStoreSpec{
@@ -272,7 +278,7 @@ func TestNewClient(t *testing.T) {
 									APIURL:               fakeAPIURL,
 									Separator:            "/",
 									ClientTimeOutSeconds: 400,
-									RetrievalType:        "SECRET",
+									RetrievalType:        secretTypeSecret,
 								},
 								Auth: &esv1.BeyondtrustAuth{
 									ClientID: &esv1.BeyondTrustProviderSecretRef{
@@ -295,7 +301,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:      "ApiKey ok",
-			nameSpace: "test",
+			nameSpace: testName,
 			args: args{
 				store: esv1.SecretStore{
 					Spec: esv1.SecretStoreSpec{
@@ -303,7 +309,7 @@ func TestNewClient(t *testing.T) {
 							Beyondtrust: &esv1.BeyondtrustProvider{
 								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
-									RetrievalType: "SECRET",
+									RetrievalType: secretTypeSecret,
 								},
 
 								Auth: &esv1.BeyondtrustAuth{
@@ -323,7 +329,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:      "Bad ApiKey",
-			nameSpace: "test",
+			nameSpace: testName,
 			args: args{
 				store: esv1.SecretStore{
 					Spec: esv1.SecretStoreSpec{
@@ -331,7 +337,7 @@ func TestNewClient(t *testing.T) {
 							Beyondtrust: &esv1.BeyondtrustProvider{
 								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
-									RetrievalType: "SECRET",
+									RetrievalType: secretTypeSecret,
 								},
 
 								Auth: &esv1.BeyondtrustAuth{
@@ -431,7 +437,7 @@ func TestPushSecret(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets":
+				case folderSecretsPath:
 					_, err := w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
 					if err != nil {
 						t.Error(err)
@@ -549,7 +555,7 @@ func TestPushSecret(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-				case "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets":
+				case folderSecretsPath:
 					_, err := w.Write([]byte(`{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`))
 					if err != nil {
 						t.Error(err)
@@ -559,7 +565,7 @@ func TestPushSecret(t *testing.T) {
 				}
 			},
 			expectedError: false,
-			apiVersion:    "3.2",
+			apiVersion:    apiVersion32,
 			metadata: apiextensionsv1.JSON{
 				Raw: []byte(`{
 					"title": "Test Credential v3.2",
@@ -599,7 +605,7 @@ func TestPushSecret(t *testing.T) {
 				}
 			},
 			expectedError: false,
-			apiVersion:    "3.2",
+			apiVersion:    apiVersion32,
 			metadata: apiextensionsv1.JSON{
 				Raw: []byte(`{
 					"title": "Test File Secret v3.2",
@@ -640,7 +646,7 @@ func TestPushSecret(t *testing.T) {
 				}
 			},
 			expectedError: false,
-			apiVersion:    "3.2",
+			apiVersion:    apiVersion32,
 			metadata: apiextensionsv1.JSON{
 				Raw: []byte(`{
 					"title": "Test Text Secret v3.2",
@@ -733,7 +739,7 @@ func TestPushSecret(t *testing.T) {
 				EndpointURL:                fakeServer.URL,
 				APIVersion:                 apiVersion,
 				ClientID:                   "fake_clinet_id",
-				ClientSecret:               "fake_client_secret",
+				ClientSecret:               fakeClientSecret,
 				Logger:                     zapLogger,
 				RetryMaxElapsedTimeSeconds: 30,
 			}
@@ -744,16 +750,16 @@ func TestPushSecret(t *testing.T) {
 			p := &Provider{authenticate: *authObj}
 
 			secret := &v1.Secret{
-				Data: map[string][]byte{"password": []byte("supersecret")},
+				Data: map[string][]byte{passwordKey: []byte("supersecret")},
 			}
 
 			metadataJSON := &tt.metadata
 
 			psd := v1alpha1.PushSecretData{
 				Match: v1alpha1.PushSecretMatch{
-					SecretKey: "password",
+					SecretKey: passwordKey,
 					RemoteRef: v1alpha1.PushSecretRemoteRef{
-						RemoteKey: "test-credential",
+						RemoteKey: testCredentialKey,
 					},
 				},
 				Metadata: metadataJSON,
@@ -861,7 +867,7 @@ func TestSecretExists(t *testing.T) {
 				EndpointURL:                fakeServer.URL,
 				APIVersion:                 "3.1",
 				ClientID:                   "fake_clinet_id",
-				ClientSecret:               "fake_client_secret",
+				ClientSecret:               fakeClientSecret,
 				Logger:                     zapLogger,
 				RetryMaxElapsedTimeSeconds: 30,
 			}
@@ -872,7 +878,7 @@ func TestSecretExists(t *testing.T) {
 			p := &Provider{authenticate: *authObj}
 
 			remoteRef := v1alpha1.PushSecretRemoteRef{
-				RemoteKey: "test-credential",
+				RemoteKey: testCredentialKey,
 			}
 
 			exists, err := p.SecretExists(context.Background(), remoteRef)
@@ -903,7 +909,7 @@ func writeBody(t *testing.T, w http.ResponseWriter, body string) {
 // newOwnerFieldsMockServer returns an httptest.Server that satisfies the
 // auth + folder lookup + create-secret request flow. The body of the
 // create-secret POST is captured into *captured for assertion.
-func newOwnerFieldsMockServer(t *testing.T, secretsPath string, captured *map[string]any) *httptest.Server {
+func newOwnerFieldsMockServer(t *testing.T, secretsPath string, captured map[string]any) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -916,7 +922,7 @@ func newOwnerFieldsMockServer(t *testing.T, secretsPath string, captured *map[st
 		case secretsPath:
 			bodyBytes, err := io.ReadAll(r.Body)
 			require.NoError(t, err)
-			require.NoError(t, json.Unmarshal(bodyBytes, captured))
+			require.NoError(t, json.Unmarshal(bodyBytes, &captured))
 			writeBody(t, w, `{"Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "Secret Title"}`)
 		default:
 			http.Error(w, "not found", http.StatusNotFound)
@@ -947,7 +953,7 @@ func newAuthenticatedProvider(t *testing.T, serverURL, apiVersion string) *Provi
 		EndpointURL:                serverURL,
 		APIVersion:                 apiVersion,
 		ClientID:                   "fake_client_id",
-		ClientSecret:               "fake_client_secret",
+		ClientSecret:               fakeClientSecret,
 		Logger:                     zapLogger,
 		RetryMaxElapsedTimeSeconds: 30,
 	})
@@ -958,7 +964,7 @@ func newAuthenticatedProvider(t *testing.T, serverURL, apiVersion string) *Provi
 
 func ownerFieldsMetadata(secretType string) apiextensionsv1.JSON {
 	return apiextensionsv1.JSON{
-		Raw: []byte(fmt.Sprintf(`{
+		Raw: fmt.Appendf(nil, `{
 			"title": "Owner Fields Test",
 			"username": "admin",
 			"secret_type": %q,
@@ -966,7 +972,7 @@ func ownerFieldsMetadata(secretType string) apiextensionsv1.JSON {
 			"owner_type": "User",
 			"owner_id": 7,
 			"group_id": 42
-		}`, secretType)),
+		}`, secretType),
 	}
 }
 
@@ -987,8 +993,8 @@ func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
 		{
 			name:        "v3.0 propagates OwnersByOwnerId and top-level OwnerId/OwnerType for CREDENTIAL",
 			apiVersion:  "3.0",
-			secretType:  "CREDENTIAL",
-			secretsPath: "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets",
+			secretType:  secretTypeCredential,
+			secretsPath: folderSecretsPath,
 			assertBody: func(t *testing.T, body map[string]any) {
 				assert.Equal(t, float64(7), body["OwnerId"], "top-level OwnerId should come from metadata.owner_id")
 				assert.Equal(t, "User", body["OwnerType"], "top-level OwnerType should come from metadata.owner_type")
@@ -1003,9 +1009,9 @@ func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
 		},
 		{
 			name:        "v3.2 propagates OwnersByGroupId for CREDENTIAL",
-			apiVersion:  "3.2",
-			secretType:  "CREDENTIAL",
-			secretsPath: "/secrets-safe/folders/cb871861-8b40-4556-820c-1ca6d522adfa/secrets",
+			apiVersion:  apiVersion32,
+			secretType:  secretTypeCredential,
+			secretsPath: folderSecretsPath,
 			assertBody: func(t *testing.T, body map[string]any) {
 				_, hasOwnerId := body["OwnerId"]
 				_, hasOwnerType := body["OwnerType"]
@@ -1025,8 +1031,8 @@ func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var capturedBody map[string]any
-			fakeServer := newOwnerFieldsMockServer(t, tt.secretsPath, &capturedBody)
+			capturedBody := make(map[string]any)
+			fakeServer := newOwnerFieldsMockServer(t, tt.secretsPath, capturedBody)
 			defer fakeServer.Close()
 
 			p := newAuthenticatedProvider(t, fakeServer.URL, tt.apiVersion)
@@ -1034,12 +1040,12 @@ func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
 
 			psd := v1alpha1.PushSecretData{
 				Match: v1alpha1.PushSecretMatch{
-					SecretKey: "password",
-					RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "test-credential"},
+					SecretKey: passwordKey,
+					RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: testCredentialKey},
 				},
 				Metadata: &metadata,
 			}
-			secret := &v1.Secret{Data: map[string][]byte{"password": []byte("supersecret")}}
+			secret := &v1.Secret{Data: map[string][]byte{passwordKey: []byte("supersecret")}}
 
 			require.NoError(t, p.PushSecret(context.Background(), secret, psd))
 			require.NotNil(t, capturedBody, "create-secret endpoint was never hit")

@@ -63,6 +63,7 @@ const (
 	ownerTypeFieldName   = "owner_type"
 	secretTypeFieldName  = "secret_type"
 	secretTypeCredential = "CREDENTIAL"
+	secretTypeSecret     = "SECRET"
 )
 
 var (
@@ -340,7 +341,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	managedAccountType := !strings.EqualFold(p.retrievaltype, "SECRET")
+	managedAccountType := !strings.EqualFold(p.retrievaltype, secretTypeSecret)
 
 	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
 
@@ -523,7 +524,7 @@ func (p *Provider) CreateSecret(secret string, data map[string]any, signAppinRes
 	// selects Config30/Config31 from p.authenticate.ApiVersion internally.
 	var secretInput any
 	switch strings.ToUpper(secretType) {
-	case "CREDENTIAL":
+	case secretTypeCredential:
 		secretInput = entities.SecretCredentialInput{
 			SecretDetailsBaseConfig: secretDetailsConfig,
 			Username:                username,
