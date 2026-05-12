@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 
 	infisical "github.com/infisical/go-sdk"
@@ -53,27 +54,28 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	return []byte(result.Str), nil
 }
 
-// getSecretAddress returns the path and key from the given key.
+// getSecretAddress returns the (folder, name) pair to look up in Infisical for the given key.
 //
-// Users can configure a root path, and when a SecretKey is provided with a slash we assume that it is
-// within a path appended to the root path.
-//
-// If the key is not addressing a path at all (i.e. has no `/`), simply return the original
-// path and key.
+// Resolution rules:
+//   - No slash in key: treat key as a bare secret name in defaultPath.
+//     ("foo" + defaultPath="/scope")            -> ("/scope", "foo")
+//   - Key starts with `/`: treat key as an absolute path; defaultPath is ignored.
+//     ("/a/b/foo" + defaultPath="/scope")       -> ("/a/b", "foo")
+//   - Otherwise (slash present, no leading `/`): treat key as a folder path relative to defaultPath.
+//     ("sub/foo" + defaultPath="/scope")        -> ("/scope/sub", "foo")
 func getSecretAddress(defaultPath, key string) (string, string, error) {
 	if !strings.Contains(key, "/") {
 		return defaultPath, key, nil
 	}
 
-	// Check if `key` starts with a `/`, and throw and error if it does not.
-	if !strings.HasPrefix(key, "/") {
-		return "", "", fmt.Errorf("a secret key referencing a folder must start with a '/' as it is an absolute path, key: %s", key)
+	lastIndex := strings.LastIndex(key, "/")
+	folder, name := key[:lastIndex], key[lastIndex+1:]
+
+	if strings.HasPrefix(key, "/") {
+		return folder, name, nil
 	}
 
-	// Otherwise, take the prefix from `key` and use that as the path. We intentionally discard
-	// `defaultPath`.
-	lastIndex := strings.LastIndex(key, "/")
-	return key[:lastIndex], key[lastIndex+1:], nil
+	return path.Join(defaultPath, folder), name, nil
 }
 
 // GetSecret retrieves a secret value from Infisical.

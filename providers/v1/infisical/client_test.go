@@ -56,9 +56,24 @@ func TestGetSecretAddress(t *testing.T) {
 		assert.Equal(t, "baz", key, "baz")
 	})
 
-	t.Run("fails when the key is a folder but does not begin with a slash", func(t *testing.T) {
-		_, _, err := getSecretAddress("/", "bar/baz")
-		assert.Error(t, err)
-		assert.Equal(t, err.Error(), "a secret key referencing a folder must start with a '/' as it is an absolute path, key: bar/baz")
+	t.Run("relative key joins onto the default path", func(t *testing.T) {
+		path, key, err := getSecretAddress("/secrets/mysql-core", "azure/admin-users")
+		assert.NoError(t, err)
+		assert.Equal(t, "/secrets/mysql-core/azure", path)
+		assert.Equal(t, "admin-users", key)
+	})
+
+	t.Run("relative key with default root path", func(t *testing.T) {
+		path, key, err := getSecretAddress("/", "azure/admin-users")
+		assert.NoError(t, err)
+		assert.Equal(t, "/azure", path)
+		assert.Equal(t, "admin-users", key)
+	})
+
+	t.Run("relative key with nested folders", func(t *testing.T) {
+		path, key, err := getSecretAddress("/scope", "a/b/c/name")
+		assert.NoError(t, err)
+		assert.Equal(t, "/scope/a/b/c", path)
+		assert.Equal(t, "name", key)
 	})
 }
