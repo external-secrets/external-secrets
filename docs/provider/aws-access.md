@@ -206,15 +206,15 @@ The behavior is controlled by setting the optional `spec.provider.aws.sessionTag
 | `Simple` | Automatically adds `esoNamespace`, `esoStoreName`, and `esoStoreKind` tags. |
 | `Custom` | Adds the same three built-in tags plus any additional tags defined in `customSessionTags`. |
 
-The automatically added tags map to the `SecretStore` (or `ClusterSecretStore`) that is used to establish the AWS session:
+The automatically added tags are derived from the store configuration and the namespace of the ExternalSecret:
 
 | Tag            | Value |
 | -------------- | ----- |
-| `esoNamespace` | The namespace of the SecretStore. |
-| `esoStoreName` | The name of the SecretStore. |
-| `esoStoreKind` | The kind of the store (e.g., `SecretStore` or `ClusterSecretStore`). |
+| `esoNamespace` | The namespace of the `ExternalSecret` making the request. |
+| `esoStoreName` | The name of the `SecretStore` or `ClusterSecretStore`. |
+| `esoStoreKind` | The kind of the store (`SecretStore` or `ClusterSecretStore`). |
 
-Session tags are configured per secret store and are not shared or propagated. This means, in the case of using `spec.dataFrom[].sourceRef.storeRef` to reference secrets from multiple different stores, each store would need to be configured with the desired `sessionTagsPolicy` independently.
+Session tags are configured per secret store. If using `spec.dataFrom[].sourceRef.storeRef` to reference secrets from multiple different stores, each store must be configured with the desired `sessionTagsPolicy` independently. Although the session tags for each secret will have the name and kind of the specified secret store, they'll all share the same namespace which comes from the ExternalSecret.
 
 ### Simple Policy
 
