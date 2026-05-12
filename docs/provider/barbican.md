@@ -204,6 +204,7 @@ If a secret cannot be found:
 ### Network Connectivity
 
 Ensure your Kubernetes cluster can reach:
+
 - The OpenStack Keystone endpoint (for authentication)
 - The Barbican service endpoint (for secret retrieval)
 

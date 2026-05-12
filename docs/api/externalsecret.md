@@ -18,6 +18,7 @@ You can control how and when the `ExternalSecret` is refreshed by setting the `s
 ### CreatedOnce
 
 With `refreshPolicy: CreatedOnce`, the controller will:
+
 - Create the `Kind=Secret` only if it does not exist yet
 - Never update the `Kind=Secret` afterwards if the source data changes
 - Update/ Recreate the `Kind=Secret` if it gets changed/Deleted
@@ -37,6 +38,7 @@ spec:
 ### Periodic
 
 With `refreshPolicy: Periodic` (the default behavior), the controller will:
+
 - Create the `Kind=Secret` if it doesn't exist
 - Update the `Kind=Secret` regularly based on the `spec.refreshInterval` duration
 - When `spec.refreshInterval` is set to zero, it will only create the secret once and not update it afterward
@@ -57,6 +59,7 @@ spec:
 ### OnChange
 
 With `refreshPolicy: OnChange`, the controller will:
+
 - Create the `Kind=Secret` if it doesn't exist
 - Update the `Kind=Secret` only when the `ExternalSecret`'s metadata or specification changes
 - This policy is independent of the `refreshInterval` value
