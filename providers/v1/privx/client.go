@@ -125,7 +125,7 @@ func (c *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, d
 
 	secretKey := data.GetSecretKey()
 	secretValue := secret.Data[secretKey]
-	m := &map[string]interface{}{secretKey: secretValue}
+	m := &map[string]interface{}{secretKey: string(secretValue)}
 
 	request := vault.SecretRequest{
 		Name:       name,

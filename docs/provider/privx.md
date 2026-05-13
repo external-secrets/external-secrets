@@ -58,6 +58,12 @@ Set the build to include only the PrivX provider (optional, reduces binary size)
 sed -i 's/PROVIDER ?= all_providers/PROVIDER ?= privx/' Makefile
 ```
 
+Tidy Go modules:
+
+```bash
+go mod tidy
+```
+
 Build the binary and Docker image:
 
 ```bash
@@ -73,6 +79,12 @@ docker image tag localhost/external-secrets:latest ghcr.io/external-secrets/exte
 
 ### Deploy to Kubernetes
 
+If using containerd as the container runtime, load the image into containerd's store (podman and containerd use separate image stores):
+
+```bash
+podman save ghcr.io/external-secrets/external-secrets:v2.1.0 | sudo ctr -n k8s.io images import -
+```
+
 Apply the CRDs using server-side apply (required for large CRDs):
 
 ```bash
@@ -80,12 +92,6 @@ kubectl apply --server-side --force-conflicts -f config/crds/bases/
 ```
 
 Ignore the `kustomization.yaml` error — it is not a Kubernetes resource.
-
-If using containerd as the container runtime, load the image into containerd's store (podman and containerd use separate image stores):
-
-```bash
-podman save ghcr.io/external-secrets/external-secrets:v2.1.0 | sudo ctr -n k8s.io images import -
-```
 
 Install with Helm (skip CRD install since they were applied above):
 
@@ -98,7 +104,9 @@ helm install external-secrets . \
   --set installCRDs=false
 ```
 
-### Create the connection credentials (this example uses OAuth):
+### Create the connection credentials
+
+This example uses OAuth:
 
 ```bash
 kubectl create secret generic privx-secret \
@@ -110,7 +118,9 @@ kubectl create secret generic privx-secret \
 
 ## Usage example
 
-### Create a SecretStore with a PrivX backend. Enter following with `kubectl apply -f`
+### Create a SecretStore with a PrivX backend
+
+Enter the following with `kubectl apply -f`:
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -121,8 +131,20 @@ spec:
   provider:
     privx:
       host: <privx host url>
-      defaultReadRoles: [<default_read_role>]
-      defaultWriteRoles: [<default_write_role>]
+      # defaultReadRoles and defaultWriteRoles require PrivX role UUIDs, not role names.
+      # Example with role names (will NOT work):
+      #   defaultReadRoles: ["privx-admin", "terraform-provider"]
+      #   defaultWriteRoles: ["privx-admin", "terraform-provider"]
+      defaultReadRoles:
+        [
+          "d0f6418b-728b-4ffc-8b9e-4f01ba1e659b",
+          "bcd9dd57-abce-5e6c-6e12-1c988e1d7bc9",
+        ]
+      defaultWriteRoles:
+        [
+          "d0f6418b-728b-4ffc-8b9e-4f01ba1e659b",
+          "bcd9dd57-abce-5e6c-6e12-1c988e1d7bc9",
+        ]
       auth:
         oauth:
           clientIDRef:
@@ -165,7 +187,7 @@ Note that the *OAuth user* must have a *role* in PrivX that is listed in the *re
 
 ### Verify
 
-Create the secret credentials, SecretStore, and ExternalSecret as described in the [Usage example](#usage-example) below, then verify:
+Create the secret credentials, SecretStore, and ExternalSecret as described in the [Usage example](#usage-example) above, then verify:
 
 ```bash
 kubectl get externalsecret
@@ -175,10 +197,11 @@ kubectl get secret privx-test-secret -o jsonpath='{.data.test_value}' | base64 -
 
 ### Fetching Multiple Secrets
 
-The PrivX provider supports dataFrom.find.
+The PrivX provider supports `dataFrom.find`.
+
+Find by name (RegExp):
 
 ```yaml
-Find by Name (RegExp)
 dataFrom:
 - find:
     name:
@@ -210,3 +233,39 @@ spec:
         remoteKey: my-app-secret
         property: password
 ```
+
+## Deletion Policy
+
+When a PushSecret resource is deleted from Kubernetes, the corresponding secret in PrivX Vault is **not** deleted by default. This means removing the PushSecret or the source Kubernetes Secret will leave the secret in PrivX, potentially resulting in orphaned secrets.
+
+This behavior is controlled by the `deletionPolicy` parameter:
+
+| Value | Behavior |
+|---|---|
+| `None` (default) | Secret is **not** deleted from PrivX when the PushSecret resource is removed from Kubernetes. |
+| `Delete` | Secret **is** deleted from PrivX when the PushSecret resource is removed from Kubernetes. |
+
+Example with `deletionPolicy: Delete`:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-to-privx
+spec:
+  deletionPolicy: Delete
+  secretStoreRefs:
+    - name: secretstore-privx
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-local-secret
+  data:
+    - match:
+        secretKey: password
+        remoteRef:
+          remoteKey: my-app-secret
+          property: password
+```
+
+> **Note:** For deletion to succeed, the PrivX API user's role must have **writer** access on the target secret in PrivX Vault.

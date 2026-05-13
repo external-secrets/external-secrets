@@ -220,6 +220,35 @@ func TestSecretsClientPushSecret(t *testing.T) {
 			},
 			wantErr: ErrNotImplemented,
 		},
+		// Validates: Requirements 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4
+		"value is plaintext not base64": {
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "local"},
+				Data:       map[string][]byte{"password": []byte("my-password")},
+			},
+			data: &fakePushSecretData{
+				secretKey: "password",
+				remoteKey: "remote-name",
+			},
+			fake: &fakeVaultClient{
+				createSecretFn: func(req *vault.SecretRequest) (vault.SecretCreate, error) {
+					data := *req.Data
+					val := data["password"]
+
+					// Must be string type, not []byte
+					strVal, ok := val.(string)
+					assert.True(t, ok, "expected string, got %T", val)
+
+					// Must be plaintext
+					assert.Equal(t, "my-password", strVal)
+
+					// Must NOT be base64
+					assert.NotEqual(t, "bXktcGFzc3dvcmQ=", strVal)
+
+					return vault.SecretCreate{}, nil
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {
