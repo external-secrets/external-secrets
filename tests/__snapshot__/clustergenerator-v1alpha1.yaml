@@ -87,6 +87,7 @@ spec:
             name: string
             namespace: string
           externalTokenEndpoint: string
+          gcpServiceAccountEmail: "my-gsa@my-project.iam.gserviceaccount.com"
           serviceAccountRef:
             audiences: [] # minItems 0 of type string
             name: string
