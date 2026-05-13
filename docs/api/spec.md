@@ -5772,6 +5772,22 @@ credential_source.url in the provided credConfig. This field is merely to double
 URL is having the expected value.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>gcpServiceAccountEmail</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+after Workload Identity Federation. Use this to grant access through the service account&rsquo;s
+IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+service_account_impersonation_url in the external account JSON from credConfig;
+when serviceAccountRef is set, it also overrides the &ldquo;iam.gke.io/gcp-service-account&rdquo; annotation
+on that ServiceAccount.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GcpIDTokenAuthCredentials">GcpIDTokenAuthCredentials
