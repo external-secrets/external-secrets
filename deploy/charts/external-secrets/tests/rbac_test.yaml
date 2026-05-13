@@ -125,3 +125,47 @@ tests:
             - "serviceaccounts/token"
             verbs:
             - "create"
+
+  - it: should include externalsecrets create/update/delete when processClusterExternalSecret is true
+    set:
+      processClusterExternalSecret: true
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+            - "external-secrets.io"
+            resources:
+            - "externalsecrets"
+            verbs:
+            - "create"
+            - "update"
+            - "delete"
+
+  - it: should not include externalsecrets create/update/delete when processClusterExternalSecret is false
+    set:
+      processClusterExternalSecret: false
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - notContains:
+          path: rules
+          content:
+            apiGroups:
+            - "external-secrets.io"
+            resources:
+            - "externalsecrets"
+            verbs:
+            - "create"
+            - "update"
+            - "delete"
