@@ -63,6 +63,7 @@ const (
 	ownerTypeFieldName   = "owner_type"
 	secretTypeFieldName  = "secret_type"
 	secretTypeCredential = "CREDENTIAL"
+	secretTypeSecret     = "SECRET"
 )
 
 var (
@@ -340,7 +341,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	managedAccountType := !strings.EqualFold(p.retrievaltype, "SECRET")
+	managedAccountType := !strings.EqualFold(p.retrievaltype, secretTypeSecret)
 
 	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
 
@@ -519,86 +520,47 @@ func (p *Provider) CreateSecret(secret string, data map[string]any, signAppinRes
 		Notes:       notes,
 	}
 
-	var configMap map[string]any
+	// Build a version-neutral input per secret type; CreateSecretFlow
+	// selects Config30/Config31 from p.authenticate.ApiVersion internally.
+	var secretInput any
 	switch strings.ToUpper(secretType) {
-	case "CREDENTIAL":
-
-		secretCredentialDetailsConfig30 := entities.SecretCredentialDetailsConfig30{
+	case secretTypeCredential:
+		secretInput = entities.SecretCredentialInput{
 			SecretDetailsBaseConfig: secretDetailsConfig,
 			Username:                username,
 			Password:                secret,
 			OwnerId:                 ownerID,
 			OwnerType:               ownerType,
-			Owners:                  ownerDetailsOwnerID,
-		}
-
-		secretCredentialDetailsConfig31 := entities.SecretCredentialDetailsConfig31{
-			SecretDetailsBaseConfig: secretDetailsConfig,
-			Username:                username,
-			Password:                secret,
-			Owners:                  ownerDetailsGroupID,
-		}
-
-		configMap = map[string]any{
-			"3.0": secretCredentialDetailsConfig30,
-			"3.1": secretCredentialDetailsConfig31,
+			OwnersByOwnerId:         ownerDetailsOwnerID,
+			OwnersByGroupId:         ownerDetailsGroupID,
 		}
 
 	case "FILE":
-
-		secretFileDetailsConfig30 := entities.SecretFileDetailsConfig30{
+		secretInput = entities.SecretFileInput{
 			SecretDetailsBaseConfig: secretDetailsConfig,
-			FileContent:             secret,
 			FileName:                fileName,
+			FileContent:             secret,
 			OwnerId:                 ownerID,
 			OwnerType:               ownerType,
-			Owners:                  ownerDetailsOwnerID,
-		}
-
-		secretFileDetailsConfig31 := entities.SecretFileDetailsConfig31{
-			SecretDetailsBaseConfig: secretDetailsConfig,
-			FileContent:             secret,
-			FileName:                fileName,
-			Owners:                  ownerDetailsGroupID,
-		}
-
-		configMap = map[string]any{
-			"3.0": secretFileDetailsConfig30,
-			"3.1": secretFileDetailsConfig31,
+			OwnersByOwnerId:         ownerDetailsOwnerID,
+			OwnersByGroupId:         ownerDetailsGroupID,
 		}
 
 	case "TEXT":
-
-		secretTextDetailsConfig30 := entities.SecretTextDetailsConfig30{
+		secretInput = entities.SecretTextInput{
 			SecretDetailsBaseConfig: secretDetailsConfig,
 			Text:                    secret,
 			OwnerId:                 ownerID,
 			OwnerType:               ownerType,
-			Owners:                  ownerDetailsOwnerID,
-		}
-
-		secretTextDetailsConfig31 := entities.SecretTextDetailsConfig31{
-			SecretDetailsBaseConfig: secretDetailsConfig,
-			Text:                    secret,
-			Owners:                  ownerDetailsGroupID,
-		}
-
-		configMap = map[string]any{
-			"3.0": secretTextDetailsConfig30,
-			"3.1": secretTextDetailsConfig31,
+			OwnersByOwnerId:         ownerDetailsOwnerID,
+			OwnersByGroupId:         ownerDetailsGroupID,
 		}
 
 	default:
 		return fmt.Errorf("Unknown secret type")
 	}
 
-	secretDetails, exists := configMap[p.authenticate.ApiVersion]
-
-	if !exists {
-		return fmt.Errorf("unsupported API version: %v", &p.authenticate.ApiVersion)
-	}
-
-	_, err = secretObj.CreateSecretFlow(folderName, secretDetails)
+	_, err = secretObj.CreateSecretFlow(folderName, secretInput)
 
 	if err != nil {
 		return err

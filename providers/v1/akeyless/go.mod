@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/akeyless
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.7

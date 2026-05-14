@@ -108,8 +108,8 @@ extendedMetricLabels: false
 # provided namespace
 scopedNamespace: ""
 
-# -- Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace
-# and implicitly disable cluster stores and cluster external secrets
+# -- If true, create scoped RBAC roles and implicitly disable cluster-scoped
+# controllers. Scoped to scopedNamespace if set, otherwise to .Release.Namespace.
 scopedRBAC: false
 
 # -- If true the OpenShift finalizer permissions will be added to RBAC

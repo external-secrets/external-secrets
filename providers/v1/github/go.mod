@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/github
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.17.0

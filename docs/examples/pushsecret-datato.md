@@ -58,6 +58,7 @@ spec:
 ```
 
 **Result in AWS Secrets Manager:**
+
 - `myapp/production/database/host`
 - `myapp/production/database/port`
 - `myapp/production/database/username`
@@ -195,6 +196,7 @@ spec:
 ```
 
 **Result:**
+
 - `config/database/host`
 - `config/database/password`
 - `config/api/github-token`
@@ -244,6 +246,7 @@ spec:
 {% endraw %}
 
 **Result:**
+
 - `services/PAYMENT_GATEWAY_KEY`
 - `services/EMAIL_SERVICE_KEY`
 - `services/STORAGE_SERVICE_KEY`
@@ -298,6 +301,7 @@ spec:
 ```
 
 **Result:**
+
 - `migrated/db/primary/host`
 - `migrated/db/replica/host`
 - `migrated/cache/redis/url`
@@ -355,6 +359,7 @@ spec:
 ```
 
 **Result:**
+
 - `app/database/host` (from dataTo)
 - `app/database/port` (from dataTo)
 - `app/database/user` (from dataTo)
@@ -451,6 +456,7 @@ spec:
 ```
 
 **Result:**
+
 - `services/a/api-key`
 - `services/b/api-key`
 - `shared/secret`
@@ -552,14 +558,17 @@ kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.status.syncedPushSec
 ### Common Issues
 
 **1. No keys matched:**
+
 - Verify the source Secret has keys matching your pattern
 - Check regexp syntax: `kubectl get secret <name> -o jsonpath='{.data}' | jq 'keys'`
 
 **2. Invalid regexp error:**
+
 - Validate your regexp using an online regexp tester
 - Ensure special characters are properly escaped
 
 **3. Duplicate remote keys:**
+
 - Check if your rewrites produce unique keys
 - Adjust patterns or use explicit data overrides
 
