@@ -81,7 +81,7 @@ func (c *Client) fetchToken(ctx context.Context) (*vaultwardenTokenResponse, err
 	form.Set("client_id", clientID)
 	form.Set("client_secret", clientSecret)
 	form.Set("scope", "api")
-	form.Set("DeviceIdentifier", uuid.New().String())
+	form.Set("DeviceIdentifier", uuid.NewSHA1(uuid.NameSpaceURL, []byte(c.namespace+"/"+c.store.GetName())).String())
 	form.Set("DeviceType", "21")
 	form.Set("DeviceName", "eso-provider")
 
